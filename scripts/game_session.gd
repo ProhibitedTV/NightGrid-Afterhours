@@ -45,13 +45,16 @@ func is_valid_snapshot(value: Variant) -> bool:
 	return true
 
 func save_snapshot(state: Dictionary) -> bool:
+	return save_snapshot_to(state, SAVE_PATH)
+
+func save_snapshot_to(state: Dictionary, path: String) -> bool:
 	var snapshot := make_snapshot(state)
 	if not is_valid_snapshot(snapshot):
 		return false
-	var directory := ProjectSettings.globalize_path("user://saves")
+	var directory := ProjectSettings.globalize_path(path.get_base_dir())
 	if DirAccess.make_dir_recursive_absolute(directory) != OK:
 		return false
-	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
 		return false
 	file.store_string(JSON.stringify(snapshot, "  "))
@@ -59,9 +62,12 @@ func save_snapshot(state: Dictionary) -> bool:
 	return file.get_error() == OK
 
 func read_snapshot() -> Dictionary:
-	if not FileAccess.file_exists(SAVE_PATH):
+	return read_snapshot_from(SAVE_PATH)
+
+func read_snapshot_from(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path):
 		return {}
-	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
 		return {}
 	var decoded = JSON.parse_string(file.get_as_text())

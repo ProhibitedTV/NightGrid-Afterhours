@@ -19,10 +19,10 @@ func initialize(world_seed: int, controller: Node) -> void:
 	_spawn_loop("inner", inner, 6)
 	_spawn_loop("core", core, 4)
 	_stops = [
-		Vector3(-58.0, 1.75, -112.75), Vector3(58.0, 1.75, -112.75),
-		Vector3(112.75, 1.75, -58.0), Vector3(112.75, 1.75, 58.0),
-		Vector3(58.0, 1.75, 112.75), Vector3(-58.0, 1.75, 112.75),
-		Vector3(-112.75, 1.75, 58.0), Vector3(-112.75, 1.75, -58.0)
+		Vector3(-41.0, 1.75, -112.75), Vector3(75.0, 1.75, -112.75),
+		Vector3(112.75, 1.75, -41.0), Vector3(112.75, 1.75, 75.0),
+		Vector3(41.0, 1.75, 112.75), Vector3(-75.0, 1.75, 112.75),
+		Vector3(-112.75, 1.75, 41.0), Vector3(-112.75, 1.75, -75.0)
 	]
 	var bus_route := loop_route(-116.0, 116.0, -116.0, 116.0, 1.75)
 	for bus_index in range(2):
@@ -129,8 +129,8 @@ func get_counts() -> Dictionary:
 		"stops": _stops.size(), "signals": 49}
 
 func _build_bus_stops() -> void:
-	var directions := [Vector3.FORWARD, Vector3.FORWARD, Vector3.RIGHT, Vector3.RIGHT,
-		Vector3.BACK, Vector3.BACK, Vector3.LEFT, Vector3.LEFT]
+	var directions := [Vector3.RIGHT, Vector3.RIGHT, Vector3.BACK, Vector3.BACK,
+		Vector3.LEFT, Vector3.LEFT, Vector3.FORWARD, Vector3.FORWARD]
 	for i in range(_stops.size()):
 		# A bus runs clockwise: right hand door faces the nearest sidewalk.
 		var right_side := Vector3(-directions[i].z, 0.0, directions[i].x)
