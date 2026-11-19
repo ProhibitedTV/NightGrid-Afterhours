@@ -437,7 +437,7 @@ func _update_hud() -> void:
 	var mission := "DELIVER PACKAGE" if carrying else "PICK UP PACKAGE"
 	var distance := roundi(_actor().global_position.distance_to(mission_position))
 	var message := notification if notification_time > 0.0 else ""
-	hud_label.text = "NIGHTGRID / AFTERHOURS    MORROW BAY\\n%s | %s\\n$%d | HEALTH %d | HEAT %s\\n%s | DELIVERIES %d\\nOBJECTIVE: %s (%dm)\\n%s\\n\\nWASD Move/Drive | E Car | Shift Sprint | Space Jump/Brake\\nT Advance Time | Y Pause Clock | Esc Cursor" % [local_name, clock, cash, ceili(health), wanted_text, vehicle_text, deliveries, mission, distance, message]
+	hud_label.text = "NIGHTGRID / AFTERHOURS    MORROW BAY\n%s | %s\n$%d | HEALTH %d | HEAT %s\n%s | DELIVERIES %d\nOBJECTIVE: %s (%dm)\n%s\n\nWASD Move/Drive | E Car | Shift Sprint | Space Jump/Brake\nT Advance Time | Y Pause Clock | Esc Cursor" % [local_name, clock, cash, ceili(health), wanted_text, vehicle_text, deliveries, mission, distance, message]
 
 func get_map_state() -> Dictionary:
 	var car_positions: Array[Vector2] = []
