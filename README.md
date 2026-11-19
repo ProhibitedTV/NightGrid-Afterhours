@@ -21,6 +21,18 @@
 | Y | Pause/resume time (debug) |
 | F3 | Toggle local FPS/frame-time overlay for RTX 3060 tuning |
 | F4 | Toggle screen-space reflections for performance comparisons |
+| F | Board/alight a stopped bus or M-Line train at marked stops |
+| F5 | Save current world to slot 1 |
+| F6 | New Game (new world seed; does not overwrite saved slot) |
+| F9 | Reload saved world seed and player/traffic state |
+
+### City transport and persistent worlds
+
+- **Morrow Bay City Loop:** two low-poly buses, eight far-side curb stops, player boarding and alighting with **F**.
+- **M-Line:** moving two-car elevated train, three fixed stations and marked street-level entrances.
+- **Traffic:** 17 NPC cars follow right-hand lanes, traffic signals with yellow/all-red clearance, speed limits and basic safe following distance.
+- **New Game seeds:** roads, landmarks and transit remain authored; procedural detailing uses a saved seed. **F5** saves seed + player/world state, **F9** restores, and **F6** creates a fresh seeded world without overwriting the previous save.
+- Full infrastructure design and limitations: [Transport network](docs/TRANSPORT.md).
 
 ### Included in the first vertical slice
 
@@ -39,7 +51,7 @@
 
 ### Known limits
 
-**Prototype, not a finished release:** this has not been manually tested in a Godot editor on a gaming PC. CI runs file checks, a Godot 4.3 import, and city composition assertions and a short headless smoke test, but gameplay feel needs hands-on review. There are no civilian traffic AI, pedestrians, complex missions, interiors, multiplayer, audio or saves yet. Driving uses an arcade `CharacterBody3D` instead of suspension/tire physics.
+**Prototype, not a finished release:** this has not been manually tested in a Godot editor on a gaming PC. CI runs file checks, a Godot 4.3 import, and city composition assertions and a short headless smoke test, but gameplay feel needs hands-on review. There are now basic lane-following NPC traffic, a single save slot and public transit, but no pedestrians, complex missions, interiors, multiplayer or audio yet. Driving uses an arcade `CharacterBody3D` instead of suspension/tire physics.
 
 Godot now uses the **Forward+ Vulkan renderer** for SSR and glow (with F4 reflection toggle), **not DirectX**. This was chosen for rapid iteration on Windows/Linux. A native DirectX engine is possible later if justified by a clear requirement.
 
@@ -62,6 +74,7 @@ godot --headless --path . --import --quit
 godot --headless --path . --script res://tests/city_smoke.gd
 godot --headless --path . --script res://tests/world_systems_smoke.gd
 godot --headless --path . --script res://tests/render_smoke.gd
+godot --headless --path . --script res://tests/transport_smoke.gd
 godot --headless --path . --quit-after 90
 ```
 

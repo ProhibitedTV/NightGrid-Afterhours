@@ -33,5 +33,7 @@ jobs:
         run: godot --headless --path . --script res://tests/world_systems_smoke.gd
       - name: Validate fixed lots and lighting/material policies
         run: godot --headless --path . --script res://tests/render_smoke.gd
+      - name: Validate signals, transit boarding and persistent save seeds
+        run: godot --headless --path . --script res://tests/transport_smoke.gd
       - name: Run smoke test for 90 frames
         run: godot --headless --path . --quit-after 90
