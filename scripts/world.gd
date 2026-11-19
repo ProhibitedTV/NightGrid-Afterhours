@@ -32,6 +32,8 @@ var camera: Camera3D
 var marker: Node3D
 var marker_light: OmniLight3D
 var hud_label: Label
+var performance_label: Label
+var performance_overlay := false
 var minimap: Control
 var city_details: Node3D
 var flora: Node3D
@@ -79,6 +81,9 @@ func _input(event: InputEvent) -> void:
 				day_night.call("advance_hour", 1.0)
 			KEY_Y:
 				day_night.call("toggle_pause")
+			KEY_F3:
+				performance_overlay = not performance_overlay
+				performance_label.visible = performance_overlay
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(player):
@@ -426,6 +431,18 @@ func _build_hud() -> void:
 	minimap.offset_bottom = 205.0
 	minimap.set("world_node", self)
 	ui.add_child(minimap)
+	performance_label = Label.new()
+	performance_label.name = "PerformanceOverlay"
+	performance_label.visible = false
+	performance_label.anchor_top = 1.0
+	performance_label.anchor_bottom = 1.0
+	performance_label.offset_left = 18.0
+	performance_label.offset_right = 420.0
+	performance_label.offset_top = -48.0
+	performance_label.offset_bottom = -18.0
+	performance_label.add_theme_font_size_override("font_size", 18)
+	performance_label.add_theme_color_override("font_color", Color("b5eae4"))
+	ui.add_child(performance_label)
 
 func _update_hud() -> void:
 	var district: String = city_details.call("get_district_at", _actor().global_position)
@@ -437,6 +454,9 @@ func _update_hud() -> void:
 	var mission := "DELIVER PACKAGE" if carrying else "PICK UP PACKAGE"
 	var distance := roundi(_actor().global_position.distance_to(mission_position))
 	var message := notification if notification_time > 0.0 else ""
+	if performance_overlay:
+		var fps := maxi(Engine.get_frames_per_second(), 1)
+		performance_label.text = "RTX 3060 target: 60 FPS @1080p | Actual: %d FPS | %.1f ms" % [fps, 1000.0 / float(fps)]
 	hud_label.text = "NIGHTGRID / AFTERHOURS    MORROW BAY\n%s | %s\n$%d | HEALTH %d | HEAT %s\n%s | DELIVERIES %d\nOBJECTIVE: %s (%dm)\n%s\n\nWASD Move/Drive | E Car | Shift Sprint | Space Jump/Brake\nT Advance Time | Y Pause Clock | Esc Cursor" % [local_name, clock, cash, ceili(health), wanted_text, vehicle_text, deliveries, mission, distance, message]
 
 func get_map_state() -> Dictionary:

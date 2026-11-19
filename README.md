@@ -19,6 +19,7 @@
 | Escape | Release or capture mouse |
 | T | Advance one in-game hour (debug) |
 | Y | Pause/resume time (debug) |
+| F3 | Toggle local FPS/frame-time overlay for RTX 3060 tuning |
 
 ### Included in the first vertical slice
 

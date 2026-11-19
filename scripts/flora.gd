@@ -36,8 +36,8 @@ func generate() -> void:
 				_potted_group(center + Vector3(-14.1, 0.17, -18.5), "AQUA")
 				_potted_group(center + Vector3(14.1, 0.17, -18.5), "AQUA")
 			elif district == "BRICKWATER":
-				_wildflower_patch(center + Vector3(-17.5, 0.15, -14.6), 5)
-				_wildflower_patch(center + Vector3(17.5, 0.15, -14.6), 5)
+				_wildflower_patch(center + Vector3(-19.35, 0.15, -14.6), 5)
+				_wildflower_patch(center + Vector3(19.35, 0.15, -14.6), 5)
 			elif district == "AFTERHOURS":
 				_potted_group(center + Vector3(-14.3, 0.15, -18.4), "PURPLE")
 			else:
