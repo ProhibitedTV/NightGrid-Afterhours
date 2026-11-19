@@ -41,6 +41,10 @@ Godot uses its Compatibility renderer here, **not DirectX**. This was chosen for
 3. **0.3 — Emergent systems:** more jobs, vehicle ownership, police escalation, NPC schedules and a stronger identity.
 4. **0.4+ — Expand responsibly:** performance budgets, dense district content, accessibility, controller support and modding.
 
+## Download a Windows build
+
+On GitHub, open **Actions → Windows playtest build → latest successful run**, then download the `nightgrid-afterhours-windows-x64` artifact. Unzip and launch `NightGrid-Afterhours.exe`. The game is an alpha and may trigger Windows SmartScreen because the executable is unsigned. The workflow builds from this source; it is not a standalone release yet.
+
 ## Local checks
 
 ```bash
