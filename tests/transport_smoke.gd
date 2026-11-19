@@ -62,6 +62,25 @@ func _check() -> void:
 	if a["position"] != b["position"] or a["next_index"] != b["next_index"]:
 		_fail("Fixed network route sampling is not repeatable")
 		return
+	var world_plan = load("res://scripts/world_plan.gd")
+	var changed_profiles := 0
+	for key in world_plan.VARIANT_PARCELS:
+		var coordinates: PackedStringArray = str(key).split(",")
+		var bx := int(coordinates[0])
+		var bz := int(coordinates[1])
+		for side in range(2):
+			if world_plan.lot_profile(bx, bz, side, 1001) != world_plan.lot_profile(bx, bz, side, 1002):
+				changed_profiles += 1
+	if changed_profiles < 8:
+		_fail("New-game seed did not select curated alternate building profiles")
+		return
+	for key in world_plan.LANDMARK_BLOCKS:
+		var coordinates: PackedStringArray = str(key).split(",")
+		var bx := int(coordinates[0])
+		var bz := int(coordinates[1])
+		if world_plan.lot_variant_index(bx, bz, 1002) != 0:
+			_fail("Story landmark geometry must not vary by seed")
+			return
 	var player: CharacterBody3D = world.get("player")
 	player.global_position = rail.call("station_entrance", 0)
 	if not rail.call("boardable_from", player.global_position):

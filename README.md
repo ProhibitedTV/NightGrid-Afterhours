@@ -31,7 +31,7 @@
 - **Morrow Bay City Loop:** two low-poly buses, eight far-side curb stops, player boarding and alighting with **F**.
 - **M-Line:** moving two-car elevated train, three fixed stations and marked street-level entrances.
 - **Traffic:** 17 NPC cars follow right-hand lanes, traffic signals with yellow/all-red clearance, speed limits and basic safe following distance.
-- **New Game seeds:** roads, landmarks and transit remain authored; procedural detailing uses a saved seed. **F5** saves seed + player/world state, **F9** restores, and **F6** creates a fresh seeded world without overwriting the previous save.
+- **New Game seeds:** roads, landmarks and transit remain authored; eight curated alternative building parcels, decorative details and flora use the saved seed. **F5** saves seed + player/world state, **F9** restores, and **F6** creates a fresh seeded world without overwriting the previous save.
 - Full infrastructure design and limitations: [Transport network](docs/TRANSPORT.md).
 
 ### Included in the first vertical slice

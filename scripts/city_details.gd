@@ -29,7 +29,7 @@ const DARK_GLASS = Color("1d3449")
 var _rng := RandomNumberGenerator.new()
 var _batches: Dictionary = {}
 var _palette: Dictionary = {}
-var _statistics := {"buildings": 0, "storefronts": 0, "street_props": 0, "batched_details": 0, "districts": 4, "landmarks": 0, "authored_lots": 0}
+var _statistics := {"buildings": 0, "storefronts": 0, "street_props": 0, "batched_details": 0, "districts": 4, "landmarks": 0, "authored_lots": 0, "variant_lots": 0}
 var _initialized := false
 var world_seed: int = 834726
 
@@ -191,7 +191,9 @@ func _build_block(ix: int, iz: int) -> void:
 		return
 	for building in range(2):
 		var x := center.x + (-10.5 if building == 0 else 10.5)
-		var profile: Dictionary = WorldPlan.lot_profile(ix, iz, building)
+		var profile: Dictionary = WorldPlan.lot_profile(ix, iz, building, world_seed)
+		if WorldPlan.lot_variant_index(ix, iz, world_seed) > 0:
+			_statistics["variant_lots"] += 1
 		var z: float = center.z + profile["offset_z"]
 		_build_building(Vector3(x, 0.0, z), profile, district, ix, iz, building)
 		_statistics["authored_lots"] += 1

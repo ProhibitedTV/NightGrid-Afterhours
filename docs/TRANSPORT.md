@@ -1,6 +1,6 @@
 # Morrow Bay transport network — first accessible mobility slice
 
-The network is fixed. In the playable 6×6-block city, road coordinates, right-hand lanes, signalized junctions, bus routes, stations, elevated guideway, and four major landmarks **never reroll**. New-game procedural variation is limited to cosmetic details, window lighting, planting variations, vehicle color/speed and other seeded infill. This is important for mission locations and transit memorability.
+The network is fixed. In the playable 6×6-block city, road coordinates, right-hand lanes, signalized junctions, bus routes, stations, elevated guideway, and four major landmarks **never reroll**. New-game procedural variation is limited to eight curated alternate parcel designs, cosmetic details, window lighting, planting variations, vehicle color/speed and other seeded infill. This is important for mission locations and transit memorability.
 
 ## Surface streets and traffic engineering principles
 
@@ -39,3 +39,7 @@ Validation: `tests/transport_smoke.gd` checks signal conflict exclusion, yellow/
 On the RTX 3060 12GB, Ryzen 7 and 32GB baseline, fleet counts are deliberately bounded: **17 ambient cars + 2 buses + 1 train**. The traffic actors use low-poly meshes and simple collision/kinematics; no dynamic navmesh searches or hundreds of shadowed headlamps. Profile CPU physics and rendering on actual hardware before raising fleet counts or city bounds.
 
 **Next iterations:** pedestrian signals and crossings; multiple bus routes and transit transfers; occupancy and safe player boarding animations; bus shelters with collision/ADA-like entrance geometry; bus lane priority; elevated rail switching and additional lines; intersection conflict zones; traffic spawn/despawn by camera distance; chunk/LOD streaming and tile-based authored expansion. The network is a realistic *organizing principle*, not a complete professional city traffic model.
+
+## Curated replay variants
+
+Eight designated non-landmark parcels in `scripts/world_plan.gd` each have three artist-selected facade pairs: the baseline and two alternate catalog designs. The New Game seed chooses **one whole composed pair per parcel**, so the change is visible but still authored. It is not runtime city mutation, arbitrary procedural block generation, or endless random urban sprawl. Mission coordinates, landmark sites, transit lanes and named stops do not change. Both seeds and selected world geometry reconstruct identically after save/load.
