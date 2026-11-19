@@ -15,7 +15,7 @@ const TrafficSystemScript = preload("res://scripts/traffic_system.gd")
 const RailSystemScript = preload("res://scripts/rail_system.gd")
 const VenueSystemScript = preload("res://scripts/venue_system.gd")
 const CELL = 58.0
-const GRID_RADIUS = 3
+const GRID_RADIUS = 4
 const PLAYER_START = Vector3(0.0, 1.15, 6.0)
 const VEHICLE_COLORS = [
 	Color("f04e59"), Color("40b1ff"), Color("e9bf51"),
@@ -154,7 +154,7 @@ func _process(delta: float) -> void:
 	camera.look_at(focus, Vector3.UP)
 	if current_transit == null and actor.global_position.distance_to(mission_position) < 5.3:
 		_advance_mission()
-	if actor.global_position.y < -15.0 or absf(actor.global_position.x) > 280.0 or absf(actor.global_position.z) > 280.0:
+	if actor.global_position.y < -15.0 or absf(actor.global_position.x) > 390.0 or absf(actor.global_position.z) > 390.0:
 		_respawn()
 	heat = maxf(0.0, heat - delta * 0.008)
 	police_cooldown -= delta
@@ -354,7 +354,7 @@ func _build_environment() -> void:
 	sun_light.shadow_enabled = true
 	sun_light.directional_shadow_max_distance = 170.0
 	add_child(sun_light)
-	_box(self, Vector3(0.0, -0.58, 0.0), Vector3(600.0, 1.0, 600.0), Color("34434a"), true, false, "CONCRETE")
+	_box(self, Vector3(0.0, -0.58, 0.0), Vector3(850.0, 1.0, 850.0), Color("34434a"), true, false, "CONCRETE")
 
 func _build_city() -> void:
 	# The road foundation stays simple; populated streets live in city_details.gd.
@@ -362,8 +362,8 @@ func _build_city() -> void:
 	var sidewalk := Color("4d5565")
 	for index in range(-GRID_RADIUS, GRID_RADIUS + 1):
 		var axis := float(index) * CELL
-		_box(self, Vector3(axis, -0.055, 0.0), Vector3(14.0, 0.12, 405.0), road, false, false, "ASPHALT")
-		_box(self, Vector3(0.0, -0.05, axis), Vector3(405.0, 0.12, 14.0), road, false, false, "ASPHALT")
+		_box(self, Vector3(axis, -0.055, 0.0), Vector3(14.0, 0.12, 520.0), road, false, false, "ASPHALT")
+		_box(self, Vector3(0.0, -0.05, axis), Vector3(520.0, 0.12, 14.0), road, false, false, "ASPHALT")
 	for block_x in range(-GRID_RADIUS, GRID_RADIUS):
 		for block_z in range(-GRID_RADIUS, GRID_RADIUS):
 			var center := Vector3((float(block_x) + 0.5) * CELL, 0.07, (float(block_z) + 0.5) * CELL)
@@ -372,6 +372,7 @@ func _build_city() -> void:
 	city_details.name = "CityDetails"
 	add_child(city_details)
 	city_details.call("set_world_seed", rng.seed)
+	city_details.call("set_world_manifest", session.call("get_world_manifest"))
 	city_details.call("generate")
 
 func _build_world_systems() -> void:
@@ -445,7 +446,9 @@ func _spawn_traffic() -> void:
 		Vector3(5.0, 1.0, 18.0), Vector3(-63.0, 1.0, -28.0),
 		Vector3(63.0, 1.0, 33.0), Vector3(121.0, 1.0, 88.0),
 		Vector3(-121.0, 1.0, -80.0), Vector3(-5.0, 1.0, 125.0),
-		Vector3(63.0, 1.0, -143.0), Vector3(-63.0, 1.0, 139.0)
+		Vector3(63.0, 1.0, -143.0), Vector3(-63.0, 1.0, 139.0),
+		Vector3(-237.0, 1.0, -202.0), Vector3(237.0, 1.0, -146.0),
+		Vector3(203.0, 1.0, 237.0), Vector3(-146.0, 1.0, 237.0)
 	]
 	for i in range(parked.size()):
 		var car := _create_car(parked[i], VEHICLE_COLORS[i % VEHICLE_COLORS.size()])
@@ -534,7 +537,8 @@ func _capture_snapshot() -> Dictionary:
 	for car in cars:
 		stored_cars.append({
 			"position": [car.global_position.x, car.global_position.y, car.global_position.z],
-			"yaw": car.rotation.y, "claimed": car.has_meta("claimed")
+			"yaw": car.rotation.y, "claimed": car.has_meta("claimed"),
+			"condition": car.get("condition")
 		})
 	var aboard_id := ""
 	if transit_kind == "BUS" and current_transit != null:
@@ -572,6 +576,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 		if pos.size() == 3:
 			c.global_position = Vector3(float(pos[0]), float(pos[1]), float(pos[2]))
 		c.rotation.y = float(info.get("yaw", c.rotation.y))
+		c.set("condition", clampf(float(info.get("condition", 100.0)), 18.0, 100.0))
 		if bool(info.get("claimed", false)):
 			c.set_meta("claimed", true)
 	var selected := int(data.get("occupied_car", -1))
