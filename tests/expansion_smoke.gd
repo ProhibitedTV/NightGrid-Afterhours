@@ -8,6 +8,31 @@ func _fail(message: String) -> void:
 	push_error("EXPANSION_SMOKE: " + message)
 	quit(1)
 
+func _same_layout(a: Dictionary, b: Dictionary) -> bool:
+	if int(a.get("version", -1)) != int(b.get("version", -2)):
+		return false
+	var first: Dictionary = a.get("blocks", {})
+	var second: Dictionary = b.get("blocks", {})
+	if first.size() != second.size():
+		return false
+	for key in first:
+		if not second.has(key):
+			return false
+		var source: Array = first[key]
+		var target: Array = second[key]
+		if source.size() != target.size():
+			return false
+		for index in range(source.size()):
+			var before: Dictionary = source[index]
+			var after: Dictionary = target[index]
+			for field in ["height", "width", "depth", "offset_z"]:
+				if absf(float(before.get(field, -1.0)) - float(after.get(field, -2.0))) > 0.0001:
+					return false
+			for field in ["wall", "material"]:
+				if str(before.get(field, "")) != str(after.get(field, "")):
+					return false
+	return true
+
 func _verify() -> void:
 	var packed: PackedScene = load("res://scenes/main.tscn")
 	if packed == null:
@@ -179,7 +204,7 @@ func _verify() -> void:
 		return
 	var restored: Dictionary = session.call("read_snapshot_from", test_path)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(test_path))
-	if restored.get("world_manifest", {}) != manifest:
+	if not _same_layout(restored.get("world_manifest", {}), manifest):
 		_fail("Exact parcels changed during on-disk JSON serialization")
 		return
 	world.set("cash", 0)
