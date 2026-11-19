@@ -19,6 +19,10 @@ func setup(path: Array[Vector3], first_index: int, position_at: Vector3, bus: bo
 	route = path
 	next_index = first_index % path.size()
 	global_position = position_at
+	var initial_direction := path[next_index] - position_at
+	initial_direction.y = 0.0
+	if initial_direction.length_squared() > 0.01:
+		rotation.y = atan2(-initial_direction.x, -initial_direction.z)
 	buses = bus
 	vehicle_id = identifier
 	paint = tint

@@ -104,6 +104,29 @@ func _check() -> void:
 	if int(world.get("cash")) != int(restored.get("cash", -1)):
 		_fail("Player state did not survive save/load")
 		return
+	world.call("_toggle_transit")
+	if world.get("transit_kind") != "":
+		_fail("Bus rider could not alight at a marked stop")
+		return
+	var bus_stop_position: Vector3 = traffic.call("get_boardable_bus", player.global_position).global_position if traffic.call("get_boardable_bus", player.global_position) != null else Vector3(-41.0, 1.75, -112.75)
+	if Vector2(player.global_position.x - bus_stop_position.x, player.global_position.z - bus_stop_position.z).length() < 5.5:
+		_fail("Bus alighting did not move the rider to the sidewalk")
+		return
+	# Explicitly exercise moving transport, not just static boarding states.
+	var train_body: Node3D = rail.get_node("MorrowLineTrain")
+	var old_train_x: float = train_body.position.x
+	rail.set("dwell_remaining", 0.0)
+	var vehicle_nodes: Array = traffic.get("fleet")
+	var road_sample: Node3D = vehicle_nodes[0]
+	var old_car_position: Vector3 = road_sample.global_position
+	for physics_tick in range(120):
+		await physics_frame
+	if train_body.position.x <= old_train_x + 0.5:
+		_fail("Elevated train never departed its station")
+		return
+	if road_sample.global_position.distance_to(old_car_position) < 0.4:
+		_fail("NPC car did not move on a scheduled road lane")
+		return
 	session.call("start_new_game")
 	if int(session.get("world_seed")) == seed_value:
 		_fail("New Game did not issue a fresh seed")
