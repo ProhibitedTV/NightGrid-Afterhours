@@ -657,8 +657,8 @@ func _toggle_interaction() -> void:
 	var shop: Dictionary = venue_system.call("nearest_venue", player.global_position)
 	var service: Dictionary = civic_services.call("nearest_site", player.global_position)
 	if not service.is_empty():
-		var civic_distance := civic_services.call("position_for", str(service["id"])).distance_to(player.global_position)
-		var shop_distance := 9999.0 if shop.is_empty() else venue_system.call("venue_position", str(shop["id"])).distance_to(player.global_position)
+		var civic_distance: float = civic_services.call("position_for", str(service["id"])).distance_to(player.global_position)
+		var shop_distance: float = 9999.0 if shop.is_empty() else venue_system.call("venue_position", str(shop["id"])).distance_to(player.global_position)
 		if civic_distance <= shop_distance:
 			_toggle_civic()
 			return

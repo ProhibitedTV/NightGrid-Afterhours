@@ -170,7 +170,7 @@ static func manifest_signature(manifest: Dictionary) -> String:
 	keys.sort()
 	for key in keys:
 		lines.append("%s:%s" % [str(key), str(blocks[key])])
-	return str(lines.join("|").hash())
+	return str("|".join(lines).hash())
 
 static func lot_variant_index(ix: int, iz: int, world_seed: int) -> int:
 	if world_seed <= 0 or not VARIANT_PARCELS.has("%d,%d" % [ix, iz]):

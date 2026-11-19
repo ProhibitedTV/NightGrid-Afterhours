@@ -208,7 +208,7 @@ func _build_block(ix: int, iz: int) -> void:
 		var x := center.x + (-10.5 if building == 0 else 10.5)
 		var profile: Dictionary = WorldPlan.lot_profile(ix, iz, building, world_seed)
 		var blocks: Dictionary = world_manifest.get("blocks", {})
-		var parcel := blocks.get("%d,%d" % [ix, iz], [])
+		var parcel: Variant = blocks.get("%d,%d" % [ix, iz], [])
 		if parcel is Array and parcel.size() == 2:
 			profile = (parcel[building] as Dictionary).duplicate(true)
 		if (not WorldPlan.is_core_block(ix, iz)) or WorldPlan.lot_variant_index(ix, iz, world_seed) > 0:
