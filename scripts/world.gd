@@ -14,6 +14,7 @@ const TrafficSignalsScript = preload("res://scripts/traffic_signals.gd")
 const TrafficSystemScript = preload("res://scripts/traffic_system.gd")
 const RailSystemScript = preload("res://scripts/rail_system.gd")
 const VenueSystemScript = preload("res://scripts/venue_system.gd")
+const CivicServicesScript = preload("res://scripts/civic_services.gd")
 const CELL = 58.0
 const GRID_RADIUS = 4
 const PLAYER_START = Vector3(0.0, 1.15, 6.0)
@@ -51,6 +52,12 @@ var signal_controller: Node3D
 var traffic: Node3D
 var rail: Node3D
 var venue_system: Node3D
+var civic_services: Node3D
+var civic_selected_id := ""
+var civic_job_active := ""
+var civic_job_completed: Array[String] = []
+var civic_intel: Array[String] = []
+var ration_packs := 0
 var venue_panel: PanelContainer
 var venue_label: Label
 var venue_selected_id := ""
@@ -111,7 +118,9 @@ func _input(event: InputEvent) -> void:
 			KEY_F:
 				_toggle_transit()
 			KEY_G:
-				_toggle_venue()
+				_toggle_interaction()
+			KEY_R:
+				_consume_ration()
 			KEY_1:
 				_venue_action(1)
 			KEY_2:
@@ -138,13 +147,16 @@ func _process(delta: float) -> void:
 	var actor := _actor()
 	street_lights.call("set_focus", actor.global_position)
 	venue_system.call("set_focus", actor.global_position)
+	civic_services.call("set_focus", actor.global_position)
 	_venue_clock_tick += delta
 	if _venue_clock_tick >= 0.5:
 		_venue_clock_tick = 0.0
 		venue_system.call("set_hour", float(day_night.get("hour")))
-	if venue_panel.visible and (current_car != null or current_transit != null or
-			venue_system.call("venue_position", venue_selected_id).distance_to(player.global_position) > 7.0):
-		_close_venue()
+		civic_services.call("set_hour", float(day_night.get("hour")))
+	if venue_panel.visible:
+		var menu_position: Vector3 = civic_services.call("position_for", civic_selected_id) if not civic_selected_id.is_empty() else venue_system.call("venue_position", venue_selected_id)
+		if current_car != null or current_transit != null or menu_position.distance_to(player.global_position) > 7.0:
+			_close_venue()
 	if current_car == null and current_transit == null:
 		player.set("camera_yaw", yaw)
 	var focus := actor.global_position + Vector3.UP * (1.65 if current_car != null or current_transit != null else 1.45)
@@ -396,6 +408,10 @@ func _build_world_systems() -> void:
 	venue_system.name = "SocialVenues"
 	add_child(venue_system)
 	venue_system.call("set_hour", float(day_night.get("hour")))
+	civic_services = CivicServicesScript.new()
+	civic_services.name = "CivicServices"
+	add_child(civic_services)
+	civic_services.call("set_hour", float(day_night.get("hour")))
 
 func _create_player() -> void:
 	player = CharacterBody3D.new()
@@ -552,7 +568,9 @@ func _capture_snapshot() -> Dictionary:
 		"traffic": traffic.call("snapshot"), "rail": rail.call("snapshot"),
 		"signal_elapsed": signal_controller.get("elapsed"),
 		"transit_kind": transit_kind, "transit_id": aboard_id,
-		"venue_job_active": venue_job_active, "venue_job_completed": venue_job_completed.duplicate()
+		"venue_job_active": venue_job_active, "venue_job_completed": venue_job_completed.duplicate(),
+		"civic_job_active": civic_job_active, "civic_job_completed": civic_job_completed.duplicate(),
+		"civic_intel": civic_intel.duplicate(), "ration_packs": ration_packs
 	}
 
 func _apply_snapshot(data: Dictionary) -> void:
@@ -597,6 +615,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 			_board_transit(rail.get_node("MorrowLineTrain"), "TRAIN")
 	day_night.call("set_hour", float(data.get("hour", 19.25)))
 	venue_system.call("set_hour", float(day_night.get("hour")))
+	civic_services.call("set_hour", float(day_night.get("hour")))
 	venue_job_active = str(data.get("venue_job_active", ""))
 	if not venue_job_active.is_empty() and venue_system.call("job_by_id", venue_job_active).is_empty():
 		venue_job_active = ""
@@ -607,8 +626,221 @@ func _apply_snapshot(data: Dictionary) -> void:
 			var valid_id := str(job_id)
 			if not venue_system.call("job_by_id", valid_id).is_empty() and not venue_job_completed.has(valid_id):
 				venue_job_completed.append(valid_id)
+	ration_packs = clampi(int(data.get("ration_packs", 0)), 0, 99)
+	civic_job_active = str(data.get("civic_job_active", ""))
+	if civic_services.call("order_by_id", civic_job_active).is_empty():
+		civic_job_active = ""
+	civic_job_completed.clear()
+	var saved_civic = data.get("civic_job_completed", [])
+	if saved_civic is Array:
+		for job_id in saved_civic:
+			var checked := str(job_id)
+			if not civic_services.call("order_by_id", checked).is_empty() and not civic_job_completed.has(checked):
+				civic_job_completed.append(checked)
+	civic_intel.clear()
+	var saved_intel = data.get("civic_intel", [])
+	if saved_intel is Array:
+		for site_id in saved_intel:
+			var confirmed := str(site_id)
+			if not civic_services.call("site_by_id", confirmed).is_empty() and not civic_intel.has(confirmed):
+				civic_intel.append(confirmed)
 	_set_mission_target(DROPOFFS[deliveries % DROPOFFS.size()] if carrying else PICKUPS[deliveries % PICKUPS.size()], carrying)
 	_notify("Save loaded. Seed %d; Morrow Bay restored." % int(session.get("world_seed")))
+
+func _toggle_interaction() -> void:
+	if venue_panel.visible:
+		_close_venue()
+		return
+	if current_car != null or current_transit != null:
+		_notify("Get out of the vehicle before interacting with neighborhood businesses.")
+		return
+	var shop: Dictionary = venue_system.call("nearest_venue", player.global_position)
+	var service: Dictionary = civic_services.call("nearest_site", player.global_position)
+	if not service.is_empty():
+		var civic_distance := civic_services.call("position_for", str(service["id"])).distance_to(player.global_position)
+		var shop_distance := 9999.0 if shop.is_empty() else venue_system.call("venue_position", str(shop["id"])).distance_to(player.global_position)
+		if civic_distance <= shop_distance:
+			_toggle_civic()
+			return
+	_toggle_venue()
+
+func _toggle_civic() -> void:
+	if current_car != null or current_transit != null:
+		_notify("Get out of the vehicle to visit public services.")
+		return
+	if venue_panel.visible:
+		_close_venue()
+		return
+	var site: Dictionary = civic_services.call("nearest_site", player.global_position)
+	if site.is_empty():
+		_notify("No public service counter within reach.")
+		return
+	civic_selected_id = str(site["id"])
+	venue_panel.visible = true
+	_update_civic_panel()
+
+func _consume_ration() -> void:
+	if current_car != null or current_transit != null:
+		_notify("Use a ration pack when safely on foot.")
+	elif ration_packs <= 0:
+		_notify("No provisions. Visit a grocery store in an outer district.")
+	elif health >= 99.9:
+		_notify("You're at full health; save your provisions.")
+	else:
+		ration_packs -= 1
+		health = minf(100.0, health + 25.0)
+		_notify("Used a supply pack. +25 health (%d remaining)." % ration_packs)
+
+func _civic_service_text(site: Dictionary) -> String:
+	match str(site["kind"]):
+		"GROCERY":
+			return "2 take-away ration packs"
+		"CLINIC":
+			return "Walk-in medical care (+55 health)"
+		"FIRE":
+			return "Emergency first aid (+35 health)"
+		"CIVIC":
+			return "Pay municipal citations (-1.75 heat)"
+		"GARAGE":
+			return "Restore condition of a parked nearby vehicle"
+		"LIBRARY":
+			return "Read the community archive (free intel)"
+		"UTILITY":
+			return "Inspect grid ownership records (free intel)"
+		"WAREHOUSE":
+			return "Read today's shipping workboard (free)"
+	return "Visit"
+
+func _update_civic_panel() -> void:
+	if civic_selected_id.is_empty() or venue_label == null:
+		return
+	var site: Dictionary = civic_services.call("site_by_id", civic_selected_id)
+	if site.is_empty():
+		_close_venue()
+		return
+	var opened: bool = civic_services.call("is_open", civic_selected_id)
+	var title := "%s | %s | %s\n%s: %s\n" % [
+		str(site["name"]), str(site["kind"]), "OPEN" if opened else "CLOSED",
+		str(site["host"]), str(site["flavor"])]
+	if opened:
+		var item := _civic_service_text(site)
+		title += "[1] %s ($%d)\n" % [item, int(site["price"])]
+		if civic_job_active.is_empty():
+			var offer: Dictionary = civic_services.call("order_from", civic_selected_id)
+			if not offer.is_empty() and not civic_job_completed.has(str(offer["id"])):
+				title += "[2] WORK ORDER: %s (+$%d)\n" % [str(offer["title"]), int(offer["reward"])]
+		else:
+			var job: Dictionary = civic_services.call("order_by_id", civic_job_active)
+			if not job.is_empty() and str(job["to"]) == civic_selected_id:
+				title += "[2] DELIVER: %s (+$%d)\n" % [str(job["title"]), int(job["reward"])]
+	else:
+		title += "Return during staffed hours.\n"
+	title += "[G] Close  |  CASH $%d  |  PROVISIONS %d" % [cash, ration_packs]
+	venue_label.text = title
+
+func _civic_action(option: int) -> void:
+	if not venue_panel.visible or civic_selected_id.is_empty():
+		return
+	var site: Dictionary = civic_services.call("site_by_id", civic_selected_id)
+	if site.is_empty() or not civic_services.call("is_open", civic_selected_id):
+		_notify("This public service is not open right now.")
+		return
+	var kind: String = site["kind"]
+	if option == 1:
+		var price := int(site["price"])
+		var purchase := true
+		var selected_car: CharacterBody3D
+		match kind:
+			"GROCERY":
+				if ration_packs > 97:
+					_notify("Supply pack inventory is full.")
+					return
+			"CLINIC", "FIRE":
+				if health >= 99.9:
+					_notify("No first aid needed. Save your money.")
+					return
+			"CIVIC":
+				if heat <= 0.01:
+					_notify("No citations are currently outstanding.")
+					return
+			"GARAGE":
+				var nearest := 18.0
+				for car in cars:
+					var distance := car.global_position.distance_to(player.global_position)
+					if distance < nearest and float(car.get("condition")) < 99.9:
+						selected_car = car
+						nearest = distance
+				if selected_car == null:
+					_notify("Park a damaged vehicle near the garage counter.")
+					return
+			"LIBRARY", "UTILITY":
+				purchase = false
+			"WAREHOUSE":
+				_notify("The warehouse shift board lists work under option [2].")
+				return
+		if purchase:
+			if cash < price:
+				_notify("Not enough cash; visit a courier pickup or complete a work order.")
+				return
+			cash -= price
+		match kind:
+			"GROCERY":
+				ration_packs += 2
+				_notify("Bought two provisions. Press R on foot to use one.")
+			"CLINIC":
+				health = minf(100.0, health + 55.0)
+				_notify("Clinic treatment complete. +55 health.")
+			"FIRE":
+				health = minf(100.0, health + 35.0)
+				_notify("Emergency first aid complete. +35 health.")
+			"CIVIC":
+				heat = maxf(0.0, heat - 1.75)
+				_notify("Municipal citation settled. Police heat reduced.")
+			"GARAGE":
+				selected_car.call("repair")
+				_notify("Vehicle repaired. Roadworthiness restored.")
+			"LIBRARY", "UTILITY":
+				if not civic_intel.has(civic_selected_id):
+					civic_intel.append(civic_selected_id)
+					_notify("ARCHIVE DISCOVERY: %s" % str(site["flavor"]))
+				else:
+					_notify("Already examined this local archive.")
+	elif option == 2:
+		if civic_job_active.is_empty():
+			var order: Dictionary = civic_services.call("order_from", civic_selected_id)
+			if order.is_empty() or civic_job_completed.has(str(order.get("id", ""))):
+				_notify("No new delivery contract here.")
+				return
+			civic_job_active = str(order["id"])
+			_notify("WORK ORDER: %s — %s" % [str(order["title"]), str(order["brief"])])
+		else:
+			var active: Dictionary = civic_services.call("order_by_id", civic_job_active)
+			if active.is_empty():
+				civic_job_active = ""
+				return
+			if str(active["to"]) != civic_selected_id:
+				var destination: Dictionary = civic_services.call("site_by_id", str(active["to"]))
+				_notify("Work in progress. Destination: %s" % str(destination["name"]))
+				return
+			cash += int(active["reward"])
+			civic_job_completed.append(civic_job_active)
+			civic_job_active = ""
+			_notify("WORK ORDER COMPLETE +$%d: %s" % [int(active["reward"]), str(active["ending"])])
+	_update_civic_panel()
+
+func _civic_job_text() -> String:
+	if civic_job_active.is_empty():
+		return "CITY SERVICES: %d provisions | %d archive clues" % [ration_packs, civic_intel.size()]
+	var order: Dictionary = civic_services.call("order_by_id", civic_job_active)
+	if order.is_empty():
+		return ""
+	var point: Vector3 = civic_services.call("position_for", str(order["to"]))
+	var place: Dictionary = civic_services.call("site_by_id", str(order["to"]))
+	return "WORK ORDER: %s / %s (%dm)" % [str(order["title"]), str(place["name"]), roundi(_actor().global_position.distance_to(point))]
+
+func _civic_job_target() -> Vector3:
+	var order: Dictionary = civic_services.call("order_by_id", civic_job_active)
+	return civic_services.call("position_for", str(order["to"])) if not order.is_empty() else Vector3.ZERO
 
 func _toggle_venue() -> void:
 	if current_car != null or current_transit != null:
@@ -627,10 +859,14 @@ func _toggle_venue() -> void:
 
 func _close_venue() -> void:
 	venue_selected_id = ""
+	civic_selected_id = ""
 	if venue_panel != null:
 		venue_panel.visible = false
 
 func _update_venue_panel() -> void:
+	if not civic_selected_id.is_empty():
+		_update_civic_panel()
+		return
 	if venue_label == null or venue_selected_id.is_empty():
 		return
 	var venue: Dictionary = venue_system.call("venue_by_id", venue_selected_id)
@@ -659,6 +895,9 @@ func _update_venue_panel() -> void:
 	venue_label.text = body
 
 func _venue_action(option: int) -> void:
+	if not civic_selected_id.is_empty():
+		_civic_action(option)
+		return
 	if venue_panel == null or not venue_panel.visible or venue_selected_id.is_empty():
 		return
 	var venue: Dictionary = venue_system.call("venue_by_id", venue_selected_id)
@@ -830,13 +1069,17 @@ func _update_hud() -> void:
 	if performance_overlay:
 		var fps := maxi(Engine.get_frames_per_second(), 1)
 		performance_label.text = "RTX 3060 target: 60 FPS @1080p | Actual: %d FPS | %.1f ms" % [fps, 1000.0 / float(fps)]
-	hud_label.text = "NIGHTGRID / AFTERHOURS    MORROW BAY\n%s | %s\n$%d | HEALTH %d | HEAT %s\n%s | DELIVERIES %d\nOBJECTIVE: %s (%dm)\n%s\n\nWASD Move/Drive | E Car | Shift Sprint | Space Jump/Brake\nE Car | F Board/Exit Transit | F5 Save | F6 New Game | F9 Load\nT Time | Y Pause | F3 FPS | F4 SSR | G Visit Venue | Esc Cursor" % [local_name, clock, cash, ceili(health), wanted_text, vehicle_text, deliveries, mission, distance, message]
-	hud_label.text += "\n" + _venue_job_text()
+	hud_label.text = "NIGHTGRID / AFTERHOURS    MORROW BAY\n%s | %s\n$%d | HEALTH %d | HEAT %s\n%s | DELIVERIES %d\nOBJECTIVE: %s (%dm)\n%s\n\nWASD Move/Drive | E Car | Shift Sprint | Space Jump/Brake\nE Car | F Board/Exit Transit | F5 Save | F6 New Game | F9 Load\nT Time | Y Pause | R Supplies | F3 FPS | F4 SSR | G Visit | Esc Cursor" % [local_name, clock, cash, ceili(health), wanted_text, vehicle_text, deliveries, mission, distance, message]
+	hud_label.text += "\n" + _venue_job_text() + "\n" + _civic_job_text()
 	if current_car == null and current_transit == null:
 		var near: Dictionary = venue_system.call("nearest_venue", player.global_position)
 		if not near.is_empty():
 			var accessible := "OPEN" if venue_system.call("is_open", str(near["id"])) else "CLOSED"
 			hud_label.text += "\n[G] %s (%s)" % [str(near["name"]), accessible]
+		var nearby_service: Dictionary = civic_services.call("nearest_site", player.global_position)
+		if not nearby_service.is_empty():
+			var availability := "OPEN" if civic_services.call("is_open", str(nearby_service["id"])) else "CLOSED"
+			hud_label.text += "\n[G] %s (%s)" % [str(nearby_service["name"]), availability]
 	if venue_panel.visible:
 		_update_venue_panel()
 
@@ -862,5 +1105,8 @@ func get_map_state() -> Dictionary:
 		"carrying": carrying,
 		"side_quest": Vector2(quest.x, quest.z),
 		"side_quest_active": not venue_job_active.is_empty(),
-		"venues": venue_system.call("get_map_pins")
+		"venues": venue_system.call("get_map_pins"),
+		"services": civic_services.call("get_map_pins"),
+		"civic_quest_active": not civic_job_active.is_empty(),
+		"civic_quest": Vector2(_civic_job_target().x, _civic_job_target().z)
 	}
