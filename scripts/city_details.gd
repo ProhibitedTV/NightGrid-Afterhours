@@ -2,27 +2,27 @@ extends Node3D
 ## Seeded city dressing. Static shell collisions + batched decorative geometry.
 ## The four neighborhoods deliberately share road geometry but not street character.
 
-const CELL := 58.0
-const GRID_RADIUS := 3
-const SEED := 834726
-const DISTRICTS := ["VESPER MARKET", "GLASSLINE", "BRICKWATER", "AFTERHOURS"]
-const SHOPS := {
+const CELL = 58.0
+const GRID_RADIUS = 3
+const SEED = 834726
+const DISTRICTS = ["VESPER MARKET", "GLASSLINE", "BRICKWATER", "AFTERHOURS"]
+const SHOPS = {
 	"VESPER MARKET": ["MOON NOODLES", "VESPER MART", "SILK ROAD", "PAPER TIGER", "NOVA DELI", "INK & TONIC"],
 	"GLASSLINE": ["HELIX DATA", "ASTER FINANCE", "NEON EXCHANGE", "VECTOR SYSTEMS", "MONO TOWER"],
 	"BRICKWATER": ["RUSTWORKS", "LOADING BAY", "DOCK 9", "HARBOR RADIO", "BOLT SUPPLY", "LAST SHIFT"],
 	"AFTERHOURS": ["BLUE HOUR", "SABLE CLUB", "24H ARCADE", "STATIC ROOM", "GHOST FM", "VOLT RAMEN"]
 }
-const ACCENT := {
+const ACCENT = {
 	"VESPER MARKET": Color("ffc46b"),
 	"GLASSLINE": Color("61cbff"),
 	"BRICKWATER": Color("f68b59"),
 	"AFTERHOURS": Color("ef68ce")
 }
-const BRICK := Color("713e48")
-const METAL := Color("38465a")
-const CONCRETE := Color("505865")
-const ROAD_PAINT := Color("b9b8aa")
-const DARK_GLASS := Color("1d3449")
+const BRICK = Color("713e48")
+const METAL = Color("38465a")
+const CONCRETE = Color("505865")
+const ROAD_PAINT = Color("b9b8aa")
+const DARK_GLASS = Color("1d3449")
 
 var _rng := RandomNumberGenerator.new()
 var _batches: Dictionary = {}
