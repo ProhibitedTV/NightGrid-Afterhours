@@ -27,5 +27,7 @@ jobs:
           use-dotnet: false
       - name: Import project and parse scripts
         run: godot --headless --path . --import --quit
+      - name: Assert city generation and district composition
+        run: godot --headless --path . --script res://tests/city_smoke.gd
       - name: Run smoke test for 90 frames
         run: godot --headless --path . --quit-after 90

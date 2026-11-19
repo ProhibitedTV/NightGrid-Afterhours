@@ -20,17 +20,18 @@
 
 ### Included in the first vertical slice
 
-- Procedurally generated street grid, sidewalks, towers, neon strips and streetlights.
+- Procedurally generated street grid with **four neighborhoods**: Vesper Market, Glassline, Brickwater, and Afterhours. Each has distinct skylines, facade shapes, storefronts and street dressing.
 - Third-person character with walking, sprinting, jumping and a follow camera.
 - Eight parked arcade-drivable cars with collisions.
 - Repeatable courier pickups and deliveries, cash payouts.
 - Heat / wanted level, pursuing police, health damage, hospital respawn.
 - HUD with objective, cash, health, speed, and a city minimap.
-- Original procedural placeholder graphics — no external art/audio dependencies.
+- Procedural details: crossings, painted roads, lit windows, rooftop HVAC/water towers, fire escapes, storefront names, market stalls, signal units, benches, vending machines, hydrants, trees, crates, service alleys and distant skyline.
+- Original procedural placeholder graphics — no external art/audio dependencies. For neighborhood layout and technical notes, see [City Atlas](docs/CITY.md).
 
 ### Known limits
 
-**Prototype, not a finished release:** this has not been manually tested in a Godot editor on a gaming PC. CI runs file checks, a Godot 4.3 import, and a short headless smoke test, but gameplay feel needs hands-on review. There are no civilian traffic AI, pedestrians, complex missions, interiors, multiplayer, audio or saves yet. Driving uses an arcade `CharacterBody3D` instead of suspension/tire physics.
+**Prototype, not a finished release:** this has not been manually tested in a Godot editor on a gaming PC. CI runs file checks, a Godot 4.3 import, and city composition assertions and a short headless smoke test, but gameplay feel needs hands-on review. There are no civilian traffic AI, pedestrians, complex missions, interiors, multiplayer, audio or saves yet. Driving uses an arcade `CharacterBody3D` instead of suspension/tire physics.
 
 Godot uses its Compatibility renderer here, **not DirectX**. This was chosen for rapid iteration on Windows/Linux. A native DirectX engine is possible later if justified by a clear requirement.
 
@@ -50,6 +51,7 @@ On GitHub, open **Actions → Windows playtest build → latest successful run**
 ```bash
 python3 tools/check_project.py
 godot --headless --path . --import --quit
+godot --headless --path . --script res://tests/city_smoke.gd
 godot --headless --path . --quit-after 90
 ```
 
