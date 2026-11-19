@@ -60,7 +60,7 @@ func get_nearby_landmark(position: Vector3) -> String:
 
 func set_night_factor(value: float) -> void:
 	# Static shared emissive materials change with the time controller.
-	var brightness := lerpf(0.28, 2.15, clampf(value, 0.0, 1.0))
+	var brightness := 2.35 * smoothstep(0.42, 0.78, clampf(value, 0.0, 1.0))
 	for key in _palette:
 		if str(key).ends_with("_glow"):
 			var material: StandardMaterial3D = _palette[key]

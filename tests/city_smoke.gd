@@ -26,6 +26,10 @@ func _check() -> void:
 		push_error("All procedural building fronts must have signs and shop treatment")
 		quit(1)
 		return
+	if int(stats.get("authored_lots", 0)) != 64:
+		push_error("All 64 parcel buildings should come from fixed design manifest: %s" % stats)
+		quit(1)
+		return
 	if int(stats.get("landmarks", 0)) != 4:
 		push_error("Authored landmarks missing: %s" % stats)
 		quit(1)

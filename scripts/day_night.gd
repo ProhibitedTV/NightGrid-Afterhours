@@ -10,12 +10,14 @@ var _environment: WorldEnvironment
 var _sun: DirectionalLight3D
 var _sky: ProceduralSkyMaterial
 var _city: Node
+var _lights: Node
 var _update_accumulator := 0.0
 
-func configure(world_environment: WorldEnvironment, sun: DirectionalLight3D, city: Node) -> void:
+func configure(world_environment: WorldEnvironment, sun: DirectionalLight3D, city: Node, lights: Node) -> void:
 	_environment = world_environment
 	_sun = sun
 	_city = city
+	_lights = lights
 	_sky = ProceduralSkyMaterial.new()
 	var sky := Sky.new()
 	sky.sky_material = _sky
@@ -71,3 +73,5 @@ func _apply() -> void:
 	_sun.rotation_degrees = Vector3(-altitude, hour * 15.0 + 90.0, -4.0)
 	if is_instance_valid(_city):
 		_city.call("set_night_factor", 1.0 - light)
+	if is_instance_valid(_lights):
+		_lights.call("set_night_factor", 1.0 - light)
