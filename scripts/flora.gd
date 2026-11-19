@@ -17,12 +17,17 @@ var _meshes: Dictionary = {}
 var _materials: Dictionary = {}
 var _stats := {"street_trees": 0, "landmark_trees": 0, "shrubs": 0, "flowers": 0, "planter_pots": 0, "vegetation_instances": 0}
 var _initialized := false
+var world_seed: int = 834726
+
+func set_world_seed(value: int) -> void:
+	assert(not _initialized)
+	world_seed = value
 
 func generate() -> void:
 	if _initialized:
 		return
 	_initialized = true
-	_rng.seed = SEED
+	_rng.seed = int(SEED) ^ world_seed
 	_prepare_resources()
 	for ix in range(-GRID_RADIUS, GRID_RADIUS):
 		for iz in range(-GRID_RADIUS, GRID_RADIUS):
