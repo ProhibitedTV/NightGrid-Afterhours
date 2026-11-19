@@ -1,5 +1,6 @@
 extends Node3D
 const WorldPlan = preload("res://scripts/world_plan.gd")
+const Materials = preload("res://scripts/material_library.gd")
 ## Seeded city dressing. Static shell collisions + batched decorative geometry.
 ## The four neighborhoods deliberately share road geometry but not street character.
 
@@ -28,7 +29,7 @@ const DARK_GLASS = Color("1d3449")
 var _rng := RandomNumberGenerator.new()
 var _batches: Dictionary = {}
 var _palette: Dictionary = {}
-var _statistics := {"buildings": 0, "storefronts": 0, "street_props": 0, "batched_details": 0, "districts": 4, "landmarks": 0}
+var _statistics := {"buildings": 0, "storefronts": 0, "street_props": 0, "batched_details": 0, "districts": 4, "landmarks": 0, "authored_lots": 0}
 var _initialized := false
 
 func _ready() -> void:
@@ -90,7 +91,7 @@ func _detail(at: Vector3, size: Vector3, color: Color, glow: bool = false) -> vo
 	transforms.append(Transform3D(Basis().scaled(size), at))
 	_statistics["batched_details"] += 1
 
-func _solid(at: Vector3, size: Vector3, color: Color) -> void:
+func _solid(at: Vector3, size: Vector3, color: Color, surface_kind: String = "CONCRETE") -> void:
 	var body := StaticBody3D.new()
 	body.position = at
 	var shape := CollisionShape3D.new()
@@ -102,7 +103,7 @@ func _solid(at: Vector3, size: Vector3, color: Color) -> void:
 	var mesh := BoxMesh.new()
 	mesh.size = size
 	visual.mesh = mesh
-	visual.material_override = _material(color)
+	visual.material_override = Materials.surface(surface_kind, color)
 	body.add_child(visual)
 	add_child(body)
 
@@ -185,10 +186,10 @@ func _build_block(ix: int, iz: int) -> void:
 		return
 	for building in range(2):
 		var x := center.x + (-10.5 if building == 0 else 10.5)
-		var depth := _rng.randf_range(19.0, 25.5)
-		var width := _rng.randf_range(14.0, 17.5)
-		var z := center.z + _rng.randf_range(-2.9, 0.7)
-		_build_building(Vector3(x, 0.0, z), width, depth, district, ix, iz, building)
+		var profile: Dictionary = WorldPlan.lot_profile(ix, iz, building)
+		var z: float = center.z + profile["offset_z"]
+		_build_building(Vector3(x, 0.0, z), profile, district, ix, iz, building)
+		_statistics["authored_lots"] += 1
 	# The gap between the two buildings reads as a service alley.
 	_detail(center + Vector3(0.0, 0.155, 3.0), Vector3(3.8, 0.035, 25.0), Color("353e48"))
 	for mark in range(4):
@@ -251,27 +252,17 @@ func _build_landmark(center: Vector3, name: String) -> void:
 			_label("SABLE SQUARE", center + Vector3(0.0, 7.15, 14.8), label_color, 70)
 	_statistics["street_props"] += 1
 
-func _build_building(center: Vector3, width: float, depth: float, district: String, ix: int, iz: int, which: int) -> void:
-	var height := 15.0
-	var wall := Color("4b5262")
-	match district:
-		"VESPER MARKET":
-			height = _rng.randf_range(13.0, 26.0)
-			wall = Color("61556d") if which == 0 else Color("706354")
-		"GLASSLINE":
-			height = _rng.randf_range(33.0, 72.0)
-			wall = Color("283d50") if which == 0 else Color("32495d")
-		"BRICKWATER":
-			height = _rng.randf_range(12.0, 31.0)
-			wall = BRICK if which == 0 else Color("656059")
-		"AFTERHOURS":
-			height = _rng.randf_range(20.0, 48.0)
-			wall = Color("333450") if which == 0 else Color("53445a")
+func _build_building(center: Vector3, profile: Dictionary, district: String, ix: int, iz: int, which: int) -> void:
+	var height: float = profile["height"]
+	var width: float = profile["width"]
+	var depth: float = profile["depth"]
+	var wall := Color(str(profile["wall"]))
+	var surface_kind: String = profile["material"]
 	var front := center.z - depth / 2.0
 	var back := center.z + depth / 2.0
 	var left := center.x - width / 2.0
 	var right := center.x + width / 2.0
-	_solid(Vector3(center.x, height / 2.0 + 0.15, center.z), Vector3(width, height, depth), wall)
+	_solid(Vector3(center.x, height / 2.0 + 0.15, center.z), Vector3(width, height, depth), wall, surface_kind)
 	_statistics["buildings"] += 1
 
 	# Foundation plinth, cast shadow line, parapet, mechanical penthouse.
@@ -443,12 +434,18 @@ func _hydrant(at: Vector3) -> void:
 	_statistics["street_props"] += 1
 
 func _build_far_skyline() -> void:
-	# Cheap silhouette rings mask the hard play-area edge without more collision.
-	for index in range(64):
-		var angle := TAU * float(index) / 64.0
-		var radius := _rng.randf_range(239.0, 279.0)
-		var height := _rng.randf_range(18.0, 85.0)
+	# Authored heights and silhouettes. No RNG decides skyline landmarks.
+	var silhouettes := [
+		18.0, 32.0, 47.0, 23.0, 56.0, 76.0, 34.0, 49.0,
+		31.0, 64.0, 40.0, 82.0, 29.0, 43.0, 58.0, 28.0,
+		36.0, 51.0, 88.0, 35.0, 60.0, 73.0, 31.0, 44.0,
+		39.0, 68.0, 35.0, 61.0, 26.0, 45.0, 69.0, 39.0
+	]
+	for index in range(silhouettes.size()):
+		var angle := TAU * float(index) / float(silhouettes.size())
+		var radius := 245.0 + float(index % 4) * 7.5
+		var height: float = silhouettes[index]
 		var at := Vector3(cos(angle) * radius, height / 2.0, sin(angle) * radius)
-		_detail(at, Vector3(_rng.randf_range(12.0, 23.0), height, _rng.randf_range(12.0, 23.0)), Color("172434"))
+		_detail(at, Vector3(14.0 + float(index % 3) * 3.0, height, 14.0 + float(index % 4) * 2.5), Color("172434"))
 		if index % 3 == 0:
 			_detail(at + Vector3(0.0, height / 2.0 + 0.25, 0.0), Vector3(13.0, 0.16, 12.0), Color("447d90"), true)

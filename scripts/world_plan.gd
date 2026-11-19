@@ -16,6 +16,41 @@ const LANDMARK_SUMMARIES = {
 }
 const BLOCK_SIZE = 58.0
 
+# Each two-building parcel has an explicit design picked by the world artist.
+# Columns ix=-3..2, rows iz=-3..2; major world blocks replace their entries.
+const LOT_ROWS = [
+	"V1/V3,V2/V4,V3/V1,G1/G2,G4/G3,G2/G1",
+	"V4/V2,V1/V2,V2/V3,G3/G4,G1/G3,G4/G2",
+	"V2/V1,V3/V4,V4/V1,G2/G3,G3/G1,G1/G4",
+	"B1/B2,B4/B3,B3/B1,A2/A1,A4/A3,A1/A3",
+	"B2/B4,B3/B2,B1/B4,A4/A2,A1/A4,A3/A2",
+	"B4/B1,B2/B3,B4/B2,A1/A3,A2/A4,A4/A1"
+]
+const LOT_PROFILES = {
+	"V1": {"height": 18.0, "width": 16.0, "depth": 23.0, "offset_z": -1.2, "wall": "766070", "material": "BRICK"},
+	"V2": {"height": 24.0, "width": 14.5, "depth": 21.0, "offset_z": 0.8, "wall": "665e6c", "material": "CONCRETE"},
+	"V3": {"height": 14.0, "width": 16.8, "depth": 25.0, "offset_z": 0.1, "wall": "745f58", "material": "BRICK"},
+	"V4": {"height": 21.0, "width": 15.2, "depth": 22.0, "offset_z": -2.0, "wall": "536276", "material": "CONCRETE"},
+	"G1": {"height": 67.0, "width": 16.7, "depth": 24.0, "offset_z": 0.4, "wall": "42596d", "material": "GLASS"},
+	"G2": {"height": 48.0, "width": 14.9, "depth": 23.0, "offset_z": -1.2, "wall": "40556a", "material": "GLASS"},
+	"G3": {"height": 38.0, "width": 16.0, "depth": 21.0, "offset_z": 0.1, "wall": "4b5f6f", "material": "METAL"},
+	"G4": {"height": 60.0, "width": 15.5, "depth": 25.0, "offset_z": -0.4, "wall": "344b60", "material": "GLASS"},
+	"B1": {"height": 14.0, "width": 16.8, "depth": 24.0, "offset_z": -0.8, "wall": "794c52", "material": "BRICK"},
+	"B2": {"height": 20.0, "width": 14.9, "depth": 22.0, "offset_z": 0.0, "wall": "70625c", "material": "BRICK"},
+	"B3": {"height": 27.0, "width": 15.7, "depth": 25.0, "offset_z": 0.8, "wall": "5d6065", "material": "METAL"},
+	"B4": {"height": 17.0, "width": 16.2, "depth": 21.0, "offset_z": -1.2, "wall": "845e54", "material": "BRICK"},
+	"A1": {"height": 41.0, "width": 16.5, "depth": 25.0, "offset_z": -0.5, "wall": "514563", "material": "CONCRETE"},
+	"A2": {"height": 27.0, "width": 15.0, "depth": 23.0, "offset_z": 0.4, "wall": "4a425b", "material": "BRICK"},
+	"A3": {"height": 46.0, "width": 16.0, "depth": 24.0, "offset_z": -1.0, "wall": "344258", "material": "METAL"},
+	"A4": {"height": 32.0, "width": 15.5, "depth": 22.0, "offset_z": 1.0, "wall": "624d66", "material": "CONCRETE"}
+}
+
+static func lot_profile(ix: int, iz: int, building_index: int) -> Dictionary:
+	assert(ix >= -3 and ix <= 2 and iz >= -3 and iz <= 2)
+	assert(building_index == 0 or building_index == 1)
+	var codes: PackedStringArray = LOT_ROWS[iz + 3].split(",")[ix + 3].split("/")
+	return LOT_PROFILES[codes[building_index]].duplicate()
+
 static func landmark_for_block(ix: int, iz: int) -> String:
 	return LANDMARK_BLOCKS.get("%d,%d" % [ix, iz], "")
 
