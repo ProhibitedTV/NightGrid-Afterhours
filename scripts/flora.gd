@@ -4,7 +4,7 @@ extends Node3D
 ## species, canopy variation, small shrubs and flower groups are seeded.
 const WorldPlan = preload("res://scripts/world_plan.gd")
 const SEED = 4201337
-const GRID_RADIUS = 3
+const GRID_RADIUS = WorldPlan.GRID_RADIUS
 const CELL = 58.0
 const PINE = "PINE"
 const GINKGO = "GINKGO"
@@ -37,10 +37,10 @@ func generate() -> void:
 			for side in [-1.0, 1.0]:
 				var tree_point := center + Vector3(side * 19.65, 0.15, 12.50)
 				_tree(tree_point, _street_species(district), 0.76 + _rng.randf_range(0.0, 0.27), true)
-			if district == "GLASSLINE":
+			if district == "GLASSLINE" or district == "HORIZON GARDENS":
 				_potted_group(center + Vector3(-14.1, 0.17, -18.5), "AQUA")
 				_potted_group(center + Vector3(14.1, 0.17, -18.5), "AQUA")
-			elif district == "BRICKWATER":
+			elif district == "BRICKWATER" or district == "WEST DOCKS" or district == "SOUTHWORKS":
 				_wildflower_patch(center + Vector3(-19.35, 0.15, -14.6), 5)
 				_wildflower_patch(center + Vector3(19.35, 0.15, -14.6), 5)
 			elif district == "AFTERHOURS":
@@ -61,8 +61,12 @@ func _street_species(district: String) -> String:
 			return GINKGO
 		"GLASSLINE":
 			return FICUS
-		"BRICKWATER":
+		"BRICKWATER", "WEST DOCKS", "SOUTHWORKS":
 			return PINE
+		"NORTH QUAY":
+			return GINKGO
+		"HORIZON GARDENS":
+			return FICUS
 		_:
 			return PLUM
 
@@ -230,3 +234,26 @@ func _landmark_garden(center: Vector3, landmark: String) -> void:
 					_tree(center + Vector3(x, 0.20, z), PLUM, 0.92)
 			for x in [-10.0, 10.0]:
 				_potted_group(center + Vector3(x, 0.20, 8.0), "PURPLE")
+		"NORTH QUAY EXCHANGE":
+			for x in [-15.0, 15.0]:
+				for z in [-12.0, 12.0]:
+					_tree(center + Vector3(x, 0.20, z), GINKGO, 0.79)
+			for x in [-7.0, 7.0]:
+				_potted_group(center + Vector3(x, 0.20, 15.5), "AQUA")
+		"PIER NINE DEPOT":
+			for x in [-19.2, 19.2]:
+				for z in [-15.0, 15.0]:
+					_shrub(center + Vector3(x, 0.21, z), 0.66)
+			_wildflower_patch(center + Vector3(0.0, 0.21, -18.0), 8)
+		"HORIZON COMMONS":
+			for x in [-13.0, -6.0, 6.0, 13.0]:
+				for z in [-14.0, 14.0]:
+					_tree(center + Vector3(x, 0.20, z), FICUS if x > 0.0 else PLUM, 0.78)
+			_wildflower_patch(center + Vector3(-15.5, 0.20, 0.0), 14)
+			_wildflower_patch(center + Vector3(15.5, 0.20, 0.0), 14)
+		"SOUTHWORKS HALL":
+			for x in [-15.0, 15.0]:
+				for z in [-12.5, 12.5]:
+					_tree(center + Vector3(x, 0.20, z), GINKGO, 0.86)
+			for x in [-6.0, 6.0]:
+				_potted_group(center + Vector3(x, 0.20, -11.0), "GOLD")

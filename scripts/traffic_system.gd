@@ -12,9 +12,11 @@ var _stops: Array[Vector3] = []
 func initialize(world_seed: int, controller: Node) -> void:
 	signals = controller
 	_rng.seed = int(world_seed) ^ 928377
+	var perimeter := loop_route(-232.0, 232.0, -232.0, 232.0, 1.0)
 	var outer := loop_route(-174.0, 174.0, -174.0, 174.0, 1.0)
 	var inner := loop_route(-116.0, 116.0, -116.0, 116.0, 1.0)
 	var core := loop_route(-58.0, 58.0, -58.0, 58.0, 1.0)
+	_spawn_loop("perimeter", perimeter, 8)
 	_spawn_loop("outer", outer, 7)
 	_spawn_loop("inner", inner, 6)
 	_spawn_loop("core", core, 4)
@@ -22,19 +24,29 @@ func initialize(world_seed: int, controller: Node) -> void:
 		Vector3(-41.0, 1.75, -112.75), Vector3(75.0, 1.75, -112.75),
 		Vector3(112.75, 1.75, -41.0), Vector3(112.75, 1.75, 75.0),
 		Vector3(41.0, 1.75, 112.75), Vector3(-75.0, 1.75, 112.75),
-		Vector3(-112.75, 1.75, 41.0), Vector3(-112.75, 1.75, -75.0)
+		Vector3(-112.75, 1.75, 41.0), Vector3(-112.75, 1.75, -75.0),
+		# Outer connector, stopping after controlled junctions and near edge services.
+		Vector3(-157.0, 1.75, -170.75), Vector3(75.0, 1.75, -170.75),
+		Vector3(170.75, 1.75, -157.0), Vector3(170.75, 1.75, 75.0),
+		Vector3(157.0, 1.75, 170.75), Vector3(-75.0, 1.75, 170.75),
+		Vector3(-170.75, 1.75, 157.0), Vector3(-170.75, 1.75, -75.0)
 	]
-	var bus_route := loop_route(-116.0, 116.0, -116.0, 116.0, 1.75)
-	for bus_index in range(2):
+	var center_route := loop_route(-116.0, 116.0, -116.0, 116.0, 1.75)
+	var connector_route := loop_route(-174.0, 174.0, -174.0, 174.0, 1.75)
+	for bus_index in range(4):
 		var bus := TrafficVehicle.new()
 		bus.name = "CityBus_%d" % bus_index
 		add_child(bus)
-		var initial := _stops[0] if bus_index == 0 else _stops[4]
-		bus.setup(bus_route, 1 if bus_index == 0 else 3, initial, true,
-			"bus-%d" % bus_index, Color("e8bb64") if bus_index == 0 else Color("5aaebd"), signals, self)
-		bus.stop_points = _stops.duplicate()
+		var outside := bus_index >= 2
+		var start_index := 0 if bus_index % 2 == 0 else 4
+		var stop_offset := 8 if outside else 0
+		var initial: Vector3 = _stops[stop_offset + start_index]
+		bus.setup(connector_route if outside else center_route, 1 if bus_index % 2 == 0 else 3,
+			initial, true, "bus-%d" % bus_index,
+			Color("d6a276") if outside else Color("5aaebd"), signals, self)
+		bus.stop_points = _stops.slice(8, 16) if outside else _stops.slice(0, 8)
 		bus.dwell_remaining = 7.0
-		bus.last_served = 0 if bus_index == 0 else 4
+		bus.last_served = start_index
 		fleet.append(bus)
 		buses.append(bus)
 	_build_bus_stops()
@@ -126,10 +138,12 @@ func bus_by_id(identifier: String) -> CharacterBody3D:
 
 func get_counts() -> Dictionary:
 	return {"ambient_cars": fleet.size() - buses.size(), "buses": buses.size(),
-		"stops": _stops.size(), "signals": 49}
+		"stops": _stops.size(), "signals": 81}
 
 func _build_bus_stops() -> void:
 	var directions := [Vector3.RIGHT, Vector3.RIGHT, Vector3.BACK, Vector3.BACK,
+		Vector3.LEFT, Vector3.LEFT, Vector3.FORWARD, Vector3.FORWARD,
+		Vector3.RIGHT, Vector3.RIGHT, Vector3.BACK, Vector3.BACK,
 		Vector3.LEFT, Vector3.LEFT, Vector3.FORWARD, Vector3.FORWARD]
 	for i in range(_stops.size()):
 		# A bus runs clockwise: right hand door faces the nearest sidewalk.
@@ -139,7 +153,7 @@ func _build_bus_stops() -> void:
 		_stop_box(base + Vector3.UP * 1.45, Vector3(0.17, 2.9, 0.17), Color("b4b8b8"))
 		_stop_box(base + Vector3.UP * 2.7, Vector3(1.55, 0.54, 0.19), Color("d5a959"), true)
 		var name := Label3D.new()
-		name.text = "B / CITY LOOP"
+		name.text = "B / OUTER CONNECTOR" if i >= 8 else "B / CITY LOOP"
 		name.font_size = 35
 		name.pixel_size = 0.008
 		name.modulate = Color("fff2c5")

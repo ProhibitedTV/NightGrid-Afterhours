@@ -22,8 +22,8 @@ func _ready() -> void:
 		material.emission = material.albedo_color
 		material.emission_energy_multiplier = 1.9
 		_lamps[color_name] = material
-	for ix in range(-3, 4):
-		for iz in range(-3, 4):
+	for ix in range(-4, 5):
+		for iz in range(-4, 5):
 			for axis in ["NS", "EW"]:
 				_make_head(ix, iz, axis)
 	_refresh()
@@ -61,7 +61,7 @@ func approach_speed_cap(at: Vector3, direction: Vector3, speed_cap: float) -> fl
 	if absf(travel) < 0.75:
 		return speed_cap
 	var next_line := ceilf((coord + 8.0) / CELL) * CELL if travel > 0.0 else floorf((coord - 8.0) / CELL) * CELL
-	if next_line < -174.0 or next_line > 174.0:
+	if next_line < -232.0 or next_line > 232.0:
 		return speed_cap
 	var distance := absf(next_line - coord)
 	if distance <= 8.0 or distance > 33.0:
@@ -74,7 +74,7 @@ func approach_speed_cap(at: Vector3, direction: Vector3, speed_cap: float) -> fl
 	return speed_cap
 
 func safe_intersection_count() -> int:
-	return 49
+	return 81
 
 func _make_head(ix: int, iz: int, axis: String) -> void:
 	var node := Node3D.new()
