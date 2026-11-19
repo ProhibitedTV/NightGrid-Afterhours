@@ -22,11 +22,11 @@ func _check() -> void:
 		push_error("Expected 112 authored building shells, got %s" % stats)
 		quit(1)
 		return
-	if int(stats.get("storefronts", 0)) != 64:
+	if int(stats.get("storefronts", 0)) != 112:
 		push_error("All procedural building fronts must have signs and shop treatment")
 		quit(1)
 		return
-	if int(stats.get("authored_lots", 0)) != 64:
+	if int(stats.get("authored_lots", 0)) != 112:
 		push_error("All 112 parcel buildings should come from fixed design manifest: %s" % stats)
 		quit(1)
 		return
