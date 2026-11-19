@@ -369,6 +369,34 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 		for band in range(1, int(height / 7.0)):
 			var y := float(band) * 7.0
 			_detail(Vector3(center.x, y, front - 0.17), Vector3(width * 0.97, 0.12, 0.19), ACCENT[district], true)
+	# Outer zoning has recognizably different silhouettes and public frontage.
+	if district == "NORTH QUAY":
+		for balcony in range(2, int(height / 5.2)):
+			var level := float(balcony) * 5.2
+			_detail(Vector3(center.x, level, front - 0.82), Vector3(width * 0.68, 0.18, 1.25), Color("879f9b"))
+			_detail(Vector3(center.x, level + 0.65, front - 1.30), Vector3(width * 0.68, 0.11, 0.11), Color("75d4ca"), true)
+		_detail(Vector3(center.x, height + 2.2, center.z + 2.0), Vector3(width * 0.72, 0.22, 6.0), Color("5a8385"))
+	elif district == "WEST DOCKS":
+		for stripe in range(2, int(height / 3.2)):
+			var level := float(stripe) * 3.2
+			_detail(Vector3(center.x, level, front - 0.20), Vector3(width * 0.90, 0.15, 0.15), Color("77665a"))
+		for door in [-2.8, 2.8]:
+			_detail(Vector3(center.x + door, 2.25, front - 0.32), Vector3(3.6, 4.0, 0.26), Color("626c6e"))
+			_detail(Vector3(center.x + door, 4.35, front - 0.38), Vector3(3.7, 0.20, 0.25), Color("d6a36a"))
+		_detail(Vector3(center.x - 3.7, height + 3.0, center.z), Vector3(0.7, 5.0, 0.7), Color("917967"))
+	elif district == "HORIZON GARDENS":
+		for floor_index in range(2, int(height / 5.0)):
+			_detail(Vector3(center.x, float(floor_index) * 5.0, front - 0.56),
+				Vector3(width * 0.84, 0.26, 0.80), Color("648d70"))
+		for garden in [-3.0, 0.0, 3.0]:
+			_detail(Vector3(center.x + garden, height + 0.95, center.z - 2.0), Vector3(2.5, 1.45, 2.9), Color("538b70"))
+	elif district == "SOUTHWORKS":
+		for pipe in [-3.3, 0.0, 3.3]:
+			_detail(Vector3(center.x + pipe, height * 0.45, front - 0.27),
+				Vector3(0.24, height * 0.80, 0.28), Color("a88b70"))
+		for roof_tower in [-3.0, 3.0]:
+			_detail(Vector3(center.x + roof_tower, height + 3.5, center.z + 1.5),
+				Vector3(1.1, 5.8, 1.2), Color("68757e"))
 	# Carefully varied windows. Lit and dark windows avoid checkerboard monotony.
 	for floor_index in range(2, int(height / 3.3)):
 		var fy := float(floor_index) * 3.3 + 0.10
@@ -429,12 +457,29 @@ func _furniture(center: Vector3, district: String) -> void:
 	if district == "VESPER MARKET" or district == "NORTH QUAY":
 		_vendor(center + Vector3(-5.0, 0.0, -18.6), color)
 		_vendor(center + Vector3(5.0, 0.0, -18.6), Color("e48f8a"))
+		if district == "NORTH QUAY":
+			for bollard in [-14.0, 0.0, 14.0]:
+				_detail(center + Vector3(bollard, 0.55, 19.4), Vector3(0.38, 1.1, 0.40), Color("80a9a8"))
+				_detail(center + Vector3(bollard, 1.14, 19.4), Vector3(0.59, 0.15, 0.59), color)
 	elif district == "BRICKWATER" or district == "WEST DOCKS" or district == "SOUTHWORKS":
 		_crates(center + Vector3(-2.0, 0.0, -18.5))
 		_crates(center + Vector3(6.0, 0.0, -18.5))
+		if district == "WEST DOCKS":
+			for x in [-7.0, 7.0]:
+				_detail(center + Vector3(x, 0.25, 9.0), Vector3(2.6, 0.25, 5.4), Color("bd925b"))
+				_detail(center + Vector3(x, 1.10, 9.0), Vector3(2.4, 1.4, 2.7), Color("657582"))
+		elif district == "SOUTHWORKS":
+			_detail(center + Vector3(0.0, 0.25, -14.0), Vector3(12.0, 0.04, 0.55), Color("d9b67d"))
+			for x in [-9.0, 9.0]:
+				_detail(center + Vector3(x, 1.20, -17.5), Vector3(0.30, 2.3, 0.30), Color("b5aa91"))
 	elif district == "GLASSLINE" or district == "HORIZON GARDENS":
 		_planter(center + Vector3(-4.0, 0.0, -18.4))
 		_planter(center + Vector3(4.0, 0.0, -18.4))
+		if district == "HORIZON GARDENS":
+			_bench(center + Vector3(0.0, 0.0, 13.6))
+			for flower in [-10.0, -6.0, 6.0, 10.0]:
+				_detail(center + Vector3(flower, 0.60, 17.5), Vector3(1.20, 0.9, 1.10), Color("5d9879"))
+				_detail(center + Vector3(flower, 1.12, 17.5), Vector3(0.42, 0.32, 0.42), Color("e6bd9f"))
 	else:
 		_vending(center + Vector3(-3.4, 0.0, -18.2), color)
 		_bench(center + Vector3(5.4, 0.0, -18.2))
