@@ -1,4 +1,5 @@
 extends Node3D
+const WorldPlan = preload("res://scripts/world_plan.gd")
 ## Seeded city dressing. Static shell collisions + batched decorative geometry.
 ## The four neighborhoods deliberately share road geometry but not street character.
 
@@ -27,7 +28,7 @@ const DARK_GLASS = Color("1d3449")
 var _rng := RandomNumberGenerator.new()
 var _batches: Dictionary = {}
 var _palette: Dictionary = {}
-var _statistics := {"buildings": 0, "storefronts": 0, "street_props": 0, "batched_details": 0, "districts": 4}
+var _statistics := {"buildings": 0, "storefronts": 0, "street_props": 0, "batched_details": 0, "districts": 4, "landmarks": 0}
 var _initialized := false
 
 func _ready() -> void:
@@ -51,9 +52,18 @@ func get_city_stats() -> Dictionary:
 	return _statistics.duplicate()
 
 func get_district_at(position: Vector3) -> String:
-	if position.x < 0.0:
-		return "VESPER MARKET" if position.z < 0.0 else "BRICKWATER"
-	return "GLASSLINE" if position.z < 0.0 else "AFTERHOURS"
+	return WorldPlan.district_at(position)
+
+func get_nearby_landmark(position: Vector3) -> String:
+	return WorldPlan.nearby_landmark(position)
+
+func set_night_factor(value: float) -> void:
+	# Static shared emissive materials change with the time controller.
+	var brightness := lerpf(0.28, 2.15, clampf(value, 0.0, 1.0))
+	for key in _palette:
+		if str(key).ends_with("_glow"):
+			var material: StandardMaterial3D = _palette[key]
+			material.emission_energy_multiplier = brightness
 
 func _material(color: Color, emissive: bool = false) -> StandardMaterial3D:
 	var key := color.to_html(false) + ("_glow" if emissive else "_matte")
@@ -168,6 +178,11 @@ func _build_block(ix: int, iz: int) -> void:
 			var offset := float(slab) * 4.2
 			_detail(center + Vector3(side * 19.3, 0.151, offset), Vector3(0.065, 0.018, 3.3), Color("747c81"))
 			_detail(center + Vector3(offset, 0.151, side * 19.3), Vector3(3.3, 0.018, 0.065), Color("747c81"))
+	var landmark: String = WorldPlan.landmark_for_block(ix, iz)
+	if not landmark.is_empty():
+		_build_landmark(center, landmark)
+		_statistics["landmarks"] += 1
+		return
 	for building in range(2):
 		var x := center.x + (-10.5 if building == 0 else 10.5)
 		var depth := _rng.randf_range(19.0, 25.5)
@@ -180,6 +195,60 @@ func _build_block(ix: int, iz: int) -> void:
 		_detail(center + Vector3(0.0, 0.175, -6.0 + float(mark) * 6.0), Vector3(3.4, 0.02, 0.10), Color("62686e"))
 	_dumpster(center + Vector3(0.0, 0.3, 10.0))
 	_furniture(center, district)
+	_statistics["street_props"] += 1
+
+func _build_landmark(center: Vector3, name: String) -> void:
+	# Permanent city anchors. Open pedestrian space remains for later story scenes.
+	var label_color := Color("ffe0a2")
+	match name:
+		"LANTERN COURT":
+			label_color = Color("f4ba67")
+			# Low market pavilion; open arcade with lantern-like light bars.
+			_solid(center + Vector3(0.0, 2.20, 15.0), Vector3(18.0, 4.1, 5.0), Color("564759"))
+			_detail(center + Vector3(0.0, 4.55, 15.0), Vector3(19.4, 0.35, 6.1), Color("e8a77b"))
+			for x in [-8.0, -2.7, 2.7, 8.0]:
+				_detail(center + Vector3(x, 3.1, 12.35), Vector3(0.20, 2.2, 0.20), Color("ffbf77"), true)
+			for x in [-8.0, 8.0]:
+				for z in [-4.0, 4.0]:
+					_detail(center + Vector3(x, 2.6, z), Vector3(0.34, 5.0, 0.34), Color("75677c"))
+				_detail(center + Vector3(x, 5.20, 0.0), Vector3(0.4, 0.23, 11.0), Color("d29364"), true)
+			_label("LANTERN COURT", center + Vector3(0.0, 6.0, 11.9), label_color, 67)
+		"HELIX TERMINAL":
+			label_color = Color("6de5ee")
+			# Civic rail canopy, structural ribs and turquoise station indicator.
+			_solid(center + Vector3(0.0, 0.48, 0.0), Vector3(22.0, 0.82, 12.0), Color("4f6971"))
+			_detail(center + Vector3(0.0, 0.93, 0.0), Vector3(21.3, 0.11, 11.4), Color("9aadb0"))
+			for x in [-10.2, 10.2]:
+				for z in [-4.8, 4.8]:
+					_solid(center + Vector3(x, 4.4, z), Vector3(0.56, 7.4, 0.56), Color("506c7c"))
+			_detail(center + Vector3(0.0, 8.25, 0.0), Vector3(25.5, 0.42, 16.0), Color("263c55"))
+			for x in [-9.0, -3.0, 3.0, 9.0]:
+				_detail(center + Vector3(x, 8.0, -7.8), Vector3(0.25, 0.33, 0.22), label_color, true)
+			_detail(center + Vector3(0.0, 5.30, -8.2), Vector3(13.5, 1.85, 0.20), Color("19273c"))
+			_label("HELIX TERMINAL", center + Vector3(0.0, 5.5, -8.42), label_color, 70)
+		"FOUNDRY COMMONS":
+			label_color = Color("d6b987")
+			# Accessible green with an abstract copper civic monument.
+			for x in [-18.0, 18.0]:
+				_detail(center + Vector3(x, 0.21, 0.0), Vector3(0.45, 0.28, 32.0), Color("7d7067"))
+			for z in [-18.0, 18.0]:
+				_detail(center + Vector3(0.0, 0.21, z), Vector3(34.0, 0.28, 0.45), Color("7d7067"))
+			_detail(center + Vector3(0.0, 0.19, 0.0), Vector3(5.0, 0.15, 34.0), Color("746b66"))
+			_detail(center + Vector3(0.0, 0.19, 0.0), Vector3(34.0, 0.15, 4.3), Color("746b66"))
+			_solid(center + Vector3(0.0, 1.08, -6.0), Vector3(4.7, 1.7, 4.7), Color("5c666c"))
+			_detail(center + Vector3(0.0, 5.10, -6.0), Vector3(0.95, 7.0, 1.0), Color("e4ad76"))
+			_detail(center + Vector3(0.85, 6.60, -6.0), Vector3(2.1, 0.4, 1.0), Color("f4c98c"), true)
+			_label("FOUNDRY COMMONS", center + Vector3(0.0, 4.4, 17.1), label_color, 60)
+		"SABLE SQUARE":
+			label_color = Color("fc7fcb")
+			# Permanent community stage, public plaza and overhanging marquee.
+			_solid(center + Vector3(0.0, 1.0, 11.0), Vector3(19.0, 1.6, 9.5), Color("384057"))
+			_solid(center + Vector3(0.0, 5.75, 15.5), Vector3(22.0, 0.55, 1.1), Color("28273e"))
+			for x in [-10.4, 10.4]:
+				_detail(center + Vector3(x, 4.6, 15.5), Vector3(0.44, 8.8, 0.44), Color("9b6190"))
+			for stripe in range(-5, 6):
+				_detail(center + Vector3(float(stripe) * 1.77, 2.25, 6.0), Vector3(1.0, 0.17, 0.25), label_color, true)
+			_label("SABLE SQUARE", center + Vector3(0.0, 7.15, 14.8), label_color, 70)
 	_statistics["street_props"] += 1
 
 func _build_building(center: Vector3, width: float, depth: float, district: String, ix: int, iz: int, which: int) -> void:
@@ -285,7 +354,6 @@ func _furniture(center: Vector3, district: String) -> void:
 	var color: Color = ACCENT[district]
 	# Furnishing faces the road, stays on the sidewalks, not in traffic lanes.
 	for side in [-1.0, 1.0]:
-		_tree(center + Vector3(side * 19.8, 0.0, 12.5))
 		_bin(center + Vector3(side * 19.5, 0.0, -12.8))
 		_detail(center + Vector3(side * 19.8, 0.17, -3.5), Vector3(0.54, 0.035, 1.22), Color("232d39"))
 	if district == "VESPER MARKET":
@@ -305,13 +373,6 @@ func _furniture(center: Vector3, district: String) -> void:
 		var x := center.x + _rng.randf_range(-1.25, 1.25)
 		var z := center.z + _rng.randf_range(-9.0, 12.0)
 		_detail(Vector3(x, 0.195, z), Vector3(_rng.randf_range(0.7, 2.0), 0.025, _rng.randf_range(0.8, 2.1)), Color("1c2736"))
-
-func _tree(at: Vector3) -> void:
-	_detail(at + Vector3.UP * 1.8, Vector3(0.42, 3.50, 0.42), Color("584b43"))
-	var canopy := Color("30555a") if at.z < 0.0 else Color("415750")
-	_detail(at + Vector3.UP * 4.1, Vector3(2.3, 2.0, 2.3), canopy)
-	_detail(at + Vector3.UP * 5.1, Vector3(1.55, 1.1, 1.55), Color("477569"))
-	_statistics["street_props"] += 1
 
 func _bin(at: Vector3) -> void:
 	_detail(at + Vector3.UP * 0.45, Vector3(0.8, 0.9, 0.8), Color("253e48"))
