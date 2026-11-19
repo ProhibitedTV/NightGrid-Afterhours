@@ -112,7 +112,7 @@ func _build_train() -> void:
 		_box(Vector3(carriage, -0.15, -1.67), Vector3(8.4, 1.0, 0.11), Color("284e65"), false, train)
 		_box(Vector3(carriage, -0.98, -1.72), Vector3(9.1, 0.22, 0.12), Color("52c7c9"), true, train)
 		for window in range(4):
-			var x := carriage - 3.2 + float(window) * 2.05
+			var x: float = float(carriage) - 3.2 + float(window) * 2.05
 			_box(Vector3(x, 0.28, -1.73), Vector3(1.24, 0.83, 0.07), Color("77b5c4"), false, train)
 	_box(Vector3(10.1, 0.25, 0.0), Vector3(0.22, 0.75, 2.15), Color("c5e8a9"), true, train)
 
