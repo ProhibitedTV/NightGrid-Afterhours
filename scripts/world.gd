@@ -143,7 +143,7 @@ func _process(delta: float) -> void:
 		_venue_clock_tick = 0.0
 		venue_system.call("set_hour", float(day_night.get("hour")))
 	if venue_panel.visible and (current_car != null or current_transit != null or
-			venue_system.venue_position(venue_selected_id).distance_to(player.global_position) > 7.0):
+			venue_system.call("venue_position", venue_selected_id).distance_to(player.global_position) > 7.0):
 		_close_venue()
 	if current_car == null and current_transit == null:
 		player.set("camera_yaw", yaw)
@@ -593,14 +593,14 @@ func _apply_snapshot(data: Dictionary) -> void:
 	day_night.call("set_hour", float(data.get("hour", 19.25)))
 	venue_system.call("set_hour", float(day_night.get("hour")))
 	venue_job_active = str(data.get("venue_job_active", ""))
-	if not venue_job_active.is_empty() and venue_system.job_by_id(venue_job_active).is_empty():
+	if not venue_job_active.is_empty() and venue_system.call("job_by_id", venue_job_active).is_empty():
 		venue_job_active = ""
 	venue_job_completed.clear()
 	var saved_jobs = data.get("venue_job_completed", [])
 	if saved_jobs is Array:
 		for job_id in saved_jobs:
 			var valid_id := str(job_id)
-			if not venue_system.job_by_id(valid_id).is_empty() and not venue_job_completed.has(valid_id):
+			if not venue_system.call("job_by_id", valid_id).is_empty() and not venue_job_completed.has(valid_id):
 				venue_job_completed.append(valid_id)
 	_set_mission_target(DROPOFFS[deliveries % DROPOFFS.size()] if carrying else PICKUPS[deliveries % PICKUPS.size()], carrying)
 	_notify("Save loaded. Seed %d; Morrow Bay restored." % int(session.get("world_seed")))
@@ -699,7 +699,7 @@ func _venue_action(option: int) -> void:
 			if str(contract["to"]) != venue_selected_id:
 				_notify("Job active: %s. Destination: %s." % [
 					str(contract["title"]),
-					str(venue_system.venue_by_id(str(contract["to"]))["name"])])
+					str(venue_system.call("venue_by_id", str(contract["to"]))["name"])])
 				return
 			cash += int(contract["reward"])
 			venue_job_completed.append(venue_job_active)
@@ -714,7 +714,7 @@ func _venue_job_text() -> String:
 	if job.is_empty():
 		return ""
 	var venue: Dictionary = venue_system.call("venue_by_id", str(job["to"]))
-	var dist := roundi(player.global_position.distance_to(venue_system.venue_position(str(job["to"]))))
+	var dist := roundi(player.global_position.distance_to(venue_system.call("venue_position", str(job["to"]))))
 	return "SIDE JOB: %s / %s (%dm)" % [str(job["title"]), str(venue["name"]), dist]
 
 func _create_camera() -> void:
@@ -846,6 +846,6 @@ func get_map_state() -> Dictionary:
 		"mission": Vector2(mission_position.x, mission_position.z),
 		"officers": car_positions,
 		"carrying": carrying,
-		"side_quest": Vector2(venue_system.venue_position(str(venue_system.job_by_id(venue_job_active).get("to", ""))).x, venue_system.venue_position(str(venue_system.job_by_id(venue_job_active).get("to", ""))).z) if not venue_job_active.is_empty() else Vector2.ZERO,
+		"side_quest": Vector2(venue_system.call("venue_position", str(venue_system.call("job_by_id", venue_job_active).get("to", ""))).x, venue_system.call("venue_position", str(venue_system.call("job_by_id", venue_job_active).get("to", ""))).z) if not venue_job_active.is_empty() else Vector2.ZERO,
 		"side_quest_active": not venue_job_active.is_empty()
 	}
