@@ -5,20 +5,28 @@ const Materials = preload("res://scripts/material_library.gd")
 ## The four neighborhoods deliberately share road geometry but not street character.
 
 const CELL = 58.0
-const GRID_RADIUS = 3
+const GRID_RADIUS = WorldPlan.GRID_RADIUS
 const SEED = 834726
-const DISTRICTS = ["VESPER MARKET", "GLASSLINE", "BRICKWATER", "AFTERHOURS"]
+const DISTRICTS = ["VESPER MARKET", "GLASSLINE", "BRICKWATER", "AFTERHOURS", "NORTH QUAY", "WEST DOCKS", "HORIZON GARDENS", "SOUTHWORKS"]
 const SHOPS = {
 	"VESPER MARKET": ["MOON NOODLES", "VESPER MART", "SILK ROAD", "PAPER TIGER", "NOVA DELI", "INK & TONIC"],
 	"GLASSLINE": ["HELIX DATA", "ASTER FINANCE", "NEON EXCHANGE", "VECTOR SYSTEMS", "MONO TOWER"],
 	"BRICKWATER": ["RUSTWORKS", "LOADING BAY", "DOCK 9", "HARBOR RADIO", "BOLT SUPPLY", "LAST SHIFT"],
-	"AFTERHOURS": ["BLUE HOUR", "SABLE CLUB", "24H ARCADE", "STATIC ROOM", "GHOST FM", "VOLT RAMEN"]
+	"AFTERHOURS": ["BLUE HOUR", "SABLE CLUB", "24H ARCADE", "STATIC ROOM", "GHOST FM", "VOLT RAMEN"],
+	"NORTH QUAY": ["QUAY FRESH", "MARINER DINER", "SEAWALL SUPPLY", "TIDELINE DELI", "HARBOR COFFEE"],
+	"WEST DOCKS": ["PIER STORAGE", "CRANE & GEAR", "NINE LOGISTICS", "SHIFT HOUSE", "COLD CHAIN"],
+	"HORIZON GARDENS": ["GARDEN MARKET", "HORIZON HEALTH", "COMMONS LIBRARY", "ORCHARD MART", "EASTSIDE FIRE"],
+	"SOUTHWORKS": ["MUNICIPAL WORKS", "CITY RECORDS", "DEPOT 11", "WORKER CO-OP", "SUBSTATION 4"]
 }
 const ACCENT = {
 	"VESPER MARKET": Color("ffc46b"),
 	"GLASSLINE": Color("61cbff"),
 	"BRICKWATER": Color("f68b59"),
-	"AFTERHOURS": Color("ef68ce")
+	"AFTERHOURS": Color("ef68ce"),
+	"NORTH QUAY": Color("79d6cb"),
+	"WEST DOCKS": Color("d3a175"),
+	"HORIZON GARDENS": Color("91d69c"),
+	"SOUTHWORKS": Color("e0b275")
 }
 const BRICK = Color("713e48")
 const METAL = Color("38465a")
@@ -29,7 +37,7 @@ const DARK_GLASS = Color("1d3449")
 var _rng := RandomNumberGenerator.new()
 var _batches: Dictionary = {}
 var _palette: Dictionary = {}
-var _statistics := {"buildings": 0, "storefronts": 0, "street_props": 0, "batched_details": 0, "districts": 4, "landmarks": 0, "authored_lots": 0, "variant_lots": 0}
+var _statistics := {"buildings": 0, "storefronts": 0, "street_props": 0, "batched_details": 0, "districts": 8, "landmarks": 0, "authored_lots": 0, "variant_lots": 0}
 var _initialized := false
 var world_seed: int = 834726
 
@@ -88,7 +96,8 @@ func _material(color: Color, emissive: bool = false) -> StandardMaterial3D:
 
 func _detail(at: Vector3, size: Vector3, color: Color, glow: bool = false) -> void:
 	# MultiMesh keeps tens of thousands of architectural parts to a few draw calls.
-	var key := color.to_html(false) + ("_glow" if glow else "_matte")
+	var material_key := color.to_html(false) + ("_glow" if glow else "_matte")
+	var key := "%s|%d,%d" % [material_key, floori(at.x / (CELL * 2.0)), floori(at.z / (CELL * 2.0))]
 	if not _batches.has(key):
 		_batches[key] = []
 		_material(color, glow)
@@ -128,7 +137,7 @@ func _flush_instances() -> void:
 		var node := MultiMeshInstance3D.new()
 		node.name = "Detail_%s" % key
 		node.multimesh = multimesh
-		node.material_override = _palette[key]
+		node.material_override = _palette[str(key).split("|")[0]]
 		add_child(node)
 	_batches.clear()
 
@@ -148,8 +157,8 @@ func _build_road_language() -> void:
 				_detail(Vector3(axis + 3.4, 0.011, patch), Vector3(1.6, 0.015, 3.8), Color("2d313b"))
 		# Solid edge markings give the player a reliable read on lanes.
 		for side in [-1.0, 1.0]:
-			_detail(Vector3(axis + side * 6.65, 0.016, 0.0), Vector3(0.10, 0.025, 405.0), Color("707b88"))
-			_detail(Vector3(0.0, 0.016, axis + side * 6.65), Vector3(405.0, 0.025, 0.10), Color("707b88"))
+			_detail(Vector3(axis + side * 6.65, 0.016, 0.0), Vector3(0.10, 0.025, 521.0), Color("707b88"))
+			_detail(Vector3(0.0, 0.016, axis + side * 6.65), Vector3(521.0, 0.025, 0.10), Color("707b88"))
 
 func _build_intersections() -> void:
 	for ix in range(-GRID_RADIUS, GRID_RADIUS + 1):
@@ -192,7 +201,7 @@ func _build_block(ix: int, iz: int) -> void:
 	for building in range(2):
 		var x := center.x + (-10.5 if building == 0 else 10.5)
 		var profile: Dictionary = WorldPlan.lot_profile(ix, iz, building, world_seed)
-		if WorldPlan.lot_variant_index(ix, iz, world_seed) > 0:
+		if (not WorldPlan.is_core_block(ix, iz)) or WorldPlan.lot_variant_index(ix, iz, world_seed) > 0:
 			_statistics["variant_lots"] += 1
 		var z: float = center.z + profile["offset_z"]
 		_build_building(Vector3(x, 0.0, z), profile, district, ix, iz, building)
@@ -247,6 +256,59 @@ func _build_landmark(center: Vector3, name: String) -> void:
 			_detail(center + Vector3(0.0, 5.10, -6.0), Vector3(0.95, 7.0, 1.0), Color("e4ad76"))
 			_detail(center + Vector3(0.85, 6.60, -6.0), Vector3(2.1, 0.4, 1.0), Color("f4c98c"), true)
 			_label("FOUNDRY COMMONS", center + Vector3(0.0, 4.4, 17.1), label_color, 60)
+		"NORTH QUAY EXCHANGE":
+			label_color = Color("81dace")
+			# Walk-through covered market and public board, not a solid facade.
+			for x in [-13.0, 13.0]:
+				for z in [-10.0, 10.0]:
+					_solid(center + Vector3(x, 3.20, z), Vector3(0.58, 6.3, 0.58), Color("738d91"), "METAL")
+			_detail(center + Vector3(0.0, 6.55, 0.0), Vector3(31.0, 0.42, 24.0), Color("365c65"))
+			_detail(center + Vector3(0.0, 6.85, -12.0), Vector3(30.0, 0.18, 0.18), label_color, true)
+			for row in [-6.0, 6.0]:
+				for x in [-9.0, -3.0, 3.0, 9.0]:
+					_detail(center + Vector3(x, 0.65, row), Vector3(4.15, 1.02, 2.20), Color("69777b"))
+					_detail(center + Vector3(x, 1.35, row), Vector3(3.75, 0.23, 1.8), Color("d1a775"))
+					for produce in [-1.0, 0.0, 1.0]:
+						_detail(center + Vector3(x + produce, 1.61, row), Vector3(0.55, 0.32, 0.45), Color("78af78"))
+			_label("NORTH QUAY EXCHANGE", center + Vector3(0.0, 5.45, -12.2), label_color, 46)
+		"PIER NINE DEPOT":
+			label_color = Color("e2ac76")
+			# Open loading lanes, freight stacks and a signal gantry.
+			for x in [-16.0, 16.0]:
+				_detail(center + Vector3(x, 0.22, 0.0), Vector3(0.28, 0.16, 36.0), Color("d6ad70"))
+			for row in [-11.0, 11.0]:
+				for x in [-12.0, 12.0]:
+					_solid(center + Vector3(x, 2.3, row), Vector3(7.5, 4.15, 7.0), Color("6b777c"), "METAL")
+					_detail(center + Vector3(x, 4.50, row), Vector3(8.0, 0.24, 7.5), Color("dc9e64"))
+			_detail(center + Vector3(0.0, 7.4, 16.5), Vector3(28.0, 0.46, 0.55), label_color)
+			for x in [-14.0, 14.0]:
+				_detail(center + Vector3(x, 3.95, 16.5), Vector3(0.56, 7.5, 0.56), Color("7e9298"))
+			_label("PIER NINE DEPOT", center + Vector3(0.0, 5.9, 16.2), label_color, 56)
+		"HORIZON COMMONS":
+			label_color = Color("a8dfa6")
+			# Public green and walk-through health pavilion.
+			_detail(center + Vector3(0.0, 0.19, 0.0), Vector3(36.0, 0.11, 5.0), Color("a4a28e"))
+			_detail(center + Vector3(0.0, 0.19, 0.0), Vector3(5.0, 0.11, 36.0), Color("a4a28e"))
+			for x in [-13.0, 13.0]:
+				for z in [-12.0, 12.0]:
+					_detail(center + Vector3(x, 0.19, z), Vector3(5.5, 0.13, 5.4), Color("4d8068"))
+			for x in [-8.0, 8.0]:
+				_solid(center + Vector3(x, 2.70, 11.0), Vector3(0.40, 5.0, 0.40), Color("729d9a"))
+			_detail(center + Vector3(0.0, 5.4, 11.0), Vector3(22.0, 0.45, 8.5), Color("4b7176"))
+			_detail(center + Vector3(0.0, 4.6, 6.8), Vector3(4.0, 0.16, 0.16), Color("e4fae2"), true)
+			_label("HORIZON COMMONS", center + Vector3(0.0, 5.8, 15.4), label_color, 54)
+		"SOUTHWORKS HALL":
+			label_color = Color("ebc38c")
+			# Municipal service counter, bell canopy, public benches.
+			_solid(center + Vector3(0.0, 2.7, 12.0), Vector3(22.0, 4.6, 6.5), Color("5d606b"))
+			_detail(center + Vector3(0.0, 5.25, 12.0), Vector3(23.2, 0.46, 7.2), Color("9b8978"))
+			for x in [-9.0, -3.0, 3.0, 9.0]:
+				_detail(center + Vector3(x, 2.4, 8.5), Vector3(0.36, 4.1, 0.40), Color("c5ac8d"))
+			for x in [-12.0, 12.0]:
+				for z in [-7.0, 2.0]:
+					_detail(center + Vector3(x, 0.65, z), Vector3(3.2, 1.0, 1.4), Color("798084"))
+			_detail(center + Vector3(0.0, 6.0, 9.0), Vector3(6.0, 0.14, 0.18), label_color, true)
+			_label("SOUTHWORKS HALL", center + Vector3(0.0, 4.10, 8.45), label_color, 53)
 		"SABLE SQUARE":
 			label_color = Color("fc7fcb")
 			# Permanent community stage, public plaza and overhanging marquee.
@@ -280,7 +342,7 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 		var vx := center.x + (float(vent) - 1.0) * width * 0.25
 		_detail(Vector3(vx, height + 2.35, center.z + depth * 0.17), Vector3(1.35, 0.65, 1.1), METAL)
 		_detail(Vector3(vx, height + 2.72, center.z + depth * 0.17), Vector3(1.52, 0.10, 1.25), Color("9cabb2"))
-	if district == "BRICKWATER":
+	if district == "BRICKWATER" or district == "WEST DOCKS":
 		# Rooftop water tank and a vertical fire escape.
 		_detail(Vector3(center.x + 3.8, height + 3.2, center.z), Vector3(3.6, 4.4, 3.6), Color("4f6570"))
 		_detail(Vector3(center.x + 3.8, height + 5.5, center.z), Vector3(4.0, 0.22, 4.0), Color("a0a2a0"))
@@ -288,7 +350,7 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 			var step_y := float(floor_step) * 3.4
 			_detail(Vector3(right + 0.28, step_y, center.z + 0.5), Vector3(0.65, 0.17, 5.4), Color("65757c"))
 			_detail(Vector3(right + 0.54, step_y + 0.9, center.z + 0.5), Vector3(0.09, 1.70, 5.3), Color("819198"))
-	if district == "GLASSLINE":
+	if district == "GLASSLINE" or district == "NORTH QUAY":
 		# Facade fins, lit corner spines and tall skyline silhouettes.
 		for edge in [left + 0.40, right - 0.40]:
 			_detail(Vector3(edge, height * 0.52, front - 0.12), Vector3(0.20, height * 0.90, 0.18), Color("68badd"), true)
@@ -354,13 +416,13 @@ func _furniture(center: Vector3, district: String) -> void:
 	for side in [-1.0, 1.0]:
 		_bin(center + Vector3(side * 19.5, 0.0, -12.8))
 		_detail(center + Vector3(side * 19.8, 0.17, -3.5), Vector3(0.54, 0.035, 1.22), Color("232d39"))
-	if district == "VESPER MARKET":
+	if district == "VESPER MARKET" or district == "NORTH QUAY":
 		_vendor(center + Vector3(-5.0, 0.0, -18.6), color)
 		_vendor(center + Vector3(5.0, 0.0, -18.6), Color("e48f8a"))
-	elif district == "BRICKWATER":
+	elif district == "BRICKWATER" or district == "WEST DOCKS" or district == "SOUTHWORKS":
 		_crates(center + Vector3(-2.0, 0.0, -18.5))
 		_crates(center + Vector3(6.0, 0.0, -18.5))
-	elif district == "GLASSLINE":
+	elif district == "GLASSLINE" or district == "HORIZON GARDENS":
 		_planter(center + Vector3(-4.0, 0.0, -18.4))
 		_planter(center + Vector3(4.0, 0.0, -18.4))
 	else:
@@ -450,7 +512,7 @@ func _build_far_skyline() -> void:
 	]
 	for index in range(silhouettes.size()):
 		var angle := TAU * float(index) / float(silhouettes.size())
-		var radius := 245.0 + float(index % 4) * 7.5
+		var radius := 360.0 + float(index % 4) * 7.5
 		var height: float = silhouettes[index]
 		var at := Vector3(cos(angle) * radius, height / 2.0, sin(angle) * radius)
 		_detail(at, Vector3(14.0 + float(index % 3) * 3.0, height, 14.0 + float(index % 4) * 2.5), Color("172434"))
