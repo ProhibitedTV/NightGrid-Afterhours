@@ -13,11 +13,14 @@ var occupied := false
 var is_police := false
 var police_target: Node3D
 var speed := 0.0
+var condition := 100.0
+var _impact_cooldown := 0.0
 
 func _ready() -> void:
 	floor_snap_length = 0.5
 
 func _physics_process(delta: float) -> void:
+	_impact_cooldown = maxf(0.0, _impact_cooldown - delta)
 	if is_police and is_instance_valid(police_target):
 		var vector := police_target.global_position - global_position
 		vector.y = 0.0
@@ -30,7 +33,7 @@ func _physics_process(delta: float) -> void:
 		var throttle := float(Input.is_physical_key_pressed(KEY_W)) - float(Input.is_physical_key_pressed(KEY_S))
 		var steering := float(Input.is_physical_key_pressed(KEY_D)) - float(Input.is_physical_key_pressed(KEY_A))
 		if throttle > 0.0:
-			speed = move_toward(speed, MAX_SPEED, ACCEL * delta)
+			speed = move_toward(speed, MAX_SPEED * lerpf(0.55, 1.0, condition / 100.0), ACCEL * delta)
 		elif throttle < 0.0:
 			speed = move_toward(speed, -MAX_REVERSE, BRAKE * delta)
 		else:
@@ -52,8 +55,14 @@ func _physics_process(delta: float) -> void:
 	if absf(speed) > 8.0:
 		for i in get_slide_collision_count():
 			if get_slide_collision(i).get_normal().y < 0.5:
+				if not is_police and _impact_cooldown <= 0.0:
+					condition = maxf(18.0, condition - 9.0)
+					_impact_cooldown = 1.2
 				speed *= 0.5
 				break
+
+func repair() -> void:
+	condition = 100.0
 
 func speed_kph() -> int:
 	return roundi(absf(speed) * 3.6)
