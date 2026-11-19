@@ -18,12 +18,16 @@ func _check() -> void:
 		quit(1)
 		return
 	var stats: Dictionary = city.call("get_city_stats")
-	if int(stats.get("buildings", 0)) != 72:
-		push_error("Expected 72 building shells, got %s" % stats)
+	if int(stats.get("buildings", 0)) != 64:
+		push_error("Expected 64 procedural building shells, got %s" % stats)
 		quit(1)
 		return
-	if int(stats.get("storefronts", 0)) != 72:
-		push_error("All building fronts must have signs and shop treatment")
+	if int(stats.get("storefronts", 0)) != 64:
+		push_error("All procedural building fronts must have signs and shop treatment")
+		quit(1)
+		return
+	if int(stats.get("landmarks", 0)) != 4:
+		push_error("Authored landmarks missing: %s" % stats)
 		quit(1)
 		return
 	if int(stats.get("batched_details", 0)) < 3000:

@@ -17,16 +17,21 @@
 | Space | Jump on foot / handbrake in a car |
 | E | Enter nearby parked car / exit when stopped |
 | Escape | Release or capture mouse |
+| T | Advance one in-game hour (debug) |
+| Y | Pause/resume time (debug) |
 
 ### Included in the first vertical slice
 
-- Procedurally generated street grid with **four neighborhoods**: Vesper Market, Glassline, Brickwater, and Afterhours. Each has distinct skylines, facade shapes, storefronts and street dressing.
+- Authored Morrow Bay geography with four stable landmarks and seeded procedural street blocks in **four neighborhoods**: Vesper Market, Glassline, Brickwater, and Afterhours. Each has distinct skylines, facade shapes, storefronts and street dressing.
 - Third-person character with walking, sprinting, jumping and a follow camera.
 - Eight parked arcade-drivable cars with collisions.
 - Repeatable courier pickups and deliveries, cash payouts.
 - Heat / wanted level, pursuing police, health damage, hospital respawn.
 - HUD with objective, cash, health, speed, and a city minimap.
 - Procedural details: crossings, painted roads, lit windows, rooftop HVAC/water towers, fire escapes, storefront names, market stalls, signal units, benches, vending machines, hydrants, trees, crates, service alleys and distant skyline.
+- Real 24-hour lighting cycle (24 real minutes), two sky palettes blended through dawn/dusk, and nighttime neon response. Press **T** to skip one hour and **Y** to pause the clock.
+- Purpose-planted low-poly flora: ginkgo, pine, flowering plum, ficus, shrubs, flowers and district planters, using batched GPU instancing.
+- Four fixed locations: Lantern Court, Helix Terminal, Foundry Commons and Sable Square, ready to anchor future story missions. See the [Morrow Bay World Bible](docs/WORLD_BIBLE.md).
 - Original procedural placeholder graphics — no external art/audio dependencies. For neighborhood layout and technical notes, see [City Atlas](docs/CITY.md).
 
 ### Known limits
@@ -52,6 +57,7 @@ On GitHub, open **Actions → Windows playtest build → latest successful run**
 python3 tools/check_project.py
 godot --headless --path . --import --quit
 godot --headless --path . --script res://tests/city_smoke.gd
+godot --headless --path . --script res://tests/world_systems_smoke.gd
 godot --headless --path . --quit-after 90
 ```
 

@@ -11,7 +11,7 @@ The city has a **deterministic seed** (`834726`), a 58 m road grid, and four fic
 
 ## World details
 
-- 72 physically collidable building shells, 72 frontage signs, individual window grids and recessed-look store faces.
+- 64 physically collidable procedural building shells plus four authored landmark plazas, 64 frontage signs, individual window grids and recessed-look store faces.
 - Structural silhouette variety from district-based building height, parapets, vent/HVAC arrangements and rooftop elements.
 - Signal boxes, street lamps, fire hydrants, curbs, road shoulder paint, stop bars, crossings and asphalt patches.
 - Neighborhood furniture such as planters, market stalls, dumpsters, trees, bins, crates and benches.
@@ -34,3 +34,7 @@ Run `godot --headless --path . --import --quit`, then `godot --headless --path .
 5. Enterable interiors and persistent world state.
 
 **Boundaries:** storefront doors are currently graphic facades, not enterable; sign text and lights are static, and district names are procedural rather than quest hubs.
+
+## New authored world systems
+
+The [Morrow Bay World Bible](WORLD_BIBLE.md) defines four story-relevant fixed landmarks, an original neighborhood conflict, planting rules, the 24-minute diurnal cycle, art palette, and RTX 3060 performance targets. `scripts/world_plan.gd` owns stable landmark coordinates; `scripts/city_details.gd` generates each reserved block as a recognizable exterior; `scripts/flora.gd` plants four botanical species and small per-district details using instancing.
