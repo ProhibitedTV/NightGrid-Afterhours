@@ -245,7 +245,7 @@ func _build_building(center: Vector3, width: float, depth: float, district: Stri
 		for side in [-1.0, 1.0]:
 			for side_window in range(2):
 				var wz := center.z + (float(side_window) - 0.5) * depth * 0.38
-				_detail(Vector3(center.x + side * (width / 2.0 + 0.07), fy, wz), Vector3(0.11, 1.45, 2.0), glass)
+				_detail(Vector3(center.x + side * (width / 2.0 + 0.07), fy, wz), Vector3(0.11, 1.45, 2.0), Color("426178"))
 
 	# Street-level retail facade. Entry is visual-only until interiors exist.
 	var sign_color: Color = ACCENT[district]
