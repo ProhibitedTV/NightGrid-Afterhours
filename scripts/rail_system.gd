@@ -1,7 +1,7 @@
 extends Node3D
 ## Fixed elevated transit corridor. Stations have street-level boarding/elevator
 ## markers, so boarding never requires climbing procedural geometry.
-const STATIONS = [-116.0, 0.0, 116.0]
+const STATIONS = [-232.0, -116.0, 0.0, 116.0, 232.0]
 const TRACK_Z = -58.0
 const TRAIN_LEVEL = 12.7
 var train: Node3D
@@ -61,7 +61,7 @@ func alight_position() -> Vector3:
 	return station_entrance(current_station)
 
 func station_name() -> String:
-	return ["BRICKWATER CROSSING", "CENTRAL EXCHANGE", "HELIX TERMINAL"][current_station]
+	return ["WEST QUAY GATE", "BRICKWATER CROSSING", "CENTRAL EXCHANGE", "HELIX TERMINAL", "EAST GARDENS"][current_station]
 
 func snapshot() -> Dictionary:
 	return {"x": train.position.x, "next_station": next_station,
@@ -81,9 +81,9 @@ func get_counts() -> Dictionary:
 
 func _build_track_and_stations() -> void:
 	for offset in [-1.15, 1.15]:
-		_box(Vector3(0.0, 11.9, TRACK_Z + offset), Vector3(380.0, 0.24, 0.28), Color("b2a79c"))
-	_box(Vector3(0.0, 11.45, TRACK_Z), Vector3(378.0, 0.43, 5.6), Color("3c4c60"))
-	for x in [-145.0, -87.0, -29.0, 29.0, 87.0, 145.0]:
+		_box(Vector3(0.0, 11.9, TRACK_Z + offset), Vector3(520.0, 0.24, 0.28), Color("b2a79c"))
+	_box(Vector3(0.0, 11.45, TRACK_Z), Vector3(518.0, 0.43, 5.6), Color("3c4c60"))
+	for x in [-203.0, -145.0, -87.0, -29.0, 29.0, 87.0, 145.0, 203.0]:
 		# Off-center piers leave the through lanes and intersection boxes clear.
 		_box(Vector3(x, 5.9, TRACK_Z + 5.3), Vector3(1.4, 11.7, 1.4), Color("5c6772"))
 		_box(Vector3(x, 11.5, TRACK_Z + 2.6), Vector3(5.4, 0.56, 5.8), Color("57687c"))
@@ -98,7 +98,7 @@ func _build_track_and_stations() -> void:
 		_box(Vector3(entrance.x, 5.3, entrance.z), Vector3(2.9, 10.4, 2.9), Color("354d60"))
 		_box(Vector3(entrance.x, 2.0, entrance.z - 1.56), Vector3(1.8, 3.2, 0.12), Color("69c5d4"), true)
 		var label := Label3D.new()
-		label.text = "M-LINE / " + ["BRICKWATER", "CENTRAL", "HELIX"][index]
+		label.text = "M-LINE / " + ["WEST GATE", "BRICKWATER", "CENTRAL", "HELIX", "EAST GARDENS"][index]
 		label.pixel_size = 0.008
 		label.font_size = 35
 		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED

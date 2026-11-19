@@ -22,8 +22,8 @@ func _check() -> void:
 		_fail("One of the city/flora/clock world subsystems is missing")
 		return
 	var stats: Dictionary = foliage.call("get_stats")
-	if int(stats.get("street_trees", 0)) != 72:
-		_fail("Expected 72 district-assigned street trees: %s" % stats)
+	if int(stats.get("street_trees", 0)) != 128:
+		_fail("Expected 128 district-assigned street trees: %s" % stats)
 		return
 	if int(stats.get("landmark_trees", 0)) < 20:
 		_fail("Landmarks lack authored tree planting: %s" % stats)
@@ -36,7 +36,11 @@ func _check() -> void:
 		Vector2i(-2, -2): "LANTERN COURT",
 		Vector2i(0, -2): "HELIX TERMINAL",
 		Vector2i(-2, 0): "FOUNDRY COMMONS",
-		Vector2i(1, 1): "SABLE SQUARE"
+		Vector2i(1, 1): "SABLE SQUARE",
+		Vector2i(-1, -4): "NORTH QUAY EXCHANGE",
+		Vector2i(-4, 0): "PIER NINE DEPOT",
+		Vector2i(3, 0): "HORIZON COMMONS",
+		Vector2i(0, 3): "SOUTHWORKS HALL"
 	}
 	for block in anchors:
 		if plan.landmark_for_block(block.x, block.y) != anchors[block]:

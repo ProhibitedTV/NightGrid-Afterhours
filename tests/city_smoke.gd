@@ -18,19 +18,19 @@ func _check() -> void:
 		quit(1)
 		return
 	var stats: Dictionary = city.call("get_city_stats")
-	if int(stats.get("buildings", 0)) != 64:
-		push_error("Expected 64 procedural building shells, got %s" % stats)
+	if int(stats.get("buildings", 0)) != 112:
+		push_error("Expected 112 authored building shells, got %s" % stats)
 		quit(1)
 		return
-	if int(stats.get("storefronts", 0)) != 64:
+	if int(stats.get("storefronts", 0)) != 112:
 		push_error("All procedural building fronts must have signs and shop treatment")
 		quit(1)
 		return
-	if int(stats.get("authored_lots", 0)) != 64:
-		push_error("All 64 parcel buildings should come from fixed design manifest: %s" % stats)
+	if int(stats.get("authored_lots", 0)) != 112:
+		push_error("All 112 parcel buildings should come from fixed design manifest: %s" % stats)
 		quit(1)
 		return
-	if int(stats.get("landmarks", 0)) != 4:
+	if int(stats.get("landmarks", 0)) != 8:
 		push_error("Authored landmarks missing: %s" % stats)
 		quit(1)
 		return
@@ -42,7 +42,11 @@ func _check() -> void:
 		Vector3(-29, 0, -29): "VESPER MARKET",
 		Vector3(29, 0, -29): "GLASSLINE",
 		Vector3(-29, 0, 29): "BRICKWATER",
-		Vector3(29, 0, 29): "AFTERHOURS"
+		Vector3(29, 0, 29): "AFTERHOURS",
+		Vector3(-29, 0, -203): "NORTH QUAY",
+		Vector3(-203, 0, 29): "WEST DOCKS",
+		Vector3(203, 0, 29): "HORIZON GARDENS",
+		Vector3(29, 0, 203): "SOUTHWORKS"
 	}
 	for point in expected:
 		if city.call("get_district_at", point) != expected[point]:

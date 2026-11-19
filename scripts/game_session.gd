@@ -7,6 +7,8 @@ const DEFAULT_SEED = 834726
 
 var world_seed: int = DEFAULT_SEED
 var pending_restore: Dictionary = {}
+var world_manifest: Dictionary = {}
+const WorldPlan = preload("res://scripts/world_plan.gd")
 
 func start_new_game() -> int:
 	var old := world_seed
@@ -14,12 +16,19 @@ func start_new_game() -> int:
 	if world_seed == old:
 		world_seed = (world_seed % 2147483646) + 1
 	pending_restore.clear()
+	world_manifest.clear()
 	return world_seed
+
+func get_world_manifest() -> Dictionary:
+	if not WorldPlan.valid_manifest(world_manifest):
+		world_manifest = WorldPlan.build_manifest(world_seed)
+	return world_manifest.duplicate(true)
 
 func make_snapshot(state: Dictionary) -> Dictionary:
 	var data := state.duplicate(true)
 	data["version"] = SAVE_VERSION
 	data["seed"] = world_seed
+	data["world_manifest"] = get_world_manifest()
 	return data
 
 func is_valid_snapshot(value: Variant) -> bool:
@@ -41,6 +50,9 @@ func is_valid_snapshot(value: Variant) -> bool:
 	if not data["cars"] is Array or not data["traffic"] is Dictionary or not data["rail"] is Dictionary:
 		return false
 	if not data["carrying"] is bool:
+		return false
+	# Older v1 saves do not contain a manifest; synthesize it once from their seed.
+	if data.has("world_manifest") and not WorldPlan.valid_manifest(data["world_manifest"]):
 		return false
 	return true
 
@@ -80,6 +92,9 @@ func prepare_load() -> bool:
 	if decoded.is_empty():
 		return false
 	world_seed = int(decoded["seed"])
+	world_manifest = decoded.get("world_manifest", {}).duplicate(true)
+	if not WorldPlan.valid_manifest(world_manifest):
+		world_manifest = WorldPlan.build_manifest(world_seed)
 	pending_restore = decoded
 	return true
 

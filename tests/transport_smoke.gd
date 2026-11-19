@@ -30,11 +30,11 @@ func _check() -> void:
 		return
 	var fleet: Dictionary = traffic.call("get_counts")
 	var trains: Dictionary = rail.call("get_counts")
-	if fleet.get("ambient_cars") != 17 or fleet.get("buses") != 2 or fleet.get("stops") != 8:
-		_fail("Expected 17 NPC cars, two buses and eight curb stops: %s" % fleet)
+	if fleet.get("ambient_cars") != 25 or fleet.get("buses") != 4 or fleet.get("stops") != 16:
+		_fail("Expected 25 NPC cars, four buses and sixteen curb stops: %s" % fleet)
 		return
-	if trains.get("stations") != 3 or trains.get("trains") != 1:
-		_fail("Expected one three-station elevated line")
+	if trains.get("stations") != 5 or trains.get("trains") != 1:
+		_fail("Expected one five-station elevated line")
 		return
 	for step in range(72):
 		signals.set("elapsed", float(step))

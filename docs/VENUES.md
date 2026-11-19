@@ -60,3 +60,7 @@ Twelve mostly static handcrafted small scenes; no per-frame random generation or
 ## Roadmap
 
 The next major step is several proper enterable interiors with working door triggers, activity-specific NPC scripting, simple seating/relaxation interactions, richer recorded/synthesized sound and player-first dialogue, plus ambient crowd motion and faction reputation. These larger systems should be measured on the target GPU before multiplying their instances. Social hub addresses and side-job IDs are stable foundations for later quests and saves.
+
+## Essential-services complement
+
+The 12 nightlife venues remain at their original fixed street addresses. The expanded map adds **16 separately authored grocery, clinic, public-service, fire/rescue, garage, warehouse, library and utility locations** across four outer districts. Both catalogs use **G** on foot and the same menu; their jobs are independently tracked and saved. [Full civic-services directory](EXPANSION.md).

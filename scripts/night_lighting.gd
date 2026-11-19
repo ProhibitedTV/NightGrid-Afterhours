@@ -11,12 +11,20 @@ var _night := 0.0
 var _tick := 0.0
 
 func _ready() -> void:
-	for ix in range(-3, 4):
-		for iz in range(-3, 4):
+	for ix in range(-4, 5):
+		for iz in range(-4, 5):
 			var x := float(ix) * FIXTURE_GRID + 8.9
 			var z := float(iz) * FIXTURE_GRID + 8.9
 			var color := Color("ffd49a")
-			if x >= 0.0 and z < 0.0:
+			if z < -174.0:
+				color = Color("78d4ce")
+			elif z >= 174.0:
+				color = Color("e7bd8b")
+			elif x < -174.0:
+				color = Color("d9a679")
+			elif x >= 174.0:
+				color = Color("9cdda8")
+			elif x >= 0.0 and z < 0.0:
 				color = Color("84c9f0")
 			elif x >= 0.0 and z >= 0.0:
 				color = Color("f7a7db")
