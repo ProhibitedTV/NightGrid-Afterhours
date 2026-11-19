@@ -4,6 +4,7 @@ extends Node3D
 const PlayerScript = preload("res://scripts/player.gd")
 const CarScript = preload("res://scripts/car.gd")
 const MinimapScript = preload("res://scripts/minimap.gd")
+const CityDetailsScript = preload("res://scripts/city_details.gd")
 const CELL = 58.0
 const GRID_RADIUS = 3
 const PLAYER_START = Vector3(0.0, 1.15, 6.0)
@@ -30,6 +31,7 @@ var marker: Node3D
 var marker_light: OmniLight3D
 var hud_label: Label
 var minimap: Control
+var city_details: Node3D
 var yaw := 0.0
 var pitch := 0.42
 var cash := 0
@@ -263,45 +265,21 @@ func _build_environment() -> void:
 	_box(self, Vector3(0.0, -0.58, 0.0), Vector3(600.0, 1.0, 600.0), Color("18242e"), true)
 
 func _build_city() -> void:
+	# The road foundation stays simple; populated streets live in city_details.gd.
 	var road := Color("252b35")
 	var sidewalk := Color("4d5565")
 	for index in range(-GRID_RADIUS, GRID_RADIUS + 1):
-		var p := float(index) * CELL
-		_box(self, Vector3(p, -0.055, 0.0), Vector3(14.0, 0.12, 405.0), road)
-		_box(self, Vector3(0.0, -0.05, p), Vector3(405.0, 0.12, 14.0), road)
-		for dash in range(-35, 36):
-			var position := float(dash) * 5.6
-			if absf(fmod(position + CELL / 2.0, CELL) - CELL / 2.0) < 9.0:
-				continue
-			_box(self, Vector3(p, 0.02, position), Vector3(0.20, 0.02, 2.6), Color("b5a87e"))
-			_box(self, Vector3(position, 0.02, p), Vector3(2.6, 0.02, 0.20), Color("b5a87e"))
+		var axis := float(index) * CELL
+		_box(self, Vector3(axis, -0.055, 0.0), Vector3(14.0, 0.12, 405.0), road)
+		_box(self, Vector3(0.0, -0.05, axis), Vector3(405.0, 0.12, 14.0), road)
 	for block_x in range(-GRID_RADIUS, GRID_RADIUS):
 		for block_z in range(-GRID_RADIUS, GRID_RADIUS):
-			var center := Vector3((float(block_x) + 0.5) * CELL, 0.0, (float(block_z) + 0.5) * CELL)
-			_box(self, center + Vector3.UP * 0.07, Vector3(42.0, 0.14, 42.0), sidewalk)
-			for building_i in range(2):
-				var bx := center.x + (-10.5 if building_i == 0 else 10.5)
-				var bz := center.z + rng.randf_range(-4.0, 4.0)
-				var height := rng.randf_range(9.0, 47.0)
-				var width := rng.randf_range(13.5, 18.5)
-				var depth := rng.randf_range(17.0, 29.0)
-				var shade := rng.randf_range(0.16, 0.28)
-				var wall_color := Color(shade * 0.85, shade * 0.94, shade * 1.2)
-				_box(self, Vector3(bx, height / 2.0 + 0.13, bz), Vector3(width, height, depth), wall_color, true)
-				_box(self, Vector3(bx, height + 0.25, bz), Vector3(width + 0.5, 0.32, depth + 0.5), Color("141a28"))
-				var neon := Color("42d5e5") if rng.randf() > 0.5 else Color("ec78c2")
-				_box(self, Vector3(bx, 3.6, bz - depth / 2.0 - 0.06), Vector3(width * 0.82, 0.22, 0.16), neon, false, true)
-				for floor_index in range(2, int(height / 3.6)):
-					for window_index in range(3):
-						if rng.randf() < 0.22:
-							continue
-						var wx := bx + (float(window_index) - 1.0) * width * 0.25
-						_box(self, Vector3(wx, float(floor_index) * 3.3 + 0.5, bz - depth / 2.0 - 0.07), Vector3(1.6, 1.5, 0.08), Color("83bfc4") if rng.randf() > 0.3 else Color("24334a"), false, rng.randf() > 0.9)
-	for ix in range(-GRID_RADIUS, GRID_RADIUS + 1, 2):
-		for iz in range(-GRID_RADIUS, GRID_RADIUS + 1, 2):
-			var where := Vector3(float(ix) * CELL + 9.0, 0.0, float(iz) * CELL + 8.0)
-			_box(self, where + Vector3.UP * 4.1, Vector3(0.3, 8.2, 0.3), Color("677080"))
-			_box(self, where + Vector3(0.0, 8.25, 0.0), Vector3(2.2, 0.3, 0.65), Color("ffc768"), false, true)
+			var center := Vector3((float(block_x) + 0.5) * CELL, 0.07, (float(block_z) + 0.5) * CELL)
+			_box(self, center, Vector3(42.0, 0.14, 42.0), sidewalk)
+	city_details = CityDetailsScript.new()
+	city_details.name = "CityDetails"
+	add_child(city_details)
+	city_details.call("generate")
 
 func _create_player() -> void:
 	player = CharacterBody3D.new()
@@ -428,12 +406,13 @@ func _build_hud() -> void:
 	ui.add_child(minimap)
 
 func _update_hud() -> void:
+	var district: String = city_details.call("get_district_at", _actor().global_position)
 	var vehicle_text := "ON FOOT" if current_car == null else "DRIVING • %d km/h" % int(current_car.call("speed_kph"))
 	var wanted_text := "-" if heat < 0.15 else "★".repeat(maxi(1, ceili(heat)))
 	var mission := "DELIVER PACKAGE" if carrying else "PICK UP PACKAGE"
 	var distance := roundi(_actor().global_position.distance_to(mission_position))
 	var message := notification if notification_time > 0.0 else ""
-	hud_label.text = "NIGHTGRID / AFTERHOURS [PROTOTYPE]\n$%d | HEALTH %d | HEAT %s\n%s | DELIVERIES %d\nOBJECTIVE: %s (%dm)\n%s\n\nWASD Move/Drive • Mouse Look • E Enter/Exit\nShift Sprint • Space Jump/Brake • Esc Cursor" % [cash, ceili(health), wanted_text, vehicle_text, deliveries, mission, distance, message]
+	hud_label.text = "NIGHTGRID / AFTERHOURS [PROTOTYPE]\\nDISTRICT: %s\n$%d | HEALTH %d | HEAT %s\n%s | DELIVERIES %d\nOBJECTIVE: %s (%dm)\n%s\n\nWASD Move/Drive • Mouse Look • E Enter/Exit\nShift Sprint • Space Jump/Brake • Esc Cursor" % [district, cash, ceili(health), wanted_text, vehicle_text, deliveries, mission, distance, message]
 
 func get_map_state() -> Dictionary:
 	var car_positions: Array[Vector2] = []
