@@ -29,8 +29,13 @@ const DARK_GLASS = Color("1d3449")
 var _rng := RandomNumberGenerator.new()
 var _batches: Dictionary = {}
 var _palette: Dictionary = {}
-var _statistics := {"buildings": 0, "storefronts": 0, "street_props": 0, "batched_details": 0, "districts": 4, "landmarks": 0, "authored_lots": 0}
+var _statistics := {"buildings": 0, "storefronts": 0, "street_props": 0, "batched_details": 0, "districts": 4, "landmarks": 0, "authored_lots": 0, "variant_lots": 0}
 var _initialized := false
+var world_seed: int = 834726
+
+func set_world_seed(value: int) -> void:
+	assert(not _initialized)
+	world_seed = value
 
 func _ready() -> void:
 	# Called from world.gd after attaching this node; never regenerate on reload.
@@ -40,7 +45,7 @@ func generate() -> void:
 	if _initialized:
 		return
 	_initialized = true
-	_rng.seed = SEED
+	_rng.seed = int(SEED) ^ world_seed
 	_build_road_language()
 	for block_x in range(-GRID_RADIUS, GRID_RADIUS):
 		for block_z in range(-GRID_RADIUS, GRID_RADIUS):
@@ -161,7 +166,7 @@ func _build_intersections() -> void:
 				_detail(Vector3(x, 0.028, z + side * 13.0), Vector3(12.5, 0.025, 0.23), Color("e9dfd2"))
 				_detail(Vector3(x + side * 13.0, 0.028, z), Vector3(0.23, 0.025, 12.5), Color("e9dfd2"))
 			# Signal units sit beyond the asphalt, on the sidewalk corner.
-			_signal(Vector3(x + 8.9, 0.0, z + 8.9), ix + iz)
+			# Signal heads are now driven by traffic_signals.gd, not static decorations.
 			if (ix + iz) % 2 == 0:
 				_lamp(Vector3(x - 8.4, 0.0, z - 8.6))
 			if ix % 2 == 0 and iz % 2 == 0:
@@ -186,7 +191,9 @@ func _build_block(ix: int, iz: int) -> void:
 		return
 	for building in range(2):
 		var x := center.x + (-10.5 if building == 0 else 10.5)
-		var profile: Dictionary = WorldPlan.lot_profile(ix, iz, building)
+		var profile: Dictionary = WorldPlan.lot_profile(ix, iz, building, world_seed)
+		if WorldPlan.lot_variant_index(ix, iz, world_seed) > 0:
+			_statistics["variant_lots"] += 1
 		var z: float = center.z + profile["offset_z"]
 		_build_building(Vector3(x, 0.0, z), profile, district, ix, iz, building)
 		_statistics["authored_lots"] += 1

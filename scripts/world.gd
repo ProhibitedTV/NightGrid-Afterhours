@@ -10,6 +10,9 @@ const FloraScript = preload("res://scripts/flora.gd")
 const Materials = preload("res://scripts/material_library.gd")
 const NightLightingScript = preload("res://scripts/night_lighting.gd")
 const WetStreetsScript = preload("res://scripts/wet_streets.gd")
+const TrafficSignalsScript = preload("res://scripts/traffic_signals.gd")
+const TrafficSystemScript = preload("res://scripts/traffic_system.gd")
+const RailSystemScript = preload("res://scripts/rail_system.gd")
 const CELL = 58.0
 const GRID_RADIUS = 3
 const PLAYER_START = Vector3(0.0, 1.15, 6.0)
@@ -43,6 +46,12 @@ var flora: Node3D
 var day_night: Node
 var street_lights: Node3D
 var wet_streets: Node3D
+var signal_controller: Node3D
+var traffic: Node3D
+var rail: Node3D
+var current_transit: Node3D
+var transit_kind := ""
+var session: Node
 var world_environment: WorldEnvironment
 var sun_light: DirectionalLight3D
 var yaw := 0.0
@@ -58,16 +67,22 @@ var notification_time := 8.0
 var police_cooldown := 4.0
 
 func _ready() -> void:
-	rng.seed = 834726
+	session = get_node("/root/GameSession")
+	rng.seed = int(session.get("world_seed"))
 	_build_environment()
 	_build_city()
 	_build_world_systems()
 	_create_player()
 	_spawn_traffic()
+	_build_transport()
 	_create_camera()
 	_create_marker()
 	_build_hud()
-	_set_mission_target(PICKUPS[0], false)
+	var restore: Dictionary = session.call("take_pending_restore")
+	if restore.is_empty():
+		_set_mission_target(PICKUPS[0], false)
+	else:
+		_apply_snapshot(restore)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _input(event: InputEvent) -> void:
@@ -82,6 +97,14 @@ func _input(event: InputEvent) -> void:
 				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED else Input.MOUSE_MODE_CAPTURED
 			KEY_E:
 				_toggle_car()
+			KEY_F:
+				_toggle_transit()
+			KEY_F5:
+				_save_game()
+			KEY_F6:
+				_new_game()
+			KEY_F9:
+				_load_game()
 			KEY_T:
 				day_night.call("advance_hour", 1.0)
 			KEY_Y:
@@ -97,14 +120,14 @@ func _process(delta: float) -> void:
 		return
 	var actor := _actor()
 	street_lights.call("set_focus", actor.global_position)
-	if current_car == null:
+	if current_car == null and current_transit == null:
 		player.set("camera_yaw", yaw)
-	var focus := actor.global_position + Vector3.UP * (1.65 if current_car != null else 1.45)
-	var camera_distance := 13.0 if current_car != null else 7.5
+	var focus := actor.global_position + Vector3.UP * (1.65 if current_car != null or current_transit != null else 1.45)
+	var camera_distance := 21.0 if transit_kind == "TRAIN" else (15.0 if transit_kind == "BUS" else (13.0 if current_car != null else 7.5))
 	var camera_offset := Vector3(0.0, sin(pitch) * camera_distance, cos(pitch) * camera_distance).rotated(Vector3.UP, yaw)
 	camera.global_position = camera.global_position.lerp(focus + camera_offset, minf(delta * 7.0, 1.0))
 	camera.look_at(focus, Vector3.UP)
-	if actor.global_position.distance_to(mission_position) < 5.3:
+	if current_transit == null and actor.global_position.distance_to(mission_position) < 5.3:
 		_advance_mission()
 	if actor.global_position.y < -15.0 or absf(actor.global_position.x) > 280.0 or absf(actor.global_position.z) > 280.0:
 		_respawn()
@@ -130,9 +153,14 @@ func _process(delta: float) -> void:
 	_update_hud()
 
 func _actor() -> Node3D:
+	if current_transit != null:
+		return current_transit
 	return current_car if current_car != null else player
 
 func _toggle_car() -> void:
+	if current_transit != null:
+		_notify("You're a passenger. Press F to leave at the next stop.")
+		return
 	if current_car != null:
 		if int(current_car.call("speed_kph")) > 15:
 			_notify("Slow down before exiting.")
@@ -218,6 +246,8 @@ func _spawn_police() -> void:
 	_notify("POLICE ALERT: A patrol unit is approaching.")
 
 func _respawn() -> void:
+	current_transit = null
+	transit_kind = ""
 	if current_car != null:
 		current_car.set("occupied", false)
 		current_car = null
@@ -313,6 +343,7 @@ func _build_city() -> void:
 	city_details = CityDetailsScript.new()
 	city_details.name = "CityDetails"
 	add_child(city_details)
+	city_details.call("set_world_seed", rng.seed)
 	city_details.call("generate")
 
 func _build_world_systems() -> void:
@@ -320,6 +351,7 @@ func _build_world_systems() -> void:
 	flora = FloraScript.new()
 	flora.name = "CityFlora"
 	add_child(flora)
+	flora.call("set_world_seed", rng.seed)
 	flora.call("generate")
 	street_lights = NightLightingScript.new()
 	street_lights.name = "NightLighting"
@@ -387,6 +419,147 @@ func _spawn_traffic() -> void:
 		var car := _create_car(parked[i], VEHICLE_COLORS[i % VEHICLE_COLORS.size()])
 		car.rotation.y = PI if i % 2 == 1 else 0.0
 		cars.append(car)
+
+func _build_transport() -> void:
+	signal_controller = TrafficSignalsScript.new()
+	signal_controller.name = "TrafficSignals"
+	add_child(signal_controller)
+	traffic = TrafficSystemScript.new()
+	traffic.name = "SurfaceTraffic"
+	add_child(traffic)
+	traffic.call("initialize", rng.seed, signal_controller)
+	rail = RailSystemScript.new()
+	rail.name = "MorrowLine"
+	add_child(rail)
+
+func _toggle_transit() -> void:
+	if current_car != null:
+		_notify("Park and exit your car before boarding transit.")
+		return
+	if current_transit != null:
+		var exit_pos := Vector3.ZERO
+		if transit_kind == "BUS":
+			if not bool(current_transit.call("is_boardable")):
+				_notify("Wait for the bus to stop before alighting.")
+				return
+			exit_pos = current_transit.call("alight_position")
+		else:
+			if not bool(rail.call("can_alight")):
+				_notify("M-Line is moving. Wait for the next station.")
+				return
+			exit_pos = rail.call("alight_position")
+		_leave_transit(exit_pos)
+		return
+	if bool(rail.call("boardable_from", player.global_position)):
+		_board_transit(rail.get_node("MorrowLineTrain"), "TRAIN")
+		_notify("M-Line boarded. F to leave at a station.")
+		return
+	var bus: CharacterBody3D = traffic.call("get_boardable_bus", player.global_position)
+	if bus != null:
+		_board_transit(bus, "BUS")
+		_notify("City Loop boarded. F to leave at the next stop.")
+		return
+	_notify("Board with F at a marked bus stop or M-Line elevator when a vehicle is stopped.")
+
+func _board_transit(vehicle: Node3D, kind: String) -> void:
+	current_transit = vehicle
+	transit_kind = kind
+	player.set("driving", true)
+	player.visible = false
+	player.collision_layer = 0
+	player.collision_mask = 0
+	player.velocity = Vector3.ZERO
+
+func _leave_transit(at: Vector3) -> void:
+	current_transit = null
+	transit_kind = ""
+	player.global_position = at
+	player.velocity = Vector3.ZERO
+	player.collision_layer = 1
+	player.collision_mask = 1
+	player.visible = true
+	player.set("driving", false)
+	_notify("Back on the street.")
+
+func _save_game() -> void:
+	if bool(session.call("save_snapshot", _capture_snapshot())):
+		_notify("Saved slot 1. City seed: %d" % int(session.get("world_seed")))
+	else:
+		_notify("Save failed. Check user data folder or permissions.")
+
+func _load_game() -> void:
+	if not bool(session.call("prepare_load")):
+		_notify("No valid saved game in slot 1.")
+		return
+	get_tree().call_deferred("reload_current_scene")
+
+func _new_game() -> void:
+	session.call("start_new_game")
+	get_tree().call_deferred("reload_current_scene")
+
+func _capture_snapshot() -> Dictionary:
+	var stored_cars := []
+	for car in cars:
+		stored_cars.append({
+			"position": [car.global_position.x, car.global_position.y, car.global_position.z],
+			"yaw": car.rotation.y, "claimed": car.has_meta("claimed")
+		})
+	var aboard_id := ""
+	if transit_kind == "BUS" and current_transit != null:
+		aboard_id = str(current_transit.get("vehicle_id"))
+	return {
+		"player_position": [player.global_position.x, player.global_position.y, player.global_position.z],
+		"camera_yaw": yaw, "cash": cash, "health": health, "heat": heat,
+		"deliveries": deliveries, "carrying": carrying,
+		"hour": day_night.get("hour"), "cars": stored_cars,
+		"occupied_car": cars.find(current_car),
+		"traffic": traffic.call("snapshot"), "rail": rail.call("snapshot"),
+		"signal_elapsed": signal_controller.get("elapsed"),
+		"transit_kind": transit_kind, "transit_id": aboard_id
+	}
+
+func _apply_snapshot(data: Dictionary) -> void:
+	# Geometry is already reconstructed from the saved immutable seed.
+	traffic.call("restore", data["traffic"])
+	rail.call("restore", data["rail"])
+	signal_controller.set("elapsed", fposmod(float(data.get("signal_elapsed", 0.0)), 72.0))
+	cash = maxi(0, int(data.get("cash", 0)))
+	health = clampf(float(data.get("health", 100.0)), 1.0, 100.0)
+	heat = clampf(float(data.get("heat", 0.0)), 0.0, 5.0)
+	deliveries = maxi(0, int(data.get("deliveries", 0)))
+	carrying = bool(data.get("carrying", false))
+	yaw = float(data.get("camera_yaw", 0.0))
+	var position_data: Array = data["player_position"]
+	player.global_position = Vector3(float(position_data[0]), float(position_data[1]), float(position_data[2]))
+	var saved_cars: Array = data.get("cars", [])
+	for i in range(mini(saved_cars.size(), cars.size())):
+		var info: Dictionary = saved_cars[i]
+		var c: CharacterBody3D = cars[i]
+		var pos: Array = info.get("position", [])
+		if pos.size() == 3:
+			c.global_position = Vector3(float(pos[0]), float(pos[1]), float(pos[2]))
+		c.rotation.y = float(info.get("yaw", c.rotation.y))
+		if bool(info.get("claimed", false)):
+			c.set_meta("claimed", true)
+	var selected := int(data.get("occupied_car", -1))
+	if selected >= 0 and selected < cars.size():
+		current_car = cars[selected]
+		current_car.set("occupied", true)
+		player.set("driving", true)
+		player.visible = false
+		player.collision_layer = 0
+		player.collision_mask = 0
+	else:
+		var saved_transit := str(data.get("transit_kind", ""))
+		if saved_transit == "BUS":
+			var bus: CharacterBody3D = traffic.call("bus_by_id", str(data.get("transit_id", "")))
+			if bus != null:
+				_board_transit(bus, "BUS")
+		elif saved_transit == "TRAIN":
+			_board_transit(rail.get_node("MorrowLineTrain"), "TRAIN")
+	day_night.call("set_hour", float(data.get("hour", 19.25)))
+	_set_mission_target(DROPOFFS[deliveries % DROPOFFS.size()] if carrying else PICKUPS[deliveries % PICKUPS.size()], carrying)
+	_notify("Save loaded. Seed %d; Morrow Bay restored." % int(session.get("world_seed")))
 
 func _create_camera() -> void:
 	camera = Camera3D.new()
@@ -473,7 +646,11 @@ func _update_hud() -> void:
 	var landmark: String = city_details.call("get_nearby_landmark", _actor().global_position)
 	var local_name := district if landmark.is_empty() else "%s / %s" % [district, landmark]
 	var clock: String = day_night.call("clock_string")
-	var vehicle_text := "ON FOOT" if current_car == null else "DRIVING • %d km/h" % int(current_car.call("speed_kph"))
+	var vehicle_text := "ON FOOT"
+	if current_car != null:
+		vehicle_text = "DRIVING • %d km/h" % int(current_car.call("speed_kph"))
+	elif current_transit != null:
+		vehicle_text = "M-LINE RIDER" if transit_kind == "TRAIN" else "CITY LOOP RIDER"
 	var wanted_text := "-" if heat < 0.15 else "★".repeat(maxi(1, ceili(heat)))
 	var mission := "DELIVER PACKAGE" if carrying else "PICK UP PACKAGE"
 	var distance := roundi(_actor().global_position.distance_to(mission_position))
@@ -481,7 +658,7 @@ func _update_hud() -> void:
 	if performance_overlay:
 		var fps := maxi(Engine.get_frames_per_second(), 1)
 		performance_label.text = "RTX 3060 target: 60 FPS @1080p | Actual: %d FPS | %.1f ms" % [fps, 1000.0 / float(fps)]
-	hud_label.text = "NIGHTGRID / AFTERHOURS    MORROW BAY\n%s | %s\n$%d | HEALTH %d | HEAT %s\n%s | DELIVERIES %d\nOBJECTIVE: %s (%dm)\n%s\n\nWASD Move/Drive | E Car | Shift Sprint | Space Jump/Brake\nT Time | Y Pause | F3 FPS | F4 SSR | Esc Cursor" % [local_name, clock, cash, ceili(health), wanted_text, vehicle_text, deliveries, mission, distance, message]
+	hud_label.text = "NIGHTGRID / AFTERHOURS    MORROW BAY\n%s | %s\n$%d | HEALTH %d | HEAT %s\n%s | DELIVERIES %d\nOBJECTIVE: %s (%dm)\n%s\n\nWASD Move/Drive | E Car | Shift Sprint | Space Jump/Brake\nE Car | F Board/Exit Transit | F5 Save | F6 New Game | F9 Load\nT Time | Y Pause | F3 FPS | F4 SSR | Esc Cursor" % [local_name, clock, cash, ceili(health), wanted_text, vehicle_text, deliveries, mission, distance, message]
 
 func get_map_state() -> Dictionary:
 	var car_positions: Array[Vector2] = []

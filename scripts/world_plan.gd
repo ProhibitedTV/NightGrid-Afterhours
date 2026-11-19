@@ -45,10 +45,33 @@ const LOT_PROFILES = {
 	"A4": {"height": 32.0, "width": 15.5, "depth": 22.0, "offset_z": 1.0, "wall": "624d66", "material": "CONCRETE"}
 }
 
-static func lot_profile(ix: int, iz: int, building_index: int) -> Dictionary:
+# Eight fixed parcels have three pre-authored facade compositions. A seed
+# selects one composition per *new game*; gameplay never rerolls any parcel.
+# Roads, transit paths, foundations and all four story landmarks stay immutable.
+const VARIANT_PARCELS = {
+	"-3,-3": ["V3/V1", "V4/V2"],
+	"-1,-2": ["V1/V4", "V2/V3"],
+	"1,-3": ["G3/G1", "G4/G2"],
+	"2,-1": ["G2/G4", "G1/G3"],
+	"-3,1": ["B4/B1", "B2/B3"],
+	"-1,2": ["B2/B4", "B1/B3"],
+	"0,2": ["A2/A4", "A3/A1"],
+	"2,0": ["A4/A2", "A1/A3"]
+}
+
+static func lot_variant_index(ix: int, iz: int, world_seed: int) -> int:
+	if world_seed <= 0 or not VARIANT_PARCELS.has("%d,%d" % [ix, iz]):
+		return 0
+	return (world_seed + (ix + 3) * 13 + (iz + 3) * 7) % 3
+
+static func lot_profile(ix: int, iz: int, building_index: int, world_seed: int = 0) -> Dictionary:
 	assert(ix >= -3 and ix <= 2 and iz >= -3 and iz <= 2)
 	assert(building_index == 0 or building_index == 1)
 	var codes: PackedStringArray = LOT_ROWS[iz + 3].split(",")[ix + 3].split("/")
+	var variant := lot_variant_index(ix, iz, world_seed)
+	if variant > 0:
+		var options: Array = VARIANT_PARCELS["%d,%d" % [ix, iz]]
+		codes = str(options[variant - 1]).split("/")
 	return LOT_PROFILES[codes[building_index]].duplicate()
 
 static func landmark_for_block(ix: int, iz: int) -> String:
