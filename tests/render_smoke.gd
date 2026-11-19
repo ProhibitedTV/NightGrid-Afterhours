@@ -22,7 +22,7 @@ func _check() -> void:
 	var clock := world.get_node_or_null("DayNight")
 	var lamps := world.get_node_or_null("NightLighting")
 	var puddles := world.get_node_or_null("WetStreets")
-	var environment := world.get_node_or_null("WorldEnvironment") as WorldEnvironment
+	var environment := world.get("world_environment") as WorldEnvironment
 	if city == null or clock == null or lamps == null or puddles == null or environment == null:
 		_fail("Visual world nodes not initialized")
 		return
