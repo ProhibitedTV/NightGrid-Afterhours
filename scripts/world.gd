@@ -5,6 +5,8 @@ const PlayerScript = preload("res://scripts/player.gd")
 const CarScript = preload("res://scripts/car.gd")
 const MinimapScript = preload("res://scripts/minimap.gd")
 const CityDetailsScript = preload("res://scripts/city_details.gd")
+const DayNightScript = preload("res://scripts/day_night.gd")
+const FloraScript = preload("res://scripts/flora.gd")
 const CELL = 58.0
 const GRID_RADIUS = 3
 const PLAYER_START = Vector3(0.0, 1.15, 6.0)
@@ -32,6 +34,10 @@ var marker_light: OmniLight3D
 var hud_label: Label
 var minimap: Control
 var city_details: Node3D
+var flora: Node3D
+var day_night: Node
+var world_environment: WorldEnvironment
+var sun_light: DirectionalLight3D
 var yaw := 0.0
 var pitch := 0.42
 var cash := 0
@@ -48,6 +54,7 @@ func _ready() -> void:
 	rng.seed = 834726
 	_build_environment()
 	_build_city()
+	_build_world_systems()
 	_create_player()
 	_spawn_traffic()
 	_create_camera()
@@ -68,6 +75,10 @@ func _input(event: InputEvent) -> void:
 				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED else Input.MOUSE_MODE_CAPTURED
 			KEY_E:
 				_toggle_car()
+			KEY_T:
+				day_night.call("advance_hour", 1.0)
+			KEY_Y:
+				day_night.call("toggle_pause")
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(player):
@@ -247,7 +258,7 @@ func _box(parent: Node3D, at: Vector3, dimensions: Vector3, color: Color, collid
 	return visual
 
 func _build_environment() -> void:
-	var world_environment := WorldEnvironment.new()
+	world_environment = WorldEnvironment.new()
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
 	environment.background_color = Color("101627")
@@ -256,12 +267,12 @@ func _build_environment() -> void:
 	environment.ambient_light_energy = 0.65
 	world_environment.environment = environment
 	add_child(world_environment)
-	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-48.0, -27.0, 0.0)
-	sun.light_color = Color("ffc39e")
-	sun.light_energy = 0.7
-	sun.shadow_enabled = true
-	add_child(sun)
+	sun_light = DirectionalLight3D.new()
+	sun_light.rotation_degrees = Vector3(-48.0, -27.0, 0.0)
+	sun_light.light_color = Color("ffc39e")
+	sun_light.light_energy = 0.7
+	sun_light.shadow_enabled = true
+	add_child(sun_light)
 	_box(self, Vector3(0.0, -0.58, 0.0), Vector3(600.0, 1.0, 600.0), Color("18242e"), true)
 
 func _build_city() -> void:
@@ -280,6 +291,17 @@ func _build_city() -> void:
 	city_details.name = "CityDetails"
 	add_child(city_details)
 	city_details.call("generate")
+
+func _build_world_systems() -> void:
+	# Geography and story anchors are authored; botanical infill is seeded.
+	flora = FloraScript.new()
+	flora.name = "CityFlora"
+	add_child(flora)
+	flora.call("generate")
+	day_night = DayNightScript.new()
+	day_night.name = "DayNight"
+	add_child(day_night)
+	day_night.call("configure", world_environment, sun_light, city_details)
 
 func _create_player() -> void:
 	player = CharacterBody3D.new()
@@ -386,7 +408,7 @@ func _build_hud() -> void:
 	add_child(ui)
 	var backing := PanelContainer.new()
 	backing.position = Vector2(18.0, 18.0)
-	backing.custom_minimum_size = Vector2(420.0, 162.0)
+	backing.custom_minimum_size = Vector2(480.0, 205.0)
 	ui.add_child(backing)
 	hud_label = Label.new()
 	hud_label.add_theme_font_size_override("font_size", 17)
@@ -407,12 +429,15 @@ func _build_hud() -> void:
 
 func _update_hud() -> void:
 	var district: String = city_details.call("get_district_at", _actor().global_position)
+	var landmark: String = city_details.call("get_nearby_landmark", _actor().global_position)
+	var local_name := district if landmark.is_empty() else "%s / %s" % [district, landmark]
+	var clock: String = day_night.call("clock_string")
 	var vehicle_text := "ON FOOT" if current_car == null else "DRIVING • %d km/h" % int(current_car.call("speed_kph"))
 	var wanted_text := "-" if heat < 0.15 else "★".repeat(maxi(1, ceili(heat)))
 	var mission := "DELIVER PACKAGE" if carrying else "PICK UP PACKAGE"
 	var distance := roundi(_actor().global_position.distance_to(mission_position))
 	var message := notification if notification_time > 0.0 else ""
-	hud_label.text = "NIGHTGRID / AFTERHOURS [PROTOTYPE]\nDISTRICT: %s\n$%d | HEALTH %d | HEAT %s\n%s | DELIVERIES %d\nOBJECTIVE: %s (%dm)\n%s\n\nWASD Move/Drive • Mouse Look • E Enter/Exit\nShift Sprint • Space Jump/Brake • Esc Cursor" % [district, cash, ceili(health), wanted_text, vehicle_text, deliveries, mission, distance, message]
+	hud_label.text = "NIGHTGRID / AFTERHOURS    MORROW BAY\\n%s | %s\\n$%d | HEALTH %d | HEAT %s\\n%s | DELIVERIES %d\\nOBJECTIVE: %s (%dm)\\n%s\\n\\nWASD Move/Drive | E Car | Shift Sprint | Space Jump/Brake\\nT Advance Time | Y Pause Clock | Esc Cursor" % [local_name, clock, cash, ceili(health), wanted_text, vehicle_text, deliveries, mission, distance, message]
 
 func get_map_state() -> Dictionary:
 	var car_positions: Array[Vector2] = []
