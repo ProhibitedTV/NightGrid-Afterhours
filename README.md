@@ -25,8 +25,19 @@
 | F5 | Save current world to slot 1 |
 | F6 | New Game (new world seed; does not overwrite saved slot) |
 | F9 | Reload saved world seed and player/traffic state |
-| G | Visit a nearby bar, cafe, nightclub or food stall on foot; G closes menu |
-| 1 / 2 | Buy service / accept or deliver a local side job in a venue menu |
+| G | Interact with nearby social or civic business; G closes menu |
+| 1 / 2 | Purchase services or accept/deliver local side jobs and freight contracts |
+| R | Use purchased food provisions on foot to restore health |
+
+### Outer districts, civil services and preserved world layouts
+
+- **Four new districts**: North Quay (markets and harbor services), West Docks (freight and workshops), Horizon Gardens (housing, clinics and parks), Southworks (civic offices, utilities and industrial deliveries).
+- **Eight protected landmarks total**; **64 total blocks** and **112 authored or seed-selected building profiles**—the 6×6 downtown is kept intact while a new ring is added.
+- **16 functional public-service sites**: grocers, clinics, emergency/fire services, libraries, warehouses, garages, civic service desks and a power annex. Press **G** near a service counter; use **1** to buy provisions, recover, repair vehicles or check records; use **2** for four one-time freight contracts.
+- **R** consumes a purchased take-away ration pack on foot (+25 health). Park damaged cars by garages to repair them.
+- **81 road signals**, **25 civilian cars**, **4 boardable buses** with **16 stops**, **5 elevated rail stations** and coverage in all eight districts.
+- **Real world persistence**: a world seed *and an exact 112-building manifest* are saved in slot 1; save/load never rerolls existing chosen parcels. New Game F6 chooses a new layout, while fixed roads/landmarks/shops remain fixed.
+- [Expansion and public services guide](docs/EXPANSION.md). These are highly dressed streetfront destinations and accessible public plazas, **not full indoor interiors yet**.
 
 ### Social life after dark
 
@@ -46,7 +57,7 @@
 
 ### Included in the first vertical slice
 
-- Authored Morrow Bay geography with four stable landmarks and **64 fixed building profiles**; procedural street dressing only in **four neighborhoods**: Vesper Market, Glassline, Brickwater, and Afterhours. Each has distinct skylines, facade shapes, storefronts and street dressing.
+- Authored Morrow Bay geography expanded to **8 districts / 64 blocks**, with eight stable landmarks and 112 seeded-and-saved building profiles; roads and public destinations stay fixed in **four neighborhoods**: Vesper Market, Glassline, Brickwater, and Afterhours. Each has distinct skylines, facade shapes, storefronts and street dressing.
 - Third-person character with walking, sprinting, jumping and a follow camera.
 - Eight parked arcade-drivable cars with collisions.
 - Repeatable courier pickups and deliveries, cash payouts.
@@ -85,6 +96,7 @@ godot --headless --path . --script res://tests/city_smoke.gd
 godot --headless --path . --script res://tests/world_systems_smoke.gd
 godot --headless --path . --script res://tests/render_smoke.gd
 godot --headless --path . --script res://tests/transport_smoke.gd
+godot --headless --path . --script res://tests/expansion_smoke.gd
 godot --headless --path . --quit-after 90
 ```
 
