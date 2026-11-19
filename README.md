@@ -61,6 +61,7 @@ python3 tools/check_project.py
 godot --headless --path . --import --quit
 godot --headless --path . --script res://tests/city_smoke.gd
 godot --headless --path . --script res://tests/world_systems_smoke.gd
+godot --headless --path . --script res://tests/render_smoke.gd
 godot --headless --path . --quit-after 90
 ```
 
