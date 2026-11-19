@@ -4,6 +4,7 @@ extends Node3D
 ## The seed never changes a venue's address, contact or narrative identity.
 const Materials = preload("res://scripts/material_library.gd")
 const WorldPlan = preload("res://scripts/world_plan.gd")
+const VenueAmbience = preload("res://scripts/venue_ambience.gd")
 const CELL = 58.0
 const INTERACT_RANGE = 5.5
 
@@ -49,6 +50,7 @@ var _focus := Vector3.ZERO
 var _hour := 19.25
 var _refresh_timer := 0.0
 var _map_pins: Array[Dictionary] = []
+var _ambience: Dictionary = {}
 
 func _ready() -> void:
 	for venue in VENUES:
@@ -137,6 +139,19 @@ func get_lighting_state(venue_id: String) -> Dictionary:
 	var material: StandardMaterial3D = _sign_materials.get(venue_id)
 	return {"open": is_open(venue_id), "energy": material.emission_energy_multiplier if material != null else -1.0}
 
+func get_soundscape_count() -> int:
+	return VenueAmbience.soundscape_count()
+
+func get_audio_player_count() -> int:
+	return _ambience.size()
+
+func get_active_audio_count() -> int:
+	var count := 0
+	for player in _ambience.values():
+		if (player as AudioStreamPlayer3D).playing:
+			count += 1
+	return count
+
 func get_active_light_count() -> int:
 	var total := 0
 	for lamp in _lights:
@@ -211,6 +226,15 @@ func _build_venue(venue: Dictionary) -> void:
 		var patron := _build_patron(front, Vector3(x, 0.3, -2.1), kind, i)
 		patrons.append(patron)
 	_patrons[venue_id] = patrons
+	var audio := AudioStreamPlayer3D.new()
+	audio.name = "Atmosphere"
+	audio.position = Vector3(0.0, 1.9, 0.0)
+	audio.stream = VenueAmbience.soundscape(kind)
+	audio.max_distance = 28.0
+	audio.unit_size = 5.0
+	audio.volume_db = -17.0 if kind != "CLUB" else -14.5
+	front.add_child(audio)
+	_ambience[venue_id] = audio
 
 func _build_stall(root: Node3D, accent: Color, neon: StandardMaterial3D) -> void:
 	_box(root, Vector3(0.0, 2.85, -0.65), Vector3(7.7, 0.18, 3.35), accent)
@@ -341,6 +365,14 @@ func _refresh() -> void:
 		var patrons: Array = _patrons[venue_id]
 		for patron in patrons:
 			(patron as Node3D).visible = open_now
+		var sound_position := venue_position(venue_id)
+		var sound_distance := Vector2(sound_position.x - _focus.x, sound_position.z - _focus.z).length()
+		var nearby_audio := open_now and sound_distance < 26.0
+		var ambient_player: AudioStreamPlayer3D = _ambience[venue_id]
+		if nearby_audio and not ambient_player.playing:
+			ambient_player.play()
+		elif not nearby_audio and ambient_player.playing:
+			ambient_player.stop()
 		if open_now and darkness > 0.02:
 			var point := venue_position(venue_id)
 			var distance := Vector2(point.x - _focus.x, point.z - _focus.z).length()

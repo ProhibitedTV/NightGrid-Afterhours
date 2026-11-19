@@ -75,6 +75,15 @@ func _verify() -> void:
 	if int(venues.call("get_active_light_count")) > 2:
 		_fail("More than the two budgeted local venue lights were enabled")
 		return
+	if int(venues.call("get_soundscape_count")) != 4 or int(venues.call("get_audio_player_count")) != 12:
+		_fail("Four original soundscapes must be assigned to twelve social venues")
+		return
+	var ambience = load("res://scripts/venue_ambience.gd")
+	for kind in ["STALL", "CAFE", "BAR", "CLUB"]:
+		var stream: AudioStreamWAV = ambience.soundscape(kind)
+		if stream == null or stream.data.size() != 44100:
+			_fail("Original spatial audio loop missing or malformed for " + kind)
+			return
 	if not venues.call("is_open", "moon_noodles", 1.0) or venues.call("is_open", "moon_noodles", 5.0):
 		_fail("Stall hours wrapping midnight are broken")
 		return

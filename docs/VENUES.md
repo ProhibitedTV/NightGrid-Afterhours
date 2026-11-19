@@ -55,8 +55,8 @@ Each frontage has a separate fixed design within the established façade languag
 
 ## Performance
 
-Twelve mostly static handcrafted small scenes; no per-frame random generation and no expensive real-time audio or physical crowds. Each location uses one emissive material, and **only two additional nearby unshadowed OmniLights** may be enabled by night. Signage dims during the day or outside operating hours. This respects the RTX 3060 / Ryzen 7 / 32 GB intended baseline, but FPS remains **unmeasured** on that target hardware.
+Twelve mostly static handcrafted small scenes; no per-frame random generation or physical crowds. Four **original, procedurally synthesized two-second spatial sound beds** distinguish cafes (pump/crockery), food stalls (grill hiss), bars (murmur/ventilation), and clubs (abstract bass). They are cached at 11.025 kHz mono, played only in the audible radius of open venues, and do not use any copyrighted music or imported samples. Each location uses one emissive material, and **only two additional nearby unshadowed OmniLights** may be enabled by night. Signage dims during the day or outside operating hours. This respects the RTX 3060 / Ryzen 7 / 32 GB intended baseline, but FPS remains **unmeasured** on that target hardware.
 
 ## Roadmap
 
-The next major step is several proper enterable interiors with working door triggers, activity-specific NPC scripting, simple seating/relaxation interactions, bespoke sounds and player-first dialogue, plus ambient crowd motion and faction reputation. These larger systems should be measured on the target GPU before multiplying their instances. Social hub addresses and side-job IDs are stable foundations for later quests and saves.
+The next major step is several proper enterable interiors with working door triggers, activity-specific NPC scripting, simple seating/relaxation interactions, richer recorded/synthesized sound and player-first dialogue, plus ambient crowd motion and faction reputation. These larger systems should be measured on the target GPU before multiplying their instances. Social hub addresses and side-job IDs are stable foundations for later quests and saves.
