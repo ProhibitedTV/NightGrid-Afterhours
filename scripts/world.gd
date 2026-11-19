@@ -13,6 +13,7 @@ const WetStreetsScript = preload("res://scripts/wet_streets.gd")
 const TrafficSignalsScript = preload("res://scripts/traffic_signals.gd")
 const TrafficSystemScript = preload("res://scripts/traffic_system.gd")
 const RailSystemScript = preload("res://scripts/rail_system.gd")
+const VenueSystemScript = preload("res://scripts/venue_system.gd")
 const CELL = 58.0
 const GRID_RADIUS = 3
 const PLAYER_START = Vector3(0.0, 1.15, 6.0)
@@ -49,6 +50,13 @@ var wet_streets: Node3D
 var signal_controller: Node3D
 var traffic: Node3D
 var rail: Node3D
+var venue_system: Node3D
+var venue_panel: PanelContainer
+var venue_label: Label
+var venue_selected_id := ""
+var venue_job_active := ""
+var venue_job_completed: Array[String] = []
+var _venue_clock_tick := 0.0
 var current_transit: Node3D
 var transit_kind := ""
 var session: Node
@@ -94,11 +102,20 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.physical_keycode:
 			KEY_ESCAPE:
-				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED else Input.MOUSE_MODE_CAPTURED
+				if venue_panel != null and venue_panel.visible:
+					_close_venue()
+				else:
+					Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED else Input.MOUSE_MODE_CAPTURED
 			KEY_E:
 				_toggle_car()
 			KEY_F:
 				_toggle_transit()
+			KEY_G:
+				_toggle_venue()
+			KEY_1:
+				_venue_action(1)
+			KEY_2:
+				_venue_action(2)
 			KEY_F5:
 				_save_game()
 			KEY_F6:
@@ -120,6 +137,14 @@ func _process(delta: float) -> void:
 		return
 	var actor := _actor()
 	street_lights.call("set_focus", actor.global_position)
+	venue_system.call("set_focus", actor.global_position)
+	_venue_clock_tick += delta
+	if _venue_clock_tick >= 0.5:
+		_venue_clock_tick = 0.0
+		venue_system.call("set_hour", float(day_night.get("hour")))
+	if venue_panel.visible and (current_car != null or current_transit != null or
+			venue_system.venue_position(venue_selected_id).distance_to(player.global_position) > 7.0):
+		_close_venue()
 	if current_car == null and current_transit == null:
 		player.set("camera_yaw", yaw)
 	var focus := actor.global_position + Vector3.UP * (1.65 if current_car != null or current_transit != null else 1.45)
@@ -158,6 +183,8 @@ func _actor() -> Node3D:
 	return current_car if current_car != null else player
 
 func _toggle_car() -> void:
+	if venue_panel != null and venue_panel.visible:
+		_close_venue()
 	if current_transit != null:
 		_notify("You're a passenger. Press F to leave at the next stop.")
 		return
@@ -246,6 +273,7 @@ func _spawn_police() -> void:
 	_notify("POLICE ALERT: A patrol unit is approaching.")
 
 func _respawn() -> void:
+	_close_venue()
 	current_transit = null
 	transit_kind = ""
 	if current_car != null:
@@ -363,6 +391,10 @@ func _build_world_systems() -> void:
 	day_night.name = "DayNight"
 	add_child(day_night)
 	day_night.call("configure", world_environment, sun_light, city_details, street_lights)
+	venue_system = VenueSystemScript.new()
+	venue_system.name = "SocialVenues"
+	add_child(venue_system)
+	venue_system.call("set_hour", float(day_night.get("hour")))
 
 func _create_player() -> void:
 	player = CharacterBody3D.new()
@@ -515,7 +547,8 @@ func _capture_snapshot() -> Dictionary:
 		"occupied_car": cars.find(current_car),
 		"traffic": traffic.call("snapshot"), "rail": rail.call("snapshot"),
 		"signal_elapsed": signal_controller.get("elapsed"),
-		"transit_kind": transit_kind, "transit_id": aboard_id
+		"transit_kind": transit_kind, "transit_id": aboard_id,
+		"venue_job_active": venue_job_active, "venue_job_completed": venue_job_completed.duplicate()
 	}
 
 func _apply_snapshot(data: Dictionary) -> void:
@@ -558,8 +591,131 @@ func _apply_snapshot(data: Dictionary) -> void:
 		elif saved_transit == "TRAIN":
 			_board_transit(rail.get_node("MorrowLineTrain"), "TRAIN")
 	day_night.call("set_hour", float(data.get("hour", 19.25)))
+	venue_system.call("set_hour", float(day_night.get("hour")))
+	venue_job_active = str(data.get("venue_job_active", ""))
+	if not venue_job_active.is_empty() and venue_system.job_by_id(venue_job_active).is_empty():
+		venue_job_active = ""
+	venue_job_completed.clear()
+	var saved_jobs = data.get("venue_job_completed", [])
+	if saved_jobs is Array:
+		for job_id in saved_jobs:
+			var valid_id := str(job_id)
+			if not venue_system.job_by_id(valid_id).is_empty() and not venue_job_completed.has(valid_id):
+				venue_job_completed.append(valid_id)
 	_set_mission_target(DROPOFFS[deliveries % DROPOFFS.size()] if carrying else PICKUPS[deliveries % PICKUPS.size()], carrying)
 	_notify("Save loaded. Seed %d; Morrow Bay restored." % int(session.get("world_seed")))
+
+func _toggle_venue() -> void:
+	if current_car != null or current_transit != null:
+		_notify("Get out of the vehicle before visiting a venue.")
+		return
+	if venue_panel.visible:
+		_close_venue()
+		return
+	var venue: Dictionary = venue_system.call("nearest_venue", player.global_position)
+	if venue.is_empty():
+		_notify("Find a glowing venue frontage, then press G to visit.")
+		return
+	venue_selected_id = str(venue["id"])
+	venue_panel.visible = true
+	_update_venue_panel()
+
+func _close_venue() -> void:
+	venue_selected_id = ""
+	if venue_panel != null:
+		venue_panel.visible = false
+
+func _update_venue_panel() -> void:
+	if venue_label == null or venue_selected_id.is_empty():
+		return
+	var venue: Dictionary = venue_system.call("venue_by_id", venue_selected_id)
+	if venue.is_empty():
+		_close_venue()
+		return
+	var open_now: bool = venue_system.call("is_open", venue_selected_id)
+	var status := "OPEN" if open_now else "CLOSED"
+	var hours_text := "%02d:00-%02d:00" % [int(venue["opens"]), int(venue["closes"])]
+	var body := "%s | %s | %s (%s)\n%s: %s\n" % [
+		str(venue["name"]), str(venue["kind"]), status, hours_text,
+		str(venue["host"]), str(venue["flavor"])]
+	if open_now:
+		body += "[1] %s  $%d   " % [str(venue["item"]), int(venue["price"])]
+		if venue_job_active.is_empty():
+			var offer: Dictionary = venue_system.call("job_from", venue_selected_id)
+			if not offer.is_empty() and not venue_job_completed.has(str(offer["id"])):
+				body += "\n[2] SIDE JOB: %s (+$%d)" % [str(offer["title"]), int(offer["reward"])]
+		else:
+			var active: Dictionary = venue_system.call("job_by_id", venue_job_active)
+			if not active.is_empty() and str(active["to"]) == venue_selected_id:
+				body += "\n[2] DELIVER: %s (+$%d)" % [str(active["title"]), int(active["reward"])]
+	else:
+		body += "Come back during business hours."
+	body += "\n[G] Close   |   CASH $%d" % cash
+	venue_label.text = body
+
+func _venue_action(option: int) -> void:
+	if venue_panel == null or not venue_panel.visible or venue_selected_id.is_empty():
+		return
+	var venue: Dictionary = venue_system.call("venue_by_id", venue_selected_id)
+	if venue.is_empty():
+		_close_venue()
+		return
+	if not bool(venue_system.call("is_open", venue_selected_id)):
+		_notify("%s is closed until %02d:00." % [str(venue["name"]), int(venue["opens"])])
+		_update_venue_panel()
+		return
+	if option == 1:
+		var price := int(venue["price"])
+		var service: Dictionary = venue_system.call("service_effect", str(venue["kind"]))
+		var healing := float(service.get("heal", 0.0))
+		var cover := float(service.get("heat", 0.0))
+		if healing > 0.0 and health >= 99.9:
+			_notify("You're already feeling rested. Save your cash.")
+			return
+		if cover > 0.0 and heat < 0.01:
+			_notify("No police attention to shake. Enjoy the atmosphere.")
+			return
+		if cash < price:
+			_notify("Not enough cash for %s. Try a courier or side job." % str(venue["item"]))
+			return
+		cash -= price
+		health = minf(100.0, health + healing)
+		heat = maxf(0.0, heat - cover)
+		_notify("%s: %s. %s" % [str(venue["name"]), str(venue["item"]),
+			"Recovered strength." if healing > 0.0 else "You blend into the crowd."])
+	elif option == 2:
+		if venue_job_active.is_empty():
+			var job: Dictionary = venue_system.call("job_from", venue_selected_id)
+			if job.is_empty() or venue_job_completed.has(str(job.get("id", ""))):
+				_notify("No new work from this contact.")
+				return
+			venue_job_active = str(job["id"])
+			_notify("NEW SIDE JOB: %s — %s" % [str(job["title"]), str(job["brief"])])
+		else:
+			var contract: Dictionary = venue_system.call("job_by_id", venue_job_active)
+			if contract.is_empty():
+				venue_job_active = ""
+				return
+			if str(contract["to"]) != venue_selected_id:
+				_notify("Job active: %s. Destination: %s." % [
+					str(contract["title"]),
+					str(venue_system.venue_by_id(str(contract["to"]))["name"])])
+				return
+			cash += int(contract["reward"])
+			venue_job_completed.append(venue_job_active)
+			venue_job_active = ""
+			_notify("SIDE JOB COMPLETE +$%d: %s" % [int(contract["reward"]), str(contract["ending"])])
+	_update_venue_panel()
+
+func _venue_job_text() -> String:
+	if venue_job_active.is_empty():
+		return "SIDE JOB: Explore social hubs for local work."
+	var job: Dictionary = venue_system.call("job_by_id", venue_job_active)
+	if job.is_empty():
+		return ""
+	var venue: Dictionary = venue_system.call("venue_by_id", str(job["to"]))
+	var dist := roundi(player.global_position.distance_to(venue_system.venue_position(str(job["to"]))))
+	return "SIDE JOB: %s / %s (%dm)" % [str(job["title"]), str(venue["name"]), dist]
 
 func _create_camera() -> void:
 	camera = Camera3D.new()
@@ -640,6 +796,17 @@ func _build_hud() -> void:
 	performance_label.add_theme_font_size_override("font_size", 18)
 	performance_label.add_theme_color_override("font_color", Color("b5eae4"))
 	ui.add_child(performance_label)
+	venue_panel = PanelContainer.new()
+	venue_panel.name = "VenueDialogue"
+	venue_panel.position = Vector2(18.0, 262.0)
+	venue_panel.custom_minimum_size = Vector2(550.0, 162.0)
+	venue_panel.visible = false
+	ui.add_child(venue_panel)
+	venue_label = Label.new()
+	venue_label.add_theme_font_size_override("font_size", 18)
+	venue_label.add_theme_color_override("font_color", Color("eadcc9"))
+	venue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	venue_panel.add_child(venue_label)
 
 func _update_hud() -> void:
 	var district: String = city_details.call("get_district_at", _actor().global_position)
@@ -658,7 +825,15 @@ func _update_hud() -> void:
 	if performance_overlay:
 		var fps := maxi(Engine.get_frames_per_second(), 1)
 		performance_label.text = "RTX 3060 target: 60 FPS @1080p | Actual: %d FPS | %.1f ms" % [fps, 1000.0 / float(fps)]
-	hud_label.text = "NIGHTGRID / AFTERHOURS    MORROW BAY\n%s | %s\n$%d | HEALTH %d | HEAT %s\n%s | DELIVERIES %d\nOBJECTIVE: %s (%dm)\n%s\n\nWASD Move/Drive | E Car | Shift Sprint | Space Jump/Brake\nE Car | F Board/Exit Transit | F5 Save | F6 New Game | F9 Load\nT Time | Y Pause | F3 FPS | F4 SSR | Esc Cursor" % [local_name, clock, cash, ceili(health), wanted_text, vehicle_text, deliveries, mission, distance, message]
+	hud_label.text = "NIGHTGRID / AFTERHOURS    MORROW BAY\n%s | %s\n$%d | HEALTH %d | HEAT %s\n%s | DELIVERIES %d\nOBJECTIVE: %s (%dm)\n%s\n\nWASD Move/Drive | E Car | Shift Sprint | Space Jump/Brake\nE Car | F Board/Exit Transit | F5 Save | F6 New Game | F9 Load\nT Time | Y Pause | F3 FPS | F4 SSR | G Visit Venue | Esc Cursor" % [local_name, clock, cash, ceili(health), wanted_text, vehicle_text, deliveries, mission, distance, message]
+	hud_label.text += "\n" + _venue_job_text()
+	if current_car == null and current_transit == null:
+		var near: Dictionary = venue_system.call("nearest_venue", player.global_position)
+		if not near.is_empty():
+			var accessible := "OPEN" if venue_system.call("is_open", str(near["id"])) else "CLOSED"
+			hud_label.text += "\n[G] %s (%s)" % [str(near["name"]), accessible]
+	if venue_panel.visible:
+		_update_venue_panel()
 
 func get_map_state() -> Dictionary:
 	var car_positions: Array[Vector2] = []
@@ -670,5 +845,7 @@ func get_map_state() -> Dictionary:
 		"player": Vector2(actor.global_position.x, actor.global_position.z),
 		"mission": Vector2(mission_position.x, mission_position.z),
 		"officers": car_positions,
-		"carrying": carrying
+		"carrying": carrying,
+		"side_quest": Vector2(venue_system.venue_position(str(venue_system.job_by_id(venue_job_active).get("to", ""))).x, venue_system.venue_position(str(venue_system.job_by_id(venue_job_active).get("to", ""))).z) if not venue_job_active.is_empty() else Vector2.ZERO,
+		"side_quest_active": not venue_job_active.is_empty()
 	}
