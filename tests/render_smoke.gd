@@ -30,8 +30,8 @@ func _check() -> void:
 		_fail("Wet reflections and neon bloom have not been enabled")
 		return
 	var city_stats: Dictionary = city.call("get_city_stats")
-	if int(city_stats.get("authored_lots", 0)) != 64:
-		_fail("Fixed 64-lot building plan was not applied")
+	if int(city_stats.get("authored_lots", 0)) != 112:
+		_fail("Fixed 112-lot building plan was not applied")
 		return
 	if int(puddles.call("patch_count")) != 16:
 		_fail("The authored wet-street patches must exist")
@@ -55,7 +55,7 @@ func _check() -> void:
 		_fail("Night-light pool failed to deactivate at noon")
 		return
 	var plan = load("res://scripts/world_plan.gd")
-	for ix in range(-3, 3):
+	for ix in range(-4, 4):
 		for iz in range(-3, 3):
 			if plan.landmark_for_block(ix, iz) != "":
 				continue
