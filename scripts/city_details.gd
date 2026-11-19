@@ -40,10 +40,16 @@ var _palette: Dictionary = {}
 var _statistics := {"buildings": 0, "storefronts": 0, "street_props": 0, "batched_details": 0, "districts": 8, "landmarks": 0, "authored_lots": 0, "variant_lots": 0}
 var _initialized := false
 var world_seed: int = 834726
+var world_manifest: Dictionary = {}
 
 func set_world_seed(value: int) -> void:
 	assert(not _initialized)
 	world_seed = value
+
+func set_world_manifest(value: Dictionary) -> void:
+	assert(not _initialized)
+	if WorldPlan.valid_manifest(value):
+		world_manifest = value.duplicate(true)
 
 func _ready() -> void:
 	# Called from world.gd after attaching this node; never regenerate on reload.
@@ -201,6 +207,10 @@ func _build_block(ix: int, iz: int) -> void:
 	for building in range(2):
 		var x := center.x + (-10.5 if building == 0 else 10.5)
 		var profile: Dictionary = WorldPlan.lot_profile(ix, iz, building, world_seed)
+		var blocks: Dictionary = world_manifest.get("blocks", {})
+		var parcel := blocks.get("%d,%d" % [ix, iz], [])
+		if parcel is Array and parcel.size() == 2:
+			profile = (parcel[building] as Dictionary).duplicate(true)
 		if (not WorldPlan.is_core_block(ix, iz)) or WorldPlan.lot_variant_index(ix, iz, world_seed) > 0:
 			_statistics["variant_lots"] += 1
 		var z: float = center.z + profile["offset_z"]

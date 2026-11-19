@@ -125,6 +125,53 @@ static func block_signature(ix: int, iz: int, world_seed: int) -> String:
 		return "CORE:%s:%s" % [str(lot_profile(ix, iz, 0, world_seed)), str(lot_profile(ix, iz, 1, world_seed))]
 	return "OUTER:%s/%s" % [outer_variant_code(ix, iz, 0, world_seed), outer_variant_code(ix, iz, 1, world_seed)]
 
+static func build_manifest(world_seed: int) -> Dictionary:
+	# Exact generated facade profiles are stored in the save, not just their seed.
+	# This lets subsequent generator refinements leave an existing layout intact.
+	var blocks := {}
+	for ix in range(-GRID_RADIUS, GRID_RADIUS):
+		for iz in range(-GRID_RADIUS, GRID_RADIUS):
+			if not landmark_for_block(ix, iz).is_empty():
+				continue
+			blocks["%d,%d" % [ix, iz]] = [
+				lot_profile(ix, iz, 0, world_seed),
+				lot_profile(ix, iz, 1, world_seed)
+			]
+	return {"version": WORLD_LAYOUT_VERSION, "blocks": blocks}
+
+static func valid_manifest(manifest: Variant) -> bool:
+	if not manifest is Dictionary:
+		return false
+	if not manifest.has("blocks") or not manifest["blocks"] is Dictionary:
+		return false
+	var blocks: Dictionary = manifest["blocks"]
+	for ix in range(-GRID_RADIUS, GRID_RADIUS):
+		for iz in range(-GRID_RADIUS, GRID_RADIUS):
+			if not landmark_for_block(ix, iz).is_empty():
+				continue
+			var key := "%d,%d" % [ix, iz]
+			if not blocks.has(key) or not blocks[key] is Array or blocks[key].size() != 2:
+				return false
+			for entry in blocks[key]:
+				if not entry is Dictionary:
+					return false
+				for field in ["height", "width", "depth", "offset_z", "wall", "material"]:
+					if not entry.has(field):
+						return false
+				if float(entry["height"]) < 5.0 or float(entry["height"]) > 120.0:
+					return false
+	return true
+
+static func manifest_signature(manifest: Dictionary) -> String:
+	# Stable, compact debug fingerprint for save/load checks.
+	var blocks: Dictionary = manifest.get("blocks", {})
+	var lines: PackedStringArray = []
+	var keys := blocks.keys()
+	keys.sort()
+	for key in keys:
+		lines.append("%s:%s" % [str(key), str(blocks[key])])
+	return str(lines.join("|").hash())
+
 static func lot_variant_index(ix: int, iz: int, world_seed: int) -> int:
 	if world_seed <= 0 or not VARIANT_PARCELS.has("%d,%d" % [ix, iz]):
 		return 0
