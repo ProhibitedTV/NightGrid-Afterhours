@@ -714,7 +714,7 @@ func _venue_job_text() -> String:
 	if job.is_empty():
 		return ""
 	var venue: Dictionary = venue_system.call("venue_by_id", str(job["to"]))
-	var dist := roundi(player.global_position.distance_to(venue_system.call("venue_position", str(job["to"]))))
+	var dist := roundi(_actor().global_position.distance_to(venue_system.call("venue_position", str(job["to"]))))
 	return "SIDE JOB: %s / %s (%dm)" % [str(job["title"]), str(venue["name"]), dist]
 
 func _create_camera() -> void:
@@ -835,17 +835,27 @@ func _update_hud() -> void:
 	if venue_panel.visible:
 		_update_venue_panel()
 
+func _venue_job_target() -> Vector3:
+	if venue_job_active.is_empty():
+		return Vector3.ZERO
+	var job: Dictionary = venue_system.call("job_by_id", venue_job_active)
+	if job.is_empty():
+		return Vector3.ZERO
+	return venue_system.call("venue_position", str(job["to"]))
+
 func get_map_state() -> Dictionary:
 	var car_positions: Array[Vector2] = []
 	for officer in officers:
 		if is_instance_valid(officer):
 			car_positions.append(Vector2(officer.global_position.x, officer.global_position.z))
 	var actor := _actor()
+	var quest: Vector3 = _venue_job_target()
 	return {
 		"player": Vector2(actor.global_position.x, actor.global_position.z),
 		"mission": Vector2(mission_position.x, mission_position.z),
 		"officers": car_positions,
 		"carrying": carrying,
-		"side_quest": Vector2(venue_system.call("venue_position", str(venue_system.call("job_by_id", venue_job_active).get("to", ""))).x, venue_system.call("venue_position", str(venue_system.call("job_by_id", venue_job_active).get("to", ""))).z) if not venue_job_active.is_empty() else Vector2.ZERO,
-		"side_quest_active": not venue_job_active.is_empty()
+		"side_quest": Vector2(quest.x, quest.z),
+		"side_quest_active": not venue_job_active.is_empty(),
+		"venues": venue_system.call("get_map_pins")
 	}

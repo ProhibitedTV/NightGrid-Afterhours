@@ -48,6 +48,7 @@ var _lights: Array[OmniLight3D] = []
 var _focus := Vector3.ZERO
 var _hour := 19.25
 var _refresh_timer := 0.0
+var _map_pins: Array[Dictionary] = []
 
 func _ready() -> void:
 	for venue in VENUES:
@@ -75,6 +76,9 @@ func set_focus(position: Vector3) -> void:
 func set_hour(hour: float) -> void:
 	_hour = fposmod(hour, 24.0)
 	_refresh()
+
+func get_map_pins() -> Array[Dictionary]:
+	return _map_pins
 
 func get_venue_count() -> int:
 	return _nodes.size()
@@ -162,6 +166,12 @@ func _build_venue(venue: Dictionary) -> void:
 	front.position = sidewalk + Vector3(0.0, -1.15, 2.3)
 	add_child(front)
 	_nodes[venue_id] = front
+	_map_pins.append({
+		"id": venue_id,
+		"point": Vector2(sidewalk.x, sidewalk.z),
+		"kind": kind,
+		"open": false
+	})
 	# Pad, facade, lightbox and close-up pavement details form an authored
 	# sidewalk vignette. No new collision body obstructs pedestrian movement.
 	_box(front, Vector3(0.0, 0.19, -0.5), Vector3(8.4, 0.09, 5.3), Color("3d4350"), "PAVERS")
@@ -318,6 +328,8 @@ func _night_factor() -> float:
 func _refresh() -> void:
 	var darkness := _night_factor()
 	var nearby: Array[Dictionary] = []
+	for pin in _map_pins:
+		pin["open"] = is_open(str(pin["id"]))
 	for venue in VENUES:
 		var venue_id: String = venue["id"]
 		var open_now := is_open(venue_id)

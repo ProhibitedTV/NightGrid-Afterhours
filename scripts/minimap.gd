@@ -23,6 +23,23 @@ func _draw() -> void:
 		var actor: Vector2 = state["player"]
 		var color := Color("38e5e4") if state["carrying"] else Color("ffba56")
 		draw_circle(_to_map(mission, side, scale), 5.5, color)
+		for location in state.get("venues", []):
+			var point: Vector2 = location["point"]
+			var tint := Color("f3b86d")
+			match str(location["kind"]):
+				"CAFE":
+					tint = Color("86d3df")
+				"BAR":
+					tint = Color("e5a1a6")
+				"CLUB":
+					tint = Color("e28eec")
+			if not bool(location["open"]):
+				tint = tint.darkened(0.65)
+			draw_circle(_to_map(point, side, scale), 2.8, tint)
+		if bool(state.get("side_quest_active", false)):
+			var quest: Vector2 = state["side_quest"]
+			var destination := _to_map(quest, side, scale)
+			draw_arc(destination, 7.4, 0.0, TAU, 16, Color("fff0ad"), 2.5)
 		for officer in state["officers"]:
 			draw_circle(_to_map(officer, side, scale), 3.5, Color("f04e59"))
 		draw_circle(_to_map(actor, side, scale), 5.5, Color("ee72cc"))
