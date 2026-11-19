@@ -1,0 +1,31 @@
+name: Project preflight
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  structure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check files and resource references
+        run: python tools/check_project.py
+
+  godot-headless:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.3.0
+          use-dotnet: false
+      - name: Import project and parse scripts
+        run: godot --headless --path . --import --quit
+      - name: Run smoke test for 90 frames
+        run: godot --headless --path . --quit-after 90
