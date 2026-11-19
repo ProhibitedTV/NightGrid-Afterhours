@@ -1,6 +1,8 @@
+> **Current map:** The detailed atlas below describes the original downtown. The [Morrow Bay expansion](EXPANSION.md) adds North Quay, West Docks, Horizon Gardens and Southworks and brings the city to 64 blocks, eight landmarks and sixteen new public services. Downtown block coordinates remain unchanged.
+
 # NightGrid city atlas — first detail pass
 
-The city has a **deterministic seed** (`834726`), a 58 m road grid, and four fictional neighborhood identities. These are art directions for the generated world, not a claim that every shop has an interior or that signals control AI traffic.
+The city uses a **per-save seed** (original default `834726`), a 58 m road grid, and four original downtown identities (now joined by four outer districts). These are art directions for the generated world, not a claim that every shop has an interior or that signals control AI traffic.
 
 | Quadrant (x/z) | District | Look |
 |---|---|---|
@@ -23,7 +25,7 @@ The player, cars and core roads still use the existing controllers. Only static 
 
 ## Validation
 
-Run `godot --headless --path . --import --quit`, then `godot --headless --path . --script res://tests/city_smoke.gd`. This asserts that city generation runs, all 72 buildings/fronts exist, there is sufficient detail density and district mapping is correct. The Windows export CI also remains active.
+Run `godot --headless --path . --import --quit`, then `godot --headless --path . --script res://tests/city_smoke.gd`. This asserts that city generation runs, 112 selected facade pairs/fronts exist, there is sufficient detail density and district mapping is correct. The Windows export CI also remains active.
 
 ## Next city focus
 
