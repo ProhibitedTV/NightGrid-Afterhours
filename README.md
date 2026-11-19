@@ -25,6 +25,16 @@
 | F5 | Save current world to slot 1 |
 | F6 | New Game (new world seed; does not overwrite saved slot) |
 | F9 | Reload saved world seed and player/traffic state |
+| G | Visit a nearby bar, cafe, nightclub or food stall on foot; G closes menu |
+| 1 / 2 | Buy service / accept or deliver a local side job in a venue menu |
+
+### Social life after dark
+
+- **12 fixed, named destinations** across Vesper Market, Glassline, Brickwater and Afterhours: three cafes, three late-night food stalls, three bars and three nightclubs.
+- Each has authored streetfront decor, hosts, its own schedule and lighting. Counter details, tables, shelves, bowls, signage, marquees and silhouettes use the graphic-noir palette, not generic storefront repetition.
+- Approach on foot and press **G** for the local menu. Use **1** to purchase useful health or police-heat services, **2** to take/complete one of four authored cross-district side jobs. Hours and contacts matter.
+- Venue pins and active side-job targets appear on the minimap. Side-job progress survives the existing **F5/F9** save/load and preserves old save compatibility.
+- See the [Morrow Bay venue and side-story guide](docs/VENUES.md). These are streetfront social spaces, **not enterable interiors yet**.
 
 ### City transport and persistent worlds
 
