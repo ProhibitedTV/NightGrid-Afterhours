@@ -20,10 +20,11 @@
 | T | Advance one in-game hour (debug) |
 | Y | Pause/resume time (debug) |
 | F3 | Toggle local FPS/frame-time overlay for RTX 3060 tuning |
+| F4 | Toggle screen-space reflections for performance comparisons |
 
 ### Included in the first vertical slice
 
-- Authored Morrow Bay geography with four stable landmarks and seeded procedural street blocks in **four neighborhoods**: Vesper Market, Glassline, Brickwater, and Afterhours. Each has distinct skylines, facade shapes, storefronts and street dressing.
+- Authored Morrow Bay geography with four stable landmarks and **64 fixed building profiles**; procedural street dressing only in **four neighborhoods**: Vesper Market, Glassline, Brickwater, and Afterhours. Each has distinct skylines, facade shapes, storefronts and street dressing.
 - Third-person character with walking, sprinting, jumping and a follow camera.
 - Eight parked arcade-drivable cars with collisions.
 - Repeatable courier pickups and deliveries, cash payouts.
@@ -33,13 +34,14 @@
 - Real 24-hour lighting cycle (24 real minutes), two sky palettes blended through dawn/dusk, and nighttime neon response. Press **T** to skip one hour and **Y** to pause the clock.
 - Purpose-planted low-poly flora: ginkgo, pine, flowering plum, ficus, shrubs, flowers and district planters, using batched GPU instancing.
 - Four fixed locations: Lantern Court, Helix Terminal, Foundry Commons and Sable Square, ready to anchor future story missions. See the [Morrow Bay World Bible](docs/WORLD_BIBLE.md).
+- Cached 128px tiled PBR surface maps (brick, concrete, pavers, metal, glass, wet asphalt), handcrafted wet-street reflective patches and 8 pooled nighttime lights; see [Rendering guide](docs/RENDERING.md).
 - Original procedural placeholder graphics — no external art/audio dependencies. For neighborhood layout and technical notes, see [City Atlas](docs/CITY.md).
 
 ### Known limits
 
 **Prototype, not a finished release:** this has not been manually tested in a Godot editor on a gaming PC. CI runs file checks, a Godot 4.3 import, and city composition assertions and a short headless smoke test, but gameplay feel needs hands-on review. There are no civilian traffic AI, pedestrians, complex missions, interiors, multiplayer, audio or saves yet. Driving uses an arcade `CharacterBody3D` instead of suspension/tire physics.
 
-Godot uses its Compatibility renderer here, **not DirectX**. This was chosen for rapid iteration on Windows/Linux. A native DirectX engine is possible later if justified by a clear requirement.
+Godot now uses the **Forward+ Vulkan renderer** for SSR and glow (with F4 reflection toggle), **not DirectX**. This was chosen for rapid iteration on Windows/Linux. A native DirectX engine is possible later if justified by a clear requirement.
 
 ## Roadmap
 
@@ -59,6 +61,7 @@ python3 tools/check_project.py
 godot --headless --path . --import --quit
 godot --headless --path . --script res://tests/city_smoke.gd
 godot --headless --path . --script res://tests/world_systems_smoke.gd
+godot --headless --path . --script res://tests/render_smoke.gd
 godot --headless --path . --quit-after 90
 ```
 

@@ -7,6 +7,9 @@ const MinimapScript = preload("res://scripts/minimap.gd")
 const CityDetailsScript = preload("res://scripts/city_details.gd")
 const DayNightScript = preload("res://scripts/day_night.gd")
 const FloraScript = preload("res://scripts/flora.gd")
+const Materials = preload("res://scripts/material_library.gd")
+const NightLightingScript = preload("res://scripts/night_lighting.gd")
+const WetStreetsScript = preload("res://scripts/wet_streets.gd")
 const CELL = 58.0
 const GRID_RADIUS = 3
 const PLAYER_START = Vector3(0.0, 1.15, 6.0)
@@ -38,6 +41,8 @@ var minimap: Control
 var city_details: Node3D
 var flora: Node3D
 var day_night: Node
+var street_lights: Node3D
+var wet_streets: Node3D
 var world_environment: WorldEnvironment
 var sun_light: DirectionalLight3D
 var yaw := 0.0
@@ -84,11 +89,14 @@ func _input(event: InputEvent) -> void:
 			KEY_F3:
 				performance_overlay = not performance_overlay
 				performance_label.visible = performance_overlay
+			KEY_F4:
+				world_environment.environment.ssr_enabled = not world_environment.environment.ssr_enabled
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(player):
 		return
 	var actor := _actor()
+	street_lights.call("set_focus", actor.global_position)
 	if current_car == null:
 		player.set("camera_yaw", yaw)
 	var focus := actor.global_position + Vector3.UP * (1.65 if current_car != null else 1.45)
@@ -243,13 +251,13 @@ func _make_material(color: Color, emissive: bool = false) -> StandardMaterial3D:
 		material.emission_energy_multiplier = 1.7
 	return material
 
-func _box(parent: Node3D, at: Vector3, dimensions: Vector3, color: Color, collider: bool = false, glow: bool = false) -> MeshInstance3D:
+func _box(parent: Node3D, at: Vector3, dimensions: Vector3, color: Color, collider: bool = false, glow: bool = false, surface_kind: String = "") -> MeshInstance3D:
 	var visual := MeshInstance3D.new()
 	var mesh := BoxMesh.new()
 	mesh.size = dimensions
 	visual.mesh = mesh
 	visual.position = at
-	visual.material_override = _make_material(color, glow)
+	visual.material_override = Materials.surface(surface_kind, color) if not surface_kind.is_empty() else _make_material(color, glow)
 	parent.add_child(visual)
 	if collider:
 		var static_body := StaticBody3D.new()
@@ -270,6 +278,15 @@ func _build_environment() -> void:
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	environment.ambient_light_color = Color("8194c4")
 	environment.ambient_light_energy = 0.65
+	# RTX 3060 baseline: Forward+ SSR on selected wet materials, bloom for emissive lights.
+	# No SDFGI, volumetric fog, ray tracing, or shadow-casting local lights.
+	environment.ssr_enabled = true
+	environment.ssr_max_steps = 24
+	environment.ssr_fade_out = 1.4
+	environment.glow_enabled = true
+	environment.glow_intensity = 0.58
+	environment.ssao_enabled = false
+	environment.ssil_enabled = false
 	world_environment.environment = environment
 	add_child(world_environment)
 	sun_light = DirectionalLight3D.new()
@@ -277,8 +294,9 @@ func _build_environment() -> void:
 	sun_light.light_color = Color("ffc39e")
 	sun_light.light_energy = 0.7
 	sun_light.shadow_enabled = true
+	sun_light.directional_shadow_max_distance = 170.0
 	add_child(sun_light)
-	_box(self, Vector3(0.0, -0.58, 0.0), Vector3(600.0, 1.0, 600.0), Color("18242e"), true)
+	_box(self, Vector3(0.0, -0.58, 0.0), Vector3(600.0, 1.0, 600.0), Color("34434a"), true, false, "CONCRETE")
 
 func _build_city() -> void:
 	# The road foundation stays simple; populated streets live in city_details.gd.
@@ -286,12 +304,12 @@ func _build_city() -> void:
 	var sidewalk := Color("4d5565")
 	for index in range(-GRID_RADIUS, GRID_RADIUS + 1):
 		var axis := float(index) * CELL
-		_box(self, Vector3(axis, -0.055, 0.0), Vector3(14.0, 0.12, 405.0), road)
-		_box(self, Vector3(0.0, -0.05, axis), Vector3(405.0, 0.12, 14.0), road)
+		_box(self, Vector3(axis, -0.055, 0.0), Vector3(14.0, 0.12, 405.0), road, false, false, "ASPHALT")
+		_box(self, Vector3(0.0, -0.05, axis), Vector3(405.0, 0.12, 14.0), road, false, false, "ASPHALT")
 	for block_x in range(-GRID_RADIUS, GRID_RADIUS):
 		for block_z in range(-GRID_RADIUS, GRID_RADIUS):
 			var center := Vector3((float(block_x) + 0.5) * CELL, 0.07, (float(block_z) + 0.5) * CELL)
-			_box(self, center, Vector3(42.0, 0.14, 42.0), sidewalk)
+			_box(self, center, Vector3(42.0, 0.14, 42.0), sidewalk, false, false, "PAVERS")
 	city_details = CityDetailsScript.new()
 	city_details.name = "CityDetails"
 	add_child(city_details)
@@ -303,10 +321,16 @@ func _build_world_systems() -> void:
 	flora.name = "CityFlora"
 	add_child(flora)
 	flora.call("generate")
+	street_lights = NightLightingScript.new()
+	street_lights.name = "NightLighting"
+	add_child(street_lights)
+	wet_streets = WetStreetsScript.new()
+	wet_streets.name = "WetStreets"
+	add_child(wet_streets)
 	day_night = DayNightScript.new()
 	day_night.name = "DayNight"
 	add_child(day_night)
-	day_night.call("configure", world_environment, sun_light, city_details)
+	day_night.call("configure", world_environment, sun_light, city_details, street_lights)
 
 func _create_player() -> void:
 	player = CharacterBody3D.new()
@@ -457,7 +481,7 @@ func _update_hud() -> void:
 	if performance_overlay:
 		var fps := maxi(Engine.get_frames_per_second(), 1)
 		performance_label.text = "RTX 3060 target: 60 FPS @1080p | Actual: %d FPS | %.1f ms" % [fps, 1000.0 / float(fps)]
-	hud_label.text = "NIGHTGRID / AFTERHOURS    MORROW BAY\n%s | %s\n$%d | HEALTH %d | HEAT %s\n%s | DELIVERIES %d\nOBJECTIVE: %s (%dm)\n%s\n\nWASD Move/Drive | E Car | Shift Sprint | Space Jump/Brake\nT Advance Time | Y Pause Clock | Esc Cursor" % [local_name, clock, cash, ceili(health), wanted_text, vehicle_text, deliveries, mission, distance, message]
+	hud_label.text = "NIGHTGRID / AFTERHOURS    MORROW BAY\n%s | %s\n$%d | HEALTH %d | HEAT %s\n%s | DELIVERIES %d\nOBJECTIVE: %s (%dm)\n%s\n\nWASD Move/Drive | E Car | Shift Sprint | Space Jump/Brake\nT Time | Y Pause | F3 FPS | F4 SSR | Esc Cursor" % [local_name, clock, cash, ceili(health), wanted_text, vehicle_text, deliveries, mission, distance, message]
 
 func get_map_state() -> Dictionary:
 	var car_positions: Array[Vector2] = []
