@@ -29,6 +29,8 @@ jobs:
           use-dotnet: false
       - name: Import project and parse scripts
         run: godot --headless --path . --import --quit
+      - name: Validate Southworks solid cargo and player movement orientation regressions
+        run: godot --headless --path . --script res://tests/southworks_playtest_smoke.gd
       - name: Validate fixed 60Hz physics and independent rendered train cadence
         run: godot --headless --path . --script res://tests/frame_pacing_smoke.gd
       - name: Assert city generation and district composition
@@ -59,8 +61,6 @@ jobs:
         run: godot --headless --path . --script res://tests/mara_character_smoke.gd
       - name: Validate café crowd, animation, patron dialogue, economy and save restore
         run: godot --headless --path . --script res://tests/cafe_patrons_smoke.gd
-      - name: Validate Southworks solid cargo and player movement orientation regressions
-        run: godot --headless --path . --script res://tests/southworks_playtest_smoke.gd
       - name: Validate first-playtest club exit, camera obstruction, contact geometry and building fronts
         run: godot --headless --path . --script res://tests/playtest_geometry_smoke.gd
       - name: Validate main menus, saved settings and controller action contexts
