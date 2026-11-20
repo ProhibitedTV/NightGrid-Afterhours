@@ -157,7 +157,7 @@ func _build_worn_markings() -> void:
 			seam_marks.append(Vector3(offset, 0.020, side * 14.6))
 	_batch("ThermoplasticEdgeFragment_%s" % str(side),
 		Vector3(0.12, 0.009, 0.13), seam_marks, "CONCRETE", Color("99958e"))
-		seam_marks.clear()
+	seam_marks.clear()
 
 func _build_pavement_and_drains() -> void:
 	# Eight sloped ramps replace the last few metres of the existing raised
