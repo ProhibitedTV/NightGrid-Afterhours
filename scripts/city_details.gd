@@ -454,14 +454,30 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 	var back := center.z + depth / 2.0
 	var left := center.x - width / 2.0
 	var right := center.x + width / 2.0
-	_solid(Vector3(center.x, height / 2.0 + 0.15, center.z), Vector3(width, height, depth), wall, surface_kind)
+	# Preserve the original, save-stable collision volume, but do NOT render
+	# a solid BoxMesh behind the windows on the two bespoke Central Exchange
+	# building assemblies. That box visually filled the window apertures.
+	var south_exposure: bool = (ix == -1 and iz == 0 and which == 1) or (ix == 0 and iz == 0 and which == 0)
+	var shell_at := Vector3(center.x, height / 2.0 + 0.15, center.z)
+	var shell_size := Vector3(width, height, depth)
+	if south_exposure:
+		var volume := StaticBody3D.new()
+		volume.name = "PreservedBuildingCollision"
+		volume.position = shell_at
+		var collision := CollisionShape3D.new()
+		var shape := BoxShape3D.new()
+		shape.size = shell_size
+		collision.shape = shape
+		volume.add_child(collision)
+		(_active_chunk if _active_chunk != null else self).add_child(volume)
+	else:
+		_solid(shell_at, shell_size, wall, surface_kind)
 	_statistics["buildings"] += 1
 	# First physically coherent architecture study: the two south-facing
 	# building fronts at Central Exchange, across from the working signals.
 	# Keep the same parcel/seed, outer collision and publicly exposed shop ID.
 	# The new actual recessed-window ArrayMeshes *replace* the old fake glass
 	# and glowing box stack, rather than doubling those decorations.
-	var south_exposure: bool = (ix == -1 and iz == 0 and which == 1) or (ix == 0 and iz == 0 and which == 0)
 	if south_exposure:
 		var names: Array = SHOPS[district]
 		var stable_name: String = names[abs(ix * 11 + iz * 17 + which * 3) % names.size()]
