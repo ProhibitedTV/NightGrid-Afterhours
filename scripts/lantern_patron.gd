@@ -15,6 +15,7 @@ var _torso: Node3D
 var _head: Node3D
 var _right_hand: Node3D
 var _blink: Node3D
+var _second_blink: Node3D
 var _cup: Node3D
 var _stats := {"mesh_parts": 0, "joints": 0, "lights": 0, "colliders": 0}
 var _last_activity := ""
@@ -75,7 +76,9 @@ func _process(delta: float) -> void:
 	_head.rotation.y = sin(t * 0.31) * (0.19 if activity == "CHAT" else 0.075)
 	_head.rotation.x = sin(t * (0.63 if activity == "READ" else 0.27)) * 0.045
 	var blink_time := fposmod(t, 4.05 + float(palette) * 0.22)
-	_blink.scale.y = clampf(absf(blink_time - 1.87) / 0.11, 0.07, 1.0)
+	var blink_open := clampf(absf(blink_time - 1.87) / 0.11, 0.07, 1.0)
+	_blink.scale.y = blink_open
+	_second_blink.scale.y = blink_open
 	_last_activity = activity
 	if _right_hand != null:
 		var lift := 0.0
@@ -217,6 +220,8 @@ func _build_character() -> void:
 			Vector3(x, 0.038, 0.204))
 		if side < 0.0:
 			_blink = eye_rig
+		else:
+			_second_blink = eye_rig
 		_ellipsoid(eye_rig, "White", Vector3.ZERO,
 			Vector3(0.082, 0.052, 0.034), Color("e5ddd0"), "EYE")
 		_ellipsoid(eye_rig, "Pupil", Vector3(0.0, 0.0, 0.023),
@@ -231,8 +236,9 @@ func _build_character() -> void:
 		var x: float = float(side) * 0.42
 		_ellipsoid(_torso, "TailoredSleeve", Vector3(x, -0.12, 0.01),
 			Vector3(0.27, 0.65, 0.29), coat, "FABRIC")
-		_ellipsoid(_torso, "Hand", Vector3(x, -0.44, 0.17),
-			Vector3(0.13, 0.21, 0.15), skin, "SKIN")
+		if side < 0.0:
+			_ellipsoid(_torso, "Hand", Vector3(x, -0.44, 0.17),
+				Vector3(0.13, 0.21, 0.15), skin, "SKIN")
 	_right_hand = _pivot(_torso, "ActivityHand", Vector3(0.43, -0.40, 0.19))
 	_ellipsoid(_right_hand, "RightHandGlove", Vector3.ZERO,
 		Vector3(0.15, 0.18, 0.15), skin, "SKIN")
