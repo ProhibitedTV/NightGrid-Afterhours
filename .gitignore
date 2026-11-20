@@ -5,3 +5,7 @@
 Thumbs.db
 builds/
 dist/
+
+# Generated next-playtest X11/Mesa captures belong in CI artifacts only.
+playtest-evidence/*.png
+playtest-evidence/manifest.json
