@@ -286,8 +286,23 @@ func _build_block(ix: int, iz: int) -> void:
 	var accent: Color = ACCENT[district]
 	# Sidewalk slabs, tactile strips, curbs and grates around the perimeter.
 	for side in [-1.0, 1.0]:
-		_detail(center + Vector3(side * 20.8, 0.18, 0.0), Vector3(0.48, 0.24, 42.0), Color("85888b"))
-		_detail(center + Vector3(0.0, 0.18, side * 20.8), Vector3(42.0, 0.24, 0.48), Color("85888b"))
+		# The four parcels surrounding Central Exchange leave a 6m gap at
+		# the inner end of each curb. Sloped crossing approaches built by the
+		# hero junction occupy that space instead of overlapping raised curbs.
+		var inside_corner: bool = absf(center.x) == CELL * 0.5 and absf(center.z) == CELL * 0.5
+		var inner_x_edge: bool = inside_corner and (side < 0.0 if center.x > 0.0 else side > 0.0)
+		var inner_z_edge: bool = inside_corner and (side < 0.0 if center.z > 0.0 else side > 0.0)
+		if inner_x_edge:
+			_detail(center + Vector3(side * 20.8, 0.18, signf(center.z) * 3.0),
+				Vector3(0.48, 0.24, 36.0), Color("85888b"))
+		else:
+			_detail(center + Vector3(side * 20.8, 0.18, 0.0), Vector3(0.48, 0.24, 42.0), Color("85888b"))
+		if inner_z_edge:
+			_detail(center + Vector3(signf(center.x) * 3.0, 0.18, side * 20.8),
+				Vector3(36.0, 0.24, 0.48), Color("85888b"))
+		else:
+			_detail(center + Vector3(0.0, 0.18, side * 20.8),
+				Vector3(42.0, 0.24, 0.48), Color("85888b"))
 		for slab in range(-4, 5):
 			var offset := float(slab) * 4.2
 			_detail(center + Vector3(side * 19.3, 0.151, offset), Vector3(0.065, 0.018, 3.3), Color("747c81"))

@@ -39,6 +39,8 @@ jobs:
         run: godot --headless --path . --script res://tests/transport_smoke.gd
       - name: Validate Kestrel S6 hero body, dynamic lights and save stability
         run: godot --headless --path . --script res://tests/hero_vehicle_smoke.gd
+      - name: Validate Central Exchange junction architecture and signal-safe lighting
+        run: godot --headless --path . --script res://tests/hero_intersection_smoke.gd
       - name: Validate permanent venues, opening hours and side quests
         run: godot --headless --path . --script res://tests/venues_smoke.gd
       - name: Validate expanded eight-district seeded world and civic gameplay

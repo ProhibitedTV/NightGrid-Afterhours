@@ -11,6 +11,7 @@ const FloraScript = preload("res://scripts/flora.gd")
 const Materials = preload("res://scripts/material_library.gd")
 const NightLightingScript = preload("res://scripts/night_lighting.gd")
 const WetStreetsScript = preload("res://scripts/wet_streets.gd")
+const HeroIntersectionScript = preload("res://scripts/central_exchange_hero.gd")
 const TrafficSignalsScript = preload("res://scripts/traffic_signals.gd")
 const TrafficSystemScript = preload("res://scripts/traffic_system.gd")
 const RailSystemScript = preload("res://scripts/rail_system.gd")
@@ -52,6 +53,7 @@ var flora: Node3D
 var day_night: Node
 var street_lights: Node3D
 var wet_streets: Node3D
+var hero_intersection: Node3D
 var signal_controller: Node3D
 var traffic: Node3D
 var rail: Node3D
@@ -535,10 +537,13 @@ func _build_world_systems() -> void:
 	wet_streets = WetStreetsScript.new()
 	wet_streets.name = "WetStreets"
 	add_child(wet_streets)
+	hero_intersection = HeroIntersectionScript.new()
+	hero_intersection.name = "CentralExchangeHero"
+	add_child(hero_intersection)
 	day_night = DayNightScript.new()
 	day_night.name = "DayNight"
 	add_child(day_night)
-	day_night.call("configure", world_environment, sun_light, city_details, street_lights)
+	day_night.call("configure", world_environment, sun_light, city_details, street_lights, hero_intersection)
 	venue_system = VenueSystemScript.new()
 	venue_system.name = "SocialVenues"
 	add_child(venue_system)
