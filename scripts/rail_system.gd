@@ -76,6 +76,13 @@ func restore(data: Dictionary) -> void:
 	speed = clampf(float(data.get("speed", 0.0)), 0.0, 17.0)
 	dwell_remaining = clampf(float(data.get("dwell", 0.0)), 0.0, 8.0)
 
+func get_map_stations() -> Array[Vector2]:
+	var result: Array[Vector2] = []
+	for index in range(STATIONS.size()):
+		var at := station_entrance(index)
+		result.append(Vector2(at.x, at.z))
+	return result
+
 func get_counts() -> Dictionary:
 	return {"trains": 1, "stations": STATIONS.size(), "elevated": true}
 

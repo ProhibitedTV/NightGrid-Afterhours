@@ -136,6 +136,12 @@ func bus_by_id(identifier: String) -> CharacterBody3D:
 			return bus
 	return null
 
+func get_map_stops() -> Array[Vector2]:
+	var result: Array[Vector2] = []
+	for stop in _stops:
+		result.append(Vector2(stop.x, stop.z))
+	return result
+
 func get_counts() -> Dictionary:
 	return {"ambient_cars": fleet.size() - buses.size(), "buses": buses.size(),
 		"stops": _stops.size(), "signals": 81}

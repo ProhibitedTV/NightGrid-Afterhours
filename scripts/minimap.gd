@@ -20,6 +20,17 @@ func _draw() -> void:
 		draw_line(Vector2(0.0, p), Vector2(side, p), Color("46566e"), 4.0)
 	if is_instance_valid(world_node):
 		var state: Dictionary = world_node.call("get_map_state")
+		# Fixed M-Line corridor over the city; station squares and bus-stop
+		# dots complement venue/social pins in the large pause-menu atlas.
+		var rail_tint := Color("7fcfd5")
+		draw_line(_to_map(Vector2(-223.0, -58.0), side, scale),
+			_to_map(Vector2(241.0, -58.0), side, scale), rail_tint.darkened(0.52), 2.2)
+		for stop in state.get("bus_stops", []):
+			draw_circle(_to_map(stop, side, scale), 2.7, Color("f3cb7a"))
+		for station in state.get("rail_stations", []):
+			var pos := _to_map(station, side, scale)
+			draw_rect(Rect2(pos - Vector2(4.0, 4.0), Vector2(8.0, 8.0)), rail_tint, true)
+			draw_rect(Rect2(pos - Vector2(4.0, 4.0), Vector2(8.0, 8.0)), Color("1b4050"), false, 1.1)
 		var mission: Vector2 = state["mission"]
 		var actor: Vector2 = state["player"]
 		var color := Color("38e5e4") if state["carrying"] else Color("ffba56")

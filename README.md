@@ -9,26 +9,30 @@
 3. Open `project.godot` in Godot.
 4. Press **F5** to play. Head for the amber pickup beacon; deliver the package to the cyan destination and earn money.
 
-| Controls | Action |
-|---|---|
-| WASD | Walk / drive |
-| Mouse | Orbit third-person camera |
-| Shift | Sprint on foot |
-| Space | Jump on foot / handbrake in a car |
-| E | Enter nearby parked car / exit when stopped |
-| Escape | Release or capture mouse |
-| T | Advance one in-game hour (debug) |
-| Y | Pause/resume time (debug) |
-| F3 | Toggle local FPS/frame-time overlay for RTX 3060 tuning |
-| F4 | Toggle screen-space reflections for performance comparisons |
-| F | Board/alight a stopped bus or M-Line train at marked stops |
-| F5 | Save current world to slot 1 |
-| F6 | New Game (new world seed; does not overwrite saved slot) |
-| F9 | Reload saved world seed and player/traffic state |
-| G | Interact with nearby outdoor frontage or interior service counter; G closes menu |
-| H | Enter a named business on foot / leave through its indoor doorway |
-| 1 / 2 | Purchase services or accept/deliver local side jobs and freight contracts |
-| R | Use purchased food provisions on foot to restore health |
+### Real menus and gamepad controls
+
+The first Windows launch now opens an interactive **title screen** with Continue, New World, Settings, Controls and Quit. **Esc** or controller **Start** opens the pause menu, which freezes the world and provides Resume, Save, Load, New World confirmation, a full-size **City Map**, and an objective/inventory **Journal**. Settings persist in `user://settings.cfg` (volume, mouse/joystick sensitivity, Y inversion, reflections, bloom, VSync and FPS overlay). The stored world seed and building manifest remain separate from settings.
+
+| Keyboard / mouse | Standard Xbox gamepad | Action |
+|---|---|---|
+| WASD + Mouse | Left / Right sticks | Walk and look |
+| Shift / Space | L3 / A | Sprint or jump on foot |
+| W/S, A/D, Space | RT/LT, left stick, B | Drive, steer, brake |
+| E | Y | Enter/exit car |
+| F | RB | Board/leave a bus or train at a stop |
+| H | LB | Enter/leave an indoor business |
+| G | X | Interact with a shop, club or civic service |
+| 1 / 2 | A / X inside a dialogue | Purchase service / accept or finish job |
+| R | D-pad Down | Consume a supply pack on foot |
+| Esc | Start | Pause/resume and access menus |
+| M | View/Select | Enlarged city map |
+| Tab | Pause > Journal | Quest, inventory and city journal |
+| F5 / F9 | Pause > Save/Load | Save or restore persistent city |
+| F6 | Pause > New World | Confirm a new-world seed |
+| F3 / F4 | Pause > Settings | FPS/chunk overlay and screen-space reflections |
+| T / Y | — | Debug clock advance/pause |
+
+Buttons and sliders support controller focus and navigation. The game distinguishes keyboard and gamepad HUD hints; **B brakes when driving** and acts as Back only in a menu. This maps standard Xbox-style devices via Godot's joypad API; **real physical controllers have not yet been tested**. Detailed bindings and limitations: [Menus and input guide](docs/INPUT_MENUS.md).
 
 ### Streamed city geometry and enterable interiors
 
@@ -82,16 +86,16 @@
 
 ### Known limits
 
-**Prototype, not a finished release:** this has not been manually tested in a Godot editor on a gaming PC. CI runs file checks, a Godot 4.3 import, and city composition assertions and a short headless smoke test, but gameplay feel needs hands-on review. There are now basic lane-following NPC traffic, a single save slot and public transit, but no moving pedestrians, complex story campaigns, true enterable building interiors, multiplayer, or full music production yet. The social hubs have original spatial ambience. Driving uses an arcade `CharacterBody3D` instead of suspension/tire physics.
+**Prototype, not a finished release:** this has not been manually tested in a Godot editor on a gaming PC. CI runs file checks, a Godot 4.3 import, and city composition assertions and a short headless smoke test, but gameplay feel needs hands-on review. There are now lane-following NPC traffic, a single save slot, public transit, a menu system and themed physical interior rooms, but no moving street pedestrians, complex story campaigns, uniquely bespoke floors for every site, multiplayer, or full music production yet. The social hubs have original spatial ambience. Driving uses an arcade `CharacterBody3D` instead of suspension/tire physics.
 
 Godot now uses the **Forward+ Vulkan renderer** for SSR and glow (with F4 reflection toggle), **not DirectX**. This was chosen for rapid iteration on Windows/Linux. A native DirectX engine is possible later if justified by a clear requirement.
 
 ## Roadmap
 
-1. **0.1 — Playable:** validate the scripts and vehicle collisions on real hardware; add pause/menu, sound and a downloadable Windows build.
+1. **0.1 — Playable:** working city, basic game menus, controller action map, physical interiors and a Windows playtest build; validate feel and collisions on real hardware.
 2. **0.2 — Living city:** streamed district geometry, pedestrians, weather, indoor spaces and richer NPC schedules.
 3. **0.3 — Emergent systems:** more jobs, vehicle ownership, police escalation, NPC schedules and a stronger identity.
-4. **0.4+ — Expand responsibly:** performance budgets, dense district content, accessibility, controller support and modding.
+4. **0.4+ — Expand responsibly:** measured performance budgets, dense district content, broader accessibility, controller rebinding/haptics, and modding.
 
 ## Download a Windows build
 
@@ -108,6 +112,7 @@ godot --headless --path . --script res://tests/render_smoke.gd
 godot --headless --path . --script res://tests/transport_smoke.gd
 godot --headless --path . --script res://tests/expansion_smoke.gd
 godot --headless --path . --script res://tests/streaming_interiors_smoke.gd
+godot --headless --path . --script res://tests/menus_gamepad_smoke.gd
 godot --headless --path . --quit-after 90
 ```
 

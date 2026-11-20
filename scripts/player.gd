@@ -9,6 +9,7 @@ const GRAVITY = 24.0
 
 var camera_yaw := 0.0
 var driving := false
+var input_blocked := false
 var visual: Node3D
 
 func _ready() -> void:
@@ -16,18 +17,16 @@ func _ready() -> void:
 	visual = get_node_or_null("Visual")
 
 func _physics_process(delta: float) -> void:
-	if driving:
+	if driving or input_blocked:
+		velocity = Vector3.ZERO
 		return
-	var axes := Vector2(
-		float(Input.is_physical_key_pressed(KEY_D)) - float(Input.is_physical_key_pressed(KEY_A)),
-		float(Input.is_physical_key_pressed(KEY_S)) - float(Input.is_physical_key_pressed(KEY_W))
-	).normalized()
+	var axes := Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
 	var move_direction := Vector3(axes.x, 0.0, axes.y).rotated(Vector3.UP, camera_yaw)
-	var speed := RUN_SPEED if Input.is_physical_key_pressed(KEY_SHIFT) else WALK_SPEED
+	var speed := RUN_SPEED if Input.is_action_pressed("sprint") else WALK_SPEED
 	velocity.x = move_toward(velocity.x, move_direction.x * speed, ACCEL * delta)
 	velocity.z = move_toward(velocity.z, move_direction.z * speed, ACCEL * delta)
 	if is_on_floor():
-		if Input.is_physical_key_pressed(KEY_SPACE):
+		if Input.is_action_just_pressed("jump"):
 			velocity.y = JUMP_SPEED
 	else:
 		velocity.y -= GRAVITY * delta
