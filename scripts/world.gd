@@ -177,7 +177,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		if venue_panel.visible:
 			_close_venue()
 		else:
-			game_menu.call("open_pause")
+			# The B button doubles as the car's handbrake. Only Start/Esc
+			# opens the pause menu in free gameplay.
+			return
 	elif venue_panel.visible:
 		if event.is_action_pressed("service_one"):
 			_venue_action(1)

@@ -305,7 +305,6 @@ func _choice(action: String) -> void:
 				action_requested.emit("load")
 		"save":
 			action_requested.emit("save")
-			_has_save = true
 			_open("pause")
 		"title":
 			open_title()
