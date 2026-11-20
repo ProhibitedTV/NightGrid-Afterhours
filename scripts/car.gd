@@ -30,15 +30,15 @@ func _physics_process(delta: float) -> void:
 		var target_speed := 19.0 if vector.length() > 4.0 else 3.0
 		speed = move_toward(speed, target_speed, ACCEL * delta)
 	elif occupied:
-		var throttle := float(Input.is_physical_key_pressed(KEY_W)) - float(Input.is_physical_key_pressed(KEY_S))
-		var steering := float(Input.is_physical_key_pressed(KEY_D)) - float(Input.is_physical_key_pressed(KEY_A))
+		var throttle := Input.get_action_strength("drive_accelerate") - Input.get_action_strength("drive_reverse")
+		var steering := Input.get_axis("move_left", "move_right")
 		if throttle > 0.0:
 			speed = move_toward(speed, MAX_SPEED * lerpf(0.55, 1.0, condition / 100.0), ACCEL * delta)
 		elif throttle < 0.0:
 			speed = move_toward(speed, -MAX_REVERSE, BRAKE * delta)
 		else:
 			speed = move_toward(speed, 0.0, COAST * delta)
-		if Input.is_physical_key_pressed(KEY_SPACE):
+		if Input.is_action_pressed("drive_brake"):
 			speed = move_toward(speed, 0.0, BRAKE * 2.0 * delta)
 		if absf(speed) > 0.5:
 			rotation.y -= steering * TURN_RATE * clampf(absf(speed) / 14.0, 0.15, 1.0) * signf(speed) * delta
