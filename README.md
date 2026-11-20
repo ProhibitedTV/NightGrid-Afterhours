@@ -2,6 +2,10 @@
 
 **An original 3D, open-world night-courier and crime sandbox prototype.** A neon city, parked vehicles, delivery missions and basic police pursuit — no copied Rockstar assets.
 
+### First implemented step toward photorealistic city architecture
+
+**Central Exchange (Brickwater/Afterhours corners):** two fixed building lots now have coherent custom `ArrayMesh` building façades, not the usual stacked `BoxMesh` window cards. Recessed windows, human-scale shop glazing, street-facing side elevations and canopy profiles are textured with **real 2K Poly Haven CC0 photographs** (brick and painted blue steel, each with albedo, OpenGL normal and roughness). Gameplay collision, street geometry, shop identities, save manifests and world seeds are preserved. This is a meaningful *partial world-engineering upgrade*, not a claim of AAA visual fidelity. [Full provenance, implementation, and actual Godot screenshot review](docs/CENTRAL_EXCHANGE_FIDELITY_PILOT.md). The rest of the city and original cars/characters are still visually provisional.
+
 ### New approved visual direction: photorealistic cyberpunk city
 
 **The target is the user-approved November 20, 2026 image of an ultrarealistic neon coastal metropolis—not the current low-poly, cartoonish or box-procedural style.** The reference depicts a realistic rain-wet waterfront boulevard, densely layered towers, elevated transport, detailed nightlife storefronts, premium cars and grounded city geometry. We will treat that image as a **future fidelity standard**; this prototype does *not* yet look like it. See the [approved world reference and acceptance criteria](docs/APPROVED_WORLD_FIDELITY_TARGET.md) before writing new geometry or claiming AAA progress. Existing screenshots below document **older in-game output**, not this new visual goal.
