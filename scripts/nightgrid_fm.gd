@@ -1,4 +1,5 @@
 extends Node
+const VenueCatalog = preload("res://scripts/venue_system.gd")
 ## NightGrid FM: authored, creator-owned chipwave music for Morrow Bay.
 ## Streams are loaded only when needed. Missing optional .ogg assets never
 ## prevent the prototype from launching; procedural venue ambience remains.
@@ -131,7 +132,7 @@ func _context() -> String:
 	return ""
 
 func _group(context: String) -> String:
-	if context.begins_with("interior:"):
+	if context.begins_with("interior:") or context.begins_with("street:"):
 		return context.split(":")[1]
 	return context
 
@@ -214,7 +215,7 @@ func _select_venue() -> String:
 			return _venue_id
 	var best := VENUE_IN_RANGE
 	var selected := ""
-	for site in venues.get("VENUES"):
+	for site in VenueCatalog.VENUES:
 		var id: String = site["id"]
 		if not bool(venues.call("is_open", id)):
 			continue
@@ -238,7 +239,7 @@ func _process(delta: float) -> void:
 	for deck in _decks:
 		var target_db := linear_to_db(maxf(0.001, target_gain)) if deck == _front and not context.is_empty() else -80.0
 		deck.volume_db = move_toward(deck.volume_db, target_db, CROSSFADE_DB_PER_SECOND * delta)
-		if deck != _front and deck.playing and deck.volume_db <= -75.0:
+		if deck.playing and deck.volume_db <= -75.0 and (deck != _front or context.is_empty()):
 			deck.stop()
 	_venue_refresh += delta
 	if _venue_refresh >= 0.35:
