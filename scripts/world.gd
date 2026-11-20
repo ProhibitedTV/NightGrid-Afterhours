@@ -121,6 +121,7 @@ func _build_game_menu() -> void:
 	game_menu = GameMenuScript.new()
 	game_menu.name = "GameMenus"
 	add_child(game_menu)
+	game_menu.call("set_world_node", self)
 	game_menu.connect("action_requested", Callable(self, "_on_menu_action"))
 	game_menu.connect("settings_changed", Callable(self, "_apply_game_settings"))
 	game_menu.call("set_has_save", not (session.call("read_snapshot") as Dictionary).is_empty())
@@ -134,6 +135,30 @@ func _on_menu_action(action: String) -> void:
 			_load_game()
 		"new":
 			_new_game()
+		"journal":
+			game_menu.call("open_journal", _journal_context())
+
+func _journal_context() -> Dictionary:
+	var outside: Vector3 = interiors.get("exterior_position") if interiors.call("is_inside") else _actor().global_position
+	var district: String = city_details.call("get_district_at", outside)
+	var landmark: String = city_details.call("get_nearby_landmark", outside)
+	var objective := "Deliver package" if carrying else "Collect courier package"
+	var remaining := roundi(outside.distance_to(mission_position))
+	var loaded: Dictionary = city_details.call("get_streaming_stats")
+	return {
+		"district": district if landmark.is_empty() else "%s / %s" % [district, landmark],
+		"clock": day_night.call("clock_string"),
+		"seed": session.get("world_seed"),
+		"main_objective": "%s  •  %dm" % [objective, remaining],
+		"venue_job": _venue_job_text(),
+		"civic_job": _civic_job_text(),
+		"cash": cash, "health": health, "heat": heat,
+		"supplies": ration_packs, "deliveries": deliveries,
+		"venue_completed": venue_job_completed.size(),
+		"civic_completed": civic_job_completed.size(),
+		"archives": civic_intel.size(),
+		"loaded_blocks": loaded.get("loaded_blocks", 0)
+	}
 
 func _apply_game_settings(options: Dictionary) -> void:
 	mouse_sensitivity = clampf(float(options.get("mouse_sensitivity", 0.0032)), 0.001, 0.010)
@@ -181,6 +206,14 @@ func _unhandled_input(event: InputEvent) -> void:
 			# The B button doubles as the car's handbrake. Only Start/Esc
 			# opens the pause menu in free gameplay.
 			return
+	elif event.is_action_pressed("map_open"):
+		if venue_panel.visible:
+			_close_venue()
+		game_menu.call("open_map")
+	elif event.is_action_pressed("journal_open"):
+		if venue_panel.visible:
+			_close_venue()
+		game_menu.call("open_journal", _journal_context())
 	elif venue_panel.visible:
 		if event.is_action_pressed("service_one"):
 			_venue_action(1)
@@ -1288,9 +1321,9 @@ func _update_hud() -> void:
 		performance_label.text = "RTX 3060 target: 60 FPS @1080p | Actual: %d FPS (%.1f ms) | %d/%d street blocks | %d live building shells | room %d" % [
 			fps, 1000.0 / float(fps), int(stream["loaded_blocks"]), int(stream["total_blocks"]),
 			int(stream["loaded_buildings"]), indoor_count]
-	var control_help := "WASD Move | Mouse Look | E Car | F Transit | H Enter | G Interact | Esc Pause"
+	var control_help := "WASD Move | Mouse Look | E Car | F Transit | H Enter | G Interact | Esc Pause | M Map | Tab Journal"
 	if gamepad_active:
-		control_help = "PAD: LS Move / Steer • RS Look • A Jump/Service • X Interact/Contract • Y Car • LB Door • RB Transit • Start Pause"
+		control_help = "PAD: LS Move / Steer • RS Look • A Jump/Service • X Interact/Contract • Y Car • LB Door • RB Transit • Start Pause • View Map"
 	hud_label.text = "NIGHTGRID / AFTERHOURS    MORROW BAY\n%s | %s\n$%d | HEALTH %d | HEAT %s\n%s | DELIVERIES %d\nOBJECTIVE: %s (%dm)\n%s\n\n%s" % [local_name, clock, cash, ceili(health), wanted_text, vehicle_text, deliveries, mission, distance, message, control_help]
 	hud_label.text += "\n" + _venue_job_text() + "\n" + _civic_job_text()
 	if interiors.call("is_inside"):
