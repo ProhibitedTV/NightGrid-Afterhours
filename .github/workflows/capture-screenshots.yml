@@ -106,19 +106,36 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/screenshots/*.png docs/screenshots/capture-manifest.json
-          git diff --cached --quiet && { echo "Screenshots already match checked-in versions"; exit 0; }
-          git commit -m "docs(screenshots): recapture seven real Godot 4 gameplay frames"
-          # Multiple source commits may land while the renderer is running.
-          # Rebase the generated PNG commit onto the latest remote head rather
-          # than failing with a non-fast-forward push or rewriting source work.
+          # Archive only freshly rendered outputs outside the working tree.
+          # Never rebase binary PNG commits over another PNG capture: git
+          # cannot meaningfully reconcile conflicting framebuffer bytes.
+          CAPTURE_DIR="$RUNNER_TEMP/nightgrid-verified-capture"
+          mkdir -p "$CAPTURE_DIR"
+          cp docs/screenshots/*.png docs/screenshots/capture-manifest.json "$CAPTURE_DIR/"
           for attempt in 1 2 3; do
             git fetch origin "${GITHUB_REF_NAME}"
-            git rebase "origin/${GITHUB_REF_NAME}"
+            # If actual game code/assets changed since rendering began, these
+            # screenshots are stale. Fail rather than attach them to newer art.
+            if ! git diff --quiet "$GITHUB_SHA" "origin/${GITHUB_REF_NAME}" -- \
+                project.godot scripts scenes assets tools/capture_screenshots.gd; then
+              echo "Newer game source detected during capture; refusing stale screenshots" >&2
+              exit 1
+            fi
+            # Reapply the verified rendered files on the current branch tip.
+            # This preserves all intervening code/docs and prevents binary
+            # merge/rebase conflicts from overlapping capture jobs.
+            git reset --hard "origin/${GITHUB_REF_NAME}"
+            cp "$CAPTURE_DIR/"* docs/screenshots/
+            git add docs/screenshots/*.png docs/screenshots/capture-manifest.json
+            if git diff --cached --quiet; then
+              echo "Verified screenshots already match the checked-in gallery"
+              exit 0
+            fi
+            git commit -m "docs(screenshots): recapture seven real Godot 4 gameplay frames"
             if git push origin "HEAD:${GITHUB_REF_NAME}"; then
               exit 0
             fi
-            echo "Capture publish raced a new commit; retry ${attempt}/3"
+            echo "Concurrent publish detected; retrying on latest branch head ${attempt}/3"
           done
           echo "Could not publish screenshots without overwriting newer commits" >&2
           exit 1
