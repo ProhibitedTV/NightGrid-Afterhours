@@ -53,7 +53,7 @@ jobs:
         run: godot --headless --path . --script res://tests/mara_character_smoke.gd
       - name: Validate café crowd, animation, patron dialogue, economy and save restore
         run: godot --headless --path . --script res://tests/cafe_patrons_smoke.gd
-      - name: Validate first-playtest reports: club exit, camera obstruction, contact geometry, building fronts
+      - name: Validate first-playtest club exit, camera obstruction, contact geometry and building fronts
         run: godot --headless --path . --script res://tests/playtest_geometry_smoke.gd
       - name: Validate main menus, saved settings and controller action contexts
         run: godot --headless --path . --script res://tests/menus_gamepad_smoke.gd
