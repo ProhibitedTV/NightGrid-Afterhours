@@ -87,7 +87,7 @@ func _verify() -> void:
 	if int(stats["body_panels"]) < 2 or int(stats["hero_components"]) > 220:
 		_fail("Rear deck was omitted or component budget exceeded: " + str(stats))
 		return
-	var before := world.call("_capture_snapshot")
+	var before: Dictionary = world.call("_capture_snapshot")
 	world.call("_apply_snapshot", before)
 	if car.get_node_or_null("KestrelS6HeroVisual/RearHatchSolid") == null:
 		_fail("Car lost closed hatch after save restore")
