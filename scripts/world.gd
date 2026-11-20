@@ -255,7 +255,8 @@ func _process(delta: float) -> void:
 		return
 	var actor := _actor()
 	var indoors: bool = interiors.call("is_inside")
-	if not venue_panel.visible and current_car == null and current_transit == null:
+	if not venue_panel.visible:
+		# Right stick or mouse may orbit the camera on foot, in vehicles or in transit.
 		var right_look: Vector2 = GameInput.look_vector()
 		yaw -= right_look.x * stick_sensitivity * delta
 		pitch = clampf(pitch + right_look.y * stick_sensitivity * delta * (-1.0 if invert_look_y else 1.0), 0.20, 0.85)
