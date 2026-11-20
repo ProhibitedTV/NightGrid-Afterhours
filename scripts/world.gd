@@ -2,6 +2,7 @@ extends Node3D
 ## NIGHTGRID: AFTERHOURS — a generated 3D city with an original courier/crime loop.
 
 const PlayerScript = preload("res://scripts/player.gd")
+const HumanoidVisualScript = preload("res://scripts/humanoid_visual.gd")
 const CarScript = preload("res://scripts/car.gd")
 const KestrelVisual = preload("res://scripts/kestrel_s6_visual.gd")
 const MinimapScript = preload("res://scripts/minimap.gd")
@@ -289,11 +290,7 @@ func _process(delta: float) -> void:
 			_close_venue()
 	if current_car == null and current_transit == null:
 		player.set("camera_yaw", yaw)
-	var focus := actor.global_position + Vector3.UP * (1.65 if current_car != null or current_transit != null else 1.45)
-	var camera_distance := 3.0 if indoors else (21.0 if transit_kind == "TRAIN" else (15.0 if transit_kind == "BUS" else (13.0 if current_car != null else 7.5)))
-	var camera_offset := Vector3(0.0, sin(pitch) * camera_distance, cos(pitch) * camera_distance).rotated(Vector3.UP, yaw)
-	camera.global_position = camera.global_position.lerp(focus + camera_offset, minf(delta * 7.0, 1.0))
-	camera.look_at(focus, Vector3.UP)
+	_update_camera(delta, false)
 	if not indoors and current_transit == null and actor.global_position.distance_to(mission_position) < 5.3:
 		_advance_mission()
 	if (actor.global_position.y < -15.0 or not indoors and
@@ -324,6 +321,64 @@ func _actor() -> Node3D:
 	if current_transit != null:
 		return current_transit
 	return current_car if current_car != null else player
+
+# The former chase camera always interpolated over the full world distance.
+# Interiors are in a dedicated scene at (950, 950); on H exit this exposed the
+# empty space between it and the city for many frames. A spatial discontinuity
+# now snaps the camera, while regular following is collision-constrained.
+func _camera_focus() -> Vector3:
+	var actor := _actor()
+	return actor.global_position + Vector3.UP * (
+		1.65 if current_car != null or current_transit != null else 1.45)
+
+func _camera_goal() -> Vector3:
+	var distance := (3.0 if interiors.call("is_inside") else
+		(21.0 if transit_kind == "TRAIN" else
+		(15.0 if transit_kind == "BUS" else
+		(13.0 if current_car != null else 7.5))))
+	return _camera_focus() + Vector3(0.0, sin(pitch) * distance,
+		cos(pitch) * distance).rotated(Vector3.UP, yaw)
+
+func _camera_clearance(focus: Vector3, target: Vector3) -> Vector3:
+	# Physics-backed camera arm. The camera never goes THROUGH a collidable
+	# building or a venue wall, even when the player rotates next to it.
+	var distance := focus.distance_to(target)
+	if distance < 0.001:
+		return target
+	var ignored: Array[RID] = [player.get_rid()]
+	if current_car != null:
+		ignored.append(current_car.get_rid())
+	if current_transit is CollisionObject3D:
+		ignored.append((current_transit as CollisionObject3D).get_rid())
+	var query := PhysicsRayQueryParameters3D.create(focus, target)
+	query.exclude = ignored
+	query.collision_mask = 1
+	query.collide_with_areas = false
+	var obstruction: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
+	if obstruction.is_empty():
+		return target
+	# Keep the camera in front of the wall; minimum 0.65m from focus.
+	var hit: Vector3 = obstruction["position"]
+	var safe_distance := maxf(0.65, focus.distance_to(hit) - 0.38)
+	return focus + (target - focus).normalized() * minf(distance, safe_distance)
+
+func _update_camera(delta: float, teleport: bool = false) -> void:
+	if camera == null or not is_instance_valid(player):
+		return
+	var focus := _camera_focus()
+	var goal := _camera_clearance(focus, _camera_goal())
+	var distance_to_goal := camera.global_position.distance_to(goal)
+	# Suppress stale camera positions after a save-load or streaming jump
+	# even when teleport was triggered through another system.
+	if teleport or distance_to_goal > 35.0:
+		camera.global_position = goal
+	else:
+		var smoothed := camera.global_position.lerp(goal, minf(delta * 7.0, 1.0))
+		camera.global_position = _camera_clearance(focus, smoothed)
+	camera.look_at(focus, Vector3.UP)
+
+func _snap_camera() -> void:
+	_update_camera(0.0, true)
 
 func _toggle_car() -> void:
 	if venue_panel != null and venue_panel.visible:
@@ -437,6 +492,8 @@ func _respawn() -> void:
 		if is_instance_valid(officer):
 			officer.queue_free()
 	officers.clear()
+	city_details.call("set_focus", player.global_position)
+	_snap_camera()
 	_notify("Back at the safehouse. Medical and towing fee: up to $100.")
 
 func _notify(message: String) -> void:
@@ -573,12 +630,12 @@ func _create_player() -> void:
 	collision.height = 1.9
 	capsule.shape = collision
 	player.add_child(capsule)
-	var visual := Node3D.new()
+	var visual := HumanoidVisualScript.new()
 	visual.name = "Visual"
+	visual.configure(0, "PLAYER")
+	# The avatar's boots meet the physical 1.9-metre capsule footprint.
+	visual.position.y = -0.90
 	player.add_child(visual)
-	_box(visual, Vector3(0.0, -0.05, 0.0), Vector3(0.85, 1.28, 0.5), Color("293544"))
-	_box(visual, Vector3(0.0, 0.8, -0.05), Vector3(0.62, 0.56, 0.58), Color("dfae8d"))
-	_box(visual, Vector3(0.0, 0.13, -0.32), Vector3(0.6, 0.18, 0.1), Color("38e5e4"), false, true)
 	add_child(player)
 
 func _create_car(where: Vector3, color: Color, police: bool = false) -> CharacterBody3D:
@@ -814,6 +871,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 	if not interiors.call("is_inside"):
 		city_details.call("set_focus", player.global_position)
 	_set_mission_target(DROPOFFS[deliveries % DROPOFFS.size()] if carrying else PICKUPS[deliveries % PICKUPS.size()], carrying)
+	_snap_camera()
 	_notify("Save loaded. Seed %d; Morrow Bay restored." % int(session.get("world_seed")))
 
 func _toggle_interior() -> void:
@@ -823,10 +881,11 @@ func _toggle_interior() -> void:
 			return
 		_close_venue()
 		var return_position: Vector3 = interiors.call("leave")
+		# Rebuild the actual collision district BEFORE returning the player.
+		city_details.call("set_focus", return_position)
 		player.global_position = return_position
 		player.velocity = Vector3.ZERO
-		camera.global_position = player.global_position + Vector3(0.0, 3.0, 5.0)
-		city_details.call("set_focus", return_position)
+		_snap_camera()
 		_notify("Back on the street. Your saved city is exactly where you left it.")
 		return
 	if current_car != null or current_transit != null:
@@ -851,7 +910,7 @@ func _toggle_interior() -> void:
 	_close_venue()
 	player.global_position = interiors.call("enter", site, group, old_position)
 	player.velocity = Vector3.ZERO
-	camera.global_position = player.global_position + Vector3(0.0, 3.0, 5.0)
+	_snap_camera()
 	_notify("Inside %s. Approach the service counter with G; H exits at the doorway." % str(site["name"]))
 
 func _toggle_interaction() -> void:
@@ -1274,7 +1333,8 @@ func _create_camera() -> void:
 	camera = Camera3D.new()
 	camera.name = "ThirdPersonCamera"
 	camera.current = true
-	camera.fov = 76.0
+	camera.fov = 68.0
+	camera.near = 0.08
 	camera.far = 720.0
 	camera.position = PLAYER_START + Vector3(0.0, 5.0, 8.0)
 	add_child(camera)

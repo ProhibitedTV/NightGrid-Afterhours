@@ -23,6 +23,8 @@ func _physics_process(delta: float) -> void:
 	var axes := Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
 	var move_direction := Vector3(axes.x, 0.0, axes.y).rotated(Vector3.UP, camera_yaw)
 	var speed := RUN_SPEED if Input.is_action_pressed("sprint") else WALK_SPEED
+	if visual != null and visual.has_method("set_locomotion"):
+		visual.call("set_locomotion", move_direction.length() * speed)
 	velocity.x = move_toward(velocity.x, move_direction.x * speed, ACCEL * delta)
 	velocity.z = move_toward(velocity.z, move_direction.z * speed, ACCEL * delta)
 	if is_on_floor():

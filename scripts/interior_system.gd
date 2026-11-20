@@ -5,6 +5,7 @@ extends Node3D
 const Materials = preload("res://scripts/material_library.gd")
 const VenueAmbience = preload("res://scripts/venue_ambience.gd")
 const LanternCupHero = preload("res://scripts/lantern_cup_hero.gd")
+const HumanoidVisual = preload("res://scripts/humanoid_visual.gd")
 const ORIGIN = Vector3(950.0, 0.0, 950.0)
 const ENTRY_POINT = ORIGIN + Vector3(0.0, 1.18, 5.8)
 const EXIT_POINT = ORIGIN + Vector3(0.0, 1.18, 6.9)
@@ -195,12 +196,15 @@ func _build_room(site: Dictionary) -> void:
 	_label(room, str(site["name"]), Vector3(0.0, 4.22, -8.58), accent, 40, true)
 	_label(room, str(site.get("host", "NIGHT SHIFT")), Vector3(0.0, 2.7, -8.58), Color("f0dfcb"), 32, true)
 	_label(room, "H / EXIT TO STREET", Vector3(0.0, 3.93, 8.60), Color("f0bd78"), 29, false)
-	# Unique Lantern Cup Mara replaces the generic mannequin. All other 27
-	# enterable businesses retain their previous host and gameplay.
+	# Other enterable shops/clubs use a human-scale stylized contact rather
+	# than the previous stack of rectangular mannequin cubes. Mara keeps her
+	# authored one-off look and dialogue scene.
 	if not (active_id == "lantern_cup" and active_group == "VENUE"):
-		_box(room, Vector3(0.0, 1.68, -7.12), Vector3(0.63, 1.2, 0.45), Color("283749"))
-		_box(room, Vector3(0.0, 2.60, -7.12), Vector3(0.56, 0.53, 0.54), Color("d3a98d"))
-		_box(room, Vector3(0.0, 2.99, -7.22), Vector3(0.70, 0.19, 0.60), Color("2b3545"))
+		var host := HumanoidVisual.new()
+		host.name = "ContactHumanoid"
+		host.configure(posmod(active_id.hash(), 6), kind)
+		host.position = Vector3(0.0, 1.02, -7.12)
+		room.add_child(host)
 	match kind:
 		"GROCERY", "STALL":
 			_stocked_market(room, accent)
