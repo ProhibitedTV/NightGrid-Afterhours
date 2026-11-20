@@ -2,6 +2,7 @@ extends Node3D
 ## NIGHTGRID: AFTERHOURS — a generated 3D city with an original courier/crime loop.
 
 const PlayerScript = preload("res://scripts/player.gd")
+const HumanoidVisualScript = preload("res://scripts/humanoid_visual.gd")
 const CarScript = preload("res://scripts/car.gd")
 const KestrelVisual = preload("res://scripts/kestrel_s6_visual.gd")
 const MinimapScript = preload("res://scripts/minimap.gd")
@@ -629,12 +630,12 @@ func _create_player() -> void:
 	collision.height = 1.9
 	capsule.shape = collision
 	player.add_child(capsule)
-	var visual := Node3D.new()
+	var visual := HumanoidVisualScript.new()
 	visual.name = "Visual"
+	visual.configure(0, "PLAYER")
+	# The avatar's boots meet the physical 1.9-metre capsule footprint.
+	visual.position.y = -0.90
 	player.add_child(visual)
-	_box(visual, Vector3(0.0, -0.05, 0.0), Vector3(0.85, 1.28, 0.5), Color("293544"))
-	_box(visual, Vector3(0.0, 0.8, -0.05), Vector3(0.62, 0.56, 0.58), Color("dfae8d"))
-	_box(visual, Vector3(0.0, 0.13, -0.32), Vector3(0.6, 0.18, 0.1), Color("38e5e4"), false, true)
 	add_child(player)
 
 func _create_car(where: Vector3, color: Color, police: bool = false) -> CharacterBody3D:
