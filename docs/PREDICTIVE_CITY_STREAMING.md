@@ -15,6 +15,7 @@ player crosses a city cell. The normal `world.gd::_process` focus tick calls
   proximity and **at most one complete block** is built during each
   `CityDetails._process` call.
 - Distant blocks are removed only after queued replacements have loaded.
+- If an extreme jump unexpectedly outruns prediction, the **currently occupied** cell is built immediately as a one-block collision safety fallback; other blocks still stream incrementally.
 - Explicit save restore, world teleport, entering/leaving interiors and manual
   `set_focus` continue to build the whole destination collision ring
   synchronously; existing tests and v1 saves require this.
