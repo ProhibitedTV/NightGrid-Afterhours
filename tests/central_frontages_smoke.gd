@@ -141,10 +141,10 @@ func _check() -> void:
 				if mat == null or mat.cull_mode != BaseMaterial3D.CULL_BACK:
 					_fail("Missing rear/roof surface or backface winding")
 					return
-			var arrays: Array = (part.mesh as ArrayMesh).surface_get_arrays(0)
-			if (arrays[Mesh.ARRAY_TANGENT] as PackedFloat32Array).is_empty():
-				_fail("Afterhours scanned PBR surfaces have no UV tangents")
-				return
+				var arrays: Array = (part.mesh as ArrayMesh).surface_get_arrays(0)
+				if (arrays[Mesh.ARRAY_TANGENT] as PackedFloat32Array).is_empty():
+					_fail("Afterhours scanned PBR surfaces have no UV tangents")
+					return
 			var roof_mat := facade.call("_surface_material", "ROOF") as StandardMaterial3D
 			var metal_mat := facade.call("_surface_material", "CLADDING") as StandardMaterial3D
 			if roof_mat == null or metal_mat == null or not roof_mat.normal_enabled or not metal_mat.normal_enabled:
