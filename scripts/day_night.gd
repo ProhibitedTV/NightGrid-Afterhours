@@ -11,13 +11,15 @@ var _sun: DirectionalLight3D
 var _sky: ProceduralSkyMaterial
 var _city: Node
 var _lights: Node
+var _hero_intersection: Node
 var _update_accumulator := 0.0
 
-func configure(world_environment: WorldEnvironment, sun: DirectionalLight3D, city: Node, lights: Node) -> void:
+func configure(world_environment: WorldEnvironment, sun: DirectionalLight3D, city: Node, lights: Node, hero_intersection: Node = null) -> void:
 	_environment = world_environment
 	_sun = sun
 	_city = city
 	_lights = lights
+	_hero_intersection = hero_intersection
 	_sky = ProceduralSkyMaterial.new()
 	var sky := Sky.new()
 	sky.sky_material = _sky
@@ -79,3 +81,5 @@ func _apply() -> void:
 		_city.call("set_night_factor", 1.0 - light)
 	if is_instance_valid(_lights):
 		_lights.call("set_night_factor", 1.0 - light)
+	if is_instance_valid(_hero_intersection):
+		_hero_intersection.call("set_night_factor", 1.0 - light)
