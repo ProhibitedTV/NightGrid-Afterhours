@@ -19,13 +19,14 @@ func _has_solid(chunk: Node3D, position: Vector3, size: Vector3) -> bool:
 		if not (entry is StaticBody3D):
 			continue
 		var body := entry as StaticBody3D
-		if body.position.distance_to(position) > 0.025 or body.collision_layer & 1 == 0:
+		if body.position.distance_to(position) > 0.025 or (body.collision_layer & 1) == 0:
 			continue
-		var shape := body.get_node_or_null("CollisionShape3D") as CollisionShape3D
-		if shape == null or not (shape.shape is BoxShape3D):
-			continue
-		if (shape.shape as BoxShape3D).size.distance_to(size) <= 0.02:
-			return true
+		for collider in body.get_children():
+			if not (collider is CollisionShape3D):
+				continue
+			var shape := collider as CollisionShape3D
+			if shape.shape is BoxShape3D and (shape.shape as BoxShape3D).size.distance_to(size) <= 0.02:
+				return true
 	return false
 
 func _verify_southworks(city: Node3D, block: Vector2i) -> bool:
