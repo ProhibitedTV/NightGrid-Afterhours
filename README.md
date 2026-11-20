@@ -8,7 +8,7 @@
 
 ### New approved visual direction: photorealistic cyberpunk city
 
-**The target is the user-approved November 20, 2026 image of an ultrarealistic neon coastal metropolis—not the current low-poly, cartoonish or box-procedural style.** The reference depicts a realistic rain-wet waterfront boulevard, densely layered towers, elevated transport, detailed nightlife storefronts, premium cars and grounded city geometry. We will treat that image as a **future fidelity standard**; this prototype does *not* yet look like it. See the [approved world reference and acceptance criteria](docs/APPROVED_WORLD_FIDELITY_TARGET.md) before writing new geometry or claiming AAA progress. Existing screenshots below document **older in-game output**, not this new visual goal.
+**The target is the user-approved November 20, 2026 image of an ultrarealistic neon coastal metropolis—not the current low-poly, cartoonish or box-procedural style.** The reference depicts a realistic rain-wet waterfront boulevard, densely layered towers, elevated transport, detailed nightlife storefronts, premium cars and grounded city geometry. We will treat that image as a **future fidelity standard**; this prototype does *not* yet look like it. See the [approved world reference and acceptance criteria](docs/APPROVED_WORLD_FIDELITY_TARGET.md) before writing new geometry or claiming AAA progress. The updated genuine in-game screenshot gallery below shows the current pilot—including the Central Exchange PBR corners—but **does not meet the future photoreal target**.
 
 
 
@@ -20,9 +20,9 @@
 
 ## Actual in-game screenshots
 
-![Morrow Bay at night, showing the real Godot-rendered downtown street, nearby buildings, trees, and traffic](docs/screenshots/01-morrow-bay-neon-night.png)
+![Real game screenshot of Central Exchange showing the newly textured road-facing shop architecture, pedestrian crossings and live street layout](docs/screenshots/01-morrow-bay-neon-night.png)
 
-*Central Exchange at night — the camera on the next real-framebuffer capture faces the road-visible PBR architecture, not a synthetic cinematic image.*
+*Central Exchange at night — the actual Godot framebuffer showing the updated road-facing PBR facades, not a synthetic render.*
 
 | Vesper Market / Moon Noodles | M-Line / Helix Terminal |
 |:--:|:--:|
@@ -32,7 +32,7 @@
 | **Main menu — title screen** | **City atlas — map screen** |
 | ![Real NightGrid title menu with New World, Continue, Settings and Gamepad Controls](docs/screenshots/06-title-menu.png) | ![Real in-game Morrow Bay map menu with district roads, objective icons and service location pins](docs/screenshots/07-city-map-menu.png) |
 
-The AAA feature-branch capture job produces updated genuine PNG framebuffers and a [revision/hash manifest](docs/screenshots/README.md). Treat existing images as historical until a successful screenshot capture commit lands; do not infer that improved code guarantees better-looking screenshots. They are **real, unedited Godot 4.3 framebuffer captures**, not AI-generated artwork, concept mockups or marketing renders. The repeatable screenshot workflow ran the playable scene at **1280 × 720** on a Linux X11 virtual display using Mesa's software **OpenGL Compatibility renderer**. The downloadable Windows build defaults to **Forward+/Vulkan**, so its lighting and reflections can differ. [See how the captures were generated and verified.](docs/screenshots/README.md)
+These seven images were **recaptured and committed by the real Godot screenshot workflow** on the AAA development branch. The [capture manifest](docs/screenshots/capture-manifest.json) records their source revision and SHA-256 checksums. Recapture proves provenance, not an automatic visual quality improvement. They are **real, unedited Godot 4.3 framebuffer captures**, not AI-generated artwork, concept mockups or marketing renders. The repeatable screenshot workflow ran the playable scene at **1280 × 720** on a Linux X11 virtual display using Mesa's software **OpenGL Compatibility renderer**. The downloadable Windows build defaults to **Forward+/Vulkan**, so its lighting and reflections can differ. [See how the captures were generated and verified.](docs/screenshots/README.md)
 
 
 ## First hands-on Windows playtest: stabilization and open visual debt
@@ -85,19 +85,19 @@ Use **Pause → Settings** to toggle SSR, bloom, ambient occlusion or haze indep
 
 Our first hero-asset pass applies the game's new **hyper-realistic, stylized cyberpunk-futurist art direction** to the actual playable M-Line train. The two-car consist now includes a bespoke bevelled metal body, transparent cabin glazing with seats and grab poles, sliding doors timed to station stops, articulated gangway bellows, multiple rail bogies and wheels, reversible marker/headlights, and detailed roof services. All five elevated stations have canopies, wayfinding, safety paving, lighting, and visible elevator-to-platform bridges. The five-stop movement and saved-world railway state are unchanged.
 
-**Images above were captured before this rail upgrade.** We will replace them only with validated, real game captures. See [the whole-game visual art brief](docs/ART_DIRECTION.md) for our quality bar and known limitations.
+**The updated gallery captures the current playable rail model** with software OpenGL; Vulkan appearance and real 1080p/60 remain unverified. See [the whole-game visual art brief](docs/ART_DIRECTION.md) for our quality bar and known limitations.
 
 ### KESTREL S6 — the playable street car hero asset
 
 The second major asset pass replaces the 12 parked player-drivable cars' boxy placeholder bodies with an original **KESTREL S6** fastback electric vehicle and equips spawned police cruisers with a matching pursuit edition. The real car now renders a lofted bevelled monocoque, metallic clearcoat paint, tinted panoramic glass with visible four-seat cabin, steering and spinning alloy wheels, roof module, service panels, cooling vents and detailed trim. Brake/reverse lighting responds to real control inputs, active headlights illuminate the path only while cars are driven or pursuing, and original generated electric drivetrain audio responds to speed. All driving physics, collisions, ownership, save IDs and player controls are unchanged.
 
-See [Kestrel S6 implementation and visual QA requirements](docs/KESTREL_S6.md). The committed screenshots above predate both this car and the upgraded train.
+See [Kestrel S6 implementation and visual QA requirements](docs/KESTREL_S6.md). The updated screenshots use current game code, but the gallery is not a full automotive close-up or a substitute for vehicle art review.
 
 ### CENTRAL EXCHANGE — hero street intersection
 
 Morrow Bay's third authored quality slice upgrades the **playable crossroads at (0, 0)** into an infrastructure-grounded cyberpunk landmark. All four zebra crossings now have abrasion and reflective studs; the corner curbs open onto **eight sloped pedestrian ramps**, and the gutters have detailed cast-iron drains, irregular asphalt patches and shallow rainwater. The original **working two-phase traffic heads** gain real masts and control hardware, plus readable city wayfinding, protective bollards and one night-only practical light.
 
-This is part of the playable city, **not** a separate showcase map or a fake static traffic scene. The original right-hand lanes, traffic controls, saved-world geometry and driving mechanics remain unchanged. See the [Central Exchange hero quality sheet](docs/CENTRAL_EXCHANGE.md). Current README screenshots still predate this pass.
+This is part of the playable city, **not** a separate showcase map or a fake static traffic scene. The original right-hand lanes, traffic controls, saved-world geometry and driving mechanics remain unchanged. See the [Central Exchange hero quality sheet](docs/CENTRAL_EXCHANGE.md). The updated first screenshot shows the actual PBR Central Exchange pilot from the street.
 
 ### FINAL PRE-PLAYTEST PASS — Lantern Cup regulars
 
@@ -113,7 +113,7 @@ The playable Lantern Cup now hosts **five distinct regulars** seated along the w
 
 Our fourth hero-asset upgrade is a **real in-game venue**, not a showroom screenshot. The canonical **Lantern Cup**, run by Mara, now has an original custom streetfront with tinted glass and copper lanterns and a uniquely furnished indoor coffeehouse: polished brewing machines, fitted walnut/copper décor, soft seating and tables with collision, acoustic ceiling, real stock shelving, 12 suspended lamps, detailed service menus, three animated steam wisps and a new original spatial coffee-pump sound.
 
-**Play it:** Walk to Lantern Cup on foot, press **H** to enter, **G** at the counter to buy a drink using the existing $18 / +20-health service, or press **G** at Mara's right rear booth to discover a persistent shift note. Leave with **H** near the entrance. Its hours, address, staff, existing quests and save-format remain unchanged. See [the hero café specification](docs/LANTERN_CUP.md). README screenshots remain **pre-upgrade** until real new gameplay captures are validated.
+**Play it:** Walk to Lantern Cup on foot, press **H** to enter, **G** at the counter to buy a drink using the existing $18 / +20-health service, or press **G** at Mara's right rear booth to discover a persistent shift note. Leave with **H** near the entrance. Its hours, address, staff, existing quests and save-format remain unchanged. See [the hero café specification](docs/LANTERN_CUP.md). The recaptured gallery is current, although it does not include a dedicated Lantern Cup hero close-up.
 
 ### Streamed city geometry and enterable interiors
 
