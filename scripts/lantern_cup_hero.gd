@@ -43,6 +43,12 @@ func mara_character() -> Node3D:
 	return get_node_or_null("MaraHero")
 
 func _build_mara_character() -> void:
+	# Behind-counter anti-fatigue riser is raised 33cm so Mara's footwear
+	# really meets the floor and her face clears the high café service bar.
+	_box("StaffRaisedServicePlinth", Vector3(0.0, 0.15, -7.12),
+		Vector3(1.73, 0.30, 1.55), "TIMBER", Color("3e3d3d"))
+	_box("RubberAntiFatigueMat", Vector3(0.0, 0.321, -7.12),
+		Vector3(1.62, 0.021, 1.44), "ACOUSTIC", Color("2c3439"))
 	# Artist-scoped character is streamed with the room, not left in the city.
 	var mara := MaraHero.new()
 	mara.name = "MaraHero"
