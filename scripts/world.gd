@@ -787,7 +787,11 @@ func _apply_snapshot(data: Dictionary) -> void:
 	if saved_intel is Array:
 		for site_id in saved_intel:
 			var confirmed := str(site_id)
-			if not civic_services.call("site_by_id", confirmed).is_empty() and not civic_intel.has(confirmed):
+			# Keep civic site intel validated and explicitly allow Mara's
+			# original authored venue note (no arbitrary user-provided IDs).
+			var is_valid_note := confirmed == "lantern_cup_shift_notes"
+			var is_civic_site := not civic_services.call("site_by_id", confirmed).is_empty()
+			if (is_civic_site or is_valid_note) and not civic_intel.has(confirmed):
 				civic_intel.append(confirmed)
 	# Old save slots have no indoor field and continue to open outdoors.
 	var restored_room: Dictionary = data.get("interior", {})
