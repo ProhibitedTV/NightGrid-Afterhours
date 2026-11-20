@@ -77,6 +77,12 @@ Morrow Bay's third authored quality slice upgrades the **playable crossroads at 
 
 This is part of the playable city, **not** a separate showcase map or a fake static traffic scene. The original right-hand lanes, traffic controls, saved-world geometry and driving mechanics remain unchanged. See the [Central Exchange hero quality sheet](docs/CENTRAL_EXCHANGE.md). Current README screenshots still predate this pass.
 
+### FINAL PRE-PLAYTEST PASS — Lantern Cup regulars
+
+The playable Lantern Cup now hosts **five distinct regulars** seated along the wall-side banquettes: Rin, Ivo, Tamsin, Len and Aya. They wear different workwear, hair and accessories and perform deterministic, low-cost **coffee sipping, phone scrolling, reading and conversation idles**. Approach a regular and press **G** to overhear a short authored line that fits Morrow Bay; customer gossip never costs cash, alters quests or blocks Mara's original notes or counter. All customers stay in the café, leave the center walkway clear, share materials and introduce **no additional real-time lights or collision obstacles**. Their identities and seats reconstruct identically after Save/Load. This completes the final planned visual-feature pass before the first hands-on Windows playtest.
+
+**Start here:** [Windows playtest instructions, five-minute route and reporting checklist](docs/PLAYTEST_CHECKLIST.md). Download the latest successful `nightgrid-afterhours-windows-x64` from [GitHub Actions](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/workflows/windows-build.yml).
+
 ### MARA — the first responsive NightGrid character hero
 
 **Mara, Lantern Cup's bartender/barista**, now has an original stylized human model in the existing playable café: sculpted head and facial details, side-swept hair, ear-piece, bespoke jacket and apron, eye blinks, breathing and reactive arm/face performance. She turns toward real patrons, speaks through a four-subject authored conversation system influenced by player health, wanted heat, neighborhood work and her shift-note discovery. At her indoor counter press **G**, then **3** (keyboard) or **Y** (controller) to **Talk**; the original **1/A** coffee order and **2/X** jobs still work. Orders trigger a distinct serving gesture. The character streams with the room and restores without altering existing saves. [Full Mara character benchmark](docs/MARA_HERO.md). Character art is playable but not yet artist-authored photoreal final work.
