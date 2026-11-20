@@ -35,21 +35,33 @@ func _verify() -> void:
 	if int(queued["loads"]) != int(initial["loads"]) or int(queued["pending_blocks"]) != 5:
 		_fail("Prefetch request built blocks synchronously or missed the next ring: " + str(queued))
 		return
+	# A completed chunk used to arrive after one call, which was itself a
+	# single expensive frame. Now a single call should execute one SMALL stage.
+	var steps_before := int(queued["stage_steps"])
 	city.call("_process", 0.016)
 	var first: Dictionary = city.call("get_streaming_stats")
-	if int(first["loads"]) - int(queued["loads"]) != 1 or int(first["pending_blocks"]) != 4:
-		_fail("One frame must construct no more than one queued block: " + str(first))
+	if int(first["loads"]) != int(queued["loads"]) or int(first["pending_blocks"]) != 5:
+		_fail("A frame completed a whole district instead of one stage: " + str(first))
 		return
-	for index in range(12):
+	if int(first["stage_steps"]) != steps_before + 1 or int(first["staging_blocks"]) != 1:
+		_fail("First predicted block did not enter bounded construction: " + str(first))
+		return
+	# Every frame advances at most one work stage and never submits more than
+	# one fully built chunk. Continue until all five front-loaded lots are ready.
+	for index in range(250):
 		if int(city.call("get_streaming_stats")["pending_blocks"]) == 0:
 			break
-		var before: int = int(city.call("get_streaming_stats")["loads"])
+		var before: Dictionary = city.call("get_streaming_stats")
 		city.call("_process", 0.016)
-		if int(city.call("get_streaming_stats")["loads"]) - before > 1:
-			_fail("A frame constructed more than one district block")
+		var after_frame: Dictionary = city.call("get_streaming_stats")
+		if int(after_frame["stage_steps"]) - int(before["stage_steps"]) > 1:
+			_fail("A frame ran more than one streaming build stage")
+			return
+		if int(after_frame["loads"]) - int(before["loads"]) > 1:
+			_fail("A frame completed multiple district chunks")
 			return
 	if int(city.call("get_streaming_stats")["pending_blocks"]) != 0:
-		_fail("Scheduled block queue never drained")
+		_fail("Staged build queue never drained")
 		return
 	if not (city.get("_loaded") as Dictionary).has(Vector2i(3, 0)):
 		_fail("Driving lookahead failed to prewarm a forward collision block")
