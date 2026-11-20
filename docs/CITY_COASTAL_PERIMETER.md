@@ -31,9 +31,14 @@ boundary mechanic.
 The external scenery is background-only, with no extra interactive
 districts or persistent random lots. Large harbor surfaces are two
 simple meshes, hills one static low-triangle mesh, and rail posts use
-MultiMesh batching. Material maps are shared with the rest of Morrow
-Bay. There are **no loading transitions, per-frame procedural water
-meshes or new shaders** in this pass.
+MultiMesh batching. The first integrated visual review also added the
+original `morrow_harbor_water.gdshader` to both water surfaces: shallow
+time-varying swells, an inexpensive color/ripple response and bounded
+roughness variation. It uses no screen/depth reads and no runtime-generated
+geometry. The final production water shader, photographed shoreline assets,
+shipping details and realistic reflections remain separate art requirements.
+There are **no loading transitions or per-frame procedural water meshes**
+in this pass.
 
 ## Automated regression
 
