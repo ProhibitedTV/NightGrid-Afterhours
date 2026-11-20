@@ -77,6 +77,10 @@ Morrow Bay's third authored quality slice upgrades the **playable crossroads at 
 
 This is part of the playable city, **not** a separate showcase map or a fake static traffic scene. The original right-hand lanes, traffic controls, saved-world geometry and driving mechanics remain unchanged. See the [Central Exchange hero quality sheet](docs/CENTRAL_EXCHANGE.md). Current README screenshots still predate this pass.
 
+### MARA — the first responsive NightGrid character hero
+
+**Mara, Lantern Cup's bartender/barista**, now has an original stylized human model in the existing playable café: sculpted head and facial details, side-swept hair, ear-piece, bespoke jacket and apron, eye blinks, breathing and reactive arm/face performance. She turns toward real patrons, speaks through a four-subject authored conversation system influenced by player health, wanted heat, neighborhood work and her shift-note discovery. At her indoor counter press **G**, then **3** (keyboard) or **Y** (controller) to **Talk**; the original **1/A** coffee order and **2/X** jobs still work. Orders trigger a distinct serving gesture. The character streams with the room and restores without altering existing saves. [Full Mara character benchmark](docs/MARA_HERO.md). Character art is playable but not yet artist-authored photoreal final work.
+
 ### LANTERN CUP — cinematic, enterable Vesper Market café
 
 Our fourth hero-asset upgrade is a **real in-game venue**, not a showroom screenshot. The canonical **Lantern Cup**, run by Mara, now has an original custom streetfront with tinted glass and copper lanterns and a uniquely furnished indoor coffeehouse: polished brewing machines, fitted walnut/copper décor, soft seating and tables with collision, acoustic ceiling, real stock shelving, 12 suspended lamps, detailed service menus, three animated steam wisps and a new original spatial coffee-pump sound.
