@@ -16,7 +16,7 @@
 | **Main menu — title screen** | **City atlas — map screen** |
 | ![Real NightGrid title menu with New World, Continue, Settings and Gamepad Controls](docs/screenshots/06-title-menu.png) | ![Real in-game Morrow Bay map menu with district roads, objective icons and service location pins](docs/screenshots/07-city-map-menu.png) |
 
-These are **real, unedited Godot 4.3 framebuffer captures**, not AI-generated artwork, concept mockups or marketing renders. The repeatable screenshot workflow ran the playable scene at **1280 × 720** on a Linux X11 virtual display using Mesa's software **OpenGL Compatibility renderer**. The downloadable Windows build defaults to **Forward+/Vulkan**, so its lighting and reflections can differ. [See how the captures were generated and verified.](docs/screenshots/README.md)
+The images above predate the new PBR/atmosphere pass and will be recaptured after visual validation. They are **real, unedited Godot 4.3 framebuffer captures**, not AI-generated artwork, concept mockups or marketing renders. The repeatable screenshot workflow ran the playable scene at **1280 × 720** on a Linux X11 virtual display using Mesa's software **OpenGL Compatibility renderer**. The downloadable Windows build defaults to **Forward+/Vulkan**, so its lighting and reflections can differ. [See how the captures were generated and verified.](docs/screenshots/README.md)
 
 
 ## Play the first prototype
@@ -28,7 +28,7 @@ These are **real, unedited Godot 4.3 framebuffer captures**, not AI-generated ar
 
 ### Real menus and gamepad controls
 
-The first Windows launch now opens an interactive **title screen** with Continue, New World, Settings, Controls and Quit. **Esc** or controller **Start** opens the pause menu, which freezes the world and provides Resume, Save, Load, New World confirmation, a full-size **City Map**, and an objective/inventory **Journal**. Settings persist in `user://settings.cfg` (volume, mouse/joystick sensitivity, Y inversion, reflections, bloom, VSync and FPS overlay). The stored world seed and building manifest remain separate from settings.
+The first Windows launch now opens an interactive **title screen** with Continue, New World, Settings, Controls and Quit. **Esc** or controller **Start** opens the pause menu, which freezes the world and provides Resume, Save, Load, New World confirmation, a full-size **City Map**, and an objective/inventory **Journal**. Settings persist in `user://settings.cfg` (volume, mouse/joystick sensitivity, Y inversion, reflections, bloom, contact shadows, atmospheric haze, VSync and FPS overlay). The stored world seed and building manifest remain separate from settings.
 
 | Keyboard / mouse | Standard Xbox gamepad | Action |
 |---|---|---|
@@ -50,6 +50,14 @@ The first Windows launch now opens an interactive **title screen** with Continue
 | T / Y | — | Debug clock advance/pause |
 
 Buttons and sliders support controller focus and navigation. The game distinguishes keyboard and gamepad HUD hints; **B brakes when driving** and acts as Back only in a menu. This maps standard Xbox-style devices via Godot's joypad API; **real physical controllers have not yet been tested**. Detailed bindings and limitations: [Menus and input guide](docs/INPUT_MENUS.md).
+
+### Updated world lighting and materials
+
+The new physical-material pass adds **procedural albedo + normal + roughness texture maps** for brick, concrete, asphalt, pavers, metal, glass and rainwater. These cached textures are shared by exterior and interior environments. Building facades use tinted reflective glass for inactive windows and storefront doors, while lit neon signs retain their separate emissive treatments.
+
+The city also uses **filmic tone mapping**, subtle screen-space contact shading (SSAO), and cool-night/warm-day distance haze. The 16 fixed rain puddles have irregular, low-profile shorelines instead of raised rectangular slabs. Both player vehicles and NPC cars/buses now have round wheels, alloy hubs and clearer cabin/window detailing. These are incremental visual upgrades, **not a claim of photorealism or measured 60 FPS**.
+
+Use **Pause → Settings** to toggle SSR, bloom, ambient occlusion or haze independently when comparing quality versus frame rate. [Rendering handbook and profiling protocol](docs/RENDERING.md).
 
 ### Streamed city geometry and enterable interiors
 
