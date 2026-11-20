@@ -262,7 +262,7 @@ func _render() -> void:
 			_button(col, "back", "BACK TO PAUSE", "back")
 		"map":
 			_title(col, "MORROW BAY / CITY ATLAS", 22, Color("f0dfcd"))
-			_label(col, "Player / pickups / public services / local contracts / law enforcement", 15, Color("adc8d2"))
+			_label(col, "Player • quests • shops • bus stops (gold) • M-Line (cyan) • police", 15, Color("adc8d2"))
 			var atlas := Control.new()
 			atlas.name = "WorldMapView"
 			atlas.custom_minimum_size = Vector2(480.0, 480.0)

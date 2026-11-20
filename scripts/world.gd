@@ -1374,6 +1374,8 @@ func get_map_state() -> Dictionary:
 		"side_quest_active": not venue_job_active.is_empty(),
 		"venues": venue_system.call("get_map_pins"),
 		"services": civic_services.call("get_map_pins"),
+		"bus_stops": traffic.call("get_map_stops"),
+		"rail_stations": rail.call("get_map_stations"),
 		"indoors": interiors.call("is_inside"),
 		"civic_quest_active": not civic_job_active.is_empty(),
 		"civic_quest": Vector2(_civic_job_target().x, _civic_job_target().z)

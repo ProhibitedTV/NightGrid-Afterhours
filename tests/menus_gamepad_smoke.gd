@@ -136,6 +136,10 @@ func _verify() -> void:
 		_fail("Objective journal lacks grounded district and saved world seed")
 		return
 	menu.call("_choice", "map")
+	var route_map: Dictionary = world.call("get_map_state")
+	if (route_map.get("bus_stops", []) as Array).size() != 16 or (route_map.get("rail_stations", []) as Array).size() != 5:
+		_fail("Full city map omitted the existing bus stops and M-Line stations")
+		return
 	if str(menu.get("screen")) != "map" or menu.find_child("WorldMapView", true, false) == null:
 		_fail("The full-city map is missing or inaccessible from pause")
 		return
