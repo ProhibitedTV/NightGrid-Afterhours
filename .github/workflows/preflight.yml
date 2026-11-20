@@ -35,6 +35,8 @@ jobs:
         run: godot --headless --path . --script res://tests/frame_pacing_smoke.gd
       - name: Assert city generation and district composition
         run: godot --headless --path . --script res://tests/city_smoke.gd
+      - name: Validate physical world edges, coast and saved city layout
+        run: godot --headless --path . --script res://tests/coastal_perimeter_smoke.gd
       - name: Validate lighting, authored world and flora
         run: godot --headless --path . --script res://tests/world_systems_smoke.gd
       - name: Validate single scanned Horizon fern, leaf cutouts and PBR normals

@@ -351,8 +351,8 @@ func _build_road_language() -> void:
 				_detail(Vector3(axis + 3.4, 0.011, patch), Vector3(1.6, 0.015, 3.8), Color("2d313b"))
 		# Solid edge markings give the player a reliable read on lanes.
 		for side in [-1.0, 1.0]:
-			_detail(Vector3(axis + side * 6.65, 0.016, 0.0), Vector3(0.10, 0.025, 521.0), Color("707b88"))
-			_detail(Vector3(0.0, 0.016, axis + side * 6.65), Vector3(521.0, 0.025, 0.10), Color("707b88"))
+			_detail(Vector3(axis + side * 6.65, 0.016, 0.0), Vector3(0.10, 0.025, 490.0), Color("707b88"))
+			_detail(Vector3(0.0, 0.016, axis + side * 6.65), Vector3(490.0, 0.025, 0.10), Color("707b88"))
 
 func _build_intersections() -> void:
 	for ix in range(-GRID_RADIUS, GRID_RADIUS + 1):

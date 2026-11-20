@@ -7,6 +7,7 @@ const CarScript = preload("res://scripts/car.gd")
 const KestrelVisual = preload("res://scripts/kestrel_s6_visual.gd")
 const MinimapScript = preload("res://scripts/minimap.gd")
 const CityDetailsScript = preload("res://scripts/city_details.gd")
+const CityPerimeterScript = preload("res://scripts/city_perimeter.gd")
 const DayNightScript = preload("res://scripts/day_night.gd")
 const FloraScript = preload("res://scripts/flora.gd")
 const Materials = preload("res://scripts/material_library.gd")
@@ -50,6 +51,7 @@ var performance_label: Label
 var performance_overlay := false
 var minimap: Control
 var city_details: Node3D
+var city_perimeter: Node3D
 var flora: Node3D
 var day_night: Node
 var street_lights: Node3D
@@ -108,6 +110,7 @@ func _ready() -> void:
 	rng.seed = int(session.get("world_seed"))
 	_build_environment()
 	_build_city()
+	_build_city_perimeter()
 	_build_world_systems()
 	_create_player()
 	_spawn_traffic()
@@ -585,7 +588,9 @@ func _build_environment() -> void:
 	sun_light.shadow_enabled = true
 	sun_light.directional_shadow_max_distance = 170.0
 	add_child(sun_light)
-	_box(self, Vector3(0.0, -0.58, 0.0), Vector3(850.0, 1.0, 850.0), Color("34434a"), true, false, "CONCRETE")
+	# The playable foundation stops at the authored perimeter. Beyond this
+	# point the quay/water, wooded ridges and industrial yard own the skyline.
+	_box(self, Vector3(0.0, -0.58, 0.0), Vector3(490.0, 1.0, 490.0), Color("34434a"), true, false, "CONCRETE")
 
 func _build_city() -> void:
 	# The road foundation stays simple; populated streets live in city_details.gd.
@@ -593,8 +598,8 @@ func _build_city() -> void:
 	var sidewalk := Color("4d5565")
 	for index in range(-GRID_RADIUS, GRID_RADIUS + 1):
 		var axis := float(index) * CELL
-		_box(self, Vector3(axis, -0.055, 0.0), Vector3(14.0, 0.12, 520.0), road, false, false, "ASPHALT")
-		_box(self, Vector3(0.0, -0.05, axis), Vector3(520.0, 0.12, 14.0), road, false, false, "ASPHALT")
+		_box(self, Vector3(axis, -0.055, 0.0), Vector3(14.0, 0.12, 490.0), road, false, false, "ASPHALT")
+		_box(self, Vector3(0.0, -0.05, axis), Vector3(490.0, 0.12, 14.0), road, false, false, "ASPHALT")
 	for block_x in range(-GRID_RADIUS, GRID_RADIUS):
 		for block_z in range(-GRID_RADIUS, GRID_RADIUS):
 			var center := Vector3((float(block_x) + 0.5) * CELL, 0.07, (float(block_z) + 0.5) * CELL)
@@ -605,6 +610,12 @@ func _build_city() -> void:
 	city_details.call("set_world_seed", rng.seed)
 	city_details.call("set_world_manifest", session.call("get_world_manifest"))
 	city_details.call("generate")
+
+func _build_city_perimeter() -> void:
+	# Permanent geography is independent of streamed lots and saved seeds.
+	city_perimeter = CityPerimeterScript.new()
+	city_perimeter.name = "MorrowBayPerimeter"
+	add_child(city_perimeter)
 
 func _build_world_systems() -> void:
 	# Geography and story anchors are authored; botanical infill is seeded.
