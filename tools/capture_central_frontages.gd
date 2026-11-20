@@ -35,7 +35,7 @@ func _capture() -> void:
 	var city: Node3D = world.get_node("CityDetails")
 	city.call("set_focus", Vector3.ZERO)
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(DIR))
-	var clock := world.get("day_night")
+	var clock: Node = world.get("day_night")
 	clock.call("set_hour", 20.18)
 	camera.global_position = Vector3(0.0, 3.2, -21.5)
 	camera.look_at(Vector3(0.0, 8.4, 25.0), Vector3.UP)
