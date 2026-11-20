@@ -15,23 +15,29 @@ var police_target: Node3D
 var speed := 0.0
 var condition := 100.0
 var _impact_cooldown := 0.0
+@onready var hero_visual: Node3D = get_node_or_null("KestrelS6HeroVisual")
 
 func _ready() -> void:
 	floor_snap_length = 0.5
 
 func _physics_process(delta: float) -> void:
 	_impact_cooldown = maxf(0.0, _impact_cooldown - delta)
+	var visual_steer := 0.0
+	var braking := false
 	if is_police and is_instance_valid(police_target):
 		var vector := police_target.global_position - global_position
 		vector.y = 0.0
 		if vector.length_squared() > 0.5:
 			var target_yaw := atan2(-vector.x, -vector.z)
+			visual_steer = clampf(wrapf(target_yaw - rotation.y, -PI, PI), -1.0, 1.0)
 			rotation.y = lerp_angle(rotation.y, target_yaw, minf(delta * 2.1, 1.0))
 		var target_speed := 19.0 if vector.length() > 4.0 else 3.0
 		speed = move_toward(speed, target_speed, ACCEL * delta)
 	elif occupied:
 		var throttle := Input.get_action_strength("drive_accelerate") - Input.get_action_strength("drive_reverse")
 		var steering := Input.get_axis("move_left", "move_right")
+		visual_steer = steering
+		braking = Input.is_action_pressed("drive_brake") or (throttle < 0.0 and speed > 0.25)
 		if throttle > 0.0:
 			speed = move_toward(speed, MAX_SPEED * lerpf(0.55, 1.0, condition / 100.0), ACCEL * delta)
 		elif throttle < 0.0:
@@ -59,7 +65,10 @@ func _physics_process(delta: float) -> void:
 					condition = maxf(18.0, condition - 9.0)
 					_impact_cooldown = 1.2
 				speed *= 0.5
+				braking = true
 				break
+	if hero_visual != null:
+		hero_visual.call("update_motion", speed, visual_steer, braking, occupied, is_police, delta)
 
 func repair() -> void:
 	condition = 100.0
