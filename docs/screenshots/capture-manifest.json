@@ -1,34 +1,34 @@
 {
   "images": {
     "01-morrow-bay-neon-night.png": {
-      "bytes": 499399,
-      "sha256": "c4e918afeb5124c96491e54d9fe6e8d6875d063b1f510b24d694d5ce7ae0e708"
+      "bytes": 502497,
+      "sha256": "58fe1bf22b0e9cf0e7a242ab74c5d125e133e3968854cd23f2de0db9c7010940"
     },
     "02-vesper-market-nightlife.png": {
-      "bytes": 612326,
-      "sha256": "a9dc2e622066f8af575e638ce8d585a4d34c9c0dbd7fbb78b6e654aaf3f5c2fe"
+      "bytes": 483374,
+      "sha256": "4c48bd9b811e3cb97d518c741d465d4d41985d460805fd44535197376905b9b6"
     },
     "03-m-line-helix-terminal.png": {
-      "bytes": 379202,
-      "sha256": "e1f5599382a2a073bcaebd730762f2c84e32148d21e0c74c479cc89cd24e507b"
+      "bytes": 483376,
+      "sha256": "bb4f312ef06f7d736e58639ea590315a3edcbebacc66696f893f6b4ac2bca377"
     },
     "04-horizon-commons-daylight.png": {
-      "bytes": 669225,
-      "sha256": "2bb569b6f51c4bf43b79e408e8b675270239e747c72b5e5c59b1e6abe86aa3db"
+      "bytes": 614324,
+      "sha256": "fe4a13ed75ab145e905234b8ec08c13052804067176c3f7529aa9516d6272d78"
     },
     "05-quay-fresh-interior.png": {
-      "bytes": 208854,
-      "sha256": "0faaf057bd8602271cefa1d3e86901f3b0dc23ef9830f68e1e47d9ad4675d30b"
+      "bytes": 208898,
+      "sha256": "d7569214e500e23090687228256430357fddf0f3646613c8e7ceb0e68a4b90f5"
     },
     "06-title-menu.png": {
-      "bytes": 151417,
-      "sha256": "14fae51cc9c4d726694a47068625492b053c782a820fe0591fea766f2d00200b"
+      "bytes": 122845,
+      "sha256": "b335c8044d390a5fc4109af41d00612277bf986f502a63c96de0689d47141b50"
     },
     "07-city-map-menu.png": {
-      "bytes": 139113,
-      "sha256": "f1852dd92c6adc6d9c8abec09722d7c782ad2c8189ff2464f67beb707760f44f"
+      "bytes": 113565,
+      "sha256": "89b0362c603050c5c198bfd68506fe71f451f4f37142f64da90f7bc3b91f6227"
     }
   },
   "renderer": "Godot 4.3 Mesa software OpenGL Compatibility 1280x720 (NOT Vulkan/RTX)",
-  "source_revision": "cd97d6543f06807755ff1588e6c8a45e925dee23"
+  "source_revision": "5b79ed7751bd9184e38bebfcbcf2e7f075b8bb98"
 }
