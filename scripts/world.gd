@@ -24,6 +24,8 @@ const GameInput = preload("res://scripts/game_input.gd")
 const GameMenuScript = preload("res://scripts/game_menu.gd")
 const NightGridFMScript = preload("res://scripts/nightgrid_fm.gd")
 const WorldAudioScript = preload("res://scripts/world_audio.gd")
+const PlaytestTelemetryScript = preload("res://scripts/playtest_telemetry.gd")
+const PlaytestBuild = preload("res://scripts/playtest_build.gd")
 const CELL = 58.0
 const GRID_RADIUS = 4
 const PLAYER_START = Vector3(0.0, 1.15, 6.0)
@@ -68,6 +70,7 @@ var interiors: Node3D
 var game_menu: CanvasLayer
 var nightgrid_fm: Node
 var world_audio: Node
+var playtest_telemetry: Node
 var gamepad_active := false
 var mouse_sensitivity := 0.0032
 var stick_sensitivity := 2.6
@@ -125,6 +128,7 @@ func _ready() -> void:
 	_build_game_menu()
 	_build_nightgrid_fm()
 	_build_world_audio()
+	_build_playtest_telemetry()
 	var restore: Dictionary = session.call("take_pending_restore")
 	if restore.is_empty():
 		_set_mission_target(PICKUPS[0], false)
@@ -162,6 +166,12 @@ func _build_world_audio() -> void:
 	var options: Dictionary = game_menu.call("get_settings")
 	world_audio.call("set_preferences", float(options.get("ambience_volume", 0.65)),
 		float(options.get("sfx_volume", 0.75)))
+
+func _build_playtest_telemetry() -> void:
+	playtest_telemetry = PlaytestTelemetryScript.new()
+	playtest_telemetry.name = "PlaytestTelemetry"
+	playtest_telemetry.call("configure", self)
+	add_child(playtest_telemetry)
 
 func _on_menu_action(action: String) -> void:
 	match action:
@@ -298,6 +308,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		performance_label.visible = performance_overlay
 	elif event.is_action_pressed("toggle_ssr"):
 		world_environment.environment.ssr_enabled = not world_environment.environment.ssr_enabled
+	elif event.is_action_pressed("playtest_trace"):
+		var status: Dictionary = playtest_telemetry.call("toggle_trace")
+		if bool(status.get("recording", false)):
+			_notify("QA frame trace recording. F7 stops and saves CSV/JSON.")
+		else:
+			_notify("Frame trace saved under the local playtest_evidence folder.")
+	elif event.is_action_pressed("playtest_screenshot"):
+		playtest_telemetry.call("capture_screenshot")
+		_notify("QA screenshot requested: local playtest_evidence folder (F8).")
 	else:
 		return
 	get_viewport().set_input_as_handled()
