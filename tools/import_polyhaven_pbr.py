@@ -28,7 +28,9 @@ MATERIALS = {
     "rough": ("png", "rough_2k.png", ("rough", "roughness")),
 }
 USER_AGENT = "NightGrid-Afterhours-CC0-asset-importer/1.0 (github.com/ProhibitedTV/NightGrid-Afterhours)"
-MAX_BYTES = 25_000_000
+# Some genuine 2K 16-bit PNG normals exceed 25 MB (notably bitumen).
+# Bound each download well below GitHub's individual-file limit.
+MAX_BYTES = 50_000_000
 
 
 def get_bytes(url: str) -> bytes:
