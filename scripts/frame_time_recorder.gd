@@ -11,11 +11,15 @@ var _recent: Array[float] = []
 var _rows: Array[Dictionary] = []
 var _elapsed := 0.0
 var _previous_loads := 0
+var _previous_stages := 0
+var _previous_total_build_usec := 0
 
-func begin_capture(loaded_count: int) -> void:
+func begin_capture(loaded_count: int, build_stages: int = 0, total_build_usec: int = 0) -> void:
 	_rows.clear()
 	_elapsed = 0.0
 	_previous_loads = loaded_count
+	_previous_stages = build_stages
+	_previous_total_build_usec = total_build_usec
 	capture_full = false
 	recording = true
 
@@ -33,6 +37,12 @@ func sample_frame(delta: float, stream: Dictionary, position: Vector3, driving: 
 	var total_loads := int(stream.get("loads", 0))
 	var new_loads := maxi(0, total_loads - _previous_loads)
 	_previous_loads = total_loads
+	var total_stages := int(stream.get("stage_steps", 0))
+	var new_stages := maxi(0, total_stages - _previous_stages)
+	_previous_stages = total_stages
+	var cumulative_build := int(stream.get("total_build_usec", 0))
+	var stage_build_ms := float(maxi(0, cumulative_build - _previous_total_build_usec)) / 1000.0
+	_previous_total_build_usec = cumulative_build
 	if not recording:
 		return
 
@@ -45,11 +55,17 @@ func sample_frame(delta: float, stream: Dictionary, position: Vector3, driving: 
 	# The world samples before its child CityDetails._process. A completed
 	# build is visible on the NEXT world frame; never label idle frames as
 	# spending the old last_build_usec measurement repeatedly.
-	var build_ms := float(stream.get("last_build_usec", 0)) / 1000.0 if new_loads > 0 else 0.0
+	# Staged city construction may run for many frames without completing a
+	# block. The monotonic microsecond counter correctly attributes ALL work
+	# performed since the previous render sample, including emergency loads.
+	# Keep a fallback for older stream dictionaries used by other tests.
+	var build_ms := stage_build_ms if stream.has("total_build_usec") else (
+		float(stream.get("last_build_usec", 0)) / 1000.0 if new_loads > 0 else 0.0)
 	_rows.append({
 		"elapsed_s": _elapsed,
 		"frame_ms": interval_ms,
 		"loaded": new_loads,
+		"stages": new_stages,
 		"build_ms": build_ms,
 		"queued": int(stream.get("pending_blocks", 0)),
 		"x": position.x,
@@ -96,11 +112,11 @@ func export_csv(path: String = "") -> String:
 	var file := FileAccess.open(destination, FileAccess.WRITE)
 	if file == null:
 		return ""
-	file.store_line("elapsed_s,frame_ms,loaded_blocks,stream_build_ms,queued_blocks,world_x,world_z,in_car")
+	file.store_line("elapsed_s,frame_ms,loaded_blocks,stream_build_ms,queued_blocks,world_x,world_z,in_car,stream_stage_steps")
 	for row in _rows:
-		file.store_line("%.4f,%.3f,%d,%.3f,%d,%.2f,%.2f,%d" % [
+		file.store_line("%.4f,%.3f,%d,%.3f,%d,%.2f,%.2f,%d,%d" % [
 			float(row["elapsed_s"]), float(row["frame_ms"]), int(row["loaded"]),
 			float(row["build_ms"]), int(row["queued"]), float(row["x"]),
-			float(row["z"]), int(row["driving"])])
+			float(row["z"]), int(row["driving"]), int(row["stages"])])
 	file.close()
 	return ProjectSettings.globalize_path(destination)
