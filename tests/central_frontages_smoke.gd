@@ -110,7 +110,7 @@ func _check() -> void:
 				if item.name != "PreservedBuildingCollision":
 					_fail("Old solid visual cube is still underneath the new window openings")
 					return
-				var physical := item.get_node_or_null("CollisionShape3D") as CollisionShape3D
+				var physical := item.get_node_or_null("BuildingCollider") as CollisionShape3D
 				if physical == null or not (physical.shape is BoxShape3D):
 					_fail("The existing building collision box changed during visual removal")
 					return
