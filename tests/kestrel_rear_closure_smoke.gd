@@ -40,22 +40,29 @@ func _verify_hatch(hero: Node3D) -> bool:
 		var a: Vector3 = vertices[start]
 		var b: Vector3 = vertices[start + 1]
 		var c: Vector3 = vertices[start + 2]
-		if (b - a).cross(c - a).length() <= 0.00001:
+		var triangle_normal := (b - a).cross(c - a)
+		if triangle_normal.length() <= 0.00001:
 			_fail("Degenerate rear hatch triangle creates a camera hole")
+			return false
+		triangle_normal = triangle_normal.normalized()
+		if normals[start].dot(triangle_normal) < 0.2:
+			_fail("Rear hatch surface normal points against its visible triangle")
 			return false
 		for pair in [[a, b], [b, c], [c, a]]:
 			var key := _edge_id(pair[0], pair[1])
 			edge_counts[key] = int(edge_counts.get(key, 0)) + 1
-		if a.z >= 2.30 and b.z >= 2.30 and c.z >= 2.30 and normals[start].z > 0.9:
+		# Smoothed vertex normals need not align 1:1 with the geometric
+		# surface normal. Audit actual triangle winding for cap/deck faces.
+		if a.z >= 2.30 and b.z >= 2.30 and c.z >= 2.30 and triangle_normal.z > 0.9:
 			rear_cap += 1
-		if a.y > 0.5 and b.y > 0.5 and c.y > 0.5 and normals[start].y > 0.6:
+		if a.y > 0.5 and b.y > 0.5 and c.y > 0.5 and triangle_normal.y > 0.6:
 			top_normals += 1
 	for key in edge_counts:
 		if int(edge_counts[key]) != 2:
 			_fail("Open, unpaired hatch mesh edge: " + str(key))
 			return false
 	if rear_cap < 2 or top_normals < 2:
-		_fail("Rear cap/roof of hatch has incorrect winding or is missing")
+		_fail("Rear cap/roof topology missing or inverted (rear cap %d, upper facets %d)" % [rear_cap, top_normals])
 		return false
 	var bulkhead := hero.get_node_or_null("RearCabinBulkhead") as MeshInstance3D
 	var shelf := hero.get_node_or_null("RearParcelShelf") as MeshInstance3D
