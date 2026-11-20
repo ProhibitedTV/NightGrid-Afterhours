@@ -199,7 +199,7 @@ func _build_cafe_bar() -> void:
 		Vector3(4.19, 0.45, 0.07), "GLAZING", Color(0.55, 0.66, 0.68, 0.22))
 	_statistics["glass_panels"] += 1
 	for side in [-1.0, 1.0]:
-		var x := side * 1.47
+		var x: float = float(side) * 1.47
 		# Real group geometry: external casing, head, portafilter and drip tray.
 		_box("EspressoMachineChassis", Vector3(x, 2.17, -5.80),
 			Vector3(0.95, 0.62, 0.69), "METAL", Color("899b9d"))
@@ -251,7 +251,7 @@ func _build_banquette_nooks() -> void:
 	# Upholstery, woodwork and brass give architectural scale. Keep central
 	# walk axis x[-1.4,+1.4] and the return doorway fully unobstructed.
 	for side in [-1.0, 1.0]:
-		var x := side * 5.77
+		var x: float = float(side) * 5.77
 		for z in [-3.25, 0.25, 3.78]:
 			_box("BoothBackFrame", Vector3(x + side * 0.82, 0.96, float(z)),
 				Vector3(0.23, 1.32, 2.35), "TIMBER", Color("423d3c"))
@@ -284,7 +284,7 @@ func _build_furniture() -> void:
 	# wall-side nooks, leaving through circulation intact.
 	for side in [-1.0, 1.0]:
 		for z in [-2.10, 0.54, 4.12]:
-			var x := side * 3.35
+			var x: float = float(side) * 3.35
 			_cylinder("CastIronTableFoot", Vector3(x, 0.16, float(z)),
 				0.43, 0.12, "METAL", Color("5d6567"), 16)
 			_cylinder("BrassTableColumn", Vector3(x, 0.48, float(z)),
@@ -298,7 +298,7 @@ func _build_furniture() -> void:
 				_statistics["mugs"] += 1
 	for side in [-1.0, 1.0]:
 		for z in [-5.65, 5.66]:
-			var x := side * 6.98
+			var x: float = float(side) * 6.98
 			_cylinder("CeramicPlanter", Vector3(x, 0.48, float(z)),
 				0.44, 0.82, "CERAMIC", Color("626b64"), 12)
 			_cylinder("Soil", Vector3(x, 0.90, float(z)),
