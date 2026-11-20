@@ -59,6 +59,18 @@ func _capture() -> void:
 	await _settle()
 	if not await _save("afterhours-blue-steel-glazing-closeup-real-godot.png"):
 		return
+	# Daylight reveals true surface contrast without the night exposure bias.
+	clock.call("set_hour", 12.0)
+	camera.global_position = Vector3(-3.7, 3.0, 3.8)
+	camera.look_at(Vector3(-10.9, 7.0, 24.0), Vector3.UP)
+	await _settle()
+	if not await _save("brickwater-scanned-brick-daylight-real-godot.png"):
+		return
+	camera.global_position = Vector3(3.7, 3.0, 3.8)
+	camera.look_at(Vector3(10.9, 7.0, 24.0), Vector3.UP)
+	await _settle()
+	if not await _save("afterhours-scanned-steel-daylight-real-godot.png"):
+		return
 	print("CENTRAL_FRONTAGE_CAPTURE PASS: ", captured)
 	quit(0)
 
