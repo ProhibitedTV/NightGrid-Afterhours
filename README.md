@@ -2,6 +2,12 @@
 
 **An original 3D, open-world night-courier and crime sandbox prototype.** A neon city, parked vehicles, delivery missions and basic police pursuit — no copied Rockstar assets.
 
+### New approved visual direction: photorealistic cyberpunk city
+
+**The target is the user-approved November 20, 2026 image of an ultrarealistic neon coastal metropolis—not the current low-poly, cartoonish or box-procedural style.** The reference depicts a realistic rain-wet waterfront boulevard, densely layered towers, elevated transport, detailed nightlife storefronts, premium cars and grounded city geometry. We will treat that image as a **future fidelity standard**; this prototype does *not* yet look like it. See the [approved world reference and acceptance criteria](docs/APPROVED_WORLD_FIDELITY_TARGET.md) before writing new geometry or claiming AAA progress. Existing screenshots below document **older in-game output**, not this new visual goal.
+
+
+
 ## Actual in-game screenshots
 
 ![Morrow Bay at night, showing the real Godot-rendered downtown street, nearby buildings, trees, and traffic](docs/screenshots/01-morrow-bay-neon-night.png)
