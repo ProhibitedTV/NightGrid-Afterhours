@@ -137,7 +137,7 @@ def build_leaf_alpha(root: Path, gltf_file: Path, api_data: dict, files: dict) -
         diffuse.save(out_path, "PNG", optimize=True)
     # Keep the original unmodified JPEG and original alpha file for audit.
     gltf["images"][diffuse_image_index]["uri"] = out_name
-    gltf_file.write_text(json.dumps(gltf, indent=2, ensure_ascii=False) + "\\n", encoding="utf-8")
+    gltf_file.write_text(json.dumps(gltf, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     result = {}
     for rel in [out_name, gltf_file.name]:
         path = root / rel
