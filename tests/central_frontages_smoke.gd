@@ -90,7 +90,7 @@ func _check() -> void:
 		if not shell_found:
 			_fail("Prior stable building collision shell missing")
 			return
-		var scanned_base: String = "res://assets/pbr/polyhaven/brick_wall_001_"
+		var scanned_base: String = "res:" + "//assets/pbr/polyhaven/brick_wall_001_"
 		var is_imported: bool = ResourceLoader.exists(scanned_base + "diffuse_2k.jpg")
 		if str(query[3]) == "BRICKWATER" and is_imported and int(stats["real_pbr_maps"]) != 3:
 			_fail("Imported photographed PBR triplet is not bound to the real wall material")
