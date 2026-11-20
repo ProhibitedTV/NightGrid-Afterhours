@@ -1,0 +1,22 @@
+{
+  "asset": "fern_02",
+  "asset_license": "CC0 1.0",
+  "asset_page": "https://polyhaven.com/a/fern_02",
+  "images": {
+    "horizon-fern-daylight-real-godot.png": {
+      "bytes": 431856,
+      "height": 720,
+      "sha256": "879d1351fbee1d2eb47c03a000e11dbc0f08c980c200a7e0f7cb985653395b83",
+      "width": 1280
+    },
+    "horizon-fern-dusk-real-godot.png": {
+      "bytes": 360807,
+      "height": 720,
+      "sha256": "5d50da848d5de0b00edc8ad6a1d1f92f3091f0dd237a555975760ef42a760556",
+      "width": 1280
+    }
+  },
+  "model_sha256": "99af571f00517baf271267e7d200e481421bd64e55e1dfc9657805e417f396eb",
+  "renderer": "Actual Godot 4.3 framebuffer: Mesa software OpenGL Compatibility, not Forward+/Vulkan",
+  "source_revision": "85f75740373ead2aa68e2139d4698427f5300563"
+}

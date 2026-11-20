@@ -22,6 +22,14 @@
 
 **Asset policy:** prioritize original or licensed, UV-authored glTF assets and photographic PBR sets, with LODs/culling and real hardware profiling, over expanding procedural box geometry. The existing two CC0 Central Exchange facades are still an **incomplete architectural pilot**, not finished AAA quality.
 
+### Single-plant realism pilot: Horizon Commons scanned fern
+
+The first botanical art replacement is **one original source-authored four-clump Fern 02 (6,232 triangles)** in the permanent Horizon Commons garden bed. A real Poly Haven CC0 2K glTF, GL normal/packed ORM and separate source alpha mask replace a single old sphere/cone flower patch—**not** every tree in the city. A true RGBA cutout makes the serrated fronds visible without ugly rectangular cards. Godot uses UV/tangent-aware materials, anisotropic mipmaps and two-sided directional leaf shadows. No new physics, per-frame mesh generation or dynamic lights are involved. [The source/CC0 license and exact SHA-256 provenance](docs/HORIZON_FERN_ASSET_PASS.md) remain in the repository.
+
+![Actual Godot 4.3 daylight framebuffer of the transplanted 2K fern with alpha-cutout leaves in Horizon Commons](docs/fern-review/horizon-fern-daylight-real-godot.png)
+
+*Real in-game close-up captured in Godot's Mesa OpenGL Compatibility renderer; not concept art and not proof of 1080p60/Vulkan photorealism.* [Dusk inspection](docs/fern-review/horizon-fern-dusk-real-godot.png).
+
 ## Actual in-game screenshots
 
 ![Real game screenshot of Central Exchange showing the newly textured road-facing shop architecture, pedestrian crossings and live street layout](docs/screenshots/01-morrow-bay-neon-night.png)

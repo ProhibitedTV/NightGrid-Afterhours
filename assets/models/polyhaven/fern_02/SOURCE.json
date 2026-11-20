@@ -1,0 +1,65 @@
+{
+  "api": "https://api.polyhaven.com/files/fern_02",
+  "asset": "fern_02",
+  "author": "Rico Cilliers (model), Rob Tuytel (scanning)",
+  "description": "Scanned source fern with separate official alpha map composited into real masked RGBA leaf atlas",
+  "files": {
+    "fern_02.bin": {
+      "bytes": 176176,
+      "file": "assets/models/polyhaven/fern_02/fern_02.bin",
+      "sha256": "fe1abb762bcbbc7ad9e86925c8080437a62add257d9280e9142fdc85c226e64c",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/fern_02/fern_02.bin"
+    },
+    "fern_02_2k.gltf": {
+      "bytes": 6905,
+      "derived_from": [
+        "textures/fern_02_diff_2k.jpg",
+        "textures/fern_02_alpha_source.png"
+      ],
+      "file": "assets/models/polyhaven/fern_02/fern_02_2k.gltf",
+      "sha256": "99af571f00517baf271267e7d200e481421bd64e55e1dfc9657805e417f396eb"
+    },
+    "textures/fern_02_alpha_source.png": {
+      "bytes": 230089,
+      "file": "assets/models/polyhaven/fern_02/textures/fern_02_alpha_source.png",
+      "sha256": "f51eb9b8f9f4b25a882f8fe12d1ef53ba69448bac7e71396ec1f05b684e9ea75",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/png/2k/fern_02/fern_02_alpha_2k.png"
+    },
+    "textures/fern_02_arm_2k.jpg": {
+      "bytes": 850856,
+      "file": "assets/models/polyhaven/fern_02/textures/fern_02_arm_2k.jpg",
+      "sha256": "1eaf9bd29e2d83a77ca5d89bdddebcd9216b8b4ba244644580fe5b89bbe713f1",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/fern_02/fern_02_arm_2k.jpg"
+    },
+    "textures/fern_02_diff_2k.jpg": {
+      "bytes": 993703,
+      "file": "assets/models/polyhaven/fern_02/textures/fern_02_diff_2k.jpg",
+      "sha256": "9ee18172170728050871772e2cd6d8d37b52f9138e61b49b04486623f9caf84b",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/fern_02/fern_02_diff_2k.jpg"
+    },
+    "textures/fern_02_diff_alpha_2k.png": {
+      "bytes": 2667582,
+      "derived_from": [
+        "textures/fern_02_diff_2k.jpg",
+        "textures/fern_02_alpha_source.png"
+      ],
+      "file": "assets/models/polyhaven/fern_02/textures/fern_02_diff_alpha_2k.png",
+      "sha256": "8409ecde5e9a468c7d60f9a7ee3693b3ce22da5baa00069b0736b4ed754d6d9d"
+    },
+    "textures/fern_02_nor_gl_2k.jpg": {
+      "bytes": 1365615,
+      "file": "assets/models/polyhaven/fern_02/textures/fern_02_nor_gl_2k.jpg",
+      "sha256": "dfe1ac4a428d21f7c134411500177d66b8dd800c8fec6f0040c50f44414a777b",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/fern_02/fern_02_nor_gl_2k.jpg"
+    }
+  },
+  "gltf_buffers": 1,
+  "gltf_materials": 1,
+  "gltf_meshes": 4,
+  "gltf_nodes": 4,
+  "license": "CC0 1.0",
+  "license_url": "https://polyhaven.com/license",
+  "model": "fern_02_2k.gltf",
+  "page": "https://polyhaven.com/a/fern_02",
+  "resolution": "2k"
+}
