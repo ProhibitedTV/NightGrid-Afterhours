@@ -15,6 +15,10 @@
 7. **Performance** — use reused materials and MultiMeshes for repeats; reserve local lights and alpha blending for meaningful hero areas. Target 1080p/60 on an RTX 3060 **after measuring**, not before.
 8. **Persistence** — locations and props must remain stable across save/load. Visual-only changes must not silently modify passenger or traffic geometry.
 
+## First post-playtest architecture conversion — true UV geometry + scanned materials
+
+At Central Exchange, two permanent road-facing building lots in Brickwater and Afterhours now use actual custom architectural surfaces around recessed windows and human-scale shop glazing on **both street-facing and avenue-facing elevations**. Their visible brick/steel material treatments use recorded CC0 Poly Haven 2K photographs (diffuse, OpenGL normal, roughness). This is a real architectural and PBR pipeline step but **NOT yet close to the approved photorealistic waterfront image**; see [the fidelity pilot and actual Godot QA](CENTRAL_EXCHANGE_FIDELITY_PILOT.md). Broader city rebuilding is pending visual acceptance.
+
 ## First vertical slice: M-Line CICADA M8
 
 The original M-Line is elevated, two-car and reversible at five fixed stations. This pass upgrades it into a high-identity rolling-stock showcase:
