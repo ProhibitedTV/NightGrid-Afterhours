@@ -29,6 +29,10 @@ func _check() -> void:
 	if not bool(venues.call("is_open", "lantern_cup", 19.25)):
 		_fail("Existing business hours unexpectedly changed")
 		return
+	var streetfront := venues.get_node_or_null("lantern_cup/LanternCupStreetfront")
+	if streetfront == null or streetfront.get_node_or_null("TranslucentStreetWindow") == null:
+		_fail("Real Vesper Market café facade lacks its own glazed architecture")
+		return
 	if bool(venues.call("is_open", "lantern_cup", 23.0)):
 		_fail("Venue hours unexpectedly extended past closing")
 		return
