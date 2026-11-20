@@ -107,11 +107,16 @@ func _verify() -> void:
 		return
 	menu.call("update_setting", "ssr_enabled", false)
 	menu.call("update_setting", "glow_enabled", false)
+	menu.call("update_setting", "ao_enabled", false)
+	menu.call("update_setting", "fog_enabled", false)
 	menu.call("update_setting", "mouse_sensitivity", 0.0060)
 	menu.call("update_setting", "stick_sensitivity", 3.4)
 	menu.call("update_setting", "show_fps", true)
 	if world.get("world_environment").environment.ssr_enabled or world.get("world_environment").environment.glow_enabled:
 		_fail("Performance controls did not update the actual render environment")
+		return
+	if world.get("world_environment").environment.ssao_enabled or world.get("world_environment").environment.fog_enabled:
+		_fail("Contact shadow and distance haze toggles did not update the renderer")
 		return
 	if not bool(world.get("performance_overlay")) or absf(float(world.get("stick_sensitivity")) - 3.4) > 0.05:
 		_fail("Gameplay did not receive changed accessibility settings")
