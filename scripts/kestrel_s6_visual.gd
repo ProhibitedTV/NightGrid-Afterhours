@@ -222,7 +222,8 @@ func _lofted_body_mesh() -> ArrayMesh:
 				ring[next].y + float(right["raise"]), float(right["z"]))
 			var d := Vector3(ring[side].x * float(right["scale"]),
 				ring[side].y + float(right["raise"]), float(right["z"]))
-			_quad(st, a, b, c, d)
+			# Section winding must face OUT, so SSR and PBR work as expected.
+			_quad(st, a, d, c, b)
 	for end in [0, sections.size() - 1]:
 		var item: Dictionary = sections[end]
 		var z: float = item["z"]
@@ -401,7 +402,7 @@ func _build_lights() -> void:
 		beam.spot_angle = 34.0
 		beam.light_energy = 0.63
 		beam.light_color = Color("d8eeeb")
-		beam.rotation.y = PI
+		# SpotLight3D defaults to local -Z, the car's forward direction.
 		beam.shadow_enabled = false
 		beam.visible = false
 		add_child(beam)
