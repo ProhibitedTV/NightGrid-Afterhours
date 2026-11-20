@@ -7,7 +7,7 @@ extends Node3D
 ## This is a production-oriented architectural *base* toward the approved
 ## photoreal benchmark, not a claim of final AAA-quality world artwork.
 const Materials = preload("res://scripts/material_library.gd")
-const PBR_ROOT = "res://assets/pbr/polyhaven/brick_wall_001_"
+const PBR_ROOT = "res:" + "//assets/pbr/polyhaven/brick_wall_001_"
 const STOREY = 3.45
 const GROUND = 4.55
 const FRONT = -0.38
