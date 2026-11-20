@@ -177,6 +177,14 @@ func request_focus(at: Vector3, velocity: Vector3 = Vector3.ZERO) -> void:
 	_requested_cell = current
 	_prefetch_cell = forecast
 	_current_block = current
+	# A cutscene, unusual physics jump or extreme-speed transit can outrun the
+	# predictive window. Guarantee the occupied cell's collider immediately;
+	# all other additions remain scheduled and spread over render frames.
+	if not _loaded.has(current):
+		var started := Time.get_ticks_usec()
+		_load_block(current)
+		_last_stream_build_usec = Time.get_ticks_usec() - started
+		_peak_stream_build_usec = maxi(_peak_stream_build_usec, _last_stream_build_usec)
 	_pending = _required_blocks(current, forecast)
 	_queue_replans += 1
 	if _pending.is_empty():
