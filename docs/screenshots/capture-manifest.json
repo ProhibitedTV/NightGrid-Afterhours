@@ -1,34 +1,34 @@
 {
   "images": {
     "01-morrow-bay-neon-night.png": {
-      "bytes": 499235,
-      "sha256": "d89b5bd6758d0f37dedbec513de8e135799954d9e764049908bb5d2247f9f860"
+      "bytes": 515938,
+      "sha256": "2e9de842d59f3af28e6aaee7441a11f0c933edd864abbc1a08e95c77a8d958d1"
     },
     "02-vesper-market-nightlife.png": {
-      "bytes": 612302,
-      "sha256": "3650cedb4276cd8de19d81078970dcf992fa579ce887fec413093bca9c11ce8c"
+      "bytes": 612258,
+      "sha256": "a07443246aff77d9586388557ac0a7314cfed0d11277afd8a69f384d268fb851"
     },
     "03-m-line-helix-terminal.png": {
-      "bytes": 379202,
-      "sha256": "e1f5599382a2a073bcaebd730762f2c84e32148d21e0c74c479cc89cd24e507b"
+      "bytes": 379181,
+      "sha256": "4785737963c09cf6535914cc3f71c36340cfc0fe8e6344a51d97eb13fab017f2"
     },
     "04-horizon-commons-daylight.png": {
-      "bytes": 669161,
-      "sha256": "63721e1ef5db62d15114b23ec320a6039b71e11fbb7f52bd412dc6ecda23a426"
+      "bytes": 668929,
+      "sha256": "794f84c3280a6dca85dcf62b54f06fcf4c4fa0c28e007b3f8587bf66ac63ac4f"
     },
     "05-quay-fresh-interior.png": {
-      "bytes": 209070,
-      "sha256": "7f48618162b20e58e47a071a1f43f5a84991faaae3c137a1c5530f5ff2af90ed"
+      "bytes": 208981,
+      "sha256": "39870d499aa6f2fe68af5681e4a5bc0c91b6a5e366b87c409ad2ad41893d9820"
     },
     "06-title-menu.png": {
-      "bytes": 151383,
-      "sha256": "f71481e028b9e9f2a857fe6037378452feb9585b48341c9539c10653a1766603"
+      "bytes": 157438,
+      "sha256": "a6728309d41cf017b1e87e3548f5d055ffc997f310b847adfd15901ecb379d77"
     },
     "07-city-map-menu.png": {
-      "bytes": 139085,
-      "sha256": "37b1cdf11ccaf3356da675a759d96c1b73bbd9c0ad7da63d15bcff01dd21d1d1"
+      "bytes": 145638,
+      "sha256": "09e4a23eff62e80e9948ae80cfbebff1369c81fe1dfff2d69756c428e8ebf818"
     }
   },
   "renderer": "Godot 4.3 Mesa software OpenGL Compatibility 1280x720 (NOT Vulkan/RTX)",
-  "source_revision": "6893b060cb29dd45f59bd58de1fe11bb5352eaa0"
+  "source_revision": "fe4bf7348cd740253fd760727d6f9ca45b76648e"
 }

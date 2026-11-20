@@ -9,6 +9,7 @@ extends Node3D
 const Materials = preload("res://scripts/material_library.gd")
 const AvenueFrontage = preload("res://scripts/central_exchange_avenue.gd")
 const BrickwaterFinish = preload("res://scripts/brickwater_corner_finish.gd")
+const AfterhoursFinish = preload("res://scripts/afterhours_corner_finish.gd")
 const PBR_ROOT = "res:" + "//assets/pbr/polyhaven/brick_wall_001_"
 const STEEL_PBR_ROOT = "res:" + "//assets/pbr/polyhaven/blue_metal_plate_"
 const STOREY = 3.45
@@ -119,7 +120,7 @@ func _surface_material(family: String) -> Material:
 			out.roughness = 0.30
 		"GLASS":
 			out = StandardMaterial3D.new()
-			if district == "BRICKWATER":
+			if district == "BRICKWATER" or district == "AFTERHOURS":
 				# The glass is a distinct surface, with a separate shallow
 				# room backing. The old pilot painted lit windows opaque amber.
 				out.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -230,7 +231,7 @@ func _window(x0: float, x1: float, bottom: float, top: float, is_lit: bool) -> v
 	_push(jamb, Vector3(inner_left, lower, GLASS), Vector3(inner_right, lower, GLASS),
 		Vector3(x1, bottom, FRONT), Vector3(x0, bottom, FRONT))
 	_statistics["reveal_faces"] += 4
-	if district == "BRICKWATER":
+	if district == "BRICKWATER" or district == "AFTERHOURS":
 		# One recessed glass plane plus a separately shaded interior at
 		# 0.7m depth. No cutout exposes the sky or old collision volume.
 		_rect("GLASS", inner_left, inner_right, lower, upper, GLASS + 0.007, 0.72)
@@ -323,6 +324,11 @@ func _generate_facade() -> void:
 		finish.name = "BrickwaterSealedCornerAndRoof"
 		finish.configure(building_width, building_height, building_depth)
 		add_child(finish)
+	elif district == "AFTERHOURS":
+		var finish := AfterhoursFinish.new()
+		finish.name = "AfterhoursSealedCornerAndRoof"
+		finish.configure(building_width, building_height, building_depth)
+		add_child(finish)
 
 func _build_swept_canopy(x0: float, x1: float) -> void:
 	# One ribbed extruded canopy surface, curved over the actual sidewalk
@@ -370,9 +376,8 @@ func _build_enclosing_shell() -> void:
 	# Tinted deep interior plate 0.5m back behind the south display glazing.
 	# This preserves visual interior depth even before fully enterable rooms
 	# get their own mesh/lighting/collision contract.
-	if district != "BRICKWATER":
-		_rect("INTERIOR", -half + 0.1, half - 0.1, 0.5,
-			GROUND - 0.42, 0.50, 0.43)
+	# Neither pilot building needs an opaque plate behind every window;
+	# their per-pane room backings are now independently recessed.
 
 func _build_storefront_identification() -> void:
 	# Functional shop identity uses a stable existing district label, not a
@@ -420,7 +425,7 @@ func _flush_meshes() -> void:
 		surface_node.name = "Facade_%s" % family
 		surface_node.mesh = mesh
 		surface_node.material_override = _surface_material(family)
-		surface_node.cast_shadow = (GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if family == "GLASS" and district == "BRICKWATER" else GeometryInstance3D.SHADOW_CASTING_SETTING_ON)
+		surface_node.cast_shadow = (GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if family == "GLASS" else GeometryInstance3D.SHADOW_CASTING_SETTING_ON)
 		add_child(surface_node)
 		_statistics["architecture_surfaces"] += 1
 	_buffers.clear()

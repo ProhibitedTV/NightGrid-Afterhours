@@ -5,10 +5,12 @@ on:
     branches:
       - art/central-exchange-photoreal-frontages-20261120
       - feat/aaa-frame-pacing-capture-20261120
+      - art/afterhours-corner-fidelity-20261120
     paths:
       - tools/capture_central_frontages.gd
       - scripts/central_exchange_frontages.gd
       - scripts/brickwater_corner_finish.gd
+      - scripts/afterhours_corner_finish.gd
       - scripts/central_exchange_avenue.gd
       - scripts/city_details.gd
       - assets/pbr/polyhaven/**
@@ -58,6 +60,8 @@ jobs:
               'afterhours-scanned-steel-daylight-real-godot.png',
               'brickwater-sealed-corner-daylight-real-godot.png',
               'brickwater-roof-parapet-daylight-real-godot.png',
+              'afterhours-sealed-corner-daylight-real-godot.png',
+              'afterhours-roof-parapet-daylight-real-godot.png',
           ]
           for name in expected:
               path = d / name
