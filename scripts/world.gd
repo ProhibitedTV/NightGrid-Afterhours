@@ -1111,7 +1111,7 @@ func _build_hud() -> void:
 	performance_label.anchor_top = 1.0
 	performance_label.anchor_bottom = 1.0
 	performance_label.offset_left = 18.0
-	performance_label.offset_right = 420.0
+	performance_label.offset_right = 1160.0
 	performance_label.offset_top = -48.0
 	performance_label.offset_bottom = -18.0
 	performance_label.add_theme_font_size_override("font_size", 18)
@@ -1146,7 +1146,11 @@ func _update_hud() -> void:
 	var message := notification if notification_time > 0.0 else ""
 	if performance_overlay:
 		var fps := maxi(Engine.get_frames_per_second(), 1)
-		performance_label.text = "RTX 3060 target: 60 FPS @1080p | Actual: %d FPS | %.1f ms" % [fps, 1000.0 / float(fps)]
+		var stream: Dictionary = city_details.call("get_streaming_stats")
+		var indoor_count := 1 if interiors.call("is_inside") else 0
+		performance_label.text = "RTX 3060 target: 60 FPS @1080p | Actual: %d FPS (%.1f ms) | %d/%d street blocks | %d live building shells | room %d" % [
+			fps, 1000.0 / float(fps), int(stream["loaded_blocks"]), int(stream["total_blocks"]),
+			int(stream["loaded_buildings"]), indoor_count]
 	hud_label.text = "NIGHTGRID / AFTERHOURS    MORROW BAY\n%s | %s\n$%d | HEALTH %d | HEAT %s\n%s | DELIVERIES %d\nOBJECTIVE: %s (%dm)\n%s\n\nWASD Move/Drive | E Car | Shift Sprint | Space Jump/Brake\nE Car | F Board/Exit Transit | F5 Save | F6 New Game | F9 Load\nT Time | Y Pause | R Supplies | F3 FPS | F4 SSR | G Counter | H Enter/Exit | Esc Cursor" % [local_name, clock, cash, ceili(health), wanted_text, vehicle_text, deliveries, mission, distance, message]
 	hud_label.text += "\n" + _venue_job_text() + "\n" + _civic_job_text()
 	if interiors.call("is_inside"):
@@ -1162,10 +1166,12 @@ func _update_hud() -> void:
 		if not near.is_empty():
 			var accessible := "OPEN" if venue_system.call("is_open", str(near["id"])) else "CLOSED"
 			hud_label.text += "\n[G] %s (%s)" % [str(near["name"]), accessible]
+			hud_label.text += "\n[H] Enter %s" % str(near["name"])
 		var nearby_service: Dictionary = civic_services.call("nearest_site", player.global_position)
 		if not nearby_service.is_empty():
 			var availability := "OPEN" if civic_services.call("is_open", str(nearby_service["id"])) else "CLOSED"
 			hud_label.text += "\n[G] %s (%s)" % [str(nearby_service["name"]), availability]
+			hud_label.text += "\n[H] Enter %s" % str(nearby_service["name"])
 	if venue_panel.visible:
 		_update_venue_panel()
 
