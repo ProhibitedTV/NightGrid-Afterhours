@@ -45,6 +45,10 @@ The original Vesper Market café is a complete **paired exterior and enterable i
 
 The real Lantern Cup contact now owns an original generated humanlike mesh with a tailored barista outfit, anatomically motivated face/eyes/hair, functional accessory detailing, articulated upper-body/head/arm pivots and fixed-geometry idle, blink, speech and serving performance. Dialogue at the counter uses **3/Y** inside the existing venue menu; real health, police attention, local jobs and discovered notes alter the script, while coffee purchases animate her serving hand. The character is spawned **only** for the Lantern Cup active room and does not modify its G/H interactions, world seeds or saves. Character visual requirements and limitations: [Mara Hero](MARA_HERO.md).
 
+## Final pre-playtest slice: inhabited Lantern Cup
+
+Five authored café regulars extend the Mara character benchmark with varied silhouettes, garments and simple context-appropriate actions. The customers occupy existing banquette seats, have stable identities and activity phases, respond via optional **G** neighborhood gossip, and do not alter the central walking route, service desk, Lantern Cup shift note or save schema. Their mesh counts are bounded, materials shared, and there are no extra customer lights/colliders. The first hands-on review should use [the five-minute playtest route](PLAYTEST_CHECKLIST.md) to assess motion, clipping, lighting, scene consistency, usability and actual framerate.
+
 ## Capture and quality gate
 
 - Verify the train at **12:00**, **19:15** and **00:00** from street-level wide shot, track-level three-quarter exterior, end-cab close-up, door close-up and station departure.
