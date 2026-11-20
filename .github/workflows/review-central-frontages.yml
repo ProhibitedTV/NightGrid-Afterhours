@@ -47,6 +47,7 @@ jobs:
               'central-exchange-dusk-real-godot.png',
               'central-exchange-noon-real-godot.png',
               'brickwater-recessed-windows-closeup-real-godot.png',
+              'afterhours-blue-steel-glazing-closeup-real-godot.png',
           ]
           for name in expected:
               path = d / name
