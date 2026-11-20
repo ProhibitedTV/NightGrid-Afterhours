@@ -90,3 +90,43 @@ save the trace, revisit the same route for a **warm** drive, save separately,
 then compare p95/p99, 1% lows and build-event rows. Repeat at midday and with
 SSR on/off. Keep #32 open until the observed long frames have been reduced and
 player-visible stutter is independently verified on Windows Forward+.
+
+## Staged construction follow-up — PR #43
+
+The initial predictive pass above only limited the number of *complete*
+district blocks per frame. Each block still produced its entire collision,
+two façades, street furniture and all `MultiMesh` batches in one callback.
+
+The next pass breaks each block into deterministic work stages:
+
+1. Prepare sidewalks and **both existing building collision shells**. The
+   original shells are not doubled by later façade work. A landmark's open
+   public space is prepared independently.
+2. Construct the first saved parcel's architecture (or the fixed landmark).
+3. Construct the second saved parcel, retaining the same stored manifest.
+4. Add the alley and district-specific street furniture.
+5. Flush the accumulated material-sorted `MultiMesh` transforms in groups of
+   **six batches per frame**, preserving the original draw-call grouping.
+
+Normal gameplay advances **one stage per render frame**, not an entire block;
+previously complete neighborhoods stay loaded until the replacement ring is
+ready. An unexpectedly reached actor cell, manual teleport or saved-game restore
+**synchronously finishes** any pending destination work, retaining a valid
+collision volume rather than passing through unfinished walls. Abandoned
+speculative chunks are discarded if a route changes; their partial nodes
+and materials are never published to the set of completed blocks.
+
+The source seed and per-block RNG state are retained across stages. Windows F8
+CSV traces now include `stream_stage_steps`. `stream_build_ms` is computed from
+a **monotonic cumulative build-time counter**, so unfinished parcels are
+accounted for instead of charging all cost to the final frame. The F3
+last/peak build timer now describes an individual stage, not a whole chunk.
+
+**Remaining limitations:** this still performs Godot scene-tree and mesh
+operations on the main thread. No hard frame-time limit is guaranteed for one
+complex parcel or landmark; only the amount of work is bounded. Initial
+construction and teleport/reload remain synchronous for collision safety. The
+first test only proves work partitioning and save determinism; verify Windows
+1080p cold/warm p95, p99 and driving footage before claiming the hitch is gone.
+The staged shell is visibly present before fine decorations; inspect for
+near-field pop-in, draw calls, material instantiation and shader compilation.

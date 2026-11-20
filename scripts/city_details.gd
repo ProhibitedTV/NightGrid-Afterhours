@@ -48,8 +48,10 @@ const UNLOAD_RADIUS = 3
 # heavy collision/facade block may still cost a frame; never build a full 5x5
 # batch on the moving player's render loop.
 const PREFETCH_SECONDS = 1.25
-const STREAM_BLOCKS_PER_FRAME = 1
+const STREAM_STAGES_PER_FRAME = 1
+const STREAM_BATCHES_PER_STAGE = 6
 var _loaded: Dictionary = {}
+var _staging: Dictionary = {}
 var _active_chunk: Node3D
 var _current_block := Vector2i(999, 999)
 var _loads := 0
@@ -61,6 +63,8 @@ var _pending: Array[Vector2i] = []
 var _last_stream_build_usec := 0
 var _peak_stream_build_usec := 0
 var _queue_replans := 0
+var _stream_steps := 0
+var _total_build_usec := 0
 
 func set_world_seed(value: int) -> void:
 	assert(not _initialized)
@@ -106,7 +110,9 @@ func get_streaming_stats() -> Dictionary:
 		"loaded_buildings": _count_loaded_buildings(),
 		"loads": _loads, "unloads": _unloads,
 		"radius": STREAM_RADIUS, "unload_radius": UNLOAD_RADIUS,
-		"pending_blocks": _pending.size(), "queue_replans": _queue_replans,
+		"pending_blocks": _pending.size(), "staging_blocks": _staging.size(),
+		"stage_steps": _stream_steps, "total_build_usec": _total_build_usec,
+		"queue_replans": _queue_replans,
 		"last_build_usec": _last_stream_build_usec,
 		"peak_build_usec": _peak_stream_build_usec,
 		"prefetch_seconds": PREFETCH_SECONDS
@@ -131,6 +137,11 @@ func set_streaming_enabled(value: bool) -> void:
 	_stream_locked = not value
 	if _stream_locked:
 		_pending.clear()
+		_discard_unrequested_stages()
+		# On resume, an unchanged actor cell must still rebuild the missing
+		# predictive queue. Pausing streaming must not permanently lose work.
+		_requested_cell = Vector2i(999, 999)
+		_prefetch_cell = Vector2i(999, 999)
 
 func _grid_cell(at: Vector3) -> Vector2i:
 	return Vector2i(
@@ -186,6 +197,7 @@ func request_focus(at: Vector3, velocity: Vector3 = Vector3.ZERO) -> void:
 		_last_stream_build_usec = Time.get_ticks_usec() - started
 		_peak_stream_build_usec = maxi(_peak_stream_build_usec, _last_stream_build_usec)
 	_pending = _required_blocks(current, forecast)
+	_discard_unrequested_stages()
 	_queue_replans += 1
 	if _pending.is_empty():
 		_prune_distant(current, forecast)
@@ -193,17 +205,11 @@ func request_focus(at: Vector3, velocity: Vector3 = Vector3.ZERO) -> void:
 func _process(_delta: float) -> void:
 	if not _initialized or _stream_locked or _pending.is_empty():
 		return
-	# One chunk at most per rendered frame, rather than 5-10 synchronous
-	# chunks inside the focus tick when crossing a block boundary.
-	var started := Time.get_ticks_usec()
-	var count := 0
-	while count < STREAM_BLOCKS_PER_FRAME and not _pending.is_empty():
-		var block: Vector2i = _pending.pop_front()
-		if not _loaded.has(block):
-			_load_block(block)
-			count += 1
-	_last_stream_build_usec = Time.get_ticks_usec() - started
-	_peak_stream_build_usec = maxi(_peak_stream_build_usec, _last_stream_build_usec)
+	# One bounded build stage per rendered frame. A parcel collider is
+	# present before either high-detail building frontage is authored.
+	var block: Vector2i = _pending[0]
+	if _run_build_stage(block):
+		_pending.pop_front()
 	if _pending.is_empty():
 		_prune_distant(_requested_cell, _prefetch_cell)
 
@@ -235,21 +241,99 @@ func set_focus(at: Vector3) -> void:
 	_pending.clear()
 	for block in _required_blocks(cell, cell):
 		_load_block(block)
+	_discard_unrequested_stages()
 	_prune_distant(cell, cell)
 
 func _load_block(block: Vector2i) -> void:
-	var node := Node3D.new()
-	node.name = "Block_%d_%d" % [block.x, block.y]
-	add_child(node)
-	_loaded[block] = node
-	_active_chunk = node
-	# Per-block RNG: revisit order does not affect building/window patterns.
-	_rng.seed = int(world_seed) ^ int(SEED) ^ (
-		(block.x + GRID_RADIUS + 1) * 156553 + (block.y + GRID_RADIUS + 1) * 933847)
-	_build_block(block.x, block.y)
-	_flush_instances()
+	# Synchronous restore / emergency actor-cell fallback completes any
+	# already-started work, never duplicates its colliders or rolls its RNG.
+	while not _loaded.has(block):
+		_run_build_stage(block)
+
+func _discard_unrequested_stages() -> void:
+	var old: Array[Vector2i] = []
+	for key in _staging:
+		var block: Vector2i = key
+		if not _pending.has(block):
+			old.append(block)
+	for block in old:
+		var work: Dictionary = _staging[block]
+		var partial: Node3D = work["node"]
+		_staging.erase(block)
+		partial.queue_free()
+
+func _run_build_stage(block: Vector2i) -> bool:
+	var started := Time.get_ticks_usec()
+	if not _staging.has(block):
+		var node := Node3D.new()
+		node.name = "Block_%d_%d" % [block.x, block.y]
+		add_child(node)
+		var seeded := RandomNumberGenerator.new()
+		seeded.seed = int(world_seed) ^ int(SEED) ^ (
+			(block.x + GRID_RADIUS + 1) * 156553 + (block.y + GRID_RADIUS + 1) * 933847)
+		_staging[block] = {
+			"node": node, "phase": 0, "rng_state": seeded.state,
+			"batches": {}, "flush_keys": [], "flush_cursor": 0
+		}
+	var work: Dictionary = _staging[block]
+	_active_chunk = work["node"]
+	_batches = work["batches"]
+	_rng.state = int(work["rng_state"])
+	var phase: int = int(work["phase"])
+	var landmark: String = WorldPlan.landmark_for_block(block.x, block.y)
+	var finished := false
+	match phase:
+		0:
+			_build_block_base(block.x, block.y)
+			if landmark.is_empty():
+				_build_block_shells(block.x, block.y)
+			work["phase"] = 1
+		1:
+			if landmark.is_empty():
+				_build_block_lot(block.x, block.y, 0)
+				work["phase"] = 2
+			else:
+				var center := Vector3((float(block.x) + 0.5) * CELL,
+					0.0, (float(block.y) + 0.5) * CELL)
+				_build_landmark(center, landmark)
+				_statistics["landmarks"] += 1
+				work["phase"] = 4
+		2:
+			_build_block_lot(block.x, block.y, 1)
+			work["phase"] = 3
+		3:
+			_build_block_street(block.x, block.y)
+			work["phase"] = 4
+		4:
+			var keys: Array = work["flush_keys"]
+			if keys.is_empty():
+				keys = _batches.keys()
+				keys.sort()
+				work["flush_keys"] = keys
+			var cursor: int = int(work["flush_cursor"])
+			var end: int = mini(cursor + STREAM_BATCHES_PER_STAGE, keys.size())
+			var unit_mesh := BoxMesh.new()
+			unit_mesh.size = Vector3.ONE
+			for index in range(cursor, end):
+				_flush_instance_key(str(keys[index]), unit_mesh)
+			work["flush_cursor"] = end
+			finished = end >= keys.size()
 	_active_chunk = null
-	_loads += 1
+	work["batches"] = _batches
+	work["rng_state"] = _rng.state
+	_batches = {}
+	var cost: int = Time.get_ticks_usec() - started
+	_last_stream_build_usec = cost
+	_peak_stream_build_usec = maxi(_peak_stream_build_usec, cost)
+	_total_build_usec += cost
+	_stream_steps += 1
+	if finished:
+		_loaded[block] = work["node"]
+		_staging.erase(block)
+		_loads += 1
+	else:
+		_staging[block] = work
+	return finished
 
 func get_district_at(position: Vector3) -> String:
 	return WorldPlan.district_at(position)
@@ -315,25 +399,29 @@ func _solid(at: Vector3, size: Vector3, color: Color, surface_kind: String = "CO
 	body.add_child(visual)
 	(_active_chunk if _active_chunk != null else self).add_child(body)
 
+func _flush_instance_key(key: String, unit_mesh: BoxMesh) -> void:
+	var transforms: Array = _batches.get(key, [])
+	if transforms.is_empty():
+		_batches.erase(key)
+		return
+	var multimesh := MultiMesh.new()
+	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.mesh = unit_mesh
+	multimesh.instance_count = transforms.size()
+	for index in range(transforms.size()):
+		multimesh.set_instance_transform(index, transforms[index])
+	var node := MultiMeshInstance3D.new()
+	node.name = "Detail_%s" % key
+	node.multimesh = multimesh
+	node.material_override = _palette[str(key).split("|")[0]]
+	(_active_chunk if _active_chunk != null else self).add_child(node)
+	_batches.erase(key)
+
 func _flush_instances() -> void:
 	var unit_mesh := BoxMesh.new()
 	unit_mesh.size = Vector3.ONE
-	for key in _batches:
-		var transforms: Array = _batches[key]
-		if transforms.is_empty():
-			continue
-		var multimesh := MultiMesh.new()
-		multimesh.transform_format = MultiMesh.TRANSFORM_3D
-		multimesh.mesh = unit_mesh
-		multimesh.instance_count = transforms.size()
-		for index in range(transforms.size()):
-			multimesh.set_instance_transform(index, transforms[index])
-		var node := MultiMeshInstance3D.new()
-		node.name = "Detail_%s" % key
-		node.multimesh = multimesh
-		node.material_override = _palette[str(key).split("|")[0]]
-		(_active_chunk if _active_chunk != null else self).add_child(node)
-	_batches.clear()
+	for key in _batches.keys():
+		_flush_instance_key(str(key), unit_mesh)
 
 func _build_road_language() -> void:
 	for road_index in range(-GRID_RADIUS, GRID_RADIUS + 1):
@@ -375,7 +463,7 @@ func _build_intersections() -> void:
 			if ix % 2 == 0 and iz % 2 == 0:
 				_hydrant(Vector3(x + 9.3, 0.0, z - 9.2))
 
-func _build_block(ix: int, iz: int) -> void:
+func _build_block_base(ix: int, iz: int) -> void:
 	var center := Vector3((float(ix) + 0.5) * CELL, 0.0, (float(iz) + 0.5) * CELL)
 	var district := get_district_at(center)
 	var accent: Color = ACCENT[district]
@@ -402,27 +490,40 @@ func _build_block(ix: int, iz: int) -> void:
 			var offset := float(slab) * 4.2
 			_detail(center + Vector3(side * 19.3, 0.151, offset), Vector3(0.065, 0.018, 3.3), Color("747c81"))
 			_detail(center + Vector3(offset, 0.151, side * 19.3), Vector3(3.3, 0.018, 0.065), Color("747c81"))
-	var landmark: String = WorldPlan.landmark_for_block(ix, iz)
-	if not landmark.is_empty():
-		_build_landmark(center, landmark)
-		_statistics["landmarks"] += 1
-		return
-	for building in range(2):
-		var x := center.x + (-10.5 if building == 0 else 10.5)
-		var profile: Dictionary = WorldPlan.lot_profile(ix, iz, building, world_seed)
-		var blocks: Dictionary = world_manifest.get("blocks", {})
-		var parcel: Variant = blocks.get("%d,%d" % [ix, iz], [])
-		if parcel is Array and parcel.size() == 2:
-			profile = (parcel[building] as Dictionary).duplicate(true)
-		if (not WorldPlan.is_core_block(ix, iz)) or WorldPlan.lot_variant_index(ix, iz, world_seed) > 0:
-			_statistics["variant_lots"] += 1
-		# The procedural shells once sat at arbitrary offset_z depths while
-		# permanent business façades were attached at center.z - 14.88.
-		# Align the actual collision + mesh frontage to the same curb plane.
-		# Width, depth, height, material and seed manifest remain unchanged.
+
+func _block_lot_profile(ix: int, iz: int, which: int) -> Dictionary:
+	var profile: Dictionary = WorldPlan.lot_profile(ix, iz, which, world_seed)
+	var blocks: Dictionary = world_manifest.get("blocks", {})
+	var parcel: Variant = blocks.get("%d,%d" % [ix, iz], [])
+	if parcel is Array and parcel.size() == 2:
+		profile = (parcel[which] as Dictionary).duplicate(true)
+	return profile
+
+func _build_block_shells(ix: int, iz: int) -> void:
+	# The first stage places BOTH original, save-stable building collision
+	# shells before any high-cost façade generation. This avoids a temporary
+	# hole in vehicle collision while preparing the rest of the street.
+	var center := Vector3((float(ix) + 0.5) * CELL, 0.0, (float(iz) + 0.5) * CELL)
+	var district := get_district_at(center)
+	for which in range(2):
+		var profile := _block_lot_profile(ix, iz, which)
+		var x := center.x + (-10.5 if which == 0 else 10.5)
 		var z: float = center.z - WorldPlan.PUBLIC_FACADE_SETBACK + float(profile["depth"]) * 0.5
-		_build_building(Vector3(x, 0.0, z), profile, district, ix, iz, building)
-		_statistics["authored_lots"] += 1
+		_build_building(Vector3(x, 0.0, z), profile, district, ix, iz, which, true)
+
+func _build_block_lot(ix: int, iz: int, which: int) -> void:
+	var center := Vector3((float(ix) + 0.5) * CELL, 0.0, (float(iz) + 0.5) * CELL)
+	var profile := _block_lot_profile(ix, iz, which)
+	if (not WorldPlan.is_core_block(ix, iz)) or WorldPlan.lot_variant_index(ix, iz, world_seed) > 0:
+		_statistics["variant_lots"] += 1
+	var x := center.x + (-10.5 if which == 0 else 10.5)
+	var z: float = center.z - WorldPlan.PUBLIC_FACADE_SETBACK + float(profile["depth"]) * 0.5
+	_build_building(Vector3(x, 0.0, z), profile, get_district_at(center), ix, iz, which, false, true)
+	_statistics["authored_lots"] += 1
+
+func _build_block_street(ix: int, iz: int) -> void:
+	var center := Vector3((float(ix) + 0.5) * CELL, 0.0, (float(iz) + 0.5) * CELL)
+	var district := get_district_at(center)
 	# The gap between the two buildings reads as a service alley.
 	_detail(center + Vector3(0.0, 0.155, 3.0), Vector3(3.8, 0.035, 25.0), Color("353e48"))
 	for mark in range(4):
@@ -430,6 +531,7 @@ func _build_block(ix: int, iz: int) -> void:
 	_dumpster(center + Vector3(0.0, 0.3, 10.0))
 	_furniture(center, district)
 	_statistics["street_props"] += 1
+
 
 func _build_landmark(center: Vector3, name: String) -> void:
 	# Permanent city anchors. Open pedestrian space remains for later story scenes.
@@ -538,7 +640,8 @@ func _build_landmark(center: Vector3, name: String) -> void:
 			_label("SABLE SQUARE", center + Vector3(0.0, 7.15, 14.8), label_color, 70)
 	_statistics["street_props"] += 1
 
-func _build_building(center: Vector3, profile: Dictionary, district: String, ix: int, iz: int, which: int) -> void:
+func _build_building(center: Vector3, profile: Dictionary, district: String, ix: int, iz: int, which: int,
+		shell_only: bool = false, shell_prebuilt: bool = false) -> void:
 	var height: float = profile["height"]
 	var width: float = profile["width"]
 	var depth: float = profile["depth"]
@@ -554,19 +657,22 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 	var south_exposure: bool = (ix == -1 and iz == 0 and which == 1) or (ix == 0 and iz == 0 and which == 0)
 	var shell_at := Vector3(center.x, height / 2.0 + 0.15, center.z)
 	var shell_size := Vector3(width, height, depth)
-	if south_exposure:
-		var volume := StaticBody3D.new()
-		volume.name = "PreservedBuildingCollision"
-		volume.position = shell_at
-		var collision := CollisionShape3D.new()
-		collision.name = "BuildingCollider"
-		var shape := BoxShape3D.new()
-		shape.size = shell_size
-		collision.shape = shape
-		volume.add_child(collision)
-		(_active_chunk if _active_chunk != null else self).add_child(volume)
-	else:
-		_solid(shell_at, shell_size, wall, surface_kind)
+	if not shell_prebuilt:
+		if south_exposure:
+			var volume := StaticBody3D.new()
+			volume.name = "PreservedBuildingCollision"
+			volume.position = shell_at
+			var collision := CollisionShape3D.new()
+			collision.name = "BuildingCollider"
+			var shape := BoxShape3D.new()
+			shape.size = shell_size
+			collision.shape = shape
+			volume.add_child(collision)
+			(_active_chunk if _active_chunk != null else self).add_child(volume)
+		else:
+			_solid(shell_at, shell_size, wall, surface_kind)
+	if shell_only:
+		return
 	_statistics["buildings"] += 1
 	# First physically coherent architecture study: the two south-facing
 	# building fronts at Central Exchange, across from the working signals.

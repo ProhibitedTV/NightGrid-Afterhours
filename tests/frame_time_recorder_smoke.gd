@@ -60,7 +60,7 @@ func _verify() -> void:
 	var accounted_builds := 0
 	for index in range(1, lines.size()):
 		var columns := lines[index].split(",")
-		if columns.size() != 8:
+		if columns.size() != 9:
 			_fail("Trace CSV has a malformed row: " + lines[index])
 			return
 		if float(columns[3]) > 0.0:
@@ -71,6 +71,36 @@ func _verify() -> void:
 	if accounted_builds != 1:
 		_fail("Stale last_build_usec was repeated across frames")
 		return
+	# A stage can cost time on a frame even when it has not completed a
+	# whole block. The cumulative timer must attribute it once.
+	recorder.begin_capture(8, 10, 50000)
+	var staged := {"loads": 8, "stage_steps": 10,
+		"total_build_usec": 50000, "pending_blocks": 3, "last_build_usec": 9000}
+	recorder.sample_frame(0.016, staged, Vector3.ZERO, true)
+	staged["stage_steps"] = 11
+	staged["total_build_usec"] = 54700
+	recorder.sample_frame(0.025, staged, Vector3.ZERO, true)
+	recorder.sample_frame(0.016, staged, Vector3.ZERO, true)
+	recorder.end_capture()
+	var staged_path := "user://nightgrid-stage-trace-smoke.csv"
+	if recorder.export_csv(staged_path).is_empty():
+		_fail("Staged tracing did not export")
+		return
+	var stages := FileAccess.get_file_as_string(staged_path).strip_edges().split("\n")
+	if stages.size() != 4:
+		_fail("Staged trace lost its frames")
+		return
+	var stage_row := stages[2].split(",")
+	if stage_row.size() != 9 or int(stage_row[2]) != 0 or int(stage_row[8]) != 1:
+		_fail("Unfinished stage incorrectly reported as completed block")
+		return
+	if absf(float(stage_row[3]) - 4.7) > 0.002:
+		_fail("Stage build cost not attributed to correct frame")
+		return
+	if float(stages[3].split(",")[3]) != 0.0:
+		_fail("Stale build duration repeated on an idle frame")
+		return
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(staged_path))
 	recorder.begin_capture(8)
 	if recorder.captured_frames() != 0:
 		_fail("A new capture must clear the previous driving session")
@@ -80,5 +110,5 @@ func _verify() -> void:
 		_fail("An empty capture cannot silently overwrite a CSV")
 		return
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(output))
-	print("FRAME_TRACE_SMOKE PASS: p95/p99/1% lows, two hitches, single chunk attribution and 100-row CSV")
+	print("FRAME_TRACE_SMOKE PASS: p95/p99/1% lows, two hitches, completed chunk and staged work attribution")
 	quit(0)

@@ -305,7 +305,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_notify("Drive trace saved: " + exported if not exported.is_empty() else "Drive trace export failed.")
 		else:
 			var stream_start: Dictionary = city_details.call("get_streaming_stats")
-			frame_time_recorder.begin_capture(int(stream_start["loads"]))
+			frame_time_recorder.begin_capture(int(stream_start["loads"]),
+				int(stream_start.get("stage_steps", 0)), int(stream_start.get("total_build_usec", 0)))
 			_notify("Drive trace recording. Press F8 again to save a CSV.")
 	elif event.is_action_pressed("toggle_ssr"):
 		world_environment.environment.ssr_enabled = not world_environment.environment.ssr_enabled
