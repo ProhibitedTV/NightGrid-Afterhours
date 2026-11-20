@@ -24,6 +24,7 @@ const GameInput = preload("res://scripts/game_input.gd")
 const GameMenuScript = preload("res://scripts/game_menu.gd")
 const NightGridFMScript = preload("res://scripts/nightgrid_fm.gd")
 const WorldAudioScript = preload("res://scripts/world_audio.gd")
+const FrameTimeRecorder = preload("res://scripts/frame_time_recorder.gd")
 const CELL = 58.0
 const GRID_RADIUS = 4
 const PLAYER_START = Vector3(0.0, 1.15, 6.0)
@@ -68,6 +69,7 @@ var interiors: Node3D
 var game_menu: CanvasLayer
 var nightgrid_fm: Node
 var world_audio: Node
+var frame_time_recorder = FrameTimeRecorder.new()
 var gamepad_active := false
 var mouse_sensitivity := 0.0032
 var stick_sensitivity := 2.6
@@ -296,6 +298,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("toggle_fps"):
 		performance_overlay = not performance_overlay
 		performance_label.visible = performance_overlay
+	elif event.is_action_pressed("record_frame_trace"):
+		if frame_time_recorder.recording or frame_time_recorder.capture_full:
+			frame_time_recorder.end_capture()
+			var exported: String = frame_time_recorder.export_csv()
+			_notify("Drive trace saved: " + exported if not exported.is_empty() else "Drive trace export failed.")
+		else:
+			var stream_start: Dictionary = city_details.call("get_streaming_stats")
+			frame_time_recorder.begin_capture(int(stream_start["loads"]))
+			_notify("Drive trace recording. Press F8 again to save a CSV.")
 	elif event.is_action_pressed("toggle_ssr"):
 		world_environment.environment.ssr_enabled = not world_environment.environment.ssr_enabled
 	else:
@@ -306,6 +317,7 @@ func _process(delta: float) -> void:
 	if not is_instance_valid(player):
 		return
 	var actor := _actor()
+	frame_time_recorder.sample_frame(delta, city_details.call("get_streaming_stats"), actor.global_position, current_car != null)
 	var indoors: bool = interiors.call("is_inside")
 	if is_instance_valid(nightgrid_fm):
 		var interior_id := str(interiors.call("active_site_id")) if indoors else ""
@@ -1483,9 +1495,9 @@ func _build_hud() -> void:
 	performance_label.anchor_bottom = 1.0
 	performance_label.offset_left = 18.0
 	performance_label.offset_right = 1160.0
-	performance_label.offset_top = -48.0
+	performance_label.offset_top = -68.0
 	performance_label.offset_bottom = -18.0
-	performance_label.add_theme_font_size_override("font_size", 18)
+	performance_label.add_theme_font_size_override("font_size", 15)
 	performance_label.add_theme_color_override("font_color", Color("b5eae4"))
 	ui.add_child(performance_label)
 	venue_panel = PanelContainer.new()
@@ -1550,10 +1562,15 @@ func _update_hud() -> void:
 		var fps := maxi(Engine.get_frames_per_second(), 1)
 		var stream: Dictionary = city_details.call("get_streaming_stats")
 		var indoor_count := 1 if interiors.call("is_inside") else 0
-		performance_label.text = "RTX 3060 target: 60 FPS @1080p | Actual: %d FPS (%.1f ms) | %d/%d blocks | %d shells | room %d | queued %d | build %.1f ms | peak %.1f ms" % [
-			fps, 1000.0 / float(fps), int(stream["loaded_blocks"]), int(stream["total_blocks"]),
-			int(stream["loaded_buildings"]), indoor_count, int(stream.get("pending_blocks", 0)),
-			float(stream.get("last_build_usec", 0)) / 1000.0, float(stream.get("peak_build_usec", 0)) / 1000.0]
+		var metrics: Dictionary = frame_time_recorder.get_frame_metrics()
+		var capture_status := "REC %d" % frame_time_recorder.captured_frames() if frame_time_recorder.recording else "F8 RECORD"
+		performance_label.text = "RTX 3060 target 1080p/60 | %d FPS | %.1f ms avg | p95 %.1f | p99 %.1f | 1%% low %.0f FPS | >33ms %d" % [
+			fps, float(metrics["avg_ms"]), float(metrics["p95_ms"]), float(metrics["p99_ms"]),
+			float(metrics["low_1pct_fps"]), int(metrics["hitches"])]
+		performance_label.text += "\n%d/%d blocks | %d shells | room %d | queue %d | last build %.1f ms | peak %.1f ms | %s" % [
+			int(stream["loaded_blocks"]), int(stream["total_blocks"]), int(stream["loaded_buildings"]), indoor_count,
+			int(stream.get("pending_blocks", 0)), float(stream.get("last_build_usec", 0)) / 1000.0,
+			float(stream.get("peak_build_usec", 0)) / 1000.0, capture_status]
 	var control_help := "WASD Move | Mouse Look | E Car | F Transit | H Enter | G Interact | Esc Pause | M Map | Tab Journal"
 	if gamepad_active:
 		control_help = "PAD: LS Move / Steer • RS Look • A Jump/Service • X Interact/Contract • Y Car • LB Door • RB Transit • Start Pause • View Map"

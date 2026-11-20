@@ -28,9 +28,10 @@ This is an alpha-quality playable prototype, not a commercial AAA release. The o
 | Tab | Journal in pause menu | Quest/notes inventory |
 | F5 / F9 | Pause → Save/Load | Save/load |
 | T / Y | — | Debug clock advance / pause |
-| F3 | Settings | FPS and streamed-block overlay |
+| F3 | Settings | Rolling frame-time p95/p99/1% lows, streamed-block overlay |
+| F8 | — | Start/stop frame-by-frame driving trace (CSV in Godot user-data folder) |
 
-Enable **F3** to see an actual FPS/frametime estimate, and use the pause **Settings** toggles for SSR, bloom, contact shading and fog if the GPU struggles. Hardware target is **1080p/60 on RTX 3060**, *not yet benchmarked*. On a poor-performing system, first test with SSR/ambient occlusion off rather than assuming gameplay bugs.
+Enable **F3** for rolling measured frame intervals and **F8** to capture a repeatable per-frame CSV while driving. A recording holds up to 18,000 frames; stop with F8 to export, then compare Southworks-to-Central Exchange cold/warm drives. Frame intervals include VSync and are not GPU-only timings. Use the pause **Settings** toggles for SSR, bloom, contact shading and fog if the GPU struggles. Hardware target is **1080p/60 on RTX 3060**, *not yet benchmarked*. On a poor-performing system, first test with SSR/ambient occlusion off rather than assuming gameplay bugs.
 
 ## Central Exchange building-by-building visual acceptance
 

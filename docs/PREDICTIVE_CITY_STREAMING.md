@@ -59,3 +59,34 @@ To review in the Windows game: use F3 while driving several laps between
 Southworks and Central Exchange, record Godot profiler frame times and the
 frame-time histogram before/after the feature branch. Check peak times both
 after cold launch and after the district has been visited once.
+
+## Instrumented Windows driving trace (next playtest)
+
+Press **F3** for a live, rolling 240-render-frame view: average frame interval,
+nearest-rank p95/p99 frame interval, 1% low FPS (reciprocal of the mean
+slowest 1% of frame intervals), and number of frames slower than 33.33 ms.
+The first few frames after opening the game do not represent a full window.
+
+Press **F8** once to start a frame-by-frame trace and again to stop and save
+a CSV in the Godot user-data folder. The on-screen notification gives the full
+path. The CSV includes elapsed time, observed frame interval, newly built
+city block count, measured main-thread city-build time, pending chunk count,
+player/vehicle world X/Z and whether driving. Recording is capped at 18,000
+frames (approximately five minutes at 60 FPS) to prevent unbounded memory
+growth. A new F8 recording replaces the previous in-memory capture; exported
+CSV files are kept separately with timestamps.
+
+**Scope of measurement:** `delta` is the elapsed time between Godot
+`_process` callbacks, including pacing/VSync, OS scheduling, and other work.
+It is **not** GPU execution time. The city-build duration is measured from
+`Time.get_ticks_usec()` inside the block builder; it correlates with but
+does not exhaustively explain long render intervals. Main-world callbacks
+observe CityDetails' last completed build on the following frame. A block's
+duration is recorded only when the loaded-block counter increases, preventing
+the last build timestamp from being falsely repeated on every idle frame.
+
+For comparable runs: capture a **cold** drive out of Southworks at 21:30,
+save the trace, revisit the same route for a **warm** drive, save separately,
+then compare p95/p99, 1% lows and build-event rows. Repeat at midday and with
+SSR on/off. Keep #32 open until the observed long frames have been reduced and
+player-visible stutter is independently verified on Windows Forward+.

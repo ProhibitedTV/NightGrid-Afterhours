@@ -1,0 +1,106 @@
+extends RefCounted
+## Measured render-callback intervals for repeatable Windows traversal QA.
+## This records observable frame spacing (including VSync), not pure GPU time.
+const WINDOW_FRAMES = 240
+const MAX_CAPTURE_FRAMES = 18000
+const HITCH_MS = 1000.0 / 30.0
+
+var recording := false
+var capture_full := false
+var _recent: Array[float] = []
+var _rows: Array[Dictionary] = []
+var _elapsed := 0.0
+var _previous_loads := 0
+
+func begin_capture(loaded_count: int) -> void:
+	_rows.clear()
+	_elapsed = 0.0
+	_previous_loads = loaded_count
+	capture_full = false
+	recording = true
+
+func end_capture() -> void:
+	recording = false
+
+func sample_frame(delta: float, stream: Dictionary, position: Vector3, driving: bool) -> void:
+	if delta <= 0.0 or not is_finite(delta):
+		return
+	var interval_ms := delta * 1000.0
+	_recent.append(interval_ms)
+	if _recent.size() > WINDOW_FRAMES:
+		_recent.pop_front()
+
+	var total_loads := int(stream.get("loads", 0))
+	var new_loads := maxi(0, total_loads - _previous_loads)
+	_previous_loads = total_loads
+	if not recording:
+		return
+
+	if _rows.size() >= MAX_CAPTURE_FRAMES:
+		recording = false
+		capture_full = true
+		return
+
+	_elapsed += delta
+	# The world samples before its child CityDetails._process. A completed
+	# build is visible on the NEXT world frame; never label idle frames as
+	# spending the old last_build_usec measurement repeatedly.
+	var build_ms := float(stream.get("last_build_usec", 0)) / 1000.0 if new_loads > 0 else 0.0
+	_rows.append({
+		"elapsed_s": _elapsed,
+		"frame_ms": interval_ms,
+		"loaded": new_loads,
+		"build_ms": build_ms,
+		"queued": int(stream.get("pending_blocks", 0)),
+		"x": position.x,
+		"z": position.z,
+		"driving": 1 if driving else 0
+	})
+
+func get_frame_metrics() -> Dictionary:
+	var count := _recent.size()
+	if count == 0:
+		return {"frames": 0, "avg_ms": 0.0, "p95_ms": 0.0,
+			"p99_ms": 0.0, "low_1pct_fps": 0.0, "hitches": 0}
+	var ordered: Array[float] = _recent.duplicate()
+	ordered.sort()
+	var sum_ms := 0.0
+	var hitches := 0
+	for value in ordered:
+		sum_ms += value
+		if value > HITCH_MS:
+			hitches += 1
+	var tail_count := maxi(1, ceili(float(count) * 0.01))
+	var tail_ms := 0.0
+	for index in range(count - tail_count, count):
+		tail_ms += ordered[index]
+	return {
+		"frames": count,
+		"avg_ms": sum_ms / float(count),
+		"p95_ms": ordered[clampi(ceili(float(count) * 0.95) - 1, 0, count - 1)],
+		"p99_ms": ordered[clampi(ceili(float(count) * 0.99) - 1, 0, count - 1)],
+		"low_1pct_fps": 1000.0 * float(tail_count) / tail_ms,
+		"hitches": hitches
+	}
+
+func captured_frames() -> int:
+	return _rows.size()
+
+func export_csv(path: String = "") -> String:
+	if _rows.is_empty():
+		return ""
+	var destination := path
+	if destination.is_empty():
+		var stamp := Time.get_datetime_string_from_system().replace(":", "-")
+		destination = "user://nightgrid-drive-trace-" + stamp + ".csv"
+	var file := FileAccess.open(destination, FileAccess.WRITE)
+	if file == null:
+		return ""
+	file.store_line("elapsed_s,frame_ms,loaded_blocks,stream_build_ms,queued_blocks,world_x,world_z,in_car")
+	for row in _rows:
+		file.store_line("%.4f,%.3f,%d,%.3f,%d,%.2f,%.2f,%d" % [
+			float(row["elapsed_s"]), float(row["frame_ms"]), int(row["loaded"]),
+			float(row["build_ms"]), int(row["queued"]), float(row["x"]),
+			float(row["z"]), int(row["driving"])])
+	file.close()
+	return ProjectSettings.globalize_path(destination)
