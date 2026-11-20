@@ -216,11 +216,15 @@ func request_focus(at: Vector3, velocity: Vector3 = Vector3.ZERO) -> void:
 func _process(_delta: float) -> void:
 	if not _initialized or _stream_locked:
 		return
+	if _inflight_node == null and _pending.is_empty() and _pending_unloads.is_empty():
+		return
 	var started := Time.get_ticks_usec()
+	var completed_streaming := false
 	if _inflight_node != null:
 		_flush_detail_batches_bounded()
 		if _batches.is_empty():
 			_complete_inflight_block()
+			completed_streaming = true
 	elif not _pending.is_empty():
 		# Start at most one block per frame. Its collision shell is committed
 		# immediately, then its decorative MultiMesh material groups are
@@ -231,11 +235,12 @@ func _process(_delta: float) -> void:
 			_flush_detail_batches_bounded()
 			if _batches.is_empty():
 				_complete_inflight_block()
+				completed_streaming = true
 	else:
 		_drain_unloads()
 	_last_stream_build_usec = Time.get_ticks_usec() - started
 	_peak_stream_build_usec = maxi(_peak_stream_build_usec, _last_stream_build_usec)
-	if _pending.is_empty() and _inflight_node == null and _pending_unloads.is_empty():
+	if completed_streaming and _pending.is_empty() and _inflight_node == null:
 		_prune_distant(_requested_cell, _prefetch_cell)
 
 func _outside_unload_radius(block: Vector2i, focus: Vector2i, forecast: Vector2i) -> bool:
