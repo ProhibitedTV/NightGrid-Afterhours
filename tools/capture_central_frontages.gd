@@ -82,7 +82,9 @@ func _capture() -> void:
 	# A roofline/return inspection from above the ACTUAL selected lot.
 	var loaded: Dictionary = city.get("_loaded")
 	var chunk := loaded.get(Vector2i(-1, 0)) as Node3D
-	var brickwater := chunk.get_node_or_null("PhotorealFrontage_-1_0_1") if chunk != null else null
+	var brickwater: Node3D = null
+	if chunk != null:
+		brickwater = chunk.get_node_or_null("PhotorealFrontage_-1_0_1") as Node3D
 	if brickwater == null:
 		_fail("Brickwater corner missing for roof geometry screenshot")
 		return
