@@ -17,6 +17,7 @@ const CANOPY_REACH = -1.55
 var building_width := 15.0
 var building_height := 20.0
 var district := "BRICKWATER"
+var storefront_name := ""
 var _style := "MASONRY"
 var _buffers: Dictionary = {}
 var _statistics := {
@@ -27,10 +28,11 @@ var _statistics := {
 }
 var _mats: Dictionary = {}
 
-func configure(width: float, height: float, area: String) -> void:
+func configure(width: float, height: float, area: String, shop_name: String) -> void:
 	building_width = width
 	building_height = height
 	district = area
+	storefront_name = shop_name
 	_style = "MASONRY" if district == "BRICKWATER" else "GLAZED"
 
 func _ready() -> void:
@@ -226,6 +228,7 @@ func _generate_facade() -> void:
 	_rect("REVEALS", -half, half, 0.10, 0.38, FRONT - 0.058)
 	_build_swept_canopy(-half + 0.28, half - 0.28)
 	_flush_meshes()
+	_build_storefront_identification()
 
 func _build_swept_canopy(x0: float, x1: float) -> void:
 	# One ribbed extruded canopy surface, curved over the actual sidewalk
@@ -245,6 +248,22 @@ func _build_swept_canopy(x0: float, x1: float) -> void:
 		_statistics["canopy_segments"] += 1
 	# The face of the canopy is a single continuous metal fascia.
 	_rect("CLADDING", x0, x1, y - 0.24, y - 0.02, CANOPY_REACH - 0.015)
+
+func _build_storefront_identification() -> void:
+	# Functional shop identity uses a stable existing district label, not a
+	# detached glowing billboard. The small fascia is a single metal surface.
+	if storefront_name.is_empty():
+		return
+	var sign := Label3D.new()
+	sign.name = "ExistingShopIdentity"
+	sign.text = storefront_name
+	sign.font_size = 46
+	sign.pixel_size = 0.0065
+	sign.modulate = Color("e5dad0") if _style == "MASONRY" else Color("add5d8")
+	sign.outline_modulate = Color("1e2d34")
+	sign.outline_size = 5
+	sign.position = Vector3(0.0, GROUND - 0.095, CANOPY_REACH - 0.036)
+	add_child(sign)
 
 func _flush_meshes() -> void:
 	for family in _buffers:
