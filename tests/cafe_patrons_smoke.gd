@@ -80,7 +80,7 @@ func _verify() -> void:
 		_fail("Guest character requires both eye pivots")
 		return
 	# Probe actual player-reachable spot *in front of*, not inside, the sofa.
-	var conversation_pos := rooms.get("ORIGIN") + Vector3(-4.60, 1.18, 0.25)
+	var conversation_pos := room.global_position + Vector3(-4.60, 1.18, 0.25)
 	player.global_position = conversation_pos
 	var nearby: Dictionary = rooms.call("patron_near", player.global_position)
 	if str(nearby.get("id", "")) != "tamsin":
