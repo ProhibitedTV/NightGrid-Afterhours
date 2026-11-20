@@ -46,6 +46,16 @@ func _verify() -> void:
 	if west.position.x + (west.mesh as PlaneMesh).size.x * 0.5 > -WorldPlan.city_bounds() - 12.0:
 		_fail("Western water is covering a playable street")
 		return
+	for water in [north, west]:
+		var shore := water as MeshInstance3D
+		var plane := shore.mesh as PlaneMesh
+		var material := shore.material_override as ShaderMaterial
+		if plane == null or plane.subdivide_width < 12 or material == null:
+			_fail("Harbor rendering lost authored water geometry or shader material")
+			return
+		if material.shader == null or material.shader.resource_path != "res://assets/shaders/morrow_harbor_water.gdshader":
+			_fail("Harbor shader is missing or no longer shared by both ocean surfaces")
+			return
 	await physics_frame
 	var space := world.get_world_3d().direct_space_state
 	var limit := WorldPlan.city_bounds() + 13.5
