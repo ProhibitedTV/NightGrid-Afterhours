@@ -170,28 +170,36 @@ func set_night_factor(value: float) -> void:
 			var material: StandardMaterial3D = _palette[key]
 			material.emission_energy_multiplier = brightness
 
-func _material(color: Color, emissive: bool = false) -> StandardMaterial3D:
+func _material(color: Color, emissive: bool = false, surface_kind: String = "") -> StandardMaterial3D:
 	var key := color.to_html(false) + ("_glow" if emissive else "_matte")
+	if not surface_kind.is_empty():
+		key += "_surface_" + surface_kind
 	if _palette.has(key):
 		return _palette[key]
-	var material := StandardMaterial3D.new()
-	material.albedo_color = color
-	material.metallic = 0.13
-	material.roughness = 0.74
-	if emissive:
-		material.emission_enabled = true
-		material.emission = color
-		material.emission_energy_multiplier = 1.65
+	var material: StandardMaterial3D
+	if not surface_kind.is_empty():
+		material = Materials.surface(surface_kind, color)
+	else:
+		material = StandardMaterial3D.new()
+		material.albedo_color = color
+		material.metallic = 0.13
+		material.roughness = 0.74
+		if emissive:
+			material.emission_enabled = true
+			material.emission = color
+			material.emission_energy_multiplier = 1.65
 	_palette[key] = material
 	return material
 
-func _detail(at: Vector3, size: Vector3, color: Color, glow: bool = false) -> void:
+func _detail(at: Vector3, size: Vector3, color: Color, glow: bool = false, surface_kind: String = "") -> void:
 	# MultiMesh keeps tens of thousands of architectural parts to a few draw calls.
 	var material_key := color.to_html(false) + ("_glow" if glow else "_matte")
+	if not surface_kind.is_empty():
+		material_key += "_surface_" + surface_kind
 	var key := "%s|%d,%d" % [material_key, floori(at.x / (CELL * 2.0)), floori(at.z / (CELL * 2.0))]
 	if not _batches.has(key):
 		_batches[key] = []
-		_material(color, glow)
+		_material(color, glow, surface_kind)
 	var transforms: Array = _batches[key]
 	transforms.append(Transform3D(Basis().scaled(size), at))
 	_statistics["batched_details"] += 1
@@ -489,20 +497,20 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 			var wx := center.x + (float(window_index) - 1.5) * width * 0.205
 			var lit := _rng.randf() > (0.52 if district == "BRICKWATER" else 0.30)
 			var glass := Color("b7d7cf") if lit else DARK_GLASS
-			_detail(Vector3(wx, fy, front - 0.095), Vector3(width * 0.135, 1.48, 0.09), glass, lit and _rng.randf() > 0.72)
-			_detail(Vector3(wx, fy, back + 0.095), Vector3(width * 0.135, 1.48, 0.09), glass)
+			_detail(Vector3(wx, fy, front - 0.095), Vector3(width * 0.135, 1.48, 0.09), glass, lit and _rng.randf() > 0.72, "GLASS" if not lit else "")
+			_detail(Vector3(wx, fy, back + 0.095), Vector3(width * 0.135, 1.48, 0.09), glass, false, "GLASS")
 			_detail(Vector3(wx, fy - 0.81, front - 0.12), Vector3(width * 0.145, 0.12, 0.13), Color("101e2b"))
 		# Floor banding gives each building a perceived internal structure.
 		_detail(Vector3(center.x, fy - 1.55, front - 0.055), Vector3(width, 0.11, 0.13), Color("252d3d"))
 		for side in [-1.0, 1.0]:
 			for side_window in range(2):
 				var wz := center.z + (float(side_window) - 0.5) * depth * 0.38
-				_detail(Vector3(center.x + side * (width / 2.0 + 0.07), fy, wz), Vector3(0.11, 1.45, 2.0), Color("426178"))
+				_detail(Vector3(center.x + side * (width / 2.0 + 0.07), fy, wz), Vector3(0.11, 1.45, 2.0), Color("426178"), false, "GLASS")
 
 	# Street-level retail facade. Entry is visual-only until interiors exist.
 	var sign_color: Color = ACCENT[district]
 	_detail(Vector3(center.x, 2.0, front - 0.12), Vector3(width * 0.84, 2.75, 0.14), Color("182637"))
-	_detail(Vector3(center.x, 2.0, front - 0.22), Vector3(2.10, 2.55, 0.08), Color("647e8d"))
+	_detail(Vector3(center.x, 2.0, front - 0.22), Vector3(2.10, 2.55, 0.08), Color("647e8d"), false, "GLASS")
 	_detail(Vector3(center.x + 1.0, 2.0, front - 0.24), Vector3(0.07, 2.55, 0.12), Color("121b28"))
 	_detail(Vector3(center.x, 4.0, front - 0.24), Vector3(width * 0.86, 0.75, 0.22), Color("1b2636"))
 	_detail(Vector3(center.x, 4.45, front - 0.27), Vector3(width * 0.88, 0.12, 0.19), sign_color, true)
