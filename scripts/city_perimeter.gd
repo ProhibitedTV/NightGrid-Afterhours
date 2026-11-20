@@ -4,9 +4,9 @@ extends Node3D
 ## Gameplay collision is a visible, solid road boundary, never a fade/teleport.
 const WorldPlan = preload("res://scripts/world_plan.gd")
 const Materials = preload("res://scripts/material_library.gd")
-const EDGE := WorldPlan.GRID_RADIUS * WorldPlan.BLOCK_SIZE + 13.5
-const SPAN := 492.0
-const ROAD_STEP := WorldPlan.BLOCK_SIZE
+const EDGE = WorldPlan.GRID_RADIUS * WorldPlan.BLOCK_SIZE + 13.5
+const SPAN = 492.0
+const ROAD_STEP = WorldPlan.BLOCK_SIZE
 
 var _stats := {"barriers": 0, "road_gates": 0, "sea_surfaces": 0, "landscapes": 0,
 	"port_piers": 0, "industrial_landmarks": 0}
