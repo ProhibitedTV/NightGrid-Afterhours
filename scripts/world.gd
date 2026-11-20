@@ -74,7 +74,9 @@ var venue_panel: PanelContainer
 var venue_label: Label
 var venue_service_button: Button
 var venue_job_button: Button
+var venue_talk_button: Button
 var venue_close_button: Button
+var mara_dialogue_line := ""
 var venue_selected_id := ""
 var venue_job_active := ""
 var venue_job_completed: Array[String] = []
@@ -224,6 +226,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_venue_action(1)
 		elif event.is_action_pressed("service_two"):
 			_venue_action(2)
+		elif event.is_action_pressed("service_three"):
+			_venue_action(3)
 		elif event.is_action_pressed("interact"):
 			_close_venue()
 	elif event.is_action_pressed("car_toggle"):
@@ -260,6 +264,8 @@ func _process(delta: float) -> void:
 		return
 	var actor := _actor()
 	var indoors: bool = interiors.call("is_inside")
+	if indoors and str(interiors.call("active_site_id")) == "lantern_cup":
+		interiors.call("set_mara_focus", player.global_position)
 	if not venue_panel.visible:
 		# Right stick or mouse may orbit the camera on foot, in vehicles or in transit.
 		var right_look: Vector2 = GameInput.look_vector()
@@ -861,6 +867,7 @@ func _toggle_interaction() -> void:
 			var clue_id := str(room_detail["id"])
 			if not civic_intel.has(clue_id):
 				civic_intel.append(clue_id)
+				interiors.call("mara_discovery_reaction")
 				_notify("MARA'S SHIFT NOTES: " + str(room_detail["text"]))
 			else:
 				_notify("You already copied Mara's shift notes to your journal.")
@@ -936,6 +943,9 @@ func _civic_service_text(site: Dictionary) -> String:
 func _update_civic_panel() -> void:
 	if civic_selected_id.is_empty() or venue_label == null:
 		return
+	# This fourth menu action must never leak into another venue or service.
+	if venue_talk_button != null:
+		venue_talk_button.visible = false
 	var site: Dictionary = civic_services.call("site_by_id", civic_selected_id)
 	if site.is_empty():
 		_close_venue()
@@ -1086,10 +1096,13 @@ func _toggle_venue() -> void:
 		_notify("Find a glowing venue frontage, then press G to visit.")
 		return
 	venue_selected_id = str(venue["id"])
+	mara_dialogue_line = ""
 	_show_venue_dialogue()
 	_update_venue_panel()
 
 func _show_venue_dialogue() -> void:
+	if venue_selected_id == "lantern_cup" and interiors.call("is_inside"):
+		interiors.call("set_mara_attention", true)
 	venue_panel.visible = true
 	player.set("input_blocked", true)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -1097,6 +1110,11 @@ func _show_venue_dialogue() -> void:
 		venue_service_button.call_deferred("grab_focus")
 
 func _close_venue() -> void:
+	if interiors != null:
+		interiors.call("set_mara_attention", false)
+	mara_dialogue_line = ""
+	if venue_talk_button != null:
+		venue_talk_button.visible = false
 	venue_selected_id = ""
 	civic_selected_id = ""
 	if venue_panel != null:
@@ -1122,6 +1140,11 @@ func _update_venue_panel() -> void:
 	var body := "%s | %s | %s (%s)\n%s: %s\n" % [
 		str(venue["name"]), str(venue["kind"]), status, hours_text,
 		str(venue["host"]), str(venue["flavor"])]
+	var is_mara := venue_selected_id == "lantern_cup" and bool(interiors.call("is_inside"))
+	if is_mara:
+		var introduction := str(interiors.call("mara_greeting", _mara_context()))
+		body += "\n" + (mara_dialogue_line if not mara_dialogue_line.is_empty() else introduction)
+		body += "\n[3 / Y] TALK TO MARA"
 	if open_now:
 		body += "[1 / A] %s  $%d   " % [str(venue["item"]), int(venue["price"])]
 		if venue_job_active.is_empty():
@@ -1146,6 +1169,17 @@ func _update_venue_panel() -> void:
 			(venue_job_active.is_empty() and not venue_job_completed.has(str(offered["id"]))))
 		venue_job_button.disabled = not open_now or not available
 		venue_job_button.text = "2 / X  •  SIDE JOB"
+	if venue_talk_button != null:
+		venue_talk_button.visible = is_mara
+		venue_talk_button.disabled = not is_mara
+
+func _mara_context() -> Dictionary:
+	return {
+		"hour": float(day_night.get("hour")),
+		"health": health, "heat": heat,
+		"shift_notes": civic_intel.has("lantern_cup_shift_notes"),
+		"job": venue_job_active
+	}
 
 func _venue_action(option: int) -> void:
 	if not civic_selected_id.is_empty():
@@ -1156,6 +1190,15 @@ func _venue_action(option: int) -> void:
 	var venue: Dictionary = venue_system.call("venue_by_id", venue_selected_id)
 	if venue.is_empty():
 		_close_venue()
+		return
+	# Dialogue is no-cost and remains accessible even near closing time.
+	if option == 3:
+		if venue_selected_id == "lantern_cup" and interiors.call("is_inside"):
+			var response: Dictionary = interiors.call("mara_talk", _mara_context())
+			if not response.is_empty():
+				mara_dialogue_line = str(response["line"])
+				_notify("MARA / " + str(response["topic"]))
+			_update_venue_panel()
 		return
 	if not bool(venue_system.call("is_open", venue_selected_id)):
 		_notify("%s is closed until %02d:00." % [str(venue["name"]), int(venue["opens"])])
@@ -1178,6 +1221,9 @@ func _venue_action(option: int) -> void:
 		cash -= price
 		health = minf(100.0, health + healing)
 		heat = maxf(0.0, heat - cover)
+		if venue_selected_id == "lantern_cup" and interiors.call("is_inside"):
+			interiors.call("mara_purchase_reaction")
+			mara_dialogue_line = "Mara: That's freshly pulled. Stay a while; the city's not going anywhere."
 		_notify("%s: %s. %s" % [str(venue["name"]), str(venue["item"]),
 			"Recovered strength." if healing > 0.0 else "You blend into the crowd."])
 	elif option == 2:
@@ -1322,6 +1368,13 @@ func _build_hud() -> void:
 	venue_job_button.focus_mode = Control.FOCUS_ALL
 	venue_job_button.pressed.connect(func() -> void: _venue_action(2))
 	action_row.add_child(venue_job_button)
+	venue_talk_button = Button.new()
+	venue_talk_button.name = "TalkToMara"
+	venue_talk_button.text = "3 / Y  •  TALK"
+	venue_talk_button.focus_mode = Control.FOCUS_ALL
+	venue_talk_button.visible = false
+	venue_talk_button.pressed.connect(func() -> void: _venue_action(3))
+	action_row.add_child(venue_talk_button)
 	venue_close_button = Button.new()
 	venue_close_button.name = "CloseDialogue"
 	venue_close_button.text = "G / B  •  BACK"
@@ -1362,6 +1415,8 @@ func _update_hud() -> void:
 		hud_label.text += "\nINSIDE: %s | %s" % [str(room_site.get("name", site_id)), "H EXIT" if interiors.call("exit_reachable", player.global_position) else "Return to front door"]
 		if interiors.call("counter_reachable", player.global_position):
 			hud_label.text += "\n[G] Service counter"
+		if site_id == "lantern_cup":
+			hud_label.text += "\nMARA: counter [G], talk [3/Y] in dialogue"
 		_update_venue_panel()
 		return
 	if current_car == null and current_transit == null:

@@ -41,6 +41,10 @@ The street-level benchmark is the fixed crossroads at the four downtown district
 
 The original Vesper Market café is a complete **paired exterior and enterable interior** benchmark: working lanterns, glazed street façade and signage outside, plus brass/wood/ceramic interiors, slatted ceilings, upholstery and proper collision, stocked espresso service, 12 pendant lamps, restrained warm local lights, animated machine steam, and source-owned spatial pump ambience inside. Staffed purchase/health recovery, world seed and prior interaction/save contracts continue to work. A one-off shift-note discovery beside a booth gives the player something useful to find beyond the counter; it saves via the existing journal-intel array. Full QA and production-art limitations: [Lantern Cup](LANTERN_CUP.md).
 
+## Fifth vertical slice: MARA — character language
+
+The real Lantern Cup contact now owns an original generated humanlike mesh with a tailored barista outfit, anatomically motivated face/eyes/hair, functional accessory detailing, articulated upper-body/head/arm pivots and fixed-geometry idle, blink, speech and serving performance. Dialogue at the counter uses **3/Y** inside the existing venue menu; real health, police attention, local jobs and discovered notes alter the script, while coffee purchases animate her serving hand. The character is spawned **only** for the Lantern Cup active room and does not modify its G/H interactions, world seeds or saves. Character visual requirements and limitations: [Mara Hero](MARA_HERO.md).
+
 ## Capture and quality gate
 
 - Verify the train at **12:00**, **19:15** and **00:00** from street-level wide shot, track-level three-quarter exterior, end-cab close-up, door close-up and station departure.

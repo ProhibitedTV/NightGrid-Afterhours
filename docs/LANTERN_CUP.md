@@ -15,6 +15,10 @@ Warm brass and walnut, aged glazed brick, graphite acoustic ceiling baffles, tra
 - **Atmosphere:** one new original cached, spatial 11.025-kHz café pump/hiss/crockery loop alongside the existing synthesized café soundscape. All audio and furniture free when the player leaves; two small-range unshadowed bar worklights supplement the existing shared room pair.
 - **Gameplay integration:** staffed interactions and coffee's existing actual cash/health outcomes are preserved. At the right rear booth, pressing **G** reveals **Mara's shift notes**. The note is a one-time lore discovery recorded in the **existing saved civic_intel array**—no new save schema or currency reward, and no way to repeatedly farm it.
 
+## Mara — staffed hero character and responsive conversation
+
+The previous three-block contact silhouette has been replaced with a streamed original humanlike character: tapered facial sculpt, eyes/lids/brows/lips, swept hair, ear radio, sewn utility jacket, apron and readable identity details. She breathes, blinks, looks at the player, speaks with expressive mouth motion and gestures after successful coffee orders. With the counter menu open, **3** / **Y** starts or advances four no-cost authored conversations contextualized by player health, police heat, active work and the shift note. Existing 1/A coffee and 2/X job inputs remain intact. Character dialogue is ephemeral; the previous booth clue persists as before. [Mara art and animation details](MARA_HERO.md).
+
 ## Technical/safety contract
 
 The live game only constructs the bespoke `LanternCupHero` when `InteriorSystem` enters `lantern_cup`. The venue's id, host, storefront position, schedule, business category, other eleven social locations, four existing side jobs, counter reach, exit radius and v1 save fields remain untouched. Other two cafés retain the original `_lounge` archetype.

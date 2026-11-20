@@ -49,6 +49,8 @@ jobs:
         run: godot --headless --path . --script res://tests/streaming_interiors_smoke.gd
       - name: Validate Lantern Cup cinematic café interior, unique interaction and persistent save
         run: godot --headless --path . --script res://tests/lantern_cup_hero_smoke.gd
+      - name: Validate Mara's character rig, reactive dialogue and indoor save lifecycle
+        run: godot --headless --path . --script res://tests/mara_character_smoke.gd
       - name: Validate main menus, saved settings and controller action contexts
         run: godot --headless --path . --script res://tests/menus_gamepad_smoke.gd
       - name: Run smoke test for 90 frames

@@ -6,7 +6,7 @@ const ACTIONS = [
 	"look_left", "look_right", "look_up", "look_down",
 	"sprint", "jump", "drive_accelerate", "drive_reverse", "drive_brake",
 	"interact", "car_toggle", "transit_toggle", "interior_toggle",
-	"use_supply", "service_one", "service_two",
+	"use_supply", "service_one", "service_two", "service_three",
 	"game_pause", "game_back", "map_open", "journal_open", "game_save", "game_load", "game_new",
 	"advance_clock", "pause_clock", "toggle_fps", "toggle_ssr"
 ]
@@ -54,6 +54,10 @@ static func install() -> void:
 	_button("service_one", JOY_BUTTON_A)
 	_key("service_two", KEY_2)
 	_button("service_two", JOY_BUTTON_X)
+	# Y is a venue-menu shortcut only when a venue dialogue is open.
+	# Outside the panel, Y remains the car toggle.
+	_key("service_three", KEY_3)
+	_button("service_three", JOY_BUTTON_Y)
 	_key("game_pause", KEY_ESCAPE)
 	_button("game_pause", JOY_BUTTON_START)
 	_button("game_back", JOY_BUTTON_B)
