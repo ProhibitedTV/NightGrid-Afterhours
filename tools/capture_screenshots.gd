@@ -44,7 +44,7 @@ func _capture_all() -> void:
 	# composition at the default dusk lighting, without a graphics mockup.
 	clock.call("set_hour", 20.25)
 	_stage_street(Vector3(0.0, 1.15, 6.0),
-		Vector3(23.0, 12.5, 42.0), Vector3(-10.0, 3.8, -59.0), false)
+		Vector3(1.8, 8.3, 56.0), Vector3(-2.0, 3.8, -87.0), false)
 	await _settle()
 	if not await _screenshot("01-morrow-bay-neon-night.png"):
 		return
@@ -62,8 +62,8 @@ func _capture_all() -> void:
 	rail.set("next_station", 4)
 	rail.set("dwell_remaining", 8.0)
 	var station: Vector3 = rail.call("station_entrance", 3)
-	_stage_street(station, Vector3(88.0, 19.0, -15.0),
-		Vector3(116.0, 10.2, -58.0), false)
+	_stage_street(station, Vector3(115.5, 8.5, -32.0),
+		Vector3(116.0, 12.3, -58.0), false)
 	await _settle()
 	if not await _screenshot("03-m-line-helix-terminal.png"):
 		return
@@ -94,7 +94,7 @@ func _capture_all() -> void:
 	game.call("_toggle_interior")
 	clock.call("set_hour", 19.5)
 	_stage_street(Vector3(0.0, 1.15, 6.0),
-		Vector3(23.0, 12.5, 42.0), Vector3(-10.0, 3.8, -59.0), false)
+		Vector3(1.8, 8.3, 56.0), Vector3(-2.0, 3.8, -87.0), false)
 	hud.visible = false
 	menu.call("open_title")
 	await _settle()
