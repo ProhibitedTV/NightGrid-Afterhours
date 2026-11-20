@@ -138,6 +138,10 @@ func set_streaming_enabled(value: bool) -> void:
 	if _stream_locked:
 		_pending.clear()
 		_discard_unrequested_stages()
+		# On resume, an unchanged actor cell must still rebuild the missing
+		# predictive queue. Pausing streaming must not permanently lose work.
+		_requested_cell = Vector2i(999, 999)
+		_prefetch_cell = Vector2i(999, 999)
 
 func _grid_cell(at: Vector3) -> Vector2i:
 	return Vector2i(
