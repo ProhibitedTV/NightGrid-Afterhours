@@ -3,8 +3,8 @@ extends Node3D
 ## generator. Closing structural returns and solid parapet/coping are built
 ## once when this streamed block loads. No collisions or real-time lights.
 ## The scanned brick and steel materials come from the owning frontage.
-const FRONT := -0.38
-const AVENUE_START := 0.22
+const FRONT = -0.38
+const AVENUE_START = 0.22
 
 var building_width := 15.0
 var building_height := 20.0
