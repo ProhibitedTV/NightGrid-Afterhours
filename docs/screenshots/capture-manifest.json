@@ -1,0 +1,34 @@
+{
+  "images": {
+    "01-morrow-bay-neon-night.png": {
+      "bytes": 490082,
+      "sha256": "514850a83e616d53ea283a9413e04dc2b98ce5d1ad859fdef1e060fadd602f5e"
+    },
+    "02-vesper-market-nightlife.png": {
+      "bytes": 612268,
+      "sha256": "a8686c6d95ba63decdfe162e0fb679bc698627f5d002bcd5a126ee19fe4293ff"
+    },
+    "03-m-line-helix-terminal.png": {
+      "bytes": 379201,
+      "sha256": "625b78364c1be7b53327c312368d047abddf9f1e6aa006fb858ffe8f41123580"
+    },
+    "04-horizon-commons-daylight.png": {
+      "bytes": 669027,
+      "sha256": "f6fc93dd897af715dc186298c8404909e061207954c1eaa8f344c870f27f523d"
+    },
+    "05-quay-fresh-interior.png": {
+      "bytes": 208985,
+      "sha256": "754b4a67b32f8db452614bb0f63c55af79706bd90f7a913a6cf4279ef96f6d03"
+    },
+    "06-title-menu.png": {
+      "bytes": 149055,
+      "sha256": "a2ee9b669c9c5ed00a313dd27102014540aabbcbfd8f482be8a2c0cce13b8e14"
+    },
+    "07-city-map-menu.png": {
+      "bytes": 136669,
+      "sha256": "f7f544236d9d7046526f8a7f67b575af632f13b5b6eee0b394372d02764bd07c"
+    }
+  },
+  "renderer": "Godot 4.3 Mesa software OpenGL Compatibility 1280x720 (NOT Vulkan/RTX)",
+  "source_revision": "860a200a767f02b69f4f033b070c70c202e1799e"
+}
