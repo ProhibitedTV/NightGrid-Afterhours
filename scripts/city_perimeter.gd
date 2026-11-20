@@ -4,6 +4,7 @@ extends Node3D
 ## Gameplay collision is a visible, solid road boundary, never a fade/teleport.
 const WorldPlan = preload("res://scripts/world_plan.gd")
 const Materials = preload("res://scripts/material_library.gd")
+const HarborShader = preload("res://assets/shaders/morrow_harbor_water.gdshader")
 const EDGE = WorldPlan.GRID_RADIUS * WorldPlan.BLOCK_SIZE + 13.5
 const SPAN = 492.0
 const ROAD_STEP = WorldPlan.BLOCK_SIZE
@@ -62,16 +63,14 @@ func _water(name_value: String, center: Vector3, surface_size: Vector2) -> void:
 	sea.name = name_value
 	var plane := PlaneMesh.new()
 	plane.size = surface_size
-	plane.subdivide_width = 6
-	plane.subdivide_depth = 6
+	plane.subdivide_width = 20
+	plane.subdivide_depth = 20
 	sea.mesh = plane
 	sea.position = center
-	var material := StandardMaterial3D.new()
-	material.albedo_color = Color("163d4c")
-	material.roughness = 0.22
-	material.metallic = 0.28
-	material.uv1_scale = Vector3(0.07, 0.07, 0.07)
-	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	# Fixed authored water surface with a modest original shader; no
+	# per-frame mesh generation, screen textures or offscreen reflections.
+	var material := ShaderMaterial.new()
+	material.shader = HarborShader
 	sea.material_override = material
 	sea.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(sea)
