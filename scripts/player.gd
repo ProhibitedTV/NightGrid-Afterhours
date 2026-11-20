@@ -32,7 +32,7 @@ func _physics_process(delta: float) -> void:
 			velocity.y = JUMP_SPEED
 	else:
 		velocity.y -= GRAVITY * delta
-		# Human mesh faces local +Z (nose/eyes are on +Z). Movement uses -Z
+	# Human mesh faces local +Z (nose/eyes are on +Z). Movement uses -Z
 	# for W; negate neither axis or the player faces the camera while moving.
 	if visual != null and move_direction.length_squared() > 0.01:
 		visual.rotation.y = lerp_angle(visual.rotation.y, atan2(move_direction.x, move_direction.z), minf(delta * 12.0, 1.0))
