@@ -598,7 +598,7 @@ func _furniture(center: Vector3, district: String) -> void:
 	var color: Color = ACCENT[district]
 	# Furnishing faces the road, stays on the sidewalks, not in traffic lanes.
 	for side in [-1.0, 1.0]:
-		_bin(center + Vector3(side * 19.5, 0.0, -12.8))
+		_bin(center + Vector3(side * 19.5, 0.0, -12.8), district == "SOUTHWORKS")
 		_detail(center + Vector3(side * 19.8, 0.17, -3.5), Vector3(0.54, 0.035, 1.22), Color("232d39"))
 	if district == "VESPER MARKET" or district == "NORTH QUAY":
 		_vendor(center + Vector3(-5.0, 0.0, -18.6), color)
@@ -608,8 +608,8 @@ func _furniture(center: Vector3, district: String) -> void:
 				_detail(center + Vector3(bollard, 0.55, 19.4), Vector3(0.38, 1.1, 0.40), Color("80a9a8"))
 				_detail(center + Vector3(bollard, 1.14, 19.4), Vector3(0.59, 0.15, 0.59), color)
 	elif district == "BRICKWATER" or district == "WEST DOCKS" or district == "SOUTHWORKS":
-		_crates(center + Vector3(-2.0, 0.0, -18.5))
-		_crates(center + Vector3(6.0, 0.0, -18.5))
+		_crates(center + Vector3(-2.0, 0.0, -18.5), district == "SOUTHWORKS")
+		_crates(center + Vector3(6.0, 0.0, -18.5), district == "SOUTHWORKS")
 		if district == "WEST DOCKS":
 			for x in [-7.0, 7.0]:
 				_detail(center + Vector3(x, 0.25, 9.0), Vector3(2.6, 0.25, 5.4), Color("bd925b"))
@@ -617,7 +617,7 @@ func _furniture(center: Vector3, district: String) -> void:
 		elif district == "SOUTHWORKS":
 			_detail(center + Vector3(0.0, 0.25, -14.0), Vector3(12.0, 0.04, 0.55), Color("d9b67d"))
 			for x in [-9.0, 9.0]:
-				_detail(center + Vector3(x, 1.20, -17.5), Vector3(0.30, 2.3, 0.30), Color("b5aa91"))
+				_solid(center + Vector3(x, 1.20, -17.5), Vector3(0.30, 2.3, 0.30), Color("b5aa91"), "METAL")
 	elif district == "GLASSLINE" or district == "HORIZON GARDENS":
 		_planter(center + Vector3(-4.0, 0.0, -18.4))
 		_planter(center + Vector3(4.0, 0.0, -18.4))
@@ -635,8 +635,14 @@ func _furniture(center: Vector3, district: String) -> void:
 		var z := center.z + _rng.randf_range(-9.0, 12.0)
 		_detail(Vector3(x, 0.195, z), Vector3(_rng.randf_range(0.7, 2.0), 0.025, _rng.randf_range(0.8, 2.1)), Color("1c2736"))
 
-func _bin(at: Vector3) -> void:
-	_detail(at + Vector3.UP * 0.45, Vector3(0.8, 0.9, 0.8), Color("253e48"))
+func _bin(at: Vector3, physical: bool = false) -> void:
+	# Solid-looking waist-high street furniture must have an accurately
+	# matched collision body at South Bus Works. Keep its thin lid cosmetic:
+	# colliding both parts would introduce a seam/step at vehicle bumper level.
+	if physical:
+		_solid(at + Vector3.UP * 0.45, Vector3(0.8, 0.9, 0.8), Color("253e48"), "METAL")
+	else:
+		_detail(at + Vector3.UP * 0.45, Vector3(0.8, 0.9, 0.8), Color("253e48"))
 	_detail(at + Vector3.UP * 0.94, Vector3(0.92, 0.10, 0.92), Color("728088"))
 	_statistics["street_props"] += 1
 
@@ -660,11 +666,17 @@ func _planter(at: Vector3) -> void:
 		_detail(at + Vector3(stem, 1.23, 0.0), Vector3(0.50, 1.10, 0.62), Color("42816e"))
 	_statistics["street_props"] += 1
 
-func _crates(at: Vector3) -> void:
+func _crates(at: Vector3, physical: bool = false) -> void:
 	for index in range(3):
 		var ix := float(index % 2)
 		var iy := float(index / 2)
-		_detail(at + Vector3(ix * 1.2, 0.52 + iy * 1.02, 0.0), Vector3(1.0, 1.0, 1.0), Color("8e7759"))
+		var position := at + Vector3(ix * 1.2, 0.52 + iy * 1.02, 0.0)
+		if physical:
+			# Match the exact visible 1m cargo crate. Don't add a hidden wall
+			# across the garage entrance or all decorative trim as colliders.
+			_solid(position, Vector3(1.0, 1.0, 1.0), Color("8e7759"), "WOOD")
+		else:
+			_detail(position, Vector3(1.0, 1.0, 1.0), Color("8e7759"))
 		_detail(at + Vector3(ix * 1.2, 0.52 + iy * 1.02, -0.55), Vector3(0.76, 0.13, 0.07), Color("dac4a4"))
 	_statistics["street_props"] += 1
 
