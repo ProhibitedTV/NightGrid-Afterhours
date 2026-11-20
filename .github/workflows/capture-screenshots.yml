@@ -4,6 +4,7 @@ on:
     branches:
       - feat/real-gameplay-screenshots
       - feat/aaa-frame-pacing-capture-20261120
+      - art/afterhours-corner-fidelity-20261120
     paths:
       - '.github/workflows/capture-screenshots.yml'
       - 'tools/capture_screenshots.gd'
