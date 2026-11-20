@@ -13,7 +13,7 @@ func _fail(reason: String) -> void:
 
 func _has_key(action_name: String, keycode: Key) -> bool:
 	for event in InputMap.action_get_events(action_name):
-		if event is InputEventKey and (event as InputEventKey).keycode == keycode:
+		if event is InputEventKey and (event as InputEventKey).physical_keycode == keycode:
 			return true
 	return false
 
