@@ -1,4 +1,6 @@
-# NightGrid visual north star — believable cyberpunk futurism
+# NightGrid visual north star — photorealistic, believable cyberpunk metropolis
+
+> **APPROVED NEW DIRECTION (NOV 20, 2026):** The user has replaced the former low-poly/procedural-box visual goal with an **ultrarealistic AAA-style cyberpunk open-world environment** reference, depicting a dense, lived-in neon waterfront boulevard, wet roads, coherent city infrastructure and skyline, realistic architecture and PBR materials. **[Read the canonical approved-image fidelity standard before making *any* new visual asset or art-direction decision.](APPROVED_WORLD_FIDELITY_TARGET.md)** The image is a desired aesthetic, not actual gameplay, and the previous passes below are historical milestones rather than quality sign-off. **No more cube-heavy, cartoon/low-poly visual work packaged as finished art.**
 
 **Art brief:** hyper-realistic *materials, lighting, scale, wear and engineering* combined with highly art-directed cyberpunk futurism. Real-world visual logic; boldly fictional design. Think lived-in late-night infrastructure rather than generic neon box props.
 
