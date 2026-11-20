@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Download approved CC0 photographed brick and steel texture sets.
+"""Download approved CC0 photographed masonry, metal and roof texture sets.
 
 Upstream assets: https://polyhaven.com/a/brick_wall_001
-and https://polyhaven.com/a/blue_metal_plate
+https://polyhaven.com/a/blue_metal_plate\nand https://polyhaven.com/a/bitumen
 License: https://polyhaven.com/license (CC0, including redistribution).
 This script is intentionally an explicit opt-in source-import step, not a
 runtime dependency, build-time hotlink or unlicensed web scrape.
@@ -19,6 +19,7 @@ import urllib.request
 ASSETS = {
     "brick_wall_001": "Aged brick for Central Exchange's Brickwater frontage",
     "blue_metal_plate": "Scratched blue steel for structural fascia and Glassline frontage",
+    "bitumen": "Real weathered bitumen roofing for one Brickwater flat-roof building",
 }
 DIRECTORY = pathlib.Path("assets/pbr/polyhaven")
 MATERIALS = {
@@ -112,7 +113,7 @@ def main() -> None:
         manifest["assets"][asset] = import_material(asset, description)
     (DIRECTORY / "SOURCE.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print("Six genuine scanned 2K material maps and per-file source provenance imported.")
+    print(f"{len(ASSETS) * len(MATERIALS)} photographed 2K PBR maps with source hashes imported.")
 
 
 if __name__ == "__main__":
