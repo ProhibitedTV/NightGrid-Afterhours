@@ -2,6 +2,23 @@
 
 **An original 3D, open-world night-courier and crime sandbox prototype.** A neon city, parked vehicles, delivery missions and basic police pursuit — no copied Rockstar assets.
 
+## Actual in-game screenshots
+
+![Morrow Bay at night, showing the real Godot-rendered downtown street, nearby buildings, trees, and traffic](docs/screenshots/01-morrow-bay-neon-night.png)
+
+*Downtown Morrow Bay after dark — rendered directly from the running game.*
+
+| Vesper Market / Moon Noodles | M-Line / Helix Terminal |
+|:--:|:--:|
+| ![Real game screenshot of Moon Noodles, vehicles, business signs, the gameplay HUD and minimap](docs/screenshots/02-vesper-market-nightlife.png) | ![Real game screenshot of the elevated M-Line train and rails crossing the Glassline district](docs/screenshots/03-m-line-helix-terminal.png) |
+| **Horizon Commons — daytime** | **Quay Fresh — enterable interior** |
+| ![Real game screenshot of planted public space, buildings, crosswalks and streets in Horizon Gardens](docs/screenshots/04-horizon-commons-daylight.png) | ![Real game screenshot of the furnished and physically accessible Quay Fresh grocery interior](docs/screenshots/05-quay-fresh-interior.png) |
+| **Main menu — title screen** | **City atlas — map screen** |
+| ![Real NightGrid title menu with New World, Continue, Settings and Gamepad Controls](docs/screenshots/06-title-menu.png) | ![Real in-game Morrow Bay map menu with district roads, objective icons and service location pins](docs/screenshots/07-city-map-menu.png) |
+
+These are **real, unedited Godot 4.3 framebuffer captures**, not AI-generated artwork, concept mockups or marketing renders. The repeatable screenshot workflow ran the playable scene at **1280 × 720** on a Linux X11 virtual display using Mesa's software **OpenGL Compatibility renderer**. The downloadable Windows build defaults to **Forward+/Vulkan**, so its lighting and reflections can differ. [See how the captures were generated and verified.](docs/screenshots/README.md)
+
+
 ## Play the first prototype
 
 1. Download [Godot 4.3+](https://godotengine.org/download/), standard version (no .NET).
