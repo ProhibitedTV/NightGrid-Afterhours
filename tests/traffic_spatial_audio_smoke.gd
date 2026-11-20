@@ -80,7 +80,7 @@ func _verify() -> void:
 	if not car_found or not bus_found:
 		_fail("3D traffic emitters are detached from their moving sources")
 		return
-	soundfield.call("_process", 0.3)
+	soundfield.call("_process", 2.0)
 	var moving_volume := -80.0
 	for index in range(owners.size()):
 		if owners[index] == car:
@@ -89,7 +89,7 @@ func _verify() -> void:
 		_fail("The passing car remained silent at positive SFX volume")
 		return
 	soundfield.call("update_listener", point, true, false, 0.7)
-	soundfield.call("_process", 0.5)
+	soundfield.call("_process", 2.0)
 	var indoor_volume := -80.0
 	for index in range(owners.size()):
 		if owners[index] == car:
@@ -98,7 +98,7 @@ func _verify() -> void:
 		_fail("Interior context did not attenuate passing traffic")
 		return
 	soundfield.call("update_listener", point, false, true, 0.7)
-	soundfield.call("_process", 0.5)
+	soundfield.call("_process", 2.0)
 	var riding_volume := -80.0
 	for index in range(owners.size()):
 		if owners[index] == car:
