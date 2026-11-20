@@ -2,7 +2,7 @@
   "api": "https://api.polyhaven.com/files/fern_02",
   "asset": "fern_02",
   "author": "Rico Cilliers (model), Rob Tuytel (scanning)",
-  "description": "Photographed foliage with UVs and per-leaf alpha, not sphere/box vegetation",
+  "description": "Scanned source fern with separate official alpha map composited into real masked RGBA leaf atlas",
   "files": {
     "fern_02.bin": {
       "bytes": 176176,
@@ -11,10 +11,19 @@
       "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/fern_02/fern_02.bin"
     },
     "fern_02_2k.gltf": {
-      "bytes": 6899,
+      "bytes": 6906,
+      "derived_from": [
+        "textures/fern_02_diff_2k.jpg",
+        "textures/fern_02_alpha_source.png"
+      ],
       "file": "assets/models/polyhaven/fern_02/fern_02_2k.gltf",
-      "sha256": "50540d37531f93fd693d5340d5b3095c9d6d2834fa05c74bea797d54f290cb6a",
-      "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/fern_02/fern_02_2k.gltf"
+      "sha256": "19eaa3625c83725ba0296ede072615da575583c7ffb58e8f706973f669ae5dc4"
+    },
+    "textures/fern_02_alpha_source.png": {
+      "bytes": 230089,
+      "file": "assets/models/polyhaven/fern_02/textures/fern_02_alpha_source.png",
+      "sha256": "f51eb9b8f9f4b25a882f8fe12d1ef53ba69448bac7e71396ec1f05b684e9ea75",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/png/2k/fern_02/fern_02_alpha_2k.png"
     },
     "textures/fern_02_arm_2k.jpg": {
       "bytes": 850856,
@@ -27,6 +36,15 @@
       "file": "assets/models/polyhaven/fern_02/textures/fern_02_diff_2k.jpg",
       "sha256": "9ee18172170728050871772e2cd6d8d37b52f9138e61b49b04486623f9caf84b",
       "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/fern_02/fern_02_diff_2k.jpg"
+    },
+    "textures/fern_02_diff_alpha_2k.png": {
+      "bytes": 2667582,
+      "derived_from": [
+        "textures/fern_02_diff_2k.jpg",
+        "textures/fern_02_alpha_source.png"
+      ],
+      "file": "assets/models/polyhaven/fern_02/textures/fern_02_diff_alpha_2k.png",
+      "sha256": "8409ecde5e9a468c7d60f9a7ee3693b3ce22da5baa00069b0736b4ed754d6d9d"
     },
     "textures/fern_02_nor_gl_2k.jpg": {
       "bytes": 1365615,
