@@ -7,6 +7,7 @@ extends Node3D
 ## This is a production-oriented architectural *base* toward the approved
 ## photoreal benchmark, not a claim of final AAA-quality world artwork.
 const Materials = preload("res://scripts/material_library.gd")
+const AvenueFrontage = preload("res://scripts/central_exchange_avenue.gd")
 const PBR_ROOT = "res:" + "//assets/pbr/polyhaven/brick_wall_001_"
 const STEEL_PBR_ROOT = "res:" + "//assets/pbr/polyhaven/blue_metal_plate_"
 const STOREY = 3.45
@@ -17,21 +18,23 @@ const CANOPY_REACH = -1.55
 
 var building_width := 15.0
 var building_height := 20.0
+var building_depth := 23.0
 var district := "BRICKWATER"
 var storefront_name := ""
 var _style := "MASONRY"
 var _buffers: Dictionary = {}
 var _statistics := {
 	"architecture_surfaces": 0, "window_openings": 0,
-	"shopfront_openings": 0, "reveal_faces": 0,
+	"shopfront_openings": 0, "avenue_windows": 0, "reveal_faces": 0,
 	"canopy_segments": 0, "real_pbr_maps": 0,
 	"collision_bodies": 0, "local_lights": 0
 }
 var _mats: Dictionary = {}
 
-func configure(width: float, height: float, area: String, shop_name: String) -> void:
+func configure(width: float, height: float, depth: float, area: String, shop_name: String) -> void:
 	building_width = width
 	building_height = height
+	building_depth = depth
 	district = area
 	storefront_name = shop_name
 	_style = "MASONRY" if district == "BRICKWATER" else "GLAZED"
@@ -245,6 +248,14 @@ func _generate_facade() -> void:
 	_build_swept_canopy(-half + 0.28, half - 0.28)
 	_flush_meshes()
 	_build_storefront_identification()
+	# The side-facing façades, not just the wall to the south, dominate
+	# visibility for players actually walking up Central Exchange.
+	var avenue := AvenueFrontage.new()
+	avenue.name = "AvenueFacingArchitecture"
+	avenue.configure(building_width, building_height, building_depth,
+		district, storefront_name)
+	add_child(avenue)
+	_statistics["avenue_windows"] = int(avenue.call("get_avenue_stats")["windows"])
 
 func _build_swept_canopy(x0: float, x1: float) -> void:
 	# One ribbed extruded canopy surface, curved over the actual sidewalk
@@ -279,6 +290,7 @@ func _build_storefront_identification() -> void:
 	sign.outline_modulate = Color("1e2d34")
 	sign.outline_size = 5
 	sign.position = Vector3(0.0, GROUND - 0.095, CANOPY_REACH - 0.036)
+	sign.rotation.y = PI
 	add_child(sign)
 
 func _flush_meshes() -> void:
