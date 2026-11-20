@@ -22,6 +22,7 @@ const InteriorSystemScript = preload("res://scripts/interior_system.gd")
 const GameInput = preload("res://scripts/game_input.gd")
 const GameMenuScript = preload("res://scripts/game_menu.gd")
 const NightGridFMScript = preload("res://scripts/nightgrid_fm.gd")
+const WorldAudioScript = preload("res://scripts/world_audio.gd")
 const CELL = 58.0
 const GRID_RADIUS = 4
 const PLAYER_START = Vector3(0.0, 1.15, 6.0)
@@ -64,6 +65,7 @@ var civic_services: Node3D
 var interiors: Node3D
 var game_menu: CanvasLayer
 var nightgrid_fm: Node
+var world_audio: Node
 var gamepad_active := false
 var mouse_sensitivity := 0.0032
 var stick_sensitivity := 2.6
@@ -119,6 +121,7 @@ func _ready() -> void:
 	_build_hud()
 	_build_game_menu()
 	_build_nightgrid_fm()
+	_build_world_audio()
 	var restore: Dictionary = session.call("take_pending_restore")
 	if restore.is_empty():
 		_set_mission_target(PICKUPS[0], false)
@@ -147,6 +150,15 @@ func _build_nightgrid_fm() -> void:
 	add_child(nightgrid_fm)
 	var options: Dictionary = game_menu.call("get_settings")
 	nightgrid_fm.call("set_preferences", float(options.get("music_volume", 0.65)), bool(options.get("radio_on", true)))
+
+func _build_world_audio() -> void:
+	world_audio = WorldAudioScript.new()
+	world_audio.name = "WorldAudio"
+	world_audio.set("menu", game_menu)
+	add_child(world_audio)
+	var options: Dictionary = game_menu.call("get_settings")
+	world_audio.call("set_preferences", float(options.get("ambience_volume", 0.65)),
+		float(options.get("sfx_volume", 0.75)))
 
 func _on_menu_action(action: String) -> void:
 	match action:
@@ -187,6 +199,8 @@ func _apply_game_settings(options: Dictionary) -> void:
 	invert_look_y = bool(options.get("invert_look_y", false))
 	if is_instance_valid(nightgrid_fm):
 		nightgrid_fm.call("set_preferences", float(options.get("music_volume", 0.65)), bool(options.get("radio_on", true)))
+	if is_instance_valid(world_audio):
+		world_audio.call("set_preferences", float(options.get("ambience_volume", 0.65)), float(options.get("sfx_volume", 0.75)))
 	var bus_index := AudioServer.get_bus_index("Master")
 	if bus_index >= 0:
 		AudioServer.set_bus_volume_db(bus_index, linear_to_db(maxf(0.001, float(options.get("master_volume", 0.8)))))
@@ -296,6 +310,13 @@ func _process(delta: float) -> void:
 		if indoors and str(interiors.call("active_site_group")) == "VENUE":
 			interior_kind = str((venue_system.call("venue_by_id", interior_id) as Dictionary).get("kind", ""))
 		nightgrid_fm.call("update_listener", actor.global_position, current_car != null, interior_id, interior_kind)
+	if is_instance_valid(world_audio):
+		var street_position: Vector3 = interiors.get("exterior_position") if indoors else actor.global_position
+		var district: String = city_details.call("get_district_at", street_position)
+		var foot_speed := Vector2(player.velocity.x, player.velocity.z).length()
+		world_audio.call("update_context", actor.global_position, player.global_position,
+			current_car == null and current_transit == null, player.is_on_floor(),
+			indoors, district, float(day_night.get("hour")), foot_speed)
 	if indoors and str(interiors.call("active_site_id")) == "lantern_cup":
 		interiors.call("set_mara_focus", player.global_position)
 	if not venue_panel.visible:
