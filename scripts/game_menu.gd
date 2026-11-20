@@ -1,5 +1,6 @@
 extends CanvasLayer
 const MinimapScript = preload("res://scripts/minimap.gd")
+const CityFoley = preload("res://scripts/city_foley.gd")
 ## Keyboard/mouse/controller-friendly menu layer. It remains interactive while
 ## the 3D SceneTree is paused; all buttons use Godot's built-in focus navigation.
 signal action_requested(action: String)
@@ -7,7 +8,8 @@ signal settings_changed(settings: Dictionary)
 
 const SAVE_SETTINGS = "user://settings.cfg"
 const DEFAULT_SETTINGS = {
-	"master_volume": 0.80, "music_volume": 0.65, "radio_on": true, "mouse_sensitivity": 0.0032,
+	"master_volume": 0.80, "music_volume": 0.65, "ambience_volume": 0.65,
+	"sfx_volume": 0.75, "radio_on": true, "mouse_sensitivity": 0.0032,
 	"stick_sensitivity": 2.6, "invert_look_y": false,
 	"ssr_enabled": true, "glow_enabled": true,
 	"ao_enabled": true, "fog_enabled": true,
@@ -37,6 +39,7 @@ var _root: Control
 var _screen_nodes: Array[Control] = []
 var _buttons: Dictionary = {}
 var _first_focus: Control
+var _ui_click: AudioStreamPlayer
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -46,6 +49,11 @@ func _ready() -> void:
 	_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_root)
+	_ui_click = AudioStreamPlayer.new()
+	_ui_click.name = "OriginalMenuSelect"
+	_ui_click.stream = CityFoley.sound("UI")
+	_ui_click.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(_ui_click)
 	visible = false
 
 func set_world_node(world: Node3D) -> void:
@@ -129,6 +137,8 @@ func _load_settings() -> void:
 func _normalize() -> void:
 	settings["master_volume"] = clampf(float(settings.get("master_volume", 0.8)), 0.0, 1.0)
 	settings["music_volume"] = clampf(float(settings.get("music_volume", 0.65)), 0.0, 1.0)
+	settings["ambience_volume"] = clampf(float(settings.get("ambience_volume", 0.65)), 0.0, 1.0)
+	settings["sfx_volume"] = clampf(float(settings.get("sfx_volume", 0.75)), 0.0, 1.0)
 	settings["radio_on"] = bool(settings.get("radio_on", true))
 	settings["mouse_sensitivity"] = clampf(float(settings.get("mouse_sensitivity", 0.0032)), 0.001, 0.010)
 	settings["stick_sensitivity"] = clampf(float(settings.get("stick_sensitivity", 2.6)), 0.5, 5.0)
@@ -218,6 +228,8 @@ func _render() -> void:
 			_title(col, "SETTINGS / YOUR RIG", 22, Color("f0dfcd"))
 			_slider(col, "MASTER VOLUME", "master_volume", 0.0, 1.0, 0.05)
 			_slider(col, "NIGHTGRID FM / MUSIC VOLUME", "music_volume", 0.0, 1.0, 0.05)
+			_slider(col, "CITY AMBIENCE", "ambience_volume", 0.0, 1.0, 0.05)
+			_slider(col, "FOOTSTEPS / INTERACTIONS / UI", "sfx_volume", 0.0, 1.0, 0.05)
 			_check(col, "CAR RADIO ENABLED BY DEFAULT", "radio_on")
 			_slider(col, "MOUSE LOOK", "mouse_sensitivity", 0.001, 0.010, 0.0002)
 			_slider(col, "GAMEPAD LOOK", "stick_sensitivity", 0.5, 5.0, 0.1)
@@ -346,6 +358,9 @@ func _check(parent: VBoxContainer, caption: String, key: String) -> void:
 		_first_focus = toggle
 
 func _choice(action: String) -> void:
+	if is_instance_valid(_ui_click):
+		_ui_click.volume_db = -80.0 if float(settings.get("sfx_volume", 0.75)) <= 0.0 else linear_to_db(float(settings.get("sfx_volume", 0.75))) - 11.0
+		_ui_click.play()
 	match action:
 		"play", "resume":
 			hide_for_game()
