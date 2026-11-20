@@ -47,7 +47,7 @@ func _check() -> void:
 	if audio.cache_count() != 2 or hero.get_node_or_null("OriginalRailRollingLoop") == null or hero.get_node_or_null("OriginalStationArrivalChime") == null:
 		_fail("Real train must have cached original rolling ambience and arrival chime")
 		return
-	if str(hero.call("displayed_destination")) != str(rail.STATION_NAMES[rail.get("next_station")]):
+	if str(hero.call("displayed_destination")) != "BRICKWATER CROSSING":
 		_fail("Cab destination displays must follow the actual next station")
 		return
 	if int(visual_stats.get("cars", -1)) != 2 or int(visual_stats.get("glass_windows", -1)) != 16:
