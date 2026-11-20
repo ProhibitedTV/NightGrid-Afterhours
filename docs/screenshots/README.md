@@ -6,7 +6,7 @@ These seven PNG files are **unaltered framebuffer captures from the actual runni
 
 | File | Actual scene |
 |---|---|
-| `01-morrow-bay-neon-night.png` | Central Exchange road-visible PBR architecture after the new capture run; old PNG remains the previous corridor frame until replaced |
+| `01-morrow-bay-neon-night.png` | Central Exchange road-visible PBR architecture, captured from the updated playable game |
 | `02-vesper-market-nightlife.png` | Moon Noodles streetfront with gameplay HUD, live city map and cars |
 | `03-m-line-helix-terminal.png` | Actual raised M-Line rail infrastructure at Helix Terminal |
 | `04-horizon-commons-daylight.png` | Planted Horizon Gardens community plaza under the day/night system |
