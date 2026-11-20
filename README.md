@@ -19,6 +19,12 @@
 The images above predate the new PBR/atmosphere pass and will be recaptured after visual validation. They are **real, unedited Godot 4.3 framebuffer captures**, not AI-generated artwork, concept mockups or marketing renders. The repeatable screenshot workflow ran the playable scene at **1280 × 720** on a Linux X11 virtual display using Mesa's software **OpenGL Compatibility renderer**. The downloadable Windows build defaults to **Forward+/Vulkan**, so its lighting and reflections can differ. [See how the captures were generated and verified.](docs/screenshots/README.md)
 
 
+## First hands-on Windows playtest: stabilization and open visual debt
+
+The first real Windows playtest **identified critical quality defects** that older headless CI could not catch: visible camera flythrough on club exits, camera clipping into buildings, detached generated storefront/building shells, rectangular character placeholders, awkward vehicle shapes and cartoonish city presentation. The camera, façade and placeholder-character code received a focused repair pass, explained in [the playtest triage report](docs/PLAYTEST_TRIAGE_2026_11_20.md). The quality issues **are not all resolved**: [art-direction reset #19](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/19), [vehicle rework #20](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/20), [city design #21](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/21).
+
+**This is a rough playable prototype, not an AAA-quality asset release.** For the current version, download the latest *successful main-branch* Windows artifact, report real screenshots and FPS, and test H club exits and indoor save restore before evaluating visual polish. PR/CI passing is not equivalent to human visual acceptance.
+
 ## Play the first prototype
 
 1. Download [Godot 4.3+](https://godotengine.org/download/), standard version (no .NET).
