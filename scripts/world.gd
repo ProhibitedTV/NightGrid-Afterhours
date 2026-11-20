@@ -169,7 +169,7 @@ func _process(delta: float) -> void:
 	if current_car == null and current_transit == null:
 		player.set("camera_yaw", yaw)
 	var focus := actor.global_position + Vector3.UP * (1.65 if current_car != null or current_transit != null else 1.45)
-	var camera_distance := 5.0 if indoors else (21.0 if transit_kind == "TRAIN" else (15.0 if transit_kind == "BUS" else (13.0 if current_car != null else 7.5)))
+	var camera_distance := 3.0 if indoors else (21.0 if transit_kind == "TRAIN" else (15.0 if transit_kind == "BUS" else (13.0 if current_car != null else 7.5)))
 	var camera_offset := Vector3(0.0, sin(pitch) * camera_distance, cos(pitch) * camera_distance).rotated(Vector3.UP, yaw)
 	camera.global_position = camera.global_position.lerp(focus + camera_offset, minf(delta * 7.0, 1.0))
 	camera.look_at(focus, Vector3.UP)

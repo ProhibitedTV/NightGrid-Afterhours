@@ -117,9 +117,9 @@ func _build_room(site: Dictionary) -> void:
 	_box(room, Vector3(0.0, 1.02, -5.65), Vector3(4.1, 1.35, 1.15), Color("66747a"), true)
 	_box(room, Vector3(0.0, 1.79, -5.65), Vector3(4.45, 0.19, 1.40), Color("a49c8e"), true)
 	_box(room, Vector3(0.0, 2.83, -8.35), Vector3(3.2, 2.50, 0.30), accent)
-	_label(room, str(site["name"]), Vector3(0.0, 4.22, -8.58), accent, 40, false)
-	_label(room, str(site.get("host", "NIGHT SHIFT")), Vector3(0.0, 2.7, -8.58), Color("f0dfcb"), 32, false)
-	_label(room, "H / EXIT TO STREET", Vector3(0.0, 3.93, 8.60), Color("f0bd78"), 29, true)
+	_label(room, str(site["name"]), Vector3(0.0, 4.22, -8.58), accent, 40, true)
+	_label(room, str(site.get("host", "NIGHT SHIFT")), Vector3(0.0, 2.7, -8.58), Color("f0dfcb"), 32, true)
+	_label(room, "H / EXIT TO STREET", Vector3(0.0, 3.93, 8.60), Color("f0bd78"), 29, false)
 	# Person-height silhouette behind the contact counter.
 	_box(room, Vector3(0.0, 1.68, -7.12), Vector3(0.63, 1.2, 0.45), Color("283749"))
 	_box(room, Vector3(0.0, 2.60, -7.12), Vector3(0.56, 0.53, 0.54), Color("d3a98d"))
