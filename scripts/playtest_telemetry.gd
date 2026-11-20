@@ -94,6 +94,8 @@ func _read_context() -> void:
 		("transit" if is_instance_valid(transit) else "foot"),
 		"x": snappedf(outside.x, 0.01), "z": snappedf(outside.z, 0.01),
 		"pending_blocks": int(stream.get("pending_blocks", 0)),
+		"pending_details": int(stream.get("pending_detail_batches", 0)),
+		"pending_unloads": int(stream.get("pending_unloads", 0)),
 		"build_ms": float(stream.get("last_build_usec", 0)) / 1000.0}
 
 func _process(delta: float) -> void:
@@ -123,6 +125,8 @@ func _process(delta: float) -> void:
 		"x": float(_context.get("x", 0.0)),
 		"z": float(_context.get("z", 0.0)),
 		"pending_blocks": int(_context.get("pending_blocks", 0)),
+		"pending_details": int(_context.get("pending_details", 0)),
+		"pending_unloads": int(_context.get("pending_unloads", 0)),
 		"build_ms": float(_context.get("build_ms", 0.0))
 	})
 
@@ -176,13 +180,14 @@ func stop_trace() -> Dictionary:
 	if csv == null:
 		push_warning("PLAYTEST: Could not write CSV frame trace")
 		return result
-	csv.store_line("frame,elapsed_s,frame_ms,godot_delta_ms,process_ms,physics_ms,district,actor,x,z,pending_blocks,build_ms")
+	csv.store_line("frame,elapsed_s,frame_ms,godot_delta_ms,process_ms,physics_ms,district,actor,x,z,pending_blocks,pending_details,pending_unloads,build_ms")
 	for item in _samples:
-		csv.store_line("%d,%.4f,%.4f,%.4f,%.4f,%.4f,%s,%s,%.2f,%.2f,%d,%.4f" % [
+		csv.store_line("%d,%.4f,%.4f,%.4f,%.4f,%.4f,%s,%s,%.2f,%.2f,%d,%d,%d,%.4f" % [
 			int(item["frame"]), float(item["elapsed_s"]), float(item["frame_ms"]),
 			float(item["godot_delta_ms"]), float(item["process_ms"]),
 			float(item["physics_ms"]), str(item["district"]), str(item["actor"]),
 			float(item["x"]), float(item["z"]), int(item["pending_blocks"]),
+			int(item["pending_details"]), int(item["pending_unloads"]),
 			float(item["build_ms"])])
 	csv.close()
 	var report: Dictionary = _json_metadata()
