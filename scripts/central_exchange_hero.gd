@@ -85,7 +85,7 @@ func _box(part_name: String, at: Vector3, dimensions: Vector3,
 	return part
 
 func _cylinder(part_name: String, at: Vector3, radius: float, height: float,
-		kind: String, color: Color, parent: Node3D = self) -> MeshInstance3D:
+		kind: String, color: Color, parent: Node3D = null) -> MeshInstance3D:
 	var part := MeshInstance3D.new()
 	part.name = part_name
 	var mesh := CylinderMesh.new()
@@ -96,7 +96,7 @@ func _cylinder(part_name: String, at: Vector3, radius: float, height: float,
 	part.mesh = mesh
 	part.position = at
 	part.material_override = _material(kind, color)
-	parent.add_child(part)
+	(parent if parent != null else self).add_child(part)
 	return part
 
 func _batch(name: String, size: Vector3, positions: Array[Vector3],
