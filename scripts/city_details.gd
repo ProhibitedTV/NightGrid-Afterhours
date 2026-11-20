@@ -44,12 +44,23 @@ var world_seed: int = 834726
 var world_manifest: Dictionary = {}
 const STREAM_RADIUS = 2
 const UNLOAD_RADIUS = 3
+# Preload the approach before a car crosses the next block boundary. A single
+# heavy collision/facade block may still cost a frame; never build a full 5x5
+# batch on the moving player's render loop.
+const PREFETCH_SECONDS = 1.25
+const STREAM_BLOCKS_PER_FRAME = 1
 var _loaded: Dictionary = {}
 var _active_chunk: Node3D
 var _current_block := Vector2i(999, 999)
 var _loads := 0
 var _unloads := 0
 var _stream_locked := false
+var _requested_cell := Vector2i(999, 999)
+var _prefetch_cell := Vector2i(999, 999)
+var _pending: Array[Vector2i] = []
+var _last_stream_build_usec := 0
+var _peak_stream_build_usec := 0
+var _queue_replans := 0
 
 func set_world_seed(value: int) -> void:
 	assert(not _initialized)
@@ -94,7 +105,11 @@ func get_streaming_stats() -> Dictionary:
 		"total_blocks": GRID_RADIUS * GRID_RADIUS * 4,
 		"loaded_buildings": _count_loaded_buildings(),
 		"loads": _loads, "unloads": _unloads,
-		"radius": STREAM_RADIUS, "unload_radius": UNLOAD_RADIUS
+		"radius": STREAM_RADIUS, "unload_radius": UNLOAD_RADIUS,
+		"pending_blocks": _pending.size(), "queue_replans": _queue_replans,
+		"last_build_usec": _last_stream_build_usec,
+		"peak_build_usec": _peak_stream_build_usec,
+		"prefetch_seconds": PREFETCH_SECONDS
 	}
 
 func get_loaded_blocks() -> Array[Vector2i]:
@@ -114,34 +129,105 @@ func _count_loaded_buildings() -> int:
 
 func set_streaming_enabled(value: bool) -> void:
 	_stream_locked = not value
+	if _stream_locked:
+		_pending.clear()
 
-func set_focus(at: Vector3) -> void:
+func _grid_cell(at: Vector3) -> Vector2i:
+	return Vector2i(
+		clampi(floori(at.x / CELL), -GRID_RADIUS, GRID_RADIUS - 1),
+		clampi(floori(at.z / CELL), -GRID_RADIUS, GRID_RADIUS - 1))
+
+func _candidate_priority(block: Vector2i, focus: Vector2i, forecast: Vector2i) -> int:
+	# Safety-critical, currently occupied geometry precedes speculative blocks.
+	var immediate := maxi(absi(block.x - focus.x), absi(block.y - focus.y))
+	var future := maxi(absi(block.x - forecast.x), absi(block.y - forecast.y))
+	return mini(immediate * 10, future * 10 + 5)
+
+func _required_blocks(focus: Vector2i, forecast: Vector2i) -> Array[Vector2i]:
+	var wanted := {}
+	for center in [focus, forecast]:
+		for x in range(maxi(-GRID_RADIUS, center.x - STREAM_RADIUS),
+				mini(GRID_RADIUS, center.x + STREAM_RADIUS + 1)):
+			for z in range(maxi(-GRID_RADIUS, center.y - STREAM_RADIUS),
+					mini(GRID_RADIUS, center.y + STREAM_RADIUS + 1)):
+				wanted[Vector2i(x, z)] = true
+	var result: Array[Vector2i] = []
+	for key in wanted:
+		var block: Vector2i = key
+		if not _loaded.has(block):
+			result.append(block)
+	result.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		var rank_a := _candidate_priority(a, focus, forecast)
+		var rank_b := _candidate_priority(b, focus, forecast)
+		if rank_a != rank_b:
+			return rank_a < rank_b
+		return a.x < b.x if a.x != b.x else a.y < b.y)
+	return result
+
+func request_focus(at: Vector3, velocity: Vector3 = Vector3.ZERO) -> void:
+	# Gameplay traversal uses this nonblocking path. The player can move while
+	# blocks are prepared; earlier loaded geometry remains until replacement is
+	# ready. Prediction is clamped to the immutable authored city boundary.
 	if not _initialized or _stream_locked:
 		return
-	var cell := Vector2i(floori(at.x / CELL), floori(at.z / CELL))
-	cell.x = clampi(cell.x, -GRID_RADIUS, GRID_RADIUS - 1)
-	cell.y = clampi(cell.y, -GRID_RADIUS, GRID_RADIUS - 1)
-	if cell == _current_block:
+	var current := _grid_cell(at)
+	var forecast := _grid_cell(at + Vector3(velocity.x, 0.0, velocity.z) * PREFETCH_SECONDS)
+	if current == _requested_cell and forecast == _prefetch_cell:
 		return
-	_current_block = cell
-	# Build ahead of unload so there is never a gap in collision geometry.
-	for ix in range(maxi(-GRID_RADIUS, cell.x - STREAM_RADIUS),
-			mini(GRID_RADIUS, cell.x + STREAM_RADIUS + 1)):
-		for iz in range(maxi(-GRID_RADIUS, cell.y - STREAM_RADIUS),
-				mini(GRID_RADIUS, cell.y + STREAM_RADIUS + 1)):
-			var block := Vector2i(ix, iz)
-			if not _loaded.has(block):
-				_load_block(block)
+	_requested_cell = current
+	_prefetch_cell = forecast
+	_current_block = current
+	_pending = _required_blocks(current, forecast)
+	_queue_replans += 1
+	if _pending.is_empty():
+		_prune_distant(current, forecast)
+
+func _process(_delta: float) -> void:
+	if not _initialized or _stream_locked or _pending.is_empty():
+		return
+	# One chunk at most per rendered frame, rather than 5-10 synchronous
+	# chunks inside the focus tick when crossing a block boundary.
+	var started := Time.get_ticks_usec()
+	var count := 0
+	while count < STREAM_BLOCKS_PER_FRAME and not _pending.is_empty():
+		var block: Vector2i = _pending.pop_front()
+		if not _loaded.has(block):
+			_load_block(block)
+			count += 1
+	_last_stream_build_usec = Time.get_ticks_usec() - started
+	_peak_stream_build_usec = maxi(_peak_stream_build_usec, _last_stream_build_usec)
+	if _pending.is_empty():
+		_prune_distant(_requested_cell, _prefetch_cell)
+
+func _prune_distant(focus: Vector2i, forecast: Vector2i) -> void:
 	var obsolete: Array[Vector2i] = []
 	for key in _loaded:
 		var block: Vector2i = key
-		if maxi(absi(block.x - cell.x), absi(block.y - cell.y)) > UNLOAD_RADIUS:
+		var focus_distance := maxi(absi(block.x - focus.x), absi(block.y - focus.y))
+		var forecast_distance := maxi(absi(block.x - forecast.x), absi(block.y - forecast.y))
+		if focus_distance > UNLOAD_RADIUS and forecast_distance > UNLOAD_RADIUS:
 			obsolete.append(block)
 	for block in obsolete:
 		var node: Node3D = _loaded[block]
 		_loaded.erase(block)
 		node.queue_free()
 		_unloads += 1
+
+func set_focus(at: Vector3) -> void:
+	# Teleport, save restore and explicit tests need an immediately solid ring.
+	# Preserve this behavior and cancel speculative work on that transition.
+	if not _initialized or _stream_locked:
+		return
+	var cell := _grid_cell(at)
+	if cell == _current_block and _pending.is_empty():
+		return
+	_current_block = cell
+	_requested_cell = cell
+	_prefetch_cell = cell
+	_pending.clear()
+	for block in _required_blocks(cell, cell):
+		_load_block(block)
+	_prune_distant(cell, cell)
 
 func _load_block(block: Vector2i) -> void:
 	var node := Node3D.new()
