@@ -10,6 +10,7 @@ on:
       - 'project.godot'
       - 'export_presets.cfg'
       - '.github/workflows/windows-build.yml'
+      - '.github/workflows/playtest-evidence.yml'
       - 'tests/**'
       - 'tools/capture_playtest_evidence.gd'
       - 'docs/NEXT_PLAYTEST.md'
