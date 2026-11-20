@@ -117,6 +117,23 @@ func _verify() -> void:
 	if before_reload != after_reload:
 		_fail("Seeded geometry changed when a staged block was reloaded: %s vs %s" % [before_reload, after_reload])
 		return
+	# Locking streaming (e.g. while indoors) must not silently discard
+	# a pending forecast forever when the same focus is requested on return.
+	var resume_focus := Vector3(87.0, 0.0, 87.0)
+	var resume_velocity := Vector3(-50.0, 0.0, 0.0)
+	city.call("request_focus", resume_focus, resume_velocity)
+	if int(city.call("get_streaming_stats")["pending_blocks"]) < 1:
+		_fail("Expected predictive blocks before the streaming pause")
+		return
+	city.call("set_streaming_enabled", false)
+	if int(city.call("get_streaming_stats")["pending_blocks"]) != 0:
+		_fail("Paused city retained an active speculative queue")
+		return
+	city.call("set_streaming_enabled", true)
+	city.call("request_focus", resume_focus, resume_velocity)
+	if int(city.call("get_streaming_stats")["pending_blocks"]) < 1:
+		_fail("Streaming resume did not reconstruct the cancelled forecast")
+		return
 	if int(session.get("world_seed")) != old_seed or WorldPlan.manifest_signature(session.call("get_world_manifest")) != signature:
 		_fail("Staged loading mutated save seed or authored world manifest")
 		return
