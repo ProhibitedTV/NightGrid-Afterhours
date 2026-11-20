@@ -146,6 +146,34 @@ func _surface_material(family: String) -> Material:
 			out.emission_enabled = true
 			out.emission = Color("ad8060")
 			out.emission_energy_multiplier = 0.28
+		"ROOF":
+			# Only the protected Brickwater corner uses this photo-calibrated
+			# bitumen membrane: flat roofs are not bright tiled concrete floors.
+			out = StandardMaterial3D.new()
+			out.albedo_color = Color("aaa8a4")
+			out.metallic = 0.0
+			out.roughness = 0.92
+			out.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+			var roof_root := "res:" + "//assets/pbr/polyhaven/bitumen_"
+			var roof_paths := [roof_root + "diffuse_2k.jpg",
+				roof_root + "nor_gl_2k.png", roof_root + "rough_2k.png"]
+			if ResourceLoader.exists(roof_paths[0]) and ResourceLoader.exists(roof_paths[1]) and ResourceLoader.exists(roof_paths[2]):
+				var roof_albedo := load(roof_paths[0]) as Texture2D
+				var roof_normal := load(roof_paths[1]) as Texture2D
+				var roof_rough := load(roof_paths[2]) as Texture2D
+				if roof_albedo != null and roof_normal != null and roof_rough != null:
+					out.albedo_texture = roof_albedo
+					out.normal_enabled = true
+					out.normal_texture = roof_normal
+					out.normal_scale = 0.55
+					out.roughness_texture = roof_rough
+					out.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_RED
+					out.roughness = 1.0
+					_statistics["real_pbr_maps"] += 3
+			else:
+				push_warning("Bitumen roof scan is present but failed to load; visual approval blocked")
+			else:
+				push_warning("Photographed CC0 bitumen roof PBR not imported; visual approval blocked")
 		"PARAPET":
 			out = Materials.surface("CONCRETE", Color("5f646b")).duplicate() as StandardMaterial3D
 			out.albedo_color = Color("71787c")
