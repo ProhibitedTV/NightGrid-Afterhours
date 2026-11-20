@@ -11,13 +11,13 @@
       "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/fern_02/fern_02.bin"
     },
     "fern_02_2k.gltf": {
-      "bytes": 6906,
+      "bytes": 6905,
       "derived_from": [
         "textures/fern_02_diff_2k.jpg",
         "textures/fern_02_alpha_source.png"
       ],
       "file": "assets/models/polyhaven/fern_02/fern_02_2k.gltf",
-      "sha256": "19eaa3625c83725ba0296ede072615da575583c7ffb58e8f706973f669ae5dc4"
+      "sha256": "99af571f00517baf271267e7d200e481421bd64e55e1dfc9657805e417f396eb"
     },
     "textures/fern_02_alpha_source.png": {
       "bytes": 230089,
