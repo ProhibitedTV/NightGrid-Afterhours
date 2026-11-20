@@ -8,6 +8,7 @@ extends Node3D
 ## photoreal benchmark, not a claim of final AAA-quality world artwork.
 const Materials = preload("res://scripts/material_library.gd")
 const PBR_ROOT = "res:" + "//assets/pbr/polyhaven/brick_wall_001_"
+const STEEL_PBR_ROOT = "res:" + "//assets/pbr/polyhaven/blue_metal_plate_"
 const STOREY = 3.45
 const GROUND = 4.55
 const FRONT = -0.38
@@ -68,7 +69,7 @@ func _surface_material(family: String) -> Material:
 					out.normal_texture = nor
 					out.roughness_texture = rough
 					out.albedo_color = Color("c5beb7")
-					_statistics["real_pbr_maps"] = 3
+					_statistics["real_pbr_maps"] += 3
 			out.uv1_triplanar = false
 			out.uv1_world_triplanar = false
 			out.uv1_scale = Vector3.ONE
@@ -76,12 +77,27 @@ func _surface_material(family: String) -> Material:
 			out.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 		"CLADDING":
 			out = (Materials.surface("METAL", Color("808e9b"))).duplicate() as StandardMaterial3D
-			out.albedo_color = Color("71808b")
+			out.albedo_color = Color("aabac2")
 			out.metallic = 0.63
 			out.roughness = 0.57
 			out.uv1_triplanar = false
 			out.uv1_world_triplanar = false
 			out.uv1_scale = Vector3.ONE
+			var steel_paths := [
+				STEEL_PBR_ROOT + "diffuse_2k.jpg",
+				STEEL_PBR_ROOT + "nor_gl_2k.png",
+				STEEL_PBR_ROOT + "rough_2k.png"]
+			if ResourceLoader.exists(steel_paths[0]) and ResourceLoader.exists(steel_paths[1]) and ResourceLoader.exists(steel_paths[2]):
+				var steel_alb := load(steel_paths[0]) as Texture2D
+				var steel_nor := load(steel_paths[1]) as Texture2D
+				var steel_rough := load(steel_paths[2]) as Texture2D
+				if steel_alb != null and steel_nor != null and steel_rough != null:
+					out.albedo_texture = steel_alb
+					out.normal_texture = steel_nor
+					out.roughness_texture = steel_rough
+					out.normal_scale = 0.52
+					out.roughness = 1.0
+					_statistics["real_pbr_maps"] += 3
 		"REVEALS":
 			out = (Materials.surface("CONCRETE", Color("8b8985"))).duplicate() as StandardMaterial3D
 			out.albedo_color = Color("a7a39c")
