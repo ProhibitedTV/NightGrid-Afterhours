@@ -1,4 +1,5 @@
 extends CanvasLayer
+const MinimapScript = preload("res://scripts/minimap.gd")
 ## Keyboard/mouse/controller-friendly menu layer. It remains interactive while
 ## the 3D SceneTree is paused; all buttons use Godot's built-in focus navigation.
 signal action_requested(action: String)
@@ -20,14 +21,16 @@ const HELP_SECTIONS = [
 		"pad": "RT accelerate · LT reverse · Left stick steer · B brake"},
 	{"title": "SHOP / CONTACTS", "keyboard": "G interact/close · 1 buy/use · 2 contract · Esc close",
 		"pad": "X interact/contract · A service · B close · D-pad navigate"},
-	{"title": "SYSTEM", "keyboard": "Esc pause · F5 save · F9 load · F6 new world · F3 FPS · F4 SSR",
-		"pad": "Start pause · B back · Save/Load/New World in pause menu"}
+	{"title": "SYSTEM", "keyboard": "Esc pause · M map · Tab journal · F5 save · F9 load · F6 new world · F3 FPS",
+		"pad": "Start pause · View/Select map · B back · Save/Load/New in pause menu"}
 ]
 
 var screen := "hidden"
 var _back_screen := "pause"
 var _confirmation_origin := "pause"
 var _has_save := false
+var _world: Node3D
+var _journal_data: Dictionary = {}
 var settings: Dictionary = DEFAULT_SETTINGS.duplicate(true)
 var _root: Control
 var _screen_nodes: Array[Control] = []
@@ -43,6 +46,18 @@ func _ready() -> void:
 	_root.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_root)
 	visible = false
+
+func set_world_node(world: Node3D) -> void:
+	_world = world
+
+func open_map() -> void:
+	_back_screen = "pause"
+	_open("map")
+
+func open_journal(context: Dictionary) -> void:
+	_journal_data = context.duplicate(true)
+	_back_screen = "pause"
+	_open("journal")
 
 func set_has_save(value: bool) -> void:
 	_has_save = value
@@ -92,7 +107,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("game_pause") or event.is_action_pressed("game_back"):
 		match screen:
-			"settings", "controls":
+			"settings", "controls", "map", "journal":
 				_open(_back_screen)
 			"confirm_new":
 				_open(_confirmation_origin)
@@ -188,6 +203,8 @@ func _render() -> void:
 			_title(col, "PAUSED / SAFE MOMENT", 22, Color("f0dfcd"))
 			_button(col, "resume", "RESUME GAME", "resume")
 			_button(col, "save", "SAVE WORLD  •  SLOT 1", "save")
+			_button(col, "map", "CITY MAP / DISTRICTS", "map")
+			_button(col, "journal", "JOURNAL / OBJECTIVES", "journal")
 			_button(col, "load", "LOAD SAVED WORLD", "load", _has_save)
 			_button(col, "new", "NEW WORLD / NEW SEED", "new")
 			_button(col, "settings", "SETTINGS", "settings")
@@ -215,6 +232,45 @@ func _render() -> void:
 				_divider(col)
 			_label(col, "Xbox / XInput layout. Controller support depends on Godot/OS device detection.", 14, Color("9db5c7"))
 			_button(col, "back", "BACK", "back")
+		"journal":
+			_title(col, "JOURNAL / NIGHT-SHIFT LEDGER", 22, Color("f0dfcd"))
+			_label(col, "CURRENT DISTRICT  " + str(_journal_data.get("district", "MORROW BAY")), 18, Color("8ad9d6"))
+			_label(col, "LOCAL TIME  " + str(_journal_data.get("clock", "--:--")) +
+				"  |  WORLD SEED  " + str(_journal_data.get("seed", "-")), 16, Color("bdcddd"))
+			_divider(col)
+			_title(col, "ACTIVE DELIVERIES", 18, Color("f0d1a0"))
+			_label(col, str(_journal_data.get("main_objective", "Explore Morrow Bay")),
+				17, Color("e1ebef"))
+			_label(col, str(_journal_data.get("venue_job", "No local contacts")),
+				16, Color("bfced5"))
+			_label(col, str(_journal_data.get("civic_job", "No freight work")),
+				16, Color("bfced5"))
+			_divider(col)
+			_title(col, "INVENTORY / STATUS", 18, Color("f0d1a0"))
+			_label(col, "CASH  $%d     HEALTH  %d     HEAT  %.1f" % [
+				int(_journal_data.get("cash", 0)), int(_journal_data.get("health", 100)),
+				float(_journal_data.get("heat", 0.0))], 17, Color("e1ebef"))
+			_label(col, "SUPPLY PACKS  %d    COURIER DELIVERIES  %d" % [
+				int(_journal_data.get("supplies", 0)), int(_journal_data.get("deliveries", 0))],
+				17, Color("c4d6da"))
+			_label(col, "LOCAL JOBS COMPLETE  %d     CIVIC JOBS COMPLETE  %d" % [
+				int(_journal_data.get("venue_completed", 0)),
+				int(_journal_data.get("civic_completed", 0))], 16, Color("c4d6da"))
+			_label(col, "ARCHIVES VISITED  %d     LIVE STREET BLOCKS  %d" % [
+				int(_journal_data.get("archives", 0)), int(_journal_data.get("loaded_blocks", 0))],
+				16, Color("c4d6da"))
+			_button(col, "back", "BACK TO PAUSE", "back")
+		"map":
+			_title(col, "MORROW BAY / CITY ATLAS", 22, Color("f0dfcd"))
+			_label(col, "Player / pickups / public services / local contracts / law enforcement", 15, Color("adc8d2"))
+			var atlas := Control.new()
+			atlas.name = "WorldMapView"
+			atlas.custom_minimum_size = Vector2(480.0, 480.0)
+			atlas.set_script(MinimapScript)
+			atlas.set("world_node", _world)
+			col.add_child(atlas)
+			_label(col, "Map addresses and active quests remain stable in the saved world.", 14, Color("a2b5bc"))
+			_button(col, "back", "BACK TO PAUSE", "back")
 		"confirm_new":
 			_title(col, "START ANOTHER WORLD?", 24, Color("f0cdab"))
 			_label(col, "The current unsaved session will be discarded. Your last saved slot will remain intact until you save the new world.", 17, Color("cbd8e3"))
@@ -290,6 +346,10 @@ func _choice(action: String) -> void:
 			open_settings()
 		"controls":
 			open_controls()
+		"map":
+			open_map()
+		"journal":
+			action_requested.emit("journal")
 		"back":
 			_open(_back_screen)
 		"new":
