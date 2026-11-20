@@ -45,6 +45,8 @@ jobs:
         run: godot --headless --path . --script res://tests/transport_smoke.gd
       - name: Validate Kestrel S6 hero body, dynamic lights and save stability
         run: godot --headless --path . --script res://tests/hero_vehicle_smoke.gd
+      - name: Audit closed Kestrel rear hatch manifold, trunk bulkhead and police variant
+        run: godot --headless --path . --script res://tests/kestrel_rear_closure_smoke.gd
       - name: Validate Central Exchange junction architecture and signal-safe lighting
         run: godot --headless --path . --script res://tests/hero_intersection_smoke.gd
       - name: Validate new Central Exchange true-mesh architecture, source PBR and persistence
