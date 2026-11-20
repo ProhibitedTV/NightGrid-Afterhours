@@ -279,7 +279,10 @@ func _process(delta: float) -> void:
 	if _focus_update_clock >= 0.1:
 		_focus_update_clock = 0.0
 		if not indoors:
-			city_details.call("set_focus", actor.global_position)
+			var traversal_velocity := Vector3.ZERO
+			if actor is CharacterBody3D:
+				traversal_velocity = (actor as CharacterBody3D).velocity
+			city_details.call("request_focus", actor.global_position, traversal_velocity)
 		street_lights.call("set_focus", interiors.get("exterior_position") if indoors else actor.global_position)
 		venue_system.call("set_focus", actor.global_position)
 		civic_services.call("set_focus", actor.global_position)
