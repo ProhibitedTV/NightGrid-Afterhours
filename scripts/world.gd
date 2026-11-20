@@ -849,6 +849,18 @@ func _toggle_interaction() -> void:
 		_close_venue()
 		return
 	if interiors.call("is_inside"):
+		# Mara's collectible, one-time shift note is a real world interaction,
+		# available only beside the flagship café booth. Reuse the already
+		# persisted civic-intel list; old saves and quest schemas are unchanged.
+		var room_detail: Dictionary = interiors.call("inspect_hero_rumor", player.global_position)
+		if not room_detail.is_empty():
+			var clue_id := str(room_detail["id"])
+			if not civic_intel.has(clue_id):
+				civic_intel.append(clue_id)
+				_notify("MARA'S SHIFT NOTES: " + str(room_detail["text"]))
+			else:
+				_notify("You already copied Mara's shift notes to your journal.")
+			return
 		if not interiors.call("counter_reachable", player.global_position):
 			_notify("Walk toward the staffed service counter to interact.")
 			return
