@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - art/central-exchange-photoreal-frontages-20261120
+      - feat/aaa-frame-pacing-capture-20261120
     paths:
       - tools/import_polyhaven_pbr.py
       - .github/workflows/import-central-pbr.yml
@@ -35,7 +36,7 @@ jobs:
           p = Path('assets/pbr/polyhaven')
           source = json.loads((p / 'SOURCE.json').read_text())
           assert source['license'] == 'CC0 1.0'
-          assert set(source['assets']) == {'brick_wall_001', 'blue_metal_plate'}
+          assert set(source['assets']) == {'brick_wall_001', 'blue_metal_plate', 'bitumen'}
           for asset_id, asset in source['assets'].items():
               assert asset['asset'] == asset_id
               assert asset['license'] == 'CC0 1.0'
@@ -54,9 +55,9 @@ jobs:
           if git diff --cached --quiet; then
             echo "CC0 material maps unchanged"
           else
-            git commit -m "assets: include verified Poly Haven CC0 2K brick and blue steel PBR sets"
-            git pull --rebase origin art/central-exchange-photoreal-frontages-20261120
-            git push origin HEAD:art/central-exchange-photoreal-frontages-20261120
+            git commit -m "assets: include verified Poly Haven CC0 2K brick steel and roofing PBR sets"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
       - name: Install Godot engine
         uses: chickensoft-games/setup-godot@v2

@@ -15,6 +15,10 @@ var current_station := 0
 var direction := 1
 var dwell_remaining := 8.0
 var _initialized := false
+# Godot 4.3 lacks built-in 3D physics interpolation; only the visual child
+# is smoothed between fixed-tick simulation positions.
+var _previous_train_x := STATIONS[0]
+var _current_train_x := STATIONS[0]
 
 func _ready() -> void:
 	_build_track_and_stations()
@@ -22,6 +26,8 @@ func _ready() -> void:
 	train.name = "MorrowLineTrain"
 	add_child(train)
 	train.position = Vector3(STATIONS[0], TRAIN_LEVEL, TRACK_Z)
+	_previous_train_x = train.position.x
+	_current_train_x = train.position.x
 	train_visual = TrainVisual.new()
 	train_visual.name = "CicadaM8HeroVisual"
 	train.add_child(train_visual)
@@ -32,12 +38,15 @@ func _sync_train_visual() -> void:
 		train_visual.call("set_operational_state", direction, speed, dwell_remaining > 0.1)
 		train_visual.call("set_destination", STATION_NAMES[next_station])
 
-func _process(delta: float) -> void:
+func _physics_process(delta: float) -> void:
+	# The timetable, position and saves advance ONLY on fixed physics ticks.
+	_previous_train_x = train.position.x if absf(train.position.x - _current_train_x) > 0.5 else _current_train_x
 	if not _initialized:
 		_initialized = true
 	if dwell_remaining > 0.0:
 		dwell_remaining = maxf(0.0, dwell_remaining - delta)
 		speed = 0.0
+		_current_train_x = train.position.x
 		_sync_train_visual()
 		return
 	var destination: float = STATIONS[next_station]
@@ -57,7 +66,24 @@ func _process(delta: float) -> void:
 		elif current_station == 0:
 			direction = 1
 		next_station = current_station + direction
+	_current_train_x = train.position.x
 	_sync_train_visual()
+
+func _process(_delta: float) -> void:
+	if train == null or train_visual == null:
+		return
+	# Detect restore, scene staging and direct teleports without flythrough.
+	if absf(train.position.x - _current_train_x) > 0.5:
+		_reset_render_history()
+		return
+	var fraction := clampf(Engine.get_physics_interpolation_fraction(), 0.0, 1.0)
+	train_visual.position.x = lerpf(_previous_train_x, _current_train_x, fraction) - train.position.x
+
+func _reset_render_history() -> void:
+	_previous_train_x = train.position.x
+	_current_train_x = train.position.x
+	if train_visual != null:
+		train_visual.position.x = 0.0
 
 func boardable_from(at: Vector3) -> bool:
 	if dwell_remaining <= 0.1:
@@ -89,6 +115,7 @@ func restore(data: Dictionary) -> void:
 	direction = -1 if int(data.get("direction", 1)) < 0 else 1
 	speed = clampf(float(data.get("speed", 0.0)), 0.0, 17.0)
 	dwell_remaining = clampf(float(data.get("dwell", 0.0)), 0.0, 8.0)
+	_reset_render_history()
 	_sync_train_visual()
 
 func get_map_stations() -> Array[Vector2]:

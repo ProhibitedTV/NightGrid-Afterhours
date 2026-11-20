@@ -52,3 +52,8 @@ Introduce authored UV-unwrapped facade geometry, higher-resolution scanned or au
 ## Expanded map rendering note
 
 The new eight-district map groups decorative MultiMesh instances by material **and two-block chunk** to help visibility culling, rather than making an enormous all-city batch. The four new protected public plazas, 16 authored service frontages, 128 street trees, and 81 signal pairs add geometry and may increase frame time. Actual 3060 performance is **unmeasured**, so adding a second city ring does not imply we have achieved the 1080p/60 target. [Expansion guide](EXPANSION.md).
+
+
+## 60Hz physics vs rendered frames and authentic screenshot recapture
+
+The November 20 frame-pacing pass explicitly fixes gameplay physics at 60Hz while leaving rendered FPS uncapped, moves rail movement onto physics ticks, interpolates the visible train child on render callbacks in Godot 4.3, and moves mission/damage timers to physics. Scene focus and HUD text updates are limited to 10Hz. The screenshot workflow recaptures real in-engine images on the AAA feature branch with a SHA source manifest. **Headless tests and Mesa OpenGL captures cannot prove RTX 3060 1080p60 or final AAA fidelity.** See [the performance/asset acceptance protocol](FRAME_PACING_AND_ASSETS.md).

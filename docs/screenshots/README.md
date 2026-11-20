@@ -6,7 +6,7 @@ These seven PNG files are **unaltered framebuffer captures from the actual runni
 
 | File | Actual scene |
 |---|---|
-| `01-morrow-bay-neon-night.png` | Downtown street corridor and moving traffic after dark |
+| `01-morrow-bay-neon-night.png` | Central Exchange road-visible PBR architecture, captured from the updated playable game |
 | `02-vesper-market-nightlife.png` | Moon Noodles streetfront with gameplay HUD, live city map and cars |
 | `03-m-line-helix-terminal.png` | Actual raised M-Line rail infrastructure at Helix Terminal |
 | `04-horizon-commons-daylight.png` | Planted Horizon Gardens community plaza under the day/night system |
@@ -18,6 +18,6 @@ These seven PNG files are **unaltered framebuffer captures from the actual runni
 
 The workflow installs the same Godot 4.3 project runtime used in the game's tests, runs the normal game scene in a real software-rendered X11 viewport (never the headless dummy renderer), and reads the active viewport's framebuffer with `root.get_texture().get_image()`. It changes game-world hour, camera position and player position to expose actual landmarks and enters Quay Fresh through the game's real interior transition. It opens the title/map using the actual live menu controls. Files are saved directly with Godot's `Image.save_png`.
 
-The script validates dimensions, minimum distinct sampled colors and file size; the workflow verifies PNG signatures and 1280×720 dimensions and uploads the captures as a CI artifact. The workflow subsequently commits the PNGs through the GitHub Actions account. `tools/check_screenshots.py` also validates the files and README references in ordinary preflight CI.
+The script validates dimensions, minimum distinct sampled colors and file size; the workflow verifies PNG signatures and 1280×720 dimensions and uploads the captures as a CI artifact. On designated feature-branch pushes, it commits regenerated PNGs plus a `capture-manifest.json` identifying the captured source revision and SHA-256 hash of each unmodified framebuffer. This is a provenance record, not Vulkan validation. `tools/check_screenshots.py` also validates the files and README references in ordinary preflight CI.
 
 For future capture from a physical RTX 3060, run the game normally at 1080p with the Forward+ renderer, record gameplay screenshots using Steam or a graphics capture tool, then replace selected gallery files with that version and clearly label the new capture source. Do not describe these virtual Linux software-renderer frames as Windows RTX benchmarks.

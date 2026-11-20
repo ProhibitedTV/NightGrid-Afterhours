@@ -69,6 +69,50 @@ func _check() -> void:
 			if part is CollisionObject3D:
 				_fail("Visual-only side replacement introduced invisible obstacles in the sidewalk")
 				return
+		if str(query[3]) == "BRICKWATER":
+			# This is one finished building, not an indiscriminate city style.
+			var finish := facade.get_node_or_null("BrickwaterSealedCornerAndRoof")
+			if finish == null:
+				_fail("Brickwater corner building is missing its sealed shell/roof")
+				return
+			var finish_stats: Dictionary = finish.call("get_finish_stats")
+			if int(finish_stats["sealed_corner_returns"]) != 4 or int(finish_stats["solid_roof_edges"]) != 4 or int(finish_stats["coping_edges"]) != 4:
+				_fail("Open corner seams or unsealed parapet: %s" % finish_stats)
+				return
+			if int(finish_stats["array_mesh_surfaces"]) != 3 or int(finish_stats["foundation_runs"]) != 2:
+				_fail("Missing scanned masonry/roof/steel finish meshes: %s" % finish_stats)
+				return
+			if int(finish_stats["new_collisions"]) != 0 or int(finish_stats["new_lights"]) != 0:
+				_fail("A visual architecture pass changed gameplay collision or lighting")
+				return
+			for part in finish.get_children():
+				if not (part is MeshInstance3D) or not (part.mesh is ArrayMesh):
+					_fail("Finished corner must only contain authored triangle meshes")
+					return
+				var finish_material := part.material_override as StandardMaterial3D
+				if finish_material == null or finish_material.cull_mode != BaseMaterial3D.CULL_BACK:
+					_fail("Finished shell has missing faces/backface holes or lacks PBR material")
+					return
+			var masonry := facade.call("_surface_material", "MASONRY") as StandardMaterial3D
+			var cladding := facade.call("_surface_material", "CLADDING") as StandardMaterial3D
+			if masonry == null or cladding == null or not masonry.normal_enabled or not cladding.normal_enabled:
+				_fail("Scanned normal maps were imported but not actually enabled")
+				return
+			var roof := facade.call("_surface_material", "ROOF") as StandardMaterial3D
+			if roof == null or not roof.normal_enabled or roof.normal_texture == null or roof.albedo_texture == null or roof.roughness_texture == null:
+				_fail("Bright procedural tiled roof returned instead of photo-based bitumen PBR")
+				return
+			var glass := facade.call("_surface_material", "GLASS") as StandardMaterial3D
+			if glass == null or glass.transparency != BaseMaterial3D.TRANSPARENCY_ALPHA:
+				_fail("Brickwater glass remains an opaque painted panel")
+				return
+			if not facade.has_node("Facade_DARK_ROOM") or not avenue.has_node("AvenueSurface_DARK_ROOM"):
+				_fail("Glass shows through to empty sky instead of believable room depth")
+				return
+		else:
+			if facade.has_node("BrickwaterSealedCornerAndRoof"):
+				_fail("Single-building approval gate violated: changed Afterhours lot")
+				return
 		if int(stats["reveal_faces"]) < 32:
 			_fail("Openings are missing recessed jamb and sill geometry")
 			return
@@ -128,8 +172,8 @@ func _check() -> void:
 		if not has_brick or not has_steel:
 			_fail("The real 2K scanned CC0 material maps must ship with the playable scene")
 			return
-		if str(query[3]) == "BRICKWATER" and int(stats["real_pbr_maps"]) != 6:
-			_fail("Brick frontage and painted-steel fascia did not both bind genuine albedo/normal/roughness maps")
+		if str(query[3]) == "BRICKWATER" and int(stats["real_pbr_maps"]) != 9:
+			_fail("Brick frontage, steel fascia and bitumen roof did not bind all nine scanned PBR maps")
 			return
 		if str(query[3]) == "AFTERHOURS" and int(stats["real_pbr_maps"]) != 3:
 			_fail("Road-facing steel frontage did not bind genuine 2K texture maps")

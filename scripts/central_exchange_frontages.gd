@@ -8,6 +8,7 @@ extends Node3D
 ## photoreal benchmark, not a claim of final AAA-quality world artwork.
 const Materials = preload("res://scripts/material_library.gd")
 const AvenueFrontage = preload("res://scripts/central_exchange_avenue.gd")
+const BrickwaterFinish = preload("res://scripts/brickwater_corner_finish.gd")
 const PBR_ROOT = "res:" + "//assets/pbr/polyhaven/brick_wall_001_"
 const STEEL_PBR_ROOT = "res:" + "//assets/pbr/polyhaven/blue_metal_plate_"
 const STOREY = 3.45
@@ -70,6 +71,7 @@ func _surface_material(family: String) -> Material:
 				if alb != null and nor != null and rough != null:
 					out.albedo_texture = alb
 					out.normal_texture = nor
+					out.normal_enabled = true
 					out.roughness_texture = rough
 					out.albedo_color = Color("c5beb7")
 					_statistics["real_pbr_maps"] += 3
@@ -97,10 +99,12 @@ func _surface_material(family: String) -> Material:
 				if steel_alb != null and steel_nor != null and steel_rough != null:
 					out.albedo_texture = steel_alb
 					out.normal_texture = steel_nor
+					out.normal_enabled = true
 					out.roughness_texture = steel_rough
 					out.normal_scale = 0.52
 					out.roughness = 1.0
 					_statistics["real_pbr_maps"] += 3
+			out.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 		"REVEALS":
 			out = (Materials.surface("CONCRETE", Color("8b8985"))).duplicate() as StandardMaterial3D
 			out.albedo_color = Color("a7a39c")
@@ -115,12 +119,25 @@ func _surface_material(family: String) -> Material:
 			out.roughness = 0.30
 		"GLASS":
 			out = StandardMaterial3D.new()
-			out.albedo_color = Color("304855")
-			out.metallic = 0.06
-			out.roughness = 0.17
+			if district == "BRICKWATER":
+				# The glass is a distinct surface, with a separate shallow
+				# room backing. The old pilot painted lit windows opaque amber.
+				out.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				out.albedo_color = Color(0.35, 0.47, 0.53, 0.38)
+				out.metallic = 0.0
+				out.roughness = 0.11
+			else:
+				out.albedo_color = Color("304855")
+				out.metallic = 0.06
+				out.roughness = 0.17
 			out.clearcoat_enabled = true
 			out.clearcoat = 0.51
 			out.clearcoat_roughness = 0.18
+		"DARK_ROOM":
+			out = StandardMaterial3D.new()
+			out.albedo_color = Color("151d25")
+			out.metallic = 0.0
+			out.roughness = 0.94
 		"INTERIOR":
 			out = StandardMaterial3D.new()
 			out.albedo_color = Color("736353")
@@ -129,6 +146,34 @@ func _surface_material(family: String) -> Material:
 			out.emission_enabled = true
 			out.emission = Color("ad8060")
 			out.emission_energy_multiplier = 0.28
+		"ROOF":
+			# Only the protected Brickwater corner uses this photo-calibrated
+			# bitumen membrane: flat roofs are not bright tiled concrete floors.
+			out = StandardMaterial3D.new()
+			out.albedo_color = Color("aaa8a4")
+			out.metallic = 0.0
+			out.roughness = 0.92
+			out.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+			var roof_root := "res:" + "//assets/pbr/polyhaven/bitumen_"
+			var roof_paths := [roof_root + "diffuse_2k.jpg",
+				roof_root + "nor_gl_2k.png", roof_root + "rough_2k.png"]
+			if ResourceLoader.exists(roof_paths[0]) and ResourceLoader.exists(roof_paths[1]) and ResourceLoader.exists(roof_paths[2]):
+				var roof_albedo := load(roof_paths[0]) as Texture2D
+				var roof_normal := load(roof_paths[1]) as Texture2D
+				var roof_rough := load(roof_paths[2]) as Texture2D
+				if roof_albedo != null and roof_normal != null and roof_rough != null:
+					out.albedo_texture = roof_albedo
+					out.normal_enabled = true
+					out.normal_texture = roof_normal
+					out.normal_scale = 0.55
+					out.roughness_texture = roof_rough
+					out.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_RED
+					out.roughness = 1.0
+					_statistics["real_pbr_maps"] += 3
+				else:
+					push_warning("Bitumen roof scan is present but failed to load; visual approval blocked")
+			else:
+				push_warning("Photographed CC0 bitumen roof PBR not imported; visual approval blocked")
 		"PARAPET":
 			out = Materials.surface("CONCRETE", Color("5f646b")).duplicate() as StandardMaterial3D
 			out.albedo_color = Color("71787c")
@@ -185,8 +230,15 @@ func _window(x0: float, x1: float, bottom: float, top: float, is_lit: bool) -> v
 	_push(jamb, Vector3(inner_left, lower, GLASS), Vector3(inner_right, lower, GLASS),
 		Vector3(x1, bottom, FRONT), Vector3(x0, bottom, FRONT))
 	_statistics["reveal_faces"] += 4
-	_rect("INTERIOR" if is_lit else "GLASS",
-		inner_left, inner_right, lower, upper, GLASS + 0.007, 0.72)
+	if district == "BRICKWATER":
+		# One recessed glass plane plus a separately shaded interior at
+		# 0.7m depth. No cutout exposes the sky or old collision volume.
+		_rect("GLASS", inner_left, inner_right, lower, upper, GLASS + 0.007, 0.72)
+		_rect("INTERIOR" if is_lit else "DARK_ROOM",
+			inner_left, inner_right, lower, upper, GLASS + 0.72, 0.72)
+	else:
+		_rect("INTERIOR" if is_lit else "GLASS",
+			inner_left, inner_right, lower, upper, GLASS + 0.007, 0.72)
 	# Window dividers are part of the architectural mesh, not intersecting
 	# primitive boxes. Transoms sit in the reveal plane.
 	var mullion := "STEEL"
@@ -266,6 +318,11 @@ func _generate_facade() -> void:
 		district, storefront_name)
 	add_child(avenue)
 	_statistics["avenue_windows"] = int(avenue.call("get_avenue_stats")["windows"])
+	if district == "BRICKWATER":
+		var finish := BrickwaterFinish.new()
+		finish.name = "BrickwaterSealedCornerAndRoof"
+		finish.configure(building_width, building_height, building_depth)
+		add_child(finish)
 
 func _build_swept_canopy(x0: float, x1: float) -> void:
 	# One ribbed extruded canopy surface, curved over the actual sidewalk
@@ -313,8 +370,9 @@ func _build_enclosing_shell() -> void:
 	# Tinted deep interior plate 0.5m back behind the south display glazing.
 	# This preserves visual interior depth even before fully enterable rooms
 	# get their own mesh/lighting/collision contract.
-	_rect("INTERIOR", -half + 0.1, half - 0.1, 0.5,
-		GROUND - 0.42, 0.50, 0.43)
+	if district != "BRICKWATER":
+		_rect("INTERIOR", -half + 0.1, half - 0.1, 0.5,
+			GROUND - 0.42, 0.50, 0.43)
 
 func _build_storefront_identification() -> void:
 	# Functional shop identity uses a stable existing district label, not a
@@ -356,12 +414,13 @@ func _flush_meshes() -> void:
 				surface.set_uv(Vector2(u, v))
 				surface.add_vertex(vertex)
 		surface.generate_normals()
+		surface.generate_tangents()
 		var mesh: ArrayMesh = surface.commit()
 		var surface_node := MeshInstance3D.new()
 		surface_node.name = "Facade_%s" % family
 		surface_node.mesh = mesh
 		surface_node.material_override = _surface_material(family)
-		surface_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		surface_node.cast_shadow = (GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if family == "GLASS" and district == "BRICKWATER" else GeometryInstance3D.SHADOW_CASTING_SETTING_ON)
 		add_child(surface_node)
 		_statistics["architecture_surfaces"] += 1
 	_buffers.clear()

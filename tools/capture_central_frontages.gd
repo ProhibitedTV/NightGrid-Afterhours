@@ -71,6 +71,29 @@ func _capture() -> void:
 	await _settle()
 	if not await _save("afterhours-scanned-steel-daylight-real-godot.png"):
 		return
+	# Brickwater-only structural seam inspection from pedestrian eye
+	# height. This aims directly at the closed south-to-avenue return.
+	clock.call("set_hour", 12.0)
+	camera.global_position = Vector3(-5.2, 2.1, 9.8)
+	camera.look_at(Vector3(-10.9, 4.3, 14.3), Vector3.UP)
+	await _settle()
+	if not await _save("brickwater-sealed-corner-daylight-real-godot.png"):
+		return
+	# A roofline/return inspection from above the ACTUAL selected lot.
+	var loaded: Dictionary = city.get("_loaded")
+	var chunk := loaded.get(Vector2i(-1, 0)) as Node3D
+	var brickwater: Node3D = null
+	if chunk != null:
+		brickwater = chunk.get_node_or_null("PhotorealFrontage_-1_0_1") as Node3D
+	if brickwater == null:
+		_fail("Brickwater corner missing for roof geometry screenshot")
+		return
+	var roof_y := brickwater.position.y + float(brickwater.get("building_height"))
+	camera.global_position = Vector3(-4.9, roof_y + 12.0, 10.0)
+	camera.look_at(Vector3(-17.5, roof_y + 0.5, 26.0), Vector3.UP)
+	await _settle()
+	if not await _save("brickwater-roof-parapet-daylight-real-godot.png"):
+		return
 	print("CENTRAL_FRONTAGE_CAPTURE PASS: ", captured)
 	quit(0)
 

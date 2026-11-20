@@ -1,5 +1,32 @@
 {
   "assets": {
+    "bitumen": {
+      "api": "https://api.polyhaven.com/files/bitumen",
+      "asset": "bitumen",
+      "description": "Real weathered bitumen roofing for one Brickwater flat-roof building",
+      "files": {
+        "diffuse": {
+          "bytes": 2015524,
+          "file": "assets/pbr/polyhaven/bitumen_diffuse_2k.jpg",
+          "sha256": "709bf2bd8753197f90c0ea1fc3a735c1e06ffd7cb4aabdb9bd9401f9df607e31",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/bitumen/bitumen_diff_2k.jpg"
+        },
+        "nor_gl": {
+          "bytes": 25035852,
+          "file": "assets/pbr/polyhaven/bitumen_nor_gl_2k.png",
+          "sha256": "95914ba4fbd0003373bcdbe08663456712d7fa5ffdad3dd695a403f1a6428e74",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/2k/bitumen/bitumen_nor_gl_2k.png"
+        },
+        "rough": {
+          "bytes": 6484925,
+          "file": "assets/pbr/polyhaven/bitumen_rough_2k.png",
+          "sha256": "fccb4c1f8a02d4a0f91ad5a3a84536da9fb6f9a131aea96c70e6d86989c703dd",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/2k/bitumen/bitumen_rough_2k.png"
+        }
+      },
+      "license": "CC0 1.0",
+      "page": "https://polyhaven.com/a/bitumen"
+    },
     "blue_metal_plate": {
       "api": "https://api.polyhaven.com/files/blue_metal_plate",
       "asset": "blue_metal_plate",
