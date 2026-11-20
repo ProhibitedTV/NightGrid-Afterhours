@@ -76,6 +76,14 @@ func _verify() -> void:
 	if camera.global_position.distance_to(player.global_position) > 12.0:
 		_fail("Next gameplay frame reintroduced void-looking camera flythrough")
 		return
+	# Club exit also must restore a physically supported player, not just
+	# move the camera. Advance actual Godot physics so we catch falling through
+	# unloaded ground rather than asserting a one-frame teleport position.
+	for frame in range(30):
+		await physics_frame
+	if player.global_position.y < 0.52 or not player.is_on_floor():
+		_fail("Player actually fell through the ground after leaving the club")
+		return
 	# Test actual third-person occlusion against a deliberately placed real
 	# collision wall along the camera arm (not an aesthetic-only mesh).
 	var focus: Vector3 = world.call("_camera_focus")
