@@ -23,8 +23,10 @@ The yellow interval is within FHWA/MUTCD's commonly recommended 3–6 seconds, b
 
 - **One moving two-car train** on an extended dedicated elevated guideway running east/west over the corridor at `z=-58`, roughly 12 meters above streets; does not contend with road traffic.
 - Five **permanent** stations: **West Quay Gate**, **Brickwater Crossing**, **Central Exchange**, **Helix Terminal**, **East Gardens**. Train travels between them, pauses eight seconds at each, and reverses at the endpoints.
-- Each station has an authored platform and a marked street-level elevator/boarding point. Press **F** from the entrance when the train is stopped; press **F** at a station to get off. Boarding is intentionally instantaneous between street and train in this prototype.
+- Each station has a detailed raised platform with tactile edge cues, protective glazing, overhead canopy, lighting, a skybridge connection and a marked street-level elevator/boarding point. Press **F** from the entrance when the train is stopped; press **F** at a station to get off. Boarding is intentionally instantaneous between street and train in this prototype.
 - Elevated track piers are placed away from through lanes. Station geometry and traffic are intentionally kept inside the current city before expanding.
+- **CICADA M8 hero train:** the playable two-car visual model now has a curved/bevelled lofted alloy shell, semi-transparent windows with an actual opening to a furnished cabin, route branding, reversible marker lamps and forward spot beams, multi-part running bogies, roof equipment, gangway seals, and cosmetic double sliding doors animated from actual station dwells. The rail route, 17 m/s top speed, five stations, eight-second stops and old save snapshots remain intact.
+- **Engineer-facing details:** batched 171 ties, copper service strips, platform tactile markers, cabin grab rails, station identifier signs, door edge warnings and overhead lighting. This is a high-detail procedural art pass, **not** a claim of finished AAA production asset quality or accessibility compliance. See [Art direction](ART_DIRECTION.md).
 
 ## Save/load: one world, one seed
 
