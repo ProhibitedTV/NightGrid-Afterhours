@@ -7,7 +7,7 @@ const ACTIONS = [
 	"sprint", "jump", "drive_accelerate", "drive_reverse", "drive_brake",
 	"interact", "car_toggle", "transit_toggle", "interior_toggle",
 	"use_supply", "service_one", "service_two",
-	"game_pause", "game_back", "game_save", "game_load", "game_new",
+	"game_pause", "game_back", "map_open", "journal_open", "game_save", "game_load", "game_new",
 	"advance_clock", "pause_clock", "toggle_fps", "toggle_ssr"
 ]
 
@@ -57,6 +57,9 @@ static func install() -> void:
 	_key("game_pause", KEY_ESCAPE)
 	_button("game_pause", JOY_BUTTON_START)
 	_button("game_back", JOY_BUTTON_B)
+	_key("map_open", KEY_M)
+	_button("map_open", JOY_BUTTON_BACK)
+	_key("journal_open", KEY_TAB)
 	_key("game_save", KEY_F5)
 	_key("game_new", KEY_F6)
 	_key("game_load", KEY_F9)
