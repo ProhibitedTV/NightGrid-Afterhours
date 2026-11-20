@@ -241,6 +241,78 @@ func _lofted_body_mesh() -> ArrayMesh:
 	st.generate_normals()
 	return st.commit()
 
+func _rear_hatch_point(section: Dictionary, side: int) -> Vector3:
+	var half_width: float = float(section["half_width"])
+	var upper: float = float(section["top"])
+	var lower: float = float(section["bottom"])
+	var z: float = float(section["z"])
+	match side:
+		0:
+			return Vector3(-half_width, lower, z)
+		1:
+			return Vector3(-half_width, upper, z)
+		2:
+			return Vector3(half_width, upper, z)
+		_:
+			return Vector3(half_width, lower, z)
+
+func _rear_hatch_mesh() -> ArrayMesh:
+	# The old monocoque closes at its ends, but the transparent rear glass
+	# revealed a bare, flat rear shelf with no trunk lid or cabin bulkhead.
+	# These authored cross sections form a six-sided, watertight painted
+	# hatch/deck with correct outward-facing normal winding.
+	var sections := [
+		{"z": 1.38, "half_width": 0.88, "top": 0.53, "bottom": 0.45},
+		{"z": 1.76, "half_width": 0.96, "top": 0.56, "bottom": 0.44},
+		{"z": 2.12, "half_width": 0.94, "top": 0.51, "bottom": 0.41},
+		{"z": 2.31, "half_width": 0.77, "top": 0.41, "bottom": 0.34}
+	]
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for index in range(sections.size() - 1):
+		for side in range(4):
+			var next := (side + 1) % 4
+			var a := _rear_hatch_point(sections[index], side)
+			var b := _rear_hatch_point(sections[index], next)
+			var c := _rear_hatch_point(sections[index + 1], next)
+			var d := _rear_hatch_point(sections[index + 1], side)
+			_quad(st, a, d, c, b)
+	for end in [0, sections.size() - 1]:
+		var item: Dictionary = sections[end]
+		var z: float = float(item["z"])
+		var center := Vector3(0.0,
+			(float(item["top"]) + float(item["bottom"])) * 0.5, z)
+		for side in range(4):
+			var point := _rear_hatch_point(item, side)
+			var other := _rear_hatch_point(item, (side + 1) % 4)
+			if end == 0:
+				_triangle(st, center, point, other)
+			else:
+				_triangle(st, center, other, point)
+	st.generate_normals()
+	return st.commit()
+
+func _build_rear_closure() -> void:
+	var hatch := MeshInstance3D.new()
+	hatch.name = "RearHatchSolid"
+	hatch.mesh = _rear_hatch_mesh()
+	hatch.material_override = _mat("PAINT", _paint)
+	add_child(hatch)
+	_visual_stats["body_panels"] += 1
+	_visual_stats["hero_components"] += 1
+	# An opaque cargo compartment wall replaces the line of sight from the
+	# rear hatch glass straight through the trunk. The rear bench and roof
+	# glazing remain visible; geometry does not touch vehicle collision.
+	_box(self, "RearCabinBulkhead", Vector3(0.0, 0.45, 1.16),
+		Vector3(1.72, 0.68, 0.12), "PAINT", _paint.darkened(0.34))
+	_box(self, "RearParcelShelf", Vector3(0.0, 0.73, 1.13),
+		Vector3(1.66, 0.07, 0.31), "SEAT", Color("283740"))
+	for side in [-1.0, 1.0]:
+		_box(self, "RearInnerQuarter", Vector3(float(side) * 0.83, 0.57, 1.48),
+			Vector3(0.15, 0.22, 0.66), "PAINT", _paint.darkened(0.16))
+		_box(self, "HatchWeatherSeal", Vector3(float(side) * 0.91, 0.565, 1.76),
+			Vector3(0.026, 0.027, 0.62), "RUBBER", Color("25323b"))
+
 func _build_body() -> void:
 	var shell := MeshInstance3D.new()
 	shell.name = "KestrelMonocoque"
@@ -248,6 +320,7 @@ func _build_body() -> void:
 	shell.material_override = _mat("PAINT", _paint)
 	add_child(shell)
 	_visual_stats["body_panels"] += 1
+	_build_rear_closure()
 	# A continuous rib, actual undertray, recessed splitter and roof luggage/spine
 	# define a functional vehicle silhouette instead of a floating colored cube.
 	_box(self, "CarbonUndertray", Vector3(0.0, -0.35, 0.02),
