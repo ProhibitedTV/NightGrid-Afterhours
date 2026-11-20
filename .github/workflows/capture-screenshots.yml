@@ -108,4 +108,16 @@ jobs:
           git add docs/screenshots/*.png docs/screenshots/capture-manifest.json
           git diff --cached --quiet && { echo "Screenshots already match checked-in versions"; exit 0; }
           git commit -m "docs(screenshots): recapture seven real Godot 4 gameplay frames"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          # Multiple source commits may land while the renderer is running.
+          # Rebase the generated PNG commit onto the latest remote head rather
+          # than failing with a non-fast-forward push or rewriting source work.
+          for attempt in 1 2 3; do
+            git fetch origin "${GITHUB_REF_NAME}"
+            git rebase "origin/${GITHUB_REF_NAME}"
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              exit 0
+            fi
+            echo "Capture publish raced a new commit; retry ${attempt}/3"
+          done
+          echo "Could not publish screenshots without overwriting newer commits" >&2
+          exit 1
