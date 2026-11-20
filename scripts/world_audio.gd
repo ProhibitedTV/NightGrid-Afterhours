@@ -2,6 +2,7 @@ extends Node
 ## Runtime audio for city travel and player action. Musical programming is
 ## handled separately by NightGridFM. This layer uses original cached WAVs.
 const Foley = preload("res://scripts/city_foley.gd")
+const TrafficSpatialAudio = preload("res://scripts/traffic_spatial_audio.gd")
 const BEDS = ["WIND", "TRAFFIC", "INDUSTRIAL", "WATER"]
 const FADE_DB_PER_SECOND = 25.0
 
@@ -20,6 +21,7 @@ var _has_foot := false
 var _step_index := 0
 var _beds: Dictionary = {}
 var _footsteps: AudioStreamPlayer3D
+var _traffic_audio: Node3D
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -38,6 +40,12 @@ func _ready() -> void:
 	_footsteps.unit_size = 3.0
 	_footsteps.volume_db = -16.0
 	add_child(_footsteps)
+	_traffic_audio = TrafficSpatialAudio.new()
+	_traffic_audio.name = "PassingTrafficSoundfield"
+	add_child(_traffic_audio)
+
+func set_traffic(traffic_root: Node3D) -> void:
+	_traffic_audio.call("set_traffic", traffic_root)
 
 func set_preferences(ambience: float, effects: float) -> void:
 	ambience_volume = clampf(ambience, 0.0, 1.0)
@@ -53,6 +61,7 @@ func update_context(actor_position: Vector3, foot_position: Vector3,
 	_moving_on_foot = on_foot and speed > 0.7
 	_grounded = on_ground
 	_footsteps.global_position = foot_position
+	_traffic_audio.call("update_listener", actor_position, indoors, not on_foot, sfx_volume)
 	if not _has_foot or not on_foot:
 		_last_foot = foot_position
 		_has_foot = on_foot
@@ -82,7 +91,7 @@ func _play_step() -> void:
 func get_audio_stats() -> Dictionary:
 	return {"environment_layers": _beds.size(), "steps": _step_index,
 		"foley_cached": Foley.cache_count(), "district": _district,
-		"inside": _indoors}
+		"inside": _indoors, "traffic_audio": _traffic_audio.call("get_stats")}
 
 func _target_db(kind: String) -> float:
 	if ambience_volume <= 0.0:
