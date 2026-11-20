@@ -161,6 +161,7 @@ func _build_world_audio() -> void:
 	world_audio.name = "WorldAudio"
 	world_audio.set("menu", game_menu)
 	add_child(world_audio)
+	world_audio.call("set_traffic", traffic)
 	var options: Dictionary = game_menu.call("get_settings")
 	world_audio.call("set_preferences", float(options.get("ambience_volume", 0.65)),
 		float(options.get("sfx_volume", 0.75)))
