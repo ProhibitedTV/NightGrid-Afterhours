@@ -279,7 +279,10 @@ func _process(delta: float) -> void:
 	if _focus_update_clock >= 0.1:
 		_focus_update_clock = 0.0
 		if not indoors:
-			city_details.call("set_focus", actor.global_position)
+			var traversal_velocity := Vector3.ZERO
+			if actor is CharacterBody3D:
+				traversal_velocity = (actor as CharacterBody3D).velocity
+			city_details.call("request_focus", actor.global_position, traversal_velocity)
 		street_lights.call("set_focus", interiors.get("exterior_position") if indoors else actor.global_position)
 		venue_system.call("set_focus", actor.global_position)
 		civic_services.call("set_focus", actor.global_position)
@@ -1487,9 +1490,10 @@ func _update_hud() -> void:
 		var fps := maxi(Engine.get_frames_per_second(), 1)
 		var stream: Dictionary = city_details.call("get_streaming_stats")
 		var indoor_count := 1 if interiors.call("is_inside") else 0
-		performance_label.text = "RTX 3060 target: 60 FPS @1080p | Actual: %d FPS (%.1f ms) | %d/%d street blocks | %d live building shells | room %d" % [
+		performance_label.text = "RTX 3060 target: 60 FPS @1080p | Actual: %d FPS (%.1f ms) | %d/%d blocks | %d shells | room %d | queued %d | build %.1f ms | peak %.1f ms" % [
 			fps, 1000.0 / float(fps), int(stream["loaded_blocks"]), int(stream["total_blocks"]),
-			int(stream["loaded_buildings"]), indoor_count]
+			int(stream["loaded_buildings"]), indoor_count, int(stream.get("pending_blocks", 0)),
+			float(stream.get("last_build_usec", 0)) / 1000.0, float(stream.get("peak_build_usec", 0)) / 1000.0]
 	var control_help := "WASD Move | Mouse Look | E Car | F Transit | H Enter | G Interact | Esc Pause | M Map | Tab Journal"
 	if gamepad_active:
 		control_help = "PAD: LS Move / Steer • RS Look • A Jump/Service • X Interact/Contract • Y Car • LB Door • RB Transit • Start Pause • View Map"
