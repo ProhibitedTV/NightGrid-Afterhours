@@ -1,10 +1,16 @@
 name: Capture actual Godot screenshots
 on:
   push:
-    branches: [feat/real-gameplay-screenshots]
+    branches:
+      - feat/real-gameplay-screenshots
+      - feat/aaa-frame-pacing-capture-20261120
     paths:
       - '.github/workflows/capture-screenshots.yml'
       - 'tools/capture_screenshots.gd'
+      - 'project.godot'
+      - 'scripts/**'
+      - 'assets/**'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -69,18 +75,37 @@ jobs:
           assert len(list(folder.glob('*.png'))) == len(expected), 'Unexpected screenshot set'
           print('SCREENSHOT VALIDATION PASS: 7 real framebuffer captures')
           PY
+      - name: Record source revision and unchanged framebuffer hashes
+        run: |
+          python3 - <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+          import json, os
+          images = {}
+          for path in sorted(Path('docs/screenshots').glob('*.png')):
+              payload = path.read_bytes()
+              images[path.name] = {'sha256': sha256(payload).hexdigest(), 'bytes': len(payload)}
+          record = {'source_revision': os.environ['GITHUB_SHA'],
+                    'renderer': 'Godot 4.3 Mesa software OpenGL Compatibility 1280x720 (NOT Vulkan/RTX)',
+                    'images': images}
+          Path('docs/screenshots/capture-manifest.json').write_text(
+              json.dumps(record, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          PY
       - name: Attach screenshot proof to CI run
         uses: actions/upload-artifact@v4
         with:
           name: nightgrid-real-godot-screenshots
-          path: docs/screenshots/*.png
+          path: |
+            docs/screenshots/*.png
+            docs/screenshots/capture-manifest.json
           if-no-files-found: error
           retention-days: 30
-      - name: Commit real binary PNGs to feature branch
+      - name: Commit real binary PNGs to this feature branch
+        if: ${{ github.event_name == 'push' && github.ref != 'refs/heads/main' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/screenshots/*.png
+          git add docs/screenshots/*.png docs/screenshots/capture-manifest.json
           git diff --cached --quiet && { echo "Screenshots already match checked-in versions"; exit 0; }
-          git commit -m "docs(screenshots): capture seven authentic Godot 4 gameplay and menu frames"
-          git push origin HEAD:feat/real-gameplay-screenshots
+          git commit -m "docs(screenshots): recapture seven real Godot 4 gameplay frames"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
