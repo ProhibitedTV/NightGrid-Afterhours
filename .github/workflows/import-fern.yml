@@ -1,0 +1,61 @@
+name: Import licensed photographed fern model
+on:
+  push:
+    branches:
+      - art/horizon-fern-photogrammetry-20261120
+    paths:
+      - 'tools/import_polyhaven_fern.py'
+      - '.github/workflows/import-fern.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: import-horizon-fern
+  cancel-in-progress: false
+
+jobs:
+  import-scanned-fern:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch original Poly Haven 2K fern glTF and verify dependencies
+        run: python tools/import_polyhaven_fern.py
+      - name: Verify bundled glTF and strict source provenance
+        run: |
+          python - <<'PY'
+          import json, hashlib
+          from pathlib import Path
+          root = Path('assets/models/polyhaven/fern_02')
+          meta = json.loads((root/'SOURCE.json').read_text())
+          assert meta['license'] == 'CC0 1.0'
+          assert meta['asset'] == 'fern_02' and meta['resolution'] == '2k'
+          assert meta['gltf_meshes'] >= 1
+          assert len(meta['files']) >= 3
+          for f in meta['files'].values():
+              content = Path(f['file']).read_bytes()
+              assert hashlib.sha256(content).hexdigest() == f['sha256']
+              assert len(content) == f['bytes']
+          assert (root/meta['model']).stat().st_size > 10000
+          print('Verified one scanned source plant with', len(meta['files']), 'original model/texture files')
+          PY
+      - name: Commit the validated source-owned asset to the same art branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/models/polyhaven/fern_02
+          if git diff --cached --quiet; then
+            echo "Scanned fern assets are already committed"
+          else
+            git commit -m "assets(flora): source scanned Poly Haven CC0 2K fern and textures"
+            git fetch origin "${GITHUB_REF_NAME}"
+            git rebase "origin/${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
