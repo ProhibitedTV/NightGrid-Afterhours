@@ -217,8 +217,8 @@ func _build_physical_edges() -> void:
 	# Crown rails and repeated steel uprights visibly reinforce the industrial
 	# quay and city boundary, without 100s of individual physics bodies.
 	for side in ["NORTH", "WEST", "EAST", "SOUTH"]:
-		var cross := side == "NORTH" or side == "SOUTH"
-		var fixed := -EDGE if side == "NORTH" or side == "WEST" else EDGE
+		var cross: bool = side == "NORTH" or side == "SOUTH"
+		var fixed: float = -EDGE if side == "NORTH" or side == "WEST" else EDGE
 		var rail_position := Vector3(0.0, 1.98, fixed) if cross else Vector3(fixed, 1.98, 0.0)
 		_box(side + "_PerimeterCrown", rail_position,
 			Vector3(SPAN, 0.14, 0.17) if cross else Vector3(0.17, 0.14, SPAN),
@@ -241,8 +241,8 @@ func _build_physical_edges() -> void:
 
 func _build_road_terminals() -> void:
 	for side in ["NORTH", "SOUTH", "EAST", "WEST"]:
-		var cross := side == "NORTH" or side == "SOUTH"
-		var edge_coordinate := -EDGE if side == "NORTH" or side == "WEST" else EDGE
+		var cross: bool = side == "NORTH" or side == "SOUTH"
+		var edge_coordinate: float = -EDGE if side == "NORTH" or side == "WEST" else EDGE
 		for index in range(-WorldPlan.GRID_RADIUS, WorldPlan.GRID_RADIUS + 1):
 			var axis := float(index) * ROAD_STEP
 			var center := Vector3(axis, 0.08, edge_coordinate - 2.8) if cross else Vector3(edge_coordinate - 2.8, 0.08, axis)
