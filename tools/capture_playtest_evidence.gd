@@ -109,11 +109,13 @@ func _capture_all() -> void:
 	player.set_physics_process(false)
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUTPUT_DIR))
 	await _settle()
-	# Geographically grounded camera goals face OUTWARD, beyond the last
+	# Camera locations are on authored road axes and close enough to
+	# visible geography to avoid foreground tower occlusion and total fog.
+	# Geographically grounded goals face OUTWARD, beyond the last
 	# drivable junction at +/-245m, rather than down an interior street.
 	if not await _capture_at("01-north-quay-harbor.png",
-			Vector3(0, 1.15, -223), Vector3(9, 5.2, -222),
-			Vector3(0, 4.2, -355), 20.7):
+			Vector3(116, 1.15, -231), Vector3(116, 5.7, -232),
+			Vector3(117, 3.5, -339), 18.2):
 		return
 	if not await _capture_at("02-west-docks-port.png",
 			Vector3(-222, 1.15, -7), Vector3(-219, 5.0, -12),
@@ -124,9 +126,10 @@ func _capture_all() -> void:
 			Vector3(370, 34.0, 14), 16.0):
 		return
 	if not await _capture_at("04-southworks-freight-edge.png",
-			Vector3(0, 1.15, 222), Vector3(9, 6.8, 220),
-			Vector3(0, 13.0, 370), 21.5):
+			Vector3(0, 1.15, 232), Vector3(0, 5.2, 229),
+			Vector3(0, 8.0, 345), 15.8):
 		return
+	# Park the live drivable KESTREL on a clear road for close rear-deck QA.
 	# The same live drivable KESTREL S6 is repositioned, not replaced by a
 	# bespoke screenshot-only vehicle model or static decorative proxy.
 	var fleet: Array = game.get("cars")
@@ -135,26 +138,26 @@ func _capture_all() -> void:
 		return
 	var car := fleet[0] as CharacterBody3D
 	car.set_physics_process(false)
-	car.global_position = Vector3(28.0, 1.15, 190.0)
+	car.global_position = Vector3(0.0, 1.15, 203.0)
 	car.rotation.y = 0.0
 	if car.get_node_or_null("KestrelS6HeroVisual/RearHatchSolid") == null:
 		_abort("Expected repaired hatch on the live KESTREL model")
 		return
 	if not await _capture_at("05-kestrel-rear-quarter-dusk.png",
-			Vector3(34, 1.15, 203), Vector3(20.5, 3.1, 201.0),
+			Vector3(8, 1.15, 201), Vector3(-4.3, 2.6, 208.0),
 			car.global_position + Vector3(0, 0.4, 0), 20.7):
 		return
 	if not await _capture_at("06-kestrel-high-rear-day.png",
-			Vector3(34, 1.15, 203), Vector3(28.0, 8.0, 200.0),
+			Vector3(8, 1.15, 201), Vector3(0.0, 4.6, 208.0),
 			car.global_position + Vector3(0, 0.4, 0), 12.0):
 		return
 	if not await _capture_at("07-kestrel-side-night.png",
-			Vector3(34, 1.15, 203), Vector3(39.5, 2.8, 190.0),
+			Vector3(8, 1.15, 201), Vector3(5.0, 2.1, 203.0),
 			car.global_position + Vector3(0, 0.4, 0), 21.5):
 		return
 	if not await _capture_at("08-harbor-elevated-overlook.png",
-			Vector3(-200, 1.15, -190), Vector3(-215.0, 66.0, -198.0),
-			Vector3(-395.0, -3.0, -350.0), 20.7):
+			Vector3(-174, 1.15, -229), Vector3(-175.0, 34.0, -232.0),
+			Vector3(-155.0, -1.0, -340.0), 17.9):
 		return
 	var record := {
 		"source_revision": OS.get_environment("GITHUB_SHA"),
