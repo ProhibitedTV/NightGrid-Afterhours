@@ -4,6 +4,7 @@ extends Node3D
 ## All dimensions are local to InteriorSystem's 16m x 18m room.
 const Materials = preload("res://scripts/material_library.gd")
 const CoffeeSound = preload("res://scripts/lantern_cup_audio.gd")
+const MaraHero = preload("res://scripts/mara_hero.gd")
 const RUMOR_POSITION = Vector3(5.32, 1.18, 3.45)
 const RUMOR_ID = "lantern_cup_shift_notes"
 const RUMOR_TEXT = "Mara's shift notes: a quiet second delivery door faces the north service alley. Corporate couriers avoid the public night market."
@@ -19,7 +20,7 @@ var _statistics := {
 	"espresso_groups": 0, "glass_panels": 0, "pendants": 0,
 	"mugs": 0, "planters": 0, "menu_panels": 0,
 	"collidable_furniture": 0, "steam_wisps": 0,
-	"lights": 0, "original_audio_sources": 0
+	"lights": 0, "original_audio_sources": 0, "characters": 0
 }
 var _materials: Dictionary = {}
 var _steam_nodes: Array[MeshInstance3D] = []
@@ -33,9 +34,21 @@ func _ready() -> void:
 	_build_lanterns_and_glazing()
 	_build_local_lighting()
 	_build_sounds()
+	_build_mara_character()
 
 func get_visual_stats() -> Dictionary:
 	return _statistics.duplicate()
+
+func mara_character() -> Node3D:
+	return get_node_or_null("MaraHero")
+
+func _build_mara_character() -> void:
+	# Artist-scoped character is streamed with the room, not left in the city.
+	var mara := MaraHero.new()
+	mara.name = "MaraHero"
+	mara.position = Vector3(0.0, 0.33, -7.12)
+	add_child(mara)
+	_statistics["characters"] += 1
 
 func get_rumor_position() -> Vector3:
 	return RUMOR_POSITION
