@@ -48,6 +48,27 @@ func _check() -> void:
 		if int(stats["shopfront_openings"]) != 4 or int(stats["canopy_segments"]) != 20:
 			_fail("Recessed retail shopfront and swept canopy require stable topology")
 			return
+		var avenue := facade.get_node_or_null("AvenueFacingArchitecture")
+		if avenue == null:
+			_fail("The original corner building side still presents a blank cube to the Central Exchange road")
+			return
+		var avenue_stats: Dictionary = avenue.call("get_avenue_stats")
+		if int(avenue_stats["windows"]) < 16 or int(avenue_stats["shopfront_bays"]) < 4 or int(avenue_stats["meshes"]) < 5:
+			_fail("The actual road-facing side lacks full-height storefronts and recessed windows: %s" % avenue_stats)
+			return
+		if int(stats["avenue_windows"]) != int(avenue_stats["windows"]):
+			_fail("Road-facing openings not recorded in the scope of the structural asset")
+			return
+		if not avenue.has_node("AvenueShopIdentity"):
+			_fail("Actual road-facing shop identity absent or reversed")
+			return
+		for part in avenue.get_children():
+			if part is MeshInstance3D and not (part.mesh is ArrayMesh):
+				_fail("Road-facing elevation is still a pile of box primitive cards")
+				return
+			if part is CollisionObject3D:
+				_fail("Visual-only side replacement introduced invisible obstacles in the sidewalk")
+				return
 		if int(stats["reveal_faces"]) < 32:
 			_fail("Openings are missing recessed jamb and sill geometry")
 			return
@@ -90,10 +111,17 @@ func _check() -> void:
 		if not shell_found:
 			_fail("Prior stable building collision shell missing")
 			return
-		var scanned_base: String = "res:" + "//assets/pbr/polyhaven/brick_wall_001_"
-		var is_imported: bool = ResourceLoader.exists(scanned_base + "diffuse_2k.jpg")
-		if str(query[3]) == "BRICKWATER" and is_imported and int(stats["real_pbr_maps"]) != 3:
-			_fail("Imported photographed PBR triplet is not bound to the real wall material")
+		var asset_root := "res:" + "//assets/pbr/polyhaven/"
+		var has_brick: bool = ResourceLoader.exists(asset_root + "brick_wall_001_diffuse_2k.jpg")
+		var has_steel: bool = ResourceLoader.exists(asset_root + "blue_metal_plate_diffuse_2k.jpg")
+		if not has_brick or not has_steel:
+			_fail("The real 2K scanned CC0 material maps must ship with the playable scene")
+			return
+		if str(query[3]) == "BRICKWATER" and int(stats["real_pbr_maps"]) != 6:
+			_fail("Brick frontage and painted-steel fascia did not both bind genuine albedo/normal/roughness maps")
+			return
+		if str(query[3]) == "AFTERHOURS" and int(stats["real_pbr_maps"]) != 3:
+			_fail("Road-facing steel frontage did not bind genuine 2K texture maps")
 			return
 		original_counts.append(stats)
 	# Switching streaming focus unloads/reconstructs this location using
