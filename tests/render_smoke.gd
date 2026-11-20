@@ -29,6 +29,12 @@ func _check() -> void:
 	if not environment.environment.ssr_enabled or not environment.environment.glow_enabled:
 		_fail("Wet reflections and neon bloom have not been enabled")
 		return
+	if not environment.environment.ssao_enabled or not environment.environment.fog_enabled:
+		_fail("Contact shadows and distance haze must default to enabled")
+		return
+	if environment.environment.tonemap_mode != Environment.TONE_MAPPER_FILMIC:
+		_fail("Filmic highlight response must be active")
+		return
 	var city_stats: Dictionary = city.call("get_city_stats")
 	if int(city_stats.get("authored_lots", 0)) != 112:
 		_fail("Fixed 112-lot building plan was not applied")
@@ -36,12 +42,22 @@ func _check() -> void:
 	if int(puddles.call("patch_count")) != 16:
 		_fail("The authored wet-street patches must exist")
 		return
+	for patch in puddles.get_children():
+		if not patch is MeshInstance3D or not patch.mesh is ArrayMesh:
+			_fail("Every puddle must be an irregular mesh, not a raised box")
+			return
+		if patch.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX].size() < 30:
+			_fail("Puddles require triangulated curved shorelines")
+			return
 	var library = load("res://scripts/material_library.gd")
-	if library.texture_count() < 5:
-		_fail("Expected cached PBR texture families")
+	if library.texture_count() < 5 or library.normal_count() < 5 or library.roughness_count() < 5:
+		_fail("Expected cached albedo, normal and roughness texture families")
 		return
 	lamps.call("set_focus", Vector3.ZERO)
 	clock.call("set_hour", 12.0)
+	if environment.environment.fog_density >= 0.006:
+		_fail("Daytime haze must be lighter than nighttime haze")
+		return
 	if int(lamps.call("active_light_count")) != 0:
 		_fail("Streetlights must switch fully OFF in daylight")
 		return
