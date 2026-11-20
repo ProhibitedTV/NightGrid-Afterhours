@@ -11,6 +11,7 @@ NightGrid's visual identity is **cinematic neon noir with physically grounded su
 - **Light switching:** 81 fixed street fixture locations, a pool of **8 nearest active unshadowed OmniLight3D nodes**, and smooth dusk activation (after city lights need to come on). At noon the whole pool is fully off. The city's emissive sign materials also dim to zero during the day.
 - **Lighting and grading:** one 170-meter directional shadow caster, filmic tone mapping, moderate thresholded neon bloom, switchable SSAO contact shading and exponential distance fog that shifts hue/density over the 24-hour cycle. No realtime shadows for pooled local lights; no SDFGI, SSIL or volumetric fog.
 - **Vehicles:** street traffic, player cars and buses now share recognizable wheel cylinders, metal hubs, tinted glass and simple body trim. This is still procedural blockout geometry, not imported production car meshes.
+- **Hero drivable sedan:** KESTREL S6 has a beveled original body mesh, tinted alpha windows, clearcoat paint, moving rims and physically motivated brake/headlights. Only a driven or police car uses live SpotLight3D beams; 12 parked cars remain unshadowed and share cached material maps. [Asset specification and visual QA](KESTREL_S6.md).
 - **Default native 1080p**, screen-space reflection max steps 24, SSR half-size project setting (where supported), F3 frame-rate overlay. SSR, bloom, SSAO and haze are independently selectable in the settings menu.
 
 ## RTX 3060 12GB engineering envelope
