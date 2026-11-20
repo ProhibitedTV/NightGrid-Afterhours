@@ -3,7 +3,7 @@ on:
   pull_request:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, integration/nightgrid-2026-11-20-playtest]
     paths:
       - 'scripts/**'
       - 'scenes/**'
