@@ -26,6 +26,10 @@ const LANDMARK_SUMMARIES = {
 	"SOUTHWORKS HALL": "Municipal records, fire response and night-shift assistance."
 }
 const BLOCK_SIZE = 58.0
+# Center-to-public-frontage plane shared by anchored businesses and all parcel
+# building shells. Prior arbitrary offset_z set fronts several metres behind
+# fake storefront signs, visibly separating the signs from the buildings.
+const PUBLIC_FACADE_SETBACK = 14.88
 
 # Each two-building parcel has an explicit design picked by the world artist.
 # Columns ix=-3..2, rows iz=-3..2; major world blocks replace their entries.
