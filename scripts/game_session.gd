@@ -7,6 +7,9 @@ const DEFAULT_SEED = 834726
 
 var world_seed: int = DEFAULT_SEED
 var pending_restore: Dictionary = {}
+# Transient per-launch flag: reloading a saved/new game should enter the world,
+# not force a second title screen after a deliberate menu choice.
+var boot_menu_shown := false
 var world_manifest: Dictionary = {}
 const WorldPlan = preload("res://scripts/world_plan.gd")
 

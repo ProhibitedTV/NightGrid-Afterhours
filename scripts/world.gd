@@ -113,7 +113,8 @@ func _ready() -> void:
 	else:
 		_apply_snapshot(restore)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	if DisplayServer.get_name() != "headless":
+	if DisplayServer.get_name() != "headless" and not bool(session.get("boot_menu_shown")):
+		session.set("boot_menu_shown", true)
 		game_menu.call("open_title")
 
 func _build_game_menu() -> void:
