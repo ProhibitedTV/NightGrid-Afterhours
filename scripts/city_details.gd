@@ -49,6 +49,12 @@ const UNLOAD_RADIUS = 3
 # batch on the moving player's render loop.
 const PREFETCH_SECONDS = 1.25
 const STREAM_BLOCKS_PER_FRAME = 1
+# Only ready-to-render MultiMesh batches are budgeted. Physics collision and
+# coherent base building shells are placed first, ahead of the moving player.
+# The actual time limit is advisory: one material batch remains atomic.
+const DETAIL_BATCHES_PER_FRAME = 8
+const DETAIL_BUDGET_USEC = 2200
+const UNLOAD_BLOCKS_PER_FRAME = 1
 var _loaded: Dictionary = {}
 var _active_chunk: Node3D
 var _current_block := Vector2i(999, 999)
@@ -58,6 +64,11 @@ var _stream_locked := false
 var _requested_cell := Vector2i(999, 999)
 var _prefetch_cell := Vector2i(999, 999)
 var _pending: Array[Vector2i] = []
+var _pending_unloads: Array[Vector2i] = []
+var _inflight_block := Vector2i(999, 999)
+var _inflight_node: Node3D
+var _shared_detail_mesh: BoxMesh
+var _completed_detail_batches := 0
 var _last_stream_build_usec := 0
 var _peak_stream_build_usec := 0
 var _queue_replans := 0
@@ -106,7 +117,12 @@ func get_streaming_stats() -> Dictionary:
 		"loaded_buildings": _count_loaded_buildings(),
 		"loads": _loads, "unloads": _unloads,
 		"radius": STREAM_RADIUS, "unload_radius": UNLOAD_RADIUS,
-		"pending_blocks": _pending.size(), "queue_replans": _queue_replans,
+		"pending_blocks": _pending.size() + (1 if _inflight_node != null else 0),
+		"pending_detail_batches": _batches.size() if _inflight_node != null else 0,
+		"pending_unloads": _pending_unloads.size(),
+		"completed_detail_batches": _completed_detail_batches,
+		"detail_budget_usec": DETAIL_BUDGET_USEC,
+		"queue_replans": _queue_replans,
 		"last_build_usec": _last_stream_build_usec,
 		"peak_build_usec": _peak_stream_build_usec,
 		"prefetch_seconds": PREFETCH_SECONDS
@@ -131,6 +147,12 @@ func set_streaming_enabled(value: bool) -> void:
 	_stream_locked = not value
 	if _stream_locked:
 		_pending.clear()
+		_pending_unloads.clear()
+		# Complete the active block's visual/physics pairing before locking.
+		# No half-built authored geometry should survive a save or mode swap.
+		if _inflight_node != null:
+			_flush_instances()
+			_complete_inflight_block()
 
 func _grid_cell(at: Vector3) -> Vector2i:
 	return Vector2i(
@@ -165,9 +187,10 @@ func _required_blocks(focus: Vector2i, forecast: Vector2i) -> Array[Vector2i]:
 	return result
 
 func request_focus(at: Vector3, velocity: Vector3 = Vector3.ZERO) -> void:
-	# Gameplay traversal uses this nonblocking path. The player can move while
-	# blocks are prepared; earlier loaded geometry remains until replacement is
-	# ready. Prediction is clamped to the immutable authored city boundary.
+	# Gameplay traversal uses this nonblocking path. The current cell is
+	# always physically solid, while future blocks prepare detailed meshes
+	# incrementally. A speculative block may be collision-ready before its
+	# facade decoration finishes; that is preferred to a physics void.
 	if not _initialized or _stream_locked:
 		return
 	var current := _grid_cell(at)
@@ -177,9 +200,9 @@ func request_focus(at: Vector3, velocity: Vector3 = Vector3.ZERO) -> void:
 	_requested_cell = current
 	_prefetch_cell = forecast
 	_current_block = current
-	# A cutscene, unusual physics jump or extreme-speed transit can outrun the
-	# predictive window. Guarantee the occupied cell's collider immediately;
-	# all other additions remain scheduled and spread over render frames.
+	# Unexpected fast travel still needs immediate collision coverage.
+	# Finish the old visual task before doing synchronous emergency work so
+	# its MultiMesh material batches cannot attach to the new block.
 	if not _loaded.has(current):
 		var started := Time.get_ticks_usec()
 		_load_block(current)
@@ -187,65 +210,137 @@ func request_focus(at: Vector3, velocity: Vector3 = Vector3.ZERO) -> void:
 		_peak_stream_build_usec = maxi(_peak_stream_build_usec, _last_stream_build_usec)
 	_pending = _required_blocks(current, forecast)
 	_queue_replans += 1
-	if _pending.is_empty():
+	if _pending.is_empty() and _inflight_node == null:
 		_prune_distant(current, forecast)
 
 func _process(_delta: float) -> void:
-	if not _initialized or _stream_locked or _pending.is_empty():
+	if not _initialized or _stream_locked:
 		return
-	# One chunk at most per rendered frame, rather than 5-10 synchronous
-	# chunks inside the focus tick when crossing a block boundary.
+	if _inflight_node == null and _pending.is_empty() and _pending_unloads.is_empty():
+		return
 	var started := Time.get_ticks_usec()
-	var count := 0
-	while count < STREAM_BLOCKS_PER_FRAME and not _pending.is_empty():
+	var completed_streaming := false
+	if _inflight_node != null:
+		_flush_detail_batches_bounded()
+		if _batches.is_empty():
+			_complete_inflight_block()
+			completed_streaming = true
+	elif not _pending.is_empty():
+		# Start at most one block per frame. Its collision shell is committed
+		# immediately, then its decorative MultiMesh material groups are
+		# spread across subsequent frames rather than uploaded in one burst.
 		var block: Vector2i = _pending.pop_front()
 		if not _loaded.has(block):
-			_load_block(block)
-			count += 1
+			_begin_inflight_block(block)
+			_flush_detail_batches_bounded()
+			if _batches.is_empty():
+				_complete_inflight_block()
+				completed_streaming = true
+	else:
+		_drain_unloads()
 	_last_stream_build_usec = Time.get_ticks_usec() - started
 	_peak_stream_build_usec = maxi(_peak_stream_build_usec, _last_stream_build_usec)
-	if _pending.is_empty():
+	if completed_streaming and _pending.is_empty() and _inflight_node == null:
 		_prune_distant(_requested_cell, _prefetch_cell)
 
-func _prune_distant(focus: Vector2i, forecast: Vector2i) -> void:
+func _outside_unload_radius(block: Vector2i, focus: Vector2i, forecast: Vector2i) -> bool:
+	var focus_distance := maxi(absi(block.x - focus.x), absi(block.y - focus.y))
+	var forecast_distance := maxi(absi(block.x - forecast.x), absi(block.y - forecast.y))
+	return focus_distance > UNLOAD_RADIUS and forecast_distance > UNLOAD_RADIUS
+
+func _prune_distant(focus: Vector2i, forecast: Vector2i, immediate: bool = false) -> void:
+	# Queue old, fully replaced neighborhoods for gradual scene-tree removal;
+	# removing ten completed chunks together also produces frame spikes.
+	_pending_unloads.clear()
 	var obsolete: Array[Vector2i] = []
 	for key in _loaded:
 		var block: Vector2i = key
-		var focus_distance := maxi(absi(block.x - focus.x), absi(block.y - focus.y))
-		var forecast_distance := maxi(absi(block.x - forecast.x), absi(block.y - forecast.y))
-		if focus_distance > UNLOAD_RADIUS and forecast_distance > UNLOAD_RADIUS:
+		if block != _inflight_block and _outside_unload_radius(block, focus, forecast):
 			obsolete.append(block)
-	for block in obsolete:
-		var node: Node3D = _loaded[block]
-		_loaded.erase(block)
-		node.queue_free()
-		_unloads += 1
+	obsolete.sort()
+	if immediate:
+		for block in obsolete:
+			_unload_block(block)
+	else:
+		_pending_unloads = obsolete
+
+func _unload_block(block: Vector2i) -> void:
+	if not _loaded.has(block):
+		return
+	var node: Node3D = _loaded[block]
+	_loaded.erase(block)
+	node.queue_free()
+	_unloads += 1
+
+func _drain_unloads() -> void:
+	for i in range(UNLOAD_BLOCKS_PER_FRAME):
+		if _pending_unloads.is_empty():
+			return
+		var block: Vector2i = _pending_unloads.pop_front()
+		# A rapidly reversing vehicle may need this block again; never free
+		# geometry that has returned to the current/predicted safety ring.
+		if _outside_unload_radius(block, _requested_cell, _prefetch_cell):
+			_unload_block(block)
 
 func set_focus(at: Vector3) -> void:
-	# Teleport, save restore and explicit tests need an immediately solid ring.
-	# Preserve this behavior and cancel speculative work on that transition.
+	# Explicit teleport/save restore retains immediate complete geometry:
+	# the old authored save format and caller expectations never change.
 	if not _initialized or _stream_locked:
 		return
 	var cell := _grid_cell(at)
-	if cell == _current_block and _pending.is_empty():
+	if cell == _current_block and _pending.is_empty() and _inflight_node == null and _pending_unloads.is_empty():
 		return
 	_current_block = cell
 	_requested_cell = cell
 	_prefetch_cell = cell
 	_pending.clear()
+	_pending_unloads.clear()
+	if _inflight_node != null:
+		_flush_instances()
+		_complete_inflight_block()
 	for block in _required_blocks(cell, cell):
 		_load_block(block)
-	_prune_distant(cell, cell)
+	_prune_distant(cell, cell, true)
+
+func _block_seed(block: Vector2i) -> int:
+	# Save-stable per-block RNG: loading order and visual staging cannot
+	# change the window patterns, lot geometry or authored asset selection.
+	return int(world_seed) ^ int(SEED) ^ (
+		(block.x + GRID_RADIUS + 1) * 156553 + (block.y + GRID_RADIUS + 1) * 933847)
+
+func _begin_inflight_block(block: Vector2i) -> void:
+	assert(_inflight_node == null)
+	assert(_batches.is_empty())
+	var node := Node3D.new()
+	node.name = "Block_%d_%d" % [block.x, block.y]
+	add_child(node)
+	_loaded[block] = node
+	_inflight_node = node
+	_inflight_block = block
+	_active_chunk = node
+	_rng.seed = _block_seed(block)
+	_build_block(block.x, block.y)
+	# Do not flush all decorative meshes here: it was the dominant
+	# avoidable burst in the old one-block-per-frame implementation.
+
+func _complete_inflight_block() -> void:
+	assert(_batches.is_empty())
+	_inflight_node = null
+	_inflight_block = Vector2i(999, 999)
+	_active_chunk = null
+	_loads += 1
 
 func _load_block(block: Vector2i) -> void:
+	# Startup, save-load and emergency recovery require complete geometry.
+	if _inflight_node != null:
+		_flush_instances()
+		_complete_inflight_block()
 	var node := Node3D.new()
 	node.name = "Block_%d_%d" % [block.x, block.y]
 	add_child(node)
 	_loaded[block] = node
 	_active_chunk = node
-	# Per-block RNG: revisit order does not affect building/window patterns.
-	_rng.seed = int(world_seed) ^ int(SEED) ^ (
-		(block.x + GRID_RADIUS + 1) * 156553 + (block.y + GRID_RADIUS + 1) * 933847)
+	_rng.seed = _block_seed(block)
 	_build_block(block.x, block.y)
 	_flush_instances()
 	_active_chunk = null
@@ -315,25 +410,47 @@ func _solid(at: Vector3, size: Vector3, color: Color, surface_kind: String = "CO
 	body.add_child(visual)
 	(_active_chunk if _active_chunk != null else self).add_child(body)
 
-func _flush_instances() -> void:
-	var unit_mesh := BoxMesh.new()
-	unit_mesh.size = Vector3.ONE
-	for key in _batches:
-		var transforms: Array = _batches[key]
-		if transforms.is_empty():
-			continue
+func _detail_unit_mesh() -> BoxMesh:
+	# Reuse one immutable unit cube across ALL MultiMesh batches and blocks.
+	# Previously each _flush_instances call allocated another BoxMesh.
+	if _shared_detail_mesh == null:
+		_shared_detail_mesh = BoxMesh.new()
+		_shared_detail_mesh.size = Vector3.ONE
+	return _shared_detail_mesh
+
+func _flush_detail_key(key: String) -> void:
+	var transforms: Array = _batches[key]
+	if not transforms.is_empty():
 		var multimesh := MultiMesh.new()
 		multimesh.transform_format = MultiMesh.TRANSFORM_3D
-		multimesh.mesh = unit_mesh
+		multimesh.mesh = _detail_unit_mesh()
 		multimesh.instance_count = transforms.size()
 		for index in range(transforms.size()):
 			multimesh.set_instance_transform(index, transforms[index])
 		var node := MultiMeshInstance3D.new()
 		node.name = "Detail_%s" % key
 		node.multimesh = multimesh
-		node.material_override = _palette[str(key).split("|")[0]]
+		node.material_override = _palette[key.split("|")[0]]
 		(_active_chunk if _active_chunk != null else self).add_child(node)
-	_batches.clear()
+		_completed_detail_batches += 1
+	_batches.erase(key)
+
+func _flush_detail_batches_bounded() -> void:
+	var started := Time.get_ticks_usec()
+	var count := 0
+	for key in _batches.keys():
+		_flush_detail_key(str(key))
+		count += 1
+		# Per-frame maximum and wall-time watchdog. The current batch may
+		# exceed the limit, but no entire block of material batches may
+		# monopolize the render frame. Hardware profiling remains required.
+		if count >= DETAIL_BATCHES_PER_FRAME or Time.get_ticks_usec() - started >= DETAIL_BUDGET_USEC:
+			break
+
+func _flush_instances() -> void:
+	# Synchronous compatibility path for initial generation and teleports.
+	for key in _batches.keys():
+		_flush_detail_key(str(key))
 
 func _build_road_language() -> void:
 	for road_index in range(-GRID_RADIUS, GRID_RADIUS + 1):

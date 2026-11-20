@@ -1567,9 +1567,10 @@ func _update_hud() -> void:
 		var fps := maxi(Engine.get_frames_per_second(), 1)
 		var stream: Dictionary = city_details.call("get_streaming_stats")
 		var indoor_count := 1 if interiors.call("is_inside") else 0
-		performance_label.text = "RTX 3060 target: 60 FPS @1080p | Actual: %d FPS (%.1f ms) | %d/%d blocks | %d shells | room %d | queued %d | build %.1f ms | peak %.1f ms" % [
+		performance_label.text = "RTX 3060 target: 60 FPS @1080p | Actual %d FPS (%.1f ms) | %d/%d blocks | %d shells | room %d | pending %d | detail %d | retire %d | build %.1f ms | peak %.1f ms" % [
 			fps, 1000.0 / float(fps), int(stream["loaded_blocks"]), int(stream["total_blocks"]),
 			int(stream["loaded_buildings"]), indoor_count, int(stream.get("pending_blocks", 0)),
+			int(stream.get("pending_detail_batches", 0)), int(stream.get("pending_unloads", 0)),
 			float(stream.get("last_build_usec", 0)) / 1000.0, float(stream.get("peak_build_usec", 0)) / 1000.0]
 	var control_help := "WASD Move | Mouse Look | E Car | F Transit | H Enter | G Interact | Esc Pause | M Map | Tab Journal"
 	if gamepad_active:
