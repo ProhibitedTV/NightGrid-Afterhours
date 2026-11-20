@@ -872,6 +872,16 @@ func _toggle_interaction() -> void:
 			else:
 				_notify("You already copied Mara's shift notes to your journal.")
 			return
+		# Free, authored ambient conversation when standing beside a regular.
+		# This occurs after Mara's clue interaction and before generic counters.
+		var regular: Dictionary = interiors.call("talk_to_patron", player.global_position, {
+			"hour": float(day_night.get("hour")),
+			"shift_notes": civic_intel.has("lantern_cup_shift_notes")
+		})
+		if not regular.is_empty():
+			_notify("%s / %s: %s" % [
+				str(regular["name"]), str(regular["role"]), str(regular["line"])])
+			return
 		if not interiors.call("counter_reachable", player.global_position):
 			_notify("Walk toward the staffed service counter to interact.")
 			return
@@ -1417,6 +1427,10 @@ func _update_hud() -> void:
 			hud_label.text += "\n[G] Service counter"
 		if site_id == "lantern_cup":
 			hud_label.text += "\nMARA: counter [G], talk [3/Y] in dialogue"
+			var local_regular: Dictionary = interiors.call("patron_near", player.global_position)
+			if not local_regular.is_empty():
+				hud_label.text += "\n[G] Chat with %s (%s)" % [
+					str(local_regular["name"]), str(local_regular["role"])]
 		_update_venue_panel()
 		return
 	if current_car == null and current_transit == null:

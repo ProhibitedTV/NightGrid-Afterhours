@@ -43,6 +43,24 @@ func counter_reachable(at: Vector3) -> bool:
 func exit_reachable(at: Vector3) -> bool:
 	return is_inside() and at.distance_to(EXIT_POINT) <= EXIT_RADIUS
 
+func get_patron_manifest() -> Array:
+	if active_id != "lantern_cup" or active_group != "VENUE" or _room == null:
+		return []
+	var hero := _room.get_node_or_null("LanternCupHero")
+	return hero.call("get_patron_manifest") if hero != null else []
+
+func patron_near(at: Vector3) -> Dictionary:
+	if active_id != "lantern_cup" or active_group != "VENUE" or _room == null:
+		return {}
+	var hero := _room.get_node_or_null("LanternCupHero")
+	return hero.call("patron_near", _room.to_local(at)) if hero != null else {}
+
+func talk_to_patron(at: Vector3, context: Dictionary) -> Dictionary:
+	if active_id != "lantern_cup" or active_group != "VENUE" or _room == null:
+		return {}
+	var hero := _room.get_node_or_null("LanternCupHero")
+	return hero.call("patron_dialogue", _room.to_local(at), context) if hero != null else {}
+
 func get_mara_character() -> Node3D:
 	if active_id != "lantern_cup" or active_group != "VENUE" or _room == null:
 		return null
