@@ -56,7 +56,15 @@ func _opening(z0: float, z1: float, bottom: float, top: float,
 	var high := top - 0.11
 	if g1 <= g0 or high <= low:
 		return
-	_rect("INTERIOR" if lit else "GLASS", g0, g1, low, high, glass_x)
+	if district == "BRICKWATER":
+		# Glass and room backing occupy separate real depth planes; the
+		# south facade uses the same treatment around the avenue corner.
+		_rect("GLASS", g0, g1, low, high, glass_x)
+		var sign := 1.0 if district == "BRICKWATER" else -1.0
+		_rect("INTERIOR" if lit else "DARK_ROOM", g0, g1, low, high,
+			glass_x - sign * 0.72)
+	else:
+		_rect("INTERIOR" if lit else "GLASS", g0, g1, low, high, glass_x)
 	var jamb := "REVEALS" if district == "BRICKWATER" else "STEEL"
 	_push(jamb, Vector3(outer_x, bottom, z0),
 		Vector3(outer_x, top, z0), Vector3(glass_x, high, g0),
@@ -157,11 +165,12 @@ func _build_meshes() -> void:
 				surface.set_uv(Vector2(point.z * 0.39, point.y * 0.39))
 				surface.add_vertex(point)
 		surface.generate_normals()
+		surface.generate_tangents()
 		var node := MeshInstance3D.new()
 		node.name = "AvenueSurface_%s" % family
 		node.mesh = surface.commit()
 		node.material_override = get_parent().call("_surface_material", family)
-		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		node.cast_shadow = (GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if family == "GLASS" and district == "BRICKWATER" else GeometryInstance3D.SHADOW_CASTING_SETTING_ON)
 		add_child(node)
 		_stats["meshes"] += 1
 	_buffers.clear()
