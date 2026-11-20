@@ -29,6 +29,10 @@ The original M-Line is elevated, two-car and reversible at five fixed stations. 
 
 **Quality claim:** This is a high-detail *procedural vertical-slice* toward AAA. It is **not yet an AAA-certified finished train asset**. The stock renderer is Godot 4.3 Forward+, and no physically based scanned texture atlas, motion-captured passengers, authored sound or final performance test is included.
 
+## Second vertical slice: KESTREL S6
+
+The first drivable car family has been rebuilt around one original four-seat futuristic fastback EV. It now has a beveled procedural monocoque, four visually articulated wheels, metallic clearcoat paint, a glazed canopy showing real seats and driver controls, detailed underbody construction and trim, kinetic brake/reverse lighting, bounded projected headlamps, sound that responds to speed, and a dedicated red/blue pursuit edition. The existing collider, movement, camera, player interactions and save schema remain intact. Full geometry and polish criteria are documented in [KESTREL S6](KESTREL_S6.md). As with the train, this is a testable procedural hero **pass toward AAA**, not a claim of authored final production artwork.
+
 ## Capture and quality gate
 
 - Verify the train at **12:00**, **19:15** and **00:00** from street-level wide shot, track-level three-quarter exterior, end-cab close-up, door close-up and station departure.
