@@ -4,6 +4,8 @@ config_version=5
 [application]
 config/name="NIGHTGRID: AFTERHOURS"
 run/main_scene="res://scenes/main.tscn"
+# Rendering is not capped by fixed-step physics.
+run/max_fps=0
 config/features=PackedStringArray("4.3", "Forward Plus")
 
 [autoload]
@@ -21,4 +23,6 @@ environment/screen_space_reflection/half_size=true
 environment/defaults/default_clear_color=Color(0.04, 0.05, 0.09, 1)
 
 [physics]
+# Gameplay simulation runs at fixed 60Hz, independent of display refresh.
+common/physics_ticks_per_second=60
 3d/default_gravity=24.0
