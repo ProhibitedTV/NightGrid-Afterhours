@@ -94,6 +94,27 @@ func _capture() -> void:
 	await _settle()
 	if not await _save("brickwater-roof-parapet-daylight-real-godot.png"):
 		return
+	# The Afterhours pilot across the intersection uses WEST-facing glazing
+	# and a distinct sealed steel corner. Check it from normal street height.
+	clock.call("set_hour", 12.0)
+	camera.global_position = Vector3(5.2, 2.1, 9.8)
+	camera.look_at(Vector3(10.9, 4.3, 14.3), Vector3.UP)
+	await _settle()
+	if not await _save("afterhours-sealed-corner-daylight-real-godot.png"):
+		return
+	var other_chunk: Node3D = (city.get("_loaded") as Dictionary).get(Vector2i(0, 0))
+	var afterhours: Node3D = null
+	if other_chunk != null:
+		afterhours = other_chunk.get_node_or_null("PhotorealFrontage_0_0_0") as Node3D
+	if afterhours == null:
+		_fail("Afterhours corner building unavailable for rooftop inspection")
+		return
+	var other_roof := afterhours.position.y + float(afterhours.get("building_height"))
+	camera.global_position = Vector3(4.9, other_roof + 12.0, 10.0)
+	camera.look_at(Vector3(17.5, other_roof + 0.5, 26.0), Vector3.UP)
+	await _settle()
+	if not await _save("afterhours-roof-parapet-daylight-real-godot.png"):
+		return
 	print("CENTRAL_FRONTAGE_CAPTURE PASS: ", captured)
 	quit(0)
 
