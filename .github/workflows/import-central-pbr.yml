@@ -1,4 +1,4 @@
-name: Import licensed 2K brick texture to Central Exchange
+name: Import licensed 2K architectural textures to Central Exchange
 
 on:
   push:
@@ -34,14 +34,17 @@ jobs:
           from pathlib import Path
           p = Path('assets/pbr/polyhaven')
           source = json.loads((p / 'SOURCE.json').read_text())
-          assert source['asset'] == 'brick_wall_001'
           assert source['license'] == 'CC0 1.0'
-          assert set(source['files']) == {'diffuse', 'nor_gl', 'rough'}
-          for role, entry in source['files'].items():
-              data = Path(entry['file']).read_bytes()
-              assert len(data) > 10000, (role, len(data))
-              assert hashlib.sha256(data).hexdigest() == entry['sha256']
-              print(role, len(data), entry['sha256'][:20])
+          assert set(source['assets']) == {'brick_wall_001', 'blue_metal_plate'}
+          for asset_id, asset in source['assets'].items():
+              assert asset['asset'] == asset_id
+              assert asset['license'] == 'CC0 1.0'
+              assert set(asset['files']) == {'diffuse', 'nor_gl', 'rough'}
+              for role, entry in asset['files'].items():
+                  data = Path(entry['file']).read_bytes()
+                  assert len(data) > 10000, (asset_id, role, len(data))
+                  assert hashlib.sha256(data).hexdigest() == entry['sha256']
+                  print(asset_id, role, len(data), entry['sha256'][:20])
           PY
       - name: Commit reproducible source-owned PBR textures to the same art branch
         run: |
@@ -51,7 +54,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "CC0 material maps unchanged"
           else
-            git commit -m "assets: include verified Poly Haven CC0 2K brick albedo normal roughness"
+            git commit -m "assets: include verified Poly Haven CC0 2K brick and blue steel PBR sets"
             git pull --rebase origin art/central-exchange-photoreal-frontages-20261120
             git push origin HEAD:art/central-exchange-photoreal-frontages-20261120
           fi
