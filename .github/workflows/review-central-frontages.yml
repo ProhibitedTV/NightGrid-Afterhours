@@ -1,0 +1,66 @@
+name: Review actual Central Exchange Godot 3D frames
+
+on:
+  push:
+    branches:
+      - art/central-exchange-photoreal-frontages-20261120
+    paths:
+      - tools/capture_central_frontages.gd
+      - .github/workflows/review-central-frontages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  actual-godot-framebuffer:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.3.0
+          use-dotnet: false
+      - name: Install X11 offscreen renderer
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libgl1 libx11-6 libxext6 libxrandr2 mesa-utils
+      - name: Load source-owned PBR maps and instantiate playable scene
+        run: godot --headless --path . --import --quit
+      - name: Capture real world framebuffer, clearly labeled software OpenGL
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          MESA_GL_VERSION_OVERRIDE: '3.3'
+        run: |
+          xvfb-run -a -s "-screen 0 1280x720x24" \
+            godot --path . --display-driver x11 --rendering-driver opengl3 \
+              --rendering-method gl_compatibility --resolution 1280x720 \
+              --script res://tools/capture_central_frontages.gd
+      - name: Verify captures are actually PNGs
+        run: |
+          python3 - <<'PY'
+          import struct
+          from pathlib import Path
+          d = Path('exports/central_exchange_review')
+          expected = [
+              'central-exchange-dusk-real-godot.png',
+              'central-exchange-noon-real-godot.png',
+              'brickwater-recessed-windows-closeup-real-godot.png',
+          ]
+          for name in expected:
+              path = d / name
+              image = path.read_bytes()
+              assert image[:8] == b'\x89PNG\r\n\x1a\n', f'Not a PNG: {path}'
+              width, height = struct.unpack('>II', image[16:24])
+              assert (width, height) == (1280, 720), (name, width, height)
+              assert len(image) > 16000, (name, len(image))
+              print(f'VALID REAL RENDER: {name}: {len(image):,} bytes')
+          PY
+      - name: Upload real Godot frames for human review
+        uses: actions/upload-artifact@v4
+        with:
+          name: Central-Exchange-Actual-Godot-Frames-OpenGL-Compatibility
+          path: exports/central_exchange_review/*.png
+          retention-days: 90
+          if-no-files-found: error
