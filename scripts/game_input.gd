@@ -6,7 +6,7 @@ const ACTIONS = [
 	"look_left", "look_right", "look_up", "look_down",
 	"sprint", "jump", "drive_accelerate", "drive_reverse", "drive_brake",
 	"interact", "car_toggle", "transit_toggle", "interior_toggle",
-	"use_supply", "service_one", "service_two", "service_three",
+	"use_supply", "service_one", "service_two", "service_three", "radio_toggle", "radio_next",
 	"game_pause", "game_back", "map_open", "journal_open", "game_save", "game_load", "game_new",
 	"advance_clock", "pause_clock", "toggle_fps", "toggle_ssr"
 ]
@@ -49,6 +49,10 @@ static func install() -> void:
 	_key("interior_toggle", KEY_H)
 	_button("interior_toggle", JOY_BUTTON_LEFT_SHOULDER)
 	_key("use_supply", KEY_R)
+	_key("radio_toggle", KEY_B)
+	_key("radio_next", KEY_N)
+	_button("radio_toggle", JOY_BUTTON_DPAD_RIGHT)
+	_button("radio_next", JOY_BUTTON_DPAD_UP)
 	_button("use_supply", JOY_BUTTON_DPAD_DOWN)
 	_key("service_one", KEY_1)
 	_button("service_one", JOY_BUTTON_A)
