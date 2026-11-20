@@ -40,11 +40,11 @@ func _capture_all() -> void:
 	# Allow the renderer to initialize on a real viewport before any frame is
 	# captured; the checked-in images must not be synthetic placeholders.
 	await _settle()
-	# Cinematic but genuine scene camera: the first frame is a street-level city
-	# composition at the default dusk lighting, without a graphics mockup.
-	clock.call("set_hour", 20.25)
+	# Show the actual new road-facing CC0 PBR Central Exchange architecture
+	# rather than an older generic downtown corridor view.
+	clock.call("set_hour", 20.18)
 	_stage_street(Vector3(0.0, 1.15, 6.0),
-		Vector3(1.8, 8.3, 56.0), Vector3(-2.0, 3.8, -87.0), false)
+		Vector3(0.0, 3.2, -21.5), Vector3(0.0, 8.4, 25.0), false)
 	await _settle()
 	if not await _screenshot("01-morrow-bay-neon-night.png"):
 		return
@@ -94,7 +94,7 @@ func _capture_all() -> void:
 	game.call("_toggle_interior")
 	clock.call("set_hour", 19.5)
 	_stage_street(Vector3(0.0, 1.15, 6.0),
-		Vector3(1.8, 8.3, 56.0), Vector3(-2.0, 3.8, -87.0), false)
+		Vector3(0.0, 3.2, -21.5), Vector3(0.0, 8.4, 25.0), false)
 	hud.visible = false
 	menu.call("open_title")
 	await _settle()
