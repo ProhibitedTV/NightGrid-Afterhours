@@ -1,0 +1,104 @@
+name: Capture photographed fern from the running Godot game
+on:
+  push:
+    branches:
+      - art/horizon-fern-photogrammetry-20261120
+    paths:
+      - 'tools/capture_hero_fern.gd'
+      - '.github/workflows/capture-fern.yml'
+      - 'scripts/flora.gd'
+      - 'scripts/horizon_fern_hero.gd'
+      - 'assets/models/polyhaven/fern_02/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nightgrid-horizon-fern-photos
+  cancel-in-progress: false
+
+jobs:
+  real-fern-framebuffer:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.3.0
+          use-dotnet: false
+      - name: Prepare software framebuffer
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libgl1 libx11-6 libxext6 libxrandr2
+      - name: Import actual Godot project and alpha foliage
+        run: godot --headless --path . --import --quit
+      - name: Render real daylight and dusk fern shots
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          MESA_GL_VERSION_OVERRIDE: '3.3'
+          GODOT_HEADLESS: '0'
+        run: |
+          mkdir -p docs/fern-review
+          xvfb-run -a -s "-screen 0 1280x720x24" \
+            godot --path . --display-driver x11 --rendering-driver opengl3 \
+              --rendering-method gl_compatibility --resolution 1280x720 \
+              --script res://tools/capture_hero_fern.gd
+      - name: Verify photographs and write camera/source SHA manifest
+        run: |
+          python3 - <<'PY'
+          import hashlib,json,os,struct
+          from pathlib import Path
+          root=Path('docs/fern-review')
+          names=['horizon-fern-daylight-real-godot.png','horizon-fern-dusk-real-godot.png']
+          images={}
+          for name in names:
+              data=(root/name).read_bytes()
+              assert data.startswith(b'\x89PNG\r\n\x1a\n')
+              w,h=struct.unpack('>II',data[16:24])
+              assert w==1280 and h==720 and len(data)>16000
+              images[name]={'width':w,'height':h,'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()}
+          assert len(list(root.glob('*.png')))==2
+          source=json.loads(Path('assets/models/polyhaven/fern_02/SOURCE.json').read_text())
+          record={'source_revision':os.environ['GITHUB_SHA'],
+                  'asset':source['asset'],'asset_license':source['license'],
+                  'asset_page':source['page'],'model_sha256':source['files'][source['model']]['sha256'],
+                  'renderer':'Actual Godot 4.3 framebuffer: Mesa software OpenGL Compatibility, not Forward+/Vulkan',
+                  'images':images}
+          (root/'manifest.json').write_text(json.dumps(record,indent=2,sort_keys=True)+'\n')
+          print('FERN FRAMEBUFFER QA PASS',images)
+          PY
+      - name: Upload authentic screenshots for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: horizon-fern-real-godot-frames
+          path: docs/fern-review/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Commit proof to the same art branch without overwriting later changes
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p "$RUNNER_TEMP/fern-photos"
+          cp docs/fern-review/*.png docs/fern-review/manifest.json "$RUNNER_TEMP/fern-photos/"
+          for attempt in 1 2 3; do
+            git fetch origin "${GITHUB_REF_NAME}"
+            if ! git diff --quiet "$GITHUB_SHA" "origin/${GITHUB_REF_NAME}" -- \
+                project.godot scripts/flora.gd scripts/horizon_fern_hero.gd \
+                assets/models/polyhaven/fern_02 tools/capture_hero_fern.gd; then
+              echo "Plant or camera source changed; refusing to publish stale visual proof" >&2
+              exit 1
+            fi
+            git reset --hard "origin/${GITHUB_REF_NAME}"
+            cp "$RUNNER_TEMP/fern-photos/"* docs/fern-review/
+            git add docs/fern-review/*.png docs/fern-review/manifest.json
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "docs(fern): capture authentic Horizon Commons 2K frond screenshots"
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then exit 0; fi
+          done
+          echo "Concurrent screenshot write failed without touching newer work" >&2
+          exit 1
