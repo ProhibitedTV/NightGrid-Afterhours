@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - art/central-exchange-photoreal-frontages-20261120
+      - feat/aaa-frame-pacing-capture-20261120
     paths:
       - tools/capture_central_frontages.gd
       - scripts/central_exchange_frontages.gd
+      - scripts/brickwater_corner_finish.gd
       - scripts/central_exchange_avenue.gd
       - scripts/city_details.gd
       - assets/pbr/polyhaven/**
