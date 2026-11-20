@@ -137,7 +137,7 @@ func _refresh_sources() -> void:
 			target.append(actor)
 	# Release owners no longer selected before assigning the new ones.
 	for i in range(_owners.size()):
-		if not target.has(_owners[i]):
+		if _owners[i] != null and not target.has(_owners[i]):
 			_owners[i] = null
 			_voices[i].stop()
 			_voices[i].volume_db = -80.0
