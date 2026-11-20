@@ -1,0 +1,88 @@
+name: Next playtest real-world visual evidence
+on:
+  push:
+    branches: [integration/nightgrid-2026-11-20-playtest]
+    paths:
+      - 'scripts/**'
+      - 'scenes/**'
+      - 'assets/**'
+      - 'project.godot'
+      - 'tools/capture_playtest_evidence.gd'
+      - '.github/workflows/playtest-evidence.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightgrid-playtest-capture-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  real-godot-screenshots:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.3.0
+          use-dotnet: false
+      - name: Enable real offscreen X11 and Mesa rasterizer
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libgl1 libx11-6 libxext6 libxrandr2 mesa-utils
+          command -v xvfb-run
+      - name: Import the live game resources
+        run: godot --headless --path . --import --quit
+      - name: Capture actual playable Godot 3D framebuffers
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          MESA_GL_VERSION_OVERRIDE: '3.3'
+          GODOT_HEADLESS: '0'
+        run: |
+          xvfb-run -a -s "-screen 0 1280x720x24" \
+            godot --path . --display-driver x11 --rendering-driver opengl3 \
+              --rendering-method gl_compatibility --resolution 1280x720 \
+              --script res://tools/capture_playtest_evidence.gd
+      - name: Verify camera evidence integrity and exact revision
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from hashlib import sha256
+          import json, os, struct
+          root = Path("playtest-evidence")
+          expected = [
+            "01-north-quay-harbor.png",
+            "02-west-docks-port.png",
+            "03-horizon-eastern-ridge.png",
+            "04-southworks-freight-edge.png",
+            "05-kestrel-rear-quarter-dusk.png",
+            "06-kestrel-high-rear-day.png",
+            "07-kestrel-side-night.png",
+            "08-harbor-elevated-overlook.png"
+          ]
+          manifest = json.loads((root / "manifest.json").read_text())
+          assert manifest["source_revision"] == os.environ["GITHUB_SHA"]
+          assert manifest["files"] == expected
+          hashes = set()
+          for name in expected:
+              data = (root / name).read_bytes()
+              assert data.startswith(bytes.fromhex("89504e470d0a1a0a")), name
+              w, h = struct.unpack(">II", data[16:24])
+              assert w >= 1100 and h >= 600, (name, w, h)
+              assert len(data) > 16000, (name, len(data))
+              digest = sha256(data).hexdigest()
+              assert digest not in hashes, "Duplicate image or stale camera: " + name
+              hashes.add(digest)
+              print(f"{name} ({w}x{h}, {len(data):,} bytes) SHA256 {digest}")
+          assert len(list(root.glob("*.png"))) == len(expected)
+          print("PASS: eight unique genuine framebuffer views for commit", os.environ["GITHUB_SHA"])
+          PY
+      - name: Upload real visual evidence without committing generated PNGs
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightgrid-next-playtest-real-framebuffers
+          path: playtest-evidence/*
+          if-no-files-found: error
+          retention-days: 30
