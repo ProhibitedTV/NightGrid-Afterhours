@@ -1,0 +1,38 @@
+name: Central Exchange concept art render
+
+on:
+  push:
+    branches:
+      - art/central-exchange-concept-target-20261120
+    paths:
+      - docs/concepts/**
+      - .github/workflows/concept-art-render.yml
+  pull_request:
+    paths:
+      - docs/concepts/**
+      - .github/workflows/concept-art-render.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  concept-png:
+    name: Render original concept SVG to PNG
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SVG rasterizer
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends librsvg2-bin
+      - name: Render keyframe at 2560x1440
+        run: |
+          mkdir -p exports
+          rsvg-convert --width=2560 --height=1440 docs/concepts/central_exchange_aaa_target.svg --output exports/NightGrid-Central-Exchange-AAA-Concept.png
+          test -s exports/NightGrid-Central-Exchange-AAA-Concept.png
+          file exports/NightGrid-Central-Exchange-AAA-Concept.png
+      - name: Upload original keyframe PNG
+        uses: actions/upload-artifact@v4
+        with:
+          name: NightGrid-Central-Exchange-Concept-Art
+          path: exports/NightGrid-Central-Exchange-AAA-Concept.png
+          retention-days: 90
