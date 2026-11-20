@@ -246,6 +246,9 @@ func _generate_facade() -> void:
 		building_height + 0.30, FRONT - 0.10)
 	_rect("REVEALS", -half, half, 0.10, 0.38, FRONT - 0.058)
 	_build_swept_canopy(-half + 0.28, half - 0.28)
+	# Finish the *actual* structure instead of keeping an underlying solid
+	# visual cube that filled the physically recessed window openings.
+	_build_enclosing_shell()
 	_flush_meshes()
 	_build_storefront_identification()
 	# The side-facing façades, not just the wall to the south, dominate
@@ -275,6 +278,36 @@ func _build_swept_canopy(x0: float, x1: float) -> void:
 		_statistics["canopy_segments"] += 1
 	# The face of the canopy is a single continuous metal fascia.
 	_rect("CLADDING", x0, x1, y - 0.24, y - 0.02, CANOPY_REACH - 0.015)
+
+func _build_enclosing_shell() -> void:
+	# Built from the same UV / PBR material surfaces as the storefront.
+	# Parent retains a full-volume collider for gameplay but no BoxMesh
+	# visual that can bleed through our actual façade openings.
+	var half := building_width * 0.5
+	var roof := building_height + 0.14
+	var back := building_depth + 0.08
+	var walls := "MASONRY" if _style == "MASONRY" else "CLADDING"
+	# Rear elevation toward the inner parcel service yard, outward +Z.
+	_push(walls, Vector3(half, 0.15, back), Vector3(half, roof, back),
+		Vector3(-half, roof, back), Vector3(-half, 0.15, back), 0.28)
+	# Opaque non-avenue side toward the lot's neighboring service gap.
+	var far_side := -1.0 if district == "BRICKWATER" else 1.0
+	var x := far_side * (half + 0.04)
+	if far_side < 0.0:
+		_push(walls, Vector3(x, 0.15, -0.16), Vector3(x, 0.15, back),
+			Vector3(x, roof, back), Vector3(x, roof, -0.16), 0.28)
+	else:
+		_push(walls, Vector3(x, 0.15, back), Vector3(x, 0.15, -0.16),
+			Vector3(x, roof, -0.16), Vector3(x, roof, back), 0.28)
+	# Roofing membrane and capping line are visible from the rail.
+	_push("PARAPET", Vector3(-half, roof, -0.16),
+		Vector3(-half, roof, back), Vector3(half, roof, back),
+		Vector3(half, roof, -0.16), 0.22)
+	# Tinted deep interior plate 0.5m back behind the south display glazing.
+	# This preserves visual interior depth even before fully enterable rooms
+	# get their own mesh/lighting/collision contract.
+	_rect("INTERIOR", -half + 0.1, half - 0.1, 0.5,
+		GROUND - 0.42, 0.50, 0.43)
 
 func _build_storefront_identification() -> void:
 	# Functional shop identity uses a stable existing district label, not a
@@ -307,10 +340,12 @@ func _flush_meshes() -> void:
 			var d: Vector3 = quad[3]
 			var uv_scale: float = quad[4]
 			for vertex in [a, b, c, a, c, d]:
-				var u: float = vertex.x * uv_scale
-				var v: float = vertex.y * uv_scale
-				if family == "STEEL" and absf(a.z - b.z) > 0.001:
-					u = vertex.z * uv_scale
+				# Surface axes matter for CC0 scanned PBR: side walls
+				# follow Z/Y, front/back follow X/Y, roof follows X/Z.
+				var along_side := absf(a.x - b.x) < 0.002 and absf(a.x - c.x) < 0.002
+				var horizontal := absf(a.y - b.y) < 0.002 and absf(a.y - c.y) < 0.002
+				var u: float = (vertex.z if along_side else vertex.x) * uv_scale
+				var v: float = (vertex.z if horizontal else vertex.y) * uv_scale
 				surface.set_uv(Vector2(u, v))
 				surface.add_vertex(vertex)
 		surface.generate_normals()
