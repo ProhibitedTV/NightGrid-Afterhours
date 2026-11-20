@@ -25,9 +25,19 @@
 | F5 | Save current world to slot 1 |
 | F6 | New Game (new world seed; does not overwrite saved slot) |
 | F9 | Reload saved world seed and player/traffic state |
-| G | Interact with nearby social or civic business; G closes menu |
+| G | Interact with nearby outdoor frontage or interior service counter; G closes menu |
+| H | Enter a named business on foot / leave through its indoor doorway |
 | 1 / 2 | Purchase services or accept/deliver local side jobs and freight contracts |
 | R | Use purchased food provisions on foot to restore health |
+
+### Streamed city geometry and enterable interiors
+
+- **On-demand geometry:** nearby district blocks create building colliders, signs and detailed facade MultiMeshes. Distant blocks unload and reconstruct identically on return from the saved world manifest and seed.
+- **Enter all 28 named businesses:** approach an exterior storefront on foot and press **H**. Rooms have collidable floors/walls, a clear door, counters, host silhouettes, local lighting and different furnishings for markets, clinics, emergency services, libraries, municipal offices, garages, warehouses, power facilities, stalls, cafes, bars and clubs.
+- **Services in person:** walk to a staffed counter, press **G**, then select **1/2** for useful services or contracts. Return to the door with **H**. Outdoor G interactions remain available.
+- **Save while inside:** F5 stores the interior site ID and street return coordinates; F9 restores the same room and all inventory/jobs. Old saves remain compatible.
+- **Scope:** structural-block mesh/collision streaming and a single active indoor room—not full asynchronous world streaming. Transport, roads, vegetation and service frontage props remain resident. Interiors use a separate room transition rather than physical openings in exterior building shells; frame rates remain unmeasured.
+- See [Streaming and interiors](docs/STREAMING_INTERIORS.md) for technical architecture and tests.
 
 ### Outer districts, civil services and preserved world layouts
 
@@ -37,7 +47,7 @@
 - **R** consumes a purchased take-away ration pack on foot (+25 health). Park damaged cars by garages to repair them.
 - **81 road signals**, **25 civilian cars**, **4 boardable buses** with **16 stops**, **5 elevated rail stations** and coverage in all eight districts.
 - **Real world persistence**: a world seed *and an exact 112-building manifest* are saved in slot 1; save/load never rerolls existing chosen parcels. New Game F6 chooses a new layout, while fixed roads/landmarks/shops remain fixed.
-- [Expansion and public services guide](docs/EXPANSION.md). These are highly dressed streetfront destinations and accessible public plazas, **not full indoor interiors yet**.
+- [Expansion and public services guide](docs/EXPANSION.md). These now connect to furnished interior room instances, although individual establishments do not yet have bespoke floorplans.
 
 ### Social life after dark
 
@@ -45,7 +55,7 @@
 - Each has authored streetfront decor, hosts, its own schedule, lighting, and proximity-triggered original ambient audio. Counter details, tables, shelves, bowls, signage, marquees and silhouettes use the graphic-noir palette, not generic storefront repetition.
 - Approach on foot and press **G** for the local menu. Use **1** to purchase useful health or police-heat services, **2** to take/complete one of four authored cross-district side jobs. Hours and contacts matter.
 - Venue pins and active side-job targets appear on the minimap. Side-job progress survives the existing **F5/F9** save/load and preserves old save compatibility.
-- See the [Morrow Bay venue and side-story guide](docs/VENUES.md). These are streetfront social spaces, **not enterable interiors yet**.
+- See the [Morrow Bay venue and side-story guide](docs/VENUES.md). They now have enterable themed room instances, accessed with H.
 
 ### City transport and persistent worlds
 
@@ -97,6 +107,7 @@ godot --headless --path . --script res://tests/world_systems_smoke.gd
 godot --headless --path . --script res://tests/render_smoke.gd
 godot --headless --path . --script res://tests/transport_smoke.gd
 godot --headless --path . --script res://tests/expansion_smoke.gd
+godot --headless --path . --script res://tests/streaming_interiors_smoke.gd
 godot --headless --path . --quit-after 90
 ```
 
