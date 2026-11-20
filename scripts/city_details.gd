@@ -321,7 +321,11 @@ func _build_block(ix: int, iz: int) -> void:
 			profile = (parcel[building] as Dictionary).duplicate(true)
 		if (not WorldPlan.is_core_block(ix, iz)) or WorldPlan.lot_variant_index(ix, iz, world_seed) > 0:
 			_statistics["variant_lots"] += 1
-		var z: float = center.z + profile["offset_z"]
+		# The procedural shells once sat at arbitrary offset_z depths while
+		# permanent business façades were attached at center.z - 14.88.
+		# Align the actual collision + mesh frontage to the same curb plane.
+		# Width, depth, height, material and seed manifest remain unchanged.
+		var z: float = center.z - WorldPlan.PUBLIC_FACADE_SETBACK + float(profile["depth"]) * 0.5
 		_build_building(Vector3(x, 0.0, z), profile, district, ix, iz, building)
 		_statistics["authored_lots"] += 1
 	# The gap between the two buildings reads as a service alley.
