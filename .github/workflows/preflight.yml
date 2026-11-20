@@ -55,6 +55,8 @@ jobs:
         run: godot --headless --path . --script res://tests/expansion_smoke.gd
       - name: Validate on-demand district geometry and fully enterable interior rooms
         run: godot --headless --path . --script res://tests/streaming_interiors_smoke.gd
+      - name: Validate predictive traversal streaming without multi-block frame spikes
+        run: godot --headless --path . --script res://tests/predictive_streaming_smoke.gd
       - name: Validate Lantern Cup cinematic café interior, unique interaction and persistent save
         run: godot --headless --path . --script res://tests/lantern_cup_hero_smoke.gd
       - name: Validate Mara's character rig, reactive dialogue and indoor save lifecycle
