@@ -65,6 +65,12 @@ Our first hero-asset pass applies the game's new **hyper-realistic, stylized cyb
 
 **Images above were captured before this rail upgrade.** We will replace them only with validated, real game captures. See [the whole-game visual art brief](docs/ART_DIRECTION.md) for our quality bar and known limitations.
 
+### KESTREL S6 — the playable street car hero asset
+
+The second major asset pass replaces the 12 parked player-drivable cars' boxy placeholder bodies with an original **KESTREL S6** fastback electric vehicle and equips spawned police cruisers with a matching pursuit edition. The real car now renders a lofted bevelled monocoque, metallic clearcoat paint, tinted panoramic glass with visible four-seat cabin, steering and spinning alloy wheels, roof module, service panels, cooling vents and detailed trim. Brake/reverse lighting responds to real control inputs, active headlights illuminate the path only while cars are driven or pursuing, and original generated electric drivetrain audio responds to speed. All driving physics, collisions, ownership, save IDs and player controls are unchanged.
+
+See [Kestrel S6 implementation and visual QA requirements](docs/KESTREL_S6.md). The committed screenshots above predate both this car and the upgraded train.
+
 ### Streamed city geometry and enterable interiors
 
 - **On-demand geometry:** nearby district blocks create building colliders, signs and detailed facade MultiMeshes. Distant blocks unload and reconstruct identically on return from the saved world manifest and seed.
