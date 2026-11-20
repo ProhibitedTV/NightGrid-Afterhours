@@ -71,6 +71,12 @@ The second major asset pass replaces the 12 parked player-drivable cars' boxy pl
 
 See [Kestrel S6 implementation and visual QA requirements](docs/KESTREL_S6.md). The committed screenshots above predate both this car and the upgraded train.
 
+### CENTRAL EXCHANGE — hero street intersection
+
+Morrow Bay's third authored quality slice upgrades the **playable crossroads at (0, 0)** into an infrastructure-grounded cyberpunk landmark. All four zebra crossings now have abrasion and reflective studs; the corner curbs open onto **eight sloped pedestrian ramps**, and the gutters have detailed cast-iron drains, irregular asphalt patches and shallow rainwater. The original **working two-phase traffic heads** gain real masts and control hardware, plus readable city wayfinding, protective bollards and one night-only practical light.
+
+This is part of the playable city, **not** a separate showcase map or a fake static traffic scene. The original right-hand lanes, traffic controls, saved-world geometry and driving mechanics remain unchanged. See the [Central Exchange hero quality sheet](docs/CENTRAL_EXCHANGE.md). Current README screenshots still predate this pass.
+
 ### Streamed city geometry and enterable interiors
 
 - **On-demand geometry:** nearby district blocks create building colliders, signs and detailed facade MultiMeshes. Distant blocks unload and reconstruct identically on return from the saved world manifest and seed.
