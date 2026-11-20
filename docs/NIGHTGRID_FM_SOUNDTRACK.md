@@ -81,3 +81,38 @@ a full audible soundtrack implementation.
    room textures/sounds remain. Pause/unpause and save/load during playback.
 7. Export Windows build with all Ogg assets present; confirm an actual Windows
    playtest before calling the audio system complete.
+
+## World audio and tactile feedback (same branch)
+
+The **NightGrid FM music director** is complemented by the original,
+creator-owned **city Foley** system in `scripts/world_audio.gd` and
+`scripts/city_foley.gd`. It is not dependent on the 20 Ogg files and works
+in source-only builds.
+
+- Four long (~9 second), cached original PCM beds: subdued street wind, distant
+  traffic, Southworks/West Docks industrial hum and waterfront ambience.
+  Each layer changes with district, time of day and whether the player is
+  inside a building or car; levels fade rather than cutting hard.
+- Footfalls are triggered from **actual walking distance**, not a fixed number
+  of video or physics frames. Concrete and interior tile have separate cached
+  four-step variations. Entering cars, walking into walls, teleporting,
+  airborne movement and large position discontinuities do not spam steps.
+- UI menu choices have a separate original, short confirmation tone.
+- Existing original KESTREL electric motor, train, café and venue audio stay
+  intact, so this adds texture instead of replacing current work.
+- New independent **City Ambience** and **Footsteps / Interactions / UI**
+  sliders sit next to Master and NightGrid FM Music in settings. Audio can be
+  turned completely off without interfering with saved game state.
+
+### Testing
+
+Run `godot --headless --path . --script res://tests/world_audio_smoke.gd`
+to check cache use, waveform formats, environment layers, footstep distance,
+no teleport bursts and settings persistence.
+
+**Honest limitations:** these generated beds are a starting sound design,
+not real-world recorded city ambience; there are no authentic sampled footfalls,
+car door foley, siren Doppler, street-level occlusion meshes, frequency-aware
+reverb or independent Godot bus layout yet. A Windows headphone listening pass
+is required for loudness and timing QA. The broader world-audio issue #33
+remains open.
