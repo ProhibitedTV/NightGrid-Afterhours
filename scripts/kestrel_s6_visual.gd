@@ -379,7 +379,7 @@ func _build_road_gear() -> void:
 
 func _build_lights() -> void:
 	for side in [-1.0, 1.0]:
-		var x := side * 0.82
+		var x: float = float(side) * 0.82
 		_box(self, "HeadlampHousing", Vector3(x, 0.19, -2.315),
 			Vector3(0.50, 0.19, 0.07), "RUBBER", Color("1b323f"))
 		_box(self, "SegmentedDRL", Vector3(x, 0.29, -2.362),
