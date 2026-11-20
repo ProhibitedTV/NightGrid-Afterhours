@@ -43,6 +43,13 @@ func _check() -> void:
 		_fail("Missing CICADA M8 playable rolling-stock visuals")
 		return
 	var visual_stats: Dictionary = rail.call("get_train_visual_stats")
+	var audio = load("res://scripts/m_line_train_audio.gd")
+	if audio.cache_count() != 2 or hero.get_node_or_null("OriginalRailRollingLoop") == null or hero.get_node_or_null("OriginalStationArrivalChime") == null:
+		_fail("Real train must have cached original rolling ambience and arrival chime")
+		return
+	if str(hero.call("displayed_destination")) != str(rail.STATION_NAMES[rail.get("next_station")]):
+		_fail("Cab destination displays must follow the actual next station")
+		return
 	if int(visual_stats.get("cars", -1)) != 2 or int(visual_stats.get("glass_windows", -1)) != 16:
 		_fail("Two detailed cabins with 16 windows must be present: %s" % visual_stats)
 		return
