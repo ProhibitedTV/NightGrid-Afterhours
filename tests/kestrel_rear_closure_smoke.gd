@@ -46,7 +46,7 @@ func _verify_hatch(hero: Node3D) -> bool:
 			return false
 		triangle_normal = triangle_normal.normalized()
 		if normals[start].dot(triangle_normal) < 0.2:
-			_fail("Rear hatch surface normal points against its visible triangle")
+			_fail("Rear hatch surface normal mismatch at triangle %d: face=%s smooth=%s a=%s b=%s c=%s" % [start / 3, triangle_normal, normals[start], a, b, c])
 			return false
 		for pair in [[a, b], [b, c], [c, a]]:
 			var key := _edge_id(pair[0], pair[1])
