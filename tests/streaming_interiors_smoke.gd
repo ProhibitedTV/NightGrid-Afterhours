@@ -51,8 +51,10 @@ func _verify() -> void:
 	if original_shape.is_empty():
 		_fail("Chunk had no distinct geometry")
 		return
-	# Drive across the map in the test: real chunk nodes and collisions are freed.
-	city.call("set_focus", Vector3(209.0, 1.15, 209.0))
+	# Move the real player as well: the live world updates the streaming focus
+	# every frame and would otherwise correctly restore the downtown ring.
+	player.global_position = Vector3(209.0, 1.15, 209.0)
+	city.call("set_focus", player.global_position)
 	await process_frame
 	var distant: Dictionary = city.call("get_streaming_stats")
 	if (city.get("_loaded") as Dictionary).has(stable_key):
@@ -64,7 +66,8 @@ func _verify() -> void:
 	if int(distant["unloads"]) == 0 or int(distant["loaded_blocks"]) >= 64:
 		_fail("Walking away should actually free geometry: %s" % distant)
 		return
-	city.call("set_focus", Vector3.ZERO)
+	player.global_position = Vector3(0.0, 1.15, 6.0)
+	city.call("set_focus", player.global_position)
 	await process_frame
 	var new_chunk: Node3D = city.get("_loaded")[stable_key]
 	if original_shape != _block_shape_summary(new_chunk):
