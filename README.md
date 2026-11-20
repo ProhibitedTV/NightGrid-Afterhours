@@ -2,6 +2,23 @@
 
 **An original 3D, open-world night-courier and crime sandbox prototype.** A neon city, parked vehicles, delivery missions and basic police pursuit — no copied Rockstar assets.
 
+### Next Windows playtest — four integrated systems
+
+This integration branch combines draft PRs **#37 audio**, **#38 predictive
+streaming**, **#39 visible coastal perimeter**, and **#40 KESTREL rear closure**,
+without merging them to `main`. The latest successful **Windows playtest
+build** is available through [GitHub Actions](../../actions/workflows/windows-build.yml);
+use that build rather than a main-branch artifact.
+
+**New in-game QA controls:** press **F7** to start and stop a CSV/JSON frame
+trace (render intervals, p95/p99, chunk backlog and build revision), and
+**F8** to save a real in-game PNG plus context JSON locally. GitHub Actions
+also attempts eight real X11/Mesa game images of the four map edges, repaired
+vehicle angles and elevated harbor, under a *separate* playtest capture
+workflow. **These are not Vulkan/RTX benchmarks.** Follow the exact
+[Windows test route and evidence checklist](docs/NEXT_PLAYTEST.md). Export
+builds now contain `playtest-build-info.json` with the exact Git commit.
+
 ### NightGrid FM — creator-owned chipwave soundtrack
 
 A dedicated [NightGrid FM audio director](docs/NIGHTGRID_FM_SOUNDTRACK.md) now routes 20 original creator-supplied tracks into the title screen, in-car radio, interior cafés/bars/clubs and proximity-based exterior music at open venues. While driving, use **B** to toggle radio, **N** to skip (Xbox controller: D-pad Right / Up). There is a dedicated **music volume** control in Settings. Music crossfades between contexts while the existing environmental soundscapes continue.
@@ -58,7 +75,7 @@ These seven images were **recaptured and committed by the real Godot screenshot 
 
 The first real Windows playtest **identified critical quality defects** that older headless CI could not catch: visible camera flythrough on club exits, camera clipping into buildings, detached generated storefront/building shells, rectangular character placeholders, awkward vehicle shapes and cartoonish city presentation. The camera, façade and placeholder-character code received a focused repair pass, explained in [the playtest triage report](docs/PLAYTEST_TRIAGE_2026_11_20.md). The quality issues **are not all resolved**: [art-direction reset #19](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/19), [vehicle rework #20](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/20), [city design #21](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/21).
 
-**This is a rough playable prototype, not an AAA-quality asset release.** For the current version, download the latest *successful main-branch* Windows artifact, report real screenshots and FPS, and test H club exits and indoor save restore before evaluating visual polish. PR/CI passing is not equivalent to human visual acceptance.
+**This is a rough playable prototype, not an AAA-quality asset release.** For the current version, download the latest *successful integration-branch* Windows artifact for this playtest, report real screenshots and FPS, and test H club exits and indoor save restore before evaluating visual polish. PR/CI passing is not equivalent to human visual acceptance.
 
 ## Play the first prototype
 
