@@ -10,6 +10,7 @@ const DEFAULT_SETTINGS = {
 	"master_volume": 0.80, "mouse_sensitivity": 0.0032,
 	"stick_sensitivity": 2.6, "invert_look_y": false,
 	"ssr_enabled": true, "glow_enabled": true,
+	"ao_enabled": true, "fog_enabled": true,
 	"vsync_enabled": true, "show_fps": false
 }
 const HELP_SECTIONS = [
@@ -129,7 +130,7 @@ func _normalize() -> void:
 	settings["master_volume"] = clampf(float(settings.get("master_volume", 0.8)), 0.0, 1.0)
 	settings["mouse_sensitivity"] = clampf(float(settings.get("mouse_sensitivity", 0.0032)), 0.001, 0.010)
 	settings["stick_sensitivity"] = clampf(float(settings.get("stick_sensitivity", 2.6)), 0.5, 5.0)
-	for key in ["invert_look_y", "ssr_enabled", "glow_enabled", "vsync_enabled", "show_fps"]:
+	for key in ["invert_look_y", "ssr_enabled", "glow_enabled", "ao_enabled", "fog_enabled", "vsync_enabled", "show_fps"]:
 		settings[key] = bool(settings.get(key, DEFAULT_SETTINGS[key]))
 
 func _save_settings() -> void:
@@ -219,9 +220,11 @@ func _render() -> void:
 			_check(col, "INVERT LOOK Y", "invert_look_y")
 			_check(col, "SCREEN-SPACE REFLECTIONS", "ssr_enabled")
 			_check(col, "NEON BLOOM", "glow_enabled")
+			_check(col, "CONTACT SHADOWS / AO", "ao_enabled")
+			_check(col, "ATMOSPHERIC DISTANCE HAZE", "fog_enabled")
 			_check(col, "VERTICAL SYNC", "vsync_enabled")
 			_check(col, "SHOW LIVE FPS & CHUNK METRICS", "show_fps")
-			_label(col, "Changes save automatically. Toggle SSR and bloom for RTX 3060 profiling.", 14, Color("90a7ba"))
+			_label(col, "Changes save automatically. Toggle SSR, AO, haze and bloom to profile GPU cost.", 14, Color("90a7ba"))
 			_button(col, "back", "BACK", "back")
 		"controls":
 			_title(col, "CONTROLS / KEYBOARD + PAD", 22, Color("f0dfcd"))
