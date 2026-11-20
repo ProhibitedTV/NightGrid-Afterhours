@@ -9,6 +9,8 @@ on:
       - 'project.godot'
       - 'tools/capture_playtest_evidence.gd'
       - '.github/workflows/playtest-evidence.yml'
+      - 'tests/**'
+      - 'docs/NEXT_PLAYTEST.md'
   workflow_dispatch:
 
 permissions:
