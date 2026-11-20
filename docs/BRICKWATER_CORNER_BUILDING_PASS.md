@@ -13,7 +13,7 @@
 
 ## Verification and acceptance
 
-`tests/central_frontages_smoke.gd` asserts that exactly the Brickwater pilot has all four sealed structural returns, four solid roof edges/coping strips, the two footings and four coherent material-sorted meshes including photographed bitumen, with normal maps enabled on brick, steel and roofing, alpha glass and actual separate interior backing. The other corner building must remain unchanged; existing same-save/streaming, collision and shop-identity tests still run.
+`tests/central_frontages_smoke.gd` asserts that exactly the Brickwater pilot has all four sealed structural returns, four solid roof edges/coping strips, the two footings and three coherent material-sorted meshes including photographed bitumen, with normal maps enabled on brick, steel and roofing, alpha glass and actual separate interior backing. The other corner building must remain unchanged; existing same-save/streaming, collision and shop-identity tests still run.
 
 **Outstanding quality gates:** inspect the **actual** in-game captures at street-eye angle in noon/dusk, a close corner seam view, roof view and night glazing with Windows Godot 4.3 Forward+ Vulkan; look for edge cracks, reverse normals, Z-fighting, transparent sorting, believable human-scale material texel density and roof/canopy intersections. Compare with the approved reference and previous real frames. Measure GPU frame-time p95/p99 and resident texture memory on RTX 3060 12GB at 1080p; aim for 60 FPS without coupling to 60Hz physics.
 
