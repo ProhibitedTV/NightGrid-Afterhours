@@ -289,9 +289,9 @@ func _build_block(ix: int, iz: int) -> void:
 		# The four parcels surrounding Central Exchange leave a 6m gap at
 		# the inner end of each curb. Sloped crossing approaches built by the
 		# hero junction occupy that space instead of overlapping raised curbs.
-		var inside_corner := absf(center.x) == CELL * 0.5 and absf(center.z) == CELL * 0.5
-		var inner_x_edge := inside_corner and (side < 0.0 if center.x > 0.0 else side > 0.0)
-		var inner_z_edge := inside_corner and (side < 0.0 if center.z > 0.0 else side > 0.0)
+		var inside_corner: bool = absf(center.x) == CELL * 0.5 and absf(center.z) == CELL * 0.5
+		var inner_x_edge: bool = inside_corner and (side < 0.0 if center.x > 0.0 else side > 0.0)
+		var inner_z_edge: bool = inside_corner and (side < 0.0 if center.z > 0.0 else side > 0.0)
 		if inner_x_edge:
 			_detail(center + Vector3(side * 20.8, 0.18, signf(center.z) * 3.0),
 				Vector3(0.48, 0.24, 36.0), Color("85888b"))
