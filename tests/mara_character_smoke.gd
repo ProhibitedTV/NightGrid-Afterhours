@@ -51,6 +51,24 @@ func _verify() -> void:
 	if head == null or left_arm == null or right_arm == null:
 		_fail("Character skeleton pivots must exist for idle/talk/service")
 		return
+	var eye_rig := head.get_node_or_null("LeftEyeBlinkRig") as Node3D
+	var pupil := head.get_node_or_null("LeftEyeBlinkRig/Pupil")
+	if eye_rig == null or pupil == null:
+		_fail("Blink rig must include the iris/pupil, not just sclera")
+		return
+	var until_blink := fposmod(2.24 - fposmod(float(mara.get("_clock")), 4.37), 4.37)
+	mara.call("_process", until_blink)
+	if eye_rig.scale.y > 0.21:
+		_fail("Eye rig must close during a blink")
+		return
+	mara.call("_process", 0.26)
+	if eye_rig.scale.y < 0.9:
+		_fail("Mara's eyes must reopen naturally after the blink")
+		return
+	var plinth := room.get_node_or_null("LanternCupHero/StaffRaisedServicePlinth")
+	if plinth == null:
+		_fail("Mara must stand on a believable raised service work surface")
+		return
 	# Concrete fixed context lines: injured player, a police alert, unlocked
 	# shift notes and an active contract all change the authored conversation.
 	var context := {"hour": 20.0, "health": 34.0, "heat": 1.25,
