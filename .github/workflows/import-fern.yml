@@ -26,6 +26,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Install audited image assembly dependency
+        run: python -m pip install Pillow==11.3.0
       - name: Fetch original Poly Haven 2K fern glTF and verify dependencies
         run: python tools/import_polyhaven_fern.py
       - name: Verify bundled glTF and strict source provenance
