@@ -1,5 +1,7 @@
 # Morrow Bay rendering handbook — ink and rain
 
+> **Updated Nov 20, 2026:** The new official world target is **photorealistic cyberpunk realism**, not deliberately cartoonish or low-poly silhouettes. The opening paragraphs below describe the existing, still-prototypical renderer, not the approved art goal. The [first physically layered Central Exchange architecture pilot](CENTRAL_EXCHANGE_FIDELITY_PILOT.md) adds two road-facing custom UV-mapped façade meshes and six real 2K photographed CC0 PBR textures; measurements and actual Windows/Vulkan approval remain pending.
+
 NightGrid's visual identity is **cinematic neon noir with physically grounded surfaces**, not simulated photorealistic Los Angeles. The city uses deliberately exaggerated silhouettes, copper and concrete at midday, sea-glass blues at dusk, and restrained magenta/cyan storefront color at night. The street can look damp and reflective without a blanket of mirrorlike asphalt.
 
 ## Implemented architecture
