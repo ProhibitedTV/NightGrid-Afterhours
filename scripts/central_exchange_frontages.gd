@@ -170,8 +170,8 @@ func _surface_material(family: String) -> Material:
 					out.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_RED
 					out.roughness = 1.0
 					_statistics["real_pbr_maps"] += 3
-			else:
-				push_warning("Bitumen roof scan is present but failed to load; visual approval blocked")
+				else:
+					push_warning("Bitumen roof scan is present but failed to load; visual approval blocked")
 			else:
 				push_warning("Photographed CC0 bitumen roof PBR not imported; visual approval blocked")
 		"PARAPET":
