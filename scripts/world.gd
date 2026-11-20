@@ -832,7 +832,7 @@ func _toggle_civic() -> void:
 		_notify("No public service counter within reach.")
 		return
 	civic_selected_id = str(site["id"])
-	venue_panel.visible = true
+	_show_venue_dialogue()
 	_update_civic_panel()
 
 func _consume_ration() -> void:
@@ -880,19 +880,29 @@ func _update_civic_panel() -> void:
 		str(site["host"]), str(site["flavor"])]
 	if opened:
 		var item := _civic_service_text(site)
-		title += "[1] %s ($%d)\n" % [item, int(site["price"])]
+		title += "[1 / A] %s ($%d)\n" % [item, int(site["price"])]
 		if civic_job_active.is_empty():
 			var offer: Dictionary = civic_services.call("order_from", civic_selected_id)
 			if not offer.is_empty() and not civic_job_completed.has(str(offer["id"])):
-				title += "[2] WORK ORDER: %s (+$%d)\n" % [str(offer["title"]), int(offer["reward"])]
+				title += "[2 / X] WORK ORDER: %s (+$%d)\n" % [str(offer["title"]), int(offer["reward"])]
 		else:
 			var job: Dictionary = civic_services.call("order_by_id", civic_job_active)
 			if not job.is_empty() and str(job["to"]) == civic_selected_id:
-				title += "[2] DELIVER: %s (+$%d)\n" % [str(job["title"]), int(job["reward"])]
+				title += "[2 / X] DELIVER: %s (+$%d)\n" % [str(job["title"]), int(job["reward"])]
 	else:
 		title += "Return during staffed hours.\n"
-	title += "[G] Close  |  CASH $%d  |  PROVISIONS %d" % [cash, ration_packs]
+	title += "[G / B] Close  |  CASH $%d  |  PROVISIONS %d" % [cash, ration_packs]
 	venue_label.text = title
+	if venue_service_button != null:
+		venue_service_button.disabled = not opened
+		venue_service_button.text = "1 / A  •  SERVICE"
+	if venue_job_button != null:
+		var offered: Dictionary = civic_services.call("order_from", civic_selected_id) if civic_job_active.is_empty() else civic_services.call("order_by_id", civic_job_active)
+		var available := not offered.is_empty() and (
+			(not civic_job_active.is_empty() and str(offered["to"]) == civic_selected_id) or
+			(civic_job_active.is_empty() and not civic_job_completed.has(str(offered["id"]))))
+		venue_job_button.disabled = not opened or not available
+		venue_job_button.text = "2 / X  •  WORK ORDER"
 
 func _civic_action(option: int) -> void:
 	if not venue_panel.visible or civic_selected_id.is_empty():
@@ -1010,14 +1020,25 @@ func _toggle_venue() -> void:
 		_notify("Find a glowing venue frontage, then press G to visit.")
 		return
 	venue_selected_id = str(venue["id"])
-	venue_panel.visible = true
+	_show_venue_dialogue()
 	_update_venue_panel()
+
+func _show_venue_dialogue() -> void:
+	venue_panel.visible = true
+	player.set("input_blocked", true)
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	if venue_service_button != null:
+		venue_service_button.call_deferred("grab_focus")
 
 func _close_venue() -> void:
 	venue_selected_id = ""
 	civic_selected_id = ""
 	if venue_panel != null:
 		venue_panel.visible = false
+	if is_instance_valid(player):
+		player.set("input_blocked", false)
+	if game_menu == null or not game_menu.call("is_open"):
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _update_venue_panel() -> void:
 	if not civic_selected_id.is_empty():
@@ -1036,19 +1057,29 @@ func _update_venue_panel() -> void:
 		str(venue["name"]), str(venue["kind"]), status, hours_text,
 		str(venue["host"]), str(venue["flavor"])]
 	if open_now:
-		body += "[1] %s  $%d   " % [str(venue["item"]), int(venue["price"])]
+		body += "[1 / A] %s  $%d   " % [str(venue["item"]), int(venue["price"])]
 		if venue_job_active.is_empty():
 			var offer: Dictionary = venue_system.call("job_from", venue_selected_id)
 			if not offer.is_empty() and not venue_job_completed.has(str(offer["id"])):
-				body += "\n[2] SIDE JOB: %s (+$%d)" % [str(offer["title"]), int(offer["reward"])]
+				body += "\n[2 / X] SIDE JOB: %s (+$%d)" % [str(offer["title"]), int(offer["reward"])]
 		else:
 			var active: Dictionary = venue_system.call("job_by_id", venue_job_active)
 			if not active.is_empty() and str(active["to"]) == venue_selected_id:
-				body += "\n[2] DELIVER: %s (+$%d)" % [str(active["title"]), int(active["reward"])]
+				body += "\n[2 / X] DELIVER: %s (+$%d)" % [str(active["title"]), int(active["reward"])]
 	else:
 		body += "Come back during business hours."
-	body += "\n[G] Close   |   CASH $%d" % cash
+	body += "\n[G / B] Close   |   CASH $%d" % cash
 	venue_label.text = body
+	if venue_service_button != null:
+		venue_service_button.disabled = not open_now
+		venue_service_button.text = "1 / A  •  SERVICE"
+	if venue_job_button != null:
+		var offered: Dictionary = venue_system.call("job_from", venue_selected_id) if venue_job_active.is_empty() else venue_system.call("job_by_id", venue_job_active)
+		var available := not offered.is_empty() and (
+			(not venue_job_active.is_empty() and str(offered["to"]) == venue_selected_id) or
+			(venue_job_active.is_empty() and not venue_job_completed.has(str(offered["id"]))))
+		venue_job_button.disabled = not open_now or not available
+		venue_job_button.text = "2 / X  •  SIDE JOB"
 
 func _venue_action(option: int) -> void:
 	if not civic_selected_id.is_empty():
@@ -1199,14 +1230,38 @@ func _build_hud() -> void:
 	venue_panel = PanelContainer.new()
 	venue_panel.name = "VenueDialogue"
 	venue_panel.position = Vector2(18.0, 262.0)
-	venue_panel.custom_minimum_size = Vector2(550.0, 162.0)
+	venue_panel.custom_minimum_size = Vector2(630.0, 218.0)
 	venue_panel.visible = false
 	ui.add_child(venue_panel)
 	venue_label = Label.new()
 	venue_label.add_theme_font_size_override("font_size", 18)
 	venue_label.add_theme_color_override("font_color", Color("eadcc9"))
 	venue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	venue_panel.add_child(venue_label)
+	var dialogue_layout := VBoxContainer.new()
+	dialogue_layout.add_theme_constant_override("separation", 7)
+	venue_panel.add_child(dialogue_layout)
+	dialogue_layout.add_child(venue_label)
+	var action_row := HBoxContainer.new()
+	action_row.add_theme_constant_override("separation", 7)
+	dialogue_layout.add_child(action_row)
+	venue_service_button = Button.new()
+	venue_service_button.name = "ServiceAction"
+	venue_service_button.text = "1 / A  •  SERVICE"
+	venue_service_button.focus_mode = Control.FOCUS_ALL
+	venue_service_button.pressed.connect(func() -> void: _venue_action(1))
+	action_row.add_child(venue_service_button)
+	venue_job_button = Button.new()
+	venue_job_button.name = "JobAction"
+	venue_job_button.text = "2 / X  •  CONTRACT"
+	venue_job_button.focus_mode = Control.FOCUS_ALL
+	venue_job_button.pressed.connect(func() -> void: _venue_action(2))
+	action_row.add_child(venue_job_button)
+	venue_close_button = Button.new()
+	venue_close_button.name = "CloseDialogue"
+	venue_close_button.text = "G / B  •  BACK"
+	venue_close_button.focus_mode = Control.FOCUS_ALL
+	venue_close_button.pressed.connect(func() -> void: _close_venue())
+	action_row.add_child(venue_close_button)
 
 func _update_hud() -> void:
 	var outdoors: Vector3 = interiors.get("exterior_position") if interiors.call("is_inside") else _actor().global_position
@@ -1230,7 +1285,10 @@ func _update_hud() -> void:
 		performance_label.text = "RTX 3060 target: 60 FPS @1080p | Actual: %d FPS (%.1f ms) | %d/%d street blocks | %d live building shells | room %d" % [
 			fps, 1000.0 / float(fps), int(stream["loaded_blocks"]), int(stream["total_blocks"]),
 			int(stream["loaded_buildings"]), indoor_count]
-	hud_label.text = "NIGHTGRID / AFTERHOURS    MORROW BAY\n%s | %s\n$%d | HEALTH %d | HEAT %s\n%s | DELIVERIES %d\nOBJECTIVE: %s (%dm)\n%s\n\nWASD Move/Drive | E Car | Shift Sprint | Space Jump/Brake\nE Car | F Board/Exit Transit | F5 Save | F6 New Game | F9 Load\nT Time | Y Pause | R Supplies | F3 FPS | F4 SSR | G Counter | H Enter/Exit | Esc Cursor" % [local_name, clock, cash, ceili(health), wanted_text, vehicle_text, deliveries, mission, distance, message]
+	var control_help := "WASD Move | Mouse Look | E Car | F Transit | H Enter | G Interact | Esc Pause"
+	if gamepad_active:
+		control_help = "PAD: LS Move / Steer • RS Look • A Jump/Service • X Interact/Contract • Y Car • LB Door • RB Transit • Start Pause"
+	hud_label.text = "NIGHTGRID / AFTERHOURS    MORROW BAY\n%s | %s\n$%d | HEALTH %d | HEAT %s\n%s | DELIVERIES %d\nOBJECTIVE: %s (%dm)\n%s\n\n%s" % [local_name, clock, cash, ceili(health), wanted_text, vehicle_text, deliveries, mission, distance, message, control_help]
 	hud_label.text += "\n" + _venue_job_text() + "\n" + _civic_job_text()
 	if interiors.call("is_inside"):
 		var site_id := str(interiors.call("active_site_id"))
