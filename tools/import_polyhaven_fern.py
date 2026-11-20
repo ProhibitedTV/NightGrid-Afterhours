@@ -13,6 +13,8 @@ from pathlib import Path, PurePosixPath
 import urllib.parse
 import urllib.request
 
+from PIL import Image
+
 ASSET = "fern_02"
 RES = "2k"
 ROOT = Path("assets/models/polyhaven/fern_02")
@@ -83,6 +85,50 @@ def fetch_entry(path_name: str, entry: dict) -> dict:
             "bytes": len(data), "source_url": url}
 
 
+def build_leaf_alpha(root: Path, gltf_file: Path, api_data: dict, files: dict) -> dict:
+    """Make the photographic leaf atlas an actual alpha-cutout PBR base map.
+
+    Poly Haven's glTF supplies a JPEG diffuse atlas and alphaMode: MASK, but
+    JPEG has NO alpha channel. Without explicitly merging the separately
+    published mask, Godot draws background-colored cards around each frond.
+    """
+    alpha_choices = api_data.get("alpha", {}).get(RES, {})
+    alpha = alpha_choices.get("png") or alpha_choices.get("jpg")
+    if not isinstance(alpha, dict) or not alpha.get("url"):
+        raise ValueError("Source alpha map unavailable: refusing ugly opaque foliage")
+    filename = "textures/fern_02_alpha_2k." + ("png" if alpha_choices.get("png") else "jpg")
+    files[filename] = fetch_entry(filename, alpha)
+    gltf = json.loads(gltf_file.read_text(encoding="utf-8"))
+    material = gltf["materials"][0]
+    tex_index = material["pbrMetallicRoughness"]["baseColorTexture"]["index"]
+    diffuse_image_index = gltf["textures"][tex_index]["source"]
+    diffuse_uri = gltf["images"][diffuse_image_index]["uri"]
+    diffuse_path = root / relative_path(diffuse_uri)
+    mask_path = root / relative_path(filename)
+    out_name = "textures/fern_02_diff_alpha_2k.png"
+    out_path = root / out_name
+    with Image.open(diffuse_path) as image, Image.open(mask_path) as mask_image:
+        diffuse = image.convert("RGBA")
+        alpha_mask = mask_image.convert("L")
+        if alpha_mask.size != diffuse.size:
+            raise ValueError(f"alpha mask {alpha_mask.size} doesn't match leaves {diffuse.size}")
+        # Scan-derived alpha preserves thin pinnae and removes every atlas
+        # rectangle; threshold in Godot is controlled by the source material.
+        diffuse.putalpha(alpha_mask)
+        diffuse.save(out_path, "PNG", optimize=True)
+    # Keep the original unmodified JPEG and original alpha file for audit.
+    gltf["images"][diffuse_image_index]["uri"] = out_name
+    gltf_file.write_text(json.dumps(gltf, indent=2, ensure_ascii=False) + "\\n", encoding="utf-8")
+    result = {}
+    for rel in [out_name, gltf_file.name]:
+        path = root / rel
+        payload = path.read_bytes()
+        result[rel] = {"file": path.as_posix(), "sha256": hashlib.sha256(payload).hexdigest(),
+                       "bytes": len(payload), "derived_from": [diffuse_uri, filename]}
+    print(f"ALPHA CUTOUT PASS: {out_path} ({out_path.stat().st_size:,} bytes)")
+    return result
+
+
 def main() -> None:
     api = f"https://api.polyhaven.com/files/{ASSET}"
     manifest = json.loads(get_bytes(api, 8_000_000).decode("utf-8"))
@@ -103,6 +149,9 @@ def main() -> None:
     if sum(v["bytes"] for v in files.values()) > MAX_TOTAL_BYTES:
         raise ValueError("2K fern exceeded pilot resident asset size budget")
     gltf_path = ROOT / main_name
+    derived = build_leaf_alpha(ROOT, gltf_path, manifest, files)
+    files[main_name] = derived[main_name]
+    files["textures/fern_02_diff_alpha_2k.png"] = derived["textures/fern_02_diff_alpha_2k.png"]
     doc = json.loads(gltf_path.read_text(encoding="utf-8"))
     if doc.get("asset", {}).get("version") != "2.0" or not doc.get("meshes"):
         raise ValueError("invalid or empty glTF 2.0 model")
@@ -115,7 +164,7 @@ def main() -> None:
         "page": f"https://polyhaven.com/a/{ASSET}",
         "api": api, "license": "CC0 1.0", "license_url": "https://polyhaven.com/license",
         "author": "Rico Cilliers (model), Rob Tuytel (scanning)",
-        "description": "Photographed foliage with UVs and per-leaf alpha, not sphere/box vegetation",
+        "description": "Scanned source fern with separate official alpha map composited into real masked RGBA leaf atlas",
         "files": files,
         "gltf_meshes": len(doc["meshes"]),
         "gltf_nodes": len(doc.get("nodes", [])),
