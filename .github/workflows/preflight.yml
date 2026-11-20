@@ -41,5 +41,7 @@ jobs:
         run: godot --headless --path . --script res://tests/expansion_smoke.gd
       - name: Validate on-demand district geometry and fully enterable interior rooms
         run: godot --headless --path . --script res://tests/streaming_interiors_smoke.gd
+      - name: Validate main menus, saved settings and controller action contexts
+        run: godot --headless --path . --script res://tests/menus_gamepad_smoke.gd
       - name: Run smoke test for 90 frames
         run: godot --headless --path . --quit-after 90
