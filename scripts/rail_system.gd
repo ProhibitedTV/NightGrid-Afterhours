@@ -195,6 +195,15 @@ func _build_station(index: int) -> void:
 		Vector3(0.0, 14.78, 6.31), Color("e0eee5"), 36)
 	_station_label(platform, "%02d   ALL NIGHT  //  MORROW BAY" % [index + 1],
 		Vector3(0.0, 13.44, 6.31), Color("8fd3d1"), 24)
+	# Visible elevated pedestrian bridge ties the lift shaft to the platform;
+	# the original street-level instant boarding contract is unchanged.
+	_station_box(platform, Vector3(9.0, 12.10, 7.7),
+		Vector3(2.5, 0.24, 5.4), "METAL", Color("647d86"))
+	for walkway_side in [-1.0, 1.0]:
+		_station_box(platform, Vector3(9.0 + walkway_side * 1.24, 13.03, 7.7),
+			Vector3(0.075, 1.76, 5.38), "TRANSPARENT_GLASS", Color(0.30, 0.50, 0.57, 0.42))
+		_station_box(platform, Vector3(9.0 + walkway_side * 1.24, 13.87, 7.7),
+			Vector3(0.12, 0.10, 5.40), "METAL", Color("a2b0a7"))
 	# Street-level entrance remains exactly where boarding/saving expects it.
 	var entrance := station_entrance(index)
 	_box(Vector3(entrance.x, 6.13, entrance.z), Vector3(3.15, 12.15, 3.15),
