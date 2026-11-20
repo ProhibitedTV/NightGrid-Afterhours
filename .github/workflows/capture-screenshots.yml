@@ -1,0 +1,86 @@
+name: Capture actual Godot screenshots
+on:
+  push:
+    branches: [feat/real-gameplay-screenshots]
+    paths:
+      - '.github/workflows/capture-screenshots.yml'
+      - 'tools/capture_screenshots.gd'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nightgrid-real-screenshots
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.3.0
+          use-dotnet: false
+      - name: Prepare real offscreen X11/Mesa rendering
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libgl1 libx11-6 libxext6 libxrandr2 mesa-utils
+          command -v xvfb-run
+          godot --version
+      - name: Import actual game resources
+        run: godot --headless --path . --import --quit
+      - name: Render screenshots from the running 3D game
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          MESA_GL_VERSION_OVERRIDE: '3.3'
+          GODOT_HEADLESS: '0'
+        run: |
+          mkdir -p docs/screenshots
+          xvfb-run -a -s "-screen 0 1280x720x24" \
+            godot --path . --display-driver x11 --rendering-driver opengl3 \
+              --rendering-method gl_compatibility --resolution 1280x720 \
+              --script res://tools/capture_screenshots.gd
+      - name: Verify actual nonempty PNG outputs and dimensions
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct
+          folder = Path('docs/screenshots')
+          expected = [
+              '01-morrow-bay-neon-night.png',
+              '02-vesper-market-nightlife.png',
+              '03-m-line-helix-terminal.png',
+              '04-horizon-commons-daylight.png',
+              '05-quay-fresh-interior.png',
+              '06-title-menu.png',
+              '07-city-map-menu.png',
+          ]
+          for filename in expected:
+              path = folder / filename
+              assert path.exists(), f'Missing actual game screenshot: {path}'
+              data = path.read_bytes()
+              assert data.startswith(b'\x89PNG\r\n\x1a\n'), f'Invalid PNG: {path}'
+              w,h = struct.unpack('>II', data[16:24])
+              assert w >= 1100 and h >= 600, f'Wrong screenshot dimensions: {path}: {w}x{h}'
+              assert len(data) > 16000, f'Suspect blank screenshot: {path}: {len(data)} bytes'
+              print(f'{filename}: {w}x{h}, {len(data):,} bytes')
+          assert len(list(folder.glob('*.png'))) == len(expected), 'Unexpected screenshot set'
+          print('SCREENSHOT VALIDATION PASS: 7 real framebuffer captures')
+          PY
+      - name: Attach screenshot proof to CI run
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightgrid-real-godot-screenshots
+          path: docs/screenshots/*.png
+          if-no-files-found: error
+          retention-days: 30
+      - name: Commit real binary PNGs to feature branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/screenshots/*.png
+          git diff --cached --quiet && { echo "Screenshots already match checked-in versions"; exit 0; }
+          git commit -m "docs(screenshots): capture seven authentic Godot 4 gameplay and menu frames"
+          git push origin HEAD:feat/real-gameplay-screenshots
