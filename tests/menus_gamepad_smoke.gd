@@ -49,6 +49,7 @@ func _verify() -> void:
 		["service_one", JOY_BUTTON_A],
 		["service_two", JOY_BUTTON_X],
 		["game_back", JOY_BUTTON_B],
+		["map_open", JOY_BUTTON_BACK],
 		["game_pause", JOY_BUTTON_START]
 	]:
 		if required[1] != JOY_BUTTON_INVALID and not _has_pad_button(str(required[0]), required[1]):
@@ -130,6 +131,26 @@ func _verify() -> void:
 		_fail("Back navigation is not consistent")
 		return
 	menu.call("open_pause")
+	var journal_context: Dictionary = world.call("_journal_context")
+	if journal_context.get("district", "") == "" or not journal_context.has("seed"):
+		_fail("Objective journal lacks grounded district and saved world seed")
+		return
+	menu.call("_choice", "map")
+	if str(menu.get("screen")) != "map" or menu.find_child("WorldMapView", true, false) == null:
+		_fail("The full-city map is missing or inaccessible from pause")
+		return
+	menu.call("_choice", "back")
+	if str(menu.get("screen")) != "pause":
+		_fail("Map Back navigation did not return to pause")
+		return
+	menu.call("_choice", "journal")
+	if str(menu.get("screen")) != "journal" or not (menu.get("_journal_data") as Dictionary).has("main_objective"):
+		_fail("Live journal did not present player objective and inventory")
+		return
+	menu.call("_choice", "back")
+	if str(menu.get("screen")) != "pause":
+		_fail("Journal Back did not return to pause")
+		return
 	var resume: Button = (menu.call("get_buttons") as Dictionary)["resume"]
 	if not resume.focus_mode == Control.FOCUS_ALL:
 		_fail("Pause buttons must support standard controller focus navigation")
