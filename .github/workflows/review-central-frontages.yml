@@ -56,6 +56,8 @@ jobs:
               'afterhours-blue-steel-glazing-closeup-real-godot.png',
               'brickwater-scanned-brick-daylight-real-godot.png',
               'afterhours-scanned-steel-daylight-real-godot.png',
+              'brickwater-sealed-corner-daylight-real-godot.png',
+              'brickwater-roof-parapet-daylight-real-godot.png',
           ]
           for name in expected:
               path = d / name
