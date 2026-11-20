@@ -43,6 +43,43 @@ func counter_reachable(at: Vector3) -> bool:
 func exit_reachable(at: Vector3) -> bool:
 	return is_inside() and at.distance_to(EXIT_POINT) <= EXIT_RADIUS
 
+func get_mara_character() -> Node3D:
+	if active_id != "lantern_cup" or active_group != "VENUE" or _room == null:
+		return null
+	return _room.get_node_or_null("LanternCupHero/MaraHero")
+
+func get_mara_stats() -> Dictionary:
+	var mara := get_mara_character()
+	return mara.call("get_character_stats") if mara != null else {}
+
+func mara_greeting(context: Dictionary) -> String:
+	var mara := get_mara_character()
+	return str(mara.call("greeting", context)) if mara != null else ""
+
+func mara_talk(context: Dictionary) -> Dictionary:
+	var mara := get_mara_character()
+	return mara.call("next_dialogue", context) if mara != null else {}
+
+func set_mara_attention(active: bool) -> void:
+	var mara := get_mara_character()
+	if mara != null:
+		mara.call("set_attention", active)
+
+func set_mara_focus(at: Vector3) -> void:
+	var mara := get_mara_character()
+	if mara != null:
+		mara.call("set_look_target", at)
+
+func mara_purchase_reaction() -> void:
+	var mara := get_mara_character()
+	if mara != null:
+		mara.call("react_to_purchase")
+
+func mara_discovery_reaction() -> void:
+	var mara := get_mara_character()
+	if mara != null:
+		mara.call("react_to_discovery")
+
 func get_hero_metrics() -> Dictionary:
 	if active_id != "lantern_cup" or _room == null:
 		return {}
@@ -140,10 +177,12 @@ func _build_room(site: Dictionary) -> void:
 	_label(room, str(site["name"]), Vector3(0.0, 4.22, -8.58), accent, 40, true)
 	_label(room, str(site.get("host", "NIGHT SHIFT")), Vector3(0.0, 2.7, -8.58), Color("f0dfcb"), 32, true)
 	_label(room, "H / EXIT TO STREET", Vector3(0.0, 3.93, 8.60), Color("f0bd78"), 29, false)
-	# Person-height silhouette behind the contact counter.
-	_box(room, Vector3(0.0, 1.68, -7.12), Vector3(0.63, 1.2, 0.45), Color("283749"))
-	_box(room, Vector3(0.0, 2.60, -7.12), Vector3(0.56, 0.53, 0.54), Color("d3a98d"))
-	_box(room, Vector3(0.0, 2.99, -7.22), Vector3(0.70, 0.19, 0.60), Color("2b3545"))
+	# Unique Lantern Cup Mara replaces the generic mannequin. All other 27
+	# enterable businesses retain their previous host and gameplay.
+	if not (active_id == "lantern_cup" and active_group == "VENUE"):
+		_box(room, Vector3(0.0, 1.68, -7.12), Vector3(0.63, 1.2, 0.45), Color("283749"))
+		_box(room, Vector3(0.0, 2.60, -7.12), Vector3(0.56, 0.53, 0.54), Color("d3a98d"))
+		_box(room, Vector3(0.0, 2.99, -7.22), Vector3(0.70, 0.19, 0.60), Color("2b3545"))
 	match kind:
 		"GROCERY", "STALL":
 			_stocked_market(room, accent)
