@@ -8,7 +8,8 @@ const ACTIONS = [
 	"interact", "car_toggle", "transit_toggle", "interior_toggle",
 	"use_supply", "service_one", "service_two", "service_three", "radio_toggle", "radio_next",
 	"game_pause", "game_back", "map_open", "journal_open", "game_save", "game_load", "game_new",
-	"advance_clock", "pause_clock", "toggle_fps", "toggle_ssr"
+	"advance_clock", "pause_clock", "toggle_fps", "toggle_ssr",
+	"playtest_trace", "playtest_screenshot"
 ]
 
 static func install() -> void:
@@ -75,6 +76,8 @@ static func install() -> void:
 	_key("pause_clock", KEY_Y)
 	_key("toggle_fps", KEY_F3)
 	_key("toggle_ssr", KEY_F4)
+	_key("playtest_trace", KEY_F7)
+	_key("playtest_screenshot", KEY_F8)
 	# Explicit UI navigation on typical controllers; native focusable buttons,
 	# sliders and checkboxes then support the same D-pad and accept controls.
 	_ensure_ui_key("ui_accept", KEY_ENTER)
