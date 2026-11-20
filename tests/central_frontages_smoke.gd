@@ -79,7 +79,7 @@ func _check() -> void:
 			if int(finish_stats["sealed_corner_returns"]) != 4 or int(finish_stats["solid_roof_edges"]) != 4 or int(finish_stats["coping_edges"]) != 4:
 				_fail("Open corner seams or unsealed parapet: %s" % finish_stats)
 				return
-			if int(finish_stats["array_mesh_surfaces"]) != 3 or int(finish_stats["foundation_runs"]) != 2:
+			if int(finish_stats["array_mesh_surfaces"]) != 4 or int(finish_stats["foundation_runs"]) != 2:
 				_fail("Missing scanned masonry/roof/steel finish meshes: %s" % finish_stats)
 				return
 			if int(finish_stats["new_collisions"]) != 0 or int(finish_stats["new_lights"]) != 0:
@@ -97,6 +97,10 @@ func _check() -> void:
 			var cladding := facade.call("_surface_material", "CLADDING") as StandardMaterial3D
 			if masonry == null or cladding == null or not masonry.normal_enabled or not cladding.normal_enabled:
 				_fail("Scanned normal maps were imported but not actually enabled")
+				return
+			var roof := facade.call("_surface_material", "ROOF") as StandardMaterial3D
+			if roof == null or not roof.normal_enabled or roof.normal_texture == null or roof.albedo_texture == null or roof.roughness_texture == null:
+				_fail("Bright procedural tiled roof returned instead of photo-based bitumen PBR")
 				return
 			var glass := facade.call("_surface_material", "GLASS") as StandardMaterial3D
 			if glass == null or glass.transparency != BaseMaterial3D.TRANSPARENCY_ALPHA:
@@ -168,8 +172,8 @@ func _check() -> void:
 		if not has_brick or not has_steel:
 			_fail("The real 2K scanned CC0 material maps must ship with the playable scene")
 			return
-		if str(query[3]) == "BRICKWATER" and int(stats["real_pbr_maps"]) != 6:
-			_fail("Brick frontage and painted-steel fascia did not both bind genuine albedo/normal/roughness maps")
+		if str(query[3]) == "BRICKWATER" and int(stats["real_pbr_maps"]) != 9:
+			_fail("Brick frontage, steel fascia and bitumen roof did not bind all nine scanned PBR maps")
 			return
 		if str(query[3]) == "AFTERHOURS" and int(stats["real_pbr_maps"]) != 3:
 			_fail("Road-facing steel frontage did not bind genuine 2K texture maps")
