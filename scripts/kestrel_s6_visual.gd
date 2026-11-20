@@ -223,7 +223,9 @@ func _lofted_body_mesh() -> ArrayMesh:
 			var d := Vector3(ring[side].x * float(right["scale"]),
 				ring[side].y + float(right["raise"]), float(right["z"]))
 			# Section winding must face OUT, so SSR and PBR work as expected.
-			_quad(st, a, d, c, b)
+			# Godot 4.3 treats clockwise-wound triangles as front-facing;
+			# the old order exposed the inward face from exterior cameras.
+			_quad(st, a, b, c, d)
 	for end in [0, sections.size() - 1]:
 		var item: Dictionary = sections[end]
 		var z: float = item["z"]
@@ -235,9 +237,9 @@ func _lofted_body_mesh() -> ArrayMesh:
 				ring[next].y + float(item["raise"]), z)
 			var center := Vector3(0.0, 0.07, z)
 			if end == 0:
-				_triangle(st, center, point, other)
-			else:
 				_triangle(st, center, other, point)
+			else:
+				_triangle(st, center, point, other)
 	st.generate_normals()
 	return st.commit()
 
@@ -276,7 +278,9 @@ func _rear_hatch_mesh() -> ArrayMesh:
 			var b := _rear_hatch_point(sections[index], next)
 			var c := _rear_hatch_point(sections[index + 1], next)
 			var d := _rear_hatch_point(sections[index + 1], side)
-			_quad(st, a, d, c, b)
+			# Godot 4.3 treats clockwise-wound triangles as front-facing;
+			# the old order exposed the inward face from exterior cameras.
+			_quad(st, a, b, c, d)
 	for end in [0, sections.size() - 1]:
 		var item: Dictionary = sections[end]
 		var z: float = float(item["z"])
@@ -286,9 +290,9 @@ func _rear_hatch_mesh() -> ArrayMesh:
 			var point := _rear_hatch_point(item, side)
 			var other := _rear_hatch_point(item, (side + 1) % 4)
 			if end == 0:
-				_triangle(st, center, point, other)
-			else:
 				_triangle(st, center, other, point)
+			else:
+				_triangle(st, center, point, other)
 	st.generate_normals()
 	return st.commit()
 

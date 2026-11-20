@@ -120,7 +120,8 @@ func _build_eastern_ridges() -> void:
 			var b := Vector3(x1, _elevation(x1, z0), z0)
 			var c := Vector3(x1, _elevation(x1, z1), z1)
 			var d := Vector3(x0, _elevation(x0, z1), z1)
-			for vertex in [a, c, b, a, d, c]:
+			# Clockwise is the visible front in Godot 4.3; keep hills facing UP.
+			for vertex in [a, b, c, a, c, d]:
 				surface.set_uv(Vector2(vertex.x * 0.03, vertex.z * 0.03))
 				surface.add_vertex(vertex)
 	surface.generate_normals()

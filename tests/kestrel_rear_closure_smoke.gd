@@ -44,18 +44,20 @@ func _verify_hatch(hero: Node3D) -> bool:
 		if triangle_normal.length() <= 0.00001:
 			_fail("Degenerate rear hatch triangle creates a camera hole")
 			return false
-		triangle_normal = triangle_normal.normalized()
-		if normals[start].dot(triangle_normal) < 0.2:
-			_fail("Rear hatch surface normal points against its visible triangle")
+		# Godot 4.3 front faces are CLOCKWISE. The outward face normal
+		# opposes the right-handed vertex cross product by convention.
+		var outward_normal := -triangle_normal.normalized()
+		if normals[start].dot(outward_normal) < 0.2:
+			_fail("Rear hatch has inverted exterior shading: clockwise=%s normal=%s" % [outward_normal, normals[start]])
 			return false
 		for pair in [[a, b], [b, c], [c, a]]:
 			var key := _edge_id(pair[0], pair[1])
 			edge_counts[key] = int(edge_counts.get(key, 0)) + 1
 		# Smoothed vertex normals need not align 1:1 with the geometric
 		# surface normal. Audit actual triangle winding for cap/deck faces.
-		if a.z >= 2.30 and b.z >= 2.30 and c.z >= 2.30 and triangle_normal.z > 0.9:
+		if a.z >= 2.30 and b.z >= 2.30 and c.z >= 2.30 and outward_normal.z > 0.9:
 			rear_cap += 1
-		if a.y > 0.5 and b.y > 0.5 and c.y > 0.5 and triangle_normal.y > 0.6:
+		if a.y > 0.5 and b.y > 0.5 and c.y > 0.5 and outward_normal.y > 0.6:
 			top_normals += 1
 	for key in edge_counts:
 		if int(edge_counts[key]) != 2:
