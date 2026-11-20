@@ -158,7 +158,7 @@ func _capture_all() -> void:
 		return
 	var record := {
 		"source_revision": OS.get_environment("GITHUB_SHA"),
-		"renderer": RenderingServer.get_current_rendering_method(),
+		"renderer": "Mesa OpenGL Compatibility (set by this GitHub Actions capture workflow)",
 		"scene": "res://scenes/main.tscn",
 		"capture_kind": "Real Godot 4.3 framebuffers, Mesa OpenGL Compatibility, not Windows Forward+ or RTX benchmark",
 		"files": names
