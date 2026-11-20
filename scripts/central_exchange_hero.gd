@@ -72,7 +72,7 @@ func _material(kind: String, tint: Color) -> StandardMaterial3D:
 	return surface
 
 func _box(part_name: String, at: Vector3, dimensions: Vector3,
-		kind: String, color: Color, parent: Node3D = self) -> MeshInstance3D:
+		kind: String, color: Color, parent: Node3D = null) -> MeshInstance3D:
 	var part := MeshInstance3D.new()
 	part.name = part_name
 	var mesh := BoxMesh.new()
@@ -81,7 +81,7 @@ func _box(part_name: String, at: Vector3, dimensions: Vector3,
 	part.position = at
 	part.material_override = _material(kind, color)
 	part.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	parent.add_child(part)
+	(parent if parent != null else self).add_child(part)
 	return part
 
 func _cylinder(part_name: String, at: Vector3, radius: float, height: float,
@@ -185,7 +185,7 @@ func _add_ramp(sidewalk: Vector3, toward_street: Vector3, label_name: String) ->
 	var b := sidewalk + right * 1.08 + Vector3.UP * 0.144
 	var c := sidewalk + right * 1.08 + toward_street * 1.46 + Vector3.UP * 0.035
 	var d := sidewalk - right * 1.08 + toward_street * 1.46 + Vector3.UP * 0.035
-	var vertices := PackedVector3Array([a, c, b, a, d, c])
+	var vertices := PackedVector3Array([a, c, b, a, d, c]) if (c - a).cross(b - a).y > 0.0 else PackedVector3Array([a, b, c, a, c, d])
 	var normals := PackedVector3Array()
 	var uvs := PackedVector2Array()
 	for i in range(vertices.size()):
