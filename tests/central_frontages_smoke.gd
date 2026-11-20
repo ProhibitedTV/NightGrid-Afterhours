@@ -107,6 +107,17 @@ func _check() -> void:
 		for item in root_chunk.get_children():
 			if item is StaticBody3D and absf(item.position.x - expected_x) < 0.01:
 				shell_found = true
+				if item.name != "PreservedBuildingCollision":
+					_fail("Old solid visual cube is still underneath the new window openings")
+					return
+				var physical := item.get_node_or_null("CollisionShape3D") as CollisionShape3D
+				if physical == null or not (physical.shape is BoxShape3D):
+					_fail("The existing building collision box changed during visual removal")
+					return
+				for child in item.get_children():
+					if child is MeshInstance3D:
+						_fail("Visually occluding BoxMesh remained under the recessed glass")
+						return
 				break
 		if not shell_found:
 			_fail("Prior stable building collision shell missing")
