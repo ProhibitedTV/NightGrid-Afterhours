@@ -569,6 +569,30 @@ func _create_player() -> void:
 	_box(visual, Vector3(0.0, 0.13, -0.32), Vector3(0.6, 0.18, 0.1), Color("38e5e4"), false, true)
 	add_child(player)
 
+func _car_wheel(parent: Node3D, at: Vector3) -> void:
+	var tire := MeshInstance3D.new()
+	var tire_mesh := CylinderMesh.new()
+	tire_mesh.top_radius = 0.39
+	tire_mesh.bottom_radius = 0.39
+	tire_mesh.height = 0.27
+	tire_mesh.radial_segments = 14
+	tire.mesh = tire_mesh
+	tire.position = at
+	tire.rotation.z = PI * 0.5
+	tire.material_override = Materials.surface("ASPHALT", Color("171a20"))
+	parent.add_child(tire)
+	var wheel_hub := MeshInstance3D.new()
+	var hub_mesh := CylinderMesh.new()
+	hub_mesh.top_radius = 0.19
+	hub_mesh.bottom_radius = 0.19
+	hub_mesh.height = 0.29
+	hub_mesh.radial_segments = 12
+	wheel_hub.mesh = hub_mesh
+	wheel_hub.position = at
+	wheel_hub.rotation.z = PI * 0.5
+	wheel_hub.material_override = Materials.surface("METAL", Color("9aa3a7"))
+	parent.add_child(wheel_hub)
+
 func _create_car(where: Vector3, color: Color, police: bool = false) -> CharacterBody3D:
 	var car := CharacterBody3D.new()
 	car.name = "PoliceCruiser" if police else "StreetVehicle"
@@ -581,13 +605,18 @@ func _create_car(where: Vector3, color: Color, police: bool = false) -> Characte
 	hitbox.shape = shape
 	car.add_child(hitbox)
 	_box(car, Vector3.ZERO, Vector3(2.25, 0.85, 4.65), color)
-	_box(car, Vector3(0.0, 0.7, -0.32), Vector3(1.76, 0.76, 2.4), Color("152230"))
+	_box(car, Vector3(0.0, 0.7, -0.32), Vector3(1.76, 0.76, 2.4), Color("3d5664"), false, false, "GLASS")
+	_box(car, Vector3(0.0, 1.12, -0.32), Vector3(1.75, 0.10, 2.16), color.darkened(0.32))
+	_box(car, Vector3(0.0, -0.30, -2.34), Vector3(2.18, 0.17, 0.15), Color("929ba2"))
+	_box(car, Vector3(0.0, -0.30, 2.34), Vector3(2.18, 0.17, 0.15), Color("707e89"))
+	for window_side in [-1.0, 1.0]:
+		_box(car, Vector3(window_side * 0.89, 0.71, -0.32), Vector3(0.045, 0.54, 1.50), Color("7796a5"), false, false, "GLASS")
 	for lamp_x in [-0.7, 0.7]:
 		_box(car, Vector3(lamp_x, -0.06, -2.35), Vector3(0.42, 0.24, 0.14), Color("ffedbc"), false, true)
 		_box(car, Vector3(lamp_x, -0.04, 2.36), Vector3(0.48, 0.22, 0.14), Color("ec375b"), false, true)
 	for axle_z in [-1.45, 1.45]:
 		for wheel_x in [-1.19, 1.19]:
-			_box(car, Vector3(wheel_x, -0.41, axle_z), Vector3(0.29, 0.66, 0.85), Color("12151c"))
+			_car_wheel(car, Vector3(wheel_x, -0.41, axle_z))
 	if police:
 		_box(car, Vector3(-0.45, 1.14, -0.25), Vector3(0.7, 0.2, 0.3), Color("e93663"), false, true)
 		_box(car, Vector3(0.45, 1.14, -0.25), Vector3(0.7, 0.2, 0.3), Color("3d7dff"), false, true)
