@@ -39,5 +39,7 @@ jobs:
         run: godot --headless --path . --script res://tests/venues_smoke.gd
       - name: Validate expanded eight-district seeded world and civic gameplay
         run: godot --headless --path . --script res://tests/expansion_smoke.gd
+      - name: Validate on-demand district geometry and fully enterable interior rooms
+        run: godot --headless --path . --script res://tests/streaming_interiors_smoke.gd
       - name: Run smoke test for 90 frames
         run: godot --headless --path . --quit-after 90

@@ -15,6 +15,7 @@ const TrafficSystemScript = preload("res://scripts/traffic_system.gd")
 const RailSystemScript = preload("res://scripts/rail_system.gd")
 const VenueSystemScript = preload("res://scripts/venue_system.gd")
 const CivicServicesScript = preload("res://scripts/civic_services.gd")
+const InteriorSystemScript = preload("res://scripts/interior_system.gd")
 const CELL = 58.0
 const GRID_RADIUS = 4
 const PLAYER_START = Vector3(0.0, 1.15, 6.0)
@@ -53,6 +54,7 @@ var traffic: Node3D
 var rail: Node3D
 var venue_system: Node3D
 var civic_services: Node3D
+var interiors: Node3D
 var civic_selected_id := ""
 var civic_job_active := ""
 var civic_job_completed: Array[String] = []
@@ -119,6 +121,8 @@ func _input(event: InputEvent) -> void:
 				_toggle_transit()
 			KEY_G:
 				_toggle_interaction()
+			KEY_H:
+				_toggle_interior()
 			KEY_R:
 				_consume_ration()
 			KEY_1:
@@ -145,7 +149,10 @@ func _process(delta: float) -> void:
 	if not is_instance_valid(player):
 		return
 	var actor := _actor()
-	street_lights.call("set_focus", actor.global_position)
+	var indoors: bool = interiors.call("is_inside")
+	if not indoors:
+		city_details.call("set_focus", actor.global_position)
+	street_lights.call("set_focus", interiors.get("exterior_position") if indoors else actor.global_position)
 	venue_system.call("set_focus", actor.global_position)
 	civic_services.call("set_focus", actor.global_position)
 	_venue_clock_tick += delta
@@ -154,23 +161,26 @@ func _process(delta: float) -> void:
 		venue_system.call("set_hour", float(day_night.get("hour")))
 		civic_services.call("set_hour", float(day_night.get("hour")))
 	if venue_panel.visible:
-		var menu_position: Vector3 = civic_services.call("position_for", civic_selected_id) if not civic_selected_id.is_empty() else venue_system.call("venue_position", venue_selected_id)
+		var menu_position: Vector3 = interiors.call("get_counter_point") if indoors else (
+			civic_services.call("position_for", civic_selected_id) if not civic_selected_id.is_empty() else
+			venue_system.call("venue_position", venue_selected_id))
 		if current_car != null or current_transit != null or menu_position.distance_to(player.global_position) > 7.0:
 			_close_venue()
 	if current_car == null and current_transit == null:
 		player.set("camera_yaw", yaw)
 	var focus := actor.global_position + Vector3.UP * (1.65 if current_car != null or current_transit != null else 1.45)
-	var camera_distance := 21.0 if transit_kind == "TRAIN" else (15.0 if transit_kind == "BUS" else (13.0 if current_car != null else 7.5))
+	var camera_distance := 3.0 if indoors else (21.0 if transit_kind == "TRAIN" else (15.0 if transit_kind == "BUS" else (13.0 if current_car != null else 7.5)))
 	var camera_offset := Vector3(0.0, sin(pitch) * camera_distance, cos(pitch) * camera_distance).rotated(Vector3.UP, yaw)
 	camera.global_position = camera.global_position.lerp(focus + camera_offset, minf(delta * 7.0, 1.0))
 	camera.look_at(focus, Vector3.UP)
-	if current_transit == null and actor.global_position.distance_to(mission_position) < 5.3:
+	if not indoors and current_transit == null and actor.global_position.distance_to(mission_position) < 5.3:
 		_advance_mission()
-	if actor.global_position.y < -15.0 or absf(actor.global_position.x) > 390.0 or absf(actor.global_position.z) > 390.0:
+	if (actor.global_position.y < -15.0 or not indoors and
+			(absf(actor.global_position.x) > 390.0 or absf(actor.global_position.z) > 390.0)):
 		_respawn()
 	heat = maxf(0.0, heat - delta * 0.008)
 	police_cooldown -= delta
-	if heat >= 0.8 and officers.size() < mini(ceili(heat), 3) and police_cooldown <= 0.0:
+	if not indoors and heat >= 0.8 and officers.size() < mini(ceili(heat), 3) and police_cooldown <= 0.0:
 		_spawn_police()
 		police_cooldown = 8.0
 	if heat < 0.15 and not officers.is_empty():
@@ -179,7 +189,7 @@ func _process(delta: float) -> void:
 				officer.queue_free()
 		officers.clear()
 	for officer in officers:
-		if is_instance_valid(officer):
+		if is_instance_valid(officer) and not indoors:
 			officer.set("police_target", actor)
 			if officer.global_position.distance_to(actor.global_position) < 3.8:
 				health -= delta * 7.0
@@ -286,6 +296,8 @@ func _spawn_police() -> void:
 
 func _respawn() -> void:
 	_close_venue()
+	if interiors.call("is_inside"):
+		interiors.call("leave")
 	current_transit = null
 	transit_kind = ""
 	if current_car != null:
@@ -412,6 +424,9 @@ func _build_world_systems() -> void:
 	civic_services.name = "CivicServices"
 	add_child(civic_services)
 	civic_services.call("set_hour", float(day_night.get("hour")))
+	interiors = InteriorSystemScript.new()
+	interiors.name = "Interiors"
+	add_child(interiors)
 
 func _create_player() -> void:
 	player = CharacterBody3D.new()
@@ -570,7 +585,8 @@ func _capture_snapshot() -> Dictionary:
 		"transit_kind": transit_kind, "transit_id": aboard_id,
 		"venue_job_active": venue_job_active, "venue_job_completed": venue_job_completed.duplicate(),
 		"civic_job_active": civic_job_active, "civic_job_completed": civic_job_completed.duplicate(),
-		"civic_intel": civic_intel.duplicate(), "ration_packs": ration_packs
+		"civic_intel": civic_intel.duplicate(), "ration_packs": ration_packs,
+		"interior": interiors.call("snapshot")
 	}
 
 func _apply_snapshot(data: Dictionary) -> void:
@@ -644,12 +660,73 @@ func _apply_snapshot(data: Dictionary) -> void:
 			var confirmed := str(site_id)
 			if not civic_services.call("site_by_id", confirmed).is_empty() and not civic_intel.has(confirmed):
 				civic_intel.append(confirmed)
+	# Old save slots have no indoor field and continue to open outdoors.
+	var restored_room: Dictionary = data.get("interior", {})
+	if not restored_room.is_empty() and current_car == null and current_transit == null:
+		var group := str(restored_room.get("group", ""))
+		var room_id := str(restored_room.get("id", ""))
+		var room_site: Dictionary = civic_services.call("site_by_id", room_id) if group == "CIVIC" else venue_system.call("venue_by_id", room_id)
+		if interiors.call("restore", restored_room, room_site):
+			player.global_position = Vector3(float(position_data[0]), float(position_data[1]), float(position_data[2]))
+			if player.global_position.distance_to(interiors.call("get_entry_point")) > 13.0:
+				player.global_position = interiors.call("get_entry_point")
+			player.velocity = Vector3.ZERO
+			city_details.call("set_focus", interiors.get("exterior_position"))
+	if not interiors.call("is_inside"):
+		city_details.call("set_focus", player.global_position)
 	_set_mission_target(DROPOFFS[deliveries % DROPOFFS.size()] if carrying else PICKUPS[deliveries % PICKUPS.size()], carrying)
 	_notify("Save loaded. Seed %d; Morrow Bay restored." % int(session.get("world_seed")))
+
+func _toggle_interior() -> void:
+	if interiors.call("is_inside"):
+		if not interiors.call("exit_reachable", player.global_position):
+			_notify("Return to the glowing doorway, then press H to leave.")
+			return
+		_close_venue()
+		var return_position: Vector3 = interiors.call("leave")
+		player.global_position = return_position
+		player.velocity = Vector3.ZERO
+		camera.global_position = player.global_position + Vector3(0.0, 3.0, 5.0)
+		city_details.call("set_focus", return_position)
+		_notify("Back on the street. Your saved city is exactly where you left it.")
+		return
+	if current_car != null or current_transit != null:
+		_notify("Exit your vehicle before entering a building.")
+		return
+	var venue: Dictionary = venue_system.call("nearest_venue", player.global_position)
+	var civic: Dictionary = civic_services.call("nearest_site", player.global_position)
+	if venue.is_empty() and civic.is_empty():
+		_notify("Approach a marked storefront and press H to enter.")
+		return
+	var group := "VENUE"
+	var site: Dictionary = venue
+	var distance := 9999.0
+	if not venue.is_empty():
+		distance = player.global_position.distance_to(venue_system.call("venue_position", str(venue["id"])))
+	if not civic.is_empty():
+		var civic_distance: float = player.global_position.distance_to(civic_services.call("position_for", str(civic["id"])))
+		if civic_distance < distance:
+			group = "CIVIC"
+			site = civic
+	var old_position := player.global_position
+	_close_venue()
+	player.global_position = interiors.call("enter", site, group, old_position)
+	player.velocity = Vector3.ZERO
+	camera.global_position = player.global_position + Vector3(0.0, 3.0, 5.0)
+	_notify("Inside %s. Approach the service counter with G; H exits at the doorway." % str(site["name"]))
 
 func _toggle_interaction() -> void:
 	if venue_panel.visible:
 		_close_venue()
+		return
+	if interiors.call("is_inside"):
+		if not interiors.call("counter_reachable", player.global_position):
+			_notify("Walk toward the staffed service counter to interact.")
+			return
+		if str(interiors.call("active_site_group")) == "CIVIC":
+			_toggle_civic()
+		else:
+			_toggle_venue()
 		return
 	if current_car != null or current_transit != null:
 		_notify("Get out of the vehicle before interacting with neighborhood businesses.")
@@ -671,7 +748,7 @@ func _toggle_civic() -> void:
 	if venue_panel.visible:
 		_close_venue()
 		return
-	var site: Dictionary = civic_services.call("nearest_site", player.global_position)
+	var site: Dictionary = civic_services.call("site_by_id", str(interiors.call("active_site_id"))) if interiors.call("is_inside") else civic_services.call("nearest_site", player.global_position)
 	if site.is_empty():
 		_notify("No public service counter within reach.")
 		return
@@ -836,7 +913,7 @@ func _civic_job_text() -> String:
 		return ""
 	var point: Vector3 = civic_services.call("position_for", str(order["to"]))
 	var place: Dictionary = civic_services.call("site_by_id", str(order["to"]))
-	return "WORK ORDER: %s / %s (%dm)" % [str(order["title"]), str(place["name"]), roundi(_actor().global_position.distance_to(point))]
+	return "WORK ORDER: %s / %s (%dm)" % [str(order["title"]), str(place["name"]), roundi((interiors.get("exterior_position") if interiors.call("is_inside") else _actor().global_position).distance_to(point))]
 
 func _civic_job_target() -> Vector3:
 	var order: Dictionary = civic_services.call("order_by_id", civic_job_active)
@@ -849,7 +926,7 @@ func _toggle_venue() -> void:
 	if venue_panel.visible:
 		_close_venue()
 		return
-	var venue: Dictionary = venue_system.call("nearest_venue", player.global_position)
+	var venue: Dictionary = venue_system.call("venue_by_id", str(interiors.call("active_site_id"))) if interiors.call("is_inside") else venue_system.call("nearest_venue", player.global_position)
 	if venue.is_empty():
 		_notify("Find a glowing venue frontage, then press G to visit.")
 		return
@@ -958,7 +1035,7 @@ func _venue_job_text() -> String:
 	if job.is_empty():
 		return ""
 	var venue: Dictionary = venue_system.call("venue_by_id", str(job["to"]))
-	var dist := roundi(_actor().global_position.distance_to(venue_system.call("venue_position", str(job["to"]))))
+	var dist := roundi((interiors.get("exterior_position") if interiors.call("is_inside") else _actor().global_position).distance_to(venue_system.call("venue_position", str(job["to"]))))
 	return "SIDE JOB: %s / %s (%dm)" % [str(job["title"]), str(venue["name"]), dist]
 
 func _create_camera() -> void:
@@ -1034,7 +1111,7 @@ func _build_hud() -> void:
 	performance_label.anchor_top = 1.0
 	performance_label.anchor_bottom = 1.0
 	performance_label.offset_left = 18.0
-	performance_label.offset_right = 420.0
+	performance_label.offset_right = 1160.0
 	performance_label.offset_top = -48.0
 	performance_label.offset_bottom = -18.0
 	performance_label.add_theme_font_size_override("font_size", 18)
@@ -1053,8 +1130,9 @@ func _build_hud() -> void:
 	venue_panel.add_child(venue_label)
 
 func _update_hud() -> void:
-	var district: String = city_details.call("get_district_at", _actor().global_position)
-	var landmark: String = city_details.call("get_nearby_landmark", _actor().global_position)
+	var outdoors: Vector3 = interiors.get("exterior_position") if interiors.call("is_inside") else _actor().global_position
+	var district: String = city_details.call("get_district_at", outdoors)
+	var landmark: String = city_details.call("get_nearby_landmark", outdoors)
 	var local_name := district if landmark.is_empty() else "%s / %s" % [district, landmark]
 	var clock: String = day_night.call("clock_string")
 	var vehicle_text := "ON FOOT"
@@ -1064,22 +1142,36 @@ func _update_hud() -> void:
 		vehicle_text = "M-LINE RIDER" if transit_kind == "TRAIN" else "CITY LOOP RIDER"
 	var wanted_text := "-" if heat < 0.15 else "★".repeat(maxi(1, ceili(heat)))
 	var mission := "DELIVER PACKAGE" if carrying else "PICK UP PACKAGE"
-	var distance := roundi(_actor().global_position.distance_to(mission_position))
+	var distance := roundi(outdoors.distance_to(mission_position))
 	var message := notification if notification_time > 0.0 else ""
 	if performance_overlay:
 		var fps := maxi(Engine.get_frames_per_second(), 1)
-		performance_label.text = "RTX 3060 target: 60 FPS @1080p | Actual: %d FPS | %.1f ms" % [fps, 1000.0 / float(fps)]
-	hud_label.text = "NIGHTGRID / AFTERHOURS    MORROW BAY\n%s | %s\n$%d | HEALTH %d | HEAT %s\n%s | DELIVERIES %d\nOBJECTIVE: %s (%dm)\n%s\n\nWASD Move/Drive | E Car | Shift Sprint | Space Jump/Brake\nE Car | F Board/Exit Transit | F5 Save | F6 New Game | F9 Load\nT Time | Y Pause | R Supplies | F3 FPS | F4 SSR | G Visit | Esc Cursor" % [local_name, clock, cash, ceili(health), wanted_text, vehicle_text, deliveries, mission, distance, message]
+		var stream: Dictionary = city_details.call("get_streaming_stats")
+		var indoor_count := 1 if interiors.call("is_inside") else 0
+		performance_label.text = "RTX 3060 target: 60 FPS @1080p | Actual: %d FPS (%.1f ms) | %d/%d street blocks | %d live building shells | room %d" % [
+			fps, 1000.0 / float(fps), int(stream["loaded_blocks"]), int(stream["total_blocks"]),
+			int(stream["loaded_buildings"]), indoor_count]
+	hud_label.text = "NIGHTGRID / AFTERHOURS    MORROW BAY\n%s | %s\n$%d | HEALTH %d | HEAT %s\n%s | DELIVERIES %d\nOBJECTIVE: %s (%dm)\n%s\n\nWASD Move/Drive | E Car | Shift Sprint | Space Jump/Brake\nE Car | F Board/Exit Transit | F5 Save | F6 New Game | F9 Load\nT Time | Y Pause | R Supplies | F3 FPS | F4 SSR | G Counter | H Enter/Exit | Esc Cursor" % [local_name, clock, cash, ceili(health), wanted_text, vehicle_text, deliveries, mission, distance, message]
 	hud_label.text += "\n" + _venue_job_text() + "\n" + _civic_job_text()
+	if interiors.call("is_inside"):
+		var site_id := str(interiors.call("active_site_id"))
+		var room_site: Dictionary = civic_services.call("site_by_id", site_id) if str(interiors.call("active_site_group")) == "CIVIC" else venue_system.call("venue_by_id", site_id)
+		hud_label.text += "\nINSIDE: %s | %s" % [str(room_site.get("name", site_id)), "H EXIT" if interiors.call("exit_reachable", player.global_position) else "Return to front door"]
+		if interiors.call("counter_reachable", player.global_position):
+			hud_label.text += "\n[G] Service counter"
+		_update_venue_panel()
+		return
 	if current_car == null and current_transit == null:
 		var near: Dictionary = venue_system.call("nearest_venue", player.global_position)
 		if not near.is_empty():
 			var accessible := "OPEN" if venue_system.call("is_open", str(near["id"])) else "CLOSED"
 			hud_label.text += "\n[G] %s (%s)" % [str(near["name"]), accessible]
+			hud_label.text += "\n[H] Enter %s" % str(near["name"])
 		var nearby_service: Dictionary = civic_services.call("nearest_site", player.global_position)
 		if not nearby_service.is_empty():
 			var availability := "OPEN" if civic_services.call("is_open", str(nearby_service["id"])) else "CLOSED"
 			hud_label.text += "\n[G] %s (%s)" % [str(nearby_service["name"]), availability]
+			hud_label.text += "\n[H] Enter %s" % str(nearby_service["name"])
 	if venue_panel.visible:
 		_update_venue_panel()
 
@@ -1097,9 +1189,10 @@ func get_map_state() -> Dictionary:
 		if is_instance_valid(officer):
 			car_positions.append(Vector2(officer.global_position.x, officer.global_position.z))
 	var actor := _actor()
+	var map_actor: Vector3 = interiors.get("exterior_position") if interiors.call("is_inside") else actor.global_position
 	var quest: Vector3 = _venue_job_target()
 	return {
-		"player": Vector2(actor.global_position.x, actor.global_position.z),
+		"player": Vector2(map_actor.x, map_actor.z),
 		"mission": Vector2(mission_position.x, mission_position.z),
 		"officers": car_positions,
 		"carrying": carrying,
@@ -1107,6 +1200,7 @@ func get_map_state() -> Dictionary:
 		"side_quest_active": not venue_job_active.is_empty(),
 		"venues": venue_system.call("get_map_pins"),
 		"services": civic_services.call("get_map_pins"),
+		"indoors": interiors.call("is_inside"),
 		"civic_quest_active": not civic_job_active.is_empty(),
 		"civic_quest": Vector2(_civic_job_target().x, _civic_job_target().z)
 	}

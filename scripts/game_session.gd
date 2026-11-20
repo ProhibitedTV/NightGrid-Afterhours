@@ -54,6 +54,17 @@ func is_valid_snapshot(value: Variant) -> bool:
 	# Older v1 saves do not contain a manifest; synthesize it once from their seed.
 	if data.has("world_manifest") and not WorldPlan.valid_manifest(data["world_manifest"]):
 		return false
+	if data.has("interior"):
+		if not data["interior"] is Dictionary:
+			return false
+		var room: Dictionary = data["interior"]
+		if not room.is_empty():
+			if not (str(room.get("group", "")) == "CIVIC" or str(room.get("group", "")) == "VENUE"):
+				return false
+			if str(room.get("id", "")).is_empty():
+				return false
+			if not room.get("outside", []) is Array or room["outside"].size() != 3:
+				return false
 	return true
 
 func save_snapshot(state: Dictionary) -> bool:
