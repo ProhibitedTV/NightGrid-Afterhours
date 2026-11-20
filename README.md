@@ -59,6 +59,12 @@ The city also uses **filmic tone mapping**, subtle screen-space contact shading 
 
 Use **Pause → Settings** to toggle SSR, bloom, ambient occlusion or haze independently when comparing quality versus frame rate. [Rendering handbook and profiling protocol](docs/RENDERING.md).
 
+### CICADA M8 — cinematic elevated rail
+
+Our first hero-asset pass applies the game's new **hyper-realistic, stylized cyberpunk-futurist art direction** to the actual playable M-Line train. The two-car consist now includes a bespoke bevelled metal body, transparent cabin glazing with seats and grab poles, sliding doors timed to station stops, articulated gangway bellows, multiple rail bogies and wheels, reversible marker/headlights, and detailed roof services. All five elevated stations have canopies, wayfinding, safety paving, lighting, and visible elevator-to-platform bridges. The five-stop movement and saved-world railway state are unchanged.
+
+**Images above were captured before this rail upgrade.** We will replace them only with validated, real game captures. See [the whole-game visual art brief](docs/ART_DIRECTION.md) for our quality bar and known limitations.
+
 ### Streamed city geometry and enterable interiors
 
 - **On-demand geometry:** nearby district blocks create building colliders, signs and detailed facade MultiMeshes. Distant blocks unload and reconstruct identically on return from the saved world manifest and seed.
