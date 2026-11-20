@@ -16,6 +16,12 @@ func _ready() -> void:
 	floor_snap_length = 0.35
 	visual = get_node_or_null("Visual")
 
+# The original courier's nose/eyes are authored toward +Z, unlike the
+# conventional Godot -Z camera axis. Keep this convention testable when
+# camera orientation or character assets change.
+static func visual_yaw_for_motion(motion: Vector3) -> float:
+	return atan2(motion.x, motion.z)
+
 func _physics_process(delta: float) -> void:
 	if driving or input_blocked:
 		velocity = Vector3.ZERO
@@ -35,5 +41,5 @@ func _physics_process(delta: float) -> void:
 	# Human mesh faces local +Z (nose/eyes are on +Z). Movement uses -Z
 	# for W; negate neither axis or the player faces the camera while moving.
 	if visual != null and move_direction.length_squared() > 0.01:
-		visual.rotation.y = lerp_angle(visual.rotation.y, atan2(move_direction.x, move_direction.z), minf(delta * 12.0, 1.0))
+		visual.rotation.y = lerp_angle(visual.rotation.y, visual_yaw_for_motion(move_direction), minf(delta * 12.0, 1.0))
 	move_and_slide()
