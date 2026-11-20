@@ -29,6 +29,8 @@ jobs:
           use-dotnet: false
       - name: Import project and parse scripts
         run: godot --headless --path . --import --quit
+      - name: Validate fixed 60Hz physics and independent rendered train cadence
+        run: godot --headless --path . --script res://tests/frame_pacing_smoke.gd
       - name: Assert city generation and district composition
         run: godot --headless --path . --script res://tests/city_smoke.gd
       - name: Validate lighting, authored world and flora
