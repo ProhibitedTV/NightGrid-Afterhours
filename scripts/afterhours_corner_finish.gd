@@ -3,6 +3,7 @@ extends "res://scripts/brickwater_corner_finish.gd"
 ## Purpose: replace floating corner/roof panels with closed, UV-mapped
 ## architectural solids. Inherits the finite six-faced mesh builder only.
 ## This does not affect the Brickwater lot or any procedural city buildings.
+const GROUND = 4.55
 
 func _build() -> void:
     var half := building_width * 0.5
