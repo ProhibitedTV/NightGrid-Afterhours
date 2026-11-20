@@ -43,7 +43,7 @@ func _run() -> void:
     var city := game.get("city_details") as Node3D
     city.call("set_focus", HERO_POSITION)
     DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(DIRECTORY))
-    var clock := game.get("day_night")
+    var clock: Node = game.get("day_night") as Node
     clock.call("set_hour", 12.1)
     camera.global_position = Vector3(186.4, 0.92, 26.0)
     camera.look_at(HERO_POSITION + Vector3(0.45, 0.24, 0.38), Vector3.UP)
