@@ -82,6 +82,9 @@ var venue_selected_id := ""
 var venue_job_active := ""
 var venue_job_completed: Array[String] = []
 var _venue_clock_tick := 0.0
+# Stream/city lights and HUD need not update at the monitor's refresh rate.
+var _focus_update_clock := 1.0
+var _hud_update_clock := 1.0
 var current_transit: Node3D
 var transit_kind := ""
 var session: Node
@@ -272,11 +275,14 @@ func _process(delta: float) -> void:
 		var right_look: Vector2 = GameInput.look_vector()
 		yaw -= right_look.x * stick_sensitivity * delta
 		pitch = clampf(pitch + right_look.y * stick_sensitivity * delta * (-1.0 if invert_look_y else 1.0), 0.20, 0.85)
-	if not indoors:
-		city_details.call("set_focus", actor.global_position)
-	street_lights.call("set_focus", interiors.get("exterior_position") if indoors else actor.global_position)
-	venue_system.call("set_focus", actor.global_position)
-	civic_services.call("set_focus", actor.global_position)
+	_focus_update_clock += delta
+	if _focus_update_clock >= 0.1:
+		_focus_update_clock = 0.0
+		if not indoors:
+			city_details.call("set_focus", actor.global_position)
+		street_lights.call("set_focus", interiors.get("exterior_position") if indoors else actor.global_position)
+		venue_system.call("set_focus", actor.global_position)
+		civic_services.call("set_focus", actor.global_position)
 	_venue_clock_tick += delta
 	if _venue_clock_tick >= 0.5:
 		_venue_clock_tick = 0.0
@@ -291,6 +297,17 @@ func _process(delta: float) -> void:
 	if current_car == null and current_transit == null:
 		player.set("camera_yaw", yaw)
 	_update_camera(delta, false)
+	_hud_update_clock += delta
+	if _hud_update_clock >= 0.1:
+		_hud_update_clock = 0.0
+		_update_hud()
+
+func _physics_process(delta: float) -> void:
+	# Gameplay mission/heat/damage timers are fixed-tick, not render-tick.
+	if not is_instance_valid(player):
+		return
+	var actor := _actor()
+	var indoors: bool = interiors.call("is_inside")
 	if not indoors and current_transit == null and actor.global_position.distance_to(mission_position) < 5.3:
 		_advance_mission()
 	if (actor.global_position.y < -15.0 or not indoors and
@@ -315,7 +332,6 @@ func _process(delta: float) -> void:
 		_respawn()
 	if notification_time > 0.0:
 		notification_time -= delta
-	_update_hud()
 
 func _actor() -> Node3D:
 	if current_transit != null:
