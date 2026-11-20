@@ -139,6 +139,13 @@ func _surface_material(family: String) -> Material:
 			out = StandardMaterial3D.new()
 			out.albedo_color = Color("969b9b")
 			out.roughness = 0.75
+	# Each architectural strip is authored with a front-facing normal,
+	# but inset jambs and the backside of the glazed interior can be seen
+	# from both the roadway and adjacent sidewalk. Disable face culling
+	# on this limited pilot so openings never appear as missing surfaces.
+	# A later DCC-authored closed-wall asset should replace this policy
+	# with consistently outward-wound, single-sided faces.
+	out.cull_mode = BaseMaterial3D.CULL_DISABLED
 	_mats[family] = out
 	return out
 
