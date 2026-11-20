@@ -61,6 +61,8 @@ jobs:
         run: godot --headless --path . --script res://tests/nightgrid_fm_smoke.gd
       - name: Validate original city soundscapes, footfalls and volume settings
         run: godot --headless --path . --script res://tests/world_audio_smoke.gd
+      - name: Validate positional road traffic buses and cars using bounded voice pool
+        run: godot --headless --path . --script res://tests/traffic_spatial_audio_smoke.gd
       - name: Validate expanded eight-district seeded world and civic gameplay
         run: godot --headless --path . --script res://tests/expansion_smoke.gd
       - name: Validate on-demand district geometry and fully enterable interior rooms

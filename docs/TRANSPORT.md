@@ -49,3 +49,34 @@ Eight designated non-landmark parcels in `scripts/world_plan.gd` each have three
 ## Current expansion and persistence
 
 The road grid now covers 64 blocks, has 81 signalized intersections, 25 ambient cars, four boardable buses and 16 curb stops, and supports five M-Line stations. Layout geometry for all non-landmark parcels is saved as an explicit `world_manifest` with the world seed. Old slot-one saves remain loadable. [See the city and civil-services expansion.](EXPANSION.md)
+
+## Directional traffic audio — initial spatial soundfield
+
+Morrow Bay has 25 civilian NPC cars and four street buses on fixed, save-stable
+routes. The city's existing broad traffic bed now has **five** reusable positional
+sound sources, not 29 individual `AudioStreamPlayer3D` nodes.
+
+- Every 0.18 seconds, a source selector finds nearby **moving** vehicles, with
+  distance-based preference and retention of previously assigned nearby voices
+  to avoid constant sample restarts at busy intersections.
+- Each voice follows a real vehicle's changing position. Speed drives pitch and
+  loudness; moving buses use a separate cached, original low-frequency motor
+  and tire loop, while cars share the original KESTREL motor recording.
+- Buses at a stop and stationary cars are silent. Sources outside the audible
+  zone are released, and simultaneous output never exceeds five instances.
+- Existing SFX-volume preferences apply to traffic. Nearby sounds are
+  attenuated during indoor scenes or while riding, leaving room for NightGrid
+  FM music and dedicated player-vehicle/rail effects.
+- Samples are generated **once**, cached and reused; no waveform generation,
+  file loading or per-vehicle player allocation happens in a render frame.
+
+**Audio-quality acceptance is not complete.** These are original synthetic
+prototype loops, not a full captured city sound library. Windows stereo/
+headphone listening, correct 3D positioning, Doppler behavior, vehicle enter/
+exit transitions, and the balance versus creator-owned NightGrid FM recordings
+still need hands-on QA. The 20 music Ogg files must be supplied in the source
+asset directory before the soundtrack will actually play in Windows builds.
+
+`tests/traffic_spatial_audio_smoke.gd` checks bounded voice reuse, car/bus
+routing, stopped-bus silence, listener attenuation and SFX mute. It cannot
+prove that the vehicle sounds have production-quality acoustic character.
