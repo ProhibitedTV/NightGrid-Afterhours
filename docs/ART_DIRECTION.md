@@ -22,8 +22,8 @@ The original M-Line is elevated, two-car and reversible at five fixed stations. 
 | Exterior | Bevelled procedural carbody mesh, painted alloy, copper reveals, luminous waistline, roof HVAC, panel seams | Sculpted curved nose/roof with custom topology, artist-UV'd texture sheets |
 | Cabin | Actual openings in carbody, tinted alpha glass, seat cushions, ceiling lighting, handrails | Inhabited riders, complete cockpit, accessible walkable interior |
 | Mobility | Bogie frames, flanged steel wheels, suspension blocks, gangway bellows/coupler | Animated wheel rotations/suspension, detailed mechanical rig |
-| Passenger doors | Sliding twin panels, vision lites, status light and safety chevrons timed to dwell | Door sound, warning tone, closing interlock and full boarding animation |
-| Lighting | Head/tail marker lights and bounded forward spot beam at travel speed | Night-only fixture controls and area-specific HDR grading |
+| Passenger doors | Sliding twin panels, vision lites, status light and safety chevrons timed to dwell; original synthesized rolling ambience and arrival chime | Door motor/warning sound, closing interlock and full boarding animation |
+| Lighting | Head/tail marker lights and bounded forward spot beam at travel speed; next-station cab display | Night-only fixture controls and area-specific HDR grading |
 | Station | Taller canopy, platform slab, tactile safety edge, roof strip fixtures, architectural columns, glass windbreaks, signs, elevators | Real station circulation, validated accessibility, dynamic destination boards |
 | Guideway | Sleeper MultiMesh, dual steel rails, structural steel caps and elevated pylons | Track fastening atlas, rails with realistic cross section and cable conduits |
 
