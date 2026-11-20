@@ -92,11 +92,30 @@ def build_leaf_alpha(root: Path, gltf_file: Path, api_data: dict, files: dict) -
     JPEG has NO alpha channel. Without explicitly merging the separately
     published mask, Godot draws background-colored cards around each frond.
     """
-    alpha_choices = api_data.get("alpha", {}).get(RES, {})
-    alpha = alpha_choices.get("png") or alpha_choices.get("jpg")
+    alpha_sections = {str(k): v for k, v in api_data.items() if "alpha" in str(k).lower()}
+    print("Available source map keys:", sorted(api_data.keys()))
+    print("Alpha source resolutions:", {k: list(v.keys()) if isinstance(v, dict) else type(v).__name__ for k, v in alpha_sections.items()})
+    alpha = None
+    ext = ""
+    for k, section in alpha_sections.items():
+        if not isinstance(section, dict):
+            continue
+        for resolution in (RES, "4k", "1k", "8k"):
+            formats = section.get(resolution, {})
+            if not isinstance(formats, dict):
+                continue
+            for extension in ("png", "jpg"):
+                if isinstance(formats.get(extension), dict) and formats[extension].get("url"):
+                    alpha = formats[extension]
+                    ext = extension
+                    break
+            if alpha:
+                break
+        if alpha:
+            break
     if not isinstance(alpha, dict) or not alpha.get("url"):
-        raise ValueError("Source alpha map unavailable: refusing ugly opaque foliage")
-    filename = "textures/fern_02_alpha_2k." + ("png" if alpha_choices.get("png") else "jpg")
+        raise ValueError("Poly Haven did not expose a valid alpha map; rejecting opaque cards")
+    filename = "textures/fern_02_alpha_source." + ext
     files[filename] = fetch_entry(filename, alpha)
     gltf = json.loads(gltf_file.read_text(encoding="utf-8"))
     material = gltf["materials"][0]
