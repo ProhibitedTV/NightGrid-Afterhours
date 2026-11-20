@@ -7,7 +7,7 @@ signal settings_changed(settings: Dictionary)
 
 const SAVE_SETTINGS = "user://settings.cfg"
 const DEFAULT_SETTINGS = {
-	"master_volume": 0.80, "mouse_sensitivity": 0.0032,
+	"master_volume": 0.80, "music_volume": 0.65, "radio_on": true, "mouse_sensitivity": 0.0032,
 	"stick_sensitivity": 2.6, "invert_look_y": false,
 	"ssr_enabled": true, "glow_enabled": true,
 	"ao_enabled": true, "fog_enabled": true,
@@ -18,8 +18,8 @@ const HELP_SECTIONS = [
 		"pad": "Left stick move · Right stick look · L3 sprint · A jump"},
 	{"title": "WORLD ACTIONS", "keyboard": "E vehicle · F bus/train · H enter/exit shop · G interact · R supplies",
 		"pad": "Y vehicle · RB bus/train · LB enter/exit shop · X interact · D-pad Down supplies"},
-	{"title": "DRIVING", "keyboard": "W accelerate · S reverse · A/D steer · Space brake",
-		"pad": "RT accelerate · LT reverse · Left stick steer · B brake"},
+	{"title": "DRIVING / NIGHTGRID FM", "keyboard": "W accelerate · S reverse · A/D steer · Space brake · B radio · N next song",
+		"pad": "RT accelerate · LT reverse · Left stick steer · B brake · D-pad Right radio · D-pad Up next"},
 	{"title": "SHOP / CONTACTS", "keyboard": "G interact/close · 1 buy/use · 2 contract · Esc close",
 		"pad": "X interact/contract · A service · B close · D-pad navigate"},
 	{"title": "SYSTEM", "keyboard": "Esc pause · M map · Tab journal · F5 save · F9 load · F6 new world · F3 FPS",
@@ -128,6 +128,8 @@ func _load_settings() -> void:
 
 func _normalize() -> void:
 	settings["master_volume"] = clampf(float(settings.get("master_volume", 0.8)), 0.0, 1.0)
+	settings["music_volume"] = clampf(float(settings.get("music_volume", 0.65)), 0.0, 1.0)
+	settings["radio_on"] = bool(settings.get("radio_on", true))
 	settings["mouse_sensitivity"] = clampf(float(settings.get("mouse_sensitivity", 0.0032)), 0.001, 0.010)
 	settings["stick_sensitivity"] = clampf(float(settings.get("stick_sensitivity", 2.6)), 0.5, 5.0)
 	for key in ["invert_look_y", "ssr_enabled", "glow_enabled", "ao_enabled", "fog_enabled", "vsync_enabled", "show_fps"]:
@@ -215,6 +217,8 @@ func _render() -> void:
 		"settings":
 			_title(col, "SETTINGS / YOUR RIG", 22, Color("f0dfcd"))
 			_slider(col, "MASTER VOLUME", "master_volume", 0.0, 1.0, 0.05)
+			_slider(col, "NIGHTGRID FM / MUSIC VOLUME", "music_volume", 0.0, 1.0, 0.05)
+			_check(col, "CAR RADIO ENABLED BY DEFAULT", "radio_on")
 			_slider(col, "MOUSE LOOK", "mouse_sensitivity", 0.001, 0.010, 0.0002)
 			_slider(col, "GAMEPAD LOOK", "stick_sensitivity", 0.5, 5.0, 0.1)
 			_check(col, "INVERT LOOK Y", "invert_look_y")
