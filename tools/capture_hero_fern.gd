@@ -39,21 +39,24 @@ func _run() -> void:
         hud.visible = false
     game.set_process(false)
     player.set_physics_process(false)
-    player.global_position = HERO_POSITION + Vector3(0, 0.5, -2.3)
+    player.global_position = HERO_POSITION + Vector3(25.0, 0.5, 21.0)
+    player.visible = false
+    # Studio inspection focal length, not the third-person gameplay camera.
+    camera.fov = 46.0
     var city := game.get("city_details") as Node3D
     city.call("set_focus", HERO_POSITION)
     DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(DIRECTORY))
     var clock: Node = game.get("day_night") as Node
     clock.call("set_hour", 12.1)
-    camera.global_position = Vector3(186.4, 0.92, 26.0)
-    camera.look_at(HERO_POSITION + Vector3(0.45, 0.24, 0.38), Vector3.UP)
+    camera.global_position = Vector3(187.3, 0.48, 27.75)
+    camera.look_at(HERO_POSITION + Vector3(0.42, 0.18, 0.40), Vector3.UP)
     await _settle()
     if not _capture("horizon-fern-daylight-real-godot.png"):
         return
     clock.call("set_hour", 19.3)
     game.get("street_lights").call("set_focus", HERO_POSITION)
-    camera.global_position = Vector3(190.4, 0.90, 31.6)
-    camera.look_at(HERO_POSITION + Vector3(0.35, 0.23, 0.35), Vector3.UP)
+    camera.global_position = Vector3(190.0, 0.58, 30.75)
+    camera.look_at(HERO_POSITION + Vector3(0.38, 0.18, 0.33), Vector3.UP)
     await _settle()
     if not _capture("horizon-fern-dusk-real-godot.png"):
         return
