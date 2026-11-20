@@ -83,8 +83,8 @@ func _build() -> void:
 
     # Continuous roof membrane over the old structural roof plane, with a
     # complete solid parapet instead of a floating front-facing rectangle.
-    _closed_box("PARAPET", Vector3(-half - 0.06, h + 0.165, FRONT - 0.49),
-        Vector3(half + 0.36, h + 0.205, back + 0.045), 0.27)
+    _closed_box("ROOF", Vector3(-half - 0.06, h + 0.165, FRONT - 0.49),
+        Vector3(half + 0.36, h + 0.205, back + 0.045), 0.055)
     var edges := [
         [Vector3(-half - 0.075, h + 0.19, FRONT - 0.505),
             Vector3(half + 0.375, h + 0.67, FRONT - 0.115)],
