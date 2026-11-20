@@ -4,6 +4,7 @@ extends Node3D
 ## This is a separate interior space, not a cut-through doorway in building mesh.
 const Materials = preload("res://scripts/material_library.gd")
 const VenueAmbience = preload("res://scripts/venue_ambience.gd")
+const LanternCupHero = preload("res://scripts/lantern_cup_hero.gd")
 const ORIGIN = Vector3(950.0, 0.0, 950.0)
 const ENTRY_POINT = ORIGIN + Vector3(0.0, 1.18, 5.8)
 const EXIT_POINT = ORIGIN + Vector3(0.0, 1.18, 6.9)
@@ -41,6 +42,25 @@ func counter_reachable(at: Vector3) -> bool:
 
 func exit_reachable(at: Vector3) -> bool:
 	return is_inside() and at.distance_to(EXIT_POINT) <= EXIT_RADIUS
+
+func get_hero_metrics() -> Dictionary:
+	if active_id != "lantern_cup" or _room == null:
+		return {}
+	var hero := _room.get_node_or_null("LanternCupHero")
+	return hero.call("get_visual_stats") if hero != null else {}
+
+func get_hero_rumor_point() -> Vector3:
+	return ORIGIN + LanternCupHero.RUMOR_POSITION
+
+func inspect_hero_rumor(at: Vector3) -> Dictionary:
+	if active_id != "lantern_cup" or active_group != "VENUE" or _room == null:
+		return {}
+	if at.distance_to(get_hero_rumor_point()) > 2.0:
+		return {}
+	var hero := _room.get_node_or_null("LanternCupHero")
+	if hero == null:
+		return {}
+	return {"id": str(hero.call("rumor_id")), "text": str(hero.call("rumor_text"))}
 
 func get_metrics() -> Dictionary:
 	return {"loaded_rooms": 1 if _room != null else 0,
@@ -133,7 +153,14 @@ func _build_room(site: Dictionary) -> void:
 			_public_records(room, accent)
 		"WAREHOUSE", "GARAGE", "UTILITY":
 			_service_bay(room, accent, kind)
-		"CAFE", "BAR", "CLUB":
+		"CAFE":
+			if active_id == "lantern_cup" and active_group == "VENUE":
+				var cafe := LanternCupHero.new()
+				cafe.name = "LanternCupHero"
+				room.add_child(cafe)
+			else:
+				_lounge(room, accent, kind)
+		"BAR", "CLUB":
 			_lounge(room, accent, kind)
 	# Set dressing and light fixtures remain bounded to the active room.
 	for x in [-4.55, 4.55]:

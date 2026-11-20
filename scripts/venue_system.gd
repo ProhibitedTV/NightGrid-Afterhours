@@ -212,6 +212,8 @@ func _build_venue(venue: Dictionary) -> void:
 			_build_stall(front, accent, neon)
 		"CAFE":
 			_build_cafe(front, accent, neon)
+			if venue_id == "lantern_cup":
+				_build_lantern_cup_streetfront(front, accent, neon)
 		"BAR":
 			_build_bar(front, accent, neon)
 		"CLUB":
@@ -264,6 +266,69 @@ func _build_cafe(root: Node3D, accent: Color, neon: StandardMaterial3D) -> void:
 		_box(root, Vector3(x, 0.42, -1.67), Vector3(0.18, 0.6, 0.18), Color("485c65"))
 	_box(root, Vector3(-3.4, 0.66, 0.75), Vector3(0.95, 1.1, 0.95), Color("3a5360"))
 	_box(root, Vector3(-3.4, 1.37, 0.75), Vector3(0.9, 0.75, 0.9), Color("548d78"))
+
+func _build_lantern_cup_streetfront(front: Node3D, accent: Color,
+		neon: StandardMaterial3D) -> void:
+	# A recognisable piece of the real Vesper Market street, not an unplaced
+	# showcase. All artwork is static, original and safe for existing H/G input.
+	var cafe := Node3D.new()
+	cafe.name = "LanternCupStreetfront"
+	front.add_child(cafe)
+	var copper := Color("b38b6b")
+	var steel := Color("3f5765")
+	for side in [-1.0, 1.0]:
+		# Recessed shopfront glazing. The center remains an open H entry way,
+		# with gold door handles, exterior floor drain and readable signage.
+		var window := MeshInstance3D.new()
+		window.name = "TranslucentStreetWindow"
+		var window_mesh := BoxMesh.new()
+		window_mesh.size = Vector3(2.31, 2.42, 0.045)
+		window.mesh = window_mesh
+		window.position = Vector3(side * 2.85, 2.02, 1.68)
+		var tinted := StandardMaterial3D.new()
+		tinted.albedo_color = Color(0.30, 0.48, 0.55, 0.42)
+		tinted.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		tinted.cull_mode = BaseMaterial3D.CULL_DISABLED
+		tinted.roughness = 0.15
+		window.material_override = tinted
+		cafe.add_child(window)
+		for arch_x in [1.57, 4.1]:
+			_box(cafe, Vector3(side * float(arch_x), 2.04, 1.60),
+				Vector3(0.085, 2.6, 0.10), copper, "METAL")
+		for transom in [0.77, 3.29]:
+			_box(cafe, Vector3(side * 2.85, float(transom), 1.60),
+				Vector3(2.41, 0.10, 0.11), steel, "METAL")
+		_box(cafe, Vector3(side * 1.48, 2.05, 1.56),
+			Vector3(0.092, 3.0, 0.15), copper, "METAL")
+		_box(cafe, Vector3(side * 1.28, 1.34, 1.47),
+			Vector3(0.045, 0.27, 0.09), Color("e3c597"), "METAL")
+		# Lanterns have actual supports, warmer copper housings and lenses.
+		for z in [-1.70, -0.06]:
+			_box(cafe, Vector3(side * 3.16, 3.15, float(z)),
+				Vector3(0.075, 0.31, 0.08), copper, "METAL")
+			_box(cafe, Vector3(side * 3.16, 2.91, float(z)),
+				Vector3(0.41, 0.16, 0.41), copper, "METAL")
+			_box(cafe, Vector3(side * 3.16, 2.75, float(z)),
+				Vector3(0.29, 0.24, 0.29), accent, "", neon)
+		_box(cafe, Vector3(side * 3.55, 0.13, -1.64),
+			Vector3(0.45, 0.10, 1.0), Color("71898d"), "PAVERS")
+		# Planter frames avoid the H doorway and remain non-colliding.
+		_box(cafe, Vector3(side * 4.0, 0.47, -2.18),
+			Vector3(0.52, 0.75, 0.53), Color("53645e"), "CONCRETE")
+		_box(cafe, Vector3(side * 4.0, 1.09, -2.18),
+			Vector3(0.45, 0.71, 0.42), Color("4e8b75"))
+	# Authored double-frame doorway is deliberately passable in the room
+	# transition model, with neutral light, front-of-house words and pricing.
+	_box(cafe, Vector3(0.0, 3.41, 1.62),
+		Vector3(3.05, 0.12, 0.18), copper, "METAL")
+	_box(cafe, Vector3(0.0, 2.82, 1.63),
+		Vector3(2.54, 0.08, 0.12), accent, "", neon)
+	_label(cafe, "LANTERN CUP  /  MARA",
+		Vector3(0.0, 3.00, 1.49), Color("e4d4b9"), 27)
+	_label(cafe, "H  /  ENTER     G  /  ORDER",
+		Vector3(0.0, 1.72, 1.45), Color("b4d9d2"), 23)
+	_label(cafe, "LAST POUR 22:00  //  VESPER",
+		Vector3(0.0, 0.66, 1.45), Color("d0b49e"), 20)
 
 func _build_bar(root: Node3D, accent: Color, neon: StandardMaterial3D) -> void:
 	_box(root, Vector3(0.0, 1.12, -0.04), Vector3(7.4, 1.06, 1.05), Color("674b56"))

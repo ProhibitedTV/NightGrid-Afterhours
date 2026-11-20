@@ -49,6 +49,10 @@ Each short job has a beginning and ending line of story dialogue, connects distr
 
 **Save compatibility:** Both the current side-job ID and completed contract IDs are added as *optional* fields to existing version-one save snapshots. Existing saves with no social activity fields continue to load as before. The saved world seed remains intact. No new-game regeneration occurs on venue interaction.
 
+## First flagship café upgrade
+
+**Lantern Cup** is now our first hero-quality café. Its original permanent storefront has custom tinted glass, copper and lantern detailing, and the same **H** entry opens a dedicated on-demand interior with physical banquettes, refined espresso machinery, 12 pendant lights, warm lighting, atmospheric audio and an optional, persisted one-time booth note. The same counter still sells Mara's $18 double espresso and heals 20 when the player needs it. The café retains its **06:00–22:00** operating hours, identity and location; other cafés remain on the generic room archetype. See [Lantern Cup art direction and tests](LANTERN_CUP.md).
+
 ## Architectural art details
 
 Each frontage has a separate fixed design within the established façade language, including a shop header and contact signage. Individual props vary by venue type: steaming-food stylization (bowls, grills, awnings, crates, warm lanterns); coffee counters (cups, espresso kit, stools, potted greenery); bars (backlit shelves, bottles, brass counters and stools); and clubs (magenta/cyan portal frames, animated-looking equalizer sculpture, speakers, queue barriers, and patron silhouettes). The scene dresses **external streetfront spaces only**. It does not hollow out collidable building shells, supply navmeshed NPC workers, create interiors, or play licensed music.

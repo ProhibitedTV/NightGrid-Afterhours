@@ -787,7 +787,11 @@ func _apply_snapshot(data: Dictionary) -> void:
 	if saved_intel is Array:
 		for site_id in saved_intel:
 			var confirmed := str(site_id)
-			if not civic_services.call("site_by_id", confirmed).is_empty() and not civic_intel.has(confirmed):
+			# Keep civic site intel validated and explicitly allow Mara's
+			# original authored venue note (no arbitrary user-provided IDs).
+			var is_valid_note: bool = confirmed == "lantern_cup_shift_notes"
+			var is_civic_site: bool = not civic_services.call("site_by_id", confirmed).is_empty()
+			if (is_civic_site or is_valid_note) and not civic_intel.has(confirmed):
 				civic_intel.append(confirmed)
 	# Old save slots have no indoor field and continue to open outdoors.
 	var restored_room: Dictionary = data.get("interior", {})
@@ -849,6 +853,18 @@ func _toggle_interaction() -> void:
 		_close_venue()
 		return
 	if interiors.call("is_inside"):
+		# Mara's collectible, one-time shift note is a real world interaction,
+		# available only beside the flagship café booth. Reuse the already
+		# persisted civic-intel list; old saves and quest schemas are unchanged.
+		var room_detail: Dictionary = interiors.call("inspect_hero_rumor", player.global_position)
+		if not room_detail.is_empty():
+			var clue_id := str(room_detail["id"])
+			if not civic_intel.has(clue_id):
+				civic_intel.append(clue_id)
+				_notify("MARA'S SHIFT NOTES: " + str(room_detail["text"]))
+			else:
+				_notify("You already copied Mara's shift notes to your journal.")
+			return
 		if not interiors.call("counter_reachable", player.global_position):
 			_notify("Walk toward the staffed service counter to interact.")
 			return

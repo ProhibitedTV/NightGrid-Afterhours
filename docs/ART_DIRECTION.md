@@ -37,6 +37,10 @@ The first drivable car family has been rebuilt around one original four-seat fut
 
 The street-level benchmark is the fixed crossroads at the four downtown districts' shared origin. [Central Exchange](CENTRAL_EXCHANGE.md) now integrates weathered crosswalk paint, surface reflectors, asphalt repair and rainwater, recessed cast-iron storm drains, real curb openings for sloped pedestrian approaches, credible traffic signal mast/control hardware, small-scale street signs, bollards and one bounded night-only practical light. Existing traffic-light logic, lane geometry, saved street coordinates and game physics are preserved. Visual compliance must be inspected in the rendered game; physical accessibility and full AAA production art remain future work.
 
+## Fourth vertical slice: LANTERN CUP
+
+The original Vesper Market café is a complete **paired exterior and enterable interior** benchmark: working lanterns, glazed street façade and signage outside, plus brass/wood/ceramic interiors, slatted ceilings, upholstery and proper collision, stocked espresso service, 12 pendant lamps, restrained warm local lights, animated machine steam, and source-owned spatial pump ambience inside. Staffed purchase/health recovery, world seed and prior interaction/save contracts continue to work. A one-off shift-note discovery beside a booth gives the player something useful to find beyond the counter; it saves via the existing journal-intel array. Full QA and production-art limitations: [Lantern Cup](LANTERN_CUP.md).
+
 ## Capture and quality gate
 
 - Verify the train at **12:00**, **19:15** and **00:00** from street-level wide shot, track-level three-quarter exterior, end-cab close-up, door close-up and station departure.

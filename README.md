@@ -77,6 +77,12 @@ Morrow Bay's third authored quality slice upgrades the **playable crossroads at 
 
 This is part of the playable city, **not** a separate showcase map or a fake static traffic scene. The original right-hand lanes, traffic controls, saved-world geometry and driving mechanics remain unchanged. See the [Central Exchange hero quality sheet](docs/CENTRAL_EXCHANGE.md). Current README screenshots still predate this pass.
 
+### LANTERN CUP — cinematic, enterable Vesper Market café
+
+Our fourth hero-asset upgrade is a **real in-game venue**, not a showroom screenshot. The canonical **Lantern Cup**, run by Mara, now has an original custom streetfront with tinted glass and copper lanterns and a uniquely furnished indoor coffeehouse: polished brewing machines, fitted walnut/copper décor, soft seating and tables with collision, acoustic ceiling, real stock shelving, 12 suspended lamps, detailed service menus, three animated steam wisps and a new original spatial coffee-pump sound.
+
+**Play it:** Walk to Lantern Cup on foot, press **H** to enter, **G** at the counter to buy a drink using the existing $18 / +20-health service, or press **G** at Mara's right rear booth to discover a persistent shift note. Leave with **H** near the entrance. Its hours, address, staff, existing quests and save-format remain unchanged. See [the hero café specification](docs/LANTERN_CUP.md). README screenshots remain **pre-upgrade** until real new gameplay captures are validated.
+
 ### Streamed city geometry and enterable interiors
 
 - **On-demand geometry:** nearby district blocks create building colliders, signs and detailed facade MultiMeshes. Distant blocks unload and reconstruct identically on return from the saved world manifest and seed.

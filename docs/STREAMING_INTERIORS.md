@@ -26,6 +26,10 @@ Inside, walk to the counter and press **G** for the *existing* business menu. Pr
 
 This is a **separate furnished interior instance**, not a seamless door cut through an exterior building mesh. A room is released when the player leaves; another business can load its own. Distinct business kinds have different furniture, but the locations do not all have 28 individually authored floorplans or NPC navigation yet.
 
+## Featured fully furnished venue: Lantern Cup
+
+The regular café/bar/club layout remains available for other social hubs, but the existing **Lantern Cup** address in Vesper Market instantiates a dedicated [flagship café scene](LANTERN_CUP.md). It contains six upholstered booth modules, 12 pendant lights, stocked coffee bar, custom warm practical lighting, original brewing audio, transparent glazing and a unique discoverable shift note at the right rear booth. Enter at the same **H** street door, order at the original **G** counter or inspect the booth note using **G**, and exit through **H**. All extra café resources belong to the active room and are released on exit; no exterior world/save seed is rerolled.
+
 ## Save/load and quest continuity
 
 The standard F5 snapshot stores optional interior metadata (business ID, VENUE or CIVIC catalog, and the outside return coordinate). Physical player position records where the player was walking inside the room. F9 recreates the correct room and restores the inventory, active jobs and world layout. Loading older saves with no interior field returns outdoors as before. Invalid indoor records fail snapshot validation.
