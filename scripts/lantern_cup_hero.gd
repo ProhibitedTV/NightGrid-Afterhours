@@ -5,6 +5,26 @@ extends Node3D
 const Materials = preload("res://scripts/material_library.gd")
 const CoffeeSound = preload("res://scripts/lantern_cup_audio.gd")
 const MaraHero = preload("res://scripts/mara_hero.gd")
+const LanternPatron = preload("res://scripts/lantern_patron.gd")
+# Five permanent regulars occupy actual booth-side seats and a back-of-house
+# waiting spot. None sits in the center aisle or beside Mara's clue terminal.
+const PATRONS = [
+	{"id": "rin", "name": "Rin", "role": "M-Line track mechanic",
+		"activity": "SIP", "palette": 0, "side": -1.0, "z": -3.25,
+		"seated": true, "phase": 0.47},
+	{"id": "ivo", "name": "Ivo", "role": "Night dispatch clerk",
+		"activity": "SCROLL", "palette": 1, "side": 1.0, "z": -3.25,
+		"seated": true, "phase": 1.31},
+	{"id": "tamsin", "name": "Tamsin", "role": "Warehouse shift organizer",
+		"activity": "CHAT", "palette": 2, "side": -1.0, "z": 0.25,
+		"seated": true, "phase": 2.21},
+	{"id": "len", "name": "Len", "role": "District records archivist",
+		"activity": "READ", "palette": 3, "side": 1.0, "z": 0.25,
+		"seated": true, "phase": 3.07},
+	{"id": "aya", "name": "Aya", "role": "Off-shift street medic",
+		"activity": "SCROLL", "palette": 4, "side": -1.0, "z": 3.78,
+		"seated": true, "phase": 4.06}
+]
 const RUMOR_POSITION = Vector3(5.32, 1.18, 3.45)
 const RUMOR_ID = "lantern_cup_shift_notes"
 const RUMOR_TEXT = "Mara's shift notes: a quiet second delivery door faces the north service alley. Corporate couriers avoid the public night market."
@@ -20,10 +40,13 @@ var _statistics := {
 	"espresso_groups": 0, "glass_panels": 0, "pendants": 0,
 	"mugs": 0, "planters": 0, "menu_panels": 0,
 	"collidable_furniture": 0, "steam_wisps": 0,
-	"lights": 0, "original_audio_sources": 0, "characters": 0
+	"lights": 0, "original_audio_sources": 0, "characters": 0,
+	"patrons": 0, "patron_meshes": 0, "patron_lights": 0,
+	"patron_collision_objects": 0
 }
 var _materials: Dictionary = {}
 var _steam_nodes: Array[MeshInstance3D] = []
+var _patrons: Array[Node3D] = []
 var _clock := 0.0
 
 func _ready() -> void:
@@ -35,12 +58,71 @@ func _ready() -> void:
 	_build_local_lighting()
 	_build_sounds()
 	_build_mara_character()
+	_build_ambient_patrons()
 
 func get_visual_stats() -> Dictionary:
 	return _statistics.duplicate()
 
+func get_patron_manifest() -> Array[Dictionary]:
+	var manifest: Array[Dictionary] = []
+	for patron in _patrons:
+		manifest.append(patron.call("get_identity"))
+	return manifest
+
+func patron_near(at: Vector3, radius: float = 1.7) -> Dictionary:
+	# InteriorSystem sends room-local coordinates, not world-space vectors.
+	# A two-dimensional walk-up contact is compatible with floor snap height.
+	for i in range(_patrons.size()):
+		var patron := _patrons[i]
+		var gap := Vector2(at.x - patron.position.x, at.z - patron.position.z)
+		if gap.length() <= radius:
+			return {"id": str(PATRONS[i]["id"]), "name": str(PATRONS[i]["name"]),
+				"role": str(PATRONS[i]["role"]), "distance": gap.length()}
+	return {}
+
+func patron_dialogue(at: Vector3, context: Dictionary) -> Dictionary:
+	var near := patron_near(at)
+	if near.is_empty():
+		return {}
+	var actor_id: String = str(near["id"])
+	var line := ""
+	var late := float(context.get("hour", 12.0)) >= 18.0
+	match actor_id:
+		"rin":
+			line = ("Rin: The CICADA's bearings sound different after midnight. I'll check the M-Line guideway."
+				if late else "Rin: Nothing runs itself. Those M-Line cars take a whole crew to keep rolling.")
+		"ivo":
+			line = "Ivo: The courier schedule is the only honest map of Morrow Bay."
+		"tamsin":
+			line = "Tamsin: If the warehouse rota changes again, we're organizing another shift meeting."
+		"len":
+			line = ("Len: Mara's notes are more useful than the city archive."
+				if bool(context.get("shift_notes", false)) else
+				"Len: If you're looking for a clue, watch where Mara keeps her shift notes.")
+		"aya":
+			line = "Aya: Drink water between deliveries. Coffee doesn't fix a whole night on your feet."
+	return {"id": actor_id, "name": near["name"], "role": near["role"], "line": line}
+
 func mara_character() -> Node3D:
 	return get_node_or_null("MaraHero")
+
+func _build_ambient_patrons() -> void:
+	# Build only when Lantern Cup itself is streamed. Stable authorial slots
+	# mean revisits and save/load use the same cast and seating.
+	for details in PATRONS:
+		var guest := LanternPatron.new()
+		guest.configure(details)
+		var side := float(details["side"])
+		guest.position = Vector3(side * 5.88, 0.0, float(details["z"]))
+		# Torso/eyes orient from the window-side bench toward their own table.
+		guest.rotation.y = -PI * 0.5 if side > 0.0 else PI * 0.5
+		add_child(guest)
+		_patrons.append(guest)
+		var guest_stats: Dictionary = guest.call("get_visual_stats")
+		_statistics["patrons"] += 1
+		_statistics["patron_meshes"] += int(guest_stats["mesh_parts"])
+		_statistics["patron_lights"] += int(guest_stats["lights"])
+		_statistics["patron_collision_objects"] += int(guest_stats["colliders"])
 
 func _build_mara_character() -> void:
 	# Behind-counter anti-fatigue riser is raised 33cm so Mara's footwear
