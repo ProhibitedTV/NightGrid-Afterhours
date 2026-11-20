@@ -49,7 +49,7 @@ func _ready() -> void:
 	set_process(false)
 
 func _stamp_now() -> String:
-	return Time.get_datetime_string_from_system().replace(":", "-").replace("T", "_")
+	return Time.get_datetime_string_from_system().replace(":", "-").replace("T", "_") + "_" + str(Time.get_ticks_usec())
 
 func evidence_directory() -> String:
 	return ProjectSettings.globalize_path(EVIDENCE_FOLDER)
