@@ -24,8 +24,8 @@ var _torso: Node3D
 var _head: Node3D
 var _left_arm: Node3D
 var _right_arm: Node3D
-var _left_eye: MeshInstance3D
-var _right_eye: MeshInstance3D
+var _left_eye: Node3D
+var _right_eye: Node3D
 var _mouth: MeshInstance3D
 var _clock := 0.0
 var _speaking := 0.0
@@ -355,17 +355,22 @@ func _build_face_and_hair() -> void:
 			Vector3(0.07, 0.135, 0.064), "SKIN", SHADOW_SKIN, "face")
 		_sphere(_head, "LowerEarlobe", Vector3(float(side) * 0.20, -0.055, 0.016),
 			Vector3(0.04, 0.043, 0.046), "SKIN", BASE_SKIN, "face")
-		var sclera := _sphere(_head, "Sclera", Vector3(x, 0.073, 0.159),
-			Vector3(0.093, 0.056, 0.036), "EYE", Color("cbd2c9"), "face")
+		# Blink the WHOLE eye (sclera, iris, pupil and reflection) around
+		# one anatomical pivot, rather than leaving pupils visible when shut.
+		var eye_rig := _joint(_head,
+			"LeftEyeBlinkRig" if side < 0.0 else "RightEyeBlinkRig",
+			Vector3(x, 0.073, 0.175))
 		if side < 0.0:
-			_left_eye = sclera
+			_left_eye = eye_rig
 		else:
-			_right_eye = sclera
-		_sphere(_head, "Iris", Vector3(x - 0.008, 0.070, 0.188),
+			_right_eye = eye_rig
+		_sphere(eye_rig, "Sclera", Vector3(0.0, 0.0, -0.016),
+			Vector3(0.093, 0.056, 0.036), "EYE", Color("cbd2c9"), "face")
+		_sphere(eye_rig, "Iris", Vector3(-0.008, -0.003, 0.013),
 			Vector3(0.038, 0.046, 0.019), "EYE", EYE_IRIS, "face")
-		_sphere(_head, "Pupil", Vector3(x - 0.006, 0.070, 0.199),
+		_sphere(eye_rig, "Pupil", Vector3(-0.006, -0.003, 0.024),
 			Vector3(0.016, 0.027, 0.011), "EYE", Color("192c34"), "face")
-		_sphere(_head, "CornealCatchlight", Vector3(x - 0.017, 0.088, 0.209),
+		_sphere(eye_rig, "CornealCatchlight", Vector3(-0.017, 0.015, 0.034),
 			Vector3(0.011, 0.012, 0.006), "EYE", Color("fff4dd"), "face")
 		_segment(_head, "UpperLid", Vector3(x - 0.048, 0.104, 0.180),
 			Vector3(x + 0.046, 0.101, 0.181), 0.012, 0.010,
