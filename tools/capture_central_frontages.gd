@@ -2,7 +2,7 @@ extends SceneTree
 ## Real Godot 4 framebuffer evidence for the two Central Exchange façades.
 ## Mesa OpenGL compatibility is NOT the Windows Forward+ quality target.
 ## Never use this script to generate fake or illustrated concept art.
-const DIR = "res://exports/central_exchange_review"
+const DIR = "res:" + "//exports/central_exchange_review"
 var world: Node3D
 var camera: Camera3D
 var captured: Array[String] = []
