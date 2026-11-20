@@ -65,6 +65,11 @@ func _verify() -> void:
 		return
 	var remote := Vector3(-203.0, 1.15, -203.0)
 	player.global_position = remote
+	var before_jump: int = int(city.call("get_streaming_stats")["loads"])
+	city.call("request_focus", remote, Vector3.ZERO)
+	if not (city.get("_loaded") as Dictionary).has(Vector2i(-4, -4)) or int(city.call("get_streaming_stats")["loads"]) != before_jump + 1:
+		_fail("Unexpected fast travel must synchronously protect the occupied collision cell")
+		return
 	city.call("set_focus", remote)
 	if not (city.get("_loaded") as Dictionary).has(Vector2i(-4, -4)):
 		_fail("Teleport did not immediately load physical destination geometry")
@@ -75,5 +80,5 @@ func _verify() -> void:
 	if int(session.get("world_seed")) != seed_before:
 		_fail("Incremental streaming changed the immutable saved world seed")
 		return
-	print("PREDICTIVE_STREAMING_SMOKE PASS: forward ring queued, one block/frame, immediate teleport, seed=", seed_before)
+	print("PREDICTIVE_STREAMING_SMOKE PASS: forward ring queued, one block/frame, collision-safe fast jump and teleport, seed=", seed_before)
 	quit(0)
