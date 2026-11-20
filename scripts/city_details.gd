@@ -465,6 +465,7 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 		volume.name = "PreservedBuildingCollision"
 		volume.position = shell_at
 		var collision := CollisionShape3D.new()
+		collision.name = "BuildingCollider"
 		var shape := BoxShape3D.new()
 		shape.size = shell_size
 		collision.shape = shape
