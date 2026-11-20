@@ -467,7 +467,7 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 		var stable_name: String = names[abs(ix * 11 + iz * 17 + which * 3) % names.size()]
 		var facade := CentralFrontage.new()
 		facade.name = "PhotorealFrontage_%d_%d_%d" % [ix, iz, which]
-		facade.configure(width, height, district, stable_name)
+		facade.configure(width, height, depth, district, stable_name)
 		facade.position = Vector3(center.x, 0.15, front)
 		_active_chunk.add_child(facade)
 		_statistics["storefronts"] += 1
