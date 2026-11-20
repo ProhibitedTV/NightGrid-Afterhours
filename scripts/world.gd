@@ -22,6 +22,8 @@ const CivicServicesScript = preload("res://scripts/civic_services.gd")
 const InteriorSystemScript = preload("res://scripts/interior_system.gd")
 const GameInput = preload("res://scripts/game_input.gd")
 const GameMenuScript = preload("res://scripts/game_menu.gd")
+const NightGridFMScript = preload("res://scripts/nightgrid_fm.gd")
+const WorldAudioScript = preload("res://scripts/world_audio.gd")
 const CELL = 58.0
 const GRID_RADIUS = 4
 const PLAYER_START = Vector3(0.0, 1.15, 6.0)
@@ -64,6 +66,8 @@ var venue_system: Node3D
 var civic_services: Node3D
 var interiors: Node3D
 var game_menu: CanvasLayer
+var nightgrid_fm: Node
+var world_audio: Node
 var gamepad_active := false
 var mouse_sensitivity := 0.0032
 var stick_sensitivity := 2.6
@@ -119,6 +123,8 @@ func _ready() -> void:
 	_create_marker()
 	_build_hud()
 	_build_game_menu()
+	_build_nightgrid_fm()
+	_build_world_audio()
 	var restore: Dictionary = session.call("take_pending_restore")
 	if restore.is_empty():
 		_set_mission_target(PICKUPS[0], false)
@@ -138,6 +144,24 @@ func _build_game_menu() -> void:
 	game_menu.connect("settings_changed", Callable(self, "_apply_game_settings"))
 	game_menu.call("set_has_save", not (session.call("read_snapshot") as Dictionary).is_empty())
 	_apply_game_settings(game_menu.call("get_settings"))
+
+func _build_nightgrid_fm() -> void:
+	nightgrid_fm = NightGridFMScript.new()
+	nightgrid_fm.name = "NightGridFM"
+	nightgrid_fm.set("venues", venue_system)
+	nightgrid_fm.set("menu", game_menu)
+	add_child(nightgrid_fm)
+	var options: Dictionary = game_menu.call("get_settings")
+	nightgrid_fm.call("set_preferences", float(options.get("music_volume", 0.65)), bool(options.get("radio_on", true)))
+
+func _build_world_audio() -> void:
+	world_audio = WorldAudioScript.new()
+	world_audio.name = "WorldAudio"
+	world_audio.set("menu", game_menu)
+	add_child(world_audio)
+	var options: Dictionary = game_menu.call("get_settings")
+	world_audio.call("set_preferences", float(options.get("ambience_volume", 0.65)),
+		float(options.get("sfx_volume", 0.75)))
 
 func _on_menu_action(action: String) -> void:
 	match action:
@@ -176,6 +200,10 @@ func _apply_game_settings(options: Dictionary) -> void:
 	mouse_sensitivity = clampf(float(options.get("mouse_sensitivity", 0.0032)), 0.001, 0.010)
 	stick_sensitivity = clampf(float(options.get("stick_sensitivity", 2.6)), 0.5, 5.0)
 	invert_look_y = bool(options.get("invert_look_y", false))
+	if is_instance_valid(nightgrid_fm):
+		nightgrid_fm.call("set_preferences", float(options.get("music_volume", 0.65)), bool(options.get("radio_on", true)))
+	if is_instance_valid(world_audio):
+		world_audio.call("set_preferences", float(options.get("ambience_volume", 0.65)), float(options.get("sfx_volume", 0.75)))
 	var bus_index := AudioServer.get_bus_index("Master")
 	if bus_index >= 0:
 		AudioServer.set_bus_volume_db(bus_index, linear_to_db(maxf(0.001, float(options.get("master_volume", 0.8)))))
@@ -228,6 +256,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		if venue_panel.visible:
 			_close_venue()
 		game_menu.call("open_journal", _journal_context())
+	elif event.is_action_pressed("radio_toggle") and current_car != null:
+		var prefs: Dictionary = game_menu.call("get_settings")
+		var enabled := not bool(prefs.get("radio_on", true))
+		game_menu.call("update_setting", "radio_on", enabled)
+		_notify("NightGrid FM tuned in. B toggle / N next." if enabled else "NightGrid FM switched off.")
+	elif event.is_action_pressed("radio_next") and current_car != null:
+		if nightgrid_fm.call("next_car_track"):
+			_notify(str(nightgrid_fm.call("get_now_playing")))
 	elif venue_panel.visible:
 		if event.is_action_pressed("service_one"):
 			_venue_action(1)
@@ -271,6 +307,19 @@ func _process(delta: float) -> void:
 		return
 	var actor := _actor()
 	var indoors: bool = interiors.call("is_inside")
+	if is_instance_valid(nightgrid_fm):
+		var interior_id := str(interiors.call("active_site_id")) if indoors else ""
+		var interior_kind := ""
+		if indoors and str(interiors.call("active_site_group")) == "VENUE":
+			interior_kind = str((venue_system.call("venue_by_id", interior_id) as Dictionary).get("kind", ""))
+		nightgrid_fm.call("update_listener", actor.global_position, current_car != null, interior_id, interior_kind)
+	if is_instance_valid(world_audio):
+		var street_position: Vector3 = interiors.get("exterior_position") if indoors else actor.global_position
+		var district: String = city_details.call("get_district_at", street_position)
+		var foot_speed := Vector2(player.velocity.x, player.velocity.z).length()
+		world_audio.call("update_context", actor.global_position, player.global_position,
+			current_car == null and current_transit == null, player.is_on_floor(),
+			indoors, district, float(day_night.get("hour")), foot_speed)
 	if indoors and str(interiors.call("active_site_id")) == "lantern_cup":
 		interiors.call("set_mara_focus", player.global_position)
 	if not venue_panel.visible:
@@ -1510,6 +1559,8 @@ func _update_hud() -> void:
 		control_help = "PAD: LS Move / Steer • RS Look • A Jump/Service • X Interact/Contract • Y Car • LB Door • RB Transit • Start Pause • View Map"
 	hud_label.text = "NIGHTGRID / AFTERHOURS    MORROW BAY\n%s | %s\n$%d | HEALTH %d | HEAT %s\n%s | DELIVERIES %d\nOBJECTIVE: %s (%dm)\n%s\n\n%s" % [local_name, clock, cash, ceili(health), wanted_text, vehicle_text, deliveries, mission, distance, message, control_help]
 	hud_label.text += "\n" + _venue_job_text() + "\n" + _civic_job_text()
+	if current_car != null and is_instance_valid(nightgrid_fm):
+		hud_label.text += "\n" + str(nightgrid_fm.call("get_now_playing")) + "  [B] ON/OFF  [N] NEXT"
 	if interiors.call("is_inside"):
 		var site_id := str(interiors.call("active_site_id"))
 		var room_site: Dictionary = civic_services.call("site_by_id", site_id) if str(interiors.call("active_site_group")) == "CIVIC" else venue_system.call("venue_by_id", site_id)
