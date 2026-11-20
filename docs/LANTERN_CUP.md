@@ -19,6 +19,10 @@ Warm brass and walnut, aged glazed brick, graphite acoustic ceiling baffles, tra
 
 The previous three-block contact silhouette has been replaced with a streamed original humanlike character: tapered facial sculpt, eyes/lids/brows/lips, swept hair, ear radio, sewn utility jacket, apron and readable identity details. She breathes, blinks, looks at the player, speaks with expressive mouth motion and gestures after successful coffee orders. With the counter menu open, **3** / **Y** starts or advances four no-cost authored conversations contextualized by player health, police heat, active work and the shift note. Existing 1/A coffee and 2/X job inputs remain intact. Character dialogue is ephemeral; the previous booth clue persists as before. [Mara art and animation details](MARA_HERO.md).
 
+## Café regulars — the last pre-playtest asset
+
+Five distinct wall-side café regulars, **Rin, Ivo, Tamsin, Len and Aya**, now occupy the original booth positions. Each has lightweight original facial/workwear geometry and an authored deterministic **sip, scroll, chat or read** idle; character material resources are shared within the process. Press **G** near a customer for optional contextual gossip. The interaction does not change cash, health, quests or persistent journal entries. Guests remain non-colliding (existing furniture is the walkable environment), use **zero extra lights**, and are only generated inside Lantern Cup. Each visit and save/load reconstructs identical identities, side anchors, palettes and activities. They are not navigating crowd AI; the limited set is intentional for stable pre-playtest performance. See [playtest walkthrough](PLAYTEST_CHECKLIST.md).
+
 ## Technical/safety contract
 
 The live game only constructs the bespoke `LanternCupHero` when `InteriorSystem` enters `lantern_cup`. The venue's id, host, storefront position, schedule, business category, other eleven social locations, four existing side jobs, counter reach, exit radius and v1 save fields remain untouched. Other two cafés retain the original `_lounge` archetype.
