@@ -72,7 +72,7 @@ def main() -> None:
         file_info = find_map(data, aliases, extension)
         url = file_info["url"]
         payload = get_bytes(url)
-        if extension == "png" and not payload.startswith(b"\x89PNG\\r\n\x1a\n"):
+        if extension == "png" and not payload.startswith(b"\x89PNG\r\n\x1a\n"):
             raise ValueError(f"{semantic} response was not PNG")
         if extension == "jpg" and not payload.startswith(b"\xff\xd8"):
             raise ValueError(f"{semantic} response was not JPEG")
