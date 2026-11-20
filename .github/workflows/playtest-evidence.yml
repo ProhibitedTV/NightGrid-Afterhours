@@ -9,6 +9,7 @@ on:
       - 'project.godot'
       - 'tools/capture_playtest_evidence.gd'
       - '.github/workflows/playtest-evidence.yml'
+      - '.github/workflows/windows-build.yml'
       - 'tests/**'
       - 'docs/NEXT_PLAYTEST.md'
   workflow_dispatch:
