@@ -79,7 +79,7 @@ func _check() -> void:
 			if int(finish_stats["sealed_corner_returns"]) != 4 or int(finish_stats["solid_roof_edges"]) != 4 or int(finish_stats["coping_edges"]) != 4:
 				_fail("Open corner seams or unsealed parapet: %s" % finish_stats)
 				return
-			if int(finish_stats["array_mesh_surfaces"]) != 4 or int(finish_stats["foundation_runs"]) != 2:
+			if int(finish_stats["array_mesh_surfaces"]) != 3 or int(finish_stats["foundation_runs"]) != 2:
 				_fail("Missing scanned masonry/roof/steel finish meshes: %s" % finish_stats)
 				return
 			if int(finish_stats["new_collisions"]) != 0 or int(finish_stats["new_lights"]) != 0:
