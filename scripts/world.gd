@@ -943,6 +943,9 @@ func _civic_service_text(site: Dictionary) -> String:
 func _update_civic_panel() -> void:
 	if civic_selected_id.is_empty() or venue_label == null:
 		return
+	# This fourth menu action must never leak into another venue or service.
+	if venue_talk_button != null:
+		venue_talk_button.visible = false
 	var site: Dictionary = civic_services.call("site_by_id", civic_selected_id)
 	if site.is_empty():
 		_close_venue()
@@ -1110,6 +1113,8 @@ func _close_venue() -> void:
 	if interiors != null:
 		interiors.call("set_mara_attention", false)
 	mara_dialogue_line = ""
+	if venue_talk_button != null:
+		venue_talk_button.visible = false
 	venue_selected_id = ""
 	civic_selected_id = ""
 	if venue_panel != null:
