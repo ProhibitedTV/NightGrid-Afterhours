@@ -3,6 +3,7 @@ extends Node3D
 ## Street trees, protected plazas and courtyards are authored placements; only
 ## species, canopy variation, small shrubs and flower groups are seeded.
 const WorldPlan = preload("res://scripts/world_plan.gd")
+const HorizonFern = preload("res://scripts/horizon_fern_hero.gd")
 const SEED = 4201337
 const GRID_RADIUS = WorldPlan.GRID_RADIUS
 const CELL = 58.0
@@ -15,7 +16,7 @@ var _rng := RandomNumberGenerator.new()
 var _batches: Dictionary = {}
 var _meshes: Dictionary = {}
 var _materials: Dictionary = {}
-var _stats := {"street_trees": 0, "landmark_trees": 0, "shrubs": 0, "flowers": 0, "planter_pots": 0, "vegetation_instances": 0}
+var _stats := {"street_trees": 0, "landmark_trees": 0, "shrubs": 0, "flowers": 0, "planter_pots": 0, "vegetation_instances": 0, "scanned_hero_ferns": 0}
 var _initialized := false
 var world_seed: int = 834726
 
@@ -208,6 +209,17 @@ func _wildflower_patch(center: Vector3, count: int) -> void:
 		_push("CANOPY", flower, point + Vector3.UP * 0.66, Vector3(0.30, 0.30, 0.30))
 		_stats["flowers"] += 1
 
+func _horizon_fern(at: Vector3) -> void:
+	# One fixed authored park spot, stable for every seed/save/load. The 2K
+	# scanned model is instantiated once at startup; it is NOT batched across
+	# the city and never receives a physics body or per-frame updater.
+	var fern := HorizonFern.new()
+	fern.name = "HorizonCommonsHeroFern"
+	fern.position = at
+	add_child(fern)
+	_stats["scanned_hero_ferns"] += 1
+	_stats["vegetation_instances"] += 1
+
 func _landmark_garden(center: Vector3, landmark: String) -> void:
 	match landmark:
 		"LANTERN COURT":
@@ -249,7 +261,9 @@ func _landmark_garden(center: Vector3, landmark: String) -> void:
 			for x in [-13.0, -6.0, 6.0, 13.0]:
 				for z in [-14.0, 14.0]:
 					_tree(center + Vector3(x, 0.20, z), FICUS if x > 0.0 else PLUM, 0.78)
-			_wildflower_patch(center + Vector3(-15.5, 0.20, 0.0), 14)
+			# Replace ONE sphere/cone flower patch with source-photographed
+			# fern geometry; keep the right-side wildflower patch intact.
+			_horizon_fern(center + Vector3(-15.5, 0.20, 0.0))
 			_wildflower_patch(center + Vector3(15.5, 0.20, 0.0), 14)
 		"SOUTHWORKS HALL":
 			for x in [-15.0, 15.0]:
