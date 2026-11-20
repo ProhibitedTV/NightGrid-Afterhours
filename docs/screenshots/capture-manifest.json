@@ -1,34 +1,34 @@
 {
   "images": {
     "01-morrow-bay-neon-night.png": {
-      "bytes": 499235,
-      "sha256": "d89b5bd6758d0f37dedbec513de8e135799954d9e764049908bb5d2247f9f860"
+      "bytes": 512652,
+      "sha256": "b9837c0dbd340d33dc5b7b150ff4a247c68aa933458243db7b9cfc5f7113f671"
     },
     "02-vesper-market-nightlife.png": {
-      "bytes": 612302,
-      "sha256": "3650cedb4276cd8de19d81078970dcf992fa579ce887fec413093bca9c11ce8c"
+      "bytes": 612245,
+      "sha256": "514c0e3cf79b3a6a221c347075ea032b0bf4a8937a553e13e8f501c8c0217810"
     },
     "03-m-line-helix-terminal.png": {
       "bytes": 379202,
       "sha256": "e1f5599382a2a073bcaebd730762f2c84e32148d21e0c74c479cc89cd24e507b"
     },
     "04-horizon-commons-daylight.png": {
-      "bytes": 669161,
-      "sha256": "63721e1ef5db62d15114b23ec320a6039b71e11fbb7f52bd412dc6ecda23a426"
+      "bytes": 669050,
+      "sha256": "e188efb772d64500dac46477cd3ff79979f3c922b3e368db49a7cf1565166ad8"
     },
     "05-quay-fresh-interior.png": {
-      "bytes": 209070,
-      "sha256": "7f48618162b20e58e47a071a1f43f5a84991faaae3c137a1c5530f5ff2af90ed"
+      "bytes": 208981,
+      "sha256": "39870d499aa6f2fe68af5681e4a5bc0c91b6a5e366b87c409ad2ad41893d9820"
     },
     "06-title-menu.png": {
-      "bytes": 151383,
-      "sha256": "f71481e028b9e9f2a857fe6037378452feb9585b48341c9539c10653a1766603"
+      "bytes": 156652,
+      "sha256": "cf9900df0d10d224355bdf8f9abfe32350522df0b9ca8ee8f9b0a1e34fa51e18"
     },
     "07-city-map-menu.png": {
-      "bytes": 139085,
-      "sha256": "37b1cdf11ccaf3356da675a759d96c1b73bbd9c0ad7da63d15bcff01dd21d1d1"
+      "bytes": 144809,
+      "sha256": "1e27f4042a7957b032fe4cdfef0bf8a356d399e53b3a05a88c2298becc3cdbb9"
     }
   },
   "renderer": "Godot 4.3 Mesa software OpenGL Compatibility 1280x720 (NOT Vulkan/RTX)",
-  "source_revision": "6893b060cb29dd45f59bd58de1fe11bb5352eaa0"
+  "source_revision": "64bf51a526cf84f421b7a4f0ac6509f8f2309f56"
 }
