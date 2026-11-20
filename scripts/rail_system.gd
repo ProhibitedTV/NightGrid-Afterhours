@@ -30,6 +30,7 @@ func _ready() -> void:
 func _sync_train_visual() -> void:
 	if train_visual != null:
 		train_visual.call("set_operational_state", direction, speed, dwell_remaining > 0.1)
+		train_visual.call("set_destination", STATION_NAMES[next_station])
 
 func _process(delta: float) -> void:
 	if not _initialized:
