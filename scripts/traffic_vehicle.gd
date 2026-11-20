@@ -1,4 +1,5 @@
 extends CharacterBody3D
+const Materials = preload("res://scripts/material_library.gd")
 ## Lightweight NPC street vehicle. Follows lane centerlines, obeys stop bars,
 ## slows for vehicles ahead and dwells at marked bus stops.
 var route: Array[Vector3] = []
@@ -111,17 +112,52 @@ func _build_body() -> void:
 	hitbox.shape = shape
 	add_child(hitbox)
 	_box(Vector3(0.0, 0.0, 0.0), Vector3(2.6, 2.2, 8.1) if buses else Vector3(2.12, 0.78, 4.35), paint)
-	_box(Vector3(0.0, 0.67, -0.15), Vector3(2.3, 0.75, 5.3) if buses else Vector3(1.72, 0.72, 2.20), Color("203849"))
+	_box(Vector3(0.0, 0.67, -0.15), Vector3(2.3, 0.75, 5.3) if buses else Vector3(1.72, 0.72, 2.20), Color("3b5666"), false, "GLASS")
 	for side in [-1.0, 1.0]:
 		_box(Vector3(side * 0.86, -0.08, -3.99 if buses else -2.15), Vector3(0.42, 0.19, 0.08), Color("ffdab5"), true)
 		_box(Vector3(side * 0.86, -0.08, 3.99 if buses else 2.15), Vector3(0.42, 0.19, 0.08), Color("ff5276"), true)
 		for axle in [-2.55, 2.55] if buses else [-1.4, 1.4]:
-			_box(Vector3(side * 1.30, -0.88 if buses else -0.47, axle), Vector3(0.30, 0.62, 0.78), Color("131c25"))
+			_wheel(Vector3(side * 1.30, -0.88 if buses else -0.47, axle), 0.42 if buses else 0.37)
+	# Metallic bumpers, glass side panels and compact wheel arches give scale
+	# cues from close traffic without introducing physics-heavy vehicle meshes.
+	_box(Vector3(0.0, -0.31, -4.12 if buses else -2.25), Vector3(2.54 if buses else 2.10, 0.19, 0.16), Color("89949e"))
+	_box(Vector3(0.0, -0.31, 4.12 if buses else 2.25), Vector3(2.54 if buses else 2.10, 0.19, 0.16), Color("717d87"))
+	if not buses:
+		_box(Vector3(0.0, 1.04, -0.22), Vector3(1.71, 0.10, 1.75), paint.darkened(0.27))
+		for side in [-1.0, 1.0]:
+			_box(Vector3(side * 0.88, 0.68, -0.20), Vector3(0.04, 0.55, 1.40), Color("6a8a98"), false, "GLASS")
+	else:
+		for side in [-1.0, 1.0]:
+			_box(Vector3(side * 1.32, 0.85, -0.15), Vector3(0.05, 0.65, 4.85), Color("6a8a98"), false, "GLASS")
 	if buses:
 		_box(Vector3(0.0, 1.34, -3.0), Vector3(2.34, 0.43, 0.18), Color("66dce6"), true)
 		_box(Vector3(1.34, -0.15, 0.90), Vector3(0.07, 1.52, 1.48), Color("89a8ba"))
 
-func _box(at: Vector3, dimensions: Vector3, color: Color, glow: bool = false) -> void:
+func _wheel(at: Vector3, radius: float) -> void:
+	var tire := MeshInstance3D.new()
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = radius
+	mesh.bottom_radius = radius
+	mesh.height = 0.28
+	mesh.radial_segments = 14
+	tire.mesh = mesh
+	tire.position = at
+	tire.rotation.z = PI * 0.5
+	tire.material_override = Materials.surface("ASPHALT", Color("171a20"))
+	add_child(tire)
+	var hub := MeshInstance3D.new()
+	var cap := CylinderMesh.new()
+	cap.top_radius = radius * 0.47
+	cap.bottom_radius = radius * 0.47
+	cap.height = 0.295
+	cap.radial_segments = 12
+	hub.mesh = cap
+	hub.position = at
+	hub.rotation.z = PI * 0.5
+	hub.material_override = Materials.surface("METAL", Color("89939c"))
+	add_child(hub)
+
+func _box(at: Vector3, dimensions: Vector3, color: Color, glow: bool = false, surface_kind: String = "") -> void:
 	var node := MeshInstance3D.new()
 	var mesh := BoxMesh.new()
 	mesh.size = dimensions
@@ -135,5 +171,5 @@ func _box(at: Vector3, dimensions: Vector3, color: Color, glow: bool = false) ->
 		material.emission_enabled = true
 		material.emission = color
 		material.emission_energy_multiplier = 1.5
-	node.material_override = material
+	node.material_override = Materials.surface(surface_kind, color) if not surface_kind.is_empty() else material
 	add_child(node)

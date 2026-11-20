@@ -66,7 +66,11 @@ func _apply() -> void:
 	_sky.ground_bottom_color = Color("0f1728").lerp(Color("617276"), light)
 	_sky.ground_horizon_color = Color("433145").lerp(Color("b4a999"), light)
 	_environment.environment.ambient_light_color = Color("8291b5").lerp(Color("f3dbb5"), light)
-	_environment.environment.ambient_light_energy = lerpf(0.43, 0.82, light)
+	_environment.environment.ambient_light_energy = lerpf(0.40, 0.78, light)
+	# Distance haze shifts from cool coastal night to warm daytime air, but does
+	# not override the player's fog toggle or allocate volumetric fog buffers.
+	_environment.environment.fog_density = lerpf(0.0085, 0.0045, light)
+	_environment.environment.fog_light_color = Color("2b354b").lerp(Color("c4d0c7"), light).lerp(Color("b77d65"), twilight * 0.22)
 	_sun.light_color = Color("8eabda").lerp(Color("ffe6c2"), light).lerp(Color("ffad86"), twilight * 0.15)
 	_sun.light_energy = lerpf(0.13, 1.30, light)
 	var altitude := 9.0 + 64.0 * noon
