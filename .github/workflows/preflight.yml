@@ -75,5 +75,7 @@ jobs:
         run: godot --headless --path . --script res://tests/nightgrid_fm_smoke.gd
       - name: Validate cached district soundscape, footsteps and audio settings
         run: godot --headless --path . --script res://tests/world_audio_smoke.gd
+      - name: Validate real local frame-time traces, capture controls and reproducible build metadata
+        run: godot --headless --path . --script res://tests/playtest_telemetry_smoke.gd
       - name: Run smoke test for 90 frames
         run: godot --headless --path . --quit-after 90
