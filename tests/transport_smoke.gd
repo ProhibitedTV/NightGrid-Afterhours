@@ -36,6 +36,52 @@ func _check() -> void:
 	if trains.get("stations") != 5 or trains.get("trains") != 1:
 		_fail("Expected one five-station elevated line")
 		return
+	# The hero transit model must be attached to the actual moving train, not
+	# displayed as separate scenery. All geometry is generated deterministically.
+	var hero := rail.get_node_or_null("MorrowLineTrain/CicadaM8HeroVisual")
+	if hero == null:
+		_fail("Missing CICADA M8 playable rolling-stock visuals")
+		return
+	var visual_stats: Dictionary = rail.call("get_train_visual_stats")
+	if int(visual_stats.get("cars", -1)) != 2 or int(visual_stats.get("glass_windows", -1)) != 16:
+		_fail("Two detailed cabins with 16 windows must be present: %s" % visual_stats)
+		return
+	if int(visual_stats.get("door_panels", -1)) != 8 or int(visual_stats.get("bogies", -1)) != 4:
+		_fail("Missing animated doors or rail running gear: %s" % visual_stats)
+		return
+	if int(visual_stats.get("wheels", -1)) != 16 or int(visual_stats.get("headlamps", -1)) != 4:
+		_fail("Missing train wheels or bidirectional marker lamps: %s" % visual_stats)
+		return
+	if int(visual_stats.get("stationary_components", 0)) > 420:
+		_fail("Train detail count exceeded bounded procedural scene budget")
+		return
+	var shell := hero.get_node_or_null("CicadaCar_West/BevelledAlloyMonocoque") as MeshInstance3D
+	if shell == null or not shell.mesh is ArrayMesh:
+		_fail("Cicada M8 must have a bespoke bevelled hull mesh")
+		return
+	var triangles: PackedVector3Array = shell.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+	if triangles.size() < 200:
+		_fail("Train hull lacks detailed lofted geometry")
+		return
+	var sleepers := rail.get_node_or_null("RailSleepers171") as MultiMeshInstance3D
+	if sleepers == null or sleepers.multimesh.instance_count != 171:
+		_fail("Engineered guideway must use one batched 171-sleeper mesh")
+		return
+	for platform_index in range(5):
+		if rail.get_node_or_null("MLineStation_%02d" % platform_index) == null:
+			_fail("Missing one of the five fully detailed platforms")
+			return
+	hero.call("set_operational_state", 1, 0.0, true)
+	hero.call("_process", 0.50)
+	if float(hero.call("door_open_fraction")) < 0.90:
+		_fail("Train doors must visually open during the station dwell")
+		return
+	hero.call("set_operational_state", -1, 2.0, false)
+	hero.call("_process", 0.50)
+	if float(hero.call("door_open_fraction")) > 0.1:
+		_fail("Train doors must visually close for departure")
+		return
+	rail.call("_sync_train_visual")
 	for step in range(72):
 		signals.set("elapsed", float(step))
 		var ns: String = signals.call("phase_at", -3, -3, "NS")
