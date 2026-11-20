@@ -16,6 +16,8 @@ jobs:
           python-version: '3.12'
       - name: Check files and resource references
         run: python tools/check_project.py
+      - name: Verify committed real game screenshots
+        run: python tools/check_screenshots.py
 
   godot-headless:
     runs-on: ubuntu-latest
