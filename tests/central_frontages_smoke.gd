@@ -111,7 +111,51 @@ func _check() -> void:
 				return
 		else:
 			if facade.has_node("BrickwaterSealedCornerAndRoof"):
-				_fail("Single-building approval gate violated: changed Afterhours lot")
+				_fail("Brickwater roof was incorrectly duplicated at Afterhours")
+				return
+			var afterhours_finish := facade.get_node_or_null("AfterhoursSealedCornerAndRoof")
+			if afterhours_finish == null:
+				_fail("Afterhours has an exposed south/avenue corner or missing roof finish")
+				return
+			var after_stats: Dictionary = afterhours_finish.call("get_finish_stats")
+			if int(after_stats["sealed_corner_returns"]) != 4 or int(after_stats["solid_roof_edges"]) != 4:
+				_fail("Afterhours envelope is not sealed on every elevation: %s" % after_stats)
+				return
+			if int(after_stats["coping_edges"]) != 4 or int(after_stats["foundation_runs"]) != 2:
+				_fail("Afterhours roof/foundation has exposed edges")
+				return
+			if int(after_stats["roof_service_grilles"]) != 6 or int(after_stats["canopy_edge_seals"]) != 3:
+				_fail("Afterhours rooftop service enclosure or canopy edge geometry missing")
+				return
+			if int(after_stats["array_mesh_surfaces"]) != 3:
+				_fail("Afterhours must have material-sorted metal, roof and vent solids")
+				return
+			if int(after_stats["new_collisions"]) != 0 or int(after_stats["new_lights"]) != 0:
+				_fail("Afterhours art introduced a collision or an unbudgeted lamp")
+				return
+			for part in afterhours_finish.get_children():
+				if not (part is MeshInstance3D) or not (part.mesh is ArrayMesh):
+					_fail("Afterhours seal must use contiguous triangle mesh geometry")
+					return
+				var mat := part.material_override as StandardMaterial3D
+				if mat == null or mat.cull_mode != BaseMaterial3D.CULL_BACK:
+					_fail("Missing rear/roof surface or backface winding")
+					return
+			var arrays: Array = (part.mesh as ArrayMesh).surface_get_arrays(0)
+			if (arrays[Mesh.ARRAY_TANGENT] as PackedFloat32Array).is_empty():
+				_fail("Afterhours scanned PBR surfaces have no UV tangents")
+				return
+			var roof_mat := facade.call("_surface_material", "ROOF") as StandardMaterial3D
+			var metal_mat := facade.call("_surface_material", "CLADDING") as StandardMaterial3D
+			if roof_mat == null or metal_mat == null or not roof_mat.normal_enabled or not metal_mat.normal_enabled:
+				_fail("Afterhours 2K photographed roof or steel normal maps disabled")
+				return
+			var after_glass := facade.call("_surface_material", "GLASS") as StandardMaterial3D
+			if after_glass == null or after_glass.transparency != BaseMaterial3D.TRANSPARENCY_ALPHA:
+				_fail("Afterhours window glazing remains flat opaque panels")
+				return
+			if not facade.has_node("Facade_DARK_ROOM") or not avenue.has_node("AvenueSurface_DARK_ROOM"):
+				_fail("Afterhours windows have no independent recessed room backings")
 				return
 		if int(stats["reveal_faces"]) < 32:
 			_fail("Openings are missing recessed jamb and sill geometry")
@@ -175,8 +219,8 @@ func _check() -> void:
 		if str(query[3]) == "BRICKWATER" and int(stats["real_pbr_maps"]) != 9:
 			_fail("Brick frontage, steel fascia and bitumen roof did not bind all nine scanned PBR maps")
 			return
-		if str(query[3]) == "AFTERHOURS" and int(stats["real_pbr_maps"]) != 3:
-			_fail("Road-facing steel frontage did not bind genuine 2K texture maps")
+		if str(query[3]) == "AFTERHOURS" and int(stats["real_pbr_maps"]) != 6:
+			_fail("Afterhours steel facade and bitumen roof must bind six genuine 2K PBR maps")
 			return
 		original_counts.append(stats)
 	# Switching streaming focus unloads/reconstructs this location using
