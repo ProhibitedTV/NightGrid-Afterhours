@@ -12,11 +12,17 @@
 
 
 
+### 60 FPS target with rendering independent of physics timing
+
+**60 FPS at native 1080p is a quality target, not a measured achievement or an enforced cap.** Physics advances at a fixed **60 ticks/second**, but rendering remains **uncapped** (subject to the player's VSync preference). Train movement/station timing and gameplay mission, heat and damage timers run on physics ticks. The rail model receives separate 3D render interpolation compatible with Godot 4.3, and streaming focus plus HUD refresh are budgeted to 10 Hz rather than once per displayed frame. A regression test verifies transit logic remains identical with different render callback rates. [Engineering and acceptance protocol](docs/FRAME_PACING_AND_ASSETS.md).
+
+**Asset policy:** prioritize original or licensed, UV-authored glTF assets and photographic PBR sets, with LODs/culling and real hardware profiling, over expanding procedural box geometry. The existing two CC0 Central Exchange facades are still an **incomplete architectural pilot**, not finished AAA quality.
+
 ## Actual in-game screenshots
 
 ![Morrow Bay at night, showing the real Godot-rendered downtown street, nearby buildings, trees, and traffic](docs/screenshots/01-morrow-bay-neon-night.png)
 
-*Downtown Morrow Bay after dark — rendered directly from the running game.*
+*Central Exchange at night — the camera on the next real-framebuffer capture faces the road-visible PBR architecture, not a synthetic cinematic image.*
 
 | Vesper Market / Moon Noodles | M-Line / Helix Terminal |
 |:--:|:--:|
@@ -26,7 +32,7 @@
 | **Main menu — title screen** | **City atlas — map screen** |
 | ![Real NightGrid title menu with New World, Continue, Settings and Gamepad Controls](docs/screenshots/06-title-menu.png) | ![Real in-game Morrow Bay map menu with district roads, objective icons and service location pins](docs/screenshots/07-city-map-menu.png) |
 
-The images above predate the new PBR/atmosphere pass and will be recaptured after visual validation. They are **real, unedited Godot 4.3 framebuffer captures**, not AI-generated artwork, concept mockups or marketing renders. The repeatable screenshot workflow ran the playable scene at **1280 × 720** on a Linux X11 virtual display using Mesa's software **OpenGL Compatibility renderer**. The downloadable Windows build defaults to **Forward+/Vulkan**, so its lighting and reflections can differ. [See how the captures were generated and verified.](docs/screenshots/README.md)
+The AAA feature-branch capture job produces updated genuine PNG framebuffers and a [revision/hash manifest](docs/screenshots/README.md). Treat existing images as historical until a successful screenshot capture commit lands; do not infer that improved code guarantees better-looking screenshots. They are **real, unedited Godot 4.3 framebuffer captures**, not AI-generated artwork, concept mockups or marketing renders. The repeatable screenshot workflow ran the playable scene at **1280 × 720** on a Linux X11 virtual display using Mesa's software **OpenGL Compatibility renderer**. The downloadable Windows build defaults to **Forward+/Vulkan**, so its lighting and reflections can differ. [See how the captures were generated and verified.](docs/screenshots/README.md)
 
 
 ## First hands-on Windows playtest: stabilization and open visual debt
