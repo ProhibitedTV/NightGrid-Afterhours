@@ -131,7 +131,7 @@ func _json_metadata() -> Dictionary:
 		"git_revision": Build.SOURCE_REVISION,
 		"build_flavor": Build.BUILD_FLAVOR,
 		"captured_at_local": Time.get_datetime_string_from_system(),
-		"renderer": RenderingServer.get_current_rendering_method(),
+		"configured_renderer": str(ProjectSettings.get_setting("rendering/renderer/rendering_method", "unspecified")),
 		"window_px": [get_viewport().get_visible_rect().size.x,
 			get_viewport().get_visible_rect().size.y],
 		"platform": OS.get_name(),
