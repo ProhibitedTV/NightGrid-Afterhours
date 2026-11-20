@@ -47,6 +47,8 @@ jobs:
         run: godot --headless --path . --script res://tests/transport_smoke.gd
       - name: Validate Kestrel S6 hero body, dynamic lights and save stability
         run: godot --headless --path . --script res://tests/hero_vehicle_smoke.gd
+      - name: Audit Kestrel rear hatch manifold, trunk bulkhead and police geometry
+        run: godot --headless --path . --script res://tests/kestrel_rear_closure_smoke.gd
       - name: Validate Central Exchange junction architecture and signal-safe lighting
         run: godot --headless --path . --script res://tests/hero_intersection_smoke.gd
       - name: Validate new Central Exchange true-mesh architecture, source PBR and persistence
@@ -57,6 +59,8 @@ jobs:
         run: godot --headless --path . --script res://tests/expansion_smoke.gd
       - name: Validate on-demand district geometry and fully enterable interior rooms
         run: godot --headless --path . --script res://tests/streaming_interiors_smoke.gd
+      - name: Validate predictive traversal streaming with one new block per frame
+        run: godot --headless --path . --script res://tests/predictive_streaming_smoke.gd
       - name: Validate Lantern Cup cinematic café interior, unique interaction and persistent save
         run: godot --headless --path . --script res://tests/lantern_cup_hero_smoke.gd
       - name: Validate Mara's character rig, reactive dialogue and indoor save lifecycle
@@ -67,5 +71,9 @@ jobs:
         run: godot --headless --path . --script res://tests/playtest_geometry_smoke.gd
       - name: Validate main menus, saved settings and controller action contexts
         run: godot --headless --path . --script res://tests/menus_gamepad_smoke.gd
+      - name: Validate NightGrid FM catalog, car radio and optional song pack
+        run: godot --headless --path . --script res://tests/nightgrid_fm_smoke.gd
+      - name: Validate cached district soundscape, footsteps and audio settings
+        run: godot --headless --path . --script res://tests/world_audio_smoke.gd
       - name: Run smoke test for 90 frames
         run: godot --headless --path . --quit-after 90
