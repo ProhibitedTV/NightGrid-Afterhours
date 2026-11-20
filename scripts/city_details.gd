@@ -41,6 +41,14 @@ var _statistics := {"buildings": 0, "storefronts": 0, "street_props": 0, "batche
 var _initialized := false
 var world_seed: int = 834726
 var world_manifest: Dictionary = {}
+const STREAM_RADIUS = 2
+const UNLOAD_RADIUS = 3
+var _loaded: Dictionary = {}
+var _active_chunk: Node3D
+var _current_block := Vector2i(999, 999)
+var _loads := 0
+var _unloads := 0
+var _stream_locked := false
 
 func set_world_seed(value: int) -> void:
 	assert(not _initialized)
@@ -60,16 +68,93 @@ func generate() -> void:
 		return
 	_initialized = true
 	_rng.seed = int(SEED) ^ world_seed
+	# Roads, intersection controls and skyline are global; occupied blocks
+	# allocate collisions and facade MultiMeshes only when nearby.
 	_build_road_language()
-	for block_x in range(-GRID_RADIUS, GRID_RADIUS):
-		for block_z in range(-GRID_RADIUS, GRID_RADIUS):
-			_build_block(block_x, block_z)
 	_build_intersections()
 	_build_far_skyline()
 	_flush_instances()
+	set_focus(Vector3.ZERO)
 
 func get_city_stats() -> Dictionary:
-	return _statistics.duplicate()
+	# The atlas counts all authored lots; streaming metrics count only live nodes.
+	var result := _statistics.duplicate()
+	result["buildings"] = GRID_RADIUS * GRID_RADIUS * 8 - WorldPlan.LANDMARK_BLOCKS.size() * 2
+	result["authored_lots"] = result["buildings"]
+	result["storefronts"] = result["buildings"]
+	result["landmarks"] = WorldPlan.LANDMARK_BLOCKS.size()
+	result["loaded_blocks"] = _loaded.size()
+	result["loaded_buildings"] = _count_loaded_buildings()
+	return result
+
+func get_streaming_stats() -> Dictionary:
+	return {
+		"loaded_blocks": _loaded.size(),
+		"total_blocks": GRID_RADIUS * GRID_RADIUS * 4,
+		"loaded_buildings": _count_loaded_buildings(),
+		"loads": _loads, "unloads": _unloads,
+		"radius": STREAM_RADIUS, "unload_radius": UNLOAD_RADIUS
+	}
+
+func get_loaded_blocks() -> Array[Vector2i]:
+	var blocks: Array[Vector2i] = []
+	for key in _loaded:
+		blocks.append(key)
+	blocks.sort()
+	return blocks
+
+func _count_loaded_buildings() -> int:
+	var count := 0
+	for key in _loaded:
+		var grid: Vector2i = key
+		if WorldPlan.landmark_for_block(grid.x, grid.y).is_empty():
+			count += 2
+	return count
+
+func set_streaming_enabled(value: bool) -> void:
+	_stream_locked = not value
+
+func set_focus(at: Vector3) -> void:
+	if not _initialized or _stream_locked:
+		return
+	var cell := Vector2i(floori(at.x / CELL), floori(at.z / CELL))
+	cell.x = clampi(cell.x, -GRID_RADIUS, GRID_RADIUS - 1)
+	cell.y = clampi(cell.y, -GRID_RADIUS, GRID_RADIUS - 1)
+	if cell == _current_block:
+		return
+	_current_block = cell
+	# Build ahead of unload so there is never a gap in collision geometry.
+	for ix in range(maxi(-GRID_RADIUS, cell.x - STREAM_RADIUS),
+			mini(GRID_RADIUS, cell.x + STREAM_RADIUS + 1)):
+		for iz in range(maxi(-GRID_RADIUS, cell.y - STREAM_RADIUS),
+				mini(GRID_RADIUS, cell.y + STREAM_RADIUS + 1)):
+			var block := Vector2i(ix, iz)
+			if not _loaded.has(block):
+				_load_block(block)
+	var obsolete: Array[Vector2i] = []
+	for key in _loaded:
+		var block: Vector2i = key
+		if maxi(absi(block.x - cell.x), absi(block.y - cell.y)) > UNLOAD_RADIUS:
+			obsolete.append(block)
+	for block in obsolete:
+		var node: Node3D = _loaded[block]
+		_loaded.erase(block)
+		node.queue_free()
+		_unloads += 1
+
+func _load_block(block: Vector2i) -> void:
+	var node := Node3D.new()
+	node.name = "Block_%d_%d" % [block.x, block.y]
+	add_child(node)
+	_loaded[block] = node
+	_active_chunk = node
+	# Per-block RNG: revisit order does not affect building/window patterns.
+	_rng.seed = int(world_seed) ^ int(SEED) ^ (
+		(block.x + GRID_RADIUS + 1) * 156553 + (block.y + GRID_RADIUS + 1) * 933847)
+	_build_block(block.x, block.y)
+	_flush_instances()
+	_active_chunk = null
+	_loads += 1
 
 func get_district_at(position: Vector3) -> String:
 	return WorldPlan.district_at(position)
@@ -125,7 +210,7 @@ func _solid(at: Vector3, size: Vector3, color: Color, surface_kind: String = "CO
 	visual.mesh = mesh
 	visual.material_override = Materials.surface(surface_kind, color)
 	body.add_child(visual)
-	add_child(body)
+	(_active_chunk if _active_chunk != null else self).add_child(body)
 
 func _flush_instances() -> void:
 	var unit_mesh := BoxMesh.new()
@@ -144,7 +229,7 @@ func _flush_instances() -> void:
 		node.name = "Detail_%s" % key
 		node.multimesh = multimesh
 		node.material_override = _palette[str(key).split("|")[0]]
-		add_child(node)
+		(_active_chunk if _active_chunk != null else self).add_child(node)
 	_batches.clear()
 
 func _build_road_language() -> void:
@@ -446,7 +531,7 @@ func _label(value: String, at: Vector3, color: Color, point_size: int = 48) -> v
 	sign.position = at
 	sign.rotation.y = PI
 	sign.double_sided = true
-	add_child(sign)
+	(_active_chunk if _active_chunk != null else self).add_child(sign)
 
 func _furniture(center: Vector3, district: String) -> void:
 	var color: Color = ACCENT[district]
