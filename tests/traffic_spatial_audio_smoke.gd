@@ -66,7 +66,7 @@ func _verify() -> void:
 	var car_found := false
 	var bus_found := false
 	for index in range(owners.size()):
-		var assigned := owners[index]
+		var assigned: Node3D = owners[index]
 		if assigned == car:
 			car_found = true
 			if voices[index].stream != CarAudio.sound():
