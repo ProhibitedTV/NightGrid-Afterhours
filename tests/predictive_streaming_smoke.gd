@@ -88,6 +88,17 @@ func _verify() -> void:
 	if not has_collider:
 		_fail("Decorations began streaming before the new block's solid building collider")
 		return
+	# The car may change course while a speculative block is only half
+	# decorated. Replanning must not detach its live collider or attach its
+	# remaining visual batches to the next city block.
+	city.call("request_focus", player.global_position, Vector3(-72.0, 0.0, 0.0))
+	if city.get("_inflight_node") != inflight:
+		_fail("Reversing course destroyed a half-staged collidable block")
+		return
+	city.call("request_focus", player.global_position, Vector3(72.0, 0.0, 0.0))
+	if city.get("_inflight_node") != inflight:
+		_fail("Reversal attached the pending visual batches to a different node")
+		return
 	if not _drain(city, 500):
 		_fail("Frame-budgeted speculative detail jobs failed to drain")
 		return
