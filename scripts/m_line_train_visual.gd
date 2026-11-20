@@ -3,6 +3,7 @@ extends Node3D
 ## Art direction: real transit engineering beneath an optimistic neon-noir skin.
 ## Static meshes/materials are built once, never randomized or serialized.
 const Materials = preload("res://scripts/material_library.gd")
+const TrainAudio = preload("res://scripts/m_line_train_audio.gd")
 const CAR_CENTERS = [-5.1, 5.1]
 const CAR_HALF_LENGTH = 4.75
 const CAB_END = 9.85
@@ -18,6 +19,11 @@ var _materials: Dictionary = {}
 var _doors: Array[Dictionary] = []
 var _cab_lights: Array[Dictionary] = []
 var _headlight_spots: Array[SpotLight3D] = []
+var _destination_labels: Array[Label3D] = []
+var _destination_text := ""
+var _rolling_audio: AudioStreamPlayer3D
+var _arrival_audio: AudioStreamPlayer3D
+var _previously_stopped := true
 var _last_direction := 1
 var _speed := 0.0
 var _stopped := true
@@ -33,6 +39,7 @@ func _ready() -> void:
 		_build_car(float(center))
 	_build_connection()
 	_build_cabs()
+	_initialize_audio()
 	set_operational_state(1, 0.0, true)
 
 func set_operational_state(travel_direction: int, velocity: float, stopped_at_station: bool) -> void:
@@ -46,6 +53,40 @@ func set_operational_state(travel_direction: int, velocity: float, stopped_at_st
 		light_node.material_override = _surface("EMISSION", Color("e2ffeb") if leading else Color("ff5269"))
 	for spot in _headlight_spots:
 		spot.visible = _speed > 0.5 and int(spot.get_meta("end")) == _last_direction
+	if _rolling_audio != null:
+		if _speed > 0.45:
+			if not _rolling_audio.playing:
+				_rolling_audio.play()
+			_rolling_audio.volume_db = lerpf(-30.0, -11.0, clampf(_speed / 17.0, 0.0, 1.0))
+		elif _rolling_audio.playing:
+			_rolling_audio.stop()
+	if _arrival_audio != null and _stopped and not _previously_stopped:
+		_arrival_audio.play()
+	_previously_stopped = _stopped
+
+func set_destination(value: String) -> void:
+	if value == _destination_text:
+		return
+	_destination_text = value
+	for display in _destination_labels:
+		display.text = value
+
+func displayed_destination() -> String:
+	return _destination_text
+
+func _initialize_audio() -> void:
+	_rolling_audio = AudioStreamPlayer3D.new()
+	_rolling_audio.name = "OriginalRailRollingLoop"
+	_rolling_audio.stream = TrainAudio.sound("ROLL")
+	_rolling_audio.max_distance = 75.0
+	_rolling_audio.volume_db = -30.0
+	add_child(_rolling_audio)
+	_arrival_audio = AudioStreamPlayer3D.new()
+	_arrival_audio.name = "OriginalStationArrivalChime"
+	_arrival_audio.stream = TrainAudio.sound("CHIME")
+	_arrival_audio.max_distance = 40.0
+	_arrival_audio.volume_db = -10.0
+	add_child(_arrival_audio)
 
 func _process(delta: float) -> void:
 	# Purely cosmetic doors. Movement, platform boarding and save-state remain
@@ -132,7 +173,7 @@ func _cylinder(parent: Node3D, label_name: String, at: Vector3, radius: float,
 	return node
 
 func _label(parent: Node3D, message: String, at: Vector3,
-		tint: Color, size: int, rotation_y: float = 0.0) -> void:
+		tint: Color, size: int, rotation_y: float = 0.0) -> Label3D:
 	var sign := Label3D.new()
 	sign.text = message
 	sign.position = at
@@ -144,6 +185,7 @@ func _label(parent: Node3D, message: String, at: Vector3,
 	sign.outline_size = 6
 	sign.no_depth_test = false
 	parent.add_child(sign)
+	return sign
 
 func _hull_mesh() -> ArrayMesh:
 	# An extruded bevelled side profile, not a stack of rectangular boxes.
@@ -372,6 +414,7 @@ func _build_cabs() -> void:
 		beam.visible = false
 		cab.add_child(beam)
 		_headlight_spots.append(beam)
-		_label(cab, "M8  //  NIGHT SERVICE",
+		var route_display := _label(cab, "M8  //  NIGHT SERVICE",
 			Vector3(float(end) * 0.20, 1.30, 0.0),
 			Color("0c202a"), 24, PI * 0.5 if end > 0 else -PI * 0.5)
+		_destination_labels.append(route_display)
