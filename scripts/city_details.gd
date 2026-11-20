@@ -1,6 +1,7 @@
 extends Node3D
 const WorldPlan = preload("res://scripts/world_plan.gd")
 const Materials = preload("res://scripts/material_library.gd")
+const CentralFrontage = preload("res://scripts/central_exchange_frontages.gd")
 ## Seeded city dressing. Static shell collisions + batched decorative geometry.
 ## The four neighborhoods deliberately share road geometry but not street character.
 
@@ -455,6 +456,22 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 	var right := center.x + width / 2.0
 	_solid(Vector3(center.x, height / 2.0 + 0.15, center.z), Vector3(width, height, depth), wall, surface_kind)
 	_statistics["buildings"] += 1
+	# First physically coherent architecture study: the two south-facing
+	# building fronts at Central Exchange, across from the working signals.
+	# Keep the same parcel/seed, outer collision and publicly exposed shop ID.
+	# The new actual recessed-window ArrayMeshes *replace* the old fake glass
+	# and glowing box stack, rather than doubling those decorations.
+	var south_exposure: bool = (ix == -1 and iz == 0 and which == 1) or (ix == 0 and iz == 0 and which == 0)
+	if south_exposure:
+		var names: Array = SHOPS[district]
+		var stable_name: String = names[abs(ix * 11 + iz * 17 + which * 3) % names.size()]
+		var facade := CentralFrontage.new()
+		facade.name = "PhotorealFrontage_%d_%d_%d" % [ix, iz, which]
+		facade.configure(width, height, district, stable_name)
+		facade.position = Vector3(center.x, 0.15, front)
+		_active_chunk.add_child(facade)
+		_statistics["storefronts"] += 1
+		return
 
 	# Foundation plinth, cast shadow line, parapet, mechanical penthouse.
 	_detail(Vector3(center.x, 0.47, front - 0.15), Vector3(width + 0.20, 0.80, 0.22), Color("313743"))
