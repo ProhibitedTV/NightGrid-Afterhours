@@ -47,10 +47,17 @@ func _capture() -> void:
 	if not await _save("central-exchange-noon-real-godot.png"):
 		return
 	clock.call("set_hour", 20.18)
-	camera.global_position = Vector3(-17.7, 2.8, -3.8)
-	camera.look_at(Vector3(-18.5, 7.2, 14.0), Vector3.UP)
+	# The useful view is from the roadway looking at the new X-facing
+	# shop windows, NOT into the plain back of a nearby older parcel.
+	camera.global_position = Vector3(-3.7, 3.0, 3.8)
+	camera.look_at(Vector3(-10.9, 7.0, 24.0), Vector3.UP)
 	await _settle()
 	if not await _save("brickwater-recessed-windows-closeup-real-godot.png"):
+		return
+	camera.global_position = Vector3(3.7, 3.0, 3.8)
+	camera.look_at(Vector3(10.9, 7.0, 24.0), Vector3.UP)
+	await _settle()
+	if not await _save("afterhours-blue-steel-glazing-closeup-real-godot.png"):
 		return
 	print("CENTRAL_FRONTAGE_CAPTURE PASS: ", captured)
 	quit(0)
