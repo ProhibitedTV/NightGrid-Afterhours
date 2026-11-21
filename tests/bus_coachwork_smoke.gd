@@ -44,6 +44,7 @@ func _verify()->void:
 			return
 		var collider_count:=0
 		var wheels:=0
+		var rims:=0
 		for child in bus.get_children():
 			if child is CollisionShape3D:
 				collider_count+=1
@@ -53,7 +54,11 @@ func _verify()->void:
 				if not _check(is_equal_approx(child.position.y,-1.30),"wheel ride height aligned with route"):
 					return
 				wheels+=1
-		if not _check(collider_count==1 and wheels==8 and bus.is_boardable(),"original wheel count and bus boarding"):
+			if child is MeshInstance3D and str(child.name).begins_with("TrafficRim_"):
+				if not _check(child.mesh is ArrayMesh and is_equal_approx(child.position.y,-1.30),"modeled rim at axle"):
+					return
+				rims+=1
+		if not _check(collider_count==1 and wheels==4 and rims==4 and bus.is_boardable(),"original wheel count and bus boarding"):
 			return
 		meshes.append(coach.mesh)
 	if not _check(meshes[0]==meshes[1] and meshes[2]==meshes[3] and meshes[0]!=meshes[2],"shared inner/outer livery resources"):

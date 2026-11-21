@@ -2,6 +2,7 @@ extends CharacterBody3D
 const Materials = preload("res://scripts/material_library.gd")
 const BusCoachwork = preload("res://scripts/bus_coachwork.gd")
 const CarCoachwork = preload("res://scripts/civilian_car_coachwork.gd")
+const WheelArt = preload("res://scripts/traffic_wheel_mesh.gd")
 ## Lightweight NPC street vehicle. Follows lane centerlines, obeys stop bars,
 ## slows for vehicles ahead and dwells at marked bus stops.
 var route: Array[Vector3] = []
@@ -21,6 +22,8 @@ var _detour: Array[Vector3] = []
 var _detour_cursor := 0
 var _detour_rejoin := -1
 var _detour_hold := false
+var _wheel_hubs: Array[MeshInstance3D] = []
+var _wheel_phase := 0.0
 const HANDOFF_TOLERANCE = 0.55
 const DETOUR_MAX_POINTS = 81
 
@@ -152,7 +155,26 @@ func _physics_process(delta: float) -> void:
 	speed = move_toward(speed, cap, (3.0 if speed < cap else 9.0) * delta)
 	rotation.y = lerp_angle(rotation.y, atan2(-direction.x, -direction.z), minf(delta * 5.5, 1.0))
 	velocity = direction * speed
+	var before := global_position
 	move_and_slide()
+	_roll_wheels(global_position-before)
+
+func _roll_wheels(displacement:Vector3) -> void:
+	# Use actual post-collision movement, not intended cruise speed.
+	# Never turn by a save/load teleport or a large invalid delta.
+	displacement.y = 0.0
+	if not displacement.is_finite() or displacement.length()>2.0 or displacement.length_squared()<0.00000001:
+		return
+	var radius := 0.44 if buses else CarCoachwork.TIRE_RADIUS
+	var signed_metres := displacement.dot(-global_transform.basis.z)
+	_wheel_phase = fposmod(_wheel_phase+signed_metres/radius,TAU)
+	_apply_wheel_phase()
+
+func _apply_wheel_phase() -> void:
+	var orientation := Basis(Vector3.FORWARD,-PI*0.5)*Basis(Vector3.UP,_wheel_phase)
+	# FORWARD is -Z; the first rotation maps local Y onto -X.
+	for hub in _wheel_hubs:
+		hub.basis=orientation
 
 func is_boardable() -> bool:
 	return buses and dwell_remaining > 0.05
@@ -183,6 +205,8 @@ func apply_snapshot(data: Dictionary) -> void:
 	dwell_remaining = clampf(float(data.get("dwell", 0.0)), 0.0, 8.0)
 	last_served = clampi(int(data.get("last_served", -1)), -1, stop_points.size() - 1)
 	laps = maxi(0, int(data.get("laps", 0)))
+	_wheel_phase = 0.0
+	_apply_wheel_phase()
 
 func _build_body() -> void:
 	var shape := BoxShape3D.new()
@@ -208,25 +232,17 @@ func _build_body() -> void:
 
 func _wheel(at: Vector3, radius: float) -> void:
 	var tire := MeshInstance3D.new()
-	var mesh := CylinderMesh.new()
-	mesh.top_radius = radius
-	mesh.bottom_radius = radius
-	mesh.height = 0.28
-	mesh.radial_segments = 14
-	tire.mesh = mesh
+	tire.name = "TrafficTire_%d" % _wheel_hubs.size()
+	tire.mesh = WheelArt.tire(radius)
 	tire.position = at
 	tire.rotation.z = PI * 0.5
 	tire.material_override = Materials.surface("ASPHALT", Color("171a20"))
 	add_child(tire)
 	var hub := MeshInstance3D.new()
-	var cap := CylinderMesh.new()
-	cap.top_radius = radius * 0.47
-	cap.bottom_radius = radius * 0.47
-	cap.height = 0.295
-	cap.radial_segments = 12
-	hub.mesh = cap
+	hub.name = "TrafficRim_%d" % _wheel_hubs.size()
+	hub.mesh = WheelArt.rim(radius)
 	hub.position = at
 	hub.rotation.z = PI * 0.5
 	hub.material_override = Materials.surface("METAL", Color("89939c"))
 	add_child(hub)
-
+	_wheel_hubs.append(hub)
