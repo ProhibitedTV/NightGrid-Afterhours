@@ -360,12 +360,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		if not _capturing_evidence:
 			call_deferred("_capture_playtest_frame")
 	elif event.is_action_pressed("compare_render_look"):
-		var new_mode: bool = not bool(day_night.call("is_render_comparison_enabled"))
-		day_night.call("set_render_comparison", new_mode)
-		var profile := str(day_night.call("get_render_profile"))
+		var profile: String = str(day_night.call("cycle_render_profile"))
 		_log_playtest("render_profile_switched", {"render_profile": profile})
 		playtest_logger.flush()
-		_notify("Rendering comparison: " + profile + " (F11 toggle; F10 captures evidence)")
+		_notify("Rendering comparison: " + profile + " (F11 cycles Filmic / ACES / AgX; F10 captures)")
 	elif event.is_action_pressed("toggle_ssr"):
 		world_environment.environment.ssr_enabled = not world_environment.environment.ssr_enabled
 	else:
