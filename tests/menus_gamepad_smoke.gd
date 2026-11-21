@@ -2,6 +2,7 @@ extends SceneTree
 ## Headless UI/input contract test. Verifies action registration, menu state,
 ## controller-safe action context, settings and focusable shop actions.
 func _initialize() -> void:
+	create_timer(30.0, true, false, true).timeout.connect(func() -> void: _fail("Timed out before completing menu checks"))
 	call_deferred("_verify")
 
 func _fail(message: String) -> void:
@@ -163,6 +164,7 @@ func _verify() -> void:
 	if str(menu.get("screen")) != "map" or menu.find_child("WorldMapView", true, false) == null:
 		_fail("The full-city map is missing or inaccessible from pause")
 		return
+	print("MENU_GAMEPAD_SMOKE: opening atlas")
 	var atlas := menu.find_child("WorldMapView", true, false) as Control
 	var old_mission: Vector3 = world.get("mission_position")
 	if not bool(atlas.get("interactive")) or atlas.focus_mode != Control.FOCUS_ALL:
@@ -170,6 +172,7 @@ func _verify() -> void:
 		return
 	# Real controller movement and A press, routed to the atlas GUI.
 	atlas.set("cursor", Vector2.ZERO)
+	print("MENU_GAMEPAD_SMOKE: testing D-pad")
 	var right := InputEventJoypadButton.new()
 	right.button_index = JOY_BUTTON_DPAD_RIGHT
 	right.pressed = true
@@ -177,6 +180,7 @@ func _verify() -> void:
 	if atlas.get("cursor") != Vector2(8, 0):
 		_fail("D-pad did not move the real atlas targeting cursor")
 		return
+	print("MENU_GAMEPAD_SMOKE: testing placement")
 	var accept := InputEventJoypadButton.new()
 	accept.button_index = JOY_BUTTON_A
 	accept.pressed = true
@@ -188,6 +192,7 @@ func _verify() -> void:
 	if world.get("mission_position") != old_mission:
 		_fail("Personal waypoint must never change courier objective")
 		return
+	print("MENU_GAMEPAD_SMOKE: testing save")
 	var save: Dictionary = world.call("_capture_snapshot")
 	if save["navigation_waypoint"] != [8.0, 0.0]:
 		_fail("Waypoint not present in backward-compatible save payload")
@@ -199,12 +204,14 @@ func _verify() -> void:
 	if nav.bearing(Vector2.ZERO, Vector2(0, -20)) != "N" or nav.bearing(Vector2.ZERO, Vector2(20, 0)) != "E":
 		_fail("World X/Z navigation bearings are reversed")
 		return
+	print("MENU_GAMEPAD_SMOKE: testing snap")
 	var venues_node := world.get_node("SocialVenues")
 	var cafe: Vector3 = venues_node.call("venue_position", "lantern_cup")
 	var snapped: Vector2 = world.call("set_navigation_waypoint", Vector2(cafe.x + 2, cafe.z))
 	if not snapped.is_equal_approx(Vector2(cafe.x, cafe.z)) or not str(world.call("navigation_text")).contains("LANTERN CUP"):
 		_fail("Named destination did not snap to canonical café interaction point")
 		return
+	print("MENU_GAMEPAD_SMOKE: testing HUD")
 	world.call("_update_hud")
 	if not (world.get("hud_navigation") as Label).visible:
 		_fail("Active waypoint did not appear in the live HUD")

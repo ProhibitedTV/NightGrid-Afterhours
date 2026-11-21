@@ -55,6 +55,9 @@ jobs:
           use-dotnet: false
       - name: Import project and parse scripts
         run: godot --headless --path . --import --quit
+      - name: Validate main menus, saved settings and controller action contexts
+        timeout-minutes: 2
+        run: timeout 75s godot --headless --path . --script res://tests/menus_gamepad_smoke.gd
       - name: Validate Southworks solid cargo and player movement orientation regressions
         run: godot --headless --path . --script res://tests/southworks_playtest_smoke.gd
       - name: Validate fixed 60Hz physics and independent rendered train cadence
@@ -137,7 +140,5 @@ jobs:
         run: godot --headless --path . --script res://tests/cafe_patrons_smoke.gd
       - name: Validate first-playtest club exit, camera obstruction, contact geometry and building fronts
         run: godot --headless --path . --script res://tests/playtest_geometry_smoke.gd
-      - name: Validate main menus, saved settings and controller action contexts
-        run: godot --headless --path . --script res://tests/menus_gamepad_smoke.gd
       - name: Run smoke test for 90 frames
         run: godot --headless --path . --quit-after 90
