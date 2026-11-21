@@ -2,6 +2,7 @@ extends Node3D
 const WorldPlan = preload("res://scripts/world_plan.gd")
 const Materials = preload("res://scripts/material_library.gd")
 const CentralFrontage = preload("res://scripts/central_exchange_frontages.gd")
+const RenderBatchOwner = preload("res://scripts/render_batch_owner.gd")
 ## Seeded city dressing. Static shell collisions + batched decorative geometry.
 ## The four neighborhoods deliberately share road geometry but not street character.
 
@@ -66,6 +67,8 @@ var _queue_replans := 0
 var _stream_steps := 0
 var _total_build_usec := 0
 var _occupied_collision_fallback_stages := 0
+var _server_visual_batches_created := 0
+var _server_detail_instances_created := 0
 
 func set_world_seed(value: int) -> void:
 	assert(not _initialized)
@@ -117,7 +120,10 @@ func get_streaming_stats() -> Dictionary:
 		"last_build_usec": _last_stream_build_usec,
 		"peak_build_usec": _peak_stream_build_usec,
 		"prefetch_seconds": PREFETCH_SECONDS,
-		"occupied_collision_fallback_stages": _occupied_collision_fallback_stages
+		"occupied_collision_fallback_stages": _occupied_collision_fallback_stages,
+		"render_batch_backend": "RenderingServer",
+		"render_batches_created": _server_visual_batches_created,
+		"visual_instances_created": _server_detail_instances_created
 	}
 
 func get_loaded_blocks() -> Array[Vector2i]:
@@ -425,11 +431,19 @@ func _flush_instance_key(key: String, unit_mesh: BoxMesh) -> void:
 	multimesh.instance_count = transforms.size()
 	for index in range(transforms.size()):
 		multimesh.set_instance_transform(index, transforms[index])
-	var node := MultiMeshInstance3D.new()
-	node.name = "Detail_%s" % key
-	node.multimesh = multimesh
-	node.material_override = _palette[str(key).split("|")[0]]
-	(_active_chunk if _active_chunk != null else self).add_child(node)
+	# One owner per chunk (or global road paint) replaces dozens of
+	# MultiMeshInstance3D children; all batches still render through the
+	# existing material-keyed, spatially grouped MultiMesh assets.
+	var parent: Node3D = _active_chunk if _active_chunk != null else self
+	var owner_name := "VisualBatches" if _active_chunk != null else "GlobalVisualBatches"
+	var owner: Node3D = parent.get_node_or_null(owner_name)
+	if owner == null:
+		owner = RenderBatchOwner.new()
+		owner.name = owner_name
+		parent.add_child(owner)
+	owner.call("add_batch", multimesh, _palette[str(key).split("|")[0]])
+	_server_visual_batches_created += 1
+	_server_detail_instances_created += transforms.size()
 	_batches.erase(key)
 
 func _flush_instances() -> void:
