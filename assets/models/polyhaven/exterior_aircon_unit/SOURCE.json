@@ -1,0 +1,99 @@
+{
+  "asset": "exterior_aircon_unit",
+  "description": "Weathered and clean exterior HVAC equipment mounted high on a permanent West Docks service roof",
+  "files": {
+    "exterior_aircon_unit.bin": {
+      "bytes": 494784,
+      "sha256": "b4b9ad082bdaa8f8b437bc14d9981caeaf318334499d4bf65d616fb2ec0c5ca8",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/exterior_aircon_unit/exterior_aircon_unit.bin",
+      "source_md5": "971c2cfcbc29256d7872eafe74352279"
+    },
+    "exterior_aircon_unit.gltf": {
+      "bytes": 9634,
+      "sha256": "f19d85c76948903047c2846068aeaa376d5e956a410675268cb6cb6aac5d97c2",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/exterior_aircon_unit/exterior_aircon_unit_1k.gltf",
+      "source_md5": "10beccfb1bf0c973a0729be8970532a9"
+    },
+    "textures/exterior_aircon_unit_01_arm_1k.jpg": {
+      "bytes": 651293,
+      "sha256": "14671920f716691dc3b8940432f7aba5c469e3b466441ff8ad500de92d3178fb",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/exterior_aircon_unit/exterior_aircon_unit_01_arm_1k.jpg",
+      "source_md5": "9af3805e7371643962ffe6079d547b00"
+    },
+    "textures/exterior_aircon_unit_01_diff_1k.jpg": {
+      "bytes": 506664,
+      "sha256": "2ae5005b4836d2c91d1e712d9acf425c7dcc4973b7c0fc6f23da9afaa6381da6",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/exterior_aircon_unit/exterior_aircon_unit_01_diff_1k.jpg",
+      "source_md5": "81003ea4afe59ed4dac090791e41f562"
+    },
+    "textures/exterior_aircon_unit_01_nor_gl_1k.jpg": {
+      "bytes": 472088,
+      "sha256": "e5a6f3c135b942d6efe62a24496c575d03f6a4316188efe65079035d7faf1c38",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/exterior_aircon_unit/exterior_aircon_unit_01_nor_gl_1k.jpg",
+      "source_md5": "244025f2008cbdc8c8680f0c962ed26f"
+    },
+    "textures/exterior_aircon_unit_01_opacity_1k.jpg": {
+      "bytes": 333675,
+      "sha256": "c19feb434c2b01923fbb3e16ace3aa6d9cb16b05c2a5c479ad237759b2d331d6",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/exterior_aircon_unit/exterior_aircon_unit_01_opacity_1k.jpg",
+      "source_md5": "f253dbcb057612371dd1b6d37095c6ba"
+    },
+    "textures/exterior_aircon_unit_02_arm_1k.jpg": {
+      "bytes": 484026,
+      "sha256": "1cdfa2d1c938c3af61a5f06510b0d94aeddddd4bdc1832008b3826240dd1535d",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/exterior_aircon_unit/exterior_aircon_unit_02_arm_1k.jpg",
+      "source_md5": "98b44ba240f832fe4fa94e90d1887c6a"
+    },
+    "textures/exterior_aircon_unit_02_nor_gl_1k.jpg": {
+      "bytes": 942230,
+      "sha256": "864c0fb1e55aff910d826a8c1f6a2ad459f7db0124b5846445d466cabf0cadf5",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/exterior_aircon_unit/exterior_aircon_unit_02_nor_gl_1k.jpg",
+      "source_md5": "e00f9c963e9f3dc798d84f7ebcc4185a"
+    },
+    "textures/exterior_aircon_unit_rusted_01_arm_1k.jpg": {
+      "bytes": 673246,
+      "sha256": "51c103926b118bf00b902826001db802b15755c6eefa12b00afa24c60d7b341b",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/exterior_aircon_unit/exterior_aircon_unit_rusted_01_arm_1k.jpg",
+      "source_md5": "f1c2653ac0fb58e8641f9076a2af8a67"
+    },
+    "textures/exterior_aircon_unit_rusted_01_diff_1k.jpg": {
+      "bytes": 606076,
+      "sha256": "a8771db98ed7f3d46ce48fd70867f58a74a2530666c339f8dcc14f3e5de86d0b",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/exterior_aircon_unit/exterior_aircon_unit_rusted_01_diff_1k.jpg",
+      "source_md5": "7b9fba8819918dc388c49f05b5522575"
+    },
+    "textures/exterior_aircon_unit_rusted_01_nor_gl_1k.jpg": {
+      "bytes": 583620,
+      "sha256": "14f105cda9172290be2e8b23b8e895099b65e222619850af3b13105901d922e2",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/exterior_aircon_unit/exterior_aircon_unit_rusted_01_nor_gl_1k.jpg",
+      "source_md5": "5b9df77429c9010ea389aef30fd7d460"
+    },
+    "textures/exterior_aircon_unit_rusted_02_arm_1k.jpg": {
+      "bytes": 605557,
+      "sha256": "6ac4cfca6a8d8bec6ef1ff756652eb1f36b780d1ff7d70d9cb3e0f7fe1faf271",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/exterior_aircon_unit/exterior_aircon_unit_rusted_02_arm_1k.jpg",
+      "source_md5": "6e2bee1569b55a3b01d18799e942a6af"
+    },
+    "textures/exterior_aircon_unit_rusted_02_nor_gl_1k.jpg": {
+      "bytes": 947477,
+      "sha256": "3af4716b42812b742577594c7a0a342accd79925f02037c152b1da1c5831bb78",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/exterior_aircon_unit/exterior_aircon_unit_rusted_02_nor_gl_1k.jpg",
+      "source_md5": "53f4890e3c9b9fb2efcd96f3143f579b"
+    },
+    "textures/exterior_aircon_unit_rusted_02_opacity_1k.jpg": {
+      "bytes": 357558,
+      "sha256": "a86bcaf9c4858cf250fd67c9a0ee362504454b9972ff6e1ac44e38bac3213421",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/exterior_aircon_unit/exterior_aircon_unit_rusted_02_opacity_1k.jpg",
+      "source_md5": "0540ff18330b76e4e55053d5bd21f59e"
+    }
+  },
+  "license": "CC0 1.0",
+  "license_url": "https://polyhaven.com/license",
+  "materials": 4,
+  "meshes": 2,
+  "model": "assets/models/polyhaven/exterior_aircon_unit/exterior_aircon_unit.gltf",
+  "resolution": "1k",
+  "runtime_download_required": false,
+  "source_api": "https://api.polyhaven.com/files/exterior_aircon_unit",
+  "source_page": "https://polyhaven.com/a/exterior_aircon_unit"
+}

@@ -7,6 +7,7 @@ extends Node3D
 ## entire save-stable box collision envelope. This is a technical art pilot,
 ## not a certified finished AAA building.
 const SHUTTER_SCENE = preload("res://assets/models/polyhaven/rollershutter_window_01/rollershutter_window_01.gltf")
+const RoofHVAC = preload("res://scripts/west_docks_hvac_roof_kit.gd")
 const PBR_ROOT = "res://assets/pbr/polyhaven/"
 const FRONT_DEPTH = 0.0
 const LEVEL = 3.5
@@ -20,7 +21,9 @@ var _materials: Dictionary = {}
 var _stats := {
 	"mesh_surfaces": 0, "openings": 0, "service_bays": 0,
 	"shutter_variants": 0, "source_meshes": 0, "cc0_photo_maps": 0,
-	"reveal_faces": 0, "collision_bodies": 0, "additional_lights": 0
+	"reveal_faces": 0, "collision_bodies": 0, "additional_lights": 0,
+	"rooftop_hvac_units": 0, "rooftop_hvac_photo_surfaces": 0,
+	"original_mount_profiles": 0
 }
 
 func configure(width: float, height: float, depth: float) -> void:
@@ -283,6 +286,17 @@ func _build() -> void:
 	_assemble_surfaces()
 	_source_shutter(-3.50, false)
 	_source_shutter(3.50, true)
+	# A genuine open-source two-variant condenser asset and our own high-detail
+	# UV steel saddles mount on the *closed* service roof, inside the parcel
+	# footprint; no traffic corridor or entry/exit geometry is modified.
+	var rooftop := RoofHVAC.new()
+	rooftop.name = "OriginalWestDocksRoofPlant"
+	rooftop.configure(building_height, building_depth)
+	add_child(rooftop)
+	var rooftop_stats: Dictionary = rooftop.get_roof_stats()
+	_stats["rooftop_hvac_units"] = rooftop_stats["units"]
+	_stats["rooftop_hvac_photo_surfaces"] = rooftop_stats["source_photo_surfaces"]
+	_stats["original_mount_profiles"] = rooftop_stats["original_rail_profiles"]
 	# A source-anchored 3D text identity, rather than a repeated fake neon
 	# window card. These are service roll-downs, not usable scene entrances.
 	var identity := Label3D.new()
