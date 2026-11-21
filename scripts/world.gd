@@ -12,6 +12,7 @@ const StreetRoute = preload("res://scripts/street_route.gd")
 const Arsenal = preload("res://scripts/arsenal.gd")
 const Wanted = preload("res://scripts/wanted_system.gd")
 const PoliceDispatch = preload("res://scripts/police_dispatch.gd")
+const AmbientCivicLedger = preload("res://scripts/ambient_civic_ledger.gd")
 const PoliceRadio = preload("res://scripts/police_radio.gd")
 const EquipmentWheel = preload("res://scripts/equipment_wheel.gd")
 const Reticle = preload("res://scripts/weapon_reticle.gd")
@@ -64,6 +65,7 @@ var officers: Array[CharacterBody3D] = []
 var routine_patrols: Array[CharacterBody3D] = []
 var wanted = Wanted.new()
 var dispatch = PoliceDispatch.new()
+var ambient_civic = AmbientCivicLedger.new()
 var police_radio: Node
 var _radio_caption: Label
 var _radio_card: PanelContainer
@@ -185,6 +187,7 @@ func _ready() -> void:
 	_spawn_traffic()
 	_build_transport()
 	_register_police_stations()
+	_configure_ambient_civic()
 	_build_routine_patrols()
 	_create_camera()
 	_create_marker()
@@ -273,7 +276,7 @@ func _update_police_radio(delta: float) -> void:
 	_radio_card.visible = not caption.is_empty()
 	_radio_caption.text = caption
 	if in_station:
-		interiors.call("update_dispatch_board", dispatch.status(), officers.size(), returning_units.size(), caption)
+		interiors.call("update_dispatch_board", dispatch.status() + " / CIVIC %d" % ambient_civic.open_count(), officers.size(), returning_units.size(), caption)
 
 func _build_world_audio() -> void:
 	world_audio = WorldAudioScript.new()
@@ -313,6 +316,7 @@ func _journal_context() -> Dictionary:
 		"cash": cash, "health": health, "heat": heat,
 		"weapons": weapons.inventory_text(),
 		"dispatch": dispatch.status(),
+		"ambient_civic_open": ambient_civic.open_count(),
 		"stations": dispatch.stations.size(),
 		"supplies": ration_packs, "deliveries": deliveries,
 		"venue_completed": venue_job_completed.size(),
@@ -589,6 +593,7 @@ func _physics_process(delta: float) -> void:
 			(absf(actor.global_position.x) > 390.0 or absf(actor.global_position.z) > 390.0)):
 		_respawn()
 	_update_wanted(delta)
+	_update_ambient_civic(delta)
 	if not indoors and wanted.police_seen:
 		for officer in officers:
 			if is_instance_valid(officer) and float(officer.get("condition")) > 18.0 and officer.global_position.distance_to(actor.global_position) < 3.8:
@@ -759,6 +764,29 @@ func _register_police_stations() -> void:
 	for site in civic_services.call("police_station_sites"):
 		var district: String = city_details.call("get_district_at", site["address"])
 		dispatch.register_station(site["id"], site["name"], district, site["address"], site["launch"], site["capacity"], site["hq"])
+
+func _configure_ambient_civic() -> void:
+	var sites: Array[Dictionary] = []
+	for pin in civic_services.call("get_map_pins"):
+		if bool(pin.get("station", false)):
+			continue
+		var id := str(pin["id"])
+		var site: Dictionary = civic_services.call("site_by_id", id)
+		if site.is_empty():
+			continue
+		var address: Vector3 = civic_services.call("position_for", id)
+		# Same street-side staging convention as registered police stations.
+		var point := Vector3(address.x, 1.1, float(site["iz"]) * 58.0 + 3.25)
+		var ranked: Array[Dictionary] = dispatch.ranked(point, {})
+		if ranked.is_empty():
+			continue
+		sites.append({"site_id":id, "point":point, "station_id":ranked[0]["id"],
+			"district":str(city_details.call("get_district_at", address))})
+	ambient_civic.configure(int(session.get("world_seed")), sites)
+
+func _update_ambient_civic(delta: float) -> void:
+	if not bool(day_night.get("paused")):
+		ambient_civic.advance(delta * 1440.0 / DayNightScript.DAY_LENGTH_SECONDS)
 
 func _build_routine_patrols() -> void:
 	# Two visible patrol cars on fixed street loops, present even at zero
@@ -1274,6 +1302,7 @@ func _capture_snapshot() -> Dictionary:
 		"interior": interiors.call("snapshot"),
 		"navigation_waypoint": [] if navigation_waypoint == null else [navigation_waypoint.x, navigation_waypoint.y],
 		"weapons": weapons.snapshot(),
+		"ambient_civic": ambient_civic.snapshot(),
 		"wanted_last_known": [wanted.last_known.x, wanted.last_known.y, wanted.last_known.z] if wanted.last_known.is_finite() else []
 	}
 
@@ -1281,6 +1310,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 	# Geometry is already reconstructed from the saved immutable seed.
 	navigation_waypoint = Nav.decode(data.get("navigation_waypoint", []))
 	weapons.restore(data.get("weapons", {}))
+	ambient_civic.restore(data.get("ambient_civic", {}))
 	traffic.call("restore", data["traffic"])
 	rail.call("restore", data["rail"])
 	signal_controller.set("elapsed", fposmod(float(data.get("signal_elapsed", 0.0)), 72.0))
