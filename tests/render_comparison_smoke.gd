@@ -17,11 +17,23 @@ func _check() -> void:
 	if int(engine_info.get("major", 0)) != 4 or int(engine_info.get("minor", 0)) != 7 or int(engine_info.get("patch", 0)) != 2:
 		_fail("Expected matching stable Godot 4.7.2: " + str(engine_info))
 		return
-	if str(ProjectSettings.get_setting("physics/3d/physics_engine")) != "GodotPhysics3D":
-		_fail("Engine upgrade switched legacy physical collision solver: " + str(ProjectSettings.get_setting("physics/3d/physics_engine")))
+	# In Godot 4.7.2's --headless --script CI context the runtime returns
+	# DEFAULT (documented as GodotPhysics3D) even when the project file
+	# selects GodotPhysics3D explicitly. Guard both runtime equivalence
+	# *and* the source configuration required for the Windows export.
+	var runtime_physics: String = str(ProjectSettings.get_setting("physics/3d/physics_engine"))
+	if runtime_physics != "DEFAULT" and runtime_physics != "GodotPhysics3D":
+		_fail("Engine upgrade chose unsupported physical collision solver: " + runtime_physics)
 		return
-	if str(ProjectSettings.get_setting("rendering/rendering_device/driver.windows")) != "vulkan":
-		_fail("Windows renderer changed from Forward+/Vulkan baseline")
+	var project_config := ConfigFile.new()
+	if project_config.load("res://project.godot") != OK:
+		_fail("Cannot verify pinned source physics/render drivers")
+		return
+	if str(project_config.get_value("physics", "3d/physics_engine", "")) != "GodotPhysics3D":
+		_fail("GodotPhysics3D was not pinned in project.godot")
+		return
+	if str(project_config.get_value("rendering", "rendering_device/driver.windows", "")) != "vulkan":
+		_fail("Windows Vulkan renderer was not pinned in project.godot")
 		return
 	if Engine.physics_ticks_per_second != 60:
 		_fail("Migration changed the 60 Hz physics simulation")
