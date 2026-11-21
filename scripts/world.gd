@@ -1152,7 +1152,7 @@ func _build_environment() -> void:
 func _build_city() -> void:
 	# The road foundation stays simple; populated streets live in city_details.gd.
 	var road := Color("252b35")
-	var sidewalk := Color("4d5565")
+	var sidewalk := Color("b2b0ac")
 	for index in range(-GRID_RADIUS, GRID_RADIUS + 1):
 		var axis := float(index) * CELL
 		_box(self, Vector3(axis, -0.055, 0.0), Vector3(14.0, 0.12, 490.0), road, false, false, "ASPHALT")
@@ -1160,7 +1160,7 @@ func _build_city() -> void:
 	for block_x in range(-GRID_RADIUS, GRID_RADIUS):
 		for block_z in range(-GRID_RADIUS, GRID_RADIUS):
 			var center := Vector3((float(block_x) + 0.5) * CELL, 0.07, (float(block_z) + 0.5) * CELL)
-			_box(self, center, Vector3(42.0, 0.14, 42.0), sidewalk, false, false, "PAVERS")
+			_box(self, center, Vector3(42.0, 0.14, 42.0), sidewalk, false, false, "PHOTO_SIDEWALK").name = "PhotographicSidewalk_%d_%d" % [block_x,block_z]
 	city_details = CityDetailsScript.new()
 	city_details.name = "CityDetails"
 	add_child(city_details)

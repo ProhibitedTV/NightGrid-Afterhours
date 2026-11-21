@@ -569,10 +569,10 @@ func _build_block_base(ix: int, iz: int) -> void:
 		# behavior and are not affected by this one-block pilot.
 		if not inner_x_edge:
 			_detail(center + Vector3(side * 20.8, 0.18, 0.0),
-				Vector3(0.48, 0.24, 42.0), Color("85888b"))
+				Vector3(0.48, 0.24, 42.0), Color("bfc0bd"), false, "PHOTO_CURB")
 		if not inner_z_edge:
 			_detail(center + Vector3(0.0, 0.18, side * 20.8),
-				Vector3(42.0, 0.24, 0.48), Color("85888b"))
+				Vector3(42.0, 0.24, 0.48), Color("bfc0bd"), false, "PHOTO_CURB")
 		for slab in range(-4, 5):
 			var offset := float(slab) * 4.2
 			_detail(center + Vector3(side * 19.3, 0.151, offset), Vector3(0.065, 0.018, 3.3), Color("747c81"))
