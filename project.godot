@@ -18,6 +18,9 @@ window/stretch/mode="canvas_items"
 
 [rendering]
 renderer/rendering_method="forward_plus"
+# Keep the original Windows Forward+ Vulkan baseline for the F10 screenshots.
+# New 4.6+ projects default to D3D12; evaluate that separately with F8 traces.
+rendering_device/driver.windows="vulkan"
 renderer/rendering_method.mobile="gl_compatibility"
 environment/screen_space_reflection/half_size=true
 environment/defaults/default_clear_color=Color(0.04, 0.05, 0.09, 1)
@@ -25,4 +28,7 @@ environment/defaults/default_clear_color=Color(0.04, 0.05, 0.09, 1)
 [physics]
 # Gameplay simulation runs at fixed 60Hz, independent of display refresh.
 common/physics_ticks_per_second=60
+# Preserve established Godot 4.3 vehicle/player collision response. Godot
+# 4.6+ may default new projects to Jolt; port physics separately if desired.
+3d/physics_engine="GodotPhysics3D"
 3d/default_gravity=24.0
