@@ -49,7 +49,11 @@ func _verify()->void:
 			if not _check(cross.dot(Vector3.UP)<-0.00001,"clockwise upward-facing nondegenerate asphalt triangle"):
 				return
 		for i in range(vertices.size()):
-			if not _check(normals[i].is_equal_approx(Vector3.UP) and Vector4(tangents[i*4],tangents[i*4+1],tangents[i*4+2],tangents[i*4+3]).is_equal_approx(Vector4(1,0,0,-1)),"correct photo normal and tangent basis"):
+			# ArrayMesh stores packed normals/tangents; compare directional
+			# alignment rather than exact reconstructed vector components.
+			var tangent := Vector3(tangents[i*4],tangents[i*4+1],tangents[i*4+2])
+			var handedness:float = tangents[i*4+3]
+			if not _check(normals[i].dot(Vector3.UP)>0.999 and tangent.dot(Vector3.RIGHT)>0.999 and handedness < -0.99,"correct photo normal and tangent basis: %s / %s / %f" % [normals[i],tangent,handedness]):
 				return
 			if not _check(is_equal_approx(vertices[i].y,Road.Y) and uv[i].is_equal_approx(Vector2(vertices[i].x,vertices[i].z)/Road.TILE_METRES),"world-aligned scale and road height"):
 				return
