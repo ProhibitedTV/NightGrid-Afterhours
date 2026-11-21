@@ -23,3 +23,6 @@ The capture script stages actual locations in the playable world, opens the real
 
 ## Vehicle-focused gallery refresh
 The two new close views use the actual four-bus/25-car fleet rather than a separate art scene. The capture script temporarily stages two real vehicles on their normal outer loop, freezes traffic for the shots, and uses a street-level camera. The entire gallery is re-rendered with the new art. Until the capture bot commits all nine verified PNGs and the manifest, the nine-image preflight intentionally fails. No native RTX performance claim.
+
+## Verified nine-image capture
+[Capture run 44956626055](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/runs/44956626055) succeeded, rendering `1caa6bc3635538c4f101033724217c975aef892a`. All nine committed PNG byte lengths match the manifest. Visual inspection confirms the new bus and sedan bodies in the real Vesper streetscape. Remaining art limitations include angular silhouettes, simplified wheel faces, opaque windows, repeating street/facade detail, and daylight haze. This is a prototype art improvement, not photorealistic or native Windows performance acceptance. Final preflight rechecks every image hash before merging.
