@@ -2,6 +2,7 @@ name: Capture actual Godot screenshots
 on:
   push:
     branches:
+      - art/civilian-passenger-coachwork
       - art/photographic-masonry
       - art/photographic-road-network-20261121
       - docs/player-facing-readme-20261121
@@ -75,6 +76,8 @@ jobs:
               '05-quay-fresh-interior.png',
               '06-title-menu.png',
               '07-city-map-menu.png',
+              '08-city-bus-coachwork.png',
+              '09-civilian-sedan-coachwork.png',
           ]
           for filename in expected:
               path = folder / filename
@@ -86,7 +89,7 @@ jobs:
               assert len(data) > 16000, f'Suspect blank screenshot: {path}: {len(data)} bytes'
               print(f'{filename}: {w}x{h}, {len(data):,} bytes')
           assert len(list(folder.glob('*.png'))) == len(expected), 'Unexpected screenshot set'
-          print('SCREENSHOT VALIDATION PASS: 7 real framebuffer captures')
+          print('SCREENSHOT VALIDATION PASS: 9 real framebuffer captures')
           PY
       - name: Record source revision and unchanged framebuffer hashes
         run: |
@@ -143,7 +146,7 @@ jobs:
               echo "Verified screenshots already match the checked-in gallery"
               exit 0
             fi
-            git commit -m "docs(screenshots): recapture seven real Godot 4 gameplay frames"
+            git commit -m "docs(screenshots): recapture nine real Godot 4 gameplay frames"
             if git push origin "HEAD:${GITHUB_REF_NAME}"; then
               exit 0
             fi

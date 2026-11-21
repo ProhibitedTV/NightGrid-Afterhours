@@ -6,7 +6,7 @@ Take courier jobs, drive through neon-lit streets, ride the city's buses and tra
 
 **Early playable beta — actively in development.**
 
-[**Download for Windows**](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases/latest) · [Report a bug or suggest a feature](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues) · [Playtest guide](docs/PLAYTEST_CHECKLIST.md)
+[**Download for Windows**](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) · [Report a bug or suggest a feature](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues) · [Playtest guide](docs/PLAYTEST_CHECKLIST.md)
 
 ![Morrow Bay at night, captured in the actual game](docs/screenshots/01-morrow-bay-neon-night.png)
 
@@ -33,11 +33,14 @@ Your city layout and progress persist when you save and return.
 | **Title screen** | **City map** |
 | ![Game title menu](docs/screenshots/06-title-menu.png) | ![Morrow Bay city map](docs/screenshots/07-city-map-menu.png) |
 
-All seven images were captured from the running Godot 4.7.2 game on November 21, 2026. These development-build screenshots may be newer than the downloadable tagged beta and predate the latest city-bus redesign. [Capture date/source, renderer and checksums](docs/screenshots/capture-manifest.json) · [Capture method](docs/screenshots/README.md). The gallery uses Linux software-rendered OpenGL; the Windows Forward+/Vulkan build may look different.
+| **Redesigned Morrow Bay city bus** | **Original civilian sedan** |
+| ![Original bus body in the actual city](docs/screenshots/08-city-bus-coachwork.png) | ![Original civilian sedan in the actual city](docs/screenshots/09-civilian-sedan-coachwork.png) |
+
+All nine images are actual Godot 4.7.2 viewport captures from the development build. The two vehicle portraits stage real existing traffic actors on their route for an unobstructed comparison; they're not concept art or a driving benchmark. These development-build screenshots may be newer than the downloadable tagged beta. [Capture date/source, renderer and checksums](docs/screenshots/capture-manifest.json) · [Capture method](docs/screenshots/README.md). The gallery uses Linux software-rendered OpenGL; the Windows Forward+/Vulkan build may look different.
 
 ## Play the beta
 
-1. Open [GitHub Releases](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases/latest) and download the Windows x64 beta ZIP, **not** the source code ZIP.
+1. Open [GitHub Releases](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) and download the Windows x64 beta ZIP, **not** the source code ZIP.
 2. Extract the full archive into one folder and launch `NightGrid-Afterhours.exe`. Keep the EXE and PCK together.
 3. Choose New World, then follow the amber pickup beacon and deliver the package to the cyan destination.
 
