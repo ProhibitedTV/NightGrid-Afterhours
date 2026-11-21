@@ -35,4 +35,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "art: pin true measured Central Exchange curb glTF and CC0 concrete PBR"
+          # A source-asset job can overlap concurrent GitHub integration edits
+          # on this same temporary branch; preserve ALL intervening commits
+          # with a fast-forward rebase, never force-push the artwork.
+          git fetch origin art/central-exchange-authored-curbs-20261121
+          git rebase origin/art/central-exchange-authored-curbs-20261121
           git push origin HEAD:refs/heads/art/central-exchange-authored-curbs-20261121
