@@ -4,6 +4,12 @@
 
 This is an **early, diagnostics-focused beta**, not a commercial AAA-quality release. The original source is in the linked GitHub repository, and the Windows build is produced by its public Actions workflow. The README screenshots are genuine game captures, but are not proof that the Windows Vulkan renderer meets the approved photorealistic target.
 
+## Next-art-build only: true 3D service building next to Dock Watch
+
+When a build containing the later West Docks asset PR becomes available, compare the new **-4,-1, lot 1** service front with the unchanged Dock Watch Desk on **-4,-1, lot 0**. New original photographed/UV-authored building surfaces and the licensed Poly Haven source shutter **are not included in the currently tagged beta.5**, so don't mistake the old flat building for a new failure.
+
+Freeze at **22:07** with **Y** and use **F10** for the same camera position, including both clean and graffitied scanned metal shutter bays. Repeat at **12:00** and from street-eye viewpoint; zoom in to check recessed side windows, roof edge, normal-map response and physical scale. The service shutters are **closed** and not new H-doors. Test the existing Dock Watch civic interaction, a drive past the adjacent curb and F7 collision markers, then F8 cold/warm traces. Details: [West Docks source glTF licence, integration and acceptance](WEST_DOCKS_CC0_GLTF_ART.md).
+
 ## Five-minute first look
 
 1. Launch the title screen and choose **New World**, then walk around the spawned city using **WASD + mouse**. Open the city map with **M** (gamepad **View**). Check that the player can move and look around smoothly.
