@@ -175,7 +175,7 @@ func _process(delta: float) -> void:
 		var moving := speed >= MIN_SPEED and (not bus or float(source.get("dwell_remaining")) <= 0.05)
 		var target_db := -80.0
 		if moving and _effects_volume > 0.0:
-			target_db = (-16.5 if bus else -19.0) + linear_to_db(_effects_volume)
+			target_db = -16.5 if bus else -19.0 # WorldSFX bus owns gain.
 			if _inside:
 				target_db -= 18.0
 			elif _riding:
