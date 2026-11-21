@@ -70,23 +70,7 @@ jobs:
           capture_sha="$(python3 -c 'import json; print(json.load(open("docs/screenshots/capture-manifest.json"))["source_revision"])')"
           [[ "$capture_sha" =~ ^[0-9a-f]{40}$ ]]
           git fetch --no-tags origin "$capture_sha"
-          python3 - <<'PY'
-          import json
-          import subprocess
-          from pathlib import Path
-
-          record = json.loads(Path("docs/screenshots/capture-manifest.json").read_text())
-          assert len(record["images"]) == 9
-          revision = record["source_revision"]
-          # Confirm the gallery-rendered vehicle and environment source
-          # blobs match the tagged build, excluding build identity itself.
-          # The older source commit need not be an ancestor after squash.
-          for path in ("scripts/civilian_car_coachwork.gd", "scripts/bus_coachwork.gd",
-                       "scripts/traffic_vehicle.gd", "scripts/city_details.gd",
-                       "scripts/world.gd", "scripts/photo_masonry.gd",
-                       "scripts/material_library.gd", "tools/capture_screenshots.gd"):
-              assert subprocess.check_output(["git", "rev-parse", f"{revision}:{path}"]).strip() == subprocess.check_output(["git", "rev-parse", f"HEAD:{path}"]).strip(), path
-          PY
+          python3 tools/check_release_gallery.py "$capture_sha"
           echo "publish=true" >> "$GITHUB_OUTPUT"
 
       - name: Install Godot 4.7.2 and Windows export templates
@@ -165,6 +149,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Recheck immediately before publication: export can take minutes.
+          tip="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
+          if [ "$tip" != "$SOURCE_SHA" ]; then
+            echo "Main moved during packaging; refusing stale publication."
+            exit 0
+          fi
           package="NightGrid-Afterhours-$RELEASE_TAG-windows-x64"
           gh release create "$RELEASE_TAG" "dist/$package.zip" dist/SHA256SUMS.txt \
             --repo "$GITHUB_REPOSITORY" \
