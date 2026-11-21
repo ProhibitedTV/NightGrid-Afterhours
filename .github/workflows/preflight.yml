@@ -79,6 +79,12 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/equipment_wheel_smoke.gd 2>&1 | tee /tmp/nightgrid-wheel.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-wheel.log; then exit 1; fi
+      - name: Validate witnessed crime, police escalation and solid sight obstruction
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/wanted_smoke.gd 2>&1 | tee /tmp/nightgrid-wanted.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-wanted.log; then exit 1; fi
       - name: Validate Southworks solid cargo and player movement orientation regressions
         run: godot --headless --path . --script res://tests/southworks_playtest_smoke.gd
       - name: Validate fixed 60Hz physics and independent rendered train cadence

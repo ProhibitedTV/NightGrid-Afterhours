@@ -87,8 +87,8 @@ func update_motion(speed: float, steer: float, braking: bool,
 		for idx in range(_police_lenses.size()):
 			var is_blue := idx % 2 == 0
 			_police_lenses[idx].material_override = _mat("LED",
-				Color("438fff") if is_blue and blue_on else
-				Color("ff4768") if (not is_blue) and (not blue_on) else Color("293c55"))
+				Color("438fff") if police and is_blue and blue_on else
+				Color("ff4768") if police and (not is_blue) and (not blue_on) else Color("293c55"))
 
 func get_visual_stats() -> Dictionary:
 	return _visual_stats.duplicate()

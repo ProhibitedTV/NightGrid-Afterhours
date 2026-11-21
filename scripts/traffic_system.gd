@@ -136,6 +136,13 @@ func bus_by_id(identifier: String) -> CharacterBody3D:
 			return bus
 	return null
 
+func witness_candidates(target: Vector3) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for car in fleet:
+		if is_instance_valid(car) and car.global_position.distance_squared_to(target) <= 30.0 * 30.0:
+			result.append({"eye": car.global_position + Vector3.UP * (1.05 if bool(car.get("buses")) else 0.65), "facing": -car.global_basis.z, "police": false, "rid": car.get_rid()})
+	return result
+
 func get_map_stops() -> Array[Vector2]:
 	var result: Array[Vector2] = []
 	for stop in _stops:

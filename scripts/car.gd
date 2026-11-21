@@ -11,7 +11,11 @@ const GRAVITY = 24.0
 
 var occupied := false
 var is_police := false
-var police_target: Node3D
+var police_target: Node3D # legacy fixture compatibility; dispatch uses observed positions
+var police_destination := Vector3.INF
+var routine_route: Array[Vector3] = []
+var routine_index := 0
+var response_level := 1
 var speed := 0.0
 var condition := 100.0
 var _impact_cooldown := 0.0
@@ -27,14 +31,23 @@ func _physics_process(delta: float) -> void:
 	if is_police and condition <= 18.0:
 		speed = move_toward(speed, 0.0, BRAKE * delta)
 		braking = true
-	elif is_police and is_instance_valid(police_target):
-		var vector := police_target.global_position - global_position
+	elif is_police:
+		var responding := police_destination.is_finite()
+		var goal := police_destination
+		if not responding and not routine_route.is_empty():
+			goal = routine_route[routine_index]
+			if global_position.distance_to(goal) < 5.0:
+				routine_index = (routine_index + 1) % routine_route.size()
+				goal = routine_route[routine_index]
+		if not goal.is_finite():
+			goal = global_position
+		var vector := goal - global_position
 		vector.y = 0.0
 		if vector.length_squared() > 0.5:
 			var target_yaw := atan2(-vector.x, -vector.z)
 			visual_steer = clampf(wrapf(target_yaw - rotation.y, -PI, PI), -1.0, 1.0)
 			rotation.y = lerp_angle(rotation.y, target_yaw, minf(delta * 2.1, 1.0))
-		var target_speed := 19.0 if vector.length() > 4.0 else 3.0
+		var target_speed := (17.0 + 2.0 * float(response_level) if responding else 9.0) if vector.length() > 5.0 else 0.0
 		speed = move_toward(speed, target_speed, ACCEL * delta)
 	elif occupied:
 		var throttle := Input.get_action_strength("drive_accelerate") - Input.get_action_strength("drive_reverse")
@@ -71,7 +84,7 @@ func _physics_process(delta: float) -> void:
 				braking = true
 				break
 	if hero_visual != null:
-		hero_visual.call("update_motion", speed, visual_steer, braking, occupied, is_police, delta)
+		hero_visual.call("update_motion", speed, visual_steer, braking, occupied, is_police and police_destination.is_finite(), delta)
 
 func take_arcade_damage(amount: float) -> void:
 	condition = maxf(18.0, condition - maxf(amount, 0.0))
