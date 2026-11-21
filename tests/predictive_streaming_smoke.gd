@@ -77,10 +77,23 @@ func _verify() -> void:
 		return
 	var remote := Vector3(-203.0, 1.15, -203.0)
 	player.global_position = remote
-	var before_jump: int = int(city.call("get_streaming_stats")["loads"])
+	var before_jump: Dictionary = city.call("get_streaming_stats")
 	city.call("request_focus", remote, Vector3.ZERO)
-	if not (city.get("_loaded") as Dictionary).has(Vector2i(-4, -4)) or int(city.call("get_streaming_stats")["loads"]) != before_jump + 1:
-		_fail("Unexpected fast travel must synchronously protect the occupied collision cell")
+	var jump: Dictionary = city.call("get_streaming_stats")
+	var jump_stage: Dictionary = city.get("_staging")
+	var occupied := Vector2i(-4, -4)
+	if not jump_stage.has(occupied) or int(jump["loads"]) != int(before_jump["loads"]):
+		_fail("Fast arrival should stage the occupied physical shells, not build its entire visual chunk")
+		return
+	if int(jump["stage_steps"]) != int(before_jump["stage_steps"]) + 1 or int(jump_stage[occupied]["phase"]) != 1:
+		_fail("Fast arrival did not prime exactly one collision-bearing parcel stage")
+		return
+	var physical_shells := 0
+	for child in (jump_stage[occupied]["node"] as Node3D).get_children():
+		if child is StaticBody3D:
+			physical_shells += 1
+	if physical_shells != 2:
+		_fail("Emergency occupied cell is missing its two physical building shells")
 		return
 	city.call("set_focus", remote)
 	if not (city.get("_loaded") as Dictionary).has(Vector2i(-4, -4)):
@@ -92,5 +105,5 @@ func _verify() -> void:
 	if int(session.get("world_seed")) != seed_before:
 		_fail("Incremental streaming changed the immutable saved world seed")
 		return
-	print("PREDICTIVE_STREAMING_SMOKE PASS: forward ring queued, one block/frame, collision-safe fast jump and teleport, seed=", seed_before)
+	print("PREDICTIVE_STREAMING_SMOKE PASS: forward ring queued, one stage/frame, collider-first fast arrival and complete teleport, seed=", seed_before)
 	quit(0)
