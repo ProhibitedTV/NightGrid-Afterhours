@@ -106,5 +106,40 @@ func _verify() -> void:
 		push_error("MBPD_RADIO: live staffed board missing")
 		quit(1)
 		return
-	print("MBPD_RADIO_SMOKE PASS: nine voiced clips, service lifecycle, incident caption/audio queue, bounded deduplication and live staffed HQ")
+	# Real ledger and real station room; never fabricate a call or unit arrival.
+	world.set("heat", 0.0)
+	dispatch.update_case(Vector3.INF, 0)
+	radio.set("last_sequence", dispatch.event_sequence)
+	radio.call("tick", 0.1, false)
+	world.set("_radio_was_wanted", false)
+	world.set("_radio_close_tail", 0.0)
+	var ledger = world.get("ambient_civic")
+	ledger.restore({})
+	ledger.advance(21.0)
+	var incident: Dictionary = ledger.catalog()[0]
+	var station_id := str(incident["station_id"])
+	world.call("_announce_civic_at_station", {"station_id":"other"})
+	if bool(radio.call("has_traffic")):
+		push_error("MBPD_RADIO: unrelated precinct received civic request")
+		quit(1)
+		return
+	world.call("_update_police_radio", 0.1)
+	var notice: String = radio.get("current")
+	if not notice.contains("request on file") or not notice.contains(str(incident["id"])) or not notice.contains(station_id.to_upper()):
+		push_error("MBPD_RADIO: real civic ledger request not announced at HQ")
+		quit(1)
+		return
+	radio.call("tick", 20.0, true)
+	world.call("_update_police_radio", 0.1)
+	if bool(radio.call("has_traffic")):
+		push_error("MBPD_RADIO: repeated civic request")
+		quit(1)
+		return
+	ledger.advance(18.0)
+	world.call("_update_police_radio", 0.1)
+	if bool(radio.call("has_traffic")) or float(world.get("heat")) != 0.0:
+		push_error("MBPD_RADIO: resolved civic request or player heat changed")
+		quit(1)
+		return
+	print("MBPD_RADIO_SMOKE PASS: twelve voiced clips, service lifecycle, bounded queue, real station board and independent civic request announcements")
 	quit(0)

@@ -13,7 +13,10 @@ const LINES = {
 	"CLOSED": "Dispatch. Code 4. Incident closed.",
 	"RELEASED": "Unit to dispatch. 10-19, returning to station.",
 	"UNAVAILABLE": "Unit to dispatch. 10-7, out of service.",
-	"AVAILABLE": "Unit to dispatch. 10-8, available."
+	"AVAILABLE": "Unit to dispatch. 10-8, available.",
+	"CIVICMOTORIST": "Dispatch. Motorist assistance request on file.",
+	"CIVICTRAFFIC": "Dispatch. Traffic service request on file.",
+	"CIVICPUBLIC": "Dispatch. Public service request on file."
 }
 var pending: Array[Dictionary] = []
 var current := ""
