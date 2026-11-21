@@ -38,6 +38,15 @@ jobs:
           # A source-asset job can overlap concurrent GitHub integration edits
           # on this same temporary branch; preserve ALL intervening commits
           # with a fast-forward rebase, never force-push the artwork.
-          git fetch origin art/central-exchange-authored-curbs-20261121
-          git rebase origin/art/central-exchange-authored-curbs-20261121
-          git push origin HEAD:refs/heads/art/central-exchange-authored-curbs-20261121
+          for attempt in 1 2 3 4 5; do
+            git fetch origin art/central-exchange-authored-curbs-20261121
+            git rebase origin/art/central-exchange-authored-curbs-20261121
+            if git push origin HEAD:refs/heads/art/central-exchange-authored-curbs-20261121; then
+              echo "Original glTF + corrected PBR pinned without losing other commits"
+              exit 0
+            fi
+            echo "Concurrent branch writer during source art pin; retrying ($attempt/5)"
+            sleep 2
+          done
+          echo "Source art pin could not safely fast-forward" >&2
+          exit 1
