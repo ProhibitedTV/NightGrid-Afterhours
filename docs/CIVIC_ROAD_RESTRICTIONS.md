@@ -17,3 +17,6 @@ A restriction cannot imply an actual officer is present. The scene integration
 must safely defer occupied segments and preserve access to required destinations.
 Headless fallback/detour/connectivity/expiry tests run in preflight; native
 visual and frame-time work belongs to #87/#88.
+
+## Closure eligibility (phase 2B)
+`TrafficSystem.closure_eligibility(a,b,other_actors)` is an advisory, fail-closed check using all current bus loop segments and actual live fleet positions. It protects the entire inner and outer bus routes, including intermediate grid edges, and rejects occupancy along the candidate edge or within 14m of either junction. Callers must include player and other NPC vehicles; missing/invalid transit data is not permission. ELIGIBLE does not publish a closure. Future director must reserve the approach, confirm alternate routes and critical service access, recheck occupancy immediately before publication and coordinate visible scenes. No changes to actual traffic or restriction activation yet.

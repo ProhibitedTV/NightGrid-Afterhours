@@ -3,6 +3,7 @@ extends Node3D
 ## Road geometry and bus stops are fixed; traffic coloration/spacing is seeded.
 const TrafficVehicle = preload("res://scripts/traffic_vehicle.gd")
 const CELL = 58.0
+const ClosureEligibility = preload("res://scripts/closure_eligibility.gd")
 var signals: Node
 var fleet: Array[CharacterBody3D] = []
 var buses: Array[CharacterBody3D] = []
@@ -101,6 +102,21 @@ func headway_speed_cap(candidate: CharacterBody3D, heading: Vector3, cap: float)
 		if lateral < 2.7:
 			cap = minf(cap, maxf(0.0, (forward_distance - (10.0 if candidate.get("buses") else 7.0)) * 1.25))
 	return cap
+
+func closure_eligibility(a: Vector2i, b: Vector2i, other_actors: Array[Vector3]) -> String:
+	# Proposed restrictions only. Include actual live traffic and all bus
+	# routes, plus player/other world actors supplied by the caller.
+	var routes: Array = []
+	var occupied := other_actors.duplicate()
+	for bus in buses:
+		if not is_instance_valid(bus):
+			return "TRANSIT_UNKNOWN"
+		routes.append(bus.get("route"))
+	for car in fleet:
+		if not is_instance_valid(car):
+			return "OCCUPANCY_UNKNOWN"
+		occupied.append(car.global_position)
+	return ClosureEligibility.evaluate(a,b,routes,occupied)
 
 func get_boardable_bus(at: Vector3) -> CharacterBody3D:
 	var nearest: CharacterBody3D
