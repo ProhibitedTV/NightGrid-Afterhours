@@ -97,7 +97,7 @@ func evaluate(city: Node, space: PhysicsDirectSpaceState3D, entry: Dictionary) -
 	var a: Vector3 = entry["start"]
 	var b: Vector3 = entry["end"]
 	if _job.get("key","")!=key:
-		_job = {"key":key,"index":0,"samples":ceili(a.distance_to(b)/SAMPLE_SPACING)+1,"floor":0.0}
+		_job = {"key":key,"index":0,"samples":ceili(a.distance_to(b)/SAMPLE_SPACING)+1,"floor":0.0,"lowest":INF}
 	var count: int = _job["samples"]
 	var start: int = _job["index"]
 	# Incrementally probe support along the complete link, not just endpoints.
@@ -110,6 +110,7 @@ func evaluate(city: Node, space: PhysicsDirectSpaceState3D, entry: Dictionary) -
 		var floor_y: float = (hit["position"] as Vector3).y
 		if absf(floor_y-at.y)>0.45 or (i>0 and absf(floor_y-float(_job["floor"]))>0.12):
 			return _finish(key,BLOCKED)
+		_job["lowest"] = minf(float(_job["lowest"]),floor_y)
 		_job["floor"] = floor_y
 		_job["index"] = i+1
 	if int(_job["index"])<count:
@@ -121,7 +122,7 @@ func evaluate(city: Node, space: PhysicsDirectSpaceState3D, entry: Dictionary) -
 	query.collision_mask = 1
 	query.collide_with_bodies = true
 	query.collide_with_areas = false
-	var offset := Vector3.UP*(HEIGHT*0.5+0.15)
+	var offset := Vector3.UP*(HEIGHT*0.5+0.04+float(_job["lowest"])-a.y)
 	query.transform = Transform3D(Basis.IDENTITY,a+offset)
 	if not space.intersect_shape(query,1).is_empty():
 		return _finish(key,BLOCKED)
