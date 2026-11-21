@@ -79,6 +79,8 @@ jobs:
         run: godot --headless --path . --script res://tests/render_smoke.gd
       - name: Validate physically anchored storefront and street lighting with eight-light pool
         run: godot --headless --path . --script res://tests/practical_lighting_smoke.gd
+      - name: Verify photo-glTF-source Central Exchange 3D shop practical lighting shares original 8 lamps across dusk/noon/night and streaming
+        run: godot --headless --path . --script res://tests/central_exchange_shop_lighting_smoke.gd
       - name: Validate signals, transit boarding and persistent save seeds
         run: godot --headless --path . --script res://tests/transport_smoke.gd
       - name: Validate Kestrel S6 hero body, dynamic lights and save stability
