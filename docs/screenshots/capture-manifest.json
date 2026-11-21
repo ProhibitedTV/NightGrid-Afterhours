@@ -1,34 +1,34 @@
 {
   "images": {
     "01-morrow-bay-neon-night.png": {
-      "bytes": 584060,
-      "sha256": "cd281ec3fa33ad12da6264183de19f2d6d042e4d58ba416d53e684641a2645fb"
+      "bytes": 608994,
+      "sha256": "bc89f9e230145746f3ab3544ef833bdd4e6d94b16cb2bb13b02cf84824d9542c"
     },
     "02-vesper-market-nightlife.png": {
-      "bytes": 571010,
-      "sha256": "6a993d075717fe303f8dab8668eb2904d476ef767b9e66ac44a4a546a123422c"
+      "bytes": 801049,
+      "sha256": "fac74a892690f54cfaa05aaa2cdef6a7a87597fcf0b5e2503b8c7bc501215ef2"
     },
     "03-m-line-helix-terminal.png": {
-      "bytes": 392043,
-      "sha256": "ad2fefc2260a72735a7bf72d712dfa4ff5ef4bfc45008c2b8176bad20ddf325c"
+      "bytes": 399848,
+      "sha256": "0fcee73e2e64467c6a567e94e14ff1e7572e2e54b888698bdd140cea04b76884"
     },
     "04-horizon-commons-daylight.png": {
-      "bytes": 642998,
-      "sha256": "6dc582271c79ff47cfd0e14d65362ffd0d23321113603d2eeec3f74661ddc281"
+      "bytes": 680146,
+      "sha256": "b308d9df0eccb1bbb2ed67ab0967d9647a7d94970c8c23ed1bd018e78083afc4"
     },
     "05-quay-fresh-interior.png": {
-      "bytes": 227334,
-      "sha256": "1b4799114909dc9fe2a67f7c96a3a61b7bb8aaee00a38ff7b105276befb8c83a"
+      "bytes": 228073,
+      "sha256": "fd6774c29c8b75551dcd1e4d692e490e424ab5cc3db8ae7b84ffa59e4a800097"
     },
     "06-title-menu.png": {
-      "bytes": 140751,
-      "sha256": "8f897d29b6cc85fbdc5c50f14ffa539093d3a64ac007b6f336073394200d45e3"
+      "bytes": 143744,
+      "sha256": "81fbe6ab87093830ff340bb5ec15bd659204254457a9eeb01c90f25cfec21217"
     },
     "07-city-map-menu.png": {
-      "bytes": 147065,
-      "sha256": "ec28991b794912ac9d5b2c19fd4ea1f19f462434ad57e29bc0f2dc1f0ed924fe"
+      "bytes": 150564,
+      "sha256": "6e91d422032fbb2e6c0fc573faf746a12f8e109006d8141956c983f3ae5df0d0"
     }
   },
   "renderer": "Godot 4.7.2 Mesa software OpenGL Compatibility 1280x720 (NOT Vulkan/RTX)",
-  "source_revision": "1645d873de99558c5e2d67e7b2e829a347e8cb4b"
+  "source_revision": "40487cc185609ddcfef59b59a1b120397cc87d4e"
 }

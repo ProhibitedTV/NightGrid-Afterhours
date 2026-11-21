@@ -1,6 +1,7 @@
 extends Node3D
 const WorldPlan = preload("res://scripts/world_plan.gd")
 const Materials = preload("res://scripts/material_library.gd")
+const PhotoMasonry = preload("res://scripts/photo_masonry.gd")
 const CentralFrontage = preload("res://scripts/central_exchange_frontages.gd")
 const WestDocksService = preload("res://scripts/west_docks_service_frontage.gd")
 const CraneGearWarehouse = preload("res://scripts/crane_gear_warehouse.gd")
@@ -474,7 +475,7 @@ func _solid(at: Vector3, size: Vector3, color: Color, surface_kind: String = "CO
 	var mesh := BoxMesh.new()
 	mesh.size = size
 	visual.mesh = mesh
-	visual.material_override = Materials.surface(surface_kind, color)
+	visual.material_override = PhotoMasonry.surface(color) if surface_kind == "PHOTO_BRICK" else Materials.surface(surface_kind, color)
 	body.add_child(visual)
 	(_active_chunk if _active_chunk != null else self).add_child(body)
 
@@ -798,7 +799,7 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 				volume.add_child(collision)
 			(_active_chunk if _active_chunk != null else self).add_child(volume)
 		else:
-			_solid(shell_at, shell_size, wall, surface_kind)
+			_solid(shell_at, shell_size, wall, "PHOTO_BRICK" if surface_kind == "BRICK" else surface_kind)
 	if shell_only:
 		return
 	_statistics["buildings"] += 1

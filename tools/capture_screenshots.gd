@@ -36,6 +36,7 @@ func _capture_all() -> void:
 	(game.get("player") as CharacterBody3D).set_physics_process(false)
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(DIRECTORY))
 	var clock: Node = game.get("day_night")
+	clock.set("paused",true)
 	var city: Node3D = game.get("city_details")
 	# Allow the renderer to initialize on a real viewport before any frame is
 	# captured; the checked-in images must not be synthetic placeholders.
@@ -73,6 +74,33 @@ func _capture_all() -> void:
 		Vector3(180.0, 14.0, 73.0), Vector3(203.0, 2.6, 23.0), false)
 	await _settle()
 	if not await _screenshot("04-horizon-commons-daylight.png"):
+		return
+	# Two dedicated, reproducible real-fleet art views. Stage existing traffic
+	# actors on their own outer loop lanes, never substitute showcase meshes.
+	var traffic: Node = game.get("traffic")
+	var bus := traffic.get_node_or_null("CityBus_2") as CharacterBody3D
+	var car := traffic.get_node_or_null("AmbientCar_outer_0") as CharacterBody3D
+	if bus == null or car == null or bus.get_node_or_null("CityBusCoachwork") == null or car.get_node_or_null("CivilianCarCoachwork") == null:
+		_abort("Actual city bus and sedan coachwork missing")
+		return
+	# Freeze the fleet for these two intentionally staged art captures.
+	for actor in traffic.get("fleet"):
+		actor.set_physics_process(false)
+	bus.global_position = Vector3(-157.0,1.75,-170.75)
+	bus.rotation.y = -PI*0.5
+	car.global_position = Vector3(-143.0,1.0,-170.75)
+	car.rotation.y = -PI*0.5
+	# Use both camera locations from the north side of the road; the
+	# restaurant and masonry are behind the real lane-following vehicles.
+	clock.call("set_hour",12.5)
+	_stage_street(market,Vector3(-147.0,3.25,-179.0),Vector3(-157.0,1.85,-170.75),false)
+	await _settle()
+	if not await _screenshot("08-city-bus-coachwork.png"):
+		return
+	clock.call("set_hour",20.18)
+	_stage_street(market,Vector3(-136.5,2.65,-177.7),Vector3(-143.0,1.2,-170.75),false)
+	await _settle()
+	if not await _screenshot("09-civilian-sedan-coachwork.png"):
 		return
 	# Enter the actual grocery using the same game method as pressing H.
 	clock.call("set_hour", 19.5)

@@ -18,6 +18,8 @@ NAMES = (
     "05-quay-fresh-interior.png",
     "06-title-menu.png",
     "07-city-map-menu.png",
+    "08-city-bus-coachwork.png",
+    "09-civilian-sedan-coachwork.png",
 )
 PNG_HEADER = b"\x89PNG\r\n\x1a\n"
 readme = (ROOT / "README.md").read_text(encoding="utf-8")
