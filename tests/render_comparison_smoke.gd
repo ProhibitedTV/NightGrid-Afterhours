@@ -17,6 +17,15 @@ func _check() -> void:
 	if int(engine_info.get("major", 0)) != 4 or int(engine_info.get("minor", 0)) != 7 or int(engine_info.get("patch", 0)) != 2:
 		_fail("Expected matching stable Godot 4.7.2: " + str(engine_info))
 		return
+	if str(ProjectSettings.get_setting("physics/3d/physics_engine")) != "GodotPhysics3D":
+		_fail("Engine upgrade switched legacy physical collision solver")
+		return
+	if str(ProjectSettings.get_setting("rendering/rendering_device/driver.windows")) != "vulkan":
+		_fail("Windows renderer changed from Forward+/Vulkan baseline")
+		return
+	if Engine.physics_ticks_per_second != 60:
+		_fail("Migration changed the 60 Hz physics simulation")
+		return
 	var f11 := false
 	for event in InputMap.action_get_events("compare_render_look"):
 		if event is InputEventKey and event.physical_keycode == KEY_F11:
