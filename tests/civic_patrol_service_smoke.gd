@@ -51,7 +51,8 @@ func _verify() -> void:
 	patrol.global_position = goal
 	patrol.set("speed",0.0)
 	var policy = patrol.get("drive_policy")
-	policy.path = [Vector2(goal.x,goal.z)]
+	var fixture_path: Array[Vector2] = [Vector2(goal.x,goal.z)]
+	policy.path = fixture_path
 	policy.destination = Vector2(goal.x,goal.z)
 	policy.index = 0
 	world.call("_update_civic_patrols",0.1)
