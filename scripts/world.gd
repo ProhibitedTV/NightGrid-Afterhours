@@ -176,6 +176,11 @@ func _log_playtest(name: String, details: Dictionary = {}) -> void:
 	}
 	if current_car != null:
 		context["speed_kph"] = current_car.call("speed_kph")
+	if name == "manual_marker":
+		# Capture a full snapshot only on F7; never incur a SceneTree walk on
+		# ordinary gameplay frames or continuous frame-time recording.
+		context["render_batch_stats"] = city_details.call("get_render_batch_stats")
+		context["practical_light_stats"] = street_lights.call("get_practical_light_stats")
 	playtest_logger.record_event(name, {"context": context, "details": details})
 
 func _build_game_menu() -> void:
@@ -411,6 +416,8 @@ func _capture_playtest_frame() -> void:
 		"render_profile": str(day_night.call("get_render_profile")),
 		"frame_interval_metrics": frame_time_recorder.get_frame_metrics(),
 		"streaming": city_details.call("get_streaming_stats"),
+		"render_batch_stats": city_details.call("get_render_batch_stats"),
+		"practical_light_stats": street_lights.call("get_practical_light_stats"),
 		"frame_trace_recording": frame_time_recorder.recording
 	})
 	var result: Dictionary = PlaytestEvidence.export_bundle(framebuffer, metadata)
