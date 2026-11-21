@@ -184,6 +184,12 @@ jobs:
         run: godot --headless --path . --script res://tests/nightgrid_fm_smoke.gd
       - name: Validate original city soundscapes, footfalls and volume settings
         run: godot --headless --path . --script res://tests/world_audio_smoke.gd
+      - name: Validate seeded sidewalk population and activation safety contract
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/sidewalk_population_smoke.gd 2>&1 | tee /tmp/nightgrid-sidewalk.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-sidewalk.log; then exit 1; fi
       - name: Validate logical traffic population and guarded streaming decisions
         timeout-minutes: 2
         run: |
