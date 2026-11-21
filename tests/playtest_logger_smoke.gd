@@ -28,7 +28,7 @@ func _verify() -> void:
 				return
 
 	var log = Logger.new()
-	if not log.start_session(123, {}, "res://wrong-location").is_empty():
+	if not log.start_session(123, {}, "res:" + "//wrong-location").is_empty():
 		_fail("Playtest log allowed writes outside the user directory")
 		return
 	var file_path: String = log.start_session(123, {"test": true}, OUT)
