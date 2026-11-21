@@ -141,6 +141,10 @@ func _verify() -> void:
 	# Explicit context changes are independent of FPS, and a standing
 	# character does not produce a stream of extra jump/land cues.
 	var at := Vector3(12.0, 1.0, 12.0)
+	# A headless spawn can begin without floor contact until the first physics
+	# tick; establish a known grounded baseline before asserting transitions.
+	director.set("_has_foot", false)
+	director.set("_grounded", true)
 	director.call("update_context", at, at, true, true, false, "SOUTHWORKS", 22.0, 0.0, 0.0)
 	director.call("update_context", at, at, true, false, false, "SOUTHWORKS", 22.0, 0.0, 8.0)
 	director.call("update_context", at, at, true, true, false, "SOUTHWORKS", 22.0, 0.0, -5.0)
