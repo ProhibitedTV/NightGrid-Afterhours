@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      RELEASE_TAG: v0.1.0-beta.6
+      RELEASE_TAG: v0.1.0-beta.7
       SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -34,6 +34,7 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Check main revision and existing release
         id: eligibility
@@ -59,6 +60,17 @@ jobs:
           test -s scripts/playtest_logger.gd
           grep -q 'playtest_mark' scripts/game_input.gd
           grep -q 'const BuildInfo' scripts/world.gd
+          # Beta.7 is the integrated city/traffic art milestone. Refuse to
+          # publish a pre-gallery or partially integrated checkout.
+          test -s scripts/civilian_car_coachwork.gd
+          test -s scripts/bus_coachwork.gd
+          test -s docs/screenshots/08-city-bus-coachwork.png
+          test -s docs/screenshots/09-civilian-sedan-coachwork.png
+          python3 tools/check_screenshots.py
+          capture_sha="$(python3 -c 'import json; print(json.load(open("docs/screenshots/capture-manifest.json"))["source_revision"])')"
+          [[ "$capture_sha" =~ ^[0-9a-f]{40}$ ]]
+          git fetch --no-tags origin "$capture_sha"
+          python3 tools/check_release_gallery.py "$capture_sha"
           echo "publish=true" >> "$GITHUB_OUTPUT"
 
       - name: Install Godot 4.7.2 and Windows export templates
@@ -82,7 +94,7 @@ jobs:
           source = path.read_text(encoding="utf-8")
           assert source.count('const CHANNEL = "development"') == 1
           assert source.count('const REVISION = "development"') == 1
-          assert source.count('const VERSION = "0.1.0-beta.6"') == 1
+          assert source.count('const VERSION = "0.1.0-beta.7"') == 1
           source = source.replace('const CHANNEL = "development"', 'const CHANNEL = "beta"')
           source = source.replace('const REVISION = "development"', 'const REVISION = "' + os.environ["SOURCE_SHA"] + '"')
           path.write_text(source, encoding="utf-8")
@@ -137,10 +149,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Recheck immediately before publication: export can take minutes.
+          tip="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
+          if [ "$tip" != "$SOURCE_SHA" ]; then
+            echo "Main moved during packaging; refusing stale publication."
+            exit 0
+          fi
           package="NightGrid-Afterhours-$RELEASE_TAG-windows-x64"
           gh release create "$RELEASE_TAG" "dist/$package.zip" dist/SHA256SUMS.txt \
             --repo "$GITHUB_REPOSITORY" \
             --target "$SOURCE_SHA" \
-            --title "NightGrid: Afterhours — Windows beta 0.1.0" \
+            --title "NightGrid: Afterhours — Windows beta 0.1.0-beta.7" \
             --notes-file docs/BETA_RELEASE_NOTES.md \
             --prerelease

@@ -42,8 +42,18 @@ jobs:
               assert "version: 4.7.2" in workflow.read_text(encoding="utf-8"), "Export template/engine mismatch: " + name
           print("ENGINE_PINS PASS: Godot 4.7.2, GodotPhysics3D, Vulkan, 60Hz")
           PY
+      - name: Test release gallery revision and runtime-tree gate in isolated git fixtures
+        run: python tools/test_check_release_gallery.py
       - name: Verify committed real game screenshots
         run: python tools/check_screenshots.py
+      - name: Verify exact beta.7 capture provenance on the release candidate
+        if: github.head_ref == 'release/beta-7-gallery-milestone' || github.ref == 'refs/heads/release/beta-7-gallery-milestone'
+        run: |
+          set -euo pipefail
+          capture_sha="$(python3 -c 'import json; print(json.load(open("docs/screenshots/capture-manifest.json"))["source_revision"])')"
+          [[ "$capture_sha" =~ ^[0-9a-f]{40}$ ]]
+          git fetch --no-tags origin "$capture_sha"
+          python tools/check_release_gallery.py "$capture_sha"
 
   godot-headless:
     runs-on: ubuntu-latest
