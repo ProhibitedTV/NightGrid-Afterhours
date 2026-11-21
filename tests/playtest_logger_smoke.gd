@@ -3,6 +3,7 @@ extends SceneTree
 ## not measure Windows graphics performance or inspect actual playback audio.
 const Logger = preload("res://scripts/playtest_logger.gd")
 const InputSpec = preload("res://scripts/game_input.gd")
+const BuildInfo = preload("res://scripts/build_info.gd")
 const OUT = "user://tests/nightgrid-playtest-log-smoke"
 
 func _initialize() -> void:
@@ -31,7 +32,11 @@ func _verify() -> void:
 	if not log.start_session(123, {}, "res:" + "//wrong-location").is_empty():
 		_fail("Playtest log allowed writes outside the user directory")
 		return
-	var file_path: String = log.start_session(123, {"test": true}, OUT)
+	var file_path: String = log.start_session(123, {
+		"test": true, "release_version": BuildInfo.VERSION,
+		"build_channel": BuildInfo.CHANNEL,
+		"build_revision": BuildInfo.REVISION
+	}, OUT)
 	if file_path.is_empty() or not FileAccess.file_exists(file_path):
 		_fail("Could not start a local JSONL diagnostic session")
 		return
@@ -74,6 +79,11 @@ func _verify() -> void:
 			return
 	if int(counts.get("frame_hitch", 0)) != 1:
 		_fail("Close-spaced hitches should be rate limited, not spam disk writes")
+		return
+	var first: Variant = JSON.parse_string(lines[0])
+	var build: Dictionary = (first["data"] as Dictionary).get("context", {})
+	if str(build.get("release_version", "")) != BuildInfo.VERSION or str(build.get("build_revision", "")) != BuildInfo.REVISION:
+		_fail("Session start omitted exact build provenance")
 		return
 	var last: Variant = JSON.parse_string(lines[lines.size() - 1])
 	if int((last["data"] as Dictionary).get("hitches_over_50ms", 0)) != 2:
