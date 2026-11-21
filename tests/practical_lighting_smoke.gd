@@ -31,6 +31,7 @@ func _verify() -> void:
 		return
 	var physical_lamp_matches := 0
 	var actual_sign_matches := 0
+	var authentic_interior_lenses := 0
 	for fixture in fixtures:
 		var pos: Vector3 = fixture["position"]
 		if str(fixture["kind"]) == "street":
@@ -72,10 +73,21 @@ func _verify() -> void:
 				_fail("Storefront light does not match existing saved lot geometry: " + str(pos))
 				return
 			actual_sign_matches += 1
+		elif str(fixture["kind"]) == "portal":
+			# These two fixed Central Exchange lens sources actually exist inside
+			# the imported, authored storefront glTF, NOT a generic city grid.
+			var lens_y := 0.15 + 3.07 - 0.16
+			var lens_z := 29.0 - WorldPlan.PUBLIC_FACADE_SETBACK + 1.08
+			var brick_lens := Vector3(-18.5, lens_y, lens_z)
+			var steel_lens := Vector3(18.5, lens_y, lens_z)
+			if not pos.is_equal_approx(brick_lens) and not pos.is_equal_approx(steel_lens):
+				_fail("Retail interior light floats away from both actual modeled ceiling fixtures: " + str(pos))
+				return
+			authentic_interior_lenses += 1
 		else:
 			_fail("Untracked lighting kind: " + str(fixture["kind"]))
 			return
-	if physical_lamp_matches < 25 or actual_sign_matches < 80:
+	if physical_lamp_matches < 25 or actual_sign_matches < 80 or authentic_interior_lenses != 2:
 		_fail("Full real-fixture and storefront coverage is missing")
 		return
 	lamps.call("set_focus", Vector3(-29.0, 0.0, -29.0))
