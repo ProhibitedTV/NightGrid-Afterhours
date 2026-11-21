@@ -1,8 +1,19 @@
-# NightGrid: Afterhours — Windows beta 0.1.0-beta.3
+# NightGrid: Afterhours — Windows beta 0.1.0-beta.4
 
 **Status: early, diagnostics-focused beta (Windows x64).**
 
-## New in beta.3 — video-inspired render comparison
+## New in beta.4 — Godot 4.7.2 stable, actual AgX and Windows exports
+
+This release upgrades the **entire engine/toolchain from Godot 4.3.0 to 4.7.2 stable**—the playable project, clean source import, full headless regression suite, Windows x64 export templates and the package itself. Engine migration landed through [PR #55](https://github.com/ProhibitedTV/NightGrid-Afterhours/pull/55).
+
+- **F11 now cycles through three explicitly labelled looks:** original **Filmic** (default) → **sky/ACES** → **sky/AgX** → Filmic. AgX is the real Godot 4.7 tonemapper, not an imitation. The new AgX and existing ACES experiments share sky-ambient fill, exposure, fog and shadow settings, isolating the tonemapping differences.
+- **Y** freezes the clock. Take **F10** screenshots/JSON from the same Dock Watch camera at 22:07 in all three profiles. **F8** logs repeated driving runs for actual frame-time comparisons; **F7** places local bug markers. Each event records the exact build revision and rendering profile.
+- **Preserved gameplay contract:** original GodotPhysics3D solver (not a silent switch to Jolt), fixed 60Hz physics, the Windows Forward+/Vulkan comparison target, deterministic saved city and existing NightGrid FM/gameplay controls.
+- The engine's new native `Logger` class conflicted with one legacy test preload; that alias was fixed. The 4.7.2 preflight validates playable city geometry, physics, saves, new AgX profile reversibility, streaming, menus and interiors; the Windows export has also passed.
+- **Still a graphics experiment, not AAA art:** the West Docks screenshot's sparse street life, repetitive city geometry and simplified cars remain. F11 can change colour and shadow perception, but does not import photorealistic assets, guarantee 60 FPS on RTX 3060 or prove the Windows game visually improved.
+- Engine migration details: [Godot 4.7.2 migration and hardware verification](https://github.com/ProhibitedTV/NightGrid-Afterhours/blob/main/docs/GODOT_4_7_2_MIGRATION.md).
+
+## Previously in beta.3 — video-inspired render comparison
 
 - **F11** switches between the unchanged launch-default **Filmic** lighting and an *experimental* `sky_aces_experiment`: Godot 4.3-compatible **ACES** tone mapping, sky-sourced ambient shadow illumination, slightly thinner nighttime fog and shorter, softer sun shadows. This is a test preset, not a confirmed visual improvement.
 - Source: [Coding Quests — Why 3D Games Look Bad in Godot](https://www.youtube.com/watch?v=0792U-wuwjA) and its [creator companion article](https://codingquests.io/blog/how-to-make-godot-3d-look-better). The tutorial uses **Godot 4.7** and AgX tone mapping, which our **Godot 4.3** release does not support; ACES is the explicitly labelled comparison instead.
@@ -18,12 +29,12 @@
 - Civic counter access, existing collider, deterministic city seed and saved layout remain intact. **Only one building is upgraded**; neighboring buildings, car geometry and nighttime lighting still need the full visual overhaul tracked in [West Docks realism issue #51](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/51).
 - Existing F7/F8/F10 local logging and Windows artifact provenance are unchanged; beta.2 records its own tag and exact source commit.
 - This is a new testable visual engineering pilot, **not verified as a convincing photoreal improvement** until the player provides matching Windows/Vulkan frames and 1080p driving traces.
- This is a playable feedback build, not a completed photorealistic/AAA game. The build is based on the exact commit shown in its `BUILD-INFO.txt`, reproduced from the GitHub repository after the **full main-branch Godot 4.3 preflight** passed.
+ This is a playable feedback build, not a completed photorealistic/AAA game. The build is based on the exact commit shown in its `BUILD-INFO.txt`, reproduced from the GitHub repository after the **full main-branch Godot 4.7.2 preflight** passed.
 
 ## Download and run
 
-1. Download the **NightGrid-Afterhours-v0.1.0-beta.3-windows-x64.zip** asset on the GitHub [Releases](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) page. **Do not** use the GitHub automatically generated "Source code" archive as the executable build.
-2. Optionally check the ZIP against the published `SHA256SUMS.txt` (PowerShell: `Get-FileHash -Algorithm SHA256 .\\NightGrid-Afterhours-v0.1.0-beta.3-windows-x64.zip`).
+1. Download the **NightGrid-Afterhours-v0.1.0-beta.4-windows-x64.zip** asset on the GitHub [Releases](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) page. **Do not** use the GitHub automatically generated "Source code" archive as the executable build.
+2. Optionally check the ZIP against the published `SHA256SUMS.txt` (PowerShell: `Get-FileHash -Algorithm SHA256 .\\NightGrid-Afterhours-v0.1.0-beta.4-windows-x64.zip`).
 3. Extract the **entire ZIP** to a folder. Keep the `NightGrid-Afterhours.exe` and `NightGrid-Afterhours.pck` **in the same folder**. Run the EXE.
 4. Windows SmartScreen or Chrome may flag an **unsigned, newly published executable**. Publishing on GitHub is not code-signing and does not guarantee the download will be unblocked. Confirm the URL is the real project release and inspect/scan files before making any exception. **Do not disable Chrome Safe Browsing or antivirus globally.** If an antivirus reports malware rather than an unknown publisher, do not bypass it; file an issue with the exact warning.
 
@@ -51,4 +62,4 @@ Drive from South Bus Works through Central Exchange and into other districts, on
 
 ## Build provenance
 
-The GitHub release is generated only after a **successful push-to-main preflight** at the exact commit being packaged. The release job exports Godot 4.3 Windows x64, checks the EXE/PCK, creates a complete ZIP with diagnostics guide and build info, verifies the archive and publishes its SHA-256. Assets are linked to one immutable Git tag. The included `BUILD-INFO.txt` and the initial `session_start` JSONL record identify the release commit.
+The GitHub release is generated only after a **successful push-to-main preflight** at the exact commit being packaged. The release job exports Godot 4.7.2 Windows x64, checks the EXE/PCK, creates a complete ZIP with diagnostics guide and build info, verifies the archive and publishes its SHA-256. Assets are linked to one immutable Git tag. The included `BUILD-INFO.txt` and the initial `session_start` JSONL record identify the release commit.

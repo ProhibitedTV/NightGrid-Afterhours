@@ -1,6 +1,6 @@
 # Godot 4.3 → 4.7.2 stable migration
 
-**Target:** [Godot 4.7.2 stable](https://godotengine.org/article/maintenance-release-godot-4-7-2/) (released 2026-08-18). As of 2026-11-20, 4.8 is an **unstable beta** and has not been selected. The previously released NightGrid **v0.1.0-beta.3 is still a 4.3.0 game**, not automatically upgraded by this source change.
+**Target:** [Godot 4.7.2 stable](https://godotengine.org/article/maintenance-release-godot-4-7-2/) (released 2026-08-18). As of 2026-11-20, 4.8 is an **unstable beta** and has not been selected. The previously released NightGrid **v0.1.0-beta.3 is still a 4.3.0 game**. The first release using Godot 4.7.2 is **v0.1.0-beta.4**.
 
 ## Scope and safeguards
 
