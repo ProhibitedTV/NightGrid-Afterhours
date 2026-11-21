@@ -185,6 +185,10 @@ def build(name):
         for z in (1.05,2.42):
             cylinder("STEEL",xx+(-0.07 if side<0 else 0.09),1.2,z,0.028,1.38,12)
     box(main,-1.41,1.41,-0.12,3.23,ROOM_DEPTH-0.10,ROOM_DEPTH)
+    if not is_brick:
+        # The steel-clad repair shop uses a credible photographed exposed
+        # brick rear finish panel; all six glTF material groups remain real.
+        box("MASONRY",-1.37,1.37,1.00,3.02,ROOM_DEPTH-0.18,ROOM_DEPTH-0.14)
     box("CONCRETE",-1.41,1.41,3.20,3.28,0.14,ROOM_DEPTH)
     # Real hanging recessed practical fixtures without unbounded OmniLights
     # or unrelated global fog/reflection changes. Ceiling covers are explicit.
