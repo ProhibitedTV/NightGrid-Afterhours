@@ -212,7 +212,10 @@ func _build_room(site: Dictionary) -> void:
 		"CLINIC", "FIRE":
 			_treatment_room(room, accent, kind == "FIRE")
 		"LIBRARY", "CIVIC":
-			_public_records(room, accent)
+			if site.has("station_id"):
+				_dispatch_room(room, accent, bool(site.get("headquarters", false)))
+			else:
+				_public_records(room, accent)
 		"WAREHOUSE", "GARAGE", "UTILITY":
 			_service_bay(room, accent, kind)
 		"CAFE":
@@ -270,6 +273,23 @@ func _treatment_room(room: Node3D, accent: Color, rescue: bool) -> void:
 		for x in [-5.0, 5.0]:
 			_box(room, Vector3(x, 3.8, -7.6), Vector3(1.4, 1.55, 0.45), Color("ce5d65"))
 			_box(room, Vector3(x, 4.05, -7.89), Vector3(0.21, 0.86, 0.10), Color("f8dbc2"))
+
+func _dispatch_room(room: Node3D, accent: Color, hq: bool) -> void:
+	# Original precinct interior set dressing, using existing textured room
+	# shell, colliders, duty contact and a clear public walking axis.
+	var blue := Color("77a7e0")
+	_label(room, "CITYWIDE DISPATCH" if hq else "DISTRICT PRECINCT", Vector3(0, 4.68, -8.55), blue, 30, true)
+	for side in [-1.0, 1.0]:
+		var x: float = side * 5.15
+		for z in [-4.0, 0.0]:
+			_box(room, Vector3(x, 0.85, z), Vector3(2.6, 1.55, 1.2), Color("394d60"), true, "METAL")
+			_box(room, Vector3(x, 1.68, z), Vector3(2.8, 0.16, 1.4), Color("8a939b"), true)
+			for dx in [-0.60, 0.60]:
+				_box(room, Vector3(x + dx, 2.10, z - 0.30), Vector3(0.91, 0.64, 0.12), Color("152c40"))
+				_box(room, Vector3(x + dx, 2.10, z - 0.225), Vector3(0.82, 0.54, 0.035), blue.darkened(0.55))
+		_box(room, Vector3(x, 0.60, 5.0), Vector3(2.5, 0.18, 1.15), Color("788c97"), true)
+		_box(room, Vector3(x, 1.0, 5.55), Vector3(2.5, 0.8, 0.18), Color("788c97"), true)
+		_label(room, "DISPATCH / RECORDS" if hq else "PRECINCT SERVICES", Vector3(x, 3.9, -7.8), accent, 24, true)
 
 func _public_records(room: Node3D, accent: Color) -> void:
 	for x in [-5.5, 5.5]:

@@ -292,6 +292,7 @@ func _render() -> void:
 			_divider(col)
 			_title(col, "INVENTORY / STATUS", 18, Color("f0d1a0"))
 			_label(col, str(_journal_data.get("weapons", "No equipment data")), 16, Ui.ACCENT)
+			_label(col, "%s  |  %d POLICE LOCATIONS" % [str(_journal_data.get("dispatch", "DISPATCH")), int(_journal_data.get("stations", 0))], 16, Color("77a7e0"))
 			_label(col, "CASH  $%d     HEALTH  %d     HEAT  %.1f" % [
 				int(_journal_data.get("cash", 0)), int(_journal_data.get("health", 100)),
 				float(_journal_data.get("heat", 0.0))], 17, Color("e1ebef"))
@@ -307,7 +308,7 @@ func _render() -> void:
 			_button(col, "back", "BACK TO PAUSE", "back")
 		"map":
 			_title(col, "MORROW BAY / CITY ATLAS", 22, Color("f0dfcd"))
-			_label(col, "Player • quests • shops • bus stops (gold) • M-Line (cyan) • police", 15, Color("adc8d2"))
+			_label(col, "Player • quests • shops • buses (gold) • M-Line (cyan) • police stations (blue shields)", 15, Color("adc8d2"))
 			var atlas := Control.new()
 			atlas.name = "WorldMapView"
 			atlas.custom_minimum_size = Vector2(500.0, 500.0)

@@ -52,8 +52,8 @@ func _verify() -> void:
 	if session == null or services == null or city == null or rail == null or signals == null or traffic == null:
 		_fail("City expansion not wired to game scene")
 		return
-	if plan.GRID_RADIUS != 4 or plan.WORLD_LAYOUT_VERSION != 2 or catalog.SITES.size() != 16:
-		_fail("Expected an 8x8 city and 16 authored service addresses")
+	if plan.GRID_RADIUS != 4 or plan.WORLD_LAYOUT_VERSION != 2 or catalog.SITES.size() != 17:
+		_fail("Expected an 8x8 city and 17 authored service addresses")
 		return
 	var manifest: Dictionary = session.call("get_world_manifest")
 	if not plan.valid_manifest(manifest) or (manifest["blocks"] as Dictionary).size() != 56:
@@ -93,7 +93,7 @@ func _verify() -> void:
 		sites_seen[id] = true
 		var ix := int(site["ix"])
 		var iz := int(site["iz"])
-		if not plan.is_valid_block(ix, iz) or plan.is_core_block(ix, iz):
+		if not plan.is_valid_block(ix, iz) or (plan.is_core_block(ix, iz) and id != "police_hq"):
 			_fail("Expanded service outside new neighborhoods")
 			return
 		if not plan.landmark_for_block(ix, iz).is_empty():
@@ -224,8 +224,8 @@ func _verify() -> void:
 		_fail("Garage repair condition did not survive reload")
 		return
 	var map: Dictionary = world.call("get_map_state")
-	if (map.get("services", []) as Array).size() != 16 or not bool(map.get("civic_quest_active", false)):
+	if (map.get("services", []) as Array).size() != 17 or not bool(map.get("civic_quest_active", false)):
 		_fail("Full-sized minimap lacks service or civic quest markers")
 		return
-	print("EXPANSION_SMOKE PASS: districts=8 blocks=64 landmarks=8 profiles=112 civic=16 fleet=",fleet," seed=",session.get("world_seed"))
+	print("EXPANSION_SMOKE PASS: districts=8 blocks=64 landmarks=8 profiles=112 civic=17 fleet=",fleet," seed=",session.get("world_seed"))
 	quit(0)

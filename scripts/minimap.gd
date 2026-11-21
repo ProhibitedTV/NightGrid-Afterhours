@@ -129,7 +129,11 @@ func _draw() -> void:
 			if not bool(place["open"]):
 				tint = tint.darkened(0.60)
 			var point_on_map := _to_map(point, side, scale)
-			draw_rect(Rect2(point_on_map - Vector2(2.8, 2.8), Vector2(5.6, 5.6)), tint, true)
+			if bool(place.get("station", false)):
+				var marker := PackedVector2Array([point_on_map + Vector2(-5,-5), point_on_map + Vector2(5,-5), point_on_map + Vector2(4,3), point_on_map + Vector2(0,6), point_on_map + Vector2(-4,3)])
+				draw_colored_polygon(marker, Color("77a7e0"))
+			else:
+				draw_rect(Rect2(point_on_map - Vector2(2.8, 2.8), Vector2(5.6, 5.6)), tint, true)
 		if bool(state.get("side_quest_active", false)):
 			var quest: Vector2 = state["side_quest"]
 			var destination := _to_map(quest, side, scale)
