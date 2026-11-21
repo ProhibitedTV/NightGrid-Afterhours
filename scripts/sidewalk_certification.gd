@@ -135,3 +135,33 @@ func evaluate(city: Node, space: PhysicsDirectSpaceState3D, entry: Dictionary) -
 	if not space.intersect_shape(query,1).is_empty():
 		return _finish(key,BLOCKED)
 	return _finish(key,CLEAR)
+
+## Advance at most one uncached candidate per physics tick. The caller supplies
+## currently relevant links in priority order (e.g. nearest first). A pending
+## job stays pinned while still relevant, even as the player changes ordering.
+## Cached decisions are skipped; callers use cached_clear for spawn permission.
+func advance_candidates(city: Node, space: PhysicsDirectSpaceState3D, entries: Array[Dictionary]) -> Dictionary:
+	if not _reset_epoch(city) or space==null or _last_frame==Engine.get_physics_frames():
+		return {}
+	var chosen: Dictionary = {}
+	var pending_key: String = _job.get("key","")
+	var frame := Engine.get_physics_frames()
+	# The caller supplies a bounded local candidate list, never the entire city.
+	for i in range(mini(entries.size(),MAX_CACHE)):
+		var entry: Dictionary = entries[i]
+		if not _valid_link(entry) or not _loaded(city,entry["start"]):
+			continue
+		var key := _key(entry)
+		if key==pending_key:
+			chosen = entry
+			break
+		var item: Dictionary = _cache.get(key,{})
+		if chosen.is_empty() and (item.is_empty() or int(item["until"])<frame):
+			chosen = entry
+	# If the player moved away or the route vanished, abandon that partial
+	# certificate rather than spending ticks validating an irrelevant parcel.
+	if chosen.is_empty():
+		_job.clear()
+		return {}
+	var state := evaluate(city,space,chosen)
+	return {"id":chosen["id"],"status":state}
