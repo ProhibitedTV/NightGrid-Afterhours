@@ -10,7 +10,7 @@ const ACTIONS = [
 	"game_pause", "game_back", "map_open", "journal_open", "game_save", "game_load", "game_new",
 	"advance_clock", "pause_clock", "toggle_fps", "toggle_ssr", "record_frame_trace",
 	"capture_playtest_frame", "playtest_mark", "compare_render_look",
-	"weapon_cycle", "weapon_aim", "weapon_fire", "weapon_reload"
+	"weapon_cycle", "weapon_aim", "weapon_fire", "weapon_reload", "weapon_wheel"
 ]
 
 static func install() -> void:
@@ -52,6 +52,8 @@ static func install() -> void:
 	_button("interior_toggle", JOY_BUTTON_LEFT_SHOULDER)
 	_key("use_supply", KEY_R)
 	_key("weapon_cycle", KEY_Q)
+	_key("weapon_wheel", KEY_C)
+	_button("weapon_wheel", JOY_BUTTON_RIGHT_STICK)
 	_key("weapon_reload", KEY_Z)
 	_mouse("weapon_aim", MOUSE_BUTTON_RIGHT)
 	_mouse("weapon_fire", MOUSE_BUTTON_LEFT)

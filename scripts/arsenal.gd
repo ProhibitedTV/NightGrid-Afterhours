@@ -12,8 +12,15 @@ var cooldown := 0.0
 var reload_left := 0.0
 
 func cycle() -> void:
-	equipped = IDS[(IDS.find(equipped) + 1) % IDS.size()]
-	reload_left = 0.0
+	equip(IDS[(IDS.find(equipped) + 1) % IDS.size()])
+
+func equip(id: String) -> bool:
+	if not IDS.has(id):
+		return false
+	if equipped != id:
+		equipped = id
+		reload_left = 0.0
+	return true
 
 func holster() -> void:
 	equipped = "holstered"
