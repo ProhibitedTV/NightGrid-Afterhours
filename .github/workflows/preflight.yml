@@ -184,6 +184,12 @@ jobs:
         run: godot --headless --path . --script res://tests/nightgrid_fm_smoke.gd
       - name: Validate original city soundscapes, footfalls and volume settings
         run: godot --headless --path . --script res://tests/world_audio_smoke.gd
+      - name: Validate shared NPC streaming visibility and collision safeguards
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/streaming_safety_smoke.gd 2>&1 | tee /tmp/nightgrid-streaming-safety.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-streaming-safety.log; then exit 1; fi
       - name: Validate seeded sidewalk population and activation safety contract
         timeout-minutes: 2
         run: |

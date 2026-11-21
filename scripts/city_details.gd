@@ -172,6 +172,24 @@ func get_loaded_blocks() -> Array[Vector2i]:
 	blocks.sort()
 	return blocks
 
+func is_spawn_area_ready(at: Vector3, radius: float) -> bool:
+	# New optional NPCs require complete nearby parcels, not just the first
+	# collision-shell stage. Never force synchronous construction for them.
+	if not _initialized or not at.is_finite() or not is_finite(radius) or radius < 0.0 or radius > 20.0:
+		return false
+	var min_x := floori((at.x-radius)/CELL)
+	var max_x := floori((at.x+radius)/CELL)
+	var min_z := floori((at.z-radius)/CELL)
+	var max_z := floori((at.z+radius)/CELL)
+	if min_x < -GRID_RADIUS or min_z < -GRID_RADIUS or max_x >= GRID_RADIUS or max_z >= GRID_RADIUS:
+		return false
+	for ix in range(min_x,max_x+1):
+		for iz in range(min_z,max_z+1):
+			var node: Variant = _loaded.get(Vector2i(ix,iz))
+			if not is_instance_valid(node) or node.is_queued_for_deletion():
+				return false
+	return true
+
 func _count_loaded_buildings() -> int:
 	var count := 0
 	for key in _loaded:
