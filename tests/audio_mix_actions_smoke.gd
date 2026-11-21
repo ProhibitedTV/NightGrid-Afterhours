@@ -73,11 +73,12 @@ func _verify() -> void:
 	if motor == null or motor.bus != AudioMix.EFFECTS:
 		_fail("Player car drivetrain does not use the effects stem")
 		return
-	var rail := game.get_node_or_null("MorrowLine/CicadaM8HeroVisual")
+	var rail := game.get_node_or_null("MorrowLine/MorrowLineTrain/CicadaM8HeroVisual")
 	if rail == null:
-		# The train visual is a child of the train node, not of the rail root.
-		rail = game.get_node_or_null("MorrowLine/MorrowLineTrain/CicadaM8HeroVisual")
-	if rail == null or (rail.get_node_or_null("OriginalRailRollingLoop") as AudioStreamPlayer3D).bus != AudioMix.EFFECTS:
+		_fail("M-Line train visual is missing")
+		return
+	var rail_sound := rail.get_node_or_null("OriginalRailRollingLoop") as AudioStreamPlayer3D
+	if rail_sound == null or rail_sound.bus != AudioMix.EFFECTS:
 		_fail("M-Line train audio does not use the effects stem")
 		return
 	var voices: Array = director.get("_events")
@@ -95,11 +96,12 @@ func _verify() -> void:
 			return
 	director.call("set_preferences", 0.65, 0.8)
 	var origin := _count(director)
+	var next_voice := int(director.get("_event_cursor"))
 	director.call("play_event", "DOOR", Vector3(1.0, 1.0, 2.0))
 	if _count(director) != origin + 1:
 		_fail("Vehicle-door cue did not play")
 		return
-	var first := voices[0] as AudioStreamPlayer3D
+	var first := voices[next_voice] as AudioStreamPlayer3D
 	if first.stream != Foley.sound("DOOR") or first.global_position.distance_to(Vector3(1.0, 1.0, 2.0)) > 0.01:
 		_fail("Door sound does not follow its physical source")
 		return
@@ -128,7 +130,7 @@ func _verify() -> void:
 	if _count(director) != origin + 7:
 		_fail("Takeoff and landing did not produce one event each")
 		return
-	for repeat in range(10):
+	for iteration in range(10):
 		director.call("update_context", at, at, true, true, false, "SOUTHWORKS", 22.0, 0.0, 0.0)
 	if _count(director) != origin + 7:
 		_fail("Stationary audio incorrectly depends on render-frame count")
