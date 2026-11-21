@@ -73,6 +73,12 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/combat_smoke.gd 2>&1 | tee /tmp/nightgrid-combat.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-combat.log; then exit 1; fi
+      - name: Validate radial equipment wheel input, pause ownership and ammo preservation
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/equipment_wheel_smoke.gd 2>&1 | tee /tmp/nightgrid-wheel.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-wheel.log; then exit 1; fi
       - name: Validate Southworks solid cargo and player movement orientation regressions
         run: godot --headless --path . --script res://tests/southworks_playtest_smoke.gd
       - name: Validate fixed 60Hz physics and independent rendered train cadence

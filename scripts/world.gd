@@ -10,6 +10,7 @@ const Ui = preload("res://scripts/ui_style.gd")
 const Nav = preload("res://scripts/navigation_waypoint.gd")
 const StreetRoute = preload("res://scripts/street_route.gd")
 const Arsenal = preload("res://scripts/arsenal.gd")
+const EquipmentWheel = preload("res://scripts/equipment_wheel.gd")
 const Reticle = preload("res://scripts/weapon_reticle.gd")
 const CombatFoley = preload("res://scripts/city_foley.gd")
 const CityDetailsScript = preload("res://scripts/city_details.gd")
@@ -69,6 +70,7 @@ var _fire_held := true
 var _hit_feedback := 0.0
 var _weapon_audio: AudioStreamPlayer3D
 var _weapon_card: PanelContainer
+var equipment_wheel: Control
 var _weapon_label: Label
 var _reticle: Control
 var navigation_waypoint: Variant = null
@@ -352,6 +354,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_venue_action(3)
 		elif event.is_action_pressed("interact"):
 			_close_venue()
+	elif event.is_action_pressed("weapon_wheel") and _can_use_weapon():
+		_open_equipment_wheel()
 	elif event.is_action_pressed("weapon_cycle") and _can_use_weapon():
 		weapons.cycle()
 		_fire_held = true
@@ -1803,6 +1807,16 @@ func _build_hud() -> void:
 	venue_close_button.focus_mode = Control.FOCUS_ALL
 	venue_close_button.pressed.connect(func() -> void: _close_venue())
 	action_row.add_child(venue_close_button)
+	var equipment_layer := CanvasLayer.new()
+	equipment_layer.name = "EquipmentOverlay"
+	equipment_layer.layer = 9
+	add_child(equipment_layer)
+	equipment_wheel = EquipmentWheel.new()
+	equipment_wheel.name = "EquipmentWheel"
+	equipment_layer.add_child(equipment_wheel)
+	equipment_wheel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	equipment_wheel.connect("confirmed", _finish_equipment_wheel)
+	equipment_wheel.connect("cancelled", func() -> void: _finish_equipment_wheel(""))
 
 func _hud_text(parent: Node, node_name: String, font_size: int, tint: Color) -> Label:
 	var label := Label.new()
@@ -1907,7 +1921,7 @@ func _update_hud() -> void:
 		if prompts.is_empty():
 			prompts.append("Y Vehicle  •  RB Transit  •  X Interact" if gamepad_active else "E Vehicle  •  F Transit  •  G Interact")
 	if _can_use_weapon():
-		prompts.append("D-pad ← Equipment" if gamepad_active else "Q Equipment")
+		prompts.append("D-pad ← Cycle • R3 Equipment" if gamepad_active else "Q Cycle • C Equipment")
 	prompts.append(utility)
 	hud_prompt.text = "\n".join(prompts)
 	hud_prompt_card.visible = not venue_panel.visible
@@ -1949,7 +1963,36 @@ func clear_navigation_waypoint() -> void:
 	navigation_waypoint = null
 	_route_cache.clear()
 
+func _open_equipment_wheel() -> bool:
+	if not _can_use_weapon() or not is_instance_valid(equipment_wheel) or equipment_wheel.visible:
+		return false
+	weapon_aiming = false
+	player.set("weapon_aiming", false)
+	_fire_held = true
+	_reticle.hide()
+	_weapon_card.hide()
+	equipment_wheel.call("present", weapons.snapshot(), gamepad_active)
+	get_tree().paused = true
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	return true
+
+func _finish_equipment_wheel(id: String) -> void:
+	if not is_instance_valid(equipment_wheel) or not equipment_wheel.visible:
+		return
+	equipment_wheel.call("dismiss")
+	get_tree().paused = false
+	if game_menu != null and game_menu.call("is_open"):
+		get_tree().paused = true
+		return
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	_fire_held = true
+	if _can_use_weapon() and not id.is_empty():
+		weapons.equip(id)
+	_update_weapon_hud()
+
 func suspend_weapon() -> void:
+	if is_instance_valid(equipment_wheel) and equipment_wheel.visible:
+		equipment_wheel.call("dismiss")
 	weapons.holster()
 	weapon_aiming = false
 	_fire_held = true

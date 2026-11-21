@@ -20,8 +20,8 @@ const DEFAULT_SETTINGS = {
 const HELP_SECTIONS = [
 	{"title": "ON FOOT", "keyboard": "WASD move · Mouse look · Shift sprint · Space jump",
 		"pad": "Left stick move · Right stick look · L3 sprint · A jump"},
-	{"title": "WEAPONS / ON FOOT", "keyboard": "Q cycle / holster · Hold RMB aim · LMB fire · Z reload",
-		"pad": "D-pad Left cycle · LT aim · RT fire · D-pad Up reload"},
+	{"title": "WEAPONS / ON FOOT", "keyboard": "Q cycle · C equipment wheel · Hold RMB aim · LMB fire · Z reload",
+		"pad": "D-pad Left cycle · R3 equipment wheel · LT aim · RT fire · D-pad Up reload"},
 	{"title": "WORLD ACTIONS", "keyboard": "E vehicle · F bus/train · H enter/exit shop · G interact · R supplies",
 		"pad": "Y vehicle · RB bus/train · LB enter/exit shop · X interact · D-pad Down supplies"},
 	{"title": "DRIVING / NIGHTGRID FM", "keyboard": "W accelerate · S reverse · A/D steer · Space brake · B radio · N next song",
