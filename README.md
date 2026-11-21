@@ -6,7 +6,7 @@ Take courier jobs, drive through neon-lit streets, ride the city's buses and tra
 
 **Early playable beta — actively in development.**
 
-[**Download for Windows**](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases/latest) · [Report a bug or suggest a feature](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues) · [Playtest guide](docs/PLAYTEST_CHECKLIST.md)
+[**Download for Windows**](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) · [Report a bug or suggest a feature](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues) · [Playtest guide](docs/PLAYTEST_CHECKLIST.md)
 
 ![Morrow Bay at night, captured in the actual game](docs/screenshots/01-morrow-bay-neon-night.png)
 
@@ -40,7 +40,7 @@ All nine images are actual Godot 4.7.2 viewport captures from the development bu
 
 ## Play the beta
 
-1. Open [GitHub Releases](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases/latest) and download the Windows x64 beta ZIP, **not** the source code ZIP.
+1. Open [GitHub Releases](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) and download the Windows x64 beta ZIP, **not** the source code ZIP.
 2. Extract the full archive into one folder and launch `NightGrid-Afterhours.exe`. Keep the EXE and PCK together.
 3. Choose New World, then follow the amber pickup beacon and deliver the package to the cyan destination.
 
