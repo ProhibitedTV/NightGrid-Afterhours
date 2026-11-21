@@ -15,6 +15,12 @@ var dwell_remaining := 0.0
 var last_served := -1
 var laps := 0
 var paint := Color("4c90a3")
+var _detour: Array[Vector3] = []
+var _detour_cursor := 0
+var _detour_rejoin := -1
+var _detour_hold := false
+const HANDOFF_TOLERANCE = 0.55
+const DETOUR_MAX_POINTS = 81
 
 func setup(path: Array[Vector3], first_index: int, position_at: Vector3, bus: bool, identifier: String, tint: Color, signal_controller: Node, owner_fleet: Node) -> void:
 	route = path
@@ -33,6 +39,55 @@ func setup(path: Array[Vector3], first_index: int, position_at: Vector3, bus: bo
 	floor_snap_length = 0.1
 	_build_body()
 
+func _on_loop_leg(at: Vector3, index: int) -> bool:
+	if route.size()<2 or index<0 or index>=route.size():
+		return false
+	var a := route[posmod(index-1,route.size())]
+	var b := route[index]
+	var axis := b-a
+	if axis.length_squared()<1.0:
+		return false
+	var t := clampf((at-a).dot(axis)/axis.length_squared(),0.0,1.0)
+	return at.distance_to(a+axis*t)<=HANDOFF_TOLERANCE
+
+func begin_finite_detour(path: Array[Vector3], rejoin_index: int, certify: Callable) -> bool:
+	# An external director must certify the route, collision geometry,
+	# registry revision, approach reservation and save policy first.
+	if buses or _detour_hold or not _detour.is_empty() or not certify.is_valid() or path.size()<2 or path.size()>DETOUR_MAX_POINTS:
+		return false
+	if not is_finite(speed) or absf(speed)>1.0 or not global_position.is_finite():
+		return false
+	if not path[0].is_finite() or not path[-1].is_finite() or global_position.distance_to(path[0])>HANDOFF_TOLERANCE:
+		return false
+	if not _on_loop_leg(path[0],next_index) or not _on_loop_leg(path[-1],rejoin_index):
+		return false
+	var previous_direction := (route[next_index]-route[posmod(next_index-1,route.size())]).normalized()
+	for i in range(1,path.size()):
+		if not path[i].is_finite() or absf(path[i].y-path[0].y)>0.02:
+			return false
+		var leg := path[i]-path[i-1]
+		if leg.length()<3.0 or (absf(leg.x)>0.02 and absf(leg.z)>0.02) or previous_direction.dot(leg.normalized())< -0.5:
+			return false
+		previous_direction = leg.normalized()
+	# End on an outgoing loop lane, not beyond its endpoint or facing back.
+	var exit_direction := (route[rejoin_index]-path[-1]).normalized()
+	if path[-1].distance_to(route[rejoin_index])<3.0 or exit_direction.dot(previous_direction)<0.99:
+		return false
+	if not bool(certify.call(path.duplicate(),rejoin_index)):
+		return false
+	_detour = path.duplicate()
+	_detour_cursor = 1
+	_detour_rejoin = rejoin_index
+	return true
+
+func finite_detour_active() -> bool:
+	return not _detour.is_empty()
+
+func _reset_detour() -> void:
+	_detour.clear()
+	_detour_cursor = 0
+	_detour_rejoin = -1
+
 func _physics_process(delta: float) -> void:
 	if route.is_empty() or signals == null or fleet == null:
 		return
@@ -41,10 +96,26 @@ func _physics_process(delta: float) -> void:
 		speed = 0.0
 		velocity = Vector3.ZERO
 		return
-	var waypoint := route[next_index]
+	if _detour_hold:
+		speed = 0.0
+		velocity = Vector3.ZERO
+		return
+	var waypoint := _detour[_detour_cursor] if finite_detour_active() else route[next_index]
 	var toward := waypoint - global_position
 	toward.y = 0.0
-	if toward.length() < 1.1:
+	if finite_detour_active():
+		if toward.length()<HANDOFF_TOLERANCE:
+			if _detour_cursor+1<_detour.size():
+				_detour_cursor += 1
+				waypoint = _detour[_detour_cursor]
+			else:
+				# Re-enter the original route without modifying world position.
+				next_index = _detour_rejoin
+				_reset_detour()
+				waypoint = route[next_index]
+			toward = waypoint-global_position
+			toward.y = 0.0
+	elif toward.length() < 1.1:
 		next_index = (next_index + 1) % route.size()
 		if next_index == 0:
 			laps += 1
@@ -90,11 +161,17 @@ func alight_position() -> Vector3:
 func snapshot() -> Dictionary:
 	return {"id": vehicle_id, "position": [global_position.x, global_position.y, global_position.z],
 		"yaw": rotation.y, "next_index": next_index, "speed": speed,
-		"dwell": dwell_remaining, "last_served": last_served, "laps": laps}
+		"dwell": dwell_remaining, "last_served": last_served, "laps": laps,
+		"detour_interrupted": finite_detour_active() or _detour_hold}
 
 func apply_snapshot(data: Dictionary) -> void:
 	if str(data.get("id", "")) != vehicle_id:
 		return
+	_reset_detour()
+	# Never drive from a stale temporary route into an unrestricted loop.
+	# A future director must implement certified restoration/recovery before
+	# exposing live detours. Existing saves without this field stay unchanged.
+	_detour_hold = data.get("detour_interrupted",false) == true
 	var p: Array = data.get("position", [])
 	if p.size() == 3:
 		global_position = Vector3(float(p[0]), float(p[1]), float(p[2]))

@@ -226,6 +226,12 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/lane_detour_smoke.gd 2>&1 | tee /tmp/nightgrid-lane-detour.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-lane-detour.log; then exit 1; fi
+      - name: Validate opt-in finite vehicle detour handoff and interrupted save safety
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/finite_vehicle_detour_smoke.gd 2>&1 | tee /tmp/nightgrid-finite-detour.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-finite-detour.log; then exit 1; fi
       - name: Validate positional road traffic buses and cars using bounded voice pool
         run: godot --headless --path . --script res://tests/traffic_spatial_audio_smoke.gd
       - name: Validate independent mix stems and all live interaction cues
