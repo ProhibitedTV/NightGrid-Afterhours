@@ -47,7 +47,7 @@ def check_model(asset: str) -> None:
     assert model.get("materials")
     assert sum(g["bytes"] for g in files.values()) < 12_000_000
     if asset == "metal_trash_can":
-        assert any("rust" in (mesh.get("name") or "").lower() for mesh in model["meshes"])
+        assert any("rust" in (node.get("name") or "").lower() for node in model["nodes"]), "Rusted source variant only named in glTF scene nodes"
     for reference in model.get("images", []) + model.get("buffers", []):
         uri = reference.get("uri")
         if uri:
