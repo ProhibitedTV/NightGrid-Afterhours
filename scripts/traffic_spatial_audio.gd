@@ -1,4 +1,5 @@
 extends Node3D
+const AudioMix = preload("res://scripts/audio_mix.gd")
 ## Five reusable positional voices for the entire moving street fleet.
 ## Only audible nearby vehicles play; no AudioStreamPlayer is allocated per car.
 ## Waveform synthesis is original and cached, never done in _process.
@@ -64,6 +65,8 @@ func _ready() -> void:
 	for index in range(VOICE_LIMIT):
 		var voice := AudioStreamPlayer3D.new()
 		voice.name = "PassingTrafficVoice_%d" % index
+		AudioMix.ensure()
+		voice.bus = AudioMix.EFFECTS
 		voice.max_distance = 74.0
 		voice.unit_size = 6.0
 		voice.volume_db = -80.0
