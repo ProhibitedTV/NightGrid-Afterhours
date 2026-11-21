@@ -26,6 +26,7 @@ const GameMenuScript = preload("res://scripts/game_menu.gd")
 const NightGridFMScript = preload("res://scripts/nightgrid_fm.gd")
 const WorldAudioScript = preload("res://scripts/world_audio.gd")
 const FrameTimeRecorder = preload("res://scripts/frame_time_recorder.gd")
+const PlaytestEvidence = preload("res://scripts/playtest_evidence.gd")
 const CELL = 58.0
 const GRID_RADIUS = 4
 const PLAYER_START = Vector3(0.0, 1.15, 6.0)
@@ -72,6 +73,7 @@ var game_menu: CanvasLayer
 var nightgrid_fm: Node
 var world_audio: Node
 var frame_time_recorder = FrameTimeRecorder.new()
+var _capturing_evidence := false
 var gamepad_active := false
 var mouse_sensitivity := 0.0032
 var stick_sensitivity := 2.6
@@ -311,11 +313,65 @@ func _unhandled_input(event: InputEvent) -> void:
 			frame_time_recorder.begin_capture(int(stream_start["loads"]),
 				int(stream_start.get("stage_steps", 0)), int(stream_start.get("total_build_usec", 0)))
 			_notify("Drive trace recording. Press F8 again to save a CSV.")
+	elif event.is_action_pressed("capture_playtest_frame"):
+		if not _capturing_evidence:
+			call_deferred("_capture_playtest_frame")
 	elif event.is_action_pressed("toggle_ssr"):
 		world_environment.environment.ssr_enabled = not world_environment.environment.ssr_enabled
 	else:
 		return
 	get_viewport().set_input_as_handled()
+
+## F10 produces a genuine rendered viewport frame without HUD, plus an
+## adjacent JSON record with exact camera pose, game world, settings and
+## measured rolling frame intervals. No world teleport or save mutation.
+func _capture_playtest_frame() -> void:
+	if _capturing_evidence or camera == null or not is_instance_valid(player):
+		return
+	if game_menu != null and game_menu.call("is_open"):
+		return
+	_capturing_evidence = true
+	var hud_layer := get_node_or_null("HUD") as CanvasLayer
+	var hud_was_visible := hud_layer != null and hud_layer.visible
+	if hud_layer != null:
+		hud_layer.visible = false
+	# Framebuffer must be sampled only after the *new* HUD-hidden frame.
+	# Never store an old composited frame then mislabel it as a clean view.
+	await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	var framebuffer := get_viewport().get_texture().get_image()
+	if hud_layer != null:
+		hud_layer.visible = hud_was_visible
+	if framebuffer == null or framebuffer.is_empty():
+		_capturing_evidence = false
+		_notify("F10 capture failed: renderer returned no framebuffer.")
+		return
+	var actual_actor := _actor()
+	var outdoor_position: Vector3 = interiors.get("exterior_position") if interiors.call("is_inside") else actual_actor.global_position
+	var motion := "on_foot"
+	if current_car != null:
+		motion = "player_vehicle"
+	elif current_transit != null:
+		motion = "rail" if transit_kind == "TRAIN" else "bus"
+	var metadata: Dictionary = PlaytestEvidence.build_metadata(camera, actual_actor, {
+		"world_seed": int(session.get("world_seed")),
+		"game_clock": str(day_night.call("clock_string")),
+		"district": str(city_details.call("get_district_at", outdoor_position)),
+		"indoors": bool(interiors.call("is_inside")),
+		"motion_context": motion,
+		"graphic_settings": game_menu.call("get_settings"),
+		"frame_interval_metrics": frame_time_recorder.get_frame_metrics(),
+		"streaming": city_details.call("get_streaming_stats"),
+		"frame_trace_recording": frame_time_recorder.recording
+	})
+	var result: Dictionary = PlaytestEvidence.export_bundle(framebuffer, metadata)
+	_capturing_evidence = false
+	if bool(result.get("ok", false)):
+		print("PLAYTEST_FRAME_EVIDENCE PNG: ", result["png_path"])
+		print("PLAYTEST_FRAME_EVIDENCE JSON: ", result["json_path"])
+		_notify("F10 screenshot + metrics saved in: " + str(result["directory"]))
+	else:
+		_notify("F10 capture failed: " + str(result.get("error", "unknown error")))
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(player):
