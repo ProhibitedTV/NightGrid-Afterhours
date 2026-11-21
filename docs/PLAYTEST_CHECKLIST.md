@@ -1,6 +1,6 @@
 # NightGrid: Afterhours — first Windows playtest field guide
 
-**Recommended Windows beta:** use the [versioned GitHub prerelease](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases/tag/v0.1.0-beta.3), asset `NightGrid-Afterhours-v0.1.0-beta.3-windows-x64.zip`, after it is published by the successful main-branch test gate. Download the ZIP asset (not automatically generated source code archives), verify against its `SHA256SUMS.txt` if desired, and extract **all contents**, keeping `NightGrid-Afterhours.exe` and `NightGrid-Afterhours.pck` side by side. Launch the EXE. The binary is **unsigned**, so publishing on GitHub alone does not prevent Chrome/SmartScreen warnings. Do not globally disable Safe Browsing or ignore malware detections. The previous [GitHub Actions playtest artifacts](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/workflows/windows-build.yml) remain a development-build fallback. Godot 4.3 source playtesting (open `project.godot`, press F5) remains supported.
+**Recommended Windows beta:** use the [versioned GitHub prerelease](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases/tag/v0.1.0-beta.3), asset `NightGrid-Afterhours-v0.1.0-beta.3-windows-x64.zip`, after it is published by the successful main-branch test gate. Download the ZIP asset (not automatically generated source code archives), verify against its `SHA256SUMS.txt` if desired, and extract **all contents**, keeping `NightGrid-Afterhours.exe` and `NightGrid-Afterhours.pck` side by side. Launch the EXE. The binary is **unsigned**, so publishing on GitHub alone does not prevent Chrome/SmartScreen warnings. Do not globally disable Safe Browsing or ignore malware detections. The previous [GitHub Actions playtest artifacts](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/workflows/windows-build.yml) remain a development-build fallback. For the **current development source**, use **Godot 4.7.2 stable** (open `project.godot`, press F5). The linked beta.3 executable remains on 4.3 until the next engine-upgrade release.
 
 This is an **early, diagnostics-focused beta**, not a commercial AAA-quality release. The original source is in the linked GitHub repository, and the Windows build is produced by its public Actions workflow. The README screenshots are genuine game captures, but are not proof that the Windows Vulkan renderer meets the approved photorealistic target.
 
@@ -15,7 +15,7 @@ This is an **early, diagnostics-focused beta**, not a commercial AAA-quality rel
 
 ## Rendering A/B experiment (beta.3 and newer)
 
-**F11** toggles the unchanged original Filmic look and an experimental **Godot 4.3 ACES / sky-ambient / shorter-shadows / thinner-fog** look based on the user's Coding Quests video. This does **not** copy the Godot 4.7-only AgX tonemapper. The original rendering mode is the launch default. Press **Y** to freeze the clock, **F10** to capture a frame, **F11** to change lighting without moving, and **F10** again for the exact same viewpoint. The F10 JSON and automatic playtest JSONL stamp the mode. Collect F8 CSV timings in both modes before judging performance; SKY ambient can have a cost. [Detailed comparison and performance cautions](GODOT_VIDEO_REALISM_AB.md).
+**Tagged beta.3 (Godot 4.3):** F11 toggles Filmic baseline ↔ ACES + sky. **Engine-upgrade development source (Godot 4.7.2):** F11 cycles **Filmic → sky/ACES → sky/AgX → Filmic**. The original Filmic lighting remains the launch default. Press **Y** to freeze the clock, capture **F10** at each look from one unmoving camera and compare the JSON `render_profile` labels. Record separate F8 CSV runs before judging performance. AgX may be more expensive; it is a preview, not the new default. [Detailed comparison](GODOT_VIDEO_REALISM_AB.md).
 
 ## Performance and controls
 
@@ -35,7 +35,7 @@ This is an **early, diagnostics-focused beta**, not a commercial AAA-quality rel
 | F3 | Settings | Rolling frame-time p95/p99/1% lows, streamed-block overlay |
 | F7 | — | Mark a visible bug right now in the automatic playtest log (no pause) |
 | F8 | — | Start/stop frame-by-frame driving trace (CSV in Godot user-data folder) |
-| F11 | — | Compare original Filmic lighting with experimental ACES/sky mode (beta.3 and newer) |
+| F11 | — | Beta.3: toggle Filmic/ACES; current Godot 4.7.2 source: cycle Filmic, ACES and AgX |
 | F10 | — | Save an actual clean gameplay PNG with camera/world/graphics/frame-time JSON |
 
 ### Automatic diagnostics for the next Windows playtest
