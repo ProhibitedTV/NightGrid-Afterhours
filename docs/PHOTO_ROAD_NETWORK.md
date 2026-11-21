@@ -19,3 +19,6 @@ Exchange still determine material/reflection acceptance. Watch for
 repeating texture, overly dark asphalt, and visible transitions at the
 hero overlay. The new scene test verifies exact original footprint,
 non-overlap, UV/tangent geometry, shared maps and two-drawable budget.
+
+## Capture evidence
+The [seven-image capture run](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/runs/44954026080) completed successfully using source 1645d87; the intervening 4f818a0 commit changes only test tolerances/type annotations. Its actual gallery and manifest are committed. Vesper Market still has visibly blocky bus and building silhouettes; this is a material replacement, not an overall art acceptance. Final combined revision must pass preflight and Windows export.
