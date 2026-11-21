@@ -71,10 +71,10 @@ func _check() -> void:
 	root.add_child(game)
 	await process_frame
 	var hero := game.get_node_or_null("CentralExchangeHero") as Node3D
-	var signal := game.get_node_or_null("TrafficSignals") as Node
+	var controller := game.get_node_or_null("TrafficSignals") as Node
 	var city := game.get_node_or_null("CityDetails") as Node
 	var session := root.get_node_or_null("GameSession")
-	if hero == null or signal == null or city == null or session == null:
+	if hero == null or controller == null or city == null or session == null:
 		_fail("Original gameplay city, traffic, or session unavailable")
 		return
 	var seed := int(session.get("world_seed"))
@@ -114,7 +114,7 @@ func _check() -> void:
 				return
 	# Existing hero ramps preserve their exact original 8 sidewalk approaches,
 	# and traffic controller's 81 intersection phases remain authoritative.
-	if int(hero_stats["curb_ramps"]) != 8 or int(signal.call("safe_intersection_count")) != 81:
+	if int(hero_stats["curb_ramps"]) != 8 or int(controller.call("safe_intersection_count")) != 81:
 		_fail("Crossing ramp count or operational signal topology changed")
 		return
 	if hero.get_node_or_null("CentralExchangePhotoStreetKit") == null:
