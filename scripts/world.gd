@@ -805,7 +805,7 @@ func _update_wanted(delta: float) -> void:
 func _spawn_police() -> void:
 	if not wanted.last_known.is_finite():
 		return
-	var center := wanted.last_known
+	var center: Vector3 = wanted.last_known
 	var origin := Vector3(roundf(center.x / CELL) * CELL, 1.1, roundf(center.z / CELL) * CELL)
 	var spawn := Vector3.INF
 	for step in range(8):

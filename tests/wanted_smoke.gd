@@ -96,6 +96,51 @@ func _verify() -> void:
 	if units.size() != 1 or units[0].get("police_destination") != Vector3(0, 1, 0):
 		_fail("Response vehicle must use the reported location")
 		return
+	# Test actual first-entry path twice on an isolated parked car. Move all
+	# real witness vehicles away, then position one functional patrol nearby.
+	world.set_physics_process(false)
+	var traffic: Node = world.get("traffic")
+	var fleet: Array = traffic.get("fleet")
+	for vehicle in fleet + patrols + units:
+		vehicle.set_physics_process(false)
+		vehicle.global_position = Vector3(220, 1.1, 220)
+	world.set("heat", 0.0)
+	live.reset()
+	var cars: Array = world.get("cars")
+	var test_car: CharacterBody3D = cars[0]
+	test_car.set_physics_process(false)
+	test_car.global_position = Vector3(0, 1.1, 18)
+	player.global_position = Vector3(3, 1.15, 18)
+	world.call("_toggle_car")
+	world.call("_update_wanted", 0.01)
+	if float(world.get("heat")) != 0.0 or world.get("current_car") != test_car:
+		_fail("Unwitnessed actual parked car acquisition must not generate heat")
+		return
+	world.call("_toggle_car")
+	var second: CharacterBody3D = cars[1]
+	second.set_physics_process(false)
+	second.global_position = Vector3(0, 1.1, 18)
+	test_car.global_position = Vector3(225, 1.1, 225)
+	player.global_position = Vector3(3, 1.15, 18)
+	var watcher: CharacterBody3D = patrols[0]
+	watcher.global_position = Vector3(3, 1.1, 10)
+	watcher.rotation.y = PI
+	await physics_frame
+	await physics_frame
+	world.call("_toggle_car")
+	world.call("_update_wanted", 0.01)
+	if Wanted.stars(float(world.get("heat"))) != 1 or live.last_reason != "THEFT" or world.get("current_car") != second:
+		_fail("Actual theft seen by a patrol must produce a report")
+		return
+	var theft_heat: float = world.get("heat")
+	world.call("_toggle_car")
+	player.global_position = Vector3(3, 1.15, 18)
+	world.call("_toggle_car")
+	world.call("_update_wanted", 0.01)
+	if float(world.get("heat")) > theft_heat:
+		_fail("Already claimed vehicle should not generate a second theft charge")
+		return
+	world.call("_report_incident", "THEFT", Vector3(0, 1, 0), true)
 	var save: Dictionary = world.call("_capture_snapshot")
 	if save["wanted_last_known"] != [0.0, 1.0, 0.0]:
 		_fail("Save did not preserve last reported location")
