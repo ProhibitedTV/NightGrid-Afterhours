@@ -173,7 +173,7 @@ func _check() -> void:
 	# 3.35m vestibule MUST NOT be blocked by a whole-volume building collider.
 	await physics_frame
 	await physics_frame
-	for x in (-18.5,18.5):
+	for x in [-18.5, 18.5]:
 		var from_point := Vector3(x,1.8,13.38)
 		var open_end := Vector3(x,1.8,17.20)
 		var query := PhysicsRayQueryParameters3D.create(from_point,open_end)
