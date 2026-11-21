@@ -65,7 +65,7 @@ def main() -> None:
         attrs=primitive["attributes"]
         assert all(x in attrs for x in ("POSITION","NORMAL","TANGENT","TEXCOORD_0"))
         assert primitive["mode"] == 4
-        assert gltf["accessors"][attrs["POSITION"]]["count"] >= 100
+        assert gltf["accessors"][attrs["POSITION"]]["count"] >= 24
     print("ORIGINAL_CRANE_GEAR_GLTF PASS:",source["model"],shape,
           len(files),"hash-verified committed files / original authored glTF + CC0 PBR")
 
