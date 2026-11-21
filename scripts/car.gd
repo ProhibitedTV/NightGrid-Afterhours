@@ -1,5 +1,8 @@
 extends CharacterBody3D
-## Arcade driving and basic police-pursuit steering.
+## Arcade driving with separate policy-inspired police road controller.
+const PoliceDrive = preload("res://scripts/police_drive.gd")
+const Foley = preload("res://scripts/city_foley.gd")
+const Mix = preload("res://scripts/audio_mix.gd")
 
 const MAX_SPEED = 36.0
 const MAX_REVERSE = 14.0
@@ -16,6 +19,11 @@ var police_destination := Vector3.INF
 var routine_route: Array[Vector3] = []
 var routine_index := 0
 var response_level := 1
+var police_priority := false
+var police_night := false
+var police_signals: Node
+var drive_policy = PoliceDrive.new()
+var _siren: AudioStreamPlayer3D
 var speed := 0.0
 var condition := 100.0
 var _impact_cooldown := 0.0
@@ -23,6 +31,15 @@ var _impact_cooldown := 0.0
 
 func _ready() -> void:
 	floor_snap_length = 0.5
+	if is_police:
+		_siren = AudioStreamPlayer3D.new()
+		_siren.name = "ResponseWarning"
+		_siren.bus = Mix.EFFECTS
+		_siren.stream = Foley.sound("RESPONSE_WARNING")
+		_siren.volume_db = -14.0
+		_siren.unit_size = 8.0
+		_siren.max_distance = 60.0
+		add_child(_siren)
 
 func _physics_process(delta: float) -> void:
 	_impact_cooldown = maxf(0.0, _impact_cooldown - delta)
@@ -36,19 +53,28 @@ func _physics_process(delta: float) -> void:
 		var goal := police_destination
 		if not responding and not routine_route.is_empty():
 			goal = routine_route[routine_index]
-			if global_position.distance_to(goal) < 5.0:
+			if drive_policy.arrived(Vector2(global_position.x, global_position.z), Vector2(goal.x, goal.z)) or global_position.distance_to(goal) < 1.5:
 				routine_index = (routine_index + 1) % routine_route.size()
 				goal = routine_route[routine_index]
 		if not goal.is_finite():
 			goal = global_position
-		var vector := goal - global_position
-		vector.y = 0.0
-		if vector.length_squared() > 0.5:
-			var target_yaw := atan2(-vector.x, -vector.z)
-			visual_steer = clampf(wrapf(target_yaw - rotation.y, -PI, PI), -1.0, 1.0)
-			rotation.y = lerp_angle(rotation.y, target_yaw, minf(delta * 2.1, 1.0))
-		var target_speed := (17.0 + 2.0 * float(response_level) if responding else 9.0) if vector.length() > 5.0 else 0.0
-		speed = move_toward(speed, target_speed, ACCEL * delta)
+		var at := Vector2(global_position.x, global_position.z)
+		var point: Vector2 = drive_policy.next_point(at, Vector2(goal.x, goal.z))
+		var toward := Vector3(point.x - at.x, 0, point.y - at.y)
+		var turn_error := 0.0
+		if toward.length_squared() > 0.5:
+			var target_yaw := atan2(-toward.x, -toward.z)
+			turn_error = wrapf(target_yaw - rotation.y, -PI, PI)
+			visual_steer = clampf(turn_error, -1.0, 1.0)
+			rotation.y = lerp_angle(rotation.y, target_yaw, minf(delta * 2.3, 1.0))
+		var signal_cap := PoliceDrive.RESPONSE_SPEED
+		if is_instance_valid(police_signals):
+			var heading := -global_basis.z
+			signal_cap = float(police_signals.call("approach_speed_cap", global_position, heading, signal_cap))
+		var clear: float = drive_policy.clearance(self, delta)
+		var target_speed: float = PoliceDrive.safe_speed(responding and police_priority, toward.length(), turn_error, clear, signal_cap, police_night)
+		braking = speed > target_speed + 0.1
+		speed = move_toward(speed, target_speed, (BRAKE if braking else 8.0) * delta)
 	elif occupied:
 		var throttle := Input.get_action_strength("drive_accelerate") - Input.get_action_strength("drive_reverse")
 		var steering := Input.get_axis("move_left", "move_right")
@@ -83,8 +109,14 @@ func _physics_process(delta: float) -> void:
 				speed *= 0.5
 				braking = true
 				break
+	var warning := is_police and condition > 18.0 and police_destination.is_finite() and police_priority
+	if is_instance_valid(_siren):
+		if warning and not _siren.playing:
+			_siren.play()
+		elif not warning and _siren.playing:
+			_siren.stop()
 	if hero_visual != null:
-		hero_visual.call("update_motion", speed, visual_steer, braking, occupied, is_police and police_destination.is_finite(), delta)
+		hero_visual.call("update_motion", speed, visual_steer, braking, occupied, warning, delta)
 
 func take_arcade_damage(amount: float) -> void:
 	condition = maxf(18.0, condition - maxf(amount, 0.0))

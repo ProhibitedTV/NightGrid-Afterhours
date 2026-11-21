@@ -554,6 +554,8 @@ func _physics_process(delta: float) -> void:
 	if not indoors and wanted.police_seen:
 		for officer in officers:
 			if is_instance_valid(officer) and float(officer.get("condition")) > 18.0 and officer.global_position.distance_to(actor.global_position) < 3.8:
+				# Contact damage remains a separate arcade gameplay consequence;
+				# the driving controller never intentionally targets collisions.
 				health -= delta * 7.0
 	if health <= 0.0:
 		_respawn()
@@ -797,10 +799,21 @@ func _update_wanted(delta: float) -> void:
 	if tier > 0 and not indoors and wanted.last_known.is_finite() and officers.size() < tier and police_cooldown <= 0.0:
 		_spawn_police()
 		police_cooldown = Wanted.reinforcement_delay(heat)
-	for officer in officers:
+	# Fictional dispatch policy: only a bounded subset uses warning lights
+	# and urgent response; remaining units travel under ordinary traffic rules.
+	# Priority is a gameplay decision, not a reproduction of an agency rule.
+	var hour: float = day_night.get("hour")
+	var night := hour < 6.0 or hour > 19.0
+	for i in range(officers.size()):
+		var officer := officers[i]
 		if is_instance_valid(officer):
 			officer.set("police_destination", wanted.last_known)
 			officer.set("response_level", tier)
+			officer.set("police_priority", i < 2 and tier >= 3 and wanted.police_seen)
+			officer.set("police_night", night)
+	for patrol in routine_patrols:
+		if is_instance_valid(patrol):
+			patrol.set("police_night", night)
 
 func _spawn_police() -> void:
 	if not wanted.last_known.is_finite():
@@ -1031,6 +1044,8 @@ func _create_car(where: Vector3, color: Color, police: bool = false) -> Characte
 	car.set_script(CarScript)
 	car.position = where
 	car.set("is_police", police)
+	if police:
+		car.set("police_signals", signal_controller)
 	var hitbox := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
 	shape.size = Vector3(2.35, 1.65, 4.7)

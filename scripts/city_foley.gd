@@ -9,7 +9,7 @@ static func sound(kind: String, variation: int = 0) -> AudioStreamWAV:
 	var key := "%s_%d" % [kind, variation]
 	if _cache.has(key):
 		return _cache[key]
-	var is_bed := kind in ["WIND", "TRAFFIC", "INDUSTRIAL", "WATER"]
+	var is_bed := kind in ["WIND", "TRAFFIC", "INDUSTRIAL", "WATER", "RESPONSE_WARNING"]
 	var seconds := BED_SECONDS if is_bed else (0.19 if kind.begins_with("STEP") else (0.12 if kind == "UI" else 0.44))
 	var frames := roundi(float(RATE) * seconds)
 	var data := PackedByteArray()
@@ -75,6 +75,10 @@ static func sound(kind: String, variation: int = 0) -> AudioStreamWAV:
 			"LAND":
 				sample = (noise * 0.13 + low_noise * 0.25) * exp(-29.0 * t)
 				sample += 0.055 * sin(TAU * 91.0 * t) * exp(-24.0 * t)
+			"RESPONSE_WARNING":
+				# Original fictional two-tone emergency cue, not a recording.
+				var wave := 0.5 + 0.5 * sin(TAU * 0.7 * t)
+				sample = 0.12 * sin(TAU * 440.0 * t + 14.0 * sin(TAU * 0.7 * t)) * (0.55 + 0.45 * wave)
 			"PULSE", "ARC":
 				var pitch_hz := 310.0 if kind == "PULSE" else 510.0
 				sample = (noise * 0.17 + sin(TAU * (pitch_hz - 180.0 * t) * t) * 0.12) * exp(-21.0 * t)
