@@ -27,6 +27,7 @@ const NightGridFMScript = preload("res://scripts/nightgrid_fm.gd")
 const WorldAudioScript = preload("res://scripts/world_audio.gd")
 const FrameTimeRecorder = preload("res://scripts/frame_time_recorder.gd")
 const PlaytestEvidence = preload("res://scripts/playtest_evidence.gd")
+const PlaytestLogger = preload("res://scripts/playtest_logger.gd")
 const CELL = 58.0
 const GRID_RADIUS = 4
 const PLAYER_START = Vector3(0.0, 1.15, 6.0)
@@ -73,6 +74,7 @@ var game_menu: CanvasLayer
 var nightgrid_fm: Node
 var world_audio: Node
 var frame_time_recorder = FrameTimeRecorder.new()
+var playtest_logger = PlaytestLogger.new()
 var _capturing_evidence := false
 var gamepad_active := false
 var mouse_sensitivity := 0.0032
@@ -117,6 +119,12 @@ var police_cooldown := 4.0
 func _ready() -> void:
 	GameInput.install()
 	session = get_node("/root/GameSession")
+	# Diagnostics stay local, capped and silent on headless CI. Capture startup
+	# before loading the world so real Windows sessions have a known baseline.
+	if DisplayServer.get_name() != "headless":
+		var path: String = playtest_logger.start_session(int(session.get("world_seed")))
+		if not path.is_empty():
+			print("NIGHTGRID_PLAYTEST_LOG: ", path)
 	rng.seed = int(session.get("world_seed"))
 	_build_environment()
 	_build_city()
@@ -140,6 +148,29 @@ func _ready() -> void:
 	if DisplayServer.get_name() != "headless" and not bool(session.get("boot_menu_shown")):
 		session.set("boot_menu_shown", true)
 		game_menu.call("open_title")
+	_log_playtest("world_ready", {"restored": not restore.is_empty()})
+
+func _exit_tree() -> void:
+	playtest_logger.end_session()
+
+func _log_playtest(name: String, details: Dictionary = {}) -> void:
+	if not playtest_logger.is_active() or not is_instance_valid(player):
+		return
+	var actor := _actor()
+	var indoors: bool = interiors != null and interiors.call("is_inside")
+	var street: Vector3 = interiors.get("exterior_position") if indoors else actor.global_position
+	var context := {
+		"x": snappedf(actor.global_position.x, 0.01),
+		"y": snappedf(actor.global_position.y, 0.01),
+		"z": snappedf(actor.global_position.z, 0.01),
+		"district": city_details.call("get_district_at", street),
+		"clock": day_night.call("clock_string"),
+		"indoors": indoors,
+		"mode": "car" if current_car != null else ("transit_" + transit_kind.to_lower() if current_transit != null else "on_foot")
+	}
+	if current_car != null:
+		context["speed_kph"] = current_car.call("speed_kph")
+	playtest_logger.record_event(name, {"context": context, "details": details})
 
 func _build_game_menu() -> void:
 	game_menu = GameMenuScript.new()
@@ -303,15 +334,21 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("toggle_fps"):
 		performance_overlay = not performance_overlay
 		performance_label.visible = performance_overlay
+	elif event.is_action_pressed("playtest_mark"):
+		_log_playtest("manual_marker", {"note": "Player pressed F7 after noticing an issue"})
+		playtest_logger.flush()
+		_notify("Playtest marker saved: " + playtest_logger.get_log_path() if playtest_logger.is_active() else "Playtest logging unavailable.")
 	elif event.is_action_pressed("record_frame_trace"):
 		if frame_time_recorder.recording or frame_time_recorder.capture_full:
 			frame_time_recorder.end_capture()
 			var exported: String = frame_time_recorder.export_csv()
+			_log_playtest("frame_trace_saved", {"path": exported, "frames": frame_time_recorder.captured_frames()})
 			_notify("Drive trace saved: " + exported if not exported.is_empty() else "Drive trace export failed.")
 		else:
 			var stream_start: Dictionary = city_details.call("get_streaming_stats")
 			frame_time_recorder.begin_capture(int(stream_start["loads"]),
 				int(stream_start.get("stage_steps", 0)), int(stream_start.get("total_build_usec", 0)))
+			_log_playtest("frame_trace_started")
 			_notify("Drive trace recording. Press F8 again to save a CSV.")
 	elif event.is_action_pressed("capture_playtest_frame"):
 		if not _capturing_evidence:
@@ -369,15 +406,21 @@ func _capture_playtest_frame() -> void:
 	if bool(result.get("ok", false)):
 		print("PLAYTEST_FRAME_EVIDENCE PNG: ", result["png_path"])
 		print("PLAYTEST_FRAME_EVIDENCE JSON: ", result["json_path"])
+		_log_playtest("screenshot_captured", {"png_path": result["png_path"], "json_path": result["json_path"]})
+		playtest_logger.flush()
 		_notify("F10 screenshot + metrics saved in: " + str(result["directory"]))
 	else:
+		_log_playtest("screenshot_failed", {"error": str(result.get("error", "unknown error"))})
 		_notify("F10 capture failed: " + str(result.get("error", "unknown error")))
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(player):
 		return
 	var actor := _actor()
-	frame_time_recorder.sample_frame(delta, city_details.call("get_streaming_stats"), actor.global_position, current_car != null)
+	var stream_snapshot: Dictionary = city_details.call("get_streaming_stats")
+	frame_time_recorder.sample_frame(delta, stream_snapshot, actor.global_position, current_car != null)
+	playtest_logger.sample_frame(delta, stream_snapshot, actor.global_position,
+		"car" if current_car != null else ("transit_" + transit_kind.to_lower() if current_transit != null else "on_foot"))
 	var indoors: bool = interiors.call("is_inside")
 	if is_instance_valid(nightgrid_fm):
 		var interior_id := str(interiors.call("active_site_id")) if indoors else ""
@@ -514,6 +557,8 @@ func _update_camera(delta: float, teleport: bool = false) -> void:
 	# Suppress stale camera positions after a save-load or streaming jump
 	# even when teleport was triggered through another system.
 	if teleport or distance_to_goal > 35.0:
+		if not teleport and distance_to_goal > 35.0:
+			_log_playtest("camera_distance_snap", {"distance_m": snappedf(distance_to_goal, 0.01)})
 		camera.global_position = goal
 	else:
 		var smoothed := camera.global_position.lerp(goal, minf(delta * 7.0, 1.0))
@@ -531,6 +576,7 @@ func _toggle_car() -> void:
 		return
 	if current_car != null:
 		if int(current_car.call("speed_kph")) > 15:
+			_log_playtest("vehicle_exit_blocked", {"reason": "speed"})
 			_notify("Slow down before exiting.")
 			return
 		var exit_position := current_car.global_position + current_car.global_transform.basis.x * 3.3
@@ -543,6 +589,7 @@ func _toggle_car() -> void:
 		player.set("driving", false)
 		current_car.set("occupied", false)
 		current_car = null
+		_log_playtest("vehicle_exit", {"exit_x": exit_position.x, "exit_z": exit_position.z})
 		_notify("Back on foot. Find your next pickup.")
 		return
 	var nearest: CharacterBody3D
@@ -558,6 +605,7 @@ func _toggle_car() -> void:
 		_notify("No vehicle nearby. Stand beside a parked car and press E.")
 		return
 	current_car = nearest
+	_log_playtest("vehicle_enter", {"vehicle": nearest.name})
 	current_car.set("occupied", true)
 	player.set("driving", true)
 	player.visible = false
@@ -611,9 +659,11 @@ func _spawn_police() -> void:
 	var officer := _create_car(spawn, Color("192943"), true)
 	officer.set("police_target", actor)
 	officers.append(officer)
+	_log_playtest("police_spawn", {"x": spawn.x, "z": spawn.z})
 	_notify("POLICE ALERT: A patrol unit is approaching.")
 
 func _respawn() -> void:
+	_log_playtest("respawn", {"health": health, "reason": "fall_or_boundary_or_damage"})
 	_close_venue()
 	if interiors.call("is_inside"):
 		interiors.call("leave")
@@ -877,8 +927,10 @@ func _board_transit(vehicle: Node3D, kind: String) -> void:
 	player.collision_layer = 0
 	player.collision_mask = 0
 	player.velocity = Vector3.ZERO
+	_log_playtest("transit_board", {"kind": kind})
 
 func _leave_transit(at: Vector3) -> void:
+	_log_playtest("transit_exit", {"kind": transit_kind, "destination": [at.x, at.y, at.z]})
 	current_transit = null
 	transit_kind = ""
 	player.global_position = at
@@ -893,21 +945,28 @@ func _save_game() -> void:
 	if bool(session.call("save_snapshot", _capture_snapshot())):
 		if game_menu != null:
 			game_menu.call("set_has_save", true)
+		_log_playtest("save_success", {"seed": int(session.get("world_seed"))})
 		_notify("Saved slot 1. City seed: %d" % int(session.get("world_seed")))
 	else:
+		_log_playtest("save_failed")
 		_notify("Save failed. Check user data folder or permissions.")
 
 func _load_game() -> void:
 	if game_menu != null and game_menu.call("is_open"):
 		game_menu.call("hide_for_game")
 	if not bool(session.call("prepare_load")):
+		_log_playtest("load_failed", {"reason": "no_valid_slot"})
 		_notify("No valid saved game in slot 1.")
 		return
+	_log_playtest("load_requested")
+	playtest_logger.flush()
 	get_tree().call_deferred("reload_current_scene")
 
 func _new_game() -> void:
 	if game_menu != null and game_menu.call("is_open"):
 		game_menu.call("hide_for_game")
+	_log_playtest("new_game_requested")
+	playtest_logger.flush()
 	session.call("start_new_game")
 	get_tree().call_deferred("reload_current_scene")
 
@@ -1028,6 +1087,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 		city_details.call("set_focus", player.global_position)
 	_set_mission_target(DROPOFFS[deliveries % DROPOFFS.size()] if carrying else PICKUPS[deliveries % PICKUPS.size()], carrying)
 	_snap_camera()
+	_log_playtest("save_restored", {"seed": int(session.get("world_seed"))})
 	_notify("Save loaded. Seed %d; Morrow Bay restored." % int(session.get("world_seed")))
 
 func _toggle_interior() -> void:
@@ -1036,12 +1096,14 @@ func _toggle_interior() -> void:
 			_notify("Return to the glowing doorway, then press H to leave.")
 			return
 		_close_venue()
+		var previous_room := str(interiors.call("active_site_id"))
 		var return_position: Vector3 = interiors.call("leave")
 		# Rebuild the actual collision district BEFORE returning the player.
 		city_details.call("set_focus", return_position)
 		player.global_position = return_position
 		player.velocity = Vector3.ZERO
 		_snap_camera()
+		_log_playtest("interior_exit", {"site_id": previous_room, "return_position": [return_position.x, return_position.y, return_position.z]})
 		_notify("Back on the street. Your saved city is exactly where you left it.")
 		return
 	if current_car != null or current_transit != null:
@@ -1066,6 +1128,7 @@ func _toggle_interior() -> void:
 	_close_venue()
 	player.global_position = interiors.call("enter", site, group, old_position)
 	player.velocity = Vector3.ZERO
+	_log_playtest("interior_enter", {"site_id": str(site["id"]), "group": group})
 	_snap_camera()
 	_notify("Inside %s. Approach the service counter with G; H exits at the doorway." % str(site["name"]))
 
