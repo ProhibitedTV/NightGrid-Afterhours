@@ -1,0 +1,41 @@
+{
+  "artist": "NightGrid original, alpha masks derived from photographed bitumen",
+  "files": {
+    "grit_albedo_512.png": {
+      "bytes": 424493,
+      "sha256": "7e5bf217967d071ed82302219d2a4df87f1df661bad342e323f0449d1812af4f"
+    },
+    "grit_normal_512.png": {
+      "bytes": 349505,
+      "sha256": "2c59025903f7857b39cf0d69cb0a6251684cd06ac3e4094458c33a00636fa024"
+    },
+    "grit_orm_512.png": {
+      "bytes": 1812,
+      "sha256": "51cd1c62b7b351f32db6bbfa08dfd0f3a456fc03645c3c810e406e68336e217f"
+    },
+    "oil_albedo_512.png": {
+      "bytes": 369603,
+      "sha256": "ddf5c1e8fc41e1a5f60f172523111d13f345c19972b719fe99b7fdd77a4a5fe5"
+    },
+    "oil_normal_512.png": {
+      "bytes": 349505,
+      "sha256": "2c59025903f7857b39cf0d69cb0a6251684cd06ac3e4094458c33a00636fa024"
+    },
+    "oil_orm_512.png": {
+      "bytes": 1811,
+      "sha256": "52e814b2cf801352c7d9f1e7991f6103d4d813921c489e1f6203f14facda2c3b"
+    }
+  },
+  "generator_sha256": "bdd5027e3028114d53de8ecbe7d2222f7bb486710670880699288cc1f54d2489",
+  "input_sha256": {
+    "bitumen_diffuse_2k.jpg": "709bf2bd8753197f90c0ea1fc3a735c1e06ffd7cb4aabdb9bd9401f9df607e31",
+    "bitumen_nor_gl_2k.png": "95914ba4fbd0003373bcdbe08663456712d7fa5ffdad3dd695a403f1a6428e74",
+    "bitumen_rough_2k.png": "fccb4c1f8a02d4a0f91ad5a3a84536da9fb6f9a131aea96c70e6d86989c703dd"
+  },
+  "license_url": "https://polyhaven.com/license",
+  "licensed_input": "Poly Haven Bitumen CC0 1.0",
+  "notes": "Four projected road-side decals, no gameplay physics or global wetness",
+  "resolution": 512,
+  "runtime_download_required": false,
+  "source_page": "https://polyhaven.com/a/bitumen"
+}

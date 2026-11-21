@@ -1,0 +1,38 @@
+name: Pin original photo-derived Central Exchange road decals
+# One-time offline CC0 photo derivation on named branch only; runtime builds
+# consume the committed small PNGs, never invoke Pillow or a network request.
+on:
+  push:
+    branches: [art/central-exchange-hidden-alley-20261121]
+    paths:
+      - tools/author_exchange_grime_decals.py
+      - .github/workflows/pin-central-exchange-grime.yml
+permissions:
+  contents: write
+jobs:
+  author-photo-atlas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned image-authoring dependency (never used by game)
+        run: python -m pip install Pillow==11.3.0
+      - name: Build bounded oil/grit decals from committed CC0 bitumen scans
+        run: python tools/author_exchange_grime_decals.py
+      - name: Pin only the audited original photo decal derivatives
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "art/central-exchange-hidden-alley-20261121"
+          git add -- assets/pbr/nightgrid/central_exchange/
+          if git diff --cached --quiet; then
+            echo "Identical decal art already pinned"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "art: pin original photo-derived Central Exchange grime textures"
+          git push origin HEAD:refs/heads/art/central-exchange-hidden-alley-20261121
