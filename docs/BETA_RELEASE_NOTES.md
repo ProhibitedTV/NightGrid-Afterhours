@@ -1,8 +1,19 @@
-# NightGrid: Afterhours — Windows beta 0.1.0-beta.4
+# NightGrid: Afterhours — Windows beta 0.1.0-beta.5
 
 **Status: early, diagnostics-focused beta (Windows x64).**
 
-## New in beta.4 — Godot 4.7.2 stable, actual AgX and Windows exports
+## New in beta.5 — RenderingServer streamed city and real street lighting
+
+Based on the [Firebelley Games video “Stop Using Nodes for Everything in Godot”](https://www.youtube.com/watch?v=1PnG3r1rKcs) and the player's three **real Vesper Market, 19:34 beta.4 screenshots** (Filmic vs ACES vs AgX), this release addresses both **scene-tree overhead during chunk loading** and **real-looking street-level illumination**.
+
+- **Decorative city chunks are no longer one render node per material bucket.** Their existing spatially grouped MultiMesh batches are drawn through Godot 4.7.2 `RenderingServer` with **one lightweight RID lifetime owner per chunk** and one global owner for street markings. Save-stable building collisions, signs, cars, scripts and authored façades remain normal Godot nodes. Unloading/cancelling a chunk frees the RIDs and their backing resources safely.
+- **Street lights are now anchored to the actual geometry.** The previous pool was positioned on a different grid from the emissive lamppost heads. Of the same **eight** pooled shadow-free OmniLights, four illuminate real pole heads and four illuminate the existing district storefront canopies/entrances. They turn off completely during the day, retain bounded ranges and have no added per-building GPU-shadow costs.
+- **Better evidence on F7/F10:** live `RenderingServer` batch and detail instance counts, avoided scene nodes and active practical-light counts are written to F10 frame metadata and F7 incident markers. F8 remains the long-form frame time CSV.
+- **All regressions green:** full Godot 4.7.2 headless test suite plus Windows x64 export, including new tests for exact physical lamp/source alignment, eight-light cap, renderer resource ownership, chunk unload teardown and deterministic reload. These are **functional tests**, not a measured FPS improvement on RTX 3060.
+- **Test location:** return to **Vesper Market 19:34**, near DOCK 9 and LAST SHIFT (the beta.4 screenshot). Freeze the clock using Y; capture Filmic, ACES, and AgX in place using F10/F11. Repeat a cold/warm driving route with F8, and press F7 at hitches or lighting pops. See the included `PLAYTEST-CHECKLIST.md` and [engineering walkthrough](https://github.com/ProhibitedTV/NightGrid-Afterhours/blob/main/docs/RENDERING_SERVER_LIVE_CITY.md).
+- **Limits:** existing vehicle silhouettes and most repeated façades remain prototype art. Better scene batching and motivated illumination do **not** make the world AAA photorealistic or certify 1080p/60. The commercial-fidelity streetscape and vehicles remain tracked in issue #51.
+
+## Previously in beta.4 — Godot 4.7.2 stable and actual AgX
 
 This release upgrades the **entire engine/toolchain from Godot 4.3.0 to 4.7.2 stable**—the playable project, clean source import, full headless regression suite, Windows x64 export templates and the package itself. Engine migration landed through [PR #55](https://github.com/ProhibitedTV/NightGrid-Afterhours/pull/55).
 
@@ -33,8 +44,8 @@ This release upgrades the **entire engine/toolchain from Godot 4.3.0 to 4.7.2 st
 
 ## Download and run
 
-1. Download the **NightGrid-Afterhours-v0.1.0-beta.4-windows-x64.zip** asset on the GitHub [Releases](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) page. **Do not** use the GitHub automatically generated "Source code" archive as the executable build.
-2. Optionally check the ZIP against the published `SHA256SUMS.txt` (PowerShell: `Get-FileHash -Algorithm SHA256 .\\NightGrid-Afterhours-v0.1.0-beta.4-windows-x64.zip`).
+1. Download the **NightGrid-Afterhours-v0.1.0-beta.5-windows-x64.zip** asset on the GitHub [Releases](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) page. **Do not** use the GitHub automatically generated "Source code" archive as the executable build.
+2. Optionally check the ZIP against the published `SHA256SUMS.txt` (PowerShell: `Get-FileHash -Algorithm SHA256 .\\NightGrid-Afterhours-v0.1.0-beta.5-windows-x64.zip`).
 3. Extract the **entire ZIP** to a folder. Keep the `NightGrid-Afterhours.exe` and `NightGrid-Afterhours.pck` **in the same folder**. Run the EXE.
 4. Windows SmartScreen or Chrome may flag an **unsigned, newly published executable**. Publishing on GitHub is not code-signing and does not guarantee the download will be unblocked. Confirm the URL is the real project release and inspect/scan files before making any exception. **Do not disable Chrome Safe Browsing or antivirus globally.** If an antivirus reports malware rather than an unknown publisher, do not bypass it; file an issue with the exact warning.
 
