@@ -161,23 +161,30 @@ def build(name):
         box("PRACTICAL",x0+0.16,x1-0.16,3.13,3.17,0.53,0.84)
     # Full 3D doorway with 0.20m metal extruded jambs, deep soffit,
     # inward threshold and a high transom but intentionally NO solid door.
-    frame("STEEL",-1.56,1.56,0.08,3.40,-0.64,0.22,0.13)
-    box("CONCRETE",-1.42,1.42,0.018,0.047,-0.72,0.65)
+    # Door jambs + header are real 3D sections; do NOT install the bottom
+    # bar of a standard four-sided display frame across the walking route.
+    box("STEEL",-1.56,-1.43,-0.12,3.40,-0.64,0.22)
+    box("STEEL",1.43,1.56,-0.12,3.40,-0.64,0.22)
+    box("STEEL",-1.43,1.43,3.27,3.40,-0.64,0.22)
+    # Sidewalk floor at world Y=0.15 is higher than the walkable terrain.
+    # Locally subtract 0.14m, maintaining real flush pavement/vestibule
+    # surface at approximately world Y=0.01 (the player's ground).
+    box("CONCRETE",-1.42,1.42,-0.145,-0.135,-0.72,0.65)
     box("STEEL",-1.42,1.42,3.10,3.20,-0.34,0.31)
     quad("GLASS",(-1.39,3.21,-0.18),(-1.39,3.35,-0.18),
         (1.39,3.35,-0.18),(1.39,3.21,-0.18))
     # A credible 3.35m real recess one can WALK inside; floor flush with
     # the existing city ground (no invisible 0.17m floor step or new ramp).
-    box("CONCRETE",-1.41,1.41,0.006,0.019,0.02,ROOM_DEPTH-0.10)
+    box("CONCRETE",-1.41,1.41,-0.145,-0.133,0.02,ROOM_DEPTH-0.10)
     for side in (-1,1):
         xx=-1.42 if side<0 else 1.40
-        box(main,xx,xx+0.02,0.04,3.23,0.18,ROOM_DEPTH)
+        box(main,xx,xx+0.02,-0.12,3.23,0.18,ROOM_DEPTH)
         # Exposed metal interior service rails along room depth.
         for y in (0.75,1.66,2.44):
             box("STEEL",xx-0.06,xx+0.08,y,y+0.044,0.64,2.86)
         for z in (1.05,2.42):
             cylinder("STEEL",xx+(-0.07 if side<0 else 0.09),1.2,z,0.028,1.38,12)
-    box(main,-1.41,1.41,0.03,3.23,ROOM_DEPTH-0.10,ROOM_DEPTH)
+    box(main,-1.41,1.41,-0.12,3.23,ROOM_DEPTH-0.10,ROOM_DEPTH)
     box("CONCRETE",-1.41,1.41,3.20,3.28,0.14,ROOM_DEPTH)
     # Real hanging recessed practical fixtures without unbounded OmniLights
     # or unrelated global fog/reflection changes. Ceiling covers are explicit.
