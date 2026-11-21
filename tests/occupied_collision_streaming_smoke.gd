@@ -97,6 +97,10 @@ func _verify() -> void:
 		return
 	# A genuine loaded parcel remains present while a live pedestrian holds
 	# its reservation, even on explicit long-distance relocation.
+	# The World render tick normally requests the actual player focus. For
+	# this explicit streaming fixture, keep that producer from overriding
+	# the test relocation while CityDetails continues its own processing.
+	world.set_process(false)
 	var pinned_cell := Vector2i(0,3)
 	var start := Vector3(10,0.3,190)
 	var end := Vector3(10,0.3,210)
