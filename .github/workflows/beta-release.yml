@@ -1,0 +1,137 @@
+name: Windows beta release
+
+# A beta is published only for the exact main commit that passed ALL
+# Project preflight tests. PR runs and failed/stale pushes cannot publish.
+on:
+  workflow_run:
+    workflows: ["Project preflight"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nightgrid-windows-beta-0.1.0
+  cancel-in-progress: false
+
+jobs:
+  publish-beta:
+    if: >-
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      RELEASE_TAG: v0.1.0-beta.1
+      SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout the tested commit (never a floating branch)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - name: Check main revision and existing release
+        id: eligibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          tip="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
+          if [ "$tip" != "$SOURCE_SHA" ]; then
+            echo "Main moved since preflight; newer push will be considered instead."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Beta is already published. No overwrite."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Refusing to publish: release tag exists without a release." >&2
+            exit 1
+          fi
+          test -s scripts/playtest_logger.gd
+          grep -q 'playtest_mark' scripts/game_input.gd
+          grep -q 'const BuildInfo' scripts/world.gd
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+
+      - name: Install Godot 4.3 and Windows export templates
+        if: steps.eligibility.outputs.publish == 'true'
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.3.0
+          use-dotnet: false
+          include-templates: true
+
+      - name: Embed the tested release commit in local diagnostic logs
+        if: steps.eligibility.outputs.publish == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          path = Path("scripts/build_info.gd")
+          source = path.read_text(encoding="utf-8")
+          assert source.count('const CHANNEL = "development"') == 1
+          assert source.count('const REVISION = "development"') == 1
+          assert source.count('const VERSION = "0.1.0-beta.1"') == 1
+          source = source.replace('const CHANNEL = "development"', 'const CHANNEL = "beta"')
+          source = source.replace('const REVISION = "development"', 'const REVISION = "' + os.environ["SOURCE_SHA"] + '"')
+          path.write_text(source, encoding="utf-8")
+          PY
+          grep -q "$SOURCE_SHA" scripts/build_info.gd
+          grep -q 'const CHANNEL = "beta"' scripts/build_info.gd
+
+      - name: Import game resources
+        if: steps.eligibility.outputs.publish == 'true'
+        run: godot --headless --path . --import --quit
+
+      - name: Export Windows x64 (EXE and external PCK)
+        if: steps.eligibility.outputs.publish == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          godot --headless --path . --export-release "Windows Desktop" "dist/NightGrid-Afterhours.exe"
+          test -s dist/NightGrid-Afterhours.exe
+          test -s dist/NightGrid-Afterhours.pck
+
+      - name: Package and verify playable beta ZIP and SHA-256
+        if: steps.eligibility.outputs.publish == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="NightGrid-Afterhours-$RELEASE_TAG-windows-x64"
+          mkdir -p "stage/$package"
+          cp dist/NightGrid-Afterhours.exe dist/NightGrid-Afterhours.pck "stage/$package/"
+          cp docs/BETA_RELEASE_NOTES.md "stage/$package/RELEASE-NOTES.md"
+          cp docs/PLAYTEST_CHECKLIST.md "stage/$package/PLAYTEST-CHECKLIST.md"
+          printf 'Version: %s\nRelease commit: %s\nGodot: 4.3.0\nPlatform: Windows x64\nDiagnostic logs: automatic, local-only; press F7 for their path\n' "$RELEASE_TAG" "$SOURCE_SHA" > "stage/$package/BUILD-INFO.txt"
+          (cd stage && zip -q -9 -r "../dist/$package.zip" "$package")
+          unzip -t "dist/$package.zip"
+          unzip -Z1 "dist/$package.zip" | grep -q "/NightGrid-Afterhours.exe$"
+          unzip -Z1 "dist/$package.zip" | grep -q "/NightGrid-Afterhours.pck$"
+          (cd dist && sha256sum "$package.zip" > SHA256SUMS.txt && sha256sum -c SHA256SUMS.txt)
+          test -s "dist/$package.zip"
+          test -s dist/SHA256SUMS.txt
+
+      - name: Publish GitHub prerelease with versioned downloadable build
+        if: steps.eligibility.outputs.publish == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="NightGrid-Afterhours-$RELEASE_TAG-windows-x64"
+          gh release create "$RELEASE_TAG" "dist/$package.zip" dist/SHA256SUMS.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$SOURCE_SHA" \
+            --title "NightGrid: Afterhours — Windows beta 0.1.0" \
+            --notes-file docs/BETA_RELEASE_NOTES.md \
+            --prerelease
