@@ -6,7 +6,7 @@ extends Node3D
 ## Exactly two material-sorted ArrayMesh drawables. These sit a few
 ## millimetres above existing road visuals and BELOW zebra/stop-line paint.
 ## No collisions, roadside props, road centerline, save schema or new lights.
-const ROOT = "res://assets/pbr/polyhaven/bitumen_"
+const ROOT = "res:" + "//assets/pbr/polyhaven/bitumen_"
 const SURFACE_Y = 0.016
 const CENTER_HALF = 7.0
 const ROAD_HALF = 6.94
