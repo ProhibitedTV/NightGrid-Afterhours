@@ -16,6 +16,8 @@ jobs:
           python-version: '3.12'
       - name: Check files and resource references
         run: python tools/check_project.py
+      - name: Verify official CC0 shutter mesh, source hashes and photo maps
+        run: python tools/check_cc0_shutter.py
       - name: Assert Godot version and legacy physics/Vulkan pins in the clean checkout
         run: |
           python - <<'PY'
@@ -81,6 +83,8 @@ jobs:
         run: godot --headless --path . --script res://tests/central_frontages_smoke.gd
       - name: Validate Dock Watch scanned-cladding architectural pilot, existing civic address and save
         run: godot --headless --path . --script res://tests/dock_watch_fidelity_smoke.gd
+      - name: Validate source-owned glTF/PBR service frontage and save-stable Dock Watch neighbor
+        run: godot --headless --path . --script res://tests/west_docks_cc0_art_smoke.gd
       - name: Validate permanent venues, opening hours and side quests
         run: godot --headless --path . --script res://tests/venues_smoke.gd
       - name: Validate NightGrid FM soundtrack catalog, radio and optional game audio pack
