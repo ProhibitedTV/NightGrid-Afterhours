@@ -2,6 +2,7 @@ extends Node3D
 const WorldPlan = preload("res://scripts/world_plan.gd")
 const Materials = preload("res://scripts/material_library.gd")
 const CentralFrontage = preload("res://scripts/central_exchange_frontages.gd")
+const WestDocksService = preload("res://scripts/west_docks_service_frontage.gd")
 const RenderBatchOwner = preload("res://scripts/render_batch_owner.gd")
 ## Seeded city dressing. Static shell collisions + batched decorative geometry.
 ## The four neighborhoods deliberately share road geometry but not street character.
@@ -721,7 +722,8 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 	# behind the recessed photo-material architecture. West Docks Dock Watch
 	# is the real civic storefront at (-4,-1), left (west) lot.
 	var dock_watch_exposure := ix == -4 and iz == -1 and which == 0
-	var authored_exposure: bool = dock_watch_exposure or (ix == -1 and iz == 0 and which == 1) or (ix == 0 and iz == 0 and which == 0)
+	var dock_service_exposure := ix == -4 and iz == -1 and which == 1
+	var authored_exposure: bool = dock_watch_exposure or dock_service_exposure or (ix == -1 and iz == 0 and which == 1) or (ix == 0 and iz == 0 and which == 0)
 	var shell_at := Vector3(center.x, height / 2.0 + 0.15, center.z)
 	var shell_size := Vector3(width, height, depth)
 	if not shell_prebuilt:
@@ -743,6 +745,17 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 	_statistics["buildings"] += 1
 	# Replace fake-window blockout with contiguous UV-mapped wall surfaces
 	# around actual 3D openings. Keep collision, seeds and public door anchors.
+	if dock_service_exposure:
+		# Neighbor of the fixed Dock Watch civic shop. An official CC0
+		# photogrammetric glTF gives real shutter geometry/PBR on a cohesive
+		# UV-authored building shell, with the SAME invisible save collider.
+		var service := WestDocksService.new()
+		service.name = "WestDocksServiceFrontage"
+		service.configure(width, height, depth)
+		service.position = Vector3(center.x, 0.15, center.z)
+		_active_chunk.add_child(service)
+		_statistics["storefronts"] += 1
+		return
 	if authored_exposure:
 		var names: Array = SHOPS[district]
 		var stable_name: String = "DOCK WATCH DESK" if dock_watch_exposure else names[abs(ix * 11 + iz * 17 + which * 3) % names.size()]
