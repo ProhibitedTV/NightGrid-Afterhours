@@ -67,7 +67,7 @@ func _verify() -> void:
 	if bool(Evidence.export_bundle(empty, info, OUT).get("ok", false)):
 		_fail("Evidence exporter accepted an empty screenshot")
 		return
-	if bool(Evidence.export_bundle(Image.create(8, 8, false, Image.FORMAT_RGBA8), info, "res://exports").get("ok", false)):
+	if bool(Evidence.export_bundle(Image.create(8, 8, false, Image.FORMAT_RGBA8), info, "res:" + "//exports").get("ok", false)):
 		_fail("Evidence exporter should only write to user data directory")
 		return
 	# Synthetic image intentionally not presented as a real game render.
