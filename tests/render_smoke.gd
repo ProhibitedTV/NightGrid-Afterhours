@@ -53,6 +53,35 @@ func _check() -> void:
 	if library.texture_count() < 5 or library.normal_count() < 5 or library.roughness_count() < 5:
 		_fail("Expected cached albedo, normal and roughness texture families")
 		return
+	var sidewalk_count := 0
+	var shared: StandardMaterial3D
+	for child in world.get_children():
+		if not str(child.name).begins_with("PhotographicSidewalk_"):
+			continue
+		var slab := child as MeshInstance3D
+		var material := slab.material_override as StandardMaterial3D
+		if material == null or material.albedo_texture == null or material.normal_texture == null or material.roughness_texture == null:
+			_fail("Sidewalk requires three source photo channels")
+			return
+		if shared == null:
+			shared = material
+		if shared != material or not material.normal_enabled or material.roughness_texture_channel != BaseMaterial3D.TEXTURE_CHANNEL_GREEN or not material.uv1_world_triplanar or material.uv1_scale != Vector3(0.5,0.5,0.5) or material.metallic != 0.0:
+			_fail("Preserve shared world-scale dielectric concrete")
+			return
+		if not material.albedo_texture.resource_path.ends_with("concrete_base_1k.jpg") or not material.normal_texture.resource_path.ends_with("concrete_normal_1k.jpg") or not material.roughness_texture.resource_path.ends_with("concrete_arm_1k.png"):
+			_fail("Expected actual bundled photographed concrete")
+			return
+		if not (slab.mesh is BoxMesh) or (slab.mesh as BoxMesh).size != Vector3(42.0,0.14,42.0) or not is_equal_approx(slab.position.y,0.07):
+			_fail("Existing sidewalk footprint or height changed")
+			return
+		sidewalk_count += 1
+	if sidewalk_count != 64:
+		_fail("Expected 64 unchanged parcel slabs with photo concrete")
+		return
+	var curb := library.surface("PHOTO_CURB",Color("bfc0bd")) as StandardMaterial3D
+	if curb.albedo_texture != shared.albedo_texture or curb.normal_texture != shared.normal_texture or curb.roughness_texture != shared.roughness_texture:
+		_fail("Curb and sidewalk should share the same photo maps")
+		return
 	lamps.call("set_focus", Vector3.ZERO)
 	clock.call("set_hour", 12.0)
 	if environment.environment.fog_density >= 0.006:

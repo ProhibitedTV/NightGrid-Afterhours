@@ -1156,11 +1156,11 @@ func _build_city() -> void:
 	var pavement := PhotoRoadNetwork.new()
 	pavement.name = "PhotoRoadNetwork"
 	add_child(pavement)
-	var sidewalk := Color("4d5565")
+	var sidewalk := Color("b2b0ac")
 	for block_x in range(-GRID_RADIUS, GRID_RADIUS):
 		for block_z in range(-GRID_RADIUS, GRID_RADIUS):
 			var center := Vector3((float(block_x) + 0.5) * CELL, 0.07, (float(block_z) + 0.5) * CELL)
-			_box(self, center, Vector3(42.0, 0.14, 42.0), sidewalk, false, false, "PAVERS")
+			_box(self, center, Vector3(42.0, 0.14, 42.0), sidewalk, false, false, "PHOTO_SIDEWALK").name = "PhotographicSidewalk_%d_%d" % [block_x,block_z]
 	city_details = CityDetailsScript.new()
 	city_details.name = "CityDetails"
 	add_child(city_details)
