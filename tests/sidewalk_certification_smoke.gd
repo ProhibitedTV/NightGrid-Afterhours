@@ -49,6 +49,36 @@ func _verify() -> void:
 		return
 	if not _check(await _evaluate(cert,city,entry)==Cert.CLEAR and cert.cached_clear(city,entry),"supported unobstructed link"):
 		return
+	# Reordering nearby candidates every frame must not restart a pending
+	# route or spend a second batch of probes in the same physics tick.
+	var scheduler = Cert.new()
+	var other: Dictionary = Pop.block_candidates(0,0)[1]
+	var priority: Array[Dictionary] = [entry,other]
+	await physics_frame
+	var decision: Dictionary = scheduler.advance_candidates(city,city.get_world_3d().direct_space_state,priority)
+	if not _check(decision.get("id")==entry["id"] and decision.get("status")==Cert.PENDING,"scheduler begins first candidate"):
+		return
+	if not _check(scheduler.advance_candidates(city,city.get_world_3d().direct_space_state,priority).is_empty(),"one scheduler batch per tick"):
+		return
+	priority.reverse()
+	for i in range(12):
+		await physics_frame
+		decision = scheduler.advance_candidates(city,city.get_world_3d().direct_space_state,priority)
+		if not _check(decision.get("id")==entry["id"],"pending route pinned across priority changes"):
+			return
+		if decision.get("status")==Cert.CLEAR:
+			break
+	if not _check(scheduler.cached_clear(city,entry),"pinned route completes"):
+		return
+	await physics_frame
+	decision = scheduler.advance_candidates(city,city.get_world_3d().direct_space_state,priority)
+	if not _check(decision.get("id")==other["id"] and decision.get("status")==Cert.PENDING,"next uncached link progresses"):
+		return
+	# A pending job no longer in the relevant set is discarded.
+	priority = [entry]
+	await physics_frame
+	if not _check(scheduler.advance_candidates(city,city.get_world_3d().direct_space_state,priority).is_empty(),"irrelevant job dropped; cached route not reprobed"):
+		return
 	var middle: Vector3 = (entry["start"]+entry["end"])*0.5
 	_box(city,middle+Vector3.UP,Vector3(0.3,2.0,1.0))
 	city.revision += 1
