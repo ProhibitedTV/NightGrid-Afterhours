@@ -10,6 +10,7 @@ const Ui = preload("res://scripts/ui_style.gd")
 const Nav = preload("res://scripts/navigation_waypoint.gd")
 const StreetRoute = preload("res://scripts/street_route.gd")
 const Arsenal = preload("res://scripts/arsenal.gd")
+const Wanted = preload("res://scripts/wanted_system.gd")
 const EquipmentWheel = preload("res://scripts/equipment_wheel.gd")
 const Reticle = preload("res://scripts/weapon_reticle.gd")
 const CombatFoley = preload("res://scripts/city_foley.gd")
@@ -58,6 +59,11 @@ var player: CharacterBody3D
 var current_car: CharacterBody3D
 var cars: Array[CharacterBody3D] = []
 var officers: Array[CharacterBody3D] = []
+var routine_patrols: Array[CharacterBody3D] = []
+var wanted = Wanted.new()
+var _sight_clock := 0.0
+var _wanted_label: Label
+var _pending_theft: Variant = null
 var camera: Camera3D
 var marker: Node3D
 var marker_light: OmniLight3D
@@ -169,6 +175,7 @@ func _ready() -> void:
 	_create_player()
 	_spawn_traffic()
 	_build_transport()
+	_build_routine_patrols()
 	_create_camera()
 	_create_marker()
 	_build_hud()
@@ -543,20 +550,10 @@ func _physics_process(delta: float) -> void:
 	if (actor.global_position.y < -15.0 or not indoors and
 			(absf(actor.global_position.x) > 390.0 or absf(actor.global_position.z) > 390.0)):
 		_respawn()
-	heat = maxf(0.0, heat - delta * 0.008)
-	police_cooldown -= delta
-	if not indoors and heat >= 0.8 and officers.size() < mini(ceili(heat), 3) and police_cooldown <= 0.0:
-		_spawn_police()
-		police_cooldown = 8.0
-	if heat < 0.15 and not officers.is_empty():
+	_update_wanted(delta)
+	if not indoors and wanted.police_seen:
 		for officer in officers:
-			if is_instance_valid(officer):
-				officer.queue_free()
-		officers.clear()
-	for officer in officers:
-		if is_instance_valid(officer) and not indoors:
-			officer.set("police_target", actor)
-			if float(officer.get("condition")) > 18.0 and officer.global_position.distance_to(actor.global_position) < 3.8:
+			if is_instance_valid(officer) and float(officer.get("condition")) > 18.0 and officer.global_position.distance_to(actor.global_position) < 3.8:
 				health -= delta * 7.0
 	if health <= 0.0:
 		_respawn()
@@ -682,8 +679,10 @@ func _toggle_car() -> void:
 	player.collision_mask = 0
 	if not current_car.has_meta("claimed"):
 		current_car.set_meta("claimed", true)
-		heat = maxf(heat, 1.0)
-		_notify("Vehicle acquired. Police dispatch alerted!")
+		# Capture the entry position before the player is hidden. Resolve the
+		# witness query in the next physics tick, not an input callback.
+		_pending_theft = {"position": player.global_position + Vector3.UP * 0.55, "car": current_car}
+		_notify("Vehicle acquired.")
 	else:
 		_notify("Drive with WASD. Space is the handbrake.")
 
@@ -699,7 +698,6 @@ func _advance_mission() -> void:
 		deliveries += 1
 		var payout := 250 + 50 * mini(deliveries - 1, 8)
 		cash += payout
-		heat += 0.25
 		_set_mission_target(PICKUPS[deliveries % PICKUPS.size()], false)
 		_notify("Delivery done! +$%d. Next pickup marked in amber." % payout)
 
@@ -717,21 +715,119 @@ func _set_mission_target(pos: Vector3, has_package: bool) -> void:
 				material.emission = color
 	marker_light.light_color = color
 
-func _spawn_police() -> void:
+func _build_routine_patrols() -> void:
+	# Two visible patrol cars on fixed street loops, present even at zero
+	# heat. Keep them separate from the five-unit dispatch budget.
+	for i in range(2):
+		var route: Array[Vector3] = []
+		var span := 58.0 if i == 0 else 174.0
+		route.assign([Vector3(-span + 3.25, 1.1, -span + 3.25),
+			Vector3(span - 3.25, 1.1, -span + 3.25),
+			Vector3(span - 3.25, 1.1, span - 3.25),
+			Vector3(-span + 3.25, 1.1, span - 3.25)])
+		var start := i * 2
+		var patrol := _create_car(route[start], Color("192943"), true)
+		patrol.name = "RoutinePatrol_%d" % i
+		patrol.set("routine_route", route)
+		patrol.set("routine_index", (start + 1) % route.size())
+		var direction := route[(start + 1) % route.size()] - route[start]
+		patrol.rotation.y = atan2(-direction.x, -direction.z)
+		routine_patrols.append(patrol)
+
+func _witness_candidates(at: Vector3) -> Array[Dictionary]:
+	var candidates: Array[Dictionary] = venue_system.call("witness_candidates", at)
+	candidates.append_array(traffic.call("witness_candidates", at))
+	for patrol in routine_patrols + officers:
+		if is_instance_valid(patrol) and float(patrol.get("condition")) > 18.0 and patrol.global_position.distance_squared_to(at) < 45.0 * 45.0:
+			candidates.append({"eye": patrol.global_position + Vector3.UP * 0.65, "facing": -patrol.global_basis.z, "police": true, "rid": patrol.get_rid()})
+	return candidates
+
+func _witness_at(at: Vector3, extra: CollisionObject3D = null) -> Dictionary:
+	var ignore: Array[RID] = [player.get_rid()]
+	if is_instance_valid(extra):
+		ignore.append(extra.get_rid())
+	return wanted.witnesses(get_world_3d().direct_space_state, at, _witness_candidates(at), ignore)
+
+func _report_incident(reason: String, at: Vector3, officer: bool) -> void:
+	var previous: int = Wanted.stars(heat)
+	heat = wanted.report(heat, reason, at, officer)
+	_log_playtest("wanted_report", {"reason": reason, "officer": officer, "stars": Wanted.stars(heat)})
+	if Wanted.stars(heat) > previous:
+		police_cooldown = minf(police_cooldown, 1.0)
+	_notify("REPORTED • %s • %d STAR%s" % [reason, Wanted.stars(heat), "" if Wanted.stars(heat) == 1 else "S"])
+
+func _update_wanted(delta: float) -> void:
 	var actor := _actor()
-	var side := -1.0 if rng.randf() < 0.5 else 1.0
-	var away := Vector3(side * CELL, 0.0, CELL * (1.0 if rng.randf() < 0.5 else -1.0))
-	var spawn := actor.global_position + away
-	spawn.x = roundf(spawn.x / CELL) * CELL
-	spawn.z = roundf(spawn.z / CELL) * CELL
-	spawn.y = 1.1
-	spawn.x = clampf(spawn.x, -CELL * GRID_RADIUS, CELL * GRID_RADIUS)
-	spawn.z = clampf(spawn.z, -CELL * GRID_RADIUS, CELL * GRID_RADIUS)
+	var indoors: bool = interiors.call("is_inside")
+	if _pending_theft != null:
+		var event: Dictionary = _pending_theft
+		_pending_theft = null
+		var at: Vector3 = event["position"]
+		var sight := _witness_at(at, event["car"])
+		if bool(sight["any"]):
+			_report_incident("THEFT", at, bool(sight["police"]))
+		else:
+			_notify("Vehicle acquired • no report")
+	_sight_clock += delta
+	if _sight_clock >= Wanted.SIGHT_INTERVAL:
+		var elapsed := _sight_clock
+		_sight_clock = 0.0
+		var at := actor.global_position + Vector3.UP * 0.55
+		var sight: Dictionary = {"any": false, "police": false}
+		if not indoors and (weapons.equipped != "holstered" or Wanted.stars(heat) > 0):
+			sight = _witness_at(at, actor as CollisionObject3D)
+		var old_heat := heat
+		heat = wanted.observe(heat, at, sight, not indoors and current_car == null and current_transit == null and weapons.equipped != "holstered", elapsed)
+		if heat > old_heat:
+			_log_playtest("wanted_report", {"reason": "BRANDISH", "officer": bool(sight["police"]), "stars": Wanted.stars(heat)})
+			if Wanted.stars(heat) > Wanted.stars(old_heat):
+				police_cooldown = minf(police_cooldown, 1.0)
+				_notify("WEAPON REPORTED • police dispatched")
+	heat = wanted.decay(heat, delta)
+	police_cooldown -= delta
+	var tier: int = Wanted.stars(heat)
+	# Remove only excess response vehicles when lowering tiers, or disabled
+	# ones after a short dispatch interval. Routine patrols never despawn.
+	for i in range(officers.size() - 1, -1, -1):
+		var car := officers[i]
+		if not is_instance_valid(car) or tier == 0 or i >= tier or (float(car.get("condition")) <= 18.0 and police_cooldown <= 0.0):
+			if is_instance_valid(car):
+				car.queue_free()
+			officers.remove_at(i)
+	if tier > 0 and not indoors and wanted.last_known.is_finite() and officers.size() < tier and police_cooldown <= 0.0:
+		_spawn_police()
+		police_cooldown = Wanted.reinforcement_delay(heat)
+	for officer in officers:
+		if is_instance_valid(officer):
+			officer.set("police_destination", wanted.last_known)
+			officer.set("response_level", tier)
+
+func _spawn_police() -> void:
+	if not wanted.last_known.is_finite():
+		return
+	var center: Vector3 = wanted.last_known
+	var origin := Vector3(roundf(center.x / CELL) * CELL, 1.1, roundf(center.z / CELL) * CELL)
+	var spawn := Vector3.INF
+	for step in range(8):
+		var offset := Vector3(cos(float(step) * PI / 4.0), 0, sin(float(step) * PI / 4.0)).snapped(Vector3.ONE) * CELL
+		var candidate := origin + offset
+		if absf(candidate.x) > CELL * GRID_RADIUS or absf(candidate.z) > CELL * GRID_RADIUS or candidate.distance_to(_actor().global_position) < 25.0:
+			continue
+		var clear := true
+		for vehicle in officers + routine_patrols + cars:
+			if is_instance_valid(vehicle) and candidate.distance_to(vehicle.global_position) < 8.0:
+				clear = false
+				break
+		if clear:
+			spawn = candidate
+			break
+	if not spawn.is_finite():
+		return
 	var officer := _create_car(spawn, Color("192943"), true)
-	officer.set("police_target", actor)
+	officer.set("police_destination", wanted.last_known)
+	officer.set("response_level", Wanted.stars(heat))
 	officers.append(officer)
-	_log_playtest("police_spawn", {"x": spawn.x, "z": spawn.z})
-	_notify("POLICE ALERT: A patrol unit is approaching.")
+	_log_playtest("police_spawn", {"x": spawn.x, "z": spawn.z, "tier": Wanted.stars(heat)})
 
 func _respawn() -> void:
 	_log_playtest("respawn", {"health": health, "reason": "fall_or_boundary_or_damage"})
@@ -754,6 +850,8 @@ func _respawn() -> void:
 	player.velocity = Vector3.ZERO
 	health = 100.0
 	heat = 0.0
+	wanted.reset()
+	_pending_theft = null
 	cash = maxi(0, cash - 100)
 	for officer in officers:
 		if is_instance_valid(officer):
@@ -1080,7 +1178,8 @@ func _capture_snapshot() -> Dictionary:
 		"civic_intel": civic_intel.duplicate(), "ration_packs": ration_packs,
 		"interior": interiors.call("snapshot"),
 		"navigation_waypoint": [] if navigation_waypoint == null else [navigation_waypoint.x, navigation_waypoint.y],
-		"weapons": weapons.snapshot()
+		"weapons": weapons.snapshot(),
+		"wanted_last_known": [wanted.last_known.x, wanted.last_known.y, wanted.last_known.z] if wanted.last_known.is_finite() else []
 	}
 
 func _apply_snapshot(data: Dictionary) -> void:
@@ -1093,6 +1192,12 @@ func _apply_snapshot(data: Dictionary) -> void:
 	cash = maxi(0, int(data.get("cash", 0)))
 	health = clampf(float(data.get("health", 100.0)), 1.0, 100.0)
 	heat = clampf(float(data.get("heat", 0.0)), 0.0, 5.0)
+	wanted.reset()
+	var last: Variant = data.get("wanted_last_known", [])
+	if last is Array and last.size() == 3 and (last[0] is float or last[0] is int) and (last[1] is float or last[1] is int) and (last[2] is float or last[2] is int):
+		var p := Vector3(float(last[0]), float(last[1]), float(last[2]))
+		if p.is_finite() and absf(p.x) <= 390.0 and absf(p.z) <= 390.0 and absf(p.y) <= 25.0 and heat >= Wanted.MIN_HEAT:
+			wanted.last_known = p
 	deliveries = maxi(0, int(data.get("deliveries", 0)))
 	carrying = bool(data.get("carrying", false))
 	yaw = float(data.get("camera_yaw", 0.0))
@@ -1700,6 +1805,7 @@ func _build_hud() -> void:
 	backing.add_child(stack)
 	hud_location = _hud_text(stack, "Location", 17, Ui.AMBER)
 	hud_label = _hud_text(stack, "PlayerVitals", 20, Ui.TEXT)
+	_wanted_label = _hud_text(stack, "WantedStatus", 17, Ui.AMBER)
 	hud_health = ProgressBar.new()
 	hud_health.name = "HealthBar"
 	hud_health.max_value = 100.0
@@ -1855,7 +1961,11 @@ func _update_hud() -> void:
 		vehicle_text = "DRIVING • %d km/h" % int(current_car.call("speed_kph"))
 	elif current_transit != null:
 		vehicle_text = "M-LINE RIDER" if transit_kind == "TRAIN" else "CITY LOOP RIDER"
-	var wanted_text := "-" if heat < 0.15 else "★".repeat(maxi(1, ceili(heat)))
+	var tier: int = Wanted.stars(heat)
+	var wanted_text := "★".repeat(tier) + "☆".repeat(5 - tier)
+	_wanted_label.text = "%s  •  %s" % [wanted.status_text(heat), "%d RESPONSE UNIT%s" % [officers.size(), "" if officers.size() == 1 else "S"]]
+	_wanted_label.visible = tier > 0 or weapons.equipped != "holstered"
+	_wanted_label.modulate = Ui.DANGER if wanted.police_seen and tier > 0 else Ui.AMBER
 	var mission := "DELIVER PACKAGE" if carrying else "PICK UP PACKAGE"
 	var distance := roundi(outdoors.distance_to(mission_position))
 	var message := notification if notification_time > 0.0 else ""
@@ -2066,14 +2176,18 @@ func _fire_weapon() -> bool:
 	var direction := origin.direction_to(target)
 	var endpoint := origin + direction * minf(origin.distance_to(target) + 0.05, float(spec["reach"]))
 	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(origin, endpoint, 1, ignore))
-	heat = minf(5.0, heat + 0.45)
+	var shot_sight := _witness_at(origin)
+	var hit_police := false
 	if not hit.is_empty():
 		var body: Object = hit["collider"]
 		if is_instance_valid(body) and body.has_method("take_arcade_damage"):
 			body.call("take_arcade_damage", float(spec["damage"]))
 			_hit_feedback = 0.22
-			if body in officers and float(body.get("condition")) <= 18.0:
+			hit_police = body in officers or body in routine_patrols
+			if hit_police and float(body.get("condition")) <= 18.0:
 				_notify("PATROL DISABLED • police heat remains")
+	if hit_police or bool(shot_sight["any"]):
+		_report_incident("SHOT", origin, hit_police or bool(shot_sight["police"]))
 	_log_playtest("weapon_discharge", {"equipment": weapons.equipped, "vehicle_hit": _hit_feedback > 0.0})
 	return true
 
@@ -2121,6 +2235,10 @@ func navigation_text() -> String:
 
 func get_map_state() -> Dictionary:
 	var car_positions: Array[Vector2] = []
+	var patrol_positions: Array[Vector2] = []
+	for patrol in routine_patrols:
+		if is_instance_valid(patrol):
+			patrol_positions.append(Vector2(patrol.global_position.x, patrol.global_position.z))
 	for officer in officers:
 		if is_instance_valid(officer):
 			car_positions.append(Vector2(officer.global_position.x, officer.global_position.z))
@@ -2134,6 +2252,10 @@ func get_map_state() -> Dictionary:
 		"waypoint": Vector2.ZERO if navigation_waypoint == null else navigation_waypoint,
 		"street_route": _navigation_route(Vector2(map_actor.x, map_actor.z)),
 		"officers": car_positions,
+		"routine_patrols": patrol_positions,
+		"wanted_stars": Wanted.stars(heat),
+		"wanted_seen": wanted.police_seen,
+		"wanted_last_known": Vector2(wanted.last_known.x, wanted.last_known.z) if wanted.last_known.is_finite() else Vector2.INF,
 		"carrying": carrying,
 		"side_quest": Vector2(quest.x, quest.z),
 		"side_quest_active": not venue_job_active.is_empty(),

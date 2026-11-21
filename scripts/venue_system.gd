@@ -83,6 +83,16 @@ func set_hour(hour: float) -> void:
 func get_map_pins() -> Array[Dictionary]:
 	return _map_pins
 
+func witness_candidates(target: Vector3) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for venue_id in _patrons:
+		for patron in _patrons[venue_id]:
+			var p := patron as Node3D
+			if p.is_visible_in_tree() and p.global_position.distance_squared_to(target) <= 30.0 * 30.0:
+				# Exterior patrons are authored with their faces toward -Z.
+				result.append({"eye": p.global_position + Vector3.UP * 1.56, "facing": -p.global_basis.z, "police": false})
+	return result
+
 func get_venue_count() -> int:
 	return _nodes.size()
 

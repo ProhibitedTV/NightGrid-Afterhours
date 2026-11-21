@@ -137,6 +137,11 @@ func _draw() -> void:
 		if bool(state.get("civic_quest_active", false)):
 			var target: Vector2 = state["civic_quest"]
 			draw_arc(_to_map(target, side, scale), 7.5, 0.0, TAU, 16, Color("95e7bc"), 2.5)
+		for patrol in state.get("routine_patrols", []):
+			draw_circle(_to_map(patrol, side, scale), 2.8, Color("77a7e0"))
+		var last_known: Vector2 = state.get("wanted_last_known", Vector2.INF)
+		if int(state.get("wanted_stars", 0)) > 0 and last_known.is_finite() and not bool(state.get("wanted_seen", false)):
+			draw_arc(_to_map(last_known, side, scale), 16.0 * scale, 0.0, TAU, 24, Color("edbc83"), 1.5, true)
 		for officer in state["officers"]:
 			draw_circle(_to_map(officer, side, scale), 3.5, Color("f04e59"))
 		if bool(state.get("waypoint_active", false)):
