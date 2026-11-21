@@ -208,6 +208,12 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/sidewalk_certification_smoke.gd 2>&1 | tee /tmp/nightgrid-sidewalk-certification.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-sidewalk-certification.log; then exit 1; fi
+      - name: Validate live traffic and transit protection for proposed civic closures
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/closure_eligibility_smoke.gd 2>&1 | tee /tmp/nightgrid-closure-eligibility.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-closure-eligibility.log; then exit 1; fi
       - name: Validate logical traffic population and guarded streaming decisions
         timeout-minutes: 2
         run: |
