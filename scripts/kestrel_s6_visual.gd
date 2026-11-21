@@ -1,4 +1,5 @@
 extends Node3D
+const AudioMix = preload("res://scripts/audio_mix.gd")
 ## KESTREL S6 — an original player-drivable, four-seat EV hero body.
 ## No imported mesh/texture licenses or per-frame mesh generation.
 ## The parent CharacterBody3D owns all real movement, collision and saves.
@@ -526,6 +527,8 @@ func _build_interior() -> void:
 func _build_sound() -> void:
 	_motor = AudioStreamPlayer3D.new()
 	_motor.name = "OriginalElectricDrivetrain"
+	AudioMix.ensure()
+	_motor.bus = AudioMix.EFFECTS
 	_motor.stream = VehicleAudio.sound()
 	_motor.volume_db = -30.0
 	_motor.max_distance = 32.0
