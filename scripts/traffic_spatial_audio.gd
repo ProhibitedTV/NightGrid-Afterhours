@@ -1,4 +1,5 @@
 extends Node3D
+const AudioMix = preload("res://scripts/audio_mix.gd")
 ## Five reusable positional voices for the entire moving street fleet.
 ## Only audible nearby vehicles play; no AudioStreamPlayer is allocated per car.
 ## Waveform synthesis is original and cached, never done in _process.
@@ -64,6 +65,8 @@ func _ready() -> void:
 	for index in range(VOICE_LIMIT):
 		var voice := AudioStreamPlayer3D.new()
 		voice.name = "PassingTrafficVoice_%d" % index
+		AudioMix.ensure()
+		voice.bus = AudioMix.EFFECTS
 		voice.max_distance = 74.0
 		voice.unit_size = 6.0
 		voice.volume_db = -80.0
@@ -172,7 +175,7 @@ func _process(delta: float) -> void:
 		var moving := speed >= MIN_SPEED and (not bus or float(source.get("dwell_remaining")) <= 0.05)
 		var target_db := -80.0
 		if moving and _effects_volume > 0.0:
-			target_db = (-16.5 if bus else -19.0) + linear_to_db(_effects_volume)
+			target_db = -16.5 if bus else -19.0 # WorldSFX bus owns gain.
 			if _inside:
 				target_db -= 18.0
 			elif _riding:

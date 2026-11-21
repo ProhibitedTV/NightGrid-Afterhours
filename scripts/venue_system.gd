@@ -1,4 +1,5 @@
 extends Node3D
+const AudioMix = preload("res://scripts/audio_mix.gd")
 ## Morrow Bay's authored social hubs: fixed addresses, opening hours, readable
 ## streetfront set dressing, services and four directed side-story contracts.
 ## The seed never changes a venue's address, contact or narrative identity.
@@ -230,6 +231,8 @@ func _build_venue(venue: Dictionary) -> void:
 	_patrons[venue_id] = patrons
 	var audio := AudioStreamPlayer3D.new()
 	audio.name = "Atmosphere"
+	AudioMix.ensure()
+	audio.bus = AudioMix.AMBIENCE
 	audio.position = Vector3(0.0, 1.9, 0.0)
 	audio.stream = VenueAmbience.soundscape(kind)
 	audio.max_distance = 28.0

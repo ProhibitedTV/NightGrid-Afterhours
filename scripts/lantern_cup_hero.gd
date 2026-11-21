@@ -1,4 +1,5 @@
 extends Node3D
+const AudioMix = preload("res://scripts/audio_mix.gd")
 ## LANTERN CUP — hand-composed, game-ready flagship café at its canonical
 ## Vesper Market address. Instantiated only while that room is occupied.
 ## All dimensions are local to InteriorSystem's 16m x 18m room.
@@ -458,6 +459,8 @@ func _build_sounds() -> void:
 	# Add only one cached, original spatial espresso machine loop.
 	var machine := AudioStreamPlayer3D.new()
 	machine.name = "OriginalBaristaSteamPump"
+	AudioMix.ensure()
+	machine.bus = AudioMix.AMBIENCE
 	machine.position = Vector3(-1.47, 2.35, -5.48)
 	machine.stream = CoffeeSound.sound()
 	machine.volume_db = -20.0
