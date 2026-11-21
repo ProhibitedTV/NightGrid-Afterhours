@@ -1,4 +1,5 @@
 extends CanvasLayer
+const AudioMix = preload("res://scripts/audio_mix.gd")
 const MinimapScript = preload("res://scripts/minimap.gd")
 const CityFoley = preload("res://scripts/city_foley.gd")
 ## Keyboard/mouse/controller-friendly menu layer. It remains interactive while
@@ -51,6 +52,8 @@ func _ready() -> void:
 	add_child(_root)
 	_ui_click = AudioStreamPlayer.new()
 	_ui_click.name = "OriginalMenuSelect"
+	AudioMix.ensure()
+	_ui_click.bus = AudioMix.UI
 	_ui_click.stream = CityFoley.sound("UI")
 	_ui_click.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(_ui_click)
