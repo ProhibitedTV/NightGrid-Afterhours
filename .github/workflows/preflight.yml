@@ -20,6 +20,8 @@ jobs:
         run: python tools/check_cc0_shutter.py
       - name: Audit original CC0 HVAC mesh, four source PBR maps and per-file hashes
         run: python tools/check_cc0_aircon.py
+      - name: Audit original Crane & Gear production glTF, source hashes and photo-PBR derivatives
+        run: python tools/check_crane_gear_gltf.py
       - name: Assert Godot version and legacy physics/Vulkan pins in the clean checkout
         run: |
           python - <<'PY'
@@ -89,6 +91,8 @@ jobs:
         run: godot --headless --path . --script res://tests/west_docks_cc0_art_smoke.gd
       - name: Verify West Docks realistic rooftop CC0 aircon variants and original UV steel mounts
         run: godot --headless --path . --script res://tests/west_docks_roof_hvac_smoke.gd
+      - name: Validate original Crane & Gear architecture, photo PBR and permanent city streaming
+        run: godot --headless --path . --script res://tests/crane_gear_gltf_smoke.gd
       - name: Validate permanent venues, opening hours and side quests
         run: godot --headless --path . --script res://tests/venues_smoke.gd
       - name: Validate NightGrid FM soundtrack catalog, radio and optional game audio pack

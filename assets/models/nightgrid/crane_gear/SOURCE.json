@@ -1,0 +1,88 @@
+{
+  "authoring_source": "tools/author_crane_gear_gltf.py",
+  "design_features": {
+    "dock_bays": 2,
+    "front_windows": 16,
+    "roof_quads": 4,
+    "side_windows": 24,
+    "structural_projections": 224
+  },
+  "files": {
+    "crane_gear_warehouse.bin": {
+      "bytes": 336312,
+      "sha256": "3f3948fe87b9ef809d967c0b15b49bd3ef648defd72c476b1897c48ad1aa16a5"
+    },
+    "crane_gear_warehouse.gltf": {
+      "bytes": 13354,
+      "sha256": "4cf642aee4705497ea81b601393bd462258a6611be0b75fa22ab1474a171fa58"
+    },
+    "textures/brick_arm_1k.png": {
+      "bytes": 606763,
+      "sha256": "d9483a4fb809fb57f51bf5e04b309faa54a871c39c3d93392bd65d8dec211f3d"
+    },
+    "textures/brick_base_1k.jpg": {
+      "bytes": 390049,
+      "sha256": "03683477e0280b97714f33d7c7e3c3ab4dd4361159b615e6f7bd3b4e125ad413"
+    },
+    "textures/brick_normal_1k.jpg": {
+      "bytes": 622945,
+      "sha256": "6fa44068b2816f581a0f34f479c032493ff5af40b22524bf088f64dd194e8989"
+    },
+    "textures/roof_arm_1k.png": {
+      "bytes": 4544,
+      "sha256": "2ab1ba3a1d040ec9a7256006c2193625451ad03301ab808cb97d1fb389abbf84"
+    },
+    "textures/roof_base_1k.jpg": {
+      "bytes": 138200,
+      "sha256": "af11d41ab2cb0847ecce8192c4dd94988e3457eb03dbfe27d11ae29c1ce13425"
+    },
+    "textures/roof_normal_1k.jpg": {
+      "bytes": 267785,
+      "sha256": "086817a2edf300037f1704eca08488b785be8a1e7222ef5fbce7e0d06999047b"
+    },
+    "textures/steel_arm_1k.png": {
+      "bytes": 4546,
+      "sha256": "a709213483bfae8a026a3cb918e9d2a23dd56227d7a8e141cf490adb628211a9"
+    },
+    "textures/steel_base_1k.jpg": {
+      "bytes": 136317,
+      "sha256": "4c1728a316e4b4e5a3fa7960f27a239be67d737a4a766ea65b2a1d12e9f4f5f2"
+    },
+    "textures/steel_normal_1k.jpg": {
+      "bytes": 73180,
+      "sha256": "07f76e943e2d92a9ddeabaab2ba316f0c47080e62fea3455c3111b853ff74e59"
+    }
+  },
+  "model": {
+    "material_count": 6,
+    "mesh_count": 1,
+    "triangles": 3114,
+    "vertices": 6228
+  },
+  "name": "crane_gear_warehouse",
+  "origin": "Original NightGrid authored glTF architecture",
+  "prototype_dimensions_m": {
+    "depth": 23.0,
+    "height": 20.0,
+    "width": 16.1
+  },
+  "runtime_download_required": false,
+  "source_generator_sha256": "6e5fc73d1be07e3070e43f1811d1a811cc013dd94b1c815deae6ab46ceadf010",
+  "source_material_assets": [
+    {
+      "license": "CC0 1.0",
+      "name": "brick_wall_001",
+      "url": "https://polyhaven.com/a/brick_wall_001"
+    },
+    {
+      "license": "CC0 1.0",
+      "name": "blue_metal_plate",
+      "url": "https://polyhaven.com/a/blue_metal_plate"
+    },
+    {
+      "license": "CC0 1.0",
+      "name": "bitumen",
+      "url": "https://polyhaven.com/a/bitumen"
+    }
+  ]
+}
