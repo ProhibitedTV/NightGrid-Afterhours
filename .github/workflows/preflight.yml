@@ -91,6 +91,12 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/police_drive_smoke.gd 2>&1 | tee /tmp/nightgrid-police-drive.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-police-drive.log; then exit 1; fi
+      - name: Validate central dispatch, registered precincts and enterable headquarters
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/dispatch_smoke.gd 2>&1 | tee /tmp/nightgrid-dispatch.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-dispatch.log; then exit 1; fi
       - name: Validate Southworks solid cargo and player movement orientation regressions
         run: godot --headless --path . --script res://tests/southworks_playtest_smoke.gd
       - name: Validate fixed 60Hz physics and independent rendered train cadence

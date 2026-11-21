@@ -13,7 +13,7 @@ const SITES = [
 	{"id":"seawall_pantry","name":"SEAWALL PANTRY","kind":"GROCERY","ix":3,"iz":-4,"side":1,"opens":5.0,"closes":1.0,"price":24,"host":"Sev","flavor":"Night-shift essentials beside the wave barriers."},
 	{"id":"freight_control","name":"FREIGHT CONTROL","kind":"WAREHOUSE","ix":-4,"iz":-3,"side":0,"opens":0.0,"closes":24.0,"price":0,"host":"Cato","flavor":"The west dock cranes never truly sleep."},
 	{"id":"crane_supply","name":"CRANE & GEAR","kind":"GARAGE","ix":-4,"iz":-2,"side":1,"opens":7.0,"closes":23.0,"price":55,"host":"Vik","flavor":"Independent mechanical work behind an old shipyard shutter."},
-	{"id":"dock_watch","name":"DOCK WATCH DESK","kind":"CIVIC","ix":-4,"iz":-1,"side":0,"opens":0.0,"closes":24.0,"price":65,"host":"Clerk Bo","flavor":"Paper citations, patrol records and the occasional honest official."},
+	{"id":"dock_watch","name":"DOCK WATCH DESK","kind":"CIVIC","station_id":"west","station_capacity":2,"ix":-4,"iz":-1,"side":0,"opens":0.0,"closes":24.0,"price":65,"host":"Clerk Bo","flavor":"Paper citations, patrol records and the occasional honest official."},
 	{"id":"cold_storage","name":"COLD CHAIN 09","kind":"WAREHOUSE","ix":-4,"iz":2,"side":1,"opens":0.0,"closes":24.0,"price":0,"host":"Rook","flavor":"Temperature-controlled cargo kept off the corporate freight exchange."},
 	{"id":"garden_clinic","name":"HORIZON HEALTH","kind":"CLINIC","ix":3,"iz":-2,"side":1,"opens":7.0,"closes":22.0,"price":40,"host":"Leena","flavor":"Neighborhood triage and solar-lit consultations."},
 	{"id":"east_fire","name":"EASTSIDE FIRE 4","kind":"FIRE","ix":3,"iz":-1,"side":0,"opens":0.0,"closes":24.0,"price":18,"host":"Captain Ash","flavor":"A staffed rescue bay with its engine always ready."},
@@ -22,7 +22,8 @@ const SITES = [
 	{"id":"records_office","name":"SOUTHWORKS RECORDS","kind":"CIVIC","ix":-3,"iz":3,"side":0,"opens":8.0,"closes":19.0,"price":65,"host":"Clerk Ada","flavor":"Permit stamps, municipal files and very long paper trails."},
 	{"id":"south_bus_yard","name":"SOUTH BUS WORKS","kind":"GARAGE","ix":-2,"iz":3,"side":1,"opens":5.0,"closes":2.0,"price":60,"host":"Yuri","flavor":"A midnight machine shop keeping the public fleet alive."},
 	{"id":"union_supply","name":"UNION DISTRIBUTION","kind":"WAREHOUSE","ix":1,"iz":3,"side":0,"opens":0.0,"closes":24.0,"price":0,"host":"Edda","flavor":"The cooperative's essential parcels move without corporate permission."},
-	{"id":"power_annex","name":"GRID ANNEX FOUR","kind":"UTILITY","ix":2,"iz":3,"side":1,"opens":0.0,"closes":24.0,"price":0,"host":"Lin","flavor":"A public-facing substation with suspiciously new ownership labels."}
+	{"id":"power_annex","name":"GRID ANNEX FOUR","kind":"UTILITY","ix":2,"iz":3,"side":1,"opens":0.0,"closes":24.0,"price":0,"host":"Lin","flavor":"A public-facing substation with suspiciously new ownership labels."},
+	{"id":"police_hq","name":"MBPD CENTRAL DISPATCH","kind":"CIVIC","station_id":"central","station_capacity":3,"headquarters":true,"ix":1,"iz":0,"side":0,"opens":0.0,"closes":24.0,"price":65,"host":"Duty Officer Vale","flavor":"Citywide dispatch, public counter and precinct coordination."}
 ]
 
 const WORK_ORDERS = [
@@ -81,6 +82,18 @@ func site_count() -> int:
 
 func get_map_pins() -> Array[Dictionary]:
 	return _map_pins
+
+func police_station_sites() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for site in SITES:
+		if not site.has("station_id"):
+			continue
+		var address := position_for(str(site["id"]))
+		# The office frontage is on the north side of the parcel. A marked
+		# street-side staging location is derived from its fixed address.
+		var launch := Vector3(address.x, 1.1, float(site["iz"]) * CELL + 3.25)
+		result.append({"id":str(site["station_id"]), "name":str(site["name"]), "address":address, "launch":launch, "capacity":int(site["station_capacity"]), "hq":bool(site.get("headquarters", false))})
+	return result
 
 func active_light_count() -> int:
 	var amount := 0
@@ -152,7 +165,7 @@ func _build_site(site: Dictionary) -> void:
 	add_child(front)
 	_entries[id] = front
 	_map_pins.append({"id": id, "point": Vector2(front.global_position.x, front.global_position.z - 2.35),
-		"kind": kind, "open": false})
+		"kind": kind, "open": false, "station": site.has("station_id")})
 	_box(front, Vector3(0.0, 0.21, -0.65), Vector3(8.7, 0.08, 4.8), Color("555b5f"), "PAVERS")
 	_box(front, Vector3(0.0, 2.5, 1.96), Vector3(9.1, 4.6, 0.24), Color("2c3546"))
 	_box(front, Vector3(0.0, 4.35, 1.67), Vector3(9.0, 1.0, 0.24), Color("182a39"))
@@ -182,6 +195,9 @@ func _build_site(site: Dictionary) -> void:
 			_garage(front, accent)
 		"CIVIC":
 			_civic(front, accent)
+			if site.has("station_id"):
+				_label(front, "MORROW BAY POLICE DEPARTMENT", Vector3(0, 3.12, 1.05), Color("93bcf0"), 28)
+				_label(front, "24H PUBLIC COUNTER", Vector3(0, 2.15, -1.30), Color("dce7ef"), 25)
 		"FIRE":
 			_fire(front, accent)
 		"UTILITY":
