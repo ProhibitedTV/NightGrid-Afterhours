@@ -238,7 +238,7 @@ def prepare_textures():
         d=Image.open(PBR/(src+"_diffuse_2k.jpg")).convert("RGB")
         n=Image.open(PBR/(src+"_nor_gl_2k.png")).convert("RGB")
         rough=Image.open(PBR/(src+"_rough_2k.png")).convert("L")
-        if min(d.size,n.size,rough.size)<2048:
+        if min(*d.size,*n.size,*rough.size)<2048:
             raise ValueError("Missing full-resolution source photographic scan for "+src)
         for suffix,img in (("base",d),("normal",n)):
             name=f"{family.lower()}_{suffix}_1k.jpg"
