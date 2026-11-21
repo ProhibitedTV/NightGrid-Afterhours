@@ -54,7 +54,10 @@ jobs:
           version: 4.7.2
           use-dotnet: false
       - name: Import project and parse scripts
-        run: godot --headless --path . --import --quit
+        run: |
+          set -o pipefail
+          godot --headless --path . --import --quit 2>&1 | tee /tmp/nightgrid-import.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-import.log; then exit 1; fi
       - name: Validate main menus, saved settings and controller action contexts
         timeout-minutes: 2
         run: timeout 75s godot --headless --path . --script res://tests/menus_gamepad_smoke.gd

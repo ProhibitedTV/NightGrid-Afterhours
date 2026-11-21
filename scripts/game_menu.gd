@@ -339,8 +339,11 @@ func _render() -> void:
 			if str(item.name) == str(_last_focus.get(screen, "")):
 				_first_focus = item
 				break
-	if is_instance_valid(_first_focus):
-		_first_focus.call_deferred("grab_focus")
+	_focus_current.call_deferred()
+
+func _focus_current() -> void:
+	if visible and is_instance_valid(_first_focus) and _first_focus.is_inside_tree():
+		_first_focus.grab_focus()
 
 func _fit_menu() -> void:
 	if not is_instance_valid(_body_scroll) or not is_instance_valid(_body_col):

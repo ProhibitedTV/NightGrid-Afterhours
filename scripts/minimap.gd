@@ -28,7 +28,7 @@ func _gui_input(event: InputEvent) -> void:
 			var side := minf(size.x, size.y)
 			if side > 0.0 and Rect2(Vector2.ZERO, Vector2(side, side)).has_point(event.position):
 				grab_focus()
-				var point := (event.position - Vector2.ONE * side * 0.5) * CITY_SPAN / side
+				var point: Vector2 = ((event as InputEventMouseButton).position - Vector2.ONE * side * 0.5) * CITY_SPAN / side
 				cursor = Nav.clamp_point(point)
 				_place()
 				accept_event()
