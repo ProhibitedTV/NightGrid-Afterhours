@@ -1,0 +1,63 @@
+{
+  "asset": "metal_trash_can",
+  "files": {
+    "metal_trash_can.bin": {
+      "bytes": 378288,
+      "sha256": "a9b9f526b655bef865933335f2cfc8c8f0bd1a35fda05b290a93e3061f2b6c8a",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/metal_trash_can/metal_trash_can.bin",
+      "source_md5": "fbde1679a66ea644223b97ebc8336a77"
+    },
+    "metal_trash_can.gltf": {
+      "bytes": 15481,
+      "sha256": "ccdc55ecfe43db2174c9257891e92551882a874564bb9a7908cafc5268b46c0c",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/metal_trash_can/metal_trash_can_1k.gltf",
+      "source_md5": "c322802832a61ad7b17711dfbbc52e6b"
+    },
+    "textures/metal_trash_can_arm_1k.jpg": {
+      "bytes": 731776,
+      "sha256": "b23dcdb2ed40c1c6cfbd2d2779c6f075025b7269bfbbed2a70c6bdb7167e47fb",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/metal_trash_can/metal_trash_can_arm_1k.jpg",
+      "source_md5": "af676572c13fae2bb584538f03175efc"
+    },
+    "textures/metal_trash_can_diff_1k.jpg": {
+      "bytes": 551939,
+      "sha256": "920c895a31b1cd2c000123c0592c70c33d46562752987da98070e7e0eebb662f",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/metal_trash_can/metal_trash_can_diff_1k.jpg",
+      "source_md5": "55d375d8d51b268b6ed8a4308155959c"
+    },
+    "textures/metal_trash_can_nor_gl_1k.jpg": {
+      "bytes": 842945,
+      "sha256": "b977f17aa9d4718ffc91a62868b7171b4479578b8cffd1d32001d92552af81a4",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/metal_trash_can/metal_trash_can_nor_gl_1k.jpg",
+      "source_md5": "fa6db04e021f6335ae2d9ad501120cae"
+    },
+    "textures/metal_trash_can_rust_arm_1k.jpg": {
+      "bytes": 620549,
+      "sha256": "31a6269e98a3a8b2a2d6db8f58724e0151d5312b5137e6d59b5a2ba873989159",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/metal_trash_can/metal_trash_can_rust_arm_1k.jpg",
+      "source_md5": "ed9f635917cde411f235d4585c90b310"
+    },
+    "textures/metal_trash_can_rust_diff_1k.jpg": {
+      "bytes": 768161,
+      "sha256": "51c44248305b111d978f7e0cbfe4a71ab7f49549968ce37c54b635d74c2cfba1",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/metal_trash_can/metal_trash_can_rust_diff_1k.jpg",
+      "source_md5": "8b90447d250cb790ca537748a2b16691"
+    },
+    "textures/metal_trash_can_rust_nor_gl_1k.jpg": {
+      "bytes": 1085844,
+      "sha256": "a5497588e00e5e56db72e701457fc8a46d3a1fa7d9dd7bf9d79e02cada09e84b",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/metal_trash_can/metal_trash_can_rust_nor_gl_1k.jpg",
+      "source_md5": "25187818d1236815d4a34fd743cadc29"
+    }
+  },
+  "license": "CC0 1.0",
+  "license_url": "https://polyhaven.com/license",
+  "materials": 3,
+  "mesh_count": 8,
+  "model": "assets/models/polyhaven/metal_trash_can/metal_trash_can.gltf",
+  "placement": "Central Exchange original urban street-level art kit",
+  "resolution": "1k",
+  "runtime_download_required": false,
+  "source_api": "https://api.polyhaven.com/files/metal_trash_can",
+  "source_page": "https://polyhaven.com/a/metal_trash_can"
+}
