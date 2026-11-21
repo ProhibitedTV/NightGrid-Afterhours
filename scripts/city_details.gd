@@ -126,6 +126,43 @@ func get_streaming_stats() -> Dictionary:
 		"visual_instances_created": _server_detail_instances_created
 	}
 
+func get_render_batch_stats() -> Dictionary:
+	# Snapshot only for F10 evidence and QA; never traverse the SceneTree for
+	# every video frame. Includes both complete and partially staged chunks.
+	var owners := 0
+	var batches := 0
+	var details := 0
+	var global_owner := get_node_or_null("GlobalVisualBatches")
+	if global_owner != null:
+		var global_stats: Dictionary = global_owner.call("get_batch_stats")
+		owners += 1
+		batches += int(global_stats["batches"])
+		details += int(global_stats["instances"])
+	for grid in _loaded:
+		var chunk: Node3D = _loaded[grid]
+		var owner := chunk.get_node_or_null("VisualBatches")
+		if owner != null:
+			var stats: Dictionary = owner.call("get_batch_stats")
+			owners += 1
+			batches += int(stats["batches"])
+			details += int(stats["instances"])
+	for grid in _staging:
+		var partial: Node3D = (_staging[grid] as Dictionary)["node"]
+		var owner := partial.get_node_or_null("VisualBatches")
+		if owner != null:
+			var stats: Dictionary = owner.call("get_batch_stats")
+			owners += 1
+			batches += int(stats["batches"])
+			details += int(stats["instances"])
+	return {
+		"renderer": "RenderingServer",
+		"owner_nodes": owners,
+		"live_batches": batches,
+		"live_detail_instances": details,
+		"avoided_scene_nodes": batches,
+		"ever_created_batches": _server_visual_batches_created
+	}
+
 func get_loaded_blocks() -> Array[Vector2i]:
 	var blocks: Array[Vector2i] = []
 	for key in _loaded:
