@@ -2,7 +2,7 @@
 
 **Status: implemented technical pilot pending genuine Windows visual approval.**
 Permanent site: **(-4,-1), lot 1**, immediately beside existing Dock Watch Desk on lot 0.
-The original published beta.5 does not include this art. Issue #51 stays open.
+This art first ships in Windows **beta.6**; beta.5 did not contain it. Issue #51 stays open.
 
 ## Why this asset
 
@@ -37,7 +37,7 @@ CI executes `tools/check_cc0_shutter.py`, Godot 4.7.2 clean project import, **`t
 
 ## Actual native art approval
 
-On the next Windows build containing this PR, stand at **West Docks 22:07** facing Dock Watch Desk and the neighboring **PIER STORAGE / NIGHT SERVICES** garage building. Press **Y** to hold clock, **F10** for a genuine 16:9 frame of the new building beside the existing Dock Watch frontage. Do not compare with beta.5 from a different camera position.
+On tagged Windows beta.6, stand at **West Docks 22:07** facing Dock Watch Desk and the neighboring **PIER STORAGE / NIGHT SERVICES** garage building. Press **Y** to hold clock, **F10** for a genuine 16:9 frame of the new building beside the existing Dock Watch frontage. Do not compare with beta.5 from a different camera position.
 
 - Day/night F10 from fixed camera; check shutter scan visible and both variant textures normal-mapped, 1K sharpness vs 2K building surfaces, and proper scale around 2.8m wide and 2.5m high.
 - Close-up F10 of original glTF shutter louvers, black/clean/graffiti variation, 2K brick/metal/roof surfaces and accurately recessed glazing. Verify there is no z-fighting or invisible hole from below.

@@ -21,7 +21,7 @@ The November 2026 [Coding Quests video “Why 3D Games Look Bad in Godot”](htt
 
 The existing Dock Watch Desk (-4,-1, lot 0) now has a **second fully modelled neighbor at (-4,-1, lot 1)**: an authored photo-PBR service-building envelope with UV-mapped brick and blue-steel façades, true upper-window reveals and backing, sealed photographed roof and two source-model service bays. The bays use the **real original 1K glTF meshes and textures** of [Poly Haven's CC0 Rollershutter Window 01](https://polyhaven.com/a/rollershutter_window_01), one weathered and one graffitied. Assets, source links and **per-file SHA-256 hashes are committed**; ordinary game builds have no downloads. This change retains both previous chunk colliders and Dock Watch's save-stable civic interaction.
 
-**This is a technical art pilot, not an approved photoreal scene or an update to the published beta.5**. Compare genuine Godot 4.7.2 Forward+/Vulkan F10 frames at West Docks 22:07 and daytime, plus F8 driving traces before accepting the art. [Source licenses, asset import and Windows visual acceptance checklist](docs/WEST_DOCKS_CC0_GLTF_ART.md).
+**This is a technical art pilot, first downloadable in beta.6, not an approved photoreal scene**. Compare genuine Godot 4.7.2 Forward+/Vulkan F10 frames at West Docks 22:07 and daytime, plus F8 driving traces before accepting the art. [Source licenses, asset import and Windows visual acceptance checklist](docs/WEST_DOCKS_CC0_GLTF_ART.md).
 
 ### West Docks realism pilot from actual Windows beta feedback
 
@@ -78,9 +78,9 @@ The first real Windows playtest **identified critical quality defects** that old
 
 **This is a rough playable prototype, not an AAA-quality asset release.** For the current version, download the latest *successful main-branch* Windows artifact, report real screenshots and FPS, and test H club exits and indoor save restore before evaluating visual polish. PR/CI passing is not equivalent to human visual acceptance.
 
-## Windows beta 0.1.0-beta.5 — versioned, diagnostic-enabled download
+## Windows beta 0.1.0-beta.6 — versioned, diagnostic-enabled download
 
-The latest **tagged Windows x64 beta** is distributed through [GitHub Releases](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases/tag/v0.1.0-beta.5) after its exact `main` commit passes the complete Godot 4.7.2 preflight. Download the `NightGrid-Afterhours-v0.1.0-beta.5-windows-x64.zip` asset (not GitHub's generic Source code ZIP). Extract both EXE and PCK together. Each package includes a version/commit manifest, playtest checklist and release notes; a separate `SHA256SUMS.txt` is available to verify the ZIP. The Windows executable remains **unsigned**; Chrome/SmartScreen may still flag it, and you should not disable browser protection globally. [Full release notes and honest limitations](docs/BETA_RELEASE_NOTES.md).
+The latest **tagged Windows x64 beta** is distributed through [GitHub Releases](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases/tag/v0.1.0-beta.6) after its exact `main` commit passes the complete Godot 4.7.2 preflight. Download the `NightGrid-Afterhours-v0.1.0-beta.6-windows-x64.zip` asset (not GitHub's generic Source code ZIP). Extract both EXE and PCK together. Each package includes a version/commit manifest, playtest checklist and release notes; a separate `SHA256SUMS.txt` is available to verify the ZIP. The Windows executable remains **unsigned**; Chrome/SmartScreen may still flag it, and you should not disable browser protection globally. [Full release notes and honest limitations](docs/BETA_RELEASE_NOTES.md).
 
 **Diagnostics included in the executable:** each play session writes its own version-stamped local JSONL log. Press **F7** to mark an issue and display its path, **F8** to record a frame-time CSV, and **F10** to capture real PNG+JSON evidence. Logs stay local, not in the downloaded ZIP. The beta does **not** include the uncommitted 20 Ogg soundtrack recordings or promise production-grade assets/performance.
 

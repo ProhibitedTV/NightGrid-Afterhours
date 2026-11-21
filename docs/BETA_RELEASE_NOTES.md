@@ -1,8 +1,19 @@
-# NightGrid: Afterhours — Windows beta 0.1.0-beta.5
+# NightGrid: Afterhours — Windows beta 0.1.0-beta.6
 
 **Status: early, diagnostics-focused beta (Windows x64).**
 
-## New in beta.5 — RenderingServer streamed city and real street lighting
+## New in beta.6 — licensed, real-model West Docks street art
+
+The first playable art milestone incorporates original, auditably licensed 3D geometry rather than another lighting preset. It is still a technical pilot, **not a finished AAA world**.
+
+- **Permanent West Docks parcel (-4,-1, lot 1), next to Dock Watch Desk:** replaced its old opaque façade with an original cohesive full-envelope service-building mesh, sealed photo-bitumen roof, recessed upper glazing/backing, and UV-mapped surfaces using real 2K Poly Haven CC0 brick, blue steel, and roof photography plus normal/roughness maps.
+- **Real scanned roller shutters:** two physically modeled clean and graffitied variants of [Poly Haven's CC0 Rollershutter Window 01](https://polyhaven.com/a/rollershutter_window_01) are imported as original **glTF 2.0 1K PBR** assets, including geometry binary, albedo, normals and metal/rough maps. All originals are committed, not runtime downloads.
+- **Verified licensing:** official Poly Haven API/CDN source, per-file MD5 verification and SHA-256 source manifest; offline source-integrity test included.
+- **Game stability:** unchanged building collision shells, civic interactions, saved parcels/seed, roads and streaming; no extra dynamic lights or physics. Full Godot 4.7.2 tests and Windows export passed, including new geometry/PBR and deterministic reload checks.
+- **Your comparison:** return to West Docks Dock Watch at 22:07, inspect the adjacent PIER STORAGE / NIGHT SERVICES rolling garage, freeze clock with Y and capture F10. Repeat at noon, check both source-model shutters, then record F8 over the same road route and mark issues with F7. Tagged **beta.5** remains the old-art control.
+- **Open work:** Native Windows photoreal quality and RTX 3060 frame-time measurements remain unverified. The surrounding city and car silhouettes still need original high-quality UV glTF art under issues #51 and #20. [Source and visual sign-off guide](https://github.com/ProhibitedTV/NightGrid-Afterhours/blob/main/docs/WEST_DOCKS_CC0_GLTF_ART.md).
+
+## Previously in beta.5 — RenderingServer streamed city and real street lighting
 
 Based on the [Firebelley Games video “Stop Using Nodes for Everything in Godot”](https://www.youtube.com/watch?v=1PnG3r1rKcs) and the player's three **real Vesper Market, 19:34 beta.4 screenshots** (Filmic vs ACES vs AgX), this release addresses both **scene-tree overhead during chunk loading** and **real-looking street-level illumination**.
 
@@ -44,8 +55,8 @@ This release upgrades the **entire engine/toolchain from Godot 4.3.0 to 4.7.2 st
 
 ## Download and run
 
-1. Download the **NightGrid-Afterhours-v0.1.0-beta.5-windows-x64.zip** asset on the GitHub [Releases](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) page. **Do not** use the GitHub automatically generated "Source code" archive as the executable build.
-2. Optionally check the ZIP against the published `SHA256SUMS.txt` (PowerShell: `Get-FileHash -Algorithm SHA256 .\\NightGrid-Afterhours-v0.1.0-beta.5-windows-x64.zip`).
+1. Download the **NightGrid-Afterhours-v0.1.0-beta.6-windows-x64.zip** asset on the GitHub [Releases](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) page. **Do not** use the GitHub automatically generated "Source code" archive as the executable build.
+2. Optionally check the ZIP against the published `SHA256SUMS.txt` (PowerShell: `Get-FileHash -Algorithm SHA256 .\\NightGrid-Afterhours-v0.1.0-beta.6-windows-x64.zip`).
 3. Extract the **entire ZIP** to a folder. Keep the `NightGrid-Afterhours.exe` and `NightGrid-Afterhours.pck` **in the same folder**. Run the EXE.
 4. Windows SmartScreen or Chrome may flag an **unsigned, newly published executable**. Publishing on GitHub is not code-signing and does not guarantee the download will be unblocked. Confirm the URL is the real project release and inspect/scan files before making any exception. **Do not disable Chrome Safe Browsing or antivirus globally.** If an antivirus reports malware rather than an unknown publisher, do not bypass it; file an issue with the exact warning.
 
