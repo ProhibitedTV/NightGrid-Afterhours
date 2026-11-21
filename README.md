@@ -25,6 +25,10 @@ Your city layout and progress persist when you save and return.
 
 ## In-game gallery
 
+[**Browse the full 33-image gameplay gallery →**](docs/screenshots/GALLERY.md)
+
+A quick look at Morrow Bay; the full gallery covers all eight neighborhoods, streets by day and night, storefronts, interiors, transit and gameplay views.
+
 | Nightlife at Moon Noodles | M-Line elevated railway |
 |:--:|:--:|
 | ![Vesper Market nightlife](docs/screenshots/02-vesper-market-nightlife.png) | ![Helix Terminal rail](docs/screenshots/03-m-line-helix-terminal.png) |
@@ -36,7 +40,7 @@ Your city layout and progress persist when you save and return.
 | **Redesigned Morrow Bay city bus** | **Original civilian sedan** |
 | ![Original bus body in the actual city](docs/screenshots/08-city-bus-coachwork.png) | ![Original civilian sedan in the actual city](docs/screenshots/09-civilian-sedan-coachwork.png) |
 
-All nine images are actual Godot 4.7.2 viewport captures from the development build. The two vehicle portraits stage real existing traffic actors on their route for an unobstructed comparison; they're not concept art or a driving benchmark. These development-build screenshots may be newer than the downloadable tagged beta. [Capture date/source, renderer and checksums](docs/screenshots/capture-manifest.json) · [Capture method](docs/screenshots/README.md). The gallery uses Linux software-rendered OpenGL; the Windows Forward+/Vulkan build may look different.
+These preview images are part of the 33-image Godot 4.7.2 viewport gallery from the development build. The two vehicle portraits stage real existing traffic actors on their route for an unobstructed comparison; they're not concept art or a driving benchmark. These development-build screenshots may be newer than the downloadable tagged beta. [Capture date/source, renderer and checksums](docs/screenshots/capture-manifest.json) · [Capture method](docs/screenshots/README.md). The gallery uses Linux software-rendered OpenGL; the Windows Forward+/Vulkan build may look different.
 
 ## Play the beta
 

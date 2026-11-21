@@ -2,6 +2,7 @@ name: Capture actual Godot screenshots
 on:
   push:
     branches:
+      - docs/expanded-playtest-gallery-20261121
       - art/civilian-passenger-coachwork
       - art/photographic-masonry
       - art/photographic-road-network-20261121
@@ -28,7 +29,7 @@ concurrency:
 jobs:
   capture:
     runs-on: ubuntu-22.04
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: chickensoft-games/setup-godot@v2
@@ -78,6 +79,30 @@ jobs:
               '07-city-map-menu.png',
               '08-city-bus-coachwork.png',
               '09-civilian-sedan-coachwork.png',
+              '10-central-exchange-daylight.png',
+              '11-brickwater-streetfront.png',
+              '12-afterhours-streetfront.png',
+              '13-north-quay-exchange.png',
+              '14-pier-nine-depot.png',
+              '15-southworks-hall.png',
+              '16-lantern-cup-exterior.png',
+              '17-prism-club-exterior.png',
+              '18-static-room-exterior.png',
+              '19-dock-nine-social.png',
+              '20-blue-hour-exterior.png',
+              '21-helix-espresso.png',
+              '22-neon-bao-streetfood.png',
+              '23-crane-and-gear.png',
+              '24-mbpd-dispatch-exterior.png',
+              '25-eastside-fire.png',
+              '26-courier-street-view.png',
+              '27-vesper-player-view.png',
+              '28-lantern-cup-interior.png',
+              '29-prism-club-interior.png',
+              '30-static-room-interior.png',
+              '31-mbpd-dispatch-interior.png',
+              '32-horizon-health-interior.png',
+              '33-crane-and-gear-interior.png',
           ]
           for filename in expected:
               path = folder / filename
@@ -89,7 +114,7 @@ jobs:
               assert len(data) > 16000, f'Suspect blank screenshot: {path}: {len(data)} bytes'
               print(f'{filename}: {w}x{h}, {len(data):,} bytes')
           assert len(list(folder.glob('*.png'))) == len(expected), 'Unexpected screenshot set'
-          print('SCREENSHOT VALIDATION PASS: 9 real framebuffer captures')
+          print(f'SCREENSHOT VALIDATION PASS: {len(expected)} real framebuffer captures')
           PY
       - name: Record source revision and unchanged framebuffer hashes
         run: |
@@ -146,7 +171,7 @@ jobs:
               echo "Verified screenshots already match the checked-in gallery"
               exit 0
             fi
-            git commit -m "docs(screenshots): recapture nine real Godot 4 gameplay frames"
+            git commit -m "docs(screenshots): recapture 33 real Godot 4 gameplay frames"
             if git push origin "HEAD:${GITHUB_REF_NAME}"; then
               exit 0
             fi

@@ -75,6 +75,74 @@ func _capture_all() -> void:
 	await _settle()
 	if not await _screenshot("04-horizon-commons-daylight.png"):
 		return
+	# Central Exchange in daylight
+	clock.call("set_hour", 12.5)
+	_stage_street(Vector3(0.0, 1.15, 6.0), Vector3(0.0, 3.2, -21.5), Vector3(0.0, 8.4, 25.0), false)
+	await _settle()
+	if not await _screenshot("10-central-exchange-daylight.png"):
+		return
+	# Brickwater brick and street architecture
+	clock.call("set_hour", 12.0)
+	_stage_street(Vector3(-3.7, 1.15, 3.8), Vector3(-3.7, 3.0, 3.8), Vector3(-10.9, 5.0, 24.0), false)
+	await _settle()
+	if not await _screenshot("11-brickwater-streetfront.png"):
+		return
+	# Afterhours illuminated steel storefront
+	clock.call("set_hour", 21.0)
+	_stage_street(Vector3(3.7, 1.15, 3.8), Vector3(3.7, 3.0, 3.8), Vector3(10.9, 5.0, 24.0), false)
+	await _settle()
+	if not await _screenshot("12-afterhours-streetfront.png"):
+		return
+	# North Quay Exchange
+	clock.call("set_hour", 9.5)
+	_stage_street(Vector3(-29.0, 1.15, -222.0), Vector3(-29.0, 4.5, -230.0), Vector3(-29.0, 3.0, -203.0), false)
+	await _settle()
+	if not await _screenshot("13-north-quay-exchange.png"):
+		return
+	# Pier Nine Depot, West Docks
+	clock.call("set_hour", 17.5)
+	_stage_street(Vector3(-203.0, 1.15, 8.0), Vector3(-203.0, 4.5, 1.0), Vector3(-203.0, 3.0, 29.0), false)
+	await _settle()
+	if not await _screenshot("14-pier-nine-depot.png"):
+		return
+	# Southworks Hall
+	clock.call("set_hour", 13.0)
+	_stage_street(Vector3(29.0, 1.15, 182.0), Vector3(29.0, 4.5, 175.0), Vector3(29.0, 3.0, 203.0), false)
+	await _settle()
+	if not await _screenshot("15-southworks-hall.png"):
+		return
+	if not await _capture_site("16-lantern-cup-exterior.png", "lantern_cup", false, 17.5):
+		return
+	if not await _capture_site("17-prism-club-exterior.png", "prism_club", false, 22.0):
+		return
+	if not await _capture_site("18-static-room-exterior.png", "static_room", false, 22.5):
+		return
+	if not await _capture_site("19-dock-nine-social.png", "dock_nine", false, 20.5):
+		return
+	if not await _capture_site("20-blue-hour-exterior.png", "blue_hour", false, 21.0):
+		return
+	if not await _capture_site("21-helix-espresso.png", "helix_espresso", false, 10.0):
+		return
+	if not await _capture_site("22-neon-bao-streetfood.png", "neon_bao", false, 20.0):
+		return
+	if not await _capture_site("23-crane-and-gear.png", "crane_supply", true, 12.0):
+		return
+	if not await _capture_site("24-mbpd-dispatch-exterior.png", "police_hq", true, 19.5):
+		return
+	if not await _capture_site("25-eastside-fire.png", "east_fire", true, 14.0):
+		return
+	clock.call("set_hour", 12.5)
+	_stage_street(Vector3(0.0, 1.15, 6.0), Vector3(0.0, 4.0, 14.0), Vector3(0.0, 2.0, 6.0), true)
+	game.call("_snap_camera")
+	await _settle()
+	if not await _screenshot("26-courier-street-view.png"):
+		return
+	clock.call("set_hour", 20.18)
+	_stage_street(Vector3(-155.5, 1.15, -164.3), Vector3(-155.5, 4.0, -156.3), Vector3(-155.5, 2.0, -164.3), true)
+	game.call("_snap_camera")
+	await _settle()
+	if not await _screenshot("27-vesper-player-view.png"):
+		return
 	# Two dedicated, reproducible real-fleet art views. Stage existing traffic
 	# actors on their own outer loop lanes, never substitute showcase meshes.
 	var traffic: Node = game.get("traffic")
@@ -101,6 +169,18 @@ func _capture_all() -> void:
 	_stage_street(market,Vector3(-136.5,2.65,-177.7),Vector3(-143.0,1.2,-170.75),false)
 	await _settle()
 	if not await _screenshot("09-civilian-sedan-coachwork.png"):
+		return
+	if not await _capture_room("28-lantern-cup-interior.png", "lantern_cup", false, 17.5, Vector3(954.0, 3.8, 956.8), Vector3(950.0, 2.5, 943.5)):
+		return
+	if not await _capture_room("29-prism-club-interior.png", "prism_club", false, 22.0, Vector3(954.0, 3.8, 956.8), Vector3(950.0, 2.5, 943.5)):
+		return
+	if not await _capture_room("30-static-room-interior.png", "static_room", false, 22.5, Vector3(946.0, 3.8, 956.8), Vector3(950.0, 2.5, 943.5)):
+		return
+	if not await _capture_room("31-mbpd-dispatch-interior.png", "police_hq", true, 19.5, Vector3(954.0, 3.8, 956.8), Vector3(950.0, 2.5, 943.5)):
+		return
+	if not await _capture_room("32-horizon-health-interior.png", "garden_clinic", true, 12.0, Vector3(954.0, 3.8, 956.8), Vector3(950.0, 2.5, 943.5)):
+		return
+	if not await _capture_room("33-crane-and-gear-interior.png", "crane_supply", true, 12.0, Vector3(946.0, 3.8, 956.8), Vector3(950.0, 2.5, 943.5)):
 		return
 	# Enter the actual grocery using the same game method as pressing H.
 	clock.call("set_hour", 19.5)
@@ -135,6 +215,47 @@ func _capture_all() -> void:
 	menu.call("hide_for_game")
 	print("SCREENSHOT_CAPTURE PASS: ", results)
 	quit(0)
+
+func _site_position(id: String, civic: bool) -> Vector3:
+	if civic:
+		return game.get("civic_services").call("position_for", id)
+	return game.get("venue_system").call("venue_position", id)
+
+func _capture_site(filename: String, id: String, civic: bool, hour: float) -> bool:
+	var at: Vector3 = _site_position(id, civic)
+	if at == Vector3.ZERO:
+		_abort("Unknown gallery destination: " + id)
+		return false
+	game.get("day_night").call("set_hour", hour)
+	_stage_street(at, at + Vector3(7.8, 4.7, -13.5), at + Vector3(0.0, 3.1, 3.5), false)
+	await _settle()
+	return await _screenshot(filename)
+
+func _capture_room(filename: String, id: String, civic: bool, hour: float, view: Vector3, target: Vector3) -> bool:
+	var at: Vector3 = _site_position(id, civic)
+	if at == Vector3.ZERO:
+		_abort("Unknown interior destination: " + id)
+		return false
+	game.get("day_night").call("set_hour", hour)
+	_stage_street(at, at + Vector3(7.0, 4.0, -10.0), at + Vector3(0.0, 3.2, 2.0), false)
+	game.call("_toggle_interior")
+	var interior: Node = game.get("interiors")
+	if not interior.call("is_inside") or str(interior.call("active_site_id")) != id:
+		_abort("Did not enter the expected playable room: " + id)
+		return false
+	hud.visible = false
+	camera.global_position = view
+	camera.look_at(target, Vector3.UP)
+	await _settle()
+	if not await _screenshot(filename):
+		return false
+	(game.get("player") as CharacterBody3D).global_position = interior.call("get_exit_point")
+	game.call("_toggle_interior")
+	if interior.call("is_inside"):
+		_abort("Did not exit playable room: " + id)
+		return false
+	await process_frame
+	return true
 
 func _stage_street(at: Vector3, position: Vector3, look: Vector3, show_hud: bool) -> void:
 	var player: CharacterBody3D = game.get("player")
