@@ -18,10 +18,11 @@ func _geometry_signature(chunk: Node3D) -> Dictionary:
 			result["solid"] += 1
 		elif node is MeshInstance3D:
 			result["mesh"] += 1
-		elif node is MultiMeshInstance3D:
-			var batches := (node as MultiMeshInstance3D).multimesh
-			if batches != null:
-				result["instances"] += batches.instance_count
+		elif node.name == "VisualBatches" and node.has_method("get_batch_stats"):
+			# Noninteractive material batches use RenderingServer RIDs rather than
+			# one MultiMeshInstance3D Node per batch. Query the one lifetime owner.
+			var batch_stats: Dictionary = node.call("get_batch_stats")
+			result["instances"] += int(batch_stats["instances"])
 		elif node is Label3D:
 			result["signs"] += 1
 		if node.name.begins_with("PhotorealFrontage_"):
