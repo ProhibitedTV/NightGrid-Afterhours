@@ -3,6 +3,7 @@ extends Node3D
 ## Static detail only: real lane logic remains in traffic_signals.gd.
 ## No procedural randomness, collisions in the travelled roadway, or new save data.
 const Materials = preload("res://scripts/material_library.gd")
+const PhotoStreetKit = preload("res://scripts/central_exchange_street_kit.gd")
 const CROSSING_DISTANCE = 10.3
 const CURB_AT = 8.1
 const STRIPE_COUNT = 9
@@ -14,7 +15,9 @@ var _stats := {
 	"crossings": 0, "paint_wear_marks": 0, "curb_ramps": 0,
 	"storm_drains": 0, "repair_patches": 0, "reflective_puddles": 0,
 	"mounted_signal_heads": 0, "crossing_signs": 0,
-	"batched_instances": 0, "night_lights": 0
+	"batched_instances": 0, "night_lights": 0,
+	"photographed_street_props": 0, "photo_road_decal_projections": 0,
+	"measured_street_colliders": 0
 }
 var _night := 0.0
 var _hero_light: OmniLight3D
@@ -28,6 +31,15 @@ func _ready() -> void:
 	_build_repaired_surface()
 	_build_signal_mount()
 	_build_street_furniture()
+	# A bounded real-asset street kit sits beside this fixed junction, not in
+	# the 81-traffic-light signal map or mutable generated parcel layout.
+	var photo_kit := PhotoStreetKit.new()
+	photo_kit.name = "CentralExchangePhotoStreetKit"
+	add_child(photo_kit)
+	var real_stats: Dictionary = photo_kit.get_street_stats()
+	_stats["photographed_street_props"] = real_stats["source_installs"]
+	_stats["photo_road_decal_projections"] = real_stats["road_decal_projections"]
+	_stats["measured_street_colliders"] = real_stats["sidewalk_collision_bodies"]
 	_build_night_light()
 	set_night_factor(0.0)
 
