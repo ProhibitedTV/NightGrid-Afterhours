@@ -1,42 +1,42 @@
 {
   "images": {
     "01-morrow-bay-neon-night.png": {
-      "bytes": 608994,
-      "sha256": "bc89f9e230145746f3ab3544ef833bdd4e6d94b16cb2bb13b02cf84824d9542c"
+      "bytes": 580848,
+      "sha256": "05753fb2863e9eb943e8d6e15e5c4d29aeacf2f21af6073c2910690d18c08d19"
     },
     "02-vesper-market-nightlife.png": {
-      "bytes": 800066,
-      "sha256": "e96b7dcb583a67f6397888ce320ea95d98b044bb15e8bba326e83cc6719a29bb"
+      "bytes": 802606,
+      "sha256": "147886d668e81a1b7cae7d81e518769830f3ee4eef545a1ef95eede7aa8146ce"
     },
     "03-m-line-helix-terminal.png": {
-      "bytes": 399848,
-      "sha256": "0fcee73e2e64467c6a567e94e14ff1e7572e2e54b888698bdd140cea04b76884"
+      "bytes": 388170,
+      "sha256": "7a8d668ab4d9531845f5c03945c1967d79af8d2a070942478fef0d0b779533bc"
     },
     "04-horizon-commons-daylight.png": {
-      "bytes": 680099,
-      "sha256": "124c20e0c120bcca094706ac095a71020523697c08c4b990f2b8ba918134b606"
+      "bytes": 697885,
+      "sha256": "4718aa7e952f4d1b2aae34c30758ef7ef3750239116c078f14a89fb5d61f0bab"
     },
     "05-quay-fresh-interior.png": {
-      "bytes": 228067,
-      "sha256": "8dbb8f342fe2ed517aef7e90efbb6a786a5e09c848fb8f7f662c64a997f18ea7"
+      "bytes": 228074,
+      "sha256": "1353e3b1854ffc9a798ebb3e8683ed5c98fd681c9334da1dd805db88a2c90942"
     },
     "06-title-menu.png": {
-      "bytes": 143744,
-      "sha256": "81fbe6ab87093830ff340bb5ec15bd659204254457a9eeb01c90f25cfec21217"
+      "bytes": 138349,
+      "sha256": "940e346f6e13134d7d858f4d22b23860217b1857dde270a18a43f7c8b57238c8"
     },
     "07-city-map-menu.png": {
-      "bytes": 150808,
-      "sha256": "048311e2f3a8b38c8d3a90a656aaca5c8e35faa43eb7720818ac4842a065df87"
+      "bytes": 145269,
+      "sha256": "0844cd7ef18ec4c82a99e58950a200720cff64551916ede288104bf63f35689d"
     },
     "08-city-bus-coachwork.png": {
-      "bytes": 822677,
-      "sha256": "5c99c680a0c189bc4871515981181224abd26c2b5fdb634597cb8cd5e04bd149"
+      "bytes": 909810,
+      "sha256": "0ad2a792b1027570329c5a2cee05a4894e3b280d86775a8351e16bdcaf11768d"
     },
     "09-civilian-sedan-coachwork.png": {
-      "bytes": 595358,
-      "sha256": "4eefbabbb4619d539632f78a20d7e6b49a55367c23d7d05abc710f84728b8c32"
+      "bytes": 689393,
+      "sha256": "8bd3f51b43b5ff8d96717a5ddccb47930901514be2def2e516086f921dad3c54"
     }
   },
   "renderer": "Godot 4.7.2 Mesa software OpenGL Compatibility 1280x720 (NOT Vulkan/RTX)",
-  "source_revision": "1caa6bc3635538c4f101033724217c975aef892a"
+  "source_revision": "8d6a366ca0b1f223f0032a50ccf36d3d61125325"
 }
