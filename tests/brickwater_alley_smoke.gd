@@ -43,5 +43,20 @@ func _verify()->void:
 	var passage:float=float(alley.get("right_wall"))-float(alley.get("left_wall"))-1.50
 	if not _check(passage>=2.5,"wall-side bin leaves continuous passage"):
 		return
+	for item in ["ReusedPowerCabinet","ReusedRustedWasteCan"]:
+		var prop:=alley.get_node_or_null(item) as StaticBody3D
+		if not _check(prop!=null and prop.get_node_or_null("MeasuredScanCollider") is CollisionShape3D,"shared scanned prop with collision: "+item):
+			return
+		var meshes:Array[MeshInstance3D]=[]
+		alley.call("_collect",prop,meshes)
+		var visible_count:=0
+		for mesh in meshes:
+			if mesh.visible:
+				visible_count+=1
+				var material:=mesh.mesh.surface_get_material(0) as StandardMaterial3D
+				if not _check(material!=null and material.albedo_texture!=null and material.normal_enabled,"existing photographic material"):
+					return
+		if not _check(visible_count==(4 if item=="ReusedRustedWasteCan" else 1),"one complete selected variant"):
+			return
 	print("BRICKWATER_ALLEY_SMOKE PASS: physical floor, closed model, photo materials, clear path")
 	quit(0)

@@ -1,15 +1,17 @@
 extends Node3D
 ## Fixed first service-alley vertical slice, at the existing two-building parcel.
-const PILOT_BLOCK := Vector2i(-2,1)
+const PILOT_BLOCK = Vector2i(-2,1)
 const Maps = preload("res://scripts/material_library.gd")
+const CABINET = preload("res://assets/models/polyhaven/utility_box_01/utility_box_01.gltf")
+const TRASH = preload("res://assets/models/polyhaven/metal_trash_can/metal_trash_can.gltf")
 const HVAC = preload("res://assets/models/polyhaven/exterior_aircon_unit/exterior_aircon_unit.gltf")
 const GRIME = preload("res://assets/models/nightgrid/brickwater_alley/alley_weathering.svg")
 const NOTICE = preload("res://assets/models/nightgrid/brickwater_alley/waste_notice.svg")
-const PBR := "res://assets/pbr/polyhaven/"
-const FLOOR_Y := 0.14
-const FOUNDATION_Y := -0.08
-const START_Z := -12.0
-const END_Z := 8.0
+const PBR = "res://assets/pbr/polyhaven/"
+const FLOOR_Y = 0.14
+const FOUNDATION_Y = -0.08
+const START_Z = -12.0
+const END_Z = 8.0
 var left_wall := -2.65
 var right_wall := 2.65
 static var _metal: StandardMaterial3D
@@ -29,6 +31,7 @@ func _ready()->void:
 	_build_floor()
 	_build_dumpster()
 	_build_services()
+	_install_reused_props()
 
 func _view(parent:Node3D, label:String, mesh:Mesh, at:Vector3, material:Material)->MeshInstance3D:
 	var node:=MeshInstance3D.new()
@@ -211,3 +214,38 @@ func _build_services()->void:
 	drain.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	for i in range(7):
 		_plate(self,"DrainSlot",Vector3(right_wall-0.28,FLOOR_Y+0.017,-3.27+float(i)*0.09),Vector3(0.25,0.005,0.035),_lid)
+
+func _install_reused_props()->void:
+	# Reuse the exact imported resources from Central Exchange. No second
+	# copy of their glTF, buffers or textures. Place at opposite-wall sites
+	# clear of the dumpster and conduit risers.
+	_place_scan("ReusedPowerCabinet",CABINET,Vector3(right_wall-0.24,FLOOR_Y,-9.8),-PI*0.5,false)
+	_place_scan("ReusedRustedWasteCan",TRASH,Vector3(right_wall-0.46,FLOOR_Y,1.9),PI*0.5,true)
+
+func _place_scan(label:String,source:PackedScene,at:Vector3,yaw:float,trash:bool)->void:
+	var body:=StaticBody3D.new()
+	body.name=label
+	body.position=at
+	body.rotation.y=yaw
+	add_child(body)
+	var imported:=source.instantiate() as Node3D
+	body.add_child(imported)
+	var meshes:Array[MeshInstance3D]=[]
+	_collect(imported,meshes)
+	assert(meshes.size()==(8 if trash else 1))
+	for mesh in meshes:
+		if trash:
+			var rust:=str(mesh.name).to_lower().contains("rust")
+			mesh.visible=rust
+			mesh.position.x+=0.5 if rust else -0.5
+	var collider:=CollisionShape3D.new()
+	collider.name="MeasuredScanCollider"
+	var shape:=BoxShape3D.new()
+	# Measured upstream bounds, copied by resource rather than asset bytes;
+	# trash body covers the reachable barrel, cabinet body covers the shell.
+	shape.size=Vector3(0.61,0.90,0.55) if trash else Vector3(0.52,1.12,0.43)
+	collider.shape=shape
+	collider.position.y=shape.size.y*0.5
+	if not trash:
+		collider.position.z=0.006
+	body.add_child(collider)
