@@ -1,5 +1,6 @@
 extends CharacterBody3D
 const Materials = preload("res://scripts/material_library.gd")
+const BusCoachwork = preload("res://scripts/bus_coachwork.gd")
 ## Lightweight NPC street vehicle. Follows lane centerlines, obeys stop bars,
 ## slows for vehicles ahead and dwells at marked bus stops.
 var route: Array[Vector3] = []
@@ -188,6 +189,15 @@ func _build_body() -> void:
 	var hitbox := CollisionShape3D.new()
 	hitbox.shape = shape
 	add_child(hitbox)
+	if buses:
+		var coach := BusCoachwork.build(paint)
+		coach.name = "CityBusCoachwork"
+		add_child(coach)
+		for side in [-1.0,1.0]:
+			for axle in [-2.55,2.55]:
+				var at := Vector3(side*1.18,-1.30,axle)
+				_wheel(at,0.44)
+		return
 	_box(Vector3(0.0, 0.0, 0.0), Vector3(2.6, 2.2, 8.1) if buses else Vector3(2.12, 0.78, 4.35), paint)
 	_box(Vector3(0.0, 0.67, -0.15), Vector3(2.3, 0.75, 5.3) if buses else Vector3(1.72, 0.72, 2.20), Color("3b5666"), false, "GLASS")
 	for side in [-1.0, 1.0]:
