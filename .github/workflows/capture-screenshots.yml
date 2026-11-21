@@ -2,6 +2,7 @@ name: Capture actual Godot screenshots
 on:
   push:
     branches:
+      - art/photographic-masonry
       - art/photographic-road-network-20261121
       - docs/player-facing-readme-20261121
       - feat/real-gameplay-screenshots
