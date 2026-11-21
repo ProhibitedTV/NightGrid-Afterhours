@@ -40,8 +40,18 @@ func _verify()->void:
 		var uv:PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV]
 		if not _check(vertices.size()==uv.size() and vertices.size()*4==(arrays[Mesh.ARRAY_TANGENT] as PackedFloat32Array).size(),"UVs and tangents"):
 			return
+		var normals:PackedVector3Array=arrays[Mesh.ARRAY_NORMAL]
+		var tangents:PackedFloat32Array=arrays[Mesh.ARRAY_TANGENT]
+		if not _check((node.material_override as StandardMaterial3D).cull_mode==BaseMaterial3D.CULL_BACK,"retain front-face culling; do not mask incorrect topology"):
+			return
+		for i in range(0,vertices.size(),3):
+			var cross:Vector3=(vertices[i+1]-vertices[i]).cross(vertices[i+2]-vertices[i])
+			if not _check(cross.dot(Vector3.UP)<-0.00001,"clockwise upward-facing nondegenerate asphalt triangle"):
+				return
 		for i in range(vertices.size()):
+			if not _check(normals[i].is_equal_approx(Vector3.UP) and Vector4(tangents[i*4],tangents[i*4+1],tangents[i*4+2],tangents[i*4+3]).is_equal_approx(Vector4(1,0,0,-1)),"correct photo normal and tangent basis"):
+				return
 			if not _check(is_equal_approx(vertices[i].y,Road.Y) and uv[i].is_equal_approx(Vector2(vertices[i].x,vertices[i].z)/Road.TILE_METRES),"world-aligned scale and road height"):
 				return
-	print("PHOTO_ROAD_NETWORK_SMOKE PASS: exact nonoverlapping street union, two drawables, photo PBR and UV scale")
+	print("PHOTO_ROAD_NETWORK_SMOKE PASS: exact nonoverlapping street union, two drawables, photo PBR, UV scale, clockwise front faces and tangent basis")
 	quit(0)
