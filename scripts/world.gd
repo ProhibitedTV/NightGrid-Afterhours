@@ -28,6 +28,7 @@ const WorldAudioScript = preload("res://scripts/world_audio.gd")
 const FrameTimeRecorder = preload("res://scripts/frame_time_recorder.gd")
 const PlaytestEvidence = preload("res://scripts/playtest_evidence.gd")
 const PlaytestLogger = preload("res://scripts/playtest_logger.gd")
+const BuildInfo = preload("res://scripts/build_info.gd")
 const CELL = 58.0
 const GRID_RADIUS = 4
 const PLAYER_START = Vector3(0.0, 1.15, 6.0)
@@ -122,7 +123,11 @@ func _ready() -> void:
 	# Diagnostics stay local, capped and silent on headless CI. Capture startup
 	# before loading the world so real Windows sessions have a known baseline.
 	if DisplayServer.get_name() != "headless":
-		var path: String = playtest_logger.start_session(int(session.get("world_seed")))
+		var path: String = playtest_logger.start_session(int(session.get("world_seed")), {
+			"release_version": BuildInfo.VERSION,
+			"build_channel": BuildInfo.CHANNEL,
+			"build_revision": BuildInfo.REVISION
+		})
 		if not path.is_empty():
 			print("NIGHTGRID_PLAYTEST_LOG: ", path)
 	rng.seed = int(session.get("world_seed"))
