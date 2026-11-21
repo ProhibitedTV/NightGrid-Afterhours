@@ -1,4 +1,5 @@
 extends Node3D
+const AudioMix = preload("res://scripts/audio_mix.gd")
 ## One active, enterable room at a time. Exterior address/quest identity is
 ## authored; transient geometry is allocated on entry and freed on exit.
 ## This is a separate interior space, not a cut-through doorway in building mesh.
@@ -236,6 +237,8 @@ func _build_room(site: Dictionary) -> void:
 	if kind == "BAR" or kind == "CAFE" or kind == "CLUB" or kind == "STALL":
 		var sound := AudioStreamPlayer3D.new()
 		sound.name = "OriginalAtmosphere"
+		AudioMix.ensure()
+		sound.bus = AudioMix.AMBIENCE
 		sound.position = Vector3(0.0, 2.0, -2.5)
 		sound.stream = VenueAmbience.soundscape(kind)
 		sound.volume_db = -13.0
