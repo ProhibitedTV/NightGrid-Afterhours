@@ -95,8 +95,9 @@ func _verify() -> void:
 		if not parsed is Dictionary:
 			_fail("Evidence metadata is not valid JSON")
 			return
-		if int(parsed.get("schema_version", 0)) != 1 or (parsed.get("framebuffer_resolution_px", []) as Array) != [64, 48]:
-			_fail("Paired metadata is missing exact image dimensions and schema")
+		var pixels: Array = parsed.get("framebuffer_resolution_px", [])
+		if int(parsed.get("schema_version", 0)) != 1 or pixels.size() != 2 or int(pixels[0]) != 64 or int(pixels[1]) != 48:
+			_fail("Paired metadata is missing exact image dimensions and schema: " + str(pixels))
 			return
 		if str(parsed.get("png_filename", "")) != png_path.get_file() or str(parsed.get("json_filename", "")) != json_path.get_file():
 			_fail("Evidence pair lost matching basename")
