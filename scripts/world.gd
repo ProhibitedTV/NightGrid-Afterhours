@@ -170,6 +170,7 @@ func _log_playtest(name: String, details: Dictionary = {}) -> void:
 		"z": snappedf(actor.global_position.z, 0.01),
 		"district": city_details.call("get_district_at", street),
 		"clock": day_night.call("clock_string"),
+		"render_profile": str(day_night.call("get_render_profile")),
 		"indoors": indoors,
 		"mode": "car" if current_car != null else ("transit_" + transit_kind.to_lower() if current_transit != null else "on_foot")
 	}
@@ -358,6 +359,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("capture_playtest_frame"):
 		if not _capturing_evidence:
 			call_deferred("_capture_playtest_frame")
+	elif event.is_action_pressed("compare_render_look"):
+		var new_mode: bool = not bool(day_night.call("is_render_comparison_enabled"))
+		day_night.call("set_render_comparison", new_mode)
+		var profile := str(day_night.call("get_render_profile"))
+		_log_playtest("render_profile_switched", {"render_profile": profile})
+		playtest_logger.flush()
+		_notify("Rendering comparison: " + profile + " (F11 toggle; F10 captures evidence)")
 	elif event.is_action_pressed("toggle_ssr"):
 		world_environment.environment.ssr_enabled = not world_environment.environment.ssr_enabled
 	else:
@@ -402,6 +410,7 @@ func _capture_playtest_frame() -> void:
 		"indoors": bool(interiors.call("is_inside")),
 		"motion_context": motion,
 		"graphic_settings": game_menu.call("get_settings"),
+		"render_profile": str(day_night.call("get_render_profile")),
 		"frame_interval_metrics": frame_time_recorder.get_frame_metrics(),
 		"streaming": city_details.call("get_streaming_stats"),
 		"frame_trace_recording": frame_time_recorder.recording
