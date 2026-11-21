@@ -45,6 +45,8 @@ jobs:
         run: godot --headless --path . --script res://tests/coastal_perimeter_smoke.gd
       - name: Validate lighting, authored world and flora
         run: godot --headless --path . --script res://tests/world_systems_smoke.gd
+      - name: Validate F11 video-inspired ACES/sky render comparison and baseline restoration
+        run: godot --headless --path . --script res://tests/render_comparison_smoke.gd
       - name: Validate single scanned Horizon fern, leaf cutouts and PBR normals
         run: godot --headless --path . --script res://tests/hero_fern_smoke.gd
       - name: Validate fixed lots and lighting/material policies
