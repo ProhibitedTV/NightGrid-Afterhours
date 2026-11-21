@@ -45,3 +45,57 @@ Estimated **~38 MB source images on disk**, with final Vulkan compression and ac
 4. **Do not propagate to the rest of Morrow Bay until an actual before/after screenshot and hands-on player review confirms the fidelity is meaningfully better**.
 
 These constraints correspond to open [visual quality #19](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/19), [vehicle design #20](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/20), and [city placement #21](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/21). None is closed by this pilot.
+
+## Photographed asphalt pilot — November 20, follow-on PR
+
+The original road deck is still a flat collision-safe 14m-wide network, but
+its top surface used the same low-resolution, generated 128px material that
+makes much of Morrow Bay read as abstract/blockout. The new, **visually
+limited** Central Exchange road-surface study attaches
+`scripts/central_exchange_road_surface.gd` to the actual playable scene.
+
+This pilot reuses the **already imported and licensed CC0 2K Poly Haven
+bitumen scan**, with albedo, OpenGL-space normal, and roughness maps. It does
+not claim the roofing-grade scan is the final traffic-worn aggregate material;
+that choice needs visual approval and may be replaced by a documented,
+licensed pavement/asphalt photoscan. At present the scan is closer to a
+physical micro-surface than generated color noise, but it must be inspected
+before use in other districts.
+
+The two actual `ArrayMesh` render nodes cover thirteen noncolliding street
+patches: the permanent 14m central road center, four travelling-lane approach
+panels, and eight narrow damp shoulders/gutters. Every surface uses an
+unwrapped, world-anchored **3.5m texture repeat**, signed tangents for proper
+normal-map response, and correct up-facing triangle winding. The damp strip
+has lower roughness and a controlled clearcoat; the dry centre remains matte.
+There are **no new physics bodies, streetlights, reflective decals, roadway
+boxes or changes to lane centerlines**. This is a two-drawable PBR swap at
+one review location, not a citywide scene dressing pass.
+
+The road photoscan sits at **Y=0.016m**, above the original road top but
+below the visible lane markings; the central square ends at ±7m and the
+approaches begin at ±14.15m so the zebra/stop-bar zone at approximately
+±10.3–13m remains clear. The 28m lane approaches end at ±42m, well before
+the next intersection. All storefronts, train positions, sidewalk foundations,
+road collision, v1 save and seed manifests remain unmodified.
+
+Grounding and quality gates:
+
+- `tests/central_road_surface_smoke.gd` checks actual 2K map binding,
+  triangle winding, UV scale and tangent buffers, two material-sorted
+  drawables, crosswalk clearance, no collisions/lights, and save continuity.
+- The screenshot workflow publishes genuine Godot **Mesa OpenGL compatibility**
+  frames from exactly the same road-level camera at noon and dusk:
+  `central-scanned-road-noon-real-godot.png` and
+  `central-scanned-road-dusk-real-godot.png`. They are useful for verifying
+  the integration, **not a substitute for Windows Vulkan Forward+**.
+- On Windows, compare a matching before/after view, inspect tiling scale
+  under shallow driving viewpoints, neon and dry/wet reflective response,
+  midday texture color, contact with curbs/paint, GPU memory and p95/p99
+  driving performance. Do **not** promote this small engineering pass as
+  proof that the game has reached the approved AAA photoreal target.
+
+Next full-quality work remains real asphalt/aesthetic reference selection,
+district-specific road drainage, credible coastal boulevard geography,
+high-quality modular buildings, physically connected transit, car silhouette
+and genuine RTX 3060 Forward+ visual/frame-time acceptance.
