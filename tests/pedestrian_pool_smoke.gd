@@ -31,6 +31,8 @@ func _verify() -> void:
 	pop.configure(123,Pop.block_candidates(0,0))
 	var id: String = pop.ids()[0]
 	var other: String = pop.ids()[1]
+	# Start at the middle of the route, away from endpoint reversal.
+	pop.restore({"phases":{id:0.25}})
 	var allow := func(_entry: Dictionary) -> bool: return true
 	var deny := func(_entry: Dictionary) -> bool: return false
 	var hide := func(_at: Vector3) -> bool: return true
