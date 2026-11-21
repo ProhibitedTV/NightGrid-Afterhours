@@ -7,6 +7,7 @@ const Materials = preload("res://scripts/material_library.gd")
 const EDGE = WorldPlan.GRID_RADIUS * WorldPlan.BLOCK_SIZE + 13.5
 const SPAN = 492.0
 const ROAD_STEP = WorldPlan.BLOCK_SIZE
+const CRANE_SCENE = preload("res://assets/models/nightgrid/harbor_crane/harbor_crane.gltf")
 
 var _stats := {"barriers": 0, "road_gates": 0, "sea_surfaces": 0, "landscapes": 0,
 	"port_piers": 0, "industrial_landmarks": 0}
@@ -189,15 +190,16 @@ func _build_port_infrastructure() -> void:
 		_stats["port_piers"] += 1
 
 func _gantry(name_value: String, anchor: Vector3, height: float) -> void:
-	var steel := Color("62675f")
-	_box(name_value + "_Tower", anchor + Vector3(0.0, height * 0.5, 0.0),
-		Vector3(2.1, height, 2.2), "METAL", steel)
-	_box(name_value + "_Jib", anchor + Vector3(12.0, height, 0.0),
-		Vector3(31.0, 1.7, 2.1), "METAL", steel)
-	_box(name_value + "_Counterweight", anchor + Vector3(-5.8, height + 0.5, 0.0),
-		Vector3(9.0, 3.1, 4.0), "METAL", Color("444d55"))
-	_box(name_value + "_Cable", anchor + Vector3(22.0, height - 8.0, 0.0),
-		Vector3(0.15, 16.0, 0.15), "METAL", Color("222c32"))
+	var crane := CRANE_SCENE.instantiate() as Node3D
+	assert(crane != null)
+	crane.name = name_value
+	crane.position = anchor + Vector3.UP*0.16
+	crane.scale.y = height/31.0
+	if name_value.begins_with("WestDocks"):
+		crane.rotation.y = PI*0.5
+	for node in crane.find_children("*","MeshInstance3D",true,false):
+		(node as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(crane)
 
 func _build_physical_edges() -> void:
 	# Four real collision walls along the LAST authored street. Each collision

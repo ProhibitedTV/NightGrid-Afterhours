@@ -46,6 +46,21 @@ func _verify() -> void:
 	if west.position.x + (west.mesh as PlaneMesh).size.x * 0.5 > -WorldPlan.city_bounds() - 12.0:
 		_fail("Western water is covering a playable street")
 		return
+	for prefix in ["NorthQuay_Crane_","WestDocks_Crane_"]:
+		var amount := 4 if prefix.begins_with("North") else 3
+		for i in range(amount):
+			var crane := edge.get_node_or_null(prefix+"%02d" % i) as Node3D
+			if crane==null:
+				_fail("Missing authored harbor crane: "+prefix)
+				return
+			var meshes := crane.find_children("*","MeshInstance3D",true,false)
+			if meshes.size()!=1 or not (meshes[0] as MeshInstance3D).mesh is ArrayMesh:
+				_fail("Harbor crane must be imported mesh geometry")
+				return
+			var mesh := (meshes[0] as MeshInstance3D).mesh
+			if mesh.get_surface_count()!=3 or mesh.get_aabb().size.y<30.0:
+				_fail("Harbor crane silhouette or material groups incomplete")
+				return
 	await physics_frame
 	var space := world.get_world_3d().direct_space_state
 	var limit := WorldPlan.city_bounds() + 13.5

@@ -1,0 +1,312 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "NightGrid original fixed harbor crane mesh recipe"
+  },
+  "scene": 0,
+  "scenes": [
+    {
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "name": "MorrowBay_LatticeCrane",
+      "mesh": 0
+    }
+  ],
+  "meshes": [
+    {
+      "name": "AuthoredLatticeCrane",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2
+          },
+          "material": 0
+        },
+        {
+          "attributes": {
+            "POSITION": 3,
+            "NORMAL": 4,
+            "TEXCOORD_0": 5
+          },
+          "material": 1
+        },
+        {
+          "attributes": {
+            "POSITION": 6,
+            "NORMAL": 7,
+            "TEXCOORD_0": 8
+          },
+          "material": 2
+        }
+      ]
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "harbor_crane.bin",
+      "byteLength": 270720
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 64800,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 64800,
+      "byteLength": 64800,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 129600,
+      "byteLength": 43200,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 172800,
+      "byteLength": 35424,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 208224,
+      "byteLength": 35424,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 243648,
+      "byteLength": 23616,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 267264,
+      "byteLength": 1296,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 268560,
+      "byteLength": 1296,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 269856,
+      "byteLength": 864,
+      "target": 34962
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 5400,
+      "type": "VEC3",
+      "min": [
+        -9.15,
+        -0.13,
+        -2.24
+      ],
+      "max": [
+        26.15,
+        31.165,
+        2.24
+      ]
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 5400,
+      "type": "VEC3",
+      "min": [
+        -1,
+        -1,
+        -1
+      ],
+      "max": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 5400,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5126,
+      "count": 2952,
+      "type": "VEC3",
+      "min": [
+        -8.25,
+        0,
+        -2.575
+      ],
+      "max": [
+        19.3,
+        30.549999999999997,
+        2.575
+      ]
+    },
+    {
+      "bufferView": 4,
+      "componentType": 5126,
+      "count": 2952,
+      "type": "VEC3",
+      "min": [
+        -1,
+        -1,
+        -1
+      ],
+      "max": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "bufferView": 5,
+      "componentType": 5126,
+      "count": 2952,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 6,
+      "componentType": 5126,
+      "count": 108,
+      "type": "VEC3",
+      "min": [
+        2.96,
+        25.5,
+        -2.545
+      ],
+      "max": [
+        5.65,
+        26.9,
+        2.545
+      ]
+    },
+    {
+      "bufferView": 7,
+      "componentType": 5126,
+      "count": 108,
+      "type": "VEC3",
+      "min": [
+        -1,
+        -1,
+        -1
+      ],
+      "max": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "bufferView": 8,
+      "componentType": 5126,
+      "count": 108,
+      "type": "VEC2"
+    }
+  ],
+  "images": [
+    {
+      "uri": "../crane_gear/textures/steel_base_1k.jpg"
+    },
+    {
+      "uri": "../crane_gear/textures/steel_normal_1k.jpg"
+    },
+    {
+      "uri": "../crane_gear/textures/steel_arm_1k.png"
+    }
+  ],
+  "textures": [
+    {
+      "source": 0
+    },
+    {
+      "source": 1
+    },
+    {
+      "source": 2
+    }
+  ],
+  "materials": [
+    {
+      "name": "Weathered ochre structural steel",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.76,
+          0.52,
+          0.23,
+          1
+        ],
+        "baseColorTexture": {
+          "index": 0
+        },
+        "metallicRoughnessTexture": {
+          "index": 2
+        },
+        "metallicFactor": 0.65,
+        "roughnessFactor": 0.9
+      },
+      "normalTexture": {
+        "index": 1,
+        "scale": 0.65
+      }
+    },
+    {
+      "name": "Dark galvanised machinery",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.22,
+          0.25,
+          0.27,
+          1
+        ],
+        "baseColorTexture": {
+          "index": 0
+        },
+        "metallicRoughnessTexture": {
+          "index": 2
+        },
+        "metallicFactor": 0.8,
+        "roughnessFactor": 0.9
+      },
+      "normalTexture": {
+        "index": 1,
+        "scale": 0.65
+      }
+    },
+    {
+      "name": "Opaque tinted distant cab glazing",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.035,
+          0.09,
+          0.11,
+          1
+        ],
+        "metallicFactor": 0.1,
+        "roughnessFactor": 0.25
+      }
+    }
+  ]
+}
