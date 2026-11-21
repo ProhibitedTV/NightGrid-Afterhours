@@ -38,12 +38,23 @@ func _ready() -> void:
 func enqueue(kind: String, detail: String = "") -> void:
 	if not LINES.has(kind):
 		return
+	# Once dispatch closes a case, queued response chatter is obsolete.
+	# Let the current clip finish, then announce closure before routine traffic.
+	if kind == "CLOSED":
+		for i in range(pending.size() - 1, -1, -1):
+			if str(pending[i]["kind"]) in ["REPORT", "ASSIGNED", "ACK", "CONTACT", "SEARCH", "CLOSED"]:
+				pending.remove_at(i)
+		if pending.size() >= MAX_QUEUE:
+			pending.pop_front()
+		pending.push_front({"kind":kind, "detail":detail})
+		return
 	# A bounded non-overlapping channel; coalesce repeat pending events.
 	for item in pending:
 		if item["kind"] == kind and item["detail"] == detail:
 			return
 	if pending.size() >= MAX_QUEUE:
-		pending.pop_front()
+		# Do not evict the closure announcement in a burst of unit releases.
+		pending.remove_at(1 if pending[0]["kind"] == "CLOSED" else 0)
 	pending.append({"kind":kind, "detail":detail})
 
 func ingest(events: Array[Dictionary]) -> void:
@@ -92,6 +103,9 @@ func tick(delta: float, audible: bool) -> void:
 	_voice.stream = clip
 	_voice.play()
 	elapsed = maxf(2.7, clip.get_length() + 0.35)
+
+func has_traffic() -> bool:
+	return elapsed > 0.0 or not pending.is_empty()
 
 func voice_count() -> int:
 	return _clips.size()

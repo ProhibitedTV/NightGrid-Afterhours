@@ -13,3 +13,6 @@ MBPD uses familiar public radio vocabulary adapted for the fictional city: 10-4 
 | Code 4 | No more assistance required | Incident closed |
 
 Routine vocabulary references: [Phoenix PD numerical/alphabetical radio codes, March 17 2026](https://www.phoenix.gov/content/dam/phoenix/policesite/mediaassets/Radio%20Codes%20Numerical%20Alphabetical.pdf) (10-17 and 10-7), and [Fountain Valley PD RSVP policies, 2026, p. 15](https://www.fountainvalley.gov/DocumentCenter/View/23968/RSVP-POLICIES-AND-PROCEDURES-2026pdf) (10-19). MBPD is a fictional local codebook; definitions differ across agencies. The damaged unit event never creates a return or arrival announcement. No dispatch routing or wanted-level behavior is changed.
+
+## Queue closure behavior
+Code 4 takes priority over queued radio traffic after the currently playing clip. Pending report/assignment/acknowledgment/contact/search lines are discarded when the incident closes, and release bursts cannot evict the pending closure. The receiver drains closing traffic for up to 20 seconds outside a station, then goes quiet; unrelated later availability is not guaranteed to be audible. No change to pursuit logic, heat, or station capacity.
