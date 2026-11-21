@@ -167,6 +167,9 @@ func _roll_wheels(displacement:Vector3) -> void:
 		return
 	var radius := 0.44 if buses else CarCoachwork.TIRE_RADIUS
 	var signed_metres := displacement.dot(-global_transform.basis.z)
+	# A sideways collision slide must not spin the axle or rewrite transforms.
+	if absf(signed_metres)<0.0001:
+		return
 	_wheel_phase = fposmod(_wheel_phase+signed_metres/radius,TAU)
 	_apply_wheel_phase()
 

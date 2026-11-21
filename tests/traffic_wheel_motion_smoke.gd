@@ -36,10 +36,22 @@ func _verify()->void:
 		if not _check(hubs[0].basis.is_equal_approx(before),"stopped wheel"):
 			return
 		var forward:Vector3=-actor.global_transform.basis.z
+		actor.call("_roll_wheels",actor.global_transform.basis.x*radius)
+		if not _check(hubs[0].basis==before,"lateral slide keeps identical rim transform"):
+			return
 		actor.call("_roll_wheels",forward*radius)
 		if not _check(is_equal_approx(float(actor.get("_wheel_phase")),1.0) and not hubs[0].basis.is_equal_approx(before),"one radian for radius distance"):
 			return
 		var running:Basis=hubs[0].basis
+		# A contact point initially at the bottom of the wheel must rotate
+		# toward the back of the car as the vehicle drives forward.
+		var contact_local:=before.inverse()*Vector3.DOWN
+		if not _check((running*contact_local).z>0.0,"correct forward rolling direction"):
+			return
+		actor.call("_roll_wheels",-forward*radius)
+		if not _check(hubs[0].basis.is_equal_approx(before),"reverse travel unwinds phase"):
+			return
+		actor.call("_roll_wheels",forward*radius)
 		actor.call("_roll_wheels",forward*100.0)
 		if not _check(hubs[0].basis.is_equal_approx(running),"teleport ignored"):
 			return

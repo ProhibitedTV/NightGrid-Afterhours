@@ -12,3 +12,5 @@ and doesn't need animation. Tests inspect the actual 29 vehicles and exercise
 the phase calculation with controlled displacements, not a native visual or
 frame-rate benchmark. This is a separate post-beta.7 candidate; do not merge
 into the release milestone until the current gallery and release are verified.
+
+Additional contact-direction regression: pure lateral slide does not rewrite wheel transforms; forward moves the bottom contact point toward the rear; reverse unwinds the phase. Tiny longitudinal displacement is a no-op to avoid redundant transform writes.
