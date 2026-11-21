@@ -12,6 +12,9 @@ var _head: Node3D
 var _arms: Array[Node3D] = []
 var _legs: Array[Node3D] = []
 var _eyes: Array[Node3D] = []
+var _weapon_display: Node3D
+var _weapon_id := "holstered"
+var _weapon_aiming := false
 var _stats := {"body_parts": 0, "face_parts": 0, "articulated_limbs": 0, "lights": 0, "colliders": 0}
 
 const SKINS = [
@@ -39,6 +42,32 @@ func set_locomotion(speed: float) -> void:
 
 func _ready() -> void:
 	_build_character()
+	if role == "PLAYER":
+		_build_weapon_display()
+
+func set_weapon_pose(id: String, aiming: bool) -> void:
+	_weapon_id = id
+	_weapon_aiming = aiming
+	if is_instance_valid(_weapon_display):
+		_weapon_display.visible = id != "holstered"
+		_weapon_display.get_node("Pulse").visible = id == "pulse"
+		_weapon_display.get_node("Arc").visible = id == "arc"
+
+func _build_weapon_display() -> void:
+	# Original compact sci-fi prop meshes, no real-world firearm blueprint.
+	_weapon_display = Node3D.new()
+	_weapon_display.name = "EquippedWeapon"
+	_arms[1].add_child(_weapon_display)
+	_weapon_display.position = Vector3(0.04, -0.73, 0.0)
+	for id in ["Pulse", "Arc"]:
+		var item := Node3D.new()
+		item.name = id
+		_weapon_display.add_child(item)
+		var tint := Color("567b83") if id == "Pulse" else Color("926f67")
+		_box(item, "Shell", Vector3(0, -0.09, 0.04), Vector3(0.105, 0.26 if id == "Pulse" else 0.39, 0.15), tint, "STEEL")
+		_box(item, "Housing", Vector3(0, 0.01, -0.045), Vector3(0.09, 0.12, 0.08), Color("26353e"), "LEATHER")
+		_box(item, "Accent", Vector3(0, -0.13, 0.12), Vector3(0.075, 0.09, 0.014), Color("81d5cd") if id == "Pulse" else Color("e3bb83"), "STEEL")
+	_weapon_display.hide()
 
 func _process(delta: float) -> void:
 	_clock = fposmod(_clock + delta, 1200.0)
@@ -54,6 +83,9 @@ func _process(delta: float) -> void:
 	for i in range(_arms.size()):
 		_arms[i].rotation.x = stride * (0.45 if i == 0 else -0.45) * walking
 		_arms[i].rotation.z = (-0.08 if i == 0 else 0.08)
+	if role == "PLAYER" and _weapon_id != "holstered" and _arms.size() > 1:
+		_arms[1].rotation.x = -PI * 0.5 if _weapon_aiming else -0.12
+		_arms[1].rotation.z = 0.0
 	for i in range(_legs.size()):
 		_legs[i].rotation.x = stride * (-0.38 if i == 0 else 0.38) * walking
 	var interval := fposmod(t, 4.25 + float(palette_index) * 0.19)

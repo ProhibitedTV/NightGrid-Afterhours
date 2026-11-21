@@ -67,6 +67,12 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/menus_gamepad_smoke.gd 2>&1 | tee /tmp/nightgrid-menu.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-menu.log; then exit 1; fi
+      - name: Validate arcade weapon inventory, aim HUD, world damage, police heat and input gates
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/combat_smoke.gd 2>&1 | tee /tmp/nightgrid-combat.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-combat.log; then exit 1; fi
       - name: Validate Southworks solid cargo and player movement orientation regressions
         run: godot --headless --path . --script res://tests/southworks_playtest_smoke.gd
       - name: Validate fixed 60Hz physics and independent rendered train cadence
