@@ -86,6 +86,8 @@ func activate(population, id: String, ground_y: float, allowed: Callable) -> boo
 		body.collision_layer = 1
 		body.collision_mask = 1
 		body.process_mode = Node.PROCESS_MODE_INHERIT
+		if _visuals[i].has_method("reset_pedestrian_visual"):
+			_visuals[i].call("reset_pedestrian_visual")
 		body.show()
 		if _visuals[i].has_method("set_pedestrian_style"):
 			_visuals[i].call("set_pedestrian_style",sample["style"])
