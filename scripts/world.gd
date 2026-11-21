@@ -13,6 +13,7 @@ const Arsenal = preload("res://scripts/arsenal.gd")
 const Wanted = preload("res://scripts/wanted_system.gd")
 const PoliceDispatch = preload("res://scripts/police_dispatch.gd")
 const AmbientCivicLedger = preload("res://scripts/ambient_civic_ledger.gd")
+const CivicPatrolService = preload("res://scripts/civic_patrol_service.gd")
 const PoliceRadio = preload("res://scripts/police_radio.gd")
 const EquipmentWheel = preload("res://scripts/equipment_wheel.gd")
 const Reticle = preload("res://scripts/weapon_reticle.gd")
@@ -66,6 +67,9 @@ var routine_patrols: Array[CharacterBody3D] = []
 var wanted = Wanted.new()
 var dispatch = PoliceDispatch.new()
 var ambient_civic = AmbientCivicLedger.new()
+var civic_patrol_service = CivicPatrolService.new()
+var _civic_patrol: CharacterBody3D
+var _civic_patrol_poll := 0.0
 var police_radio: Node
 var _radio_caption: Label
 var _radio_card: PanelContainer
@@ -282,7 +286,7 @@ func _update_police_radio(delta: float) -> void:
 	_radio_card.visible = not caption.is_empty()
 	_radio_caption.text = caption
 	if in_station:
-		interiors.call("update_dispatch_board", dispatch.status() + " / CIVIC %d" % ambient_civic.open_count(), officers.size(), returning_units.size(), caption)
+		interiors.call("update_dispatch_board", dispatch.status() + " / CIVIC %d / %s" % [ambient_civic.open_count(), str(civic_patrol_service.task.get("phase", "PATROL"))], officers.size(), returning_units.size(), caption)
 
 func _announce_civic_at_station(station: Dictionary) -> void:
 	# Administrative requests only: no invented unit arrival or resolution.
@@ -349,6 +353,7 @@ func _journal_context() -> Dictionary:
 		"weapons": weapons.inventory_text(),
 		"dispatch": dispatch.status(),
 		"ambient_civic_open": ambient_civic.open_count(),
+		"civic_patrol_phase": str(civic_patrol_service.task.get("phase", "PATROL")),
 		"stations": dispatch.stations.size(),
 		"supplies": ration_packs, "deliveries": deliveries,
 		"venue_completed": venue_job_completed.size(),
@@ -626,6 +631,7 @@ func _physics_process(delta: float) -> void:
 		_respawn()
 	_update_wanted(delta)
 	_update_ambient_civic(delta)
+	_update_civic_patrols(delta)
 	if not indoors and wanted.police_seen:
 		for officer in officers:
 			if is_instance_valid(officer) and float(officer.get("condition")) > 18.0 and officer.global_position.distance_to(actor.global_position) < 3.8:
@@ -820,6 +826,55 @@ func _update_ambient_civic(delta: float) -> void:
 	if not bool(day_night.get("paused")):
 		ambient_civic.advance(delta * 1440.0 / DayNightScript.DAY_LENGTH_SECONDS)
 
+func _update_civic_patrols(delta: float) -> void:
+	if bool(day_night.get("paused")):
+		return
+	if not civic_patrol_service.task.is_empty():
+		if not is_instance_valid(_civic_patrol) or float(_civic_patrol.get("condition")) <= 18.0:
+			civic_patrol_service.finish("INTERRUPTED")
+			_release_civic_patrol()
+			return
+		var goal: Vector3 = civic_patrol_service.task["point"]
+		var at := Vector2(_civic_patrol.global_position.x, _civic_patrol.global_position.z)
+		var target := Vector2(goal.x, goal.z)
+		var policy = _civic_patrol.get("drive_policy")
+		var arrived: bool = at.distance_to(target) <= 7.0 and absf(float(_civic_patrol.get("speed"))) <= 1.0 and (policy.arrived(at, target) or bool(_civic_patrol.get("civic_service_hold")))
+		civic_patrol_service.tick(delta, arrived)
+		if civic_patrol_service.task.is_empty():
+			_release_civic_patrol()
+		elif civic_patrol_service.task["phase"] == "SERVICING":
+			_civic_patrol.set("civic_service_hold", true)
+		return
+	_civic_patrol_poll -= delta
+	if _civic_patrol_poll > 0.0:
+		return
+	_civic_patrol_poll = 1.0
+	# Existing response fleet remains dedicated to actual witnessed player events.
+	if Wanted.stars(heat) > 0:
+		return
+	var cases: Array[Dictionary] = ambient_civic.catalog()
+	civic_patrol_service.prune(cases)
+	for incident in cases:
+		if incident["state"] != "ACTIVE":
+			continue
+		for patrol in routine_patrols:
+			if not is_instance_valid(patrol) or float(patrol.get("condition")) <= 18.0 or patrol.get_meta("station_id") != incident["station_id"]:
+				continue
+			if civic_patrol_service.claim(incident, str(patrol.get_meta("unit_id"))):
+				_civic_patrol = patrol
+				patrol.set("police_destination", incident["point"])
+				patrol.set("police_priority", false)
+				patrol.get("drive_policy").reset()
+				return
+
+func _release_civic_patrol() -> void:
+	if is_instance_valid(_civic_patrol):
+		_civic_patrol.set("civic_service_hold", false)
+		_civic_patrol.set("police_destination", Vector3.INF)
+		_civic_patrol.set("police_priority", false)
+		_civic_patrol.get("drive_policy").reset()
+	_civic_patrol = null
+
 func _build_routine_patrols() -> void:
 	# Two visible patrol cars on fixed street loops, present even at zero
 	# heat. Keep them separate from the five-unit dispatch budget.
@@ -834,6 +889,7 @@ func _build_routine_patrols() -> void:
 		var patrol := _create_car(route[start], Color("192943"), true)
 		patrol.name = "RoutinePatrol_%d" % i
 		patrol.set_meta("station_id", "central" if i == 0 else "west")
+		patrol.set_meta("unit_id", "PATROL-%02d" % (i + 1))
 		patrol.set("routine_route", route)
 		patrol.set("routine_index", (start + 1) % route.size())
 		var direction := route[(start + 1) % route.size()] - route[start]
@@ -1335,6 +1391,7 @@ func _capture_snapshot() -> Dictionary:
 		"navigation_waypoint": [] if navigation_waypoint == null else [navigation_waypoint.x, navigation_waypoint.y],
 		"weapons": weapons.snapshot(),
 		"ambient_civic": ambient_civic.snapshot(),
+		"civic_patrol_service": civic_patrol_service.snapshot(),
 		"wanted_last_known": [wanted.last_known.x, wanted.last_known.y, wanted.last_known.z] if wanted.last_known.is_finite() else []
 	}
 
@@ -1343,6 +1400,8 @@ func _apply_snapshot(data: Dictionary) -> void:
 	navigation_waypoint = Nav.decode(data.get("navigation_waypoint", []))
 	weapons.restore(data.get("weapons", {}))
 	ambient_civic.restore(data.get("ambient_civic", {}))
+	_release_civic_patrol()
+	civic_patrol_service.restore(data.get("civic_patrol_service", {}))
 	_civic_radio_announced.clear()
 	traffic.call("restore", data["traffic"])
 	rail.call("restore", data["rail"])

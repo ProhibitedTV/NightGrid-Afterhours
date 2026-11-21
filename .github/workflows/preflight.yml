@@ -114,6 +114,12 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/ambient_civic_smoke.gd 2>&1 | tee /tmp/nightgrid-ambient-civic.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-ambient-civic.log; then exit 1; fi
+      - name: Validate physical civic patrol service lifecycle
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/civic_patrol_service_smoke.gd 2>&1 | tee /tmp/nightgrid-civic-patrol.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-civic-patrol.log; then exit 1; fi
       - name: Validate voiced fictional police communications and staffed station board
         timeout-minutes: 2
         run: |

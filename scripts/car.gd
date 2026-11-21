@@ -20,6 +20,7 @@ var routine_route: Array[Vector3] = []
 var routine_index := 0
 var response_level := 1
 var police_priority := false
+var civic_service_hold := false
 var police_night := false
 var police_signals: Node
 var drive_policy = PoliceDrive.new()
@@ -45,7 +46,7 @@ func _physics_process(delta: float) -> void:
 	_impact_cooldown = maxf(0.0, _impact_cooldown - delta)
 	var visual_steer := 0.0
 	var braking := false
-	if is_police and condition <= 18.0:
+	if is_police and (condition <= 18.0 or civic_service_hold):
 		speed = move_toward(speed, 0.0, BRAKE * delta)
 		braking = true
 	elif is_police:
