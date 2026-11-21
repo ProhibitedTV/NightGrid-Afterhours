@@ -46,6 +46,14 @@ jobs:
         run: python tools/test_check_release_gallery.py
       - name: Verify committed real game screenshots
         run: python tools/check_screenshots.py
+      - name: Verify exact beta.7 capture provenance on the release candidate
+        if: github.head_ref == 'release/beta-7-gallery-milestone' || github.ref == 'refs/heads/release/beta-7-gallery-milestone'
+        run: |
+          set -euo pipefail
+          capture_sha="$(python3 -c 'import json; print(json.load(open("docs/screenshots/capture-manifest.json"))["source_revision"])')"
+          [[ "$capture_sha" =~ ^[0-9a-f]{40}$ ]]
+          git fetch --no-tags origin "$capture_sha"
+          python tools/check_release_gallery.py "$capture_sha"
 
   godot-headless:
     runs-on: ubuntu-latest
@@ -210,6 +218,12 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/sidewalk_population_smoke.gd 2>&1 | tee /tmp/nightgrid-sidewalk.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-sidewalk.log; then exit 1; fi
+      - name: Validate reusable physical pedestrian pool and phase handoff
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/pedestrian_pool_smoke.gd 2>&1 | tee /tmp/nightgrid-pedestrian-pool.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-pedestrian-pool.log; then exit 1; fi
       - name: Validate bounded sidewalk link ground and obstacle certification
         timeout-minutes: 2
         run: |

@@ -51,6 +51,28 @@ def verify(capture: str) -> None:
                 new_blob == "58e28b61583a1590a9e510e371de8ab773980bdb" and references.returncode == 1):
             paths.remove(inactive)
             print("Verified inactive additive sidewalk API (#116); no runtime references")
+    # #117 added an opt-in pool, but did not install it in the world.
+    # Permit only the exact reviewed new blob with no prior file and no
+    # caller outside the file itself. Any integration needs a fresh capture.
+    inactive_pool = "scripts/pedestrian_pool.gd"
+    if inactive_pool in paths:
+        existed = subprocess.run(
+            ["git", "cat-file", "-e", capture + ":" + inactive_pool],
+            cwd=ROOT, capture_output=True,
+        )
+        pool_blob = subprocess.check_output(
+            ["git", "rev-parse", "HEAD:" + inactive_pool], cwd=ROOT, text=True,
+        ).strip()
+        references = subprocess.run(
+            ["git", "grep", "-in", "-E", "pedestrian_pool|PedestrianPool",
+             "HEAD", "--", "project.godot", "scripts", "scenes", "assets",
+             "tools/capture_screenshots.gd", ":(exclude)" + inactive_pool],
+            cwd=ROOT, capture_output=True, text=True,
+        )
+        if (existed.returncode != 0 and
+                pool_blob == "159e360f6d4f09a18d5bd5a9a63b073932bd7133" and references.returncode == 1):
+            paths.remove(inactive_pool)
+            print("Verified standalone unreferenced pedestrian pool (#117)")
     if paths:
         raise ValueError("Gallery is stale for release runtime paths:\n" + "\n".join(paths))
     print("RELEASE_GALLERY PASS: exact nine images, unchanged runtime trees")
