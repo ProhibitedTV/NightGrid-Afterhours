@@ -258,13 +258,17 @@ func _update_police_radio(delta: float) -> void:
 		return
 	var active := Wanted.stars(heat) > 0
 	if _radio_was_wanted and not active:
-		_radio_close_tail = 5.0
+		# Drain the closing sequence, bounded even if new messages keep arriving.
+		_radio_close_tail = 20.0
 	_radio_was_wanted = active
 	_radio_close_tail = maxf(0.0, _radio_close_tail - delta)
 	var in_station := bool(interiors.call("is_inside")) and str(interiors.call("active_site_group")) == "CIVIC" and (civic_services.call("site_by_id", str(interiors.call("active_site_id"))) as Dictionary).has("station_id")
 	police_radio.call("ingest", dispatch.history)
 	police_radio.call("update_state", active, wanted.police_seen, delta)
-	police_radio.call("tick", delta, active or in_station or _radio_close_tail > 0.0)
+	var closing := _radio_close_tail > 0.0 and bool(police_radio.call("has_traffic"))
+	police_radio.call("tick", delta, active or in_station or closing)
+	if not active and not bool(police_radio.call("has_traffic")):
+		_radio_close_tail = 0.0
 	var caption: String = police_radio.get("current")
 	_radio_card.visible = not caption.is_empty()
 	_radio_caption.text = caption

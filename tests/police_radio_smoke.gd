@@ -44,6 +44,33 @@ func _verify() -> void:
 	if not str(radio.get("current")).is_empty() or not (radio.get("pending") as Array).is_empty():
 		quit(1)
 		return
+	# Burst traffic must not bury the closing announcement or replay stale calls.
+	radio.call("enqueue", "SEARCH")
+	radio.call("enqueue", "ACK", "OLD")
+	radio.call("enqueue", "CONTACT")
+	radio.call("enqueue", "CLOSED", "THEFT")
+	for j in range(12):
+		radio.call("enqueue", "RELEASED", str(j))
+	var queue: Array = radio.get("pending")
+	if queue.size() != Radio.MAX_QUEUE or queue[0]["kind"] != "CLOSED":
+		push_error("MBPD_RADIO: closing event evicted during burst")
+		quit(1)
+		return
+	for item in queue:
+		if str(item["kind"]) in ["SEARCH", "ACK", "CONTACT"]:
+			push_error("MBPD_RADIO: obsolete response chatter survives closure")
+			quit(1)
+			return
+	radio.call("tick", 0.1, true)
+	if not str(radio.get("current")).contains("Code 4") or not bool(radio.call("has_traffic")):
+		push_error("MBPD_RADIO: closure not played first")
+		quit(1)
+		return
+	radio.call("tick", 0.1, false)
+	if bool(radio.call("has_traffic")):
+		push_error("MBPD_RADIO: silent channel failed to reset")
+		quit(1)
+		return
 	# Real world release path: a disabled cruiser must never announce a return.
 	world.call("_spawn_police")
 	var units: Array = world.get("officers")
