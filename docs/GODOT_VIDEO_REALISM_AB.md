@@ -2,7 +2,7 @@
 
 **User reference:** [Why 3D Games Look Bad in Godot](https://www.youtube.com/watch?v=0792U-wuwjA) by **Coding Quests**, published October 2026; creator's exact [companion article, “How to Make Godot 3D Look Better: 12 Changes, Same Models”](https://codingquests.io/blog/how-to-make-godot-3d-look-better).
 
-**Version difference matters.** The tutorial uses **Godot 4.7** Forward+. NightGrid's shipping beta uses **Godot 4.3.0** Forward+. Godot's [4.3 Environment class](https://docs.godotengine.org/en/4.3/classes/class_environment.html) supports Filmic and ACES but **not AgX**. Do not copy `TONE_MAPPER_AGX`, 4.7-specific AgX contrast controls or upgrade engine/scripts during a minor playtest release. We use the compatible ACES mapping as a visibly labelled experiment.
+**Engine migration:** The original **tagged beta.3** is a **Godot 4.3.0** executable, using Filmic baseline and an ACES preview because [Godot 4.3 does not support AgX](https://docs.godotengine.org/en/4.3/classes/class_environment.html). The **current development source now targets Godot 4.7.2 stable**, supporting both ACES and the **actual AgX** tonemapper, with optional AgX contrast/white properties. The default remains Filmic. To avoid conflating an engine upgrade with an art upgrade, we retain all three named modes and log the mode used in every F10 capture. [Full migration and compatibility](GODOT_4_7_2_MIGRATION.md).
 
 ## Tutorial — what is actually demonstrated
 
@@ -27,7 +27,7 @@ The author retains the same village models and switches on twelve rendering chan
 
 | Area | Existing NightGrid beta | Controlled next step |
 |---|---|---|
-| Tonemap | **Filmic**, not default Linear; thus already avoids the video's most naive blowout | Compare Godot **4.3 ACES** with 1.11 exposure; it is **not AgX** |
+| Tonemap | **Filmic**, not default Linear; thus already avoids the video's most naive blowout | On Godot **4.7.2**, compare Filmic to **ACES** and real **AgX** with matched 1.11 exposure, sky ambient and fog |
 | Sky | Animated-colour `ProceduralSkyMaterial` visible in the distance, but **ambient is hardcoded COLOR**, so the sky does not actually shape diffuse shadow tint | F11 toggles **SKY ambient** at 78% contribution, retaining a portion of calibrated colour fill |
 | Sun | A single time-of-day directional shadow source, at night only ~0.13 energy | Keep clock motion and hue, test shorter shadow range **170 → 96m** and angular width 0.7°, without raising full-night sun energy |
 | Occlusion/GI | SSAO on; **SSIL and SDFGI off** | Leave the heavy techniques OFF for 3060 until isolated A/B timings |
@@ -37,14 +37,15 @@ The author retains the same village models and switches on twelve rendering chan
 
 ## Reproducible player A/B controls
 
-**F11** toggles two explicitly labelled modes **without moving the player, changing the game time, changing the save, or changing graphics setting preferences**.
+**Godot 4.7.2 F11** cycles three explicitly labelled modes **without moving the player, changing the game time, changing the save, or changing graphics setting preferences**. Tagged beta.3 has only Filmic and ACES.
 
 - `filmic_baseline`: untouched original Filmic curve, ambient COLOR, 170m shadow distance and original fog. **Default on every launch.**
 - `sky_aces_experiment`: compatible ACES tone mapping with 1.11 exposure, actual dynamic SKY ambient contributing 78%, shorter (96m) directional shadow cascade and thinner distance haze. No new GI/volumetric/SSIL effect or new scene light.
+- `sky_agx_experiment`: actual 4.7.2 **AgX** tone mapping, retaining the **identical 1.11 exposure, SKY ambient, sun shadows and fog** as the ACES preview. That isolates the tone curve. No expensive GI or global switch in default rendering.
 
-**Recommended matched capture:** Go to **West Docks, Dock Watch Desk** at the same camera position as the 22:07 screenshot. Press **Y** to pause the day/night clock, then **F10** in baseline mode, press **F11**, then **F10** again **without moving**. Press F11 again to restore original. For performance, use identical F8 CSV runs (start/stop once per preset) along the same cold and warm routes; note whether sky lighting introduces a hitch. Use F7 to mark visual or lighting anomalies.
+**Recommended matched capture:** Go to **West Docks, Dock Watch Desk** at the same camera position as the 22:07 screenshot. Press **Y** to pause the day/night clock, then **F10** in Filmic baseline mode, press **F11** and **F10** for ACES, then **F11** and **F10** for AgX **without moving**. Press F11 a third time to restore Filmic. (Tagged beta.3 toggles just Filmic and ACES.) For performance, use identical F8 CSV runs (start/stop once per preset) along the same cold and warm routes; note whether sky lighting introduces a hitch. Use F7 to mark visual or lighting anomalies.
 
-The JSON metadata of every F10 frame and each JSONL event now include `render_profile`. An F11 change also records an explicit `render_profile_switched` event. This supports correct before/after comparison instead of screenshots of different time-of-day or build. **The original beta.2 does not have the A/B experiment; it first ships in tagged beta.3.** The Filmic baseline remains the default in beta.3.
+The JSON metadata of every F10 frame and each JSONL event now include `render_profile`. An F11 change also records an explicit `render_profile_switched` event. This supports correct before/after comparison instead of screenshots of different time-of-day or build. **The original beta.2 does not have the A/B experiment; it first ships in tagged beta.3.** The Filmic baseline remains the default in all versions; the **AgX mode is available only in the 4.7.2 source and subsequent releases**.
 
 ## Promotion gate / what is not verified
 
