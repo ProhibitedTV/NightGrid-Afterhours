@@ -1,11 +1,19 @@
-# NightGrid: Afterhours — Windows beta 0.1.0-beta.1
+# NightGrid: Afterhours — Windows beta 0.1.0-beta.2
 
-**Status: early, diagnostics-focused beta (Windows x64).** This is a playable feedback build, not a completed photorealistic/AAA game. The build is based on the exact commit shown in its `BUILD-INFO.txt`, reproduced from the GitHub repository after the **full main-branch Godot 4.3 preflight** passed.
+**Status: early, diagnostics-focused beta (Windows x64).**
+
+## What changed since beta.1
+
+- **West Docks — Dock Watch Desk:** one fixed permanent civic building at parcel **(-4,-1), lot 0** now uses actual recessed-window wall geometry, transparent glass with room backing, photographed 2K CC0 steel cladding and a sealed scanned-bitumen roof instead of a flat opaque block façade.
+- Civic counter access, existing collider, deterministic city seed and saved layout remain intact. **Only one building is upgraded**; neighboring buildings, car geometry and nighttime lighting still need the full visual overhaul tracked in [West Docks realism issue #51](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/51).
+- Existing F7/F8/F10 local logging and Windows artifact provenance are unchanged; beta.2 records its own tag and exact source commit.
+- This is a new testable visual engineering pilot, **not verified as a convincing photoreal improvement** until the player provides matching Windows/Vulkan frames and 1080p driving traces.
+ This is a playable feedback build, not a completed photorealistic/AAA game. The build is based on the exact commit shown in its `BUILD-INFO.txt`, reproduced from the GitHub repository after the **full main-branch Godot 4.3 preflight** passed.
 
 ## Download and run
 
-1. Download the **NightGrid-Afterhours-v0.1.0-beta.1-windows-x64.zip** asset on the GitHub [Releases](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) page. **Do not** use the GitHub automatically generated "Source code" archive as the executable build.
-2. Optionally check the ZIP against the published `SHA256SUMS.txt` (PowerShell: `Get-FileHash -Algorithm SHA256 .\\NightGrid-Afterhours-v0.1.0-beta.1-windows-x64.zip`).
+1. Download the **NightGrid-Afterhours-v0.1.0-beta.2-windows-x64.zip** asset on the GitHub [Releases](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) page. **Do not** use the GitHub automatically generated "Source code" archive as the executable build.
+2. Optionally check the ZIP against the published `SHA256SUMS.txt` (PowerShell: `Get-FileHash -Algorithm SHA256 .\\NightGrid-Afterhours-v0.1.0-beta.2-windows-x64.zip`).
 3. Extract the **entire ZIP** to a folder. Keep the `NightGrid-Afterhours.exe` and `NightGrid-Afterhours.pck` **in the same folder**. Run the EXE.
 4. Windows SmartScreen or Chrome may flag an **unsigned, newly published executable**. Publishing on GitHub is not code-signing and does not guarantee the download will be unblocked. Confirm the URL is the real project release and inspect/scan files before making any exception. **Do not disable Chrome Safe Browsing or antivirus globally.** If an antivirus reports malware rather than an unknown publisher, do not bypass it; file an issue with the exact warning.
 
