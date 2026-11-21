@@ -72,6 +72,7 @@ func set_traffic(traffic_root: Node3D) -> void:
 func set_preferences(ambience: float, effects: float) -> void:
 	ambience_volume = clampf(ambience, 0.0, 1.0)
 	sfx_volume = clampf(effects, 0.0, 1.0)
+	AudioMix.apply_game_levels(ambience_volume, sfx_volume)
 
 func update_context(actor_position: Vector3, foot_position: Vector3,
 		on_foot: bool, on_ground: bool, indoors: bool,
@@ -118,7 +119,7 @@ func play_event(kind: String, at: Vector3) -> void:
 	voice.stop()
 	voice.stream = Foley.sound(kind)
 	voice.global_position = at
-	voice.volume_db = linear_to_db(sfx_volume) - 6.0
+	voice.volume_db = -6.0 # WorldSFX bus holds the player gain.
 	voice.pitch_scale = 1.0
 	voice.play()
 	_event_count += 1
@@ -126,7 +127,7 @@ func play_event(kind: String, at: Vector3) -> void:
 func _play_step() -> void:
 	var surface := "STEP_TILE" if _indoors else "STEP_CONCRETE"
 	_footsteps.stream = Foley.sound(surface, posmod(_step_index, 4))
-	_footsteps.volume_db = -80.0 if sfx_volume <= 0.0 else linear_to_db(sfx_volume) - 9.0
+	_footsteps.volume_db = -80.0 if sfx_volume <= 0.0 else -9.0
 	_footsteps.pitch_scale = 0.93 + float(posmod(_step_index * 7, 5)) * 0.035
 	_footsteps.play()
 	_step_index += 1
@@ -163,7 +164,7 @@ func _target_db(kind: String) -> float:
 		level -= 6.0
 	if level <= -80.0:
 		return -80.0
-	return level + linear_to_db(maxf(0.001, ambience_volume))
+	return level # CityAmbience bus holds the player gain for all sources.
 
 func _process(delta: float) -> void:
 	# World keeps positional/movement context updated during play. While the
