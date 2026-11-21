@@ -28,14 +28,40 @@ static func block_candidates(ix: int, iz: int) -> Array[Dictionary]:
 			"start":mid-across*HALF_SPAN,"end":mid+across*HALF_SPAN})
 	return result
 
+static func balanced_links(links: Array[Dictionary]) -> Array[Dictionary]:
+	# Round-robin by district prevents the global population cap
+	# from exhausting the west side of the map before reaching the east.
+	var groups := {}
+	var sorted := links.duplicate()
+	sorted.sort_custom(func(a: Dictionary,b: Dictionary) -> bool: return str(a.get("id","")) < str(b.get("id","")))
+	for link in sorted:
+		var district := str(link.get("district",""))
+		if not groups.has(district):
+			groups[district] = []
+		groups[district].append(link)
+	var districts := groups.keys()
+	districts.sort()
+	var result: Array[Dictionary] = []
+	var row := 0
+	while result.size()<links.size():
+		var added := false
+		for district in districts:
+			var group: Array = groups[district]
+			# One candidate per district on each pass.
+			if row<group.size():
+				result.append(group[row])
+				added = true
+		if not added:
+			break
+		row += 1
+	return result
+
 func configure(seed_value: int, links: Array[Dictionary]) -> void:
 	_agents.clear()
 	_routes.clear()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value ^ 615213
-	var sorted := links.duplicate()
-	sorted.sort_custom(func(a: Dictionary,b: Dictionary) -> bool: return str(a.get("id","")) < str(b.get("id","")))
-	for link in sorted:
+	for link in balanced_links(links):
 		if _agents.size() >= MAX_LOGICAL:
 			break
 		var id := str(link.get("id",""))

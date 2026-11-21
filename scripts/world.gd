@@ -9,6 +9,7 @@ const MinimapScript = preload("res://scripts/minimap.gd")
 const Ui = preload("res://scripts/ui_style.gd")
 const Nav = preload("res://scripts/navigation_waypoint.gd")
 const StreetRoute = preload("res://scripts/street_route.gd")
+const RoadRestrictions = preload("res://scripts/road_restrictions.gd")
 const Arsenal = preload("res://scripts/arsenal.gd")
 const Wanted = preload("res://scripts/wanted_system.gd")
 const PoliceDispatch = preload("res://scripts/police_dispatch.gd")
@@ -96,6 +97,8 @@ var equipment_wheel: Control
 var _weapon_label: Label
 var _reticle: Control
 var navigation_waypoint: Variant = null
+var road_restrictions = RoadRestrictions.new()
+var _route_revision := -1
 var _route_cache: Dictionary = {}
 var _route_origin := Vector2.INF
 var _route_target := Vector2.INF
@@ -824,7 +827,9 @@ func _configure_ambient_civic() -> void:
 
 func _update_ambient_civic(delta: float) -> void:
 	if not bool(day_night.get("paused")):
-		ambient_civic.advance(delta * 1440.0 / DayNightScript.DAY_LENGTH_SECONDS)
+		var minutes := delta * 1440.0 / DayNightScript.DAY_LENGTH_SECONDS
+		ambient_civic.advance(minutes)
+		road_restrictions.advance(minutes)
 
 func _update_civic_patrols(delta: float) -> void:
 	if bool(day_night.get("paused")):
@@ -1398,6 +1403,10 @@ func _capture_snapshot() -> Dictionary:
 func _apply_snapshot(data: Dictionary) -> void:
 	# Geometry is already reconstructed from the saved immutable seed.
 	navigation_waypoint = Nav.decode(data.get("navigation_waypoint", []))
+	# No live closures are saved until physical scene/traffic integration.
+	road_restrictions = RoadRestrictions.new()
+	_route_revision = -1
+	_route_cache.clear()
 	weapons.restore(data.get("weapons", {}))
 	ambient_civic.restore(data.get("ambient_civic", {}))
 	_release_civic_patrol()
@@ -2290,11 +2299,13 @@ func set_navigation_waypoint(point: Vector2) -> Vector2:
 			distance = gap
 	navigation_waypoint = selected
 	_route_cache.clear()
+	_route_revision = -1
 	return selected
 
 func clear_navigation_waypoint() -> void:
 	navigation_waypoint = null
 	_route_cache.clear()
+	_route_revision = -1
 
 func _open_equipment_wheel() -> bool:
 	if not _can_use_weapon() or not is_instance_valid(equipment_wheel) or equipment_wheel.visible:
@@ -2424,10 +2435,11 @@ func _navigation_route(origin: Vector2) -> Dictionary:
 	var target: Vector2 = navigation_waypoint
 	# At most one small graph calculation per meaningful movement; the map
 	# and HUD share it. This remains independent of render/physics cadence.
-	if _route_cache.is_empty() or _route_target != target or _route_origin.distance_to(origin) >= 1.0:
+	if _route_revision != road_restrictions.revision or _route_target != target or _route_origin.distance_to(origin) >= 1.0:
 		_route_origin = origin
 		_route_target = target
-		_route_cache = StreetRoute.plan(origin, target)
+		_route_revision = road_restrictions.revision
+		_route_cache = road_restrictions.plan(origin, target)
 	return _route_cache
 
 func navigation_text() -> String:
@@ -2449,7 +2461,7 @@ func navigation_text() -> String:
 	var route := _navigation_route(origin)
 	var line := "WAYPOINT  %s  •  %dm direct" % [label, roundi(origin.distance_to(destination))]
 	if route.is_empty():
-		return line
+		return line + "\nStreet route unavailable" if not road_restrictions.catalog().is_empty() else line
 	if interiors.call("is_inside"):
 		return line + "\nExit building to follow street route"
 	if current_transit != null:
