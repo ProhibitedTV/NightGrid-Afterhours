@@ -4,7 +4,7 @@ extends Node3D
 ## 1K photo-PBR surfaces. Four custom UV-mapped I-profile roof saddles are
 ## original geometry, not BoxMeshes or fake textured rectangles.
 const AIRCON_SCENE = preload("res://assets/models/polyhaven/exterior_aircon_unit/exterior_aircon_unit.gltf")
-const METAL_PHOTO = "res://assets/pbr/polyhaven/blue_metal_plate_"
+const PBR_ROOT = "res://assets/pbr/polyhaven/"
 const EQUIPMENT_SCALE = 2.2
 
 var building_height := 20.0
@@ -67,9 +67,9 @@ func _install_unit(x: float, weathered: bool) -> void:
 
 func _metal() -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
-	material.albedo_texture = load(METAL_PHOTO + "diffuse_2k.jpg") as Texture2D
-	material.normal_texture = load(METAL_PHOTO + "nor_gl_2k.png") as Texture2D
-	material.roughness_texture = load(METAL_PHOTO + "rough_2k.png") as Texture2D
+	material.albedo_texture = load(PBR_ROOT + "blue_metal_plate_diffuse_2k.jpg") as Texture2D
+	material.normal_texture = load(PBR_ROOT + "blue_metal_plate_nor_gl_2k.png") as Texture2D
+	material.roughness_texture = load(PBR_ROOT + "blue_metal_plate_rough_2k.png") as Texture2D
 	assert(material.albedo_texture != null and material.normal_texture != null)
 	assert(material.roughness_texture != null)
 	material.normal_enabled = true
