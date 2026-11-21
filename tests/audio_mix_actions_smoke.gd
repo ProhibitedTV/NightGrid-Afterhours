@@ -57,6 +57,14 @@ func _verify() -> void:
 		if bed == null or bed.bus != AudioMix.AMBIENCE:
 			_fail("City background is not routed independently: " + kind)
 			return
+	var venues := game.get_node_or_null("SocialVenues")
+	if venues == null:
+		_fail("Venue system missing")
+		return
+	for emitter in (venues.get("_ambience") as Dictionary).values():
+		if (emitter as AudioStreamPlayer3D).bus != AudioMix.AMBIENCE:
+			_fail("Outdoor venue ambience bypasses the ambient stem")
+			return
 	var step := director.get_node_or_null("CourierFootsteps") as AudioStreamPlayer3D
 	if step == null or step.bus != AudioMix.EFFECTS:
 		_fail("Player footsteps are not on WorldSFX")
@@ -95,6 +103,15 @@ func _verify() -> void:
 			_fail("A one-shot is missing or not cached: " + kind)
 			return
 	director.call("set_preferences", 0.65, 0.8)
+	var ambience_bus := AudioServer.get_bus_index(AudioMix.AMBIENCE)
+	var effects_bus := AudioServer.get_bus_index(AudioMix.EFFECTS)
+	if AudioServer.is_bus_mute(ambience_bus) or AudioServer.is_bus_mute(effects_bus):
+		_fail("Audible settings left gameplay stems muted")
+		return
+	if absf(AudioServer.get_bus_volume_db(ambience_bus) - linear_to_db(0.65)) > 0.02 or (
+			absf(AudioServer.get_bus_volume_db(effects_bus) - linear_to_db(0.8)) > 0.02):
+		_fail("Global audio bus gains do not match the saved sliders")
+		return
 	var origin := _count(director)
 	var next_voice := int(director.get("_event_cursor"))
 	director.call("play_event", "DOOR", Vector3(1.0, 1.0, 2.0))
@@ -135,10 +152,14 @@ func _verify() -> void:
 	if _count(director) != origin + 7:
 		_fail("Stationary audio incorrectly depends on render-frame count")
 		return
-	director.call("set_preferences", 0.65, 0.0)
+	director.call("set_preferences", 0.0, 0.0)
+	if not AudioServer.is_bus_mute(ambience_bus) or not AudioServer.is_bus_mute(effects_bus):
+		_fail("Masterless audio stems still play when ambience or effects are muted")
+		return
 	director.call("play_event", "TRANSIT", at)
 	if _count(director) != origin + 7:
 		_fail("Saved SFX mute is not respected for action sounds")
 		return
-	print("AUDIO_MIX_ACTIONS_SMOKE PASS: 4 routed stems, car/rail/traffic, 4 pooled voices, mission/car/jump/land events, mute and idempotence")
+	director.call("set_preferences", 0.65, 0.75)
+	print("AUDIO_MIX_ACTIONS_SMOKE PASS: 4 routed stems, shared bus gains/mutes, car/rail/traffic, 4 pooled voices, mission/car/jump/land events and idempotence")
 	quit(0)
