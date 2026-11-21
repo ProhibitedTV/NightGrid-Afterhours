@@ -79,7 +79,7 @@ func _check() -> void:
 			if int(finish_stats["sealed_corner_returns"]) != 4 or int(finish_stats["solid_roof_edges"]) != 4 or int(finish_stats["coping_edges"]) != 4:
 				_fail("Open corner seams or unsealed parapet: %s" % finish_stats)
 				return
-			if int(finish_stats["array_mesh_surfaces"]) != 3 or int(finish_stats["foundation_runs"]) != 2:
+			if int(finish_stats["array_mesh_surfaces"]) != 3 or int(finish_stats["foundation_runs"]) != 3:
 				_fail("Missing scanned masonry/roof/steel finish meshes: %s" % finish_stats)
 				return
 			if int(finish_stats["new_collisions"]) != 0 or int(finish_stats["new_lights"]) != 0:
@@ -121,7 +121,7 @@ func _check() -> void:
 			if int(after_stats["sealed_corner_returns"]) != 4 or int(after_stats["solid_roof_edges"]) != 4:
 				_fail("Afterhours envelope is not sealed on every elevation: %s" % after_stats)
 				return
-			if int(after_stats["coping_edges"]) != 4 or int(after_stats["foundation_runs"]) != 2:
+			if int(after_stats["coping_edges"]) != 4 or int(after_stats["foundation_runs"]) != 3:
 				_fail("Afterhours roof/foundation has exposed edges")
 				return
 			if int(after_stats["roof_service_grilles"]) != 6 or int(after_stats["canopy_edge_seals"]) != 3:
@@ -213,8 +213,8 @@ func _check() -> void:
 					observed[str(piece.name)] = piece.shape
 				if observed.size() != 4 or not observed.has("BuildingColliderVestibuleRear") or (
 					not observed.has("BuildingColliderVestibuleHeader") or
-					not observed.has("BuildingColliderFlank_-1.0") or
-					not observed.has("BuildingColliderFlank_1.0")):
+					not observed.has("BuildingColliderFlank_-1") or
+					not observed.has("BuildingColliderFlank_1")):
 					_fail("Original building envelope must retain two walls, a roof header and solid back wall around the newly open entrance")
 					return
 				var rear := observed["BuildingColliderVestibuleRear"] as BoxShape3D
@@ -263,5 +263,5 @@ func _check() -> void:
 	if signature != original_signature:
 		_fail("Art upgrade silently mutated saved buildings/locations")
 		return
-	print("CENTRAL_FRONTAGES_SMOKE PASS: two unique true-geometry facades, working shop IDs, stable collision, unchanged saves")
+	print("CENTRAL_FRONTAGES_SMOKE PASS: two modeled walk-in retail facades, safe four-wall collision, stable shop IDs and unchanged saves")
 	quit(0)
