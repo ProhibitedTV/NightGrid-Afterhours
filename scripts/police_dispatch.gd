@@ -10,6 +10,7 @@ var active: Dictionary = {}
 var history: Array[Dictionary] = []
 var serial := 0
 var sequence := 0
+var event_sequence := 0
 
 func register_station(id: String, label: String, district: String, address: Vector3, launch: Vector3, capacity: int, headquarters: bool = false) -> bool:
 	if id.is_empty() or stations.has(id) or not address.is_finite() or not launch.is_finite() or capacity < 1 or capacity > MAX_UNITS:
@@ -48,7 +49,8 @@ func update_case(point: Vector3, tier: int) -> void:
 			active["tier"] = clampi(tier, 1, MAX_UNITS)
 
 func _event(kind: String, detail: String) -> void:
-	history.append({"event":kind, "detail":detail, "incident":int(active.get("id", 0))})
+	event_sequence += 1
+	history.append({"event":kind, "detail":detail, "incident":int(active.get("id", 0)), "sequence":event_sequence})
 	if history.size() > MAX_HISTORY:
 		history.pop_front()
 
@@ -81,6 +83,9 @@ func assign(station_id: String) -> String:
 
 func released(unit_id: String) -> void:
 	_event("RELEASED", unit_id)
+
+func available(unit_id: String) -> void:
+	_event("AVAILABLE", unit_id)
 
 func status() -> String:
 	if active.is_empty():

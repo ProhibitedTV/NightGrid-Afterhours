@@ -53,6 +53,11 @@ jobs:
         with:
           version: 4.7.2
           use-dotnet: false
+      - name: Generate original offline MBPD radio speech
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq espeak-ng
+          python3 tools/generate_mbpd_radio.py
       - name: Import project and parse scripts
         run: |
           set -o pipefail
@@ -97,6 +102,12 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/dispatch_smoke.gd 2>&1 | tee /tmp/nightgrid-dispatch.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-dispatch.log; then exit 1; fi
+      - name: Validate voiced fictional police communications and staffed station board
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/police_radio_smoke.gd 2>&1 | tee /tmp/nightgrid-radio.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-radio.log; then exit 1; fi
       - name: Validate Southworks solid cargo and player movement orientation regressions
         run: godot --headless --path . --script res://tests/southworks_playtest_smoke.gd
       - name: Validate fixed 60Hz physics and independent rendered train cadence
