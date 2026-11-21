@@ -1,5 +1,5 @@
 extends SceneTree
-## Video-inspired renderer A/B control in the actual playable Godot 4.3 scene.
+## Video-inspired renderer Filmic / ACES / AgX comparison in Godot 4.7.2.
 ## Tests state, not image quality or RTX 3060 performance.
 const GameInput = preload("res://scripts/game_input.gd")
 const WorldPlan = preload("res://scripts/world_plan.gd")
@@ -13,6 +13,24 @@ func _fail(reason: String) -> void:
 
 func _check() -> void:
 	GameInput.install()
+	var engine_info: Dictionary = Engine.get_version_info()
+	if int(engine_info.get("major", 0)) != 4 or int(engine_info.get("minor", 0)) != 7 or int(engine_info.get("patch", 0)) != 2:
+		_fail("Expected matching stable Godot 4.7.2: " + str(engine_info))
+		return
+	# In Godot 4.7.2's --headless --script CI context the runtime returns
+	# DEFAULT (documented as GodotPhysics3D) even when the project file
+	# selects GodotPhysics3D explicitly. Guard both runtime equivalence
+	# *and* the source configuration required for the Windows export.
+	var runtime_physics: String = str(ProjectSettings.get_setting("physics/3d/physics_engine"))
+	if runtime_physics != "DEFAULT" and runtime_physics != "GodotPhysics3D":
+		_fail("Engine upgrade chose unsupported physical collision solver: " + runtime_physics)
+		return
+	# CI checks source pins BEFORE import. A Godot --import run may
+	# normalize equivalent defaults in its generated project config, so the
+	# runtime guard verifies actual solver equivalence instead.
+	if Engine.physics_ticks_per_second != 60:
+		_fail("Migration changed the 60 Hz physics simulation")
+		return
 	var f11 := false
 	for event in InputMap.action_get_events("compare_render_look"):
 		if event is InputEventKey and event.physical_keycode == KEY_F11:
@@ -60,7 +78,7 @@ func _check() -> void:
 		_fail("A/B experimental profile did not activate")
 		return
 	if environment.tonemap_mode != Environment.TONE_MAPPER_ACES or environment.ambient_light_source != Environment.AMBIENT_SOURCE_SKY:
-		_fail("Godot 4.3 ACES tonemapper or actual sky ambient light not applied")
+		_fail("Godot 4.7.2 ACES tonemapper or actual sky ambient light not applied")
 		return
 	if environment.ambient_light_sky_contribution < 0.75 or environment.ambient_light_sky_contribution > 0.9:
 		_fail("Experimental sky ambient contribution outside intended range")
@@ -79,6 +97,21 @@ func _check() -> void:
 		_fail("Day/night tick incorrectly reset the experimental render profile")
 		return
 	clock.call("set_hour", hour_before)
+	var agx_mode: String = str(clock.call("cycle_render_profile"))
+	if agx_mode != "sky_agx_experiment" or environment.tonemap_mode != Environment.TONE_MAPPER_AGX:
+		_fail("F11 failed to activate real Godot 4.7.2 AgX tonemapping")
+		return
+	if environment.ambient_light_source != Environment.AMBIENT_SOURCE_SKY or not bool(clock.call("is_render_comparison_enabled")):
+		_fail("AgX preview must keep the sky fill and remain an experiment")
+		return
+	clock.call("set_hour", 12.0)
+	if environment.tonemap_mode != Environment.TONE_MAPPER_AGX:
+		_fail("Day/night tick unexpectedly reset AgX")
+		return
+	clock.call("set_hour", hour_before)
+	if str(clock.call("cycle_render_profile")) != "filmic_baseline":
+		_fail("F11 cycling did not return to baseline from AgX")
+		return
 	clock.call("set_render_comparison", false)
 	if str(clock.call("get_render_profile")) != "filmic_baseline":
 		_fail("Cannot return to baseline for matched screenshot comparison")
@@ -98,5 +131,5 @@ func _check() -> void:
 	if int(session.get("world_seed")) != seed or WorldPlan.manifest_signature(session.call("get_world_manifest")) != signature:
 		_fail("Visual A/B changed saved city")
 		return
-	print("RENDER_COMPARISON_SMOKE PASS: baseline Filmic, Godot 4.3 ACES/sky preview, F11, reversible fog/shadow, untouched seed/save")
+	print("RENDER_COMPARISON_SMOKE PASS: Godot 4.7.2 Filmic > ACES > AgX > Filmic, sky ambient, reversible fog/shadow, untouched seed/save")
 	quit(0)

@@ -16,6 +16,20 @@ jobs:
           python-version: '3.12'
       - name: Check files and resource references
         run: python tools/check_project.py
+      - name: Assert Godot version and legacy physics/Vulkan pins in the clean checkout
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          config = Path("project.godot").read_text(encoding="utf-8")
+          assert 'PackedStringArray("4.7", "Forward Plus")' in config, "Wrong Godot project feature"
+          assert '3d/physics_engine="GodotPhysics3D"' in config, "Do not silently use Jolt"
+          assert 'rendering_device/driver.windows="vulkan"' in config, "Preserve Windows Vulkan baseline"
+          assert 'common/physics_ticks_per_second=60' in config, "Preserve game physics cadence"
+          for name in ("preflight.yml", "windows-build.yml", "beta-release.yml"):
+              workflow = Path(".github/workflows") / name
+              assert "version: 4.7.2" in workflow.read_text(encoding="utf-8"), "Export template/engine mismatch: " + name
+          print("ENGINE_PINS PASS: Godot 4.7.2, GodotPhysics3D, Vulkan, 60Hz")
+          PY
       - name: Verify committed real game screenshots
         run: python tools/check_screenshots.py
 
@@ -25,7 +39,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: chickensoft-games/setup-godot@v2
         with:
-          version: 4.3.0
+          version: 4.7.2
           use-dotnet: false
       - name: Import project and parse scripts
         run: godot --headless --path . --import --quit

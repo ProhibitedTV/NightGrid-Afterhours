@@ -1,7 +1,7 @@
 extends SceneTree
 ## Bounded JSONL diagnostic persistence and F7 marker contract. This does
 ## not measure Windows graphics performance or inspect actual playback audio.
-const Logger = preload("res://scripts/playtest_logger.gd")
+const PlaytestLoggerScript = preload("res://scripts/playtest_logger.gd")
 const InputSpec = preload("res://scripts/game_input.gd")
 const BuildInfo = preload("res://scripts/build_info.gd")
 const OUT = "user://tests/nightgrid-playtest-log-smoke"
@@ -28,7 +28,7 @@ func _verify() -> void:
 				_fail("F7 conflicts with " + action)
 				return
 
-	var log = Logger.new()
+	var log = PlaytestLoggerScript.new()
 	if not log.start_session(123, {}, "res:" + "//wrong-location").is_empty():
 		_fail("Playtest log allowed writes outside the user directory")
 		return
@@ -90,7 +90,7 @@ func _verify() -> void:
 		_fail("Hitch summary must count every slow frame even if log events are throttled")
 		return
 	# Fast sequential launches cannot overwrite each other's diagnostic files.
-	var another = Logger.new()
+	var another = PlaytestLoggerScript.new()
 	var next_path: String = another.start_session(123, {}, OUT)
 	if next_path.is_empty() or next_path == file_path or not FileAccess.file_exists(file_path):
 		_fail("New session overwrote the previous JSONL log")

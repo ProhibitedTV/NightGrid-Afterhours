@@ -11,7 +11,7 @@ A dedicated [NightGrid FM audio director](docs/NIGHTGRID_FM_SOUNDTRACK.md) now r
 
 ### Exact Godot visual tutorial: reversible before/after experiment
 
-The November 2026 [Coding Quests video “Why 3D Games Look Bad in Godot”](https://www.youtube.com/watch?v=0792U-wuwjA) demonstrates sky-driven shadow fill, low sun, AgX tone mapping, occlusion, atmospheric fog, foliage shader normals and practical lighting with **unchanged models**. It was made in **Godot 4.7**, but our game is **4.3** without AgX. To test the same principles honestly, **F11** toggles a **compatible ACES + SKY ambient + lower shadow range/thinner fog** comparison against our original **Filmic baseline**. Press **F10** in each mode without moving to capture version/profile-labelled PNG+JSON; run F8 traces to compare cost. This **opt-in F11 experiment ships in beta.3**, and is not yet a visually approved upgrade. Beta.2 remains available as a fixed pre-experiment reference. [Technique-by-technique compatibility and QA gates](docs/GODOT_VIDEO_REALISM_AB.md).
+The November 2026 [Coding Quests video “Why 3D Games Look Bad in Godot”](https://www.youtube.com/watch?v=0792U-wuwjA) demonstrates sky-driven shadow fill, side lighting, AgX tonemapping, occlusion, atmospheric fog, foliage shader normals and practical lighting **without changing the models**. **NightGrid's development source now targets stable Godot 4.7.2** and offers a genuine **AgX** preview. Press **F11** to cycle **Filmic baseline → ACES + SKY → AgX + SKY → baseline**, taking real **F10** screenshots from an unchanged position and separate **F8** frame-time traces. Prior tagged beta.3 remains a **Godot 4.3** build with Filmic/ACES only; the migration is being validated before a newer prerelease. AgX is an experiment, not an automatic improvement. [Technique comparison](docs/GODOT_VIDEO_REALISM_AB.md) · [4.7.2 migration details](docs/GODOT_4_7_2_MIGRATION.md).
 
 ### West Docks realism pilot from actual Windows beta feedback
 
@@ -76,7 +76,7 @@ The latest **tagged Windows x64 beta** is distributed through [GitHub Releases](
 
 ## Play the first prototype
 
-1. Download [Godot 4.3+](https://godotengine.org/download/), standard version (no .NET).
+1. Download [Godot **4.7.2 stable**](https://godotengine.org/download/), standard version (no .NET), to open the current development source. The published beta.3 executable uses Godot 4.3.0.
 2. Clone the repository, or select **Code → Download ZIP** on GitHub.
 3. Open `project.godot` in Godot.
 4. Press **F5** to play. Head for the amber pickup beacon; deliver the package to the cyan destination and earn money.
@@ -202,7 +202,7 @@ Our fourth hero-asset upgrade is a **real in-game venue**, not a showroom screen
 
 ### Known limits
 
-**Prototype, not a finished release:** this has not been manually tested in a Godot editor on a gaming PC. CI runs file checks, a Godot 4.3 import, and city composition assertions and a short headless smoke test, but gameplay feel needs hands-on review. There are now lane-following NPC traffic, a single save slot, public transit, a menu system and themed physical interior rooms, but no moving street pedestrians, complex story campaigns, uniquely bespoke floors for every site, multiplayer, or full music production yet. The social hubs have original spatial ambience. Driving uses an arcade `CharacterBody3D` instead of suspension/tire physics.
+**Prototype, not a finished release:** this has not been manually tested in a Godot editor on a gaming PC. CI runs file checks, a pinned Godot 4.7.2 import, and city composition assertions and a short headless smoke test, but gameplay feel needs hands-on review. There are now lane-following NPC traffic, a single save slot, public transit, a menu system and themed physical interior rooms, but no moving street pedestrians, complex story campaigns, uniquely bespoke floors for every site, multiplayer, or full music production yet. The social hubs have original spatial ambience. Driving uses an arcade `CharacterBody3D` instead of suspension/tire physics.
 
 Godot now uses the **Forward+ Vulkan renderer** for SSR and glow (with F4 reflection toggle), **not DirectX**. This was chosen for rapid iteration on Windows/Linux. A native DirectX engine is possible later if justified by a clear requirement.
 

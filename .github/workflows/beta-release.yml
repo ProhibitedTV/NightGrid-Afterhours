@@ -61,11 +61,11 @@ jobs:
           grep -q 'const BuildInfo' scripts/world.gd
           echo "publish=true" >> "$GITHUB_OUTPUT"
 
-      - name: Install Godot 4.3 and Windows export templates
+      - name: Install Godot 4.7.2 and Windows export templates
         if: steps.eligibility.outputs.publish == 'true'
         uses: chickensoft-games/setup-godot@v2
         with:
-          version: 4.3.0
+          version: 4.7.2
           use-dotnet: false
           include-templates: true
 
@@ -114,7 +114,7 @@ jobs:
           cp dist/NightGrid-Afterhours.exe dist/NightGrid-Afterhours.pck "stage/$package/"
           cp docs/BETA_RELEASE_NOTES.md "stage/$package/RELEASE-NOTES.md"
           cp docs/PLAYTEST_CHECKLIST.md "stage/$package/PLAYTEST-CHECKLIST.md"
-          printf 'Version: %s\nRelease commit: %s\nGodot: 4.3.0\nPlatform: Windows x64\nDiagnostic logs: automatic, local-only; press F7 for their path\n' "$RELEASE_TAG" "$SOURCE_SHA" > "stage/$package/BUILD-INFO.txt"
+          printf 'Version: %s\nRelease commit: %s\nGodot: 4.7.2\nPlatform: Windows x64\nDiagnostic logs: automatic, local-only; press F7 for their path\n' "$RELEASE_TAG" "$SOURCE_SHA" > "stage/$package/BUILD-INFO.txt"
           (cd stage && zip -q -9 -r "../dist/$package.zip" "$package")
           unzip -t "dist/$package.zip"
           unzip -Z1 "dist/$package.zip" | grep -q "/NightGrid-Afterhours.exe$"
