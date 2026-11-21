@@ -2,6 +2,7 @@ name: Capture actual Godot screenshots
 on:
   push:
     branches:
+      - art/next-street-gallery
       - art/civilian-passenger-coachwork
       - art/photographic-masonry
       - art/photographic-road-network-20261121
