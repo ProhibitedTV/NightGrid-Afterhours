@@ -6,12 +6,14 @@ on:
       - art/central-exchange-photoreal-frontages-20261120
       - feat/aaa-frame-pacing-capture-20261120
       - art/afterhours-corner-fidelity-20261120
+      - art/central-exchange-scanned-roadway-20261120
     paths:
       - tools/capture_central_frontages.gd
       - scripts/central_exchange_frontages.gd
       - scripts/brickwater_corner_finish.gd
       - scripts/afterhours_corner_finish.gd
       - scripts/central_exchange_avenue.gd
+      - scripts/central_exchange_road_surface.gd
       - scripts/city_details.gd
       - assets/pbr/polyhaven/**
       - .github/workflows/review-central-frontages.yml
@@ -54,6 +56,8 @@ jobs:
           expected = [
               'central-exchange-dusk-real-godot.png',
               'central-exchange-noon-real-godot.png',
+              'central-scanned-road-noon-real-godot.png',
+              'central-scanned-road-dusk-real-godot.png',
               'brickwater-recessed-windows-closeup-real-godot.png',
               'afterhours-blue-steel-glazing-closeup-real-godot.png',
               'brickwater-scanned-brick-daylight-real-godot.png',

@@ -46,6 +46,17 @@ func _capture() -> void:
 	await _settle()
 	if not await _save("central-exchange-noon-real-godot.png"):
 		return
+	# Exact matching camera and lens to compare the photographed material
+	# at noon and dusk, without changing roads, storefronts or crossing paint.
+	camera.global_position = Vector3(3.25, 2.10, -5.50)
+	camera.look_at(Vector3(3.25, 0.16, 34.0), Vector3.UP)
+	await _settle()
+	if not await _save("central-scanned-road-noon-real-godot.png"):
+		return
+	clock.call("set_hour", 20.18)
+	await _settle()
+	if not await _save("central-scanned-road-dusk-real-godot.png"):
+		return
 	clock.call("set_hour", 20.18)
 	# The useful view is from the roadway looking at the new X-facing
 	# shop windows, NOT into the plain back of a nearby older parcel.
