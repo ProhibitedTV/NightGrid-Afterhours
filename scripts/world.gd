@@ -25,6 +25,7 @@ const GameInput = preload("res://scripts/game_input.gd")
 const GameMenuScript = preload("res://scripts/game_menu.gd")
 const NightGridFMScript = preload("res://scripts/nightgrid_fm.gd")
 const WorldAudioScript = preload("res://scripts/world_audio.gd")
+const AudioMix = preload("res://scripts/audio_mix.gd")
 const FrameTimeRecorder = preload("res://scripts/frame_time_recorder.gd")
 const PlaytestEvidence = preload("res://scripts/playtest_evidence.gd")
 const PlaytestLogger = preload("res://scripts/playtest_logger.gd")
@@ -119,6 +120,7 @@ var police_cooldown := 4.0
 
 func _ready() -> void:
 	GameInput.install()
+	AudioMix.ensure()
 	session = get_node("/root/GameSession")
 	# Diagnostics stay local, capped and silent on headless CI. Capture startup
 	# before loading the world so real Windows sessions have a known baseline.
@@ -453,7 +455,7 @@ func _process(delta: float) -> void:
 		var foot_speed := Vector2(player.velocity.x, player.velocity.z).length()
 		world_audio.call("update_context", actor.global_position, player.global_position,
 			current_car == null and current_transit == null, player.is_on_floor(),
-			indoors, district, float(day_night.get("hour")), foot_speed)
+			indoors, district, float(day_night.get("hour")), foot_speed, player.velocity.y)
 	if indoors and str(interiors.call("active_site_id")) == "lantern_cup":
 		interiors.call("set_mara_focus", player.global_position)
 	if not venue_panel.visible:
@@ -606,6 +608,7 @@ func _toggle_car() -> void:
 		player.collision_mask = 1
 		player.visible = true
 		player.set("driving", false)
+		world_audio.call("play_event", "DOOR", current_car.global_position)
 		current_car.set("occupied", false)
 		current_car = null
 		_log_playtest("vehicle_exit", {"exit_x": exit_position.x, "exit_z": exit_position.z})
@@ -624,6 +627,7 @@ func _toggle_car() -> void:
 		_notify("No vehicle nearby. Stand beside a parked car and press E.")
 		return
 	current_car = nearest
+	world_audio.call("play_event", "DOOR", nearest.global_position)
 	_log_playtest("vehicle_enter", {"vehicle": nearest.name})
 	current_car.set("occupied", true)
 	player.set("driving", true)
@@ -640,10 +644,12 @@ func _toggle_car() -> void:
 func _advance_mission() -> void:
 	if not carrying:
 		carrying = true
+		world_audio.call("play_event", "PICKUP", _actor().global_position)
 		_set_mission_target(DROPOFFS[deliveries % DROPOFFS.size()], true)
 		_notify("Package secured! Follow the cyan beacon.")
 	else:
 		carrying = false
+		world_audio.call("play_event", "DELIVERY", _actor().global_position)
 		deliveries += 1
 		var payout := 250 + 50 * mini(deliveries - 1, 8)
 		cash += payout
@@ -946,9 +952,11 @@ func _board_transit(vehicle: Node3D, kind: String) -> void:
 	player.collision_layer = 0
 	player.collision_mask = 0
 	player.velocity = Vector3.ZERO
+	world_audio.call("play_event", "TRANSIT", vehicle.global_position)
 	_log_playtest("transit_board", {"kind": kind})
 
 func _leave_transit(at: Vector3) -> void:
+	world_audio.call("play_event", "TRANSIT", at)
 	_log_playtest("transit_exit", {"kind": transit_kind, "destination": [at.x, at.y, at.z]})
 	current_transit = null
 	transit_kind = ""
