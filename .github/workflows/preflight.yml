@@ -22,6 +22,8 @@ jobs:
         run: python tools/check_cc0_aircon.py
       - name: Audit original Crane & Gear production glTF, source hashes and photo-PBR derivatives
         run: python tools/check_crane_gear_gltf.py
+      - name: Verify original CC0 Hidden Alley source models and photo-derived road wear maps
+        run: python tools/check_exchange_photo_street_kit.py
       - name: Assert Godot version and legacy physics/Vulkan pins in the clean checkout
         run: |
           python - <<'PY'
@@ -81,6 +83,8 @@ jobs:
         run: godot --headless --path . --script res://tests/kestrel_rear_closure_smoke.gd
       - name: Validate Central Exchange junction architecture and signal-safe lighting
         run: godot --headless --path . --script res://tests/hero_intersection_smoke.gd
+      - name: Validate real-source Central Exchange CC0 street props, collision shells and photo-PBR decals
+        run: godot --headless --path . --script res://tests/central_exchange_street_kit_smoke.gd
       - name: Validate 2K photographed road surface, crossing clearance and saved world
         run: godot --headless --path . --script res://tests/central_road_surface_smoke.gd
       - name: Validate new Central Exchange true-mesh architecture, source PBR and persistence
