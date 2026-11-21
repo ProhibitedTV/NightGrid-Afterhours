@@ -227,9 +227,14 @@ func _assemble_surfaces() -> void:
 			var d: Vector3 = quad[3]
 			var face_normal := (b - a).cross(c - a).normalized()
 			for vertex in [a, b, c, a, c, d]:
-				var u := vertex.x if absf(face_normal.z) > 0.5 else vertex.z
-				var v := vertex.z if absf(face_normal.y) > 0.5 else vertex.y
-				mesh_tool.set_uv(Vector2(u, v) * 0.35)
+				# Each physical plane gets independent nondegenerate UV axes;
+				# roofs use X/Z, front/back use X/Y, sidewalls use Z/Y.
+				var projected := Vector2(vertex.x, vertex.y)
+				if absf(face_normal.y) > 0.5:
+					projected = Vector2(vertex.x, vertex.z)
+				elif absf(face_normal.x) > 0.5:
+					projected = Vector2(vertex.z, vertex.y)
+				mesh_tool.set_uv(projected * 0.35)
 				mesh_tool.add_vertex(vertex)
 		mesh_tool.generate_normals()
 		mesh_tool.generate_tangents()
