@@ -13,6 +13,11 @@ var _city: Node
 var _lights: Node
 var _hero_intersection: Node
 var _update_accumulator := 0.0
+# Temporary comparison only. The legacy Filmic renderer remains the default;
+# we will not promote a preset without Windows Forward+ and frame-time review.
+var _compare_sky_aces := false
+var _original_shadow_distance := 170.0
+var _original_sun_angle := 0.0
 
 func configure(world_environment: WorldEnvironment, sun: DirectionalLight3D, city: Node, lights: Node, hero_intersection: Node = null) -> void:
 	_environment = world_environment
@@ -20,12 +25,13 @@ func configure(world_environment: WorldEnvironment, sun: DirectionalLight3D, cit
 	_city = city
 	_lights = lights
 	_hero_intersection = hero_intersection
+	_original_shadow_distance = _sun.directional_shadow_max_distance
+	_original_sun_angle = _sun.light_angular_distance
 	_sky = ProceduralSkyMaterial.new()
 	var sky := Sky.new()
 	sky.sky_material = _sky
 	_environment.environment.sky = sky
 	_environment.environment.background_mode = Environment.BG_SKY
-	_environment.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	_apply()
 
 func _process(delta: float) -> void:
@@ -35,6 +41,16 @@ func _process(delta: float) -> void:
 	if _update_accumulator >= 0.20:
 		_update_accumulator = 0.0
 		_apply()
+
+func set_render_comparison(enabled: bool) -> void:
+	_compare_sky_aces = enabled
+	_apply()
+
+func is_render_comparison_enabled() -> bool:
+	return _compare_sky_aces
+
+func get_render_profile() -> String:
+	return "sky_aces_experiment" if _compare_sky_aces else "filmic_baseline"
 
 func set_hour(value: float) -> void:
 	hour = fposmod(value, 24.0)
@@ -69,9 +85,21 @@ func _apply() -> void:
 	_sky.ground_horizon_color = Color("433145").lerp(Color("b4a999"), light)
 	_environment.environment.ambient_light_color = Color("8291b5").lerp(Color("f3dbb5"), light)
 	_environment.environment.ambient_light_energy = lerpf(0.40, 0.78, light)
+	# Godot 4.3 does not have the video's 4.7 AgX tonemapper. ACES
+	# is the compatible highlight-rolloff comparison against our Filmic base.
+	# A sky reflection/ambient source costs GPU time; do not enable SSIL,
+	# SDFGI or volumetric fog without separate RTX 3060 measurements.
+	_environment.environment.tonemap_mode = Environment.TONE_MAPPER_ACES if _compare_sky_aces else Environment.TONE_MAPPER_FILMIC
+	_environment.environment.tonemap_exposure = 1.11 if _compare_sky_aces else 1.0
+	_environment.environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY if _compare_sky_aces else Environment.AMBIENT_SOURCE_COLOR
+	_environment.environment.ambient_light_sky_contribution = 0.78 if _compare_sky_aces else 0.0
+	_sun.directional_shadow_max_distance = 96.0 if _compare_sky_aces else _original_shadow_distance
+	_sun.light_angular_distance = 0.7 if _compare_sky_aces else _original_sun_angle
 	# Distance haze shifts from cool coastal night to warm daytime air, but does
 	# not override the player's fog toggle or allocate volumetric fog buffers.
-	_environment.environment.fog_density = lerpf(0.0085, 0.0045, light)
+	_environment.environment.fog_density = (lerpf(0.0052, 0.0036, light)
+		if _compare_sky_aces else lerpf(0.0085, 0.0045, light))
+	_environment.environment.fog_sky_affect = 0.24 if _compare_sky_aces else 0.35
 	_environment.environment.fog_light_color = Color("2b354b").lerp(Color("c4d0c7"), light).lerp(Color("b77d65"), twilight * 0.22)
 	_sun.light_color = Color("8eabda").lerp(Color("ffe6c2"), light).lerp(Color("ffad86"), twilight * 0.15)
 	_sun.light_energy = lerpf(0.13, 1.30, light)
