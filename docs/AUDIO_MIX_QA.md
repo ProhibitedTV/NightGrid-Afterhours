@@ -13,7 +13,7 @@ Four independent runtime audio buses route into **Master**:
 | `WorldSFX` | Footsteps, pooled traffic, Kestrel motors, M-Line, and action cues | SFX |
 | `NightGridUI` | Menu select tone | SFX |
 
-The existing per-source volume settings remain authoritative; stem bus levels default to 0 dB and are independent for future metering, ducking, and DSP. No new effect is allowed to boost Master or allocate a voice every frame. All bus names are initialized idempotently before the playable world creates sound sources; a saved-game scene reload does not duplicate them.
+Music and UI keep their existing source-level settings. The ambience and world-effects sliders now set the **actual shared stem gain and mute**, so venues, trains and Kestrel motors follow the same volume/mute controls as city beds, footsteps and passing cars. Internal effect sources retain authored relative levels without applying slider gain twice. Master remains the global volume. All buses are initialized idempotently before the playable world creates sound sources; a saved-game scene reload does not duplicate them.
 
 **New original procedural one-shots:** vehicle latch/close on entry and exit, boarding/alighting acknowledgement, courier pickup and completed delivery, takeoff and landing. Four reusable 3D player-action emitters are preallocated; six PCM samples are cached at world startup, so user interactions do not generate WAV data in the render/physics callback. They use SFX mute/volume. These are *prototype sound design*, not claims of AAA recorded Foley.
 
