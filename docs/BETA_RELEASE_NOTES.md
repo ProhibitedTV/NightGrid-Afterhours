@@ -1,8 +1,18 @@
-# NightGrid: Afterhours — Windows beta 0.1.0-beta.2
+# NightGrid: Afterhours — Windows beta 0.1.0-beta.3
 
 **Status: early, diagnostics-focused beta (Windows x64).**
 
-## What changed since beta.1
+## New in beta.3 — video-inspired render comparison
+
+- **F11** switches between the unchanged launch-default **Filmic** lighting and an *experimental* `sky_aces_experiment`: Godot 4.3-compatible **ACES** tone mapping, sky-sourced ambient shadow illumination, slightly thinner nighttime fog and shorter, softer sun shadows. This is a test preset, not a confirmed visual improvement.
+- Source: [Coding Quests — Why 3D Games Look Bad in Godot](https://www.youtube.com/watch?v=0792U-wuwjA) and its [creator companion article](https://codingquests.io/blog/how-to-make-godot-3d-look-better). The tutorial uses **Godot 4.7** and AgX tone mapping, which our **Godot 4.3** release does not support; ACES is the explicitly labelled comparison instead.
+- Use **Y** to freeze the game clock; take **F10** frame/metadata at Dock Watch, press **F11** without moving, then take **F10** again. Both PNG metadata and local event logs record the render profile; matched **F8** drives measure real hardware costs. F11 has no effect on saved city geometry or game state.
+- Expensive SDFGI, SSIL and volumetric fog remain **off**. The new mode is intentionally opt-in until Windows Vulkan visual review and native 1080p/60 RTX 3060 frame timing. It cannot fix the remaining placeholder vehicle models or repetitive architecture.
+- See the included `PLAYTEST-CHECKLIST.md` and [12-technique compatibility breakdown](https://github.com/ProhibitedTV/NightGrid-Afterhours/blob/main/docs/GODOT_VIDEO_REALISM_AB.md).
+
+## Earlier beta.2 improvement (also included)
+
+
 
 - **West Docks — Dock Watch Desk:** one fixed permanent civic building at parcel **(-4,-1), lot 0** now uses actual recessed-window wall geometry, transparent glass with room backing, photographed 2K CC0 steel cladding and a sealed scanned-bitumen roof instead of a flat opaque block façade.
 - Civic counter access, existing collider, deterministic city seed and saved layout remain intact. **Only one building is upgraded**; neighboring buildings, car geometry and nighttime lighting still need the full visual overhaul tracked in [West Docks realism issue #51](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/51).
@@ -12,8 +22,8 @@
 
 ## Download and run
 
-1. Download the **NightGrid-Afterhours-v0.1.0-beta.2-windows-x64.zip** asset on the GitHub [Releases](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) page. **Do not** use the GitHub automatically generated "Source code" archive as the executable build.
-2. Optionally check the ZIP against the published `SHA256SUMS.txt` (PowerShell: `Get-FileHash -Algorithm SHA256 .\\NightGrid-Afterhours-v0.1.0-beta.2-windows-x64.zip`).
+1. Download the **NightGrid-Afterhours-v0.1.0-beta.3-windows-x64.zip** asset on the GitHub [Releases](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) page. **Do not** use the GitHub automatically generated "Source code" archive as the executable build.
+2. Optionally check the ZIP against the published `SHA256SUMS.txt` (PowerShell: `Get-FileHash -Algorithm SHA256 .\\NightGrid-Afterhours-v0.1.0-beta.3-windows-x64.zip`).
 3. Extract the **entire ZIP** to a folder. Keep the `NightGrid-Afterhours.exe` and `NightGrid-Afterhours.pck` **in the same folder**. Run the EXE.
 4. Windows SmartScreen or Chrome may flag an **unsigned, newly published executable**. Publishing on GitHub is not code-signing and does not guarantee the download will be unblocked. Confirm the URL is the real project release and inspect/scan files before making any exception. **Do not disable Chrome Safe Browsing or antivirus globally.** If an antivirus reports malware rather than an unknown publisher, do not bypass it; file an issue with the exact warning.
 

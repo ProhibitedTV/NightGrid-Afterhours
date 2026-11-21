@@ -44,7 +44,7 @@ The author retains the same village models and switches on twelve rendering chan
 
 **Recommended matched capture:** Go to **West Docks, Dock Watch Desk** at the same camera position as the 22:07 screenshot. Press **Y** to pause the day/night clock, then **F10** in baseline mode, press **F11**, then **F10** again **without moving**. Press F11 again to restore original. For performance, use identical F8 CSV runs (start/stop once per preset) along the same cold and warm routes; note whether sky lighting introduces a hitch. Use F7 to mark visual or lighting anomalies.
 
-The JSON metadata of every F10 frame and each JSONL event now include `render_profile`. An F11 change also records an explicit `render_profile_switched` event. This supports correct before/after comparison instead of screenshots of different time-of-day or build. **Original beta.2 was cut before this A/B experiment; it is not in that tagged ZIP.**
+The JSON metadata of every F10 frame and each JSONL event now include `render_profile`. An F11 change also records an explicit `render_profile_switched` event. This supports correct before/after comparison instead of screenshots of different time-of-day or build. **The original beta.2 does not have the A/B experiment; it first ships in tagged beta.3.** The Filmic baseline remains the default in beta.3.
 
 ## Promotion gate / what is not verified
 
