@@ -36,6 +36,7 @@ func _capture_all() -> void:
 	(game.get("player") as CharacterBody3D).set_physics_process(false)
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(DIRECTORY))
 	var clock: Node = game.get("day_night")
+	clock.set("paused",true)
 	var city: Node3D = game.get("city_details")
 	# Allow the renderer to initialize on a real viewport before any frame is
 	# captured; the checked-in images must not be synthetic placeholders.

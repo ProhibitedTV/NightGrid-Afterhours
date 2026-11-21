@@ -6,6 +6,7 @@ const CentralFrontage = preload("res://scripts/central_exchange_frontages.gd")
 const WestDocksService = preload("res://scripts/west_docks_service_frontage.gd")
 const CraneGearWarehouse = preload("res://scripts/crane_gear_warehouse.gd")
 const RenderBatchOwner = preload("res://scripts/render_batch_owner.gd")
+const VesperWindows = preload("res://scripts/vesper_window_assembly.gd")
 ## Seeded city dressing. Static shell collisions + batched decorative geometry.
 ## The four neighborhoods deliberately share road geometry but not street character.
 
@@ -570,10 +571,10 @@ func _build_block_base(ix: int, iz: int) -> void:
 		# behavior and are not affected by this one-block pilot.
 		if not inner_x_edge:
 			_detail(center + Vector3(side * 20.8, 0.18, 0.0),
-				Vector3(0.48, 0.24, 42.0), Color("85888b"))
+				Vector3(0.48, 0.24, 42.0), Color("bfc0bd"), false, "PHOTO_CURB")
 		if not inner_z_edge:
 			_detail(center + Vector3(0.0, 0.18, side * 20.8),
-				Vector3(42.0, 0.24, 0.48), Color("85888b"))
+				Vector3(42.0, 0.24, 0.48), Color("bfc0bd"), false, "PHOTO_CURB")
 		for slab in range(-4, 5):
 			var offset := float(slab) * 4.2
 			_detail(center + Vector3(side * 19.3, 0.151, offset), Vector3(0.065, 0.018, 3.3), Color("747c81"))
@@ -890,6 +891,10 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 		for roof_tower in [-3.0, 3.0]:
 			_detail(Vector3(center.x + roof_tower, height + 3.5, center.z + 1.5),
 				Vector3(1.1, 5.8, 1.2), Color("68757e"))
+	# Replace front window stickers on the Moon Noodles parcel with an
+	# original continuous frame/reveal/glazing assembly; retain RNG draws.
+	var pilot_windows := ix == -3 and iz == -3
+	var window_specs: Array[Dictionary] = []
 	# Carefully varied windows. Lit and dark windows avoid checkerboard monotony.
 	for floor_index in range(2, int(height / 3.3)):
 		var fy := float(floor_index) * 3.3 + 0.10
@@ -897,15 +902,25 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 			var wx := center.x + (float(window_index) - 1.5) * width * 0.205
 			var lit := _rng.randf() > (0.52 if district == "BRICKWATER" else 0.30)
 			var glass := Color("b7d7cf") if lit else DARK_GLASS
-			_detail(Vector3(wx, fy, front - 0.095), Vector3(width * 0.135, 1.48, 0.09), glass, lit and _rng.randf() > 0.72, "GLASS" if not lit else "")
+			var glowing := lit and _rng.randf() > 0.72
+			if pilot_windows:
+				window_specs.append({"x":wx-center.x,"y":fy,"width":width*0.135,"lit":lit,"glowing":glowing})
+			else:
+				_detail(Vector3(wx, fy, front - 0.095), Vector3(width * 0.135, 1.48, 0.09), glass, glowing, "GLASS" if not lit else "")
+				_detail(Vector3(wx, fy - 0.81, front - 0.12), Vector3(width * 0.145, 0.12, 0.13), Color("101e2b"))
 			_detail(Vector3(wx, fy, back + 0.095), Vector3(width * 0.135, 1.48, 0.09), glass, false, "GLASS")
-			_detail(Vector3(wx, fy - 0.81, front - 0.12), Vector3(width * 0.145, 0.12, 0.13), Color("101e2b"))
 		# Floor banding gives each building a perceived internal structure.
 		_detail(Vector3(center.x, fy - 1.55, front - 0.055), Vector3(width, 0.11, 0.13), Color("252d3d"))
 		for side in [-1.0, 1.0]:
 			for side_window in range(2):
 				var wz := center.z + (float(side_window) - 0.5) * depth * 0.38
 				_detail(Vector3(center.x + side * (width / 2.0 + 0.07), fy, wz), Vector3(0.11, 1.45, 2.0), Color("426178"), false, "GLASS")
+
+	if pilot_windows and not window_specs.is_empty():
+		var windows := VesperWindows.build(window_specs)
+		windows.name = "VesperWindowAssembly_%d" % which
+		windows.position = Vector3(center.x,0.0,front)
+		_active_chunk.add_child(windows)
 
 	# Street-level retail facade. Entry is visual-only until interiors exist.
 	var sign_color: Color = ACCENT[district]
