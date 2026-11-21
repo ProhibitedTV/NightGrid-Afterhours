@@ -50,8 +50,8 @@ static func _valid_link(entry: Dictionary) -> bool:
 	if not Plan.is_valid_block(cell.x,cell.y) or Vector2i(floori(b.x/Plan.BLOCK_SIZE),floori(b.z/Plan.BLOCK_SIZE))!=cell:
 		return false
 	var center := Vector3((cell.x+0.5)*Plan.BLOCK_SIZE,a.y,(cell.y+0.5)*Plan.BLOCK_SIZE)
-	var x := a-center
-	var y := b-center
+	var x: Vector3 = a-center
+	var y: Vector3 = b-center
 	# Limit this pilot to the existing slab, away from the asphalt and
 	# intersection corners. Explicit bent/crosswalk links are future work.
 	for p in [x,y]:
