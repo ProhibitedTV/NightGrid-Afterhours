@@ -82,7 +82,7 @@ func _install_site(site: Dictionary) -> void:
 			# The official clean/rust source is two side-by-side complete
 			# preview props at +/-0.5m; keep all four components (lid, handles,
 			# barrel) for just ONE variant per real street placement.
-			var is_rusted := mesh.name.to_lower().contains("rust")
+			var is_rusted := str(mesh.name).to_lower().contains("rust")
 			mesh.visible = is_rusted == rust
 			mesh.position.x += 0.5 if rust else -0.5
 		if not mesh.visible:
