@@ -33,7 +33,7 @@ Your city layout and progress persist when you save and return.
 | **Title screen** | **City map** |
 | ![Game title menu](docs/screenshots/06-title-menu.png) | ![Morrow Bay city map](docs/screenshots/07-city-map-menu.png) |
 
-All seven images were captured from the running Godot 4.7.2 game on November 21, 2026. These development-build screenshots may be newer than the downloadable tagged beta. [Capture date/source, renderer and checksums](docs/screenshots/capture-manifest.json) · [Capture method](docs/screenshots/README.md). The gallery uses Linux software-rendered OpenGL; the Windows Forward+/Vulkan build may look different.
+All seven images were captured from the running Godot 4.7.2 game on November 21, 2026. These development-build screenshots may be newer than the downloadable tagged beta and predate the latest city-bus redesign. [Capture date/source, renderer and checksums](docs/screenshots/capture-manifest.json) · [Capture method](docs/screenshots/README.md). The gallery uses Linux software-rendered OpenGL; the Windows Forward+/Vulkan build may look different.
 
 ## Play the beta
 
