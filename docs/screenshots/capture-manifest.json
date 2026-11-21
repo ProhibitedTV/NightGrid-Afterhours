@@ -5,30 +5,38 @@
       "sha256": "bc89f9e230145746f3ab3544ef833bdd4e6d94b16cb2bb13b02cf84824d9542c"
     },
     "02-vesper-market-nightlife.png": {
-      "bytes": 801049,
-      "sha256": "fac74a892690f54cfaa05aaa2cdef6a7a87597fcf0b5e2503b8c7bc501215ef2"
+      "bytes": 800066,
+      "sha256": "e96b7dcb583a67f6397888ce320ea95d98b044bb15e8bba326e83cc6719a29bb"
     },
     "03-m-line-helix-terminal.png": {
       "bytes": 399848,
       "sha256": "0fcee73e2e64467c6a567e94e14ff1e7572e2e54b888698bdd140cea04b76884"
     },
     "04-horizon-commons-daylight.png": {
-      "bytes": 680146,
-      "sha256": "b308d9df0eccb1bbb2ed67ab0967d9647a7d94970c8c23ed1bd018e78083afc4"
+      "bytes": 680099,
+      "sha256": "124c20e0c120bcca094706ac095a71020523697c08c4b990f2b8ba918134b606"
     },
     "05-quay-fresh-interior.png": {
-      "bytes": 228073,
-      "sha256": "fd6774c29c8b75551dcd1e4d692e490e424ab5cc3db8ae7b84ffa59e4a800097"
+      "bytes": 228067,
+      "sha256": "8dbb8f342fe2ed517aef7e90efbb6a786a5e09c848fb8f7f662c64a997f18ea7"
     },
     "06-title-menu.png": {
       "bytes": 143744,
       "sha256": "81fbe6ab87093830ff340bb5ec15bd659204254457a9eeb01c90f25cfec21217"
     },
     "07-city-map-menu.png": {
-      "bytes": 150564,
-      "sha256": "6e91d422032fbb2e6c0fc573faf746a12f8e109006d8141956c983f3ae5df0d0"
+      "bytes": 150808,
+      "sha256": "048311e2f3a8b38c8d3a90a656aaca5c8e35faa43eb7720818ac4842a065df87"
+    },
+    "08-city-bus-coachwork.png": {
+      "bytes": 822677,
+      "sha256": "5c99c680a0c189bc4871515981181224abd26c2b5fdb634597cb8cd5e04bd149"
+    },
+    "09-civilian-sedan-coachwork.png": {
+      "bytes": 595358,
+      "sha256": "4eefbabbb4619d539632f78a20d7e6b49a55367c23d7d05abc710f84728b8c32"
     }
   },
   "renderer": "Godot 4.7.2 Mesa software OpenGL Compatibility 1280x720 (NOT Vulkan/RTX)",
-  "source_revision": "40487cc185609ddcfef59b59a1b120397cc87d4e"
+  "source_revision": "1caa6bc3635538c4f101033724217c975aef892a"
 }

@@ -262,6 +262,12 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/finite_vehicle_detour_smoke.gd 2>&1 | tee /tmp/nightgrid-finite-detour.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-finite-detour.log; then exit 1; fi
+      - name: Validate original civilian car bodywork, wheel arches and fleet compatibility
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/civilian_car_coachwork_smoke.gd 2>&1 | tee /tmp/nightgrid-car-coachwork.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-car-coachwork.log; then exit 1; fi
       - name: Validate original city bus coachwork and preserved fleet collision
         timeout-minutes: 2
         run: |

@@ -25,3 +25,12 @@ laterally it stops horizontal motion and stays leased. This is conservative
 obstacle handling, not a freeform pathfinder; actors do not sidestep into
 traffic or teleport. The physical pool smoke adds a real static obstruction
 and checks yield/reversal. Native crowded-street validation remains required.
+
+## Daily activity integration (#121)
+The optional final tick argument is the actual game hour (pass DayNight.hour
+when wiring World). It filters both candidate certification and activation,
+using stable seeded civilian roles. Negative/default preserves prior behavior.
+A schedule change never forces active actors to vanish. active_routines()
+returns only the currently leased identities' role/threshold data for future
+visual selection and dialogue. It is not a witness API. Combined CI includes
+the approved main-branch civilian car coachwork checks and all earlier tests.

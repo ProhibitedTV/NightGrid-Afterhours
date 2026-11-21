@@ -56,10 +56,21 @@ func _verify() -> void:
 		return
 	for i in range(150):
 		await physics_frame
-		director.tick(1.0/60.0,focus,camera,false,occupied)
+		director.tick(1.0/60.0,focus,camera,false,occupied,0.0)
 		if director.stats()["active"]==1:
 			break
 	if not _check(director.stats()["active"]==1 and city.leases.size()==1,"certified hidden actor and parcel lease"):
+		return
+	var expected := Pop.new()
+	expected.configure(123,Pop.block_candidates(0,0))
+	for id in director.active_routines():
+		if not _check(expected.available_at(id,0.0) and director.active_routines()[id]==expected.routine_for(id),"hourly gate and stable live routine"):
+			return
+	# Changing the hour is not permission to erase a visible actor.
+	for i in range(30):
+		await physics_frame
+		director.tick(1.0/60.0,focus,camera,false,occupied,8.0)
+	if not _check(director.stats()["active"]==1 and city.leases.size()==1,"schedule change does not unload nearby actor"):
 		return
 	if not _check(not director.snapshot().is_empty() and not director.restore({}),"active save and restore guard"):
 		return
