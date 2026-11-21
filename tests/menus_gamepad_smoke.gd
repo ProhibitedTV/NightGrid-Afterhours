@@ -189,6 +189,22 @@ func _verify() -> void:
 	if not bool(selected["waypoint_active"]) or selected["waypoint"] != Vector2(8, 0):
 		_fail("A did not set a real world-space map destination")
 		return
+	var first_route: Dictionary = selected["street_route"]
+	if first_route.is_empty() or (first_route["points"] as Array).is_empty():
+		_fail("The live atlas must receive actual road centreline points")
+		return
+	var old_pos := player.global_position
+	player.global_position = Vector3(-116, old_pos.y, 0)
+	var moved: Dictionary = world.call("get_map_state")
+	var moved_route: Dictionary = moved["street_route"]
+	if moved_route["entry"] != Vector2(-116, 0) or not is_equal_approx(float(moved_route["road_m"]), 124.0):
+		_fail("Live route did not recalculate after player movement")
+		return
+	var route_again: Dictionary = world.call("get_map_state")
+	if route_again["street_route"] != moved_route:
+		_fail("Stationary player should receive the same navigation route")
+		return
+	player.global_position = old_pos
 	if world.get("mission_position") != old_mission:
 		_fail("Personal waypoint must never change courier objective")
 		return
@@ -213,7 +229,7 @@ func _verify() -> void:
 		return
 	print("MENU_GAMEPAD_SMOKE: testing HUD")
 	world.call("_update_hud")
-	if not (world.get("hud_navigation") as Label).visible:
+	if not (world.get("hud_navigation") as Label).visible or not (world.get("hud_navigation") as Label).text.contains("m by street"):
 		_fail("Active waypoint did not appear in the live HUD")
 		return
 	var cancel_pin := InputEventJoypadButton.new()
