@@ -9,7 +9,7 @@ const ACTIONS = [
 	"use_supply", "service_one", "service_two", "service_three", "radio_toggle", "radio_next",
 	"game_pause", "game_back", "map_open", "journal_open", "game_save", "game_load", "game_new",
 	"advance_clock", "pause_clock", "toggle_fps", "toggle_ssr", "record_frame_trace",
-	"capture_playtest_frame", "playtest_mark"
+	"capture_playtest_frame", "playtest_mark", "compare_render_look"
 ]
 
 static func install() -> void:
@@ -79,6 +79,7 @@ static func install() -> void:
 	_key("record_frame_trace", KEY_F8)
 	_key("playtest_mark", KEY_F7)
 	_key("capture_playtest_frame", KEY_F10)
+	_key("compare_render_look", KEY_F11)
 	# Explicit UI navigation on typical controllers; native focusable buttons,
 	# sliders and checkboxes then support the same D-pad and accept controls.
 	_ensure_ui_key("ui_accept", KEY_ENTER)
