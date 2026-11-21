@@ -1,4 +1,5 @@
 extends Node
+const AudioMix = preload("res://scripts/audio_mix.gd")
 const VenueCatalog = preload("res://scripts/venue_system.gd")
 ## NightGrid FM: authored, creator-owned chipwave music for Morrow Bay.
 ## Streams are loaded only when needed. Missing optional .ogg assets never
@@ -75,6 +76,8 @@ func _ready() -> void:
 	for index in range(2):
 		var deck := AudioStreamPlayer.new()
 		deck.name = "NightGridStereo_%d" % index
+		AudioMix.ensure()
+		deck.bus = AudioMix.MUSIC
 		deck.volume_db = -80.0
 		deck.process_mode = Node.PROCESS_MODE_ALWAYS
 		add_child(deck)
@@ -82,6 +85,7 @@ func _ready() -> void:
 		_decks.append(deck)
 	_venue = AudioStreamPlayer3D.new()
 	_venue.name = "NightGridStreetVenue"
+	_venue.bus = AudioMix.MUSIC
 	_venue.max_distance = 48.0
 	_venue.unit_size = 7.0
 	_venue.volume_db = -80.0
