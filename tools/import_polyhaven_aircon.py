@@ -6,6 +6,7 @@ party paid "CC0 pack" with a different redistribution contract. All assets
 originate from Poly Haven's public API with MD5 metadata and archived hashes.
 
 Source: https://polyhaven.com/a/exterior_aircon_unit
+Creator: Monsta3D (official Poly Haven CC0 source, not a third-party reupload).
 License: https://polyhaven.com/license (CC0, redistribution permitted).
 First production placement: West Docks -4,-1 service building rooftop.
 """
