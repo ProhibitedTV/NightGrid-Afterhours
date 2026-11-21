@@ -30,3 +30,7 @@ The two new close views use the actual four-bus/25-car fleet rather than a separ
 
 ## Verified nine-image capture
 [Capture run 44956626055](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/runs/44956626055) succeeded, rendering `1caa6bc3635538c4f101033724217c975aef892a`. All nine committed PNG byte lengths match the manifest. Visual inspection confirms the new bus and sedan bodies in the real Vesper streetscape. Remaining art limitations include angular silhouettes, simplified wheel faces, opaque windows, repeating street/facade detail, and daylight haze. This is a prototype art improvement, not photorealistic or native Windows performance acceptance. Final preflight rechecks every image hash before merging.
+
+## Visual acceptance before publication
+
+After the fresh capture commit, run `python3 tools/check_screenshots.py`, then install Pillow in a local virtual environment and run `python3 tools/review_screenshot_gallery.py`. It validates every source image against the manifest and produces review-only contact sheets with a per-frame checklist in `exports/gallery-review/`. The sheets are not player gallery images and must not replace the original viewport PNGs. Open the full-size originals before approving each frame; check that the named place is visible, camera is not inside geometry, HUD is readable where promised, and each shot offers a useful distinct view. Flag any weak composition for recapture. Never publish this checklist as if all frames have already passed visual inspection.

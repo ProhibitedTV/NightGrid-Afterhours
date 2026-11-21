@@ -8,6 +8,10 @@ Walk the streets after dark, see the city in daylight, explore local businesses 
 
 All frames are intended to be unedited Godot viewport captures of the development build; the capture manifest and preflight must verify the complete set before publication. Some shots use staged camera positions, time of day and vehicles for composition; the gameplay-camera shots show the regular HUD. Linux Mesa OpenGL Compatibility at 1280×720 is not the native Windows Vulkan renderer or a performance benchmark. Development screenshots can be newer than the released beta.
 
+**Explore the gallery:** [City streets](#city-streets-and-neighborhoods) · [Nightlife and businesses](#after-dark-and-neighborhood-businesses) · [Interiors](#inside-morrow-bay) · [Transit and vehicles](#public-transit-and-vehicles) · [Gameplay](#playing-afterhours)
+
+Select any screenshot to inspect it at full resolution.
+
 ## City streets and neighborhoods
 
 | **Central Exchange at night** | **Central Exchange in daylight** |
