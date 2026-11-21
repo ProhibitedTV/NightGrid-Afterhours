@@ -265,7 +265,13 @@ func _generate_facade() -> void:
 	var bay := content_width / float(bay_count)
 	# Ground-floor retail is one coherent storefront with full-height glazed
 	# bays and thick piers. Its canopy follows the same structural module.
-	_wall_segment(-half, half, 0.15, 0.52)
+	# Cut the OLD opaque base course out of the actually open 2.84m door:
+	# leaving it across the new entrance would visually wall off the room.
+	if walk_in_enabled:
+		_wall_segment(-half, -1.56, 0.15, 0.52)
+		_wall_segment(1.56, half, 0.15, 0.52)
+	else:
+		_wall_segment(-half, half, 0.15, 0.52)
 	_wall_segment(-half, half, GROUND - 0.44, GROUND)
 	_wall_segment(-half, x_start, 0.52, GROUND - 0.44)
 	_wall_segment(half - 0.42, half, 0.52, GROUND - 0.44)
@@ -313,7 +319,11 @@ func _generate_facade() -> void:
 	# Frame cap and natural stone watertable, all strips share real depth.
 	_rect("PARAPET", -half, half, building_height - 0.22,
 		building_height + 0.30, FRONT - 0.10)
-	_rect("REVEALS", -half, half, 0.10, 0.38, FRONT - 0.058)
+	if walk_in_enabled:
+		_rect("REVEALS", -half, -1.56, 0.10, 0.38, FRONT - 0.058)
+		_rect("REVEALS", 1.56, half, 0.10, 0.38, FRONT - 0.058)
+	else:
+		_rect("REVEALS", -half, half, 0.10, 0.38, FRONT - 0.058)
 	_build_swept_canopy(-half + 0.28, half - 0.28)
 	# Finish the *actual* structure instead of keeping an underlying solid
 	# visual cube that filled the physically recessed window openings.
@@ -344,12 +354,12 @@ func _generate_facade() -> void:
 	if district == "BRICKWATER":
 		var finish := BrickwaterFinish.new()
 		finish.name = "BrickwaterSealedCornerAndRoof"
-		finish.configure(building_width, building_height, building_depth)
+		finish.configure(building_width, building_height, building_depth, walk_in_enabled)
 		add_child(finish)
 	elif district == "AFTERHOURS" or district == "WEST DOCKS":
 		var finish := AfterhoursFinish.new()
 		finish.name = "DockWatchSealedCornerAndRoof" if district == "WEST DOCKS" else "AfterhoursSealedCornerAndRoof"
-		finish.configure(building_width, building_height, building_depth)
+		finish.configure(building_width, building_height, building_depth, walk_in_enabled)
 		add_child(finish)
 
 func _build_swept_canopy(x0: float, x1: float) -> void:
