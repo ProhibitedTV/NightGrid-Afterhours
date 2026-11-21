@@ -18,7 +18,7 @@ func _check() -> void:
 		_fail("Expected matching stable Godot 4.7.2: " + str(engine_info))
 		return
 	if str(ProjectSettings.get_setting("physics/3d/physics_engine")) != "GodotPhysics3D":
-		_fail("Engine upgrade switched legacy physical collision solver")
+		_fail("Engine upgrade switched legacy physical collision solver: " + str(ProjectSettings.get_setting("physics/3d/physics_engine")))
 		return
 	if str(ProjectSettings.get_setting("rendering/rendering_device/driver.windows")) != "vulkan":
 		_fail("Windows renderer changed from Forward+/Vulkan baseline")
