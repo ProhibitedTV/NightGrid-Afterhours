@@ -55,6 +55,10 @@ const UNLOAD_RADIUS = 3
 const PREFETCH_SECONDS = 1.25
 const STREAM_STAGES_PER_FRAME = 1
 const STREAM_BATCHES_PER_STAGE = 6
+## Optional live sidewalk agents can hold at most twelve fully loaded parcels.
+const MAX_PEDESTRIAN_RESERVATIONS = 12
+var _pedestrian_reservations: Dictionary = {}
+var _reservation_prune_due := false
 var _loaded: Dictionary = {}
 var _staging: Dictionary = {}
 var _active_chunk: Node3D
@@ -119,6 +123,7 @@ func get_streaming_stats() -> Dictionary:
 		"loads": _loads, "unloads": _unloads,
 		"radius": STREAM_RADIUS, "unload_radius": UNLOAD_RADIUS,
 		"pending_blocks": _pending.size(), "staging_blocks": _staging.size(),
+		"pedestrian_reservations": _pedestrian_reservations.size(),
 		"stage_steps": _stream_steps, "total_build_usec": _total_build_usec,
 		"queue_replans": _queue_replans,
 		"last_build_usec": _last_stream_build_usec,
@@ -190,6 +195,38 @@ func is_spawn_area_ready(at: Vector3, radius: float) -> bool:
 			var node: Variant = _loaded.get(Vector2i(ix,iz))
 			if not is_instance_valid(node) or node.is_queued_for_deletion():
 				return false
+	return true
+
+## Reserve the whole straight, single-parcel sidewalk link BEFORE making its
+## actor live. No preloading or synchronous construction on this path.
+func reserve_pedestrian_parcel(id: String, start: Vector3, end: Vector3) -> bool:
+	if id.is_empty() or id.length()>64 or not start.is_finite() or not end.is_finite():
+		return false
+	if start.distance_to(end)<1.0 or start.distance_to(end)>30.0:
+		return false
+	var cell := Vector2i(floori(start.x/CELL),floori(start.z/CELL))
+	if cell!=Vector2i(floori(end.x/CELL),floori(end.z/CELL)):
+		return false
+	if not is_spawn_area_ready(start,0.65) or not is_spawn_area_ready(end,0.65):
+		return false
+	# Both endpoints and their expanded bounds must lie inside this parcel.
+	var minimum := Vector2(cell)*CELL+Vector2.ONE*0.65
+	var maximum := Vector2(cell+Vector2i.ONE)*CELL-Vector2.ONE*0.65
+	for p in [start,end]:
+		if p.x<minimum.x or p.x>maximum.x or p.z<minimum.y or p.z>maximum.y:
+			return false
+	if _pedestrian_reservations.has(id):
+		return _pedestrian_reservations[id]==cell
+	if _pedestrian_reservations.size()>=MAX_PEDESTRIAN_RESERVATIONS:
+		return false
+	_pedestrian_reservations[id] = cell
+	return true
+
+## Only release after the physical actor has been disabled or safely recycled.
+func release_pedestrian_parcel(id: String) -> bool:
+	if not _pedestrian_reservations.erase(id):
+		return false
+	_reservation_prune_due = true
 	return true
 
 func _count_loaded_buildings() -> int:
@@ -267,7 +304,11 @@ func request_focus(at: Vector3, velocity: Vector3 = Vector3.ZERO) -> void:
 		_prune_distant(current, forecast)
 
 func _process(_delta: float) -> void:
-	if not _initialized or _stream_locked or _pending.is_empty():
+	if not _initialized or _stream_locked:
+		return
+	if _pending.is_empty():
+		if _reservation_prune_due:
+			_prune_distant(_requested_cell,_prefetch_cell)
 		return
 	# One bounded build stage per rendered frame. A parcel collider is
 	# present before either high-detail building frontage is authored.
@@ -278,12 +319,16 @@ func _process(_delta: float) -> void:
 		_prune_distant(_requested_cell, _prefetch_cell)
 
 func _prune_distant(focus: Vector2i, forecast: Vector2i) -> void:
+	_reservation_prune_due = false
+	var pinned := {}
+	for cell in _pedestrian_reservations.values():
+		pinned[cell] = true
 	var obsolete: Array[Vector2i] = []
 	for key in _loaded:
 		var block: Vector2i = key
 		var focus_distance := maxi(absi(block.x - focus.x), absi(block.y - focus.y))
 		var forecast_distance := maxi(absi(block.x - forecast.x), absi(block.y - forecast.y))
-		if focus_distance > UNLOAD_RADIUS and forecast_distance > UNLOAD_RADIUS:
+		if focus_distance > UNLOAD_RADIUS and forecast_distance > UNLOAD_RADIUS and not pinned.has(block):
 			obsolete.append(block)
 	for block in obsolete:
 		var node: Node3D = _loaded[block]
