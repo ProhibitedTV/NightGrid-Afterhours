@@ -16,6 +16,7 @@ var _update_accumulator := 0.0
 # Temporary comparison only. The legacy Filmic renderer remains the default;
 # we will not promote a preset without Windows Forward+ and frame-time review.
 var _compare_sky_aces := false
+var _compare_sky_agx := false
 var _original_shadow_distance := 170.0
 var _original_sun_angle := 0.0
 
@@ -43,13 +44,29 @@ func _process(delta: float) -> void:
 		_apply()
 
 func set_render_comparison(enabled: bool) -> void:
+	# Preserve the beta.3 scripting contract. Engine-upgrade A/B uses the
+	# explicit cycle below so older test automation still behaves identically.
 	_compare_sky_aces = enabled
+	_compare_sky_agx = false
 	_apply()
 
+func cycle_render_profile() -> String:
+	if _compare_sky_aces:
+		_compare_sky_aces = false
+		_compare_sky_agx = true
+	elif _compare_sky_agx:
+		_compare_sky_agx = false
+	else:
+		_compare_sky_aces = true
+	_apply()
+	return get_render_profile()
+
 func is_render_comparison_enabled() -> bool:
-	return _compare_sky_aces
+	return _compare_sky_aces or _compare_sky_agx
 
 func get_render_profile() -> String:
+	if _compare_sky_agx:
+		return "sky_agx_experiment"
 	return "sky_aces_experiment" if _compare_sky_aces else "filmic_baseline"
 
 func set_hour(value: float) -> void:
@@ -85,21 +102,24 @@ func _apply() -> void:
 	_sky.ground_horizon_color = Color("433145").lerp(Color("b4a999"), light)
 	_environment.environment.ambient_light_color = Color("8291b5").lerp(Color("f3dbb5"), light)
 	_environment.environment.ambient_light_energy = lerpf(0.40, 0.78, light)
-	# Godot 4.3 does not have the video's 4.7 AgX tonemapper. ACES
-	# is the compatible highlight-rolloff comparison against our Filmic base.
-	# A sky reflection/ambient source costs GPU time; do not enable SSIL,
-	# SDFGI or volumetric fog without separate RTX 3060 measurements.
-	_environment.environment.tonemap_mode = Environment.TONE_MAPPER_ACES if _compare_sky_aces else Environment.TONE_MAPPER_FILMIC
-	_environment.environment.tonemap_exposure = 1.11 if _compare_sky_aces else 1.0
-	_environment.environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY if _compare_sky_aces else Environment.AMBIENT_SOURCE_COLOR
-	_environment.environment.ambient_light_sky_contribution = 0.78 if _compare_sky_aces else 0.0
-	_sun.directional_shadow_max_distance = 96.0 if _compare_sky_aces else _original_shadow_distance
-	_sun.light_angular_distance = 0.7 if _compare_sky_aces else _original_sun_angle
+	# Godot 4.7.2 supports the video creator's AgX highlight rolloff.
+	# F11 cycles old Filmic (default), beta.3's ACES, then new AgX.
+	# Sky lighting, fog and shadows are identical for the two experimental
+	# modes: the ACES/AgX comparison isolates tonemapping differences.
+	# Do not enable heavy GI/volumetrics without RTX 3060 measurements.
+	var experiment := _compare_sky_aces or _compare_sky_agx
+	_environment.environment.tonemap_mode = (Environment.TONE_MAPPER_AGX if _compare_sky_agx
+		else Environment.TONE_MAPPER_ACES if _compare_sky_aces else Environment.TONE_MAPPER_FILMIC)
+	_environment.environment.tonemap_exposure = 1.11 if experiment else 1.0
+	_environment.environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY if experiment else Environment.AMBIENT_SOURCE_COLOR
+	_environment.environment.ambient_light_sky_contribution = 0.78 if experiment else 0.0
+	_sun.directional_shadow_max_distance = 96.0 if experiment else _original_shadow_distance
+	_sun.light_angular_distance = 0.7 if experiment else _original_sun_angle
 	# Distance haze shifts from cool coastal night to warm daytime air, but does
 	# not override the player's fog toggle or allocate volumetric fog buffers.
 	_environment.environment.fog_density = (lerpf(0.0052, 0.0036, light)
-		if _compare_sky_aces else lerpf(0.0085, 0.0045, light))
-	_environment.environment.fog_sky_affect = 0.24 if _compare_sky_aces else 0.35
+		if _compare_sky_aces or _compare_sky_agx else lerpf(0.0085, 0.0045, light))
+	_environment.environment.fog_sky_affect = 0.24 if _compare_sky_aces or _compare_sky_agx else 0.35
 	_environment.environment.fog_light_color = Color("2b354b").lerp(Color("c4d0c7"), light).lerp(Color("b77d65"), twilight * 0.22)
 	_sun.light_color = Color("8eabda").lerp(Color("ffe6c2"), light).lerp(Color("ffad86"), twilight * 0.15)
 	_sun.light_energy = lerpf(0.13, 1.30, light)
