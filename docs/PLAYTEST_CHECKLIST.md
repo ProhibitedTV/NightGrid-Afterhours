@@ -35,7 +35,7 @@ This is an alpha-quality playable prototype, not a commercial AAA release. The o
 
 ### Automatic diagnostics for the next Windows playtest
 
-**No setup needed:** a new local `.jsonl` diagnostic file starts automatically whenever the Windows game world launches. The console prints its full path as `NIGHTGRID_PLAYTEST_LOG:`. Logs are kept in Godot's `user://playtest-logs` folder (for typical Windows installs, under `%APPDATA%\\Godot\\app_userdata\\NIGHTGRID_ AFTERHOURS` or the corresponding Godot application user-data directory; use the **printed/F7 path** as authoritative).
+**No setup needed:** a new local `.jsonl` diagnostic file starts automatically whenever the Windows game world launches. The console prints its full path as `NIGHTGRID_PLAYTEST_LOG:`. Logs are kept in Godot's `user://playtest-logs` folder (use the **exact path printed on startup or shown after F7**, since the Windows folder name is chosen by Godot).
 
 - **F7** immediately adds a `manual_marker` and displays the full local log path. Press it when a car clips into a crate, the camera jumps, a building pops, a venue exit glitches, or audio unexpectedly changes. Repeat if necessary.
 - The log automatically records **frame intervals above 50 ms** (rate-limited to one detailed event every 1.5 seconds; all slow frames are counted), chunk-collision fallback events, 15-second health/streaming summaries, camera jumps, vehicle/transit and door transitions, respawns, save/load events, and F8/F10 capture actions.
