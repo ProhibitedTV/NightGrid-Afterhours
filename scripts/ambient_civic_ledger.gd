@@ -1,13 +1,13 @@
 extends RefCounted
 ## Independent, deterministic simulated civic calls. No scene nodes, player
 ## incidents, heat, dispatch history, or response-fleet mutation.
-const INTERVAL_MINUTES := 20
-const QUEUED_MINUTES := 5
-const ACTIVE_END_MINUTES := 18
-const RETAIN_MINUTES := 40
-const MAX_CASES := 2
-const MAX_MINUTE := 100000000
-const KINDS := ["MOTORIST ASSISTANCE", "TRAFFIC SERVICE", "PUBLIC SERVICE REQUEST"]
+const INTERVAL_MINUTES = 20
+const QUEUED_MINUTES = 5
+const ACTIVE_END_MINUTES = 18
+const RETAIN_MINUTES = 40
+const MAX_CASES = 2
+const MAX_MINUTE = 100000000
+const KINDS = ["MOTORIST ASSISTANCE", "TRAFFIC SERVICE", "PUBLIC SERVICE REQUEST"]
 var _seed := 1
 var _minute := 0
 var _fraction := 0.0
