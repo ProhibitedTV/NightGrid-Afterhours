@@ -1,0 +1,747 @@
+{
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 288,
+      "max": [
+        3.28,
+        4.05,
+        3.35
+      ],
+      "min": [
+        -3.28,
+        -0.12,
+        -0.52
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 288,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 288,
+      "type": "VEC4"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5126,
+      "count": 288,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 4,
+      "componentType": 5125,
+      "count": 432,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 5,
+      "componentType": 5126,
+      "count": 2600,
+      "max": [
+        3.12,
+        3.5,
+        3.21
+      ],
+      "min": [
+        -3.12,
+        -0.12,
+        -0.64
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 6,
+      "componentType": 5126,
+      "count": 2600,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 7,
+      "componentType": 5126,
+      "count": 2600,
+      "type": "VEC4"
+    },
+    {
+      "bufferView": 8,
+      "componentType": 5126,
+      "count": 2600,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 9,
+      "componentType": 5125,
+      "count": 3900,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 10,
+      "componentType": 5126,
+      "count": 624,
+      "max": [
+        3.1599999999999997,
+        3.28,
+        3.35
+      ],
+      "min": [
+        -3.1599999999999997,
+        -0.145,
+        -0.73
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 11,
+      "componentType": 5126,
+      "count": 624,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 12,
+      "componentType": 5126,
+      "count": 624,
+      "type": "VEC4"
+    },
+    {
+      "bufferView": 13,
+      "componentType": 5126,
+      "count": 624,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 14,
+      "componentType": 5125,
+      "count": 936,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 15,
+      "componentType": 5126,
+      "count": 48,
+      "max": [
+        3.0,
+        3.2,
+        1.19
+      ],
+      "min": [
+        -3.0,
+        0.42,
+        1.16
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 16,
+      "componentType": 5126,
+      "count": 48,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 17,
+      "componentType": 5126,
+      "count": 48,
+      "type": "VEC4"
+    },
+    {
+      "bufferView": 18,
+      "componentType": 5126,
+      "count": 48,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 19,
+      "componentType": 5125,
+      "count": 72,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 20,
+      "componentType": 5126,
+      "count": 12,
+      "max": [
+        3.0,
+        3.35,
+        0.12
+      ],
+      "min": [
+        -3.0,
+        0.67,
+        -0.18
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 21,
+      "componentType": 5126,
+      "count": 12,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 22,
+      "componentType": 5126,
+      "count": 12,
+      "type": "VEC4"
+    },
+    {
+      "bufferView": 23,
+      "componentType": 5126,
+      "count": 12,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 24,
+      "componentType": 5125,
+      "count": 18,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 25,
+      "componentType": 5126,
+      "count": 96,
+      "max": [
+        2.96,
+        3.17,
+        2.7350000000000003
+      ],
+      "min": [
+        -2.96,
+        3.07,
+        0.53
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 26,
+      "componentType": 5126,
+      "count": 96,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 27,
+      "componentType": 5126,
+      "count": 96,
+      "type": "VEC4"
+    },
+    {
+      "bufferView": 28,
+      "componentType": 5126,
+      "count": 96,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 29,
+      "componentType": 5125,
+      "count": 144,
+      "type": "SCALAR"
+    }
+  ],
+  "asset": {
+    "generator": "NightGrid original street-level walk-in store photomesh 1.0",
+    "version": "2.0"
+  },
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 3456,
+      "byteOffset": 0,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 3456,
+      "byteOffset": 3456,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 4608,
+      "byteOffset": 6912,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 2304,
+      "byteOffset": 11520,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 1728,
+      "byteOffset": 13824,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteLength": 31200,
+      "byteOffset": 15552,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 31200,
+      "byteOffset": 46752,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 41600,
+      "byteOffset": 77952,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 20800,
+      "byteOffset": 119552,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 15600,
+      "byteOffset": 140352,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteLength": 7488,
+      "byteOffset": 155952,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 7488,
+      "byteOffset": 163440,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 9984,
+      "byteOffset": 170928,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 4992,
+      "byteOffset": 180912,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 3744,
+      "byteOffset": 185904,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteLength": 576,
+      "byteOffset": 189648,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 576,
+      "byteOffset": 190224,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 768,
+      "byteOffset": 190800,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 384,
+      "byteOffset": 191568,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 288,
+      "byteOffset": 191952,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteLength": 144,
+      "byteOffset": 192240,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 144,
+      "byteOffset": 192384,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 192,
+      "byteOffset": 192528,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 96,
+      "byteOffset": 192720,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 72,
+      "byteOffset": 192816,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteLength": 1152,
+      "byteOffset": 192888,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 1152,
+      "byteOffset": 194040,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 1536,
+      "byteOffset": 195192,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 768,
+      "byteOffset": 196728,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 576,
+      "byteOffset": 197496,
+      "target": 34963
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 198072,
+      "uri": "brickwater_retail.bin"
+    }
+  ],
+  "images": [
+    {
+      "uri": "textures/masonry_base_1k.jpg"
+    },
+    {
+      "uri": "textures/masonry_normal_1k.jpg"
+    },
+    {
+      "uri": "textures/masonry_arm_1k.png"
+    },
+    {
+      "uri": "textures/steel_base_1k.jpg"
+    },
+    {
+      "uri": "textures/steel_normal_1k.jpg"
+    },
+    {
+      "uri": "textures/steel_arm_1k.png"
+    },
+    {
+      "uri": "textures/concrete_base_1k.jpg"
+    },
+    {
+      "uri": "textures/concrete_normal_1k.jpg"
+    },
+    {
+      "uri": "textures/concrete_arm_1k.png"
+    },
+    {
+      "uri": "textures/bitumen_base_1k.jpg"
+    },
+    {
+      "uri": "textures/bitumen_normal_1k.jpg"
+    },
+    {
+      "uri": "textures/bitumen_arm_1k.png"
+    }
+  ],
+  "materials": [
+    {
+      "name": "SOURCE_PHOTO_PBR_MASONRY",
+      "normalTexture": {
+        "index": 1,
+        "scale": 0.63
+      },
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.93,
+          0.87,
+          0.83,
+          1
+        ],
+        "baseColorTexture": {
+          "index": 0
+        },
+        "metallicFactor": 1.0,
+        "metallicRoughnessTexture": {
+          "index": 2
+        },
+        "roughnessFactor": 1.0
+      }
+    },
+    {
+      "name": "SOURCE_PHOTO_PBR_STEEL",
+      "normalTexture": {
+        "index": 4,
+        "scale": 0.63
+      },
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.82,
+          0.86,
+          0.9,
+          1
+        ],
+        "baseColorTexture": {
+          "index": 3
+        },
+        "metallicFactor": 1.0,
+        "metallicRoughnessTexture": {
+          "index": 5
+        },
+        "roughnessFactor": 1.0
+      }
+    },
+    {
+      "name": "SOURCE_PHOTO_PBR_CONCRETE",
+      "normalTexture": {
+        "index": 7,
+        "scale": 0.63
+      },
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.82,
+          0.86,
+          0.9,
+          1
+        ],
+        "baseColorTexture": {
+          "index": 6
+        },
+        "metallicFactor": 1.0,
+        "metallicRoughnessTexture": {
+          "index": 8
+        },
+        "roughnessFactor": 1.0
+      }
+    },
+    {
+      "name": "SOURCE_PHOTO_PBR_BITUMEN",
+      "normalTexture": {
+        "index": 10,
+        "scale": 0.63
+      },
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.82,
+          0.86,
+          0.9,
+          1
+        ],
+        "baseColorTexture": {
+          "index": 9
+        },
+        "metallicFactor": 1.0,
+        "metallicRoughnessTexture": {
+          "index": 11
+        },
+        "roughnessFactor": 1.0
+      }
+    },
+    {
+      "alphaMode": "BLEND",
+      "doubleSided": true,
+      "name": "CLEAR_RECESSED_GLASS",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.34,
+          0.53,
+          0.58,
+          0.24
+        ],
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.17
+      }
+    },
+    {
+      "emissiveFactor": [
+        0.8,
+        0.44,
+        0.23
+      ],
+      "name": "WARM_PRACTICAL_CEILING_LENS",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.48,
+          0.37,
+          0.28,
+          1.0
+        ],
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.65
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "name": "LIVE_ENTRY_ARCHITECTURE_brickwater_retail",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TANGENT": 2,
+            "TEXCOORD_0": 3
+          },
+          "indices": 4,
+          "material": 0,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "NORMAL": 6,
+            "POSITION": 5,
+            "TANGENT": 7,
+            "TEXCOORD_0": 8
+          },
+          "indices": 9,
+          "material": 1,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "NORMAL": 11,
+            "POSITION": 10,
+            "TANGENT": 12,
+            "TEXCOORD_0": 13
+          },
+          "indices": 14,
+          "material": 2,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "NORMAL": 16,
+            "POSITION": 15,
+            "TANGENT": 17,
+            "TEXCOORD_0": 18
+          },
+          "indices": 19,
+          "material": 3,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "NORMAL": 21,
+            "POSITION": 20,
+            "TANGENT": 22,
+            "TEXCOORD_0": 23
+          },
+          "indices": 24,
+          "material": 4,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "NORMAL": 26,
+            "POSITION": 25,
+            "TANGENT": 27,
+            "TEXCOORD_0": 28
+          },
+          "indices": 29,
+          "material": 5,
+          "mode": 4
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "mesh": 0,
+      "name": "STORE_brickwater_retail"
+    }
+  ],
+  "samplers": [
+    {
+      "magFilter": 9729,
+      "minFilter": 9987,
+      "wrapS": 10497,
+      "wrapT": 10497
+    }
+  ],
+  "scene": 0,
+  "scenes": [
+    {
+      "name": "Central Exchange connected storefront source",
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "sampler": 0,
+      "source": 0
+    },
+    {
+      "sampler": 0,
+      "source": 1
+    },
+    {
+      "sampler": 0,
+      "source": 2
+    },
+    {
+      "sampler": 0,
+      "source": 3
+    },
+    {
+      "sampler": 0,
+      "source": 4
+    },
+    {
+      "sampler": 0,
+      "source": 5
+    },
+    {
+      "sampler": 0,
+      "source": 6
+    },
+    {
+      "sampler": 0,
+      "source": 7
+    },
+    {
+      "sampler": 0,
+      "source": 8
+    },
+    {
+      "sampler": 0,
+      "source": 9
+    },
+    {
+      "sampler": 0,
+      "source": 10
+    },
+    {
+      "sampler": 0,
+      "source": 11
+    }
+  ]
+}

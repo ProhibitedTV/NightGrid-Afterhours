@@ -30,13 +30,23 @@ func _build() -> void:
 
     # Opaque water-table/plinth covers the old 15cm start below windows,
     # then continues down the avenue so no light leaks under the walls.
-    _closed_box("CLADDING",
-        Vector3(-half - 0.34, -0.14, FRONT - 0.08),
-        Vector3(half + 0.07, 0.23, FRONT - 0.03), 0.25)
+    if walk_in_enabled:
+        # Remove physically misleading 37cm base cladding from the walk-in
+        # opening. The original facade now holds a real 3.35m-deep lobby.
+        _closed_box("CLADDING",
+            Vector3(-half - 0.34, -0.14, FRONT - 0.08),
+            Vector3(-1.56, 0.23, FRONT - 0.03), 0.25)
+        _closed_box("CLADDING",
+            Vector3(1.56, -0.14, FRONT - 0.08),
+            Vector3(half + 0.07, 0.23, FRONT - 0.03), 0.25)
+    else:
+        _closed_box("CLADDING",
+            Vector3(-half - 0.34, -0.14, FRONT - 0.08),
+            Vector3(half + 0.07, 0.23, FRONT - 0.03), 0.25)
     _closed_box("CLADDING",
         Vector3(-half - 0.365, -0.14, AVENUE_START),
         Vector3(-half - 0.31, 0.23, building_depth - 0.205), 0.25)
-    _stats["foundation_runs"] = 2
+    _stats["foundation_runs"] = 3 if walk_in_enabled else 2
 
     # Continuous scanned-bitumen flat roofing membrane and real solid
     # parapet walls. Four metal caps have separate UV/normal response.

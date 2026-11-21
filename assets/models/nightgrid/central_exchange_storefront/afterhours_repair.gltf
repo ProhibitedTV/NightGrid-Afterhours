@@ -1,0 +1,747 @@
+{
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 24,
+      "max": [
+        1.37,
+        3.02,
+        3.21
+      ],
+      "min": [
+        -1.37,
+        1.0,
+        3.17
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 24,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 24,
+      "type": "VEC4"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5126,
+      "count": 24,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 4,
+      "componentType": 5125,
+      "count": 36,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 5,
+      "componentType": 5126,
+      "count": 2696,
+      "max": [
+        3.28,
+        4.05,
+        3.35
+      ],
+      "min": [
+        -3.28,
+        -0.12,
+        -0.64
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 6,
+      "componentType": 5126,
+      "count": 2696,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 7,
+      "componentType": 5126,
+      "count": 2696,
+      "type": "VEC4"
+    },
+    {
+      "bufferView": 8,
+      "componentType": 5126,
+      "count": 2696,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 9,
+      "componentType": 5125,
+      "count": 4044,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 10,
+      "componentType": 5126,
+      "count": 816,
+      "max": [
+        3.1599999999999997,
+        3.32,
+        3.35
+      ],
+      "min": [
+        -3.1599999999999997,
+        -0.145,
+        -0.73
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 11,
+      "componentType": 5126,
+      "count": 816,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 12,
+      "componentType": 5126,
+      "count": 816,
+      "type": "VEC4"
+    },
+    {
+      "bufferView": 13,
+      "componentType": 5126,
+      "count": 816,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 14,
+      "componentType": 5125,
+      "count": 1224,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 15,
+      "componentType": 5126,
+      "count": 48,
+      "max": [
+        3.0,
+        3.2,
+        1.19
+      ],
+      "min": [
+        -3.0,
+        0.42,
+        1.16
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 16,
+      "componentType": 5126,
+      "count": 48,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 17,
+      "componentType": 5126,
+      "count": 48,
+      "type": "VEC4"
+    },
+    {
+      "bufferView": 18,
+      "componentType": 5126,
+      "count": 48,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 19,
+      "componentType": 5125,
+      "count": 72,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 20,
+      "componentType": 5126,
+      "count": 12,
+      "max": [
+        3.0,
+        3.35,
+        0.12
+      ],
+      "min": [
+        -3.0,
+        0.67,
+        -0.18
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 21,
+      "componentType": 5126,
+      "count": 12,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 22,
+      "componentType": 5126,
+      "count": 12,
+      "type": "VEC4"
+    },
+    {
+      "bufferView": 23,
+      "componentType": 5126,
+      "count": 12,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 24,
+      "componentType": 5125,
+      "count": 18,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 25,
+      "componentType": 5126,
+      "count": 96,
+      "max": [
+        2.96,
+        3.17,
+        2.7350000000000003
+      ],
+      "min": [
+        -2.96,
+        3.07,
+        0.53
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 26,
+      "componentType": 5126,
+      "count": 96,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 27,
+      "componentType": 5126,
+      "count": 96,
+      "type": "VEC4"
+    },
+    {
+      "bufferView": 28,
+      "componentType": 5126,
+      "count": 96,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 29,
+      "componentType": 5125,
+      "count": 144,
+      "type": "SCALAR"
+    }
+  ],
+  "asset": {
+    "generator": "NightGrid original street-level walk-in store photomesh 1.0",
+    "version": "2.0"
+  },
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 288,
+      "byteOffset": 0,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 288,
+      "byteOffset": 288,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 384,
+      "byteOffset": 576,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 192,
+      "byteOffset": 960,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 144,
+      "byteOffset": 1152,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteLength": 32352,
+      "byteOffset": 1296,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 32352,
+      "byteOffset": 33648,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 43136,
+      "byteOffset": 66000,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 21568,
+      "byteOffset": 109136,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 16176,
+      "byteOffset": 130704,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteLength": 9792,
+      "byteOffset": 146880,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 9792,
+      "byteOffset": 156672,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 13056,
+      "byteOffset": 166464,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 6528,
+      "byteOffset": 179520,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 4896,
+      "byteOffset": 186048,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteLength": 576,
+      "byteOffset": 190944,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 576,
+      "byteOffset": 191520,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 768,
+      "byteOffset": 192096,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 384,
+      "byteOffset": 192864,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 288,
+      "byteOffset": 193248,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteLength": 144,
+      "byteOffset": 193536,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 144,
+      "byteOffset": 193680,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 192,
+      "byteOffset": 193824,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 96,
+      "byteOffset": 194016,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 72,
+      "byteOffset": 194112,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteLength": 1152,
+      "byteOffset": 194184,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 1152,
+      "byteOffset": 195336,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 1536,
+      "byteOffset": 196488,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 768,
+      "byteOffset": 198024,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 576,
+      "byteOffset": 198792,
+      "target": 34963
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 199368,
+      "uri": "afterhours_repair.bin"
+    }
+  ],
+  "images": [
+    {
+      "uri": "textures/masonry_base_1k.jpg"
+    },
+    {
+      "uri": "textures/masonry_normal_1k.jpg"
+    },
+    {
+      "uri": "textures/masonry_arm_1k.png"
+    },
+    {
+      "uri": "textures/steel_base_1k.jpg"
+    },
+    {
+      "uri": "textures/steel_normal_1k.jpg"
+    },
+    {
+      "uri": "textures/steel_arm_1k.png"
+    },
+    {
+      "uri": "textures/concrete_base_1k.jpg"
+    },
+    {
+      "uri": "textures/concrete_normal_1k.jpg"
+    },
+    {
+      "uri": "textures/concrete_arm_1k.png"
+    },
+    {
+      "uri": "textures/bitumen_base_1k.jpg"
+    },
+    {
+      "uri": "textures/bitumen_normal_1k.jpg"
+    },
+    {
+      "uri": "textures/bitumen_arm_1k.png"
+    }
+  ],
+  "materials": [
+    {
+      "name": "SOURCE_PHOTO_PBR_MASONRY",
+      "normalTexture": {
+        "index": 1,
+        "scale": 0.63
+      },
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.93,
+          0.87,
+          0.83,
+          1
+        ],
+        "baseColorTexture": {
+          "index": 0
+        },
+        "metallicFactor": 1.0,
+        "metallicRoughnessTexture": {
+          "index": 2
+        },
+        "roughnessFactor": 1.0
+      }
+    },
+    {
+      "name": "SOURCE_PHOTO_PBR_STEEL",
+      "normalTexture": {
+        "index": 4,
+        "scale": 0.63
+      },
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.82,
+          0.86,
+          0.9,
+          1
+        ],
+        "baseColorTexture": {
+          "index": 3
+        },
+        "metallicFactor": 1.0,
+        "metallicRoughnessTexture": {
+          "index": 5
+        },
+        "roughnessFactor": 1.0
+      }
+    },
+    {
+      "name": "SOURCE_PHOTO_PBR_CONCRETE",
+      "normalTexture": {
+        "index": 7,
+        "scale": 0.63
+      },
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.82,
+          0.86,
+          0.9,
+          1
+        ],
+        "baseColorTexture": {
+          "index": 6
+        },
+        "metallicFactor": 1.0,
+        "metallicRoughnessTexture": {
+          "index": 8
+        },
+        "roughnessFactor": 1.0
+      }
+    },
+    {
+      "name": "SOURCE_PHOTO_PBR_BITUMEN",
+      "normalTexture": {
+        "index": 10,
+        "scale": 0.63
+      },
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.82,
+          0.86,
+          0.9,
+          1
+        ],
+        "baseColorTexture": {
+          "index": 9
+        },
+        "metallicFactor": 1.0,
+        "metallicRoughnessTexture": {
+          "index": 11
+        },
+        "roughnessFactor": 1.0
+      }
+    },
+    {
+      "alphaMode": "BLEND",
+      "doubleSided": true,
+      "name": "CLEAR_RECESSED_GLASS",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.34,
+          0.53,
+          0.58,
+          0.24
+        ],
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.17
+      }
+    },
+    {
+      "emissiveFactor": [
+        0.8,
+        0.44,
+        0.23
+      ],
+      "name": "WARM_PRACTICAL_CEILING_LENS",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.48,
+          0.37,
+          0.28,
+          1.0
+        ],
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.65
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "name": "LIVE_ENTRY_ARCHITECTURE_afterhours_repair",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TANGENT": 2,
+            "TEXCOORD_0": 3
+          },
+          "indices": 4,
+          "material": 0,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "NORMAL": 6,
+            "POSITION": 5,
+            "TANGENT": 7,
+            "TEXCOORD_0": 8
+          },
+          "indices": 9,
+          "material": 1,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "NORMAL": 11,
+            "POSITION": 10,
+            "TANGENT": 12,
+            "TEXCOORD_0": 13
+          },
+          "indices": 14,
+          "material": 2,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "NORMAL": 16,
+            "POSITION": 15,
+            "TANGENT": 17,
+            "TEXCOORD_0": 18
+          },
+          "indices": 19,
+          "material": 3,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "NORMAL": 21,
+            "POSITION": 20,
+            "TANGENT": 22,
+            "TEXCOORD_0": 23
+          },
+          "indices": 24,
+          "material": 4,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "NORMAL": 26,
+            "POSITION": 25,
+            "TANGENT": 27,
+            "TEXCOORD_0": 28
+          },
+          "indices": 29,
+          "material": 5,
+          "mode": 4
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "mesh": 0,
+      "name": "STORE_afterhours_repair"
+    }
+  ],
+  "samplers": [
+    {
+      "magFilter": 9729,
+      "minFilter": 9987,
+      "wrapS": 10497,
+      "wrapT": 10497
+    }
+  ],
+  "scene": 0,
+  "scenes": [
+    {
+      "name": "Central Exchange connected storefront source",
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "sampler": 0,
+      "source": 0
+    },
+    {
+      "sampler": 0,
+      "source": 1
+    },
+    {
+      "sampler": 0,
+      "source": 2
+    },
+    {
+      "sampler": 0,
+      "source": 3
+    },
+    {
+      "sampler": 0,
+      "source": 4
+    },
+    {
+      "sampler": 0,
+      "source": 5
+    },
+    {
+      "sampler": 0,
+      "source": 6
+    },
+    {
+      "sampler": 0,
+      "source": 7
+    },
+    {
+      "sampler": 0,
+      "source": 8
+    },
+    {
+      "sampler": 0,
+      "source": 9
+    },
+    {
+      "sampler": 0,
+      "source": 10
+    },
+    {
+      "sampler": 0,
+      "source": 11
+    }
+  ]
+}

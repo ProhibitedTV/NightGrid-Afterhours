@@ -9,6 +9,7 @@ extends Node3D
 ## photoreal benchmark, not a claim of final AAA-quality world artwork.
 const Materials = preload("res://scripts/material_library.gd")
 const AvenueFrontage = preload("res://scripts/central_exchange_avenue.gd")
+const WalkInShop = preload("res://scripts/central_exchange_shopfront.gd")
 const BrickwaterFinish = preload("res://scripts/brickwater_corner_finish.gd")
 const AfterhoursFinish = preload("res://scripts/afterhours_corner_finish.gd")
 const PBR_ROOT = "res:" + "//assets/pbr/polyhaven/brick_wall_001_"
@@ -24,22 +25,26 @@ var building_height := 20.0
 var building_depth := 23.0
 var district := "BRICKWATER"
 var storefront_name := ""
+var walk_in_enabled := false
 var _style := "MASONRY"
 var _buffers: Dictionary = {}
 var _statistics := {
 	"architecture_surfaces": 0, "window_openings": 0,
 	"shopfront_openings": 0, "avenue_windows": 0, "reveal_faces": 0,
 	"canopy_segments": 0, "real_pbr_maps": 0,
-	"collision_bodies": 0, "local_lights": 0
+	"collision_bodies": 0, "local_lights": 0,
+	"walk_in_portals": 0, "original_3d_shopfronts": 0,
+	"photographic_retail_surfaces": 0, "measured_interior_depth_m": 0.0
 }
 var _mats: Dictionary = {}
 
-func configure(width: float, height: float, depth: float, area: String, shop_name: String) -> void:
+func configure(width: float, height: float, depth: float, area: String, shop_name: String, walk_in: bool = false) -> void:
 	building_width = width
 	building_height = height
 	building_depth = depth
 	district = area
 	storefront_name = shop_name
+	walk_in_enabled = walk_in
 	_style = "MASONRY" if district == "BRICKWATER" else "GLAZED"
 
 func _ready() -> void:
@@ -260,7 +265,13 @@ func _generate_facade() -> void:
 	var bay := content_width / float(bay_count)
 	# Ground-floor retail is one coherent storefront with full-height glazed
 	# bays and thick piers. Its canopy follows the same structural module.
-	_wall_segment(-half, half, 0.15, 0.52)
+	# Cut the OLD opaque base course out of the actually open 2.84m door:
+	# leaving it across the new entrance would visually wall off the room.
+	if walk_in_enabled:
+		_wall_segment(-half, -1.56, 0.15, 0.52)
+		_wall_segment(1.56, half, 0.15, 0.52)
+	else:
+		_wall_segment(-half, half, 0.15, 0.52)
 	_wall_segment(-half, half, GROUND - 0.44, GROUND)
 	_wall_segment(-half, x_start, 0.52, GROUND - 0.44)
 	_wall_segment(half - 0.42, half, 0.52, GROUND - 0.44)
@@ -271,10 +282,13 @@ func _generate_facade() -> void:
 		var y1 := GROUND - 0.63
 		# Real perimeter grid, lintels and recessed panes, not a large opaque
 		# fake window pasted on a whole box.
-		_rect("STEEL", x0 - 0.075, x1 + 0.075, y0 - 0.09, y0, FRONT - 0.06)
-		_rect("STEEL", x0 - 0.075, x1 + 0.075, y1, y1 + 0.09, FRONT - 0.06)
-		_window(x0, x1, y0, y1, i == 1 or i == 2)
-		if i < bay_count - 1:
+		if not (walk_in_enabled and (i == 1 or i == 2)):
+			_rect("STEEL", x0 - 0.075, x1 + 0.075, y0 - 0.09, y0, FRONT - 0.06)
+			_rect("STEEL", x0 - 0.075, x1 + 0.075, y1, y1 + 0.09, FRONT - 0.06)
+			_window(x0, x1, y0, y1, i == 1 or i == 2)
+		# Keep genuine masonry piers beside the retail module, but remove
+		# the middle pier that previously spanned the NEW open walk-in door.
+		if i < bay_count - 1 and not (walk_in_enabled and i == 1):
 			_wall_segment(x1, x_start + float(i + 1) * bay + 0.09, 0.52, GROUND - 0.44)
 		_statistics["shopfront_openings"] += 1
 	# Real elevated window sills and intermediate floor piers. Floors are
@@ -305,12 +319,29 @@ func _generate_facade() -> void:
 	# Frame cap and natural stone watertable, all strips share real depth.
 	_rect("PARAPET", -half, half, building_height - 0.22,
 		building_height + 0.30, FRONT - 0.10)
-	_rect("REVEALS", -half, half, 0.10, 0.38, FRONT - 0.058)
+	if walk_in_enabled:
+		_rect("REVEALS", -half, -1.56, 0.10, 0.38, FRONT - 0.058)
+		_rect("REVEALS", 1.56, half, 0.10, 0.38, FRONT - 0.058)
+	else:
+		_rect("REVEALS", -half, half, 0.10, 0.38, FRONT - 0.058)
 	_build_swept_canopy(-half + 0.28, half - 0.28)
 	# Finish the *actual* structure instead of keeping an underlying solid
 	# visual cube that filled the physically recessed window openings.
 	_build_enclosing_shell()
 	_flush_meshes()
+	if walk_in_enabled:
+		# Central Exchange's two ONLY cut-through ground-floor retail pilot
+		# parcels receive actual source-owned 3D shop models. The two former
+		# center sticker glass bays are not rendered behind this open door.
+		var retail := WalkInShop.new()
+		retail.name = "Original3DWalkInRetailVestibule"
+		retail.configure(district)
+		add_child(retail)
+		var retail_stats: Dictionary = retail.get_retail_stats()
+		_statistics["walk_in_portals"] = 1
+		_statistics["original_3d_shopfronts"] = retail_stats["source_models"]
+		_statistics["photographic_retail_surfaces"] = retail_stats["original_photo_material_groups"]
+		_statistics["measured_interior_depth_m"] = retail_stats["visible_room_depth_m"]
 	_build_storefront_identification()
 	# The side-facing façades, not just the wall to the south, dominate
 	# visibility for players actually walking up Central Exchange.
@@ -323,12 +354,12 @@ func _generate_facade() -> void:
 	if district == "BRICKWATER":
 		var finish := BrickwaterFinish.new()
 		finish.name = "BrickwaterSealedCornerAndRoof"
-		finish.configure(building_width, building_height, building_depth)
+		finish.configure(building_width, building_height, building_depth, walk_in_enabled)
 		add_child(finish)
 	elif district == "AFTERHOURS" or district == "WEST DOCKS":
 		var finish := AfterhoursFinish.new()
 		finish.name = "DockWatchSealedCornerAndRoof" if district == "WEST DOCKS" else "AfterhoursSealedCornerAndRoof"
-		finish.configure(building_width, building_height, building_depth)
+		finish.configure(building_width, building_height, building_depth, walk_in_enabled)
 		add_child(finish)
 
 func _build_swept_canopy(x0: float, x1: float) -> void:

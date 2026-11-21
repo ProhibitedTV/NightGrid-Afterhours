@@ -726,7 +726,8 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 	var dock_watch_exposure := ix == -4 and iz == -1 and which == 0
 	var dock_service_exposure := ix == -4 and iz == -1 and which == 1
 	var crane_gear_exposure := ix == -4 and iz == -2 and which == 1
-	var authored_exposure: bool = dock_watch_exposure or dock_service_exposure or crane_gear_exposure or (ix == -1 and iz == 0 and which == 1) or (ix == 0 and iz == 0 and which == 0)
+	var exchange_walk_in: bool = (ix == -1 and iz == 0 and which == 1) or (ix == 0 and iz == 0 and which == 0)
+	var authored_exposure: bool = dock_watch_exposure or dock_service_exposure or crane_gear_exposure or exchange_walk_in
 	var shell_at := Vector3(center.x, height / 2.0 + 0.15, center.z)
 	var shell_size := Vector3(width, height, depth)
 	if not shell_prebuilt:
@@ -734,12 +735,48 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 			var volume := StaticBody3D.new()
 			volume.name = "PreservedBuildingCollision"
 			volume.position = shell_at
-			var collision := CollisionShape3D.new()
-			collision.name = "BuildingCollider"
-			var shape := BoxShape3D.new()
-			shape.size = shell_size
-			collision.shape = shape
-			volume.add_child(collision)
+			if exchange_walk_in:
+				# Replace JUST the two fixed Central Exchange whole-volume boxes
+				# with a tightly partitioned four-Box collision envelope. The
+				# previously solid center is now a 2.84m x 3.35m pedestrian
+				# vestibule ending in a real back wall, not a collision trap.
+				# This is constructed in stage 0 before the expensive visual art,
+				# so nobody ever loses the surrounding building's street collider.
+				var portal_half: float = 1.42
+				var portal_depth: float = 3.35
+				var portal_height: float = 3.17
+				var flank_width: float = (width * 0.5 - portal_half)
+				for side in [-1.0, 1.0]:
+					var flank := CollisionShape3D.new()
+					flank.name = "BuildingColliderFlank_%d" % int(side)
+					var flank_shape := BoxShape3D.new()
+					flank_shape.size = Vector3(flank_width, height, depth)
+					flank.shape = flank_shape
+					flank.position = Vector3(side * (width * 0.5 + portal_half) * 0.5, 0.0, 0.0)
+					volume.add_child(flank)
+				var rear := CollisionShape3D.new()
+				rear.name = "BuildingColliderVestibuleRear"
+				var rear_shape := BoxShape3D.new()
+				rear_shape.size = Vector3(portal_half * 2.0, height, depth - portal_depth)
+				rear.shape = rear_shape
+				rear.position = Vector3(0.0, 0.0, portal_depth * 0.5)
+				volume.add_child(rear)
+				var header := CollisionShape3D.new()
+				header.name = "BuildingColliderVestibuleHeader"
+				var header_shape := BoxShape3D.new()
+				header_shape.size = Vector3(portal_half * 2.0, height - portal_height, portal_depth)
+				header.shape = header_shape
+				header.position = Vector3(0.0, portal_height * 0.5, -(depth - portal_depth) * 0.5)
+				volume.add_child(header)
+			else:
+				# Source-owned West Docks warehouse and civic façades retain the
+				# complete original single-Box save-stable collision as before.
+				var collision := CollisionShape3D.new()
+				collision.name = "BuildingCollider"
+				var shape := BoxShape3D.new()
+				shape.size = shell_size
+				collision.shape = shape
+				volume.add_child(collision)
 			(_active_chunk if _active_chunk != null else self).add_child(volume)
 		else:
 			_solid(shell_at, shell_size, wall, surface_kind)
@@ -775,7 +812,7 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 		var stable_name: String = "DOCK WATCH DESK" if dock_watch_exposure else names[abs(ix * 11 + iz * 17 + which * 3) % names.size()]
 		var facade := CentralFrontage.new()
 		facade.name = "PhotorealFrontage_%d_%d_%d" % [ix, iz, which]
-		facade.configure(width, height, depth, district, stable_name)
+		facade.configure(width, height, depth, district, stable_name, exchange_walk_in)
 		facade.position = Vector3(center.x, 0.15, front)
 		_active_chunk.add_child(facade)
 		_statistics["storefronts"] += 1
