@@ -274,11 +274,34 @@ func _treatment_room(room: Node3D, accent: Color, rescue: bool) -> void:
 			_box(room, Vector3(x, 3.8, -7.6), Vector3(1.4, 1.55, 0.45), Color("ce5d65"))
 			_box(room, Vector3(x, 4.05, -7.89), Vector3(0.21, 0.86, 0.10), Color("f8dbc2"))
 
+func update_dispatch_board(status: String, responding: int, returning: int, transmission: String) -> void:
+	if not is_instance_valid(_room):
+		return
+	var board := _room.get_node_or_null("DispatchBoard") as Label3D
+	if board != null:
+		board.text = "%s\nRESPONSE %d   RETURNING %d\n%s" % [status, responding, returning, transmission.left(76)]
+
 func _dispatch_room(room: Node3D, accent: Color, hq: bool) -> void:
 	# Original precinct interior set dressing, using existing textured room
 	# shell, colliders, duty contact and a clear public walking axis.
 	var blue := Color("77a7e0")
 	_label(room, "CITYWIDE DISPATCH" if hq else "DISTRICT PRECINCT", Vector3(0, 4.68, -8.55), blue, 30, true)
+	_box(room, Vector3(0, 3.65, -7.98), Vector3(6.0, 1.95, 0.15), Color("172b3b"), false, "METAL")
+	var board := Label3D.new()
+	board.name = "DispatchBoard"
+	board.position = Vector3(0, 3.65, -7.86)
+	board.font_size = 28
+	board.pixel_size = 0.007
+	board.modulate = blue
+	board.text = "DISPATCH • AVAILABLE"
+	room.add_child(board)
+	for side in [-1.0, 1.0]:
+		var staff := HumanoidVisual.new()
+		staff.name = "RadioOperator_%d" % int(side)
+		staff.configure(1 if side < 0 else 4, "DISPATCH")
+		staff.position = Vector3(side * 5.15, 0, -5.15)
+		staff.rotation.y = PI
+		room.add_child(staff)
 	for side in [-1.0, 1.0]:
 		var x: float = side * 5.15
 		for z in [-4.0, 0.0]:

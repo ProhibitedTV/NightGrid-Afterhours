@@ -90,6 +90,12 @@ jobs:
           grep -q "$SOURCE_SHA" scripts/build_info.gd
           grep -q 'const CHANNEL = "beta"' scripts/build_info.gd
 
+      - name: Generate original offline MBPD radio speech
+        if: steps.eligibility.outputs.publish == 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq espeak-ng
+          python3 tools/generate_mbpd_radio.py
       - name: Import game resources
         if: steps.eligibility.outputs.publish == 'true'
         run: |

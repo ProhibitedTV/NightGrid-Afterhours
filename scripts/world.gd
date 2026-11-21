@@ -12,6 +12,7 @@ const StreetRoute = preload("res://scripts/street_route.gd")
 const Arsenal = preload("res://scripts/arsenal.gd")
 const Wanted = preload("res://scripts/wanted_system.gd")
 const PoliceDispatch = preload("res://scripts/police_dispatch.gd")
+const PoliceRadio = preload("res://scripts/police_radio.gd")
 const EquipmentWheel = preload("res://scripts/equipment_wheel.gd")
 const Reticle = preload("res://scripts/weapon_reticle.gd")
 const CombatFoley = preload("res://scripts/city_foley.gd")
@@ -63,6 +64,11 @@ var officers: Array[CharacterBody3D] = []
 var routine_patrols: Array[CharacterBody3D] = []
 var wanted = Wanted.new()
 var dispatch = PoliceDispatch.new()
+var police_radio: Node
+var _radio_caption: Label
+var _radio_card: PanelContainer
+var _radio_close_tail := 0.0
+var _radio_was_wanted := false
 var returning_units: Array[CharacterBody3D] = []
 var _sight_clock := 0.0
 var _wanted_label: Label
@@ -186,6 +192,9 @@ func _ready() -> void:
 	_build_game_menu()
 	_build_nightgrid_fm()
 	_build_world_audio()
+	police_radio = PoliceRadio.new()
+	police_radio.name = "PoliceRadio"
+	add_child(police_radio)
 	var restore: Dictionary = session.call("take_pending_restore")
 	if restore.is_empty():
 		_set_mission_target(PICKUPS[0], false)
@@ -243,6 +252,24 @@ func _build_nightgrid_fm() -> void:
 	add_child(nightgrid_fm)
 	var options: Dictionary = game_menu.call("get_settings")
 	nightgrid_fm.call("set_preferences", float(options.get("music_volume", 0.65)), bool(options.get("radio_on", true)))
+
+func _update_police_radio(delta: float) -> void:
+	if not is_instance_valid(police_radio):
+		return
+	var active := Wanted.stars(heat) > 0
+	if _radio_was_wanted and not active:
+		_radio_close_tail = 5.0
+	_radio_was_wanted = active
+	_radio_close_tail = maxf(0.0, _radio_close_tail - delta)
+	var in_station := bool(interiors.call("is_inside")) and str(interiors.call("active_site_group")) == "CIVIC" and (civic_services.call("site_by_id", str(interiors.call("active_site_id"))) as Dictionary).has("station_id")
+	police_radio.call("ingest", dispatch.history)
+	police_radio.call("update_state", active, wanted.police_seen, delta)
+	police_radio.call("tick", delta, active or in_station or _radio_close_tail > 0.0)
+	var caption: String = police_radio.get("current")
+	_radio_card.visible = not caption.is_empty()
+	_radio_caption.text = caption
+	if in_station:
+		interiors.call("update_dispatch_board", dispatch.status(), officers.size(), returning_units.size(), caption)
 
 func _build_world_audio() -> void:
 	world_audio = WorldAudioScript.new()
@@ -494,6 +521,7 @@ func _process(delta: float) -> void:
 	playtest_logger.sample_frame(delta, stream_snapshot, actor.global_position,
 		"car" if current_car != null else ("transit_" + transit_kind.to_lower() if current_transit != null else "on_foot"))
 	var indoors: bool = interiors.call("is_inside")
+	_update_police_radio(delta)
 	if is_instance_valid(nightgrid_fm):
 		var interior_id := str(interiors.call("active_site_id")) if indoors else ""
 		var interior_kind := ""
@@ -832,11 +860,13 @@ func _update_wanted(delta: float) -> void:
 			patrol.set("police_night", night)
 
 func _release_response(car: CharacterBody3D) -> void:
-	dispatch.released(str(car.get_meta("unit_id", "LEGACY")))
+	var unit_id := str(car.get_meta("unit_id", "LEGACY"))
 	var station: Dictionary = dispatch.stations.get(str(car.get_meta("station_id", "")), {})
 	if station.is_empty() or float(car.get("condition")) <= 18.0:
+		dispatch.unavailable(unit_id)
 		car.queue_free()
 		return
+	dispatch.released(unit_id)
 	car.set("police_priority", false)
 	car.set("police_destination", station["launch"])
 	returning_units.append(car)
@@ -850,6 +880,7 @@ func _update_returning_units() -> void:
 		var goal: Vector3 = car.get("police_destination")
 		var plan = car.get("drive_policy")
 		if car.global_position.distance_to(goal) < 4.0 or plan.arrived(Vector2(car.global_position.x, car.global_position.z), Vector2(goal.x, goal.z)):
+			dispatch.available(str(car.get_meta("unit_id", "LEGACY")))
 			car.queue_free()
 			returning_units.remove_at(i)
 
@@ -1894,6 +1925,10 @@ func _build_hud() -> void:
 	_weapon_label = _hud_text(_weapon_card, "WeaponAmmo", 20, Ui.TEXT)
 	_weapon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_weapon_card.hide()
+	_radio_card = _hud_card(ui, "PoliceRadioCard", 1.0, 0.0, Vector4(-402, 278, -24, 362))
+	_radio_caption = _hud_text(_radio_card, "Transmission", 16, Color("a4c7ef"))
+	_radio_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_radio_card.hide()
 	_reticle = Reticle.new()
 	_reticle.name = "AimReticle"
 	_reticle.mouse_filter = Control.MOUSE_FILTER_IGNORE

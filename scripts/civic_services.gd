@@ -198,10 +198,27 @@ func _build_site(site: Dictionary) -> void:
 			if site.has("station_id"):
 				_label(front, "MORROW BAY POLICE DEPARTMENT", Vector3(0, 3.12, 1.05), Color("93bcf0"), 28)
 				_label(front, "24H PUBLIC COUNTER", Vector3(0, 2.15, -1.30), Color("dce7ef"), 25)
+				_station_details(front, neon, bool(site.get("headquarters", false)))
 		"FIRE":
 			_fire(front, accent)
 		"UTILITY":
 			_utility(front, accent, neon)
+
+func _station_details(front: Node3D, neon: StandardMaterial3D, hq: bool) -> void:
+	# Permanent public frontage, real textured cladding and original canopy.
+	# No new road obstruction or collision footprint; existing room entry kept.
+	var blue := Color("36546f")
+	_box(front, Vector3(0, 3.14, -0.55), Vector3(8.6, 0.23, 3.1), Color("6c7780"), "METAL")
+	_box(front, Vector3(0, 3.03, -2.10), Vector3(8.5, 0.12, 0.12), blue, "", neon)
+	for x in [-4.0, 4.0]:
+		_box(front, Vector3(x, 1.55, -1.82), Vector3(0.26, 3.0, 0.28), Color("a0a6aa"), "CONCRETE")
+		_box(front, Vector3(x, 2.55, -2.0), Vector3(0.30, 0.42, 0.18), Color("9bb9e0"), "", neon)
+	for x in [-2.8, 2.8]:
+		_box(front, Vector3(x, 2.35, 1.35), Vector3(1.58, 1.82, 0.10), blue, "GLASS")
+		for offset in [-0.8, 0.8]:
+			_box(front, Vector3(x + offset, 2.35, 1.24), Vector3(0.08, 1.92, 0.14), Color("9aaab9"), "METAL")
+	_box(front, Vector3(0, 0.24, -2.2), Vector3(2.7, 0.04, 1.0), Color("85909b"), "PAVERS")
+	_label(front, "HQ" if hq else "PRECINCT", Vector3(0, 3.22, -2.2), Color("cfdfef"), 29)
 
 func _grocery(node: Node3D, accent: Color) -> void:
 	_box(node, Vector3(0.0, 2.88, -0.3), Vector3(8.2, 0.15, 3.3), accent)

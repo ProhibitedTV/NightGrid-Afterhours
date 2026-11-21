@@ -24,6 +24,11 @@ jobs:
           version: 4.7.2
           use-dotnet: false
           include-templates: true
+      - name: Generate original offline MBPD radio speech
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq espeak-ng
+          python3 tools/generate_mbpd_radio.py
       - name: Import resources
         run: |
           set -o pipefail
