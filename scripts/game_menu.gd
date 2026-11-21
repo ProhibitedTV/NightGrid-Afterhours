@@ -2,6 +2,7 @@ extends CanvasLayer
 const AudioMix = preload("res://scripts/audio_mix.gd")
 const MinimapScript = preload("res://scripts/minimap.gd")
 const CityFoley = preload("res://scripts/city_foley.gd")
+const Ui = preload("res://scripts/ui_style.gd")
 ## Keyboard/mouse/controller-friendly menu layer. It remains interactive while
 ## the 3D SceneTree is paused; all buttons use Godot's built-in focus navigation.
 signal action_requested(action: String)
@@ -41,15 +42,22 @@ var _screen_nodes: Array[Control] = []
 var _buttons: Dictionary = {}
 var _first_focus: Control
 var _ui_click: AudioStreamPlayer
+var _body_scroll: ScrollContainer
+var _body_col: VBoxContainer
+var _focus_order: Array[Control] = []
+var _last_focus: Dictionary = {}
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	layer = 10
 	_load_settings()
 	_root = Control.new()
 	_root.name = "MenuRoot"
 	_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.mouse_filter = Control.MOUSE_FILTER_STOP
+	_root.theme = Ui.make_theme()
 	add_child(_root)
+	get_viewport().size_changed.connect(_fit_menu)
 	_ui_click = AudioStreamPlayer.new()
 	_ui_click.name = "OriginalMenuSelect"
 	AudioMix.ensure()
@@ -108,6 +116,9 @@ func get_settings() -> Dictionary:
 	return settings.duplicate(true)
 
 func _open(value: String) -> void:
+	var previous := get_viewport().gui_get_focus_owner()
+	if is_instance_valid(previous) and _root.is_ancestor_of(previous):
+		_last_focus[screen] = str(previous.name)
 	screen = value
 	visible = true
 	get_tree().paused = true
@@ -169,10 +180,11 @@ func _render() -> void:
 		_root.remove_child(child)
 		child.queue_free()
 	_buttons.clear()
+	_focus_order.clear()
 	_first_focus = null
 	var shade := ColorRect.new()
 	shade.name = "Scrim"
-	shade.color = Color(0.025, 0.042, 0.067, 0.93)
+	shade.color = Color(0.028, 0.045, 0.060, 0.94)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(shade)
 	var center := CenterContainer.new()
@@ -181,36 +193,37 @@ func _render() -> void:
 	_root.add_child(center)
 	var panel := PanelContainer.new()
 	panel.name = "MenuPanel"
-	panel.custom_minimum_size = Vector2(560.0, 0.0)
-	var card := StyleBoxFlat.new()
-	card.bg_color = Color("111f31")
-	card.border_width_left = 2
-	card.border_width_top = 2
-	card.border_width_right = 2
-	card.border_width_bottom = 2
-	card.border_color = Color("63b4be")
-	card.corner_radius_top_left = 10
-	card.corner_radius_top_right = 10
-	card.corner_radius_bottom_left = 10
-	card.corner_radius_bottom_right = 10
-	panel.add_theme_stylebox_override("panel", card)
+	panel.custom_minimum_size = Vector2(760.0, 0.0)
+	panel.add_theme_stylebox_override("panel", Ui.card(0.99, 26))
 	center.add_child(panel)
-	var padding := MarginContainer.new()
-	for side in ["left", "right", "top", "bottom"]:
-		padding.add_theme_constant_override("margin_" + side, 30)
-	panel.add_child(padding)
+	var shell := VBoxContainer.new()
+	shell.add_theme_constant_override("separation", 16)
+	panel.add_child(shell)
+	_label(shell, "MORROW BAY   /   NIGHT SHIFT", 16, Ui.AMBER)
+	_title(shell, "NIGHTGRID: AFTERHOURS", 40, Ui.TEXT)
+	_divider(shell)
+	_body_scroll = ScrollContainer.new()
+	_body_scroll.name = "MenuScroll"
+	_body_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_body_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	_body_scroll.follow_focus = true
+	shell.add_child(_body_scroll)
 	var col := VBoxContainer.new()
+	col.name = "MenuContent"
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_theme_constant_override("separation", 9)
-	padding.add_child(col)
-	_title(col, "NIGHTGRID  /  AFTERHOURS", 32, Color("8ae9e5"))
-	_label(col, "MORROW BAY  •  CITY AFTER DARK", 15, Color("c9ad7f"))
-	_divider(col)
+	_body_scroll.add_child(col)
+	_body_col = col
 	match screen:
 		"title":
 			_title(col, "YOUR NIGHT. YOUR CITY.", 22, Color("f0dfcd"))
 			_label(col, "A persistent noir metropolis, shaped by your choices.", 17, Color("a8b6c9"))
-			_button(col, "play", "ENTER MORROW BAY", "play")
-			_button(col, "continue", "CONTINUE SAVED GAME", "load", _has_save)
+			if _has_save:
+				_button(col, "continue", "CONTINUE SAVED GAME", "load")
+				_button(col, "play", "ENTER CURRENT SESSION", "play")
+			else:
+				_button(col, "play", "ENTER MORROW BAY", "play")
+				_button(col, "continue", "CONTINUE  •  NO SAVE FOUND", "load", false)
 			_button(col, "new", "NEW WORLD / NEW SEED", "new")
 			_button(col, "settings", "SETTINGS", "settings")
 			_button(col, "controls", "CONTROLS & GAMEPAD", "controls")
@@ -228,15 +241,20 @@ func _render() -> void:
 			_button(col, "title", "TITLE SCREEN", "title")
 			_button(col, "quit", "QUIT TO DESKTOP", "quit")
 		"settings":
-			_title(col, "SETTINGS / YOUR RIG", 22, Color("f0dfcd"))
+			_title(col, "Settings", 28, Ui.TEXT)
+			_label(col, "AUDIO", 16, Ui.AMBER)
 			_slider(col, "MASTER VOLUME", "master_volume", 0.0, 1.0, 0.05)
 			_slider(col, "NIGHTGRID FM / MUSIC VOLUME", "music_volume", 0.0, 1.0, 0.05)
 			_slider(col, "CITY AMBIENCE", "ambience_volume", 0.0, 1.0, 0.05)
 			_slider(col, "FOOTSTEPS / INTERACTIONS / UI", "sfx_volume", 0.0, 1.0, 0.05)
 			_check(col, "CAR RADIO ENABLED BY DEFAULT", "radio_on")
+			_divider(col)
+			_label(col, "CONTROLS", 16, Ui.AMBER)
 			_slider(col, "MOUSE LOOK", "mouse_sensitivity", 0.001, 0.010, 0.0002)
 			_slider(col, "GAMEPAD LOOK", "stick_sensitivity", 0.5, 5.0, 0.1)
 			_check(col, "INVERT LOOK Y", "invert_look_y")
+			_divider(col)
+			_label(col, "DISPLAY & PERFORMANCE", 16, Ui.AMBER)
 			_check(col, "SCREEN-SPACE REFLECTIONS", "ssr_enabled")
 			_check(col, "NEON BLOOM", "glow_enabled")
 			_check(col, "CONTACT SHADOWS / AO", "ao_enabled")
@@ -296,12 +314,37 @@ func _render() -> void:
 		"confirm_new":
 			_title(col, "START ANOTHER WORLD?", 24, Color("f0cdab"))
 			_label(col, "The current unsaved session will be discarded. Your last saved slot will remain intact until you save the new world.", 17, Color("cbd8e3"))
-			_button(col, "confirm_new", "YES — NEW CITY SEED", "confirm_new")
-			_button(col, "cancel", "CANCEL", "cancel_new")
-	_divider(col)
-	_label(col, "WASD / mouse  •  Xbox controller  •  Start / Esc pause  •  B back", 14, Color("94abb8"))
-	if _first_focus != null:
+			_button(col, "cancel", "KEEP CURRENT SESSION", "cancel_new")
+			_button(col, "confirm_new", "DISCARD SESSION / NEW WORLD", "confirm_new")
+	_divider(shell)
+	_label(shell, "↑ ↓  Navigate   •   Enter / A  Select   •   Esc / B  Back", 16, Ui.MUTED)
+	_wire_focus()
+	_fit_menu.call_deferred()
+	if screen != "confirm_new":
+		for item in _focus_order:
+			if str(item.name) == str(_last_focus.get(screen, "")):
+				_first_focus = item
+				break
+	if is_instance_valid(_first_focus):
 		_first_focus.call_deferred("grab_focus")
+
+func _fit_menu() -> void:
+	if not is_instance_valid(_body_scroll) or not is_instance_valid(_body_col):
+		return
+	var height := get_viewport().get_visible_rect().size.y
+	_body_scroll.custom_minimum_size.y = minf(_body_col.get_combined_minimum_size().y, maxf(140.0, height - 250.0))
+
+func _wire_focus() -> void:
+	# Explicit vertical order avoids focus jumping between unrelated rows.
+	# Sliders retain native left/right adjustment; the scroll follows focus.
+	for i in range(_focus_order.size()):
+		var item := _focus_order[i]
+		var prev := _focus_order[posmod(i - 1, _focus_order.size())]
+		var next := _focus_order[(i + 1) % _focus_order.size()]
+		item.focus_neighbor_top = item.get_path_to(prev)
+		item.focus_neighbor_bottom = item.get_path_to(next)
+		item.focus_previous = item.get_path_to(prev)
+		item.focus_next = item.get_path_to(next)
 
 func _title(parent: VBoxContainer, value: String, font_size: int, tint: Color) -> void:
 	_label(parent, value, font_size, tint, true)
@@ -324,30 +367,51 @@ func _button(parent: VBoxContainer, key: String, caption: String, action: String
 	var button := Button.new()
 	button.name = "Menu_" + key
 	button.text = caption
-	button.custom_minimum_size = Vector2(470.0, 36.0)
+	button.custom_minimum_size = Vector2(0.0, 46.0)
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	button.disabled = not enabled
 	button.focus_mode = Control.FOCUS_ALL
 	button.add_theme_font_size_override("font_size", 18)
 	button.pressed.connect(func() -> void: _choice(action))
 	parent.add_child(button)
 	_buttons[key] = button
+	if enabled:
+		_focus_order.append(button)
 	if _first_focus == null and enabled:
 		_first_focus = button
 
 func _slider(parent: VBoxContainer, caption: String, key: String, lo: float, hi: float, step: float) -> void:
-	_label(parent, caption, 15, Color("b2dce0"))
+	var row := HBoxContainer.new()
+	parent.add_child(row)
+	var title := Label.new()
+	title.text = caption
+	title.modulate = Ui.MUTED
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(title)
+	var amount := Label.new()
+	amount.name = "Value_" + key
+	amount.text = _format_setting(key, float(settings[key]))
+	row.add_child(amount)
 	var slider := HSlider.new()
 	slider.name = "Setting_" + key
 	slider.min_value = lo
 	slider.max_value = hi
 	slider.step = step
 	slider.value = float(settings[key])
-	slider.custom_minimum_size = Vector2(470.0, 24.0)
+	slider.custom_minimum_size = Vector2(0.0, 30.0)
 	slider.focus_mode = Control.FOCUS_ALL
 	parent.add_child(slider)
-	slider.value_changed.connect(func(value: float) -> void: update_setting(key, value))
+	_focus_order.append(slider)
+	slider.value_changed.connect(func(value: float) -> void:
+		update_setting(key, value)
+		amount.text = _format_setting(key, float(settings[key])))
 	if _first_focus == null:
 		_first_focus = slider
+
+func _format_setting(key: String, value: float) -> String:
+	if key.ends_with("_volume"):
+		return "%d%%" % roundi(value * 100.0)
+	return "%.4f" % value if key == "mouse_sensitivity" else "%.1f" % value
 
 func _check(parent: VBoxContainer, caption: String, key: String) -> void:
 	var toggle := CheckButton.new()
@@ -355,7 +419,9 @@ func _check(parent: VBoxContainer, caption: String, key: String) -> void:
 	toggle.text = caption
 	toggle.button_pressed = bool(settings[key])
 	toggle.focus_mode = Control.FOCUS_ALL
+	toggle.custom_minimum_size.y = 40.0
 	parent.add_child(toggle)
+	_focus_order.append(toggle)
 	toggle.toggled.connect(func(value: bool) -> void: update_setting(key, value))
 	if _first_focus == null:
 		_first_focus = toggle

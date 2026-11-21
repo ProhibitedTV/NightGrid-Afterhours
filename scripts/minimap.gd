@@ -2,11 +2,15 @@ extends Control
 ## Overview of streets, objective, player and chasing police.
 
 var world_node: Node3D
+var _redraw_clock := 1.0
 const CITY_SPAN = 560.0
 const GRID_RADIUS = 4
 
-func _process(_delta: float) -> void:
-	queue_redraw()
+func _process(delta: float) -> void:
+	_redraw_clock += delta
+	if _redraw_clock >= 0.1:
+		_redraw_clock = 0.0
+		queue_redraw()
 
 func _draw() -> void:
 	var side := minf(size.x, size.y)
@@ -73,8 +77,13 @@ func _draw() -> void:
 			draw_arc(_to_map(target, side, scale), 7.5, 0.0, TAU, 16, Color("95e7bc"), 2.5)
 		for officer in state["officers"]:
 			draw_circle(_to_map(officer, side, scale), 3.5, Color("f04e59"))
-		draw_circle(_to_map(actor, side, scale), 5.5, Color("ee72cc"))
-	draw_rect(Rect2(Vector2.ZERO, Vector2(side, side)), Color("8eabc4"), false, 2.0)
+		var actor_pin := _to_map(actor, side, scale)
+		draw_circle(actor_pin, 7.0, Color("101821"))
+		draw_circle(actor_pin, 5.5, Color("e7edf0"))
+		draw_arc(actor_pin, 8.5, 0.0, TAU, 24, Color("81e0d4"), 1.8, true)
+	draw_rect(Rect2(Vector2.ZERO, Vector2(side, side)), Color("54707c"), false, 2.0)
+	var font := ThemeDB.fallback_font
+	draw_string(font, Vector2(9, 19), "N ↑", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("e7edf0"))
 
 func _to_map(point: Vector2, side: float, scale: float) -> Vector2:
 	return Vector2(side * 0.5 + point.x * scale, side * 0.5 + point.y * scale)

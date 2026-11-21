@@ -97,6 +97,9 @@ func _verify() -> void:
 	if str(menu.get("screen")) != "confirm_new":
 		_fail("New World must be a confirmed destructive transition")
 		return
+	if menu.get("_first_focus") != (menu.call("get_buttons") as Dictionary)["cancel"]:
+		_fail("Destructive new-world confirmation must default to Keep Current Session")
+		return
 	menu.call("_choice", "cancel_new")
 	if str(menu.get("screen")) != "title":
 		_fail("Cancel did not return to original title screen")
@@ -104,6 +107,18 @@ func _verify() -> void:
 	menu.call("open_settings")
 	if str(menu.get("screen")) != "settings":
 		_fail("Graphics/audio/accessibility settings missing")
+		return
+	var scroll := menu.find_child("MenuScroll", true, false) as ScrollContainer
+	if scroll == null or not scroll.follow_focus:
+		_fail("Long settings must scroll with controller focus")
+		return
+	var values := menu.find_child("Value_master_volume", true, false) as Label
+	if values == null or not values.text.ends_with("%"):
+		_fail("Audio setting has no readable numerical percentage")
+		return
+	var focus: Array = menu.get("_focus_order")
+	if focus.size() < 15 or focus[0].focus_neighbor_bottom.is_empty():
+		_fail("Settings do not expose explicit vertical controller order")
 		return
 	menu.call("update_setting", "ssr_enabled", false)
 	menu.call("update_setting", "glow_enabled", false)
@@ -168,6 +183,23 @@ func _verify() -> void:
 	if paused or menu.call("is_open"):
 		_fail("Resume button did not restore live player controls")
 		return
+	world.call("_update_hud")
+	var status := world.get_node_or_null("HUD/PlayerStatus")
+	var objective: Label = world.get("hud_objective")
+	var prompt: Label = world.get("hud_prompt")
+	var health_bar: ProgressBar = world.get("hud_health")
+	if status == null or objective == null or prompt == null or health_bar == null:
+		_fail("Status, objective, context help and health meter must be independently readable")
+		return
+	if not objective.text.contains("PACKAGE") or not prompt.text.contains("M Map") or not is_equal_approx(health_bar.value, float(world.get("health"))):
+		_fail("New HUD did not reflect actual mission, input mode and player health")
+		return
+	world.set("gamepad_active", true)
+	world.call("_update_hud")
+	if not prompt.text.contains("View Map") or prompt.text.contains("M Map"):
+		_fail("Gamepad HUD retained stale keyboard instructions")
+		return
+	world.set("gamepad_active", false)
 	var b_event := InputEventJoypadButton.new()
 	b_event.pressed = true
 	b_event.button_index = JOY_BUTTON_B

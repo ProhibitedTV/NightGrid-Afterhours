@@ -6,6 +6,7 @@ const HumanoidVisualScript = preload("res://scripts/humanoid_visual.gd")
 const CarScript = preload("res://scripts/car.gd")
 const KestrelVisual = preload("res://scripts/kestrel_s6_visual.gd")
 const MinimapScript = preload("res://scripts/minimap.gd")
+const Ui = preload("res://scripts/ui_style.gd")
 const CityDetailsScript = preload("res://scripts/city_details.gd")
 const CityPerimeterScript = preload("res://scripts/city_perimeter.gd")
 const DayNightScript = preload("res://scripts/day_night.gd")
@@ -55,6 +56,14 @@ var camera: Camera3D
 var marker: Node3D
 var marker_light: OmniLight3D
 var hud_label: Label
+var hud_objective: Label
+var hud_jobs: Label
+var hud_location: Label
+var hud_health: ProgressBar
+var hud_prompt: Label
+var hud_prompt_card: PanelContainer
+var hud_notice: Label
+var hud_notice_card: PanelContainer
 var performance_label: Label
 var performance_overlay := false
 var minimap: Control
@@ -1623,24 +1632,53 @@ func _build_hud() -> void:
 	var ui := CanvasLayer.new()
 	ui.name = "HUD"
 	add_child(ui)
+	# Small, anchored hierarchy: status and objective left, map right,
+	# transient notices at top center, context-only inputs at bottom center.
 	var backing := PanelContainer.new()
-	backing.position = Vector2(18.0, 18.0)
-	backing.custom_minimum_size = Vector2(480.0, 205.0)
+	backing.name = "PlayerStatus"
+	backing.position = Vector2(24.0, 24.0)
+	backing.custom_minimum_size = Vector2(420.0, 0.0)
+	backing.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	backing.theme = Ui.make_theme()
+	backing.add_theme_stylebox_override("panel", Ui.card(0.88))
 	ui.add_child(backing)
-	hud_label = Label.new()
-	hud_label.add_theme_font_size_override("font_size", 17)
-	hud_label.add_theme_color_override("font_color", Color("d7eaf6"))
-	hud_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	backing.add_child(hud_label)
+	var stack := VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 7)
+	backing.add_child(stack)
+	hud_location = _hud_text(stack, "Location", 17, Ui.AMBER)
+	hud_label = _hud_text(stack, "PlayerVitals", 20, Ui.TEXT)
+	hud_health = ProgressBar.new()
+	hud_health.name = "HealthBar"
+	hud_health.max_value = 100.0
+	hud_health.show_percentage = false
+	hud_health.custom_minimum_size.y = 6
+	hud_health.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud_health.add_theme_stylebox_override("background", Ui.button_style(Color("29363e"), Color("29363e")))
+	hud_health.add_theme_stylebox_override("fill", Ui.button_style(Ui.ACCENT, Ui.ACCENT))
+	stack.add_child(hud_health)
+	var rule := HSeparator.new()
+	stack.add_child(rule)
+	_hud_text(stack, "ObjectiveHeading", 15, Ui.MUTED).text = "CURRENT OBJECTIVE"
+	hud_objective = _hud_text(stack, "Objective", 25, Ui.ACCENT)
+	hud_jobs = _hud_text(stack, "ActiveContracts", 17, Ui.TEXT)
+	var center_notice := _hud_card(ui, "NotificationCard", 0.5, 0.0, Vector4(-410, 24, 410, 92))
+	hud_notice_card = center_notice
+	hud_notice = _hud_text(center_notice, "Notice", 21, Ui.TEXT)
+	hud_notice.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hud_notice_card.hide()
+	hud_prompt_card = _hud_card(ui, "ContextCard", 0.5, 1.0, Vector4(-460, -152, 460, -24))
+	hud_prompt = _hud_text(hud_prompt_card, "ContextActions", 19, Ui.TEXT)
+	hud_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	minimap = Control.new()
 	minimap.name = "Minimap"
 	minimap.set_script(MinimapScript)
 	minimap.anchor_left = 1.0
 	minimap.anchor_right = 1.0
-	minimap.offset_left = -205.0
-	minimap.offset_right = -18.0
-	minimap.offset_top = 18.0
-	minimap.offset_bottom = 205.0
+	minimap.offset_left = -264.0
+	minimap.offset_right = -24.0
+	minimap.offset_top = 24.0
+	minimap.offset_bottom = 264.0
+	minimap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	minimap.set("world_node", self)
 	ui.add_child(minimap)
 	performance_label = Label.new()
@@ -1657,12 +1695,19 @@ func _build_hud() -> void:
 	ui.add_child(performance_label)
 	venue_panel = PanelContainer.new()
 	venue_panel.name = "VenueDialogue"
-	venue_panel.position = Vector2(18.0, 262.0)
-	venue_panel.custom_minimum_size = Vector2(630.0, 218.0)
+	venue_panel.anchor_top = 1.0
+	venue_panel.anchor_bottom = 1.0
+	venue_panel.offset_left = 24.0
+	venue_panel.offset_right = 784.0
+	venue_panel.offset_top = -330.0
+	venue_panel.offset_bottom = -94.0
+	venue_panel.custom_minimum_size = Vector2(0.0, 218.0)
+	venue_panel.theme = Ui.make_theme()
+	venue_panel.add_theme_stylebox_override("panel", Ui.card(0.97, 20))
 	venue_panel.visible = false
 	ui.add_child(venue_panel)
 	venue_label = Label.new()
-	venue_label.add_theme_font_size_override("font_size", 18)
+	venue_label.add_theme_font_size_override("font_size", 20)
 	venue_label.add_theme_color_override("font_color", Color("eadcc9"))
 	venue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var dialogue_layout := VBoxContainer.new()
@@ -1698,6 +1743,32 @@ func _build_hud() -> void:
 	venue_close_button.pressed.connect(func() -> void: _close_venue())
 	action_row.add_child(venue_close_button)
 
+func _hud_text(parent: Node, node_name: String, font_size: int, tint: Color) -> Label:
+	var label := Label.new()
+	label.name = node_name
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", tint)
+	parent.add_child(label)
+	return label
+
+func _hud_card(layer: CanvasLayer, node_name: String, ax: float, ay: float, bounds: Vector4) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.name = node_name
+	panel.anchor_left = ax
+	panel.anchor_right = ax
+	panel.anchor_top = ay
+	panel.anchor_bottom = ay
+	panel.offset_left = bounds.x
+	panel.offset_top = bounds.y
+	panel.offset_right = bounds.z
+	panel.offset_bottom = bounds.w
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_theme_stylebox_override("panel", Ui.card(0.92))
+	layer.add_child(panel)
+	return panel
+
 func _update_hud() -> void:
 	var outdoors: Vector3 = interiors.get("exterior_position") if interiors.call("is_inside") else _actor().global_position
 	var district: String = city_details.call("get_district_at", outdoors)
@@ -1726,38 +1797,55 @@ func _update_hud() -> void:
 			int(stream["loaded_blocks"]), int(stream["total_blocks"]), int(stream["loaded_buildings"]), indoor_count,
 			int(stream.get("pending_blocks", 0)), float(stream.get("last_build_usec", 0)) / 1000.0,
 			float(stream.get("peak_build_usec", 0)) / 1000.0, capture_status]
-	var control_help := "WASD Move | Mouse Look | E Car | F Transit | H Enter | G Interact | Esc Pause | M Map | Tab Journal"
-	if gamepad_active:
-		control_help = "PAD: LS Move / Steer • RS Look • A Jump/Service • X Interact/Contract • Y Car • LB Door • RB Transit • Start Pause • View Map"
-	hud_label.text = "NIGHTGRID / AFTERHOURS    MORROW BAY\n%s | %s\n$%d | HEALTH %d | HEAT %s\n%s | DELIVERIES %d\nOBJECTIVE: %s (%dm)\n%s\n\n%s" % [local_name, clock, cash, ceili(health), wanted_text, vehicle_text, deliveries, mission, distance, message, control_help]
-	hud_label.text += "\n" + _venue_job_text() + "\n" + _civic_job_text()
-	if current_car != null and is_instance_valid(nightgrid_fm):
-		hud_label.text += "\n" + str(nightgrid_fm.call("get_now_playing")) + "  [B] ON/OFF  [N] NEXT"
-	if interiors.call("is_inside"):
+	hud_location.text = "%s   /   %s" % [local_name, clock]
+	hud_label.text = "$%d    HEALTH %d    HEAT %s\n%s  •  %d deliveries  •  %d supplies" % [cash, ceili(health), wanted_text, vehicle_text, deliveries, ration_packs]
+	hud_health.value = health
+	hud_objective.text = "%s  /  %dm" % [mission, distance]
+	hud_objective.modulate = Ui.ACCENT if carrying else Ui.AMBER
+	var jobs: Array[String] = []
+	if not venue_job_active.is_empty():
+		jobs.append(_venue_job_text())
+	if not civic_job_active.is_empty():
+		jobs.append(_civic_job_text())
+	hud_jobs.text = "\n".join(jobs)
+	hud_jobs.visible = not jobs.is_empty()
+	hud_notice.text = message
+	hud_notice_card.visible = not message.is_empty()
+	var prompts: Array[String] = []
+	var interact_key := "X" if gamepad_active else "G"
+	var enter_key := "LB" if gamepad_active else "H"
+	var utility := "Start Pause  •  View Map" if gamepad_active else "Esc Pause  •  M Map  •  Tab Journal"
+	if current_car != null:
+		prompts.append("RT/LT Drive  •  B Brake  •  Y Exit" if gamepad_active else "W/S Drive  •  Space Brake  •  E Exit")
+		if is_instance_valid(nightgrid_fm):
+			var radio_keys := "D-pad → Radio  •  ↑ Next" if gamepad_active else "B Radio  •  N Next"
+			prompts.append("%s   |   %s" % [str(nightgrid_fm.call("get_now_playing")), radio_keys])
+	elif current_transit != null:
+		prompts.append("RB Leave at next stop" if gamepad_active else "F Leave at next stop")
+	elif interiors.call("is_inside"):
 		var site_id := str(interiors.call("active_site_id"))
 		var room_site: Dictionary = civic_services.call("site_by_id", site_id) if str(interiors.call("active_site_group")) == "CIVIC" else venue_system.call("venue_by_id", site_id)
-		hud_label.text += "\nINSIDE: %s | %s" % [str(room_site.get("name", site_id)), "H EXIT" if interiors.call("exit_reachable", player.global_position) else "Return to front door"]
+		prompts.append("%s  •  %s" % [str(room_site.get("name", site_id)), enter_key + " Exit" if interiors.call("exit_reachable", player.global_position) else "Return to front door"])
 		if interiors.call("counter_reachable", player.global_position):
-			hud_label.text += "\n[G] Service counter"
+			prompts.append("%s  Service counter" % interact_key)
 		if site_id == "lantern_cup":
-			hud_label.text += "\nMARA: counter [G], talk [3/Y] in dialogue"
 			var local_regular: Dictionary = interiors.call("patron_near", player.global_position)
 			if not local_regular.is_empty():
-				hud_label.text += "\n[G] Chat with %s (%s)" % [
-					str(local_regular["name"]), str(local_regular["role"])]
-		_update_venue_panel()
-		return
-	if current_car == null and current_transit == null:
+				prompts.append("%s  Chat with %s" % [interact_key, str(local_regular["name"])])
+	else:
 		var near: Dictionary = venue_system.call("nearest_venue", player.global_position)
 		if not near.is_empty():
 			var accessible := "OPEN" if venue_system.call("is_open", str(near["id"])) else "CLOSED"
-			hud_label.text += "\n[G] %s (%s)" % [str(near["name"]), accessible]
-			hud_label.text += "\n[H] Enter %s" % str(near["name"])
+			prompts.append("%s  %s (%s)   •   %s Enter" % [interact_key, str(near["name"]), accessible, enter_key])
 		var nearby_service: Dictionary = civic_services.call("nearest_site", player.global_position)
 		if not nearby_service.is_empty():
 			var availability := "OPEN" if civic_services.call("is_open", str(nearby_service["id"])) else "CLOSED"
-			hud_label.text += "\n[G] %s (%s)" % [str(nearby_service["name"]), availability]
-			hud_label.text += "\n[H] Enter %s" % str(nearby_service["name"])
+			prompts.append("%s  %s (%s)   •   %s Enter" % [interact_key, str(nearby_service["name"]), availability, enter_key])
+		if prompts.is_empty():
+			prompts.append("Y Vehicle  •  RB Transit  •  X Interact" if gamepad_active else "E Vehicle  •  F Transit  •  G Interact")
+	prompts.append(utility)
+	hud_prompt.text = "\n".join(prompts)
+	hud_prompt_card.visible = not venue_panel.visible
 	if venue_panel.visible:
 		_update_venue_panel()
 
