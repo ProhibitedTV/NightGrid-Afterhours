@@ -1,4 +1,5 @@
 extends Node3D
+const AudioMix = preload("res://scripts/audio_mix.gd")
 ## M-LINE / CICADA M8 — original, procedural hero rolling stock.
 ## Art direction: real transit engineering beneath an optimistic neon-noir skin.
 ## Static meshes/materials are built once, never randomized or serialized.
@@ -77,12 +78,15 @@ func displayed_destination() -> String:
 func _initialize_audio() -> void:
 	_rolling_audio = AudioStreamPlayer3D.new()
 	_rolling_audio.name = "OriginalRailRollingLoop"
+	AudioMix.ensure()
+	_rolling_audio.bus = AudioMix.EFFECTS
 	_rolling_audio.stream = TrainAudio.sound("ROLL")
 	_rolling_audio.max_distance = 75.0
 	_rolling_audio.volume_db = -30.0
 	add_child(_rolling_audio)
 	_arrival_audio = AudioStreamPlayer3D.new()
 	_arrival_audio.name = "OriginalStationArrivalChime"
+	_arrival_audio.bus = AudioMix.EFFECTS
 	_arrival_audio.stream = TrainAudio.sound("CHIME")
 	_arrival_audio.max_distance = 40.0
 	_arrival_audio.volume_db = -10.0
