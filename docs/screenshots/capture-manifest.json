@@ -5,8 +5,8 @@
       "sha256": "bc89f9e230145746f3ab3544ef833bdd4e6d94b16cb2bb13b02cf84824d9542c"
     },
     "02-vesper-market-nightlife.png": {
-      "bytes": 801049,
-      "sha256": "fac74a892690f54cfaa05aaa2cdef6a7a87597fcf0b5e2503b8c7bc501215ef2"
+      "bytes": 798239,
+      "sha256": "ef0b1411f992f7b0cd38ad86a38bd8e4db9538550f1db8054f4913a81023fc33"
     },
     "03-m-line-helix-terminal.png": {
       "bytes": 399848,
@@ -17,8 +17,8 @@
       "sha256": "b308d9df0eccb1bbb2ed67ab0967d9647a7d94970c8c23ed1bd018e78083afc4"
     },
     "05-quay-fresh-interior.png": {
-      "bytes": 228073,
-      "sha256": "fd6774c29c8b75551dcd1e4d692e490e424ab5cc3db8ae7b84ffa59e4a800097"
+      "bytes": 228081,
+      "sha256": "5161965d91adb1ebf5e98e83f71f8fdc3ee49eef812f9b8164eb03f0d030c4d7"
     },
     "06-title-menu.png": {
       "bytes": 143744,
@@ -30,5 +30,5 @@
     }
   },
   "renderer": "Godot 4.7.2 Mesa software OpenGL Compatibility 1280x720 (NOT Vulkan/RTX)",
-  "source_revision": "40487cc185609ddcfef59b59a1b120397cc87d4e"
+  "source_revision": "e515aeb4b076369562aeeae2dbc3ee7fbf6c6b21"
 }
