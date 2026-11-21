@@ -105,7 +105,7 @@ func _verify() -> void:
 	if collider_count != 1:
 		_fail("Expected exactly one unchanged physical Dock Watch building shell")
 		return
-	var stats_before := facade.call("get_facade_stats")
+	var stats_before: Dictionary = facade.call("get_facade_stats")
 	city.call("set_focus", Vector3(205.0, 0.0, 205.0))
 	await process_frame
 	city.call("set_focus", Vector3(-203.0, 0.0, -29.0))
