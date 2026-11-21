@@ -10,7 +10,7 @@ static func sound(kind: String, variation: int = 0) -> AudioStreamWAV:
 	if _cache.has(key):
 		return _cache[key]
 	var is_bed := kind in ["WIND", "TRAFFIC", "INDUSTRIAL", "WATER"]
-	var seconds := BED_SECONDS if is_bed else (0.19 if kind.begins_with("STEP") else 0.12)
+	var seconds := BED_SECONDS if is_bed else (0.19 if kind.begins_with("STEP") else (0.12 if kind == "UI" else 0.44))
 	var frames := roundi(float(RATE) * seconds)
 	var data := PackedByteArray()
 	data.resize(frames * 2)
@@ -49,6 +49,32 @@ static func sound(kind: String, variation: int = 0) -> AudioStreamWAV:
 				sample = heel + toe
 				if kind == "STEP_TILE":
 					sample += 0.025 * sin(TAU * 1120.0 * t) * exp(-65.0 * t)
+			"DOOR":
+				# Motorized latch, seal and the short padded door-close thud.
+				var latch_time := maxf(0.0, t - 0.19)
+				sample = sin(TAU * (92.0 + 85.0 * t) * t) * exp(-18.0 * t) * 0.095
+				if t >= 0.19:
+					sample += (noise * 0.11 + low_noise * 0.19) * exp(-34.0 * latch_time)
+			"TRANSIT":
+				# Short, distinctive two-tone boarding/alighting acknowledgement.
+				sample = 0.095 * sin(TAU * 523.25 * t) * exp(-15.0 * t)
+				if t > 0.17:
+					var note_t := t - 0.17
+					sample += 0.10 * sin(TAU * 659.25 * note_t) * exp(-16.0 * note_t)
+			"PICKUP":
+				sample = 0.10 * sin(TAU * 493.88 * t) * exp(-13.0 * t)
+				sample += 0.055 * sin(TAU * 987.77 * t) * exp(-24.0 * t)
+			"DELIVERY":
+				sample = 0.09 * sin(TAU * 587.33 * t) * exp(-16.0 * t)
+				if t > 0.16:
+					var complete_t := t - 0.16
+					sample += 0.12 * sin(TAU * 880.0 * complete_t) * exp(-12.0 * complete_t)
+			"JUMP":
+				sample = noise * 0.08 * exp(-25.0 * t)
+				sample += 0.055 * sin(TAU * (185.0 + 170.0 * t) * t) * exp(-20.0 * t)
+			"LAND":
+				sample = (noise * 0.13 + low_noise * 0.25) * exp(-29.0 * t)
+				sample += 0.055 * sin(TAU * 91.0 * t) * exp(-24.0 * t)
 			"UI":
 				sample = 0.055 * sin(TAU * (780.0 - 150.0 * t) * t) * exp(-32.0 * t)
 			_:
