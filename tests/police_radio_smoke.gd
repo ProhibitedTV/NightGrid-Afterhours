@@ -25,6 +25,10 @@ func _verify() -> void:
 		push_error("MBPD_RADIO: familiar radio terminology missing")
 		quit(1)
 		return
+	if not str(Radio.LINES["ACK"]).contains("10-17") or not str(Radio.LINES["RELEASED"]).contains("10-19") or not str(Radio.LINES["UNAVAILABLE"]).contains("10-7"):
+		push_error("MBPD_RADIO: service lifecycle codes missing")
+		quit(1)
+		return
 	var dispatch = world.get("dispatch")
 	var count: int = radio.get("last_sequence")
 	radio.call("ingest", dispatch.history)
@@ -40,6 +44,31 @@ func _verify() -> void:
 	if not str(radio.get("current")).is_empty() or not (radio.get("pending") as Array).is_empty():
 		quit(1)
 		return
+	# Real world release path: a disabled cruiser must never announce a return.
+	world.call("_spawn_police")
+	var units: Array = world.get("officers")
+	if units.size() != 1:
+		push_error("MBPD_RADIO: could not dispatch test cruiser")
+		quit(1)
+		return
+	var officer: CharacterBody3D = units[0]
+	var unit_id := str(officer.get_meta("unit_id"))
+	officer.set("condition", 0.0)
+	world.call("_release_response", officer)
+	units.clear()
+	var last_event: Dictionary = dispatch.history.back()
+	if last_event["event"] != "UNAVAILABLE" or last_event["detail"] != unit_id or not officer.is_queued_for_deletion() or not (world.get("returning_units") as Array).is_empty():
+		push_error("MBPD_RADIO: disabled unit incorrectly returned to station")
+		quit(1)
+		return
+	# Verify the spoken/caption selection against a real dispatch event.
+	radio.set("last_sequence", int(last_event["sequence"]) - 1)
+	radio.call("ingest", dispatch.history)
+	radio.call("tick", 0.1, true)
+	if not str(radio.get("current")).contains("10-7") or not str(radio.get("current")).contains(unit_id):
+		push_error("MBPD_RADIO: out-of-service event did not reach receiver")
+		quit(1)
+		return
 	var civic := world.get_node("CivicServices")
 	var player: CharacterBody3D = world.get("player")
 	player.global_position = civic.call("position_for", "police_hq")
@@ -50,5 +79,5 @@ func _verify() -> void:
 		push_error("MBPD_RADIO: live staffed board missing")
 		quit(1)
 		return
-	print("MBPD_RADIO_SMOKE PASS: eight voiced clips, incident caption/audio queue, bounded deduplication and live staffed HQ")
+	print("MBPD_RADIO_SMOKE PASS: nine voiced clips, service lifecycle, incident caption/audio queue, bounded deduplication and live staffed HQ")
 	quit(0)

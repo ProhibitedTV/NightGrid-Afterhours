@@ -87,6 +87,9 @@ func released(unit_id: String) -> void:
 func available(unit_id: String) -> void:
 	_event("AVAILABLE", unit_id)
 
+func unavailable(unit_id: String) -> void:
+	_event("UNAVAILABLE", unit_id)
+
 func status() -> String:
 	if active.is_empty():
 		return "DISPATCH • AVAILABLE"

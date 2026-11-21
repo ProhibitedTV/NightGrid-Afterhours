@@ -7,11 +7,12 @@ const MAX_QUEUE = 6
 const LINES = {
 	"REPORT": "Dispatch to all units. New incident reported.",
 	"ASSIGNED": "Dispatch to unit. Respond to assigned call.",
-	"ACK": "Unit to dispatch. 10-4, responding.",
+	"ACK": "Unit to dispatch. 10-4. 10-17, en route.",
 	"CONTACT": "Unit to dispatch. Visual contact.",
 	"SEARCH": "Unit to dispatch. Checking reported location.",
 	"CLOSED": "Dispatch. Code 4. Incident closed.",
-	"RELEASED": "Unit to dispatch. Returning to station.",
+	"RELEASED": "Unit to dispatch. 10-19, returning to station.",
+	"UNAVAILABLE": "Unit to dispatch. 10-7, out of service.",
 	"AVAILABLE": "Unit to dispatch. 10-8, available."
 }
 var pending: Array[Dictionary] = []

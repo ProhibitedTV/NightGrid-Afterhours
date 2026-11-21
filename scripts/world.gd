@@ -860,11 +860,13 @@ func _update_wanted(delta: float) -> void:
 			patrol.set("police_night", night)
 
 func _release_response(car: CharacterBody3D) -> void:
-	dispatch.released(str(car.get_meta("unit_id", "LEGACY")))
+	var unit_id := str(car.get_meta("unit_id", "LEGACY"))
 	var station: Dictionary = dispatch.stations.get(str(car.get_meta("station_id", "")), {})
 	if station.is_empty() or float(car.get("condition")) <= 18.0:
+		dispatch.unavailable(unit_id)
 		car.queue_free()
 		return
+	dispatch.released(unit_id)
 	car.set("police_priority", false)
 	car.set("police_destination", station["launch"])
 	returning_units.append(car)
