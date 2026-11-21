@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import struct
 import sys
 from pathlib import Path
@@ -22,6 +23,9 @@ PNG_HEADER = b"\x89PNG\r\n\x1a\n"
 readme = (ROOT / "README.md").read_text(encoding="utf-8")
 issues: list[str] = []
 seen_hashes: set[str] = set()
+manifest = json.loads((IMAGES / "capture-manifest.json").read_text(encoding="utf-8"))
+if set(manifest.get("images", {})) != set(NAMES):
+    issues.append("Capture manifest image set differs from expected gallery")
 for name in NAMES:
     path = IMAGES / name
     if not path.is_file():
@@ -37,6 +41,9 @@ for name in NAMES:
     if payload[-12:-8] != b"\x00\x00\x00\x00" or not payload.endswith(b"IEND\xaeB\x60\x82"):
         issues.append(f"Malformed PNG ending: {name}")
     fingerprint = hashlib.sha256(payload).hexdigest()
+    record = manifest.get("images", {}).get(name, {})
+    if record.get("sha256") != fingerprint or record.get("bytes") != len(payload):
+        issues.append(f"Capture manifest mismatch: {name}")
     if fingerprint in seen_hashes:
         issues.append(f"Duplicate image contents: {name}")
     seen_hashes.add(fingerprint)
