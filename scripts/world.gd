@@ -7,6 +7,7 @@ const CarScript = preload("res://scripts/car.gd")
 const KestrelVisual = preload("res://scripts/kestrel_s6_visual.gd")
 const MinimapScript = preload("res://scripts/minimap.gd")
 const Ui = preload("res://scripts/ui_style.gd")
+const Nav = preload("res://scripts/navigation_waypoint.gd")
 const CityDetailsScript = preload("res://scripts/city_details.gd")
 const CityPerimeterScript = preload("res://scripts/city_perimeter.gd")
 const DayNightScript = preload("res://scripts/day_night.gd")
@@ -57,6 +58,8 @@ var marker: Node3D
 var marker_light: OmniLight3D
 var hud_label: Label
 var hud_objective: Label
+var hud_navigation: Label
+var navigation_waypoint: Variant = null
 var hud_jobs: Label
 var hud_location: Label
 var hud_health: ProgressBar
@@ -1029,11 +1032,13 @@ func _capture_snapshot() -> Dictionary:
 		"venue_job_active": venue_job_active, "venue_job_completed": venue_job_completed.duplicate(),
 		"civic_job_active": civic_job_active, "civic_job_completed": civic_job_completed.duplicate(),
 		"civic_intel": civic_intel.duplicate(), "ration_packs": ration_packs,
-		"interior": interiors.call("snapshot")
+		"interior": interiors.call("snapshot"),
+		"navigation_waypoint": [] if navigation_waypoint == null else [navigation_waypoint.x, navigation_waypoint.y]
 	}
 
 func _apply_snapshot(data: Dictionary) -> void:
 	# Geometry is already reconstructed from the saved immutable seed.
+	navigation_waypoint = Nav.decode(data.get("navigation_waypoint", []))
 	traffic.call("restore", data["traffic"])
 	rail.call("restore", data["rail"])
 	signal_controller.set("elapsed", fposmod(float(data.get("signal_elapsed", 0.0)), 72.0))
@@ -1660,6 +1665,8 @@ func _build_hud() -> void:
 	stack.add_child(rule)
 	_hud_text(stack, "ObjectiveHeading", 15, Ui.MUTED).text = "CURRENT OBJECTIVE"
 	hud_objective = _hud_text(stack, "Objective", 25, Ui.ACCENT)
+	hud_navigation = _hud_text(stack, "Waypoint", 18, Nav.COLOR)
+	hud_navigation.hide()
 	hud_jobs = _hud_text(stack, "ActiveContracts", 17, Ui.TEXT)
 	var center_notice := _hud_card(ui, "NotificationCard", 0.5, 0.0, Vector4(-410, 24, 410, 92))
 	hud_notice_card = center_notice
@@ -1802,6 +1809,8 @@ func _update_hud() -> void:
 	hud_health.value = health
 	hud_objective.text = "%s  /  %dm" % [mission, distance]
 	hud_objective.modulate = Ui.ACCENT if carrying else Ui.AMBER
+	hud_navigation.visible = navigation_waypoint != null
+	hud_navigation.text = navigation_text() if navigation_waypoint != null else ""
 	var jobs: Array[String] = []
 	if not venue_job_active.is_empty():
 		jobs.append(_venue_job_text())
@@ -1857,6 +1866,50 @@ func _venue_job_target() -> Vector3:
 		return Vector3.ZERO
 	return venue_system.call("venue_position", str(job["to"]))
 
+func set_navigation_waypoint(point: Vector2) -> Vector2:
+	if not point.is_finite():
+		return Vector2.ZERO if navigation_waypoint == null else navigation_waypoint
+	point = Nav.clamp_point(point)
+	# Prefer exact, persistent interaction positions when clicking near pins.
+	var selected := point
+	var distance := Nav.SNAP_RADIUS
+	var candidates: Array[Vector2] = []
+	for pin in venue_system.call("get_map_pins"):
+		var p: Vector3 = venue_system.call("venue_position", str(pin["id"]))
+		candidates.append(Vector2(p.x, p.z))
+	for pin in civic_services.call("get_map_pins"):
+		var p: Vector3 = civic_services.call("position_for", str(pin["id"]))
+		candidates.append(Vector2(p.x, p.z))
+	for candidate in candidates:
+		var gap := point.distance_to(candidate)
+		if gap <= distance and Nav.valid(candidate):
+			selected = candidate
+			distance = gap
+	navigation_waypoint = selected
+	return selected
+
+func clear_navigation_waypoint() -> void:
+	navigation_waypoint = null
+
+func navigation_text() -> String:
+	if navigation_waypoint == null:
+		return "No custom waypoint"
+	var destination: Vector2 = navigation_waypoint
+	var actor_pos: Vector3 = interiors.get("exterior_position") if interiors.call("is_inside") else _actor().global_position
+	var origin := Vector2(actor_pos.x, actor_pos.z)
+	var label := city_details.call("get_district_at", Vector3(destination.x, 0.0, destination.y)) as String
+	for pin in venue_system.call("get_map_pins"):
+		var p: Vector3 = venue_system.call("venue_position", str(pin["id"]))
+		if destination.distance_to(Vector2(p.x, p.z)) < 0.1:
+			label = str(venue_system.call("venue_by_id", str(pin["id"]))["name"])
+			break
+	for pin in civic_services.call("get_map_pins"):
+		var p: Vector3 = civic_services.call("position_for", str(pin["id"]))
+		if destination.distance_to(Vector2(p.x, p.z)) < 0.1:
+			label = str(civic_services.call("site_by_id", str(pin["id"]))["name"])
+			break
+	return "WAYPOINT  %s  •  %dm %s" % [label, roundi(origin.distance_to(destination)), Nav.bearing(origin, destination)]
+
 func get_map_state() -> Dictionary:
 	var car_positions: Array[Vector2] = []
 	for officer in officers:
@@ -1868,6 +1921,8 @@ func get_map_state() -> Dictionary:
 	return {
 		"player": Vector2(map_actor.x, map_actor.z),
 		"mission": Vector2(mission_position.x, mission_position.z),
+		"waypoint_active": navigation_waypoint != null,
+		"waypoint": Vector2.ZERO if navigation_waypoint == null else navigation_waypoint,
 		"officers": car_positions,
 		"carrying": carrying,
 		"side_quest": Vector2(quest.x, quest.z),

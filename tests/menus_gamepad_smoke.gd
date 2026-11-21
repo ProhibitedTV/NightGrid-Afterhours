@@ -163,6 +163,59 @@ func _verify() -> void:
 	if str(menu.get("screen")) != "map" or menu.find_child("WorldMapView", true, false) == null:
 		_fail("The full-city map is missing or inaccessible from pause")
 		return
+	var atlas := menu.find_child("WorldMapView", true, false) as Control
+	var old_mission: Vector3 = world.get("mission_position")
+	if not bool(atlas.get("interactive")) or atlas.focus_mode != Control.FOCUS_ALL:
+		_fail("City atlas must be keyboard/controller interactive")
+		return
+	# Real controller movement and A press, routed to the atlas GUI.
+	atlas.set("cursor", Vector2.ZERO)
+	var right := InputEventJoypadButton.new()
+	right.button_index = JOY_BUTTON_DPAD_RIGHT
+	right.pressed = true
+	atlas.call("_gui_input", right)
+	if atlas.get("cursor") != Vector2(8, 0):
+		_fail("D-pad did not move the real atlas targeting cursor")
+		return
+	var accept := InputEventJoypadButton.new()
+	accept.button_index = JOY_BUTTON_A
+	accept.pressed = true
+	atlas.call("_gui_input", accept)
+	var selected: Dictionary = world.call("get_map_state")
+	if not bool(selected["waypoint_active"]) or selected["waypoint"] != Vector2(8, 0):
+		_fail("A did not set a real world-space map destination")
+		return
+	if world.get("mission_position") != old_mission:
+		_fail("Personal waypoint must never change courier objective")
+		return
+	var save: Dictionary = world.call("_capture_snapshot")
+	if save["navigation_waypoint"] != [8.0, 0.0]:
+		_fail("Waypoint not present in backward-compatible save payload")
+		return
+	var nav = load("res://scripts/navigation_waypoint.gd")
+	if nav.decode(save["navigation_waypoint"]) != Vector2(8, 0) or nav.decode([999, 0]) != null or nav.decode(["8", 0]) != null or nav.decode([]) != null:
+		_fail("Waypoint save decoder accepts malformed/old/outside coordinates")
+		return
+	if nav.bearing(Vector2.ZERO, Vector2(0, -20)) != "N" or nav.bearing(Vector2.ZERO, Vector2(20, 0)) != "E":
+		_fail("World X/Z navigation bearings are reversed")
+		return
+	var venues_node := world.get_node("SocialVenues")
+	var cafe: Vector3 = venues_node.call("venue_position", "lantern_cup")
+	var snapped: Vector2 = world.call("set_navigation_waypoint", Vector2(cafe.x + 2, cafe.z))
+	if not snapped.is_equal_approx(Vector2(cafe.x, cafe.z)) or not str(world.call("navigation_text")).contains("LANTERN CUP"):
+		_fail("Named destination did not snap to canonical café interaction point")
+		return
+	world.call("_update_hud")
+	if not (world.get("hud_navigation") as Label).visible:
+		_fail("Active waypoint did not appear in the live HUD")
+		return
+	var cancel_pin := InputEventJoypadButton.new()
+	cancel_pin.button_index = JOY_BUTTON_X
+	cancel_pin.pressed = true
+	atlas.call("_gui_input", cancel_pin)
+	if bool((world.call("get_map_state") as Dictionary)["waypoint_active"]):
+		_fail("X did not clear the waypoint")
+		return
 	menu.call("_choice", "back")
 	if str(menu.get("screen")) != "pause":
 		_fail("Map Back navigation did not return to pause")

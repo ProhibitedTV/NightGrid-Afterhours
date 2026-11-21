@@ -1,10 +1,72 @@
 extends Control
 ## Overview of streets, objective, player and chasing police.
 
+const Nav = preload("res://scripts/navigation_waypoint.gd")
 var world_node: Node3D
+var interactive := false
+var cursor := Vector2.ZERO
+signal destination_changed
 var _redraw_clock := 1.0
 const CITY_SPAN = 560.0
 const GRID_RADIUS = 4
+
+func _ready() -> void:
+	if interactive:
+		focus_mode = Control.FOCUS_ALL
+		mouse_filter = Control.MOUSE_FILTER_STOP
+		if is_instance_valid(world_node):
+			var state: Dictionary = world_node.call("get_map_state")
+			cursor = state["waypoint"] if bool(state["waypoint_active"]) else Nav.clamp_point(state["player"])
+		focus_entered.connect(queue_redraw)
+		focus_exited.connect(queue_redraw)
+
+func _gui_input(event: InputEvent) -> void:
+	if not interactive or not is_instance_valid(world_node):
+		return
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			var side := minf(size.x, size.y)
+			if side > 0.0 and Rect2(Vector2.ZERO, Vector2(side, side)).has_point(event.position):
+				grab_focus()
+				var point := (event.position - Vector2.ONE * side * 0.5) * CITY_SPAN / side
+				cursor = Nav.clamp_point(point)
+				_place()
+				accept_event()
+		elif event.button_index == MOUSE_BUTTON_RIGHT:
+			clear_destination()
+			accept_event()
+		return
+	var step := Vector2.ZERO
+	if event.is_action_pressed("ui_up", true):
+		step = Vector2.UP
+	elif event.is_action_pressed("ui_down", true):
+		step = Vector2.DOWN
+	elif event.is_action_pressed("ui_left", true):
+		step = Vector2.LEFT
+	elif event.is_action_pressed("ui_right", true):
+		step = Vector2.RIGHT
+	if step != Vector2.ZERO:
+		cursor = Nav.clamp_point(cursor + 8.0 * step)
+		queue_redraw()
+		accept_event()
+	elif event.is_action_pressed("ui_accept") and not event.is_echo():
+		_place()
+		accept_event()
+	elif event.is_action_pressed("service_two") and not event.is_echo():
+		clear_destination()
+		accept_event()
+
+func _place() -> void:
+	var result: Vector2 = world_node.call("set_navigation_waypoint", cursor)
+	cursor = result
+	queue_redraw()
+	destination_changed.emit()
+
+func clear_destination() -> void:
+	if is_instance_valid(world_node):
+		world_node.call("clear_navigation_waypoint")
+		queue_redraw()
+		destination_changed.emit()
 
 func _process(delta: float) -> void:
 	_redraw_clock += delta
@@ -77,11 +139,27 @@ func _draw() -> void:
 			draw_arc(_to_map(target, side, scale), 7.5, 0.0, TAU, 16, Color("95e7bc"), 2.5)
 		for officer in state["officers"]:
 			draw_circle(_to_map(officer, side, scale), 3.5, Color("f04e59"))
+		if bool(state.get("waypoint_active", false)):
+			var destination: Vector2 = state["waypoint"]
+			var target_pin := _to_map(destination, side, scale)
+			# This dotted bearing line is explicitly not a drivable route.
+			draw_dashed_line(_to_map(actor, side, scale), target_pin, Nav.COLOR, 1.7, 6.0, true, true)
+			var diamond := PackedVector2Array([target_pin + Vector2(0, -8), target_pin + Vector2(8, 0),
+				target_pin + Vector2(0, 8), target_pin + Vector2(-8, 0), target_pin + Vector2(0, -8)])
+			draw_polyline(diamond, Nav.COLOR, 2.5, true)
 		var actor_pin := _to_map(actor, side, scale)
 		draw_circle(actor_pin, 7.0, Color("101821"))
 		draw_circle(actor_pin, 5.5, Color("e7edf0"))
 		draw_arc(actor_pin, 8.5, 0.0, TAU, 24, Color("81e0d4"), 1.8, true)
 	draw_rect(Rect2(Vector2.ZERO, Vector2(side, side)), Color("54707c"), false, 2.0)
+	if interactive and has_focus():
+		var reticle := _to_map(cursor, side, scale)
+		draw_arc(reticle, 11.0, 0.0, TAU, 24, Color("e7edf0"), 1.5, true)
+		draw_line(reticle + Vector2(-15, 0), reticle + Vector2(-5, 0), Color.WHITE, 1.5)
+		draw_line(reticle + Vector2(5, 0), reticle + Vector2(15, 0), Color.WHITE, 1.5)
+		draw_line(reticle + Vector2(0, -15), reticle + Vector2(0, -5), Color.WHITE, 1.5)
+		draw_line(reticle + Vector2(0, 5), reticle + Vector2(0, 15), Color.WHITE, 1.5)
+		draw_rect(Rect2(Vector2.ZERO, Vector2(side, side)), Nav.COLOR, false, 2.0)
 	var font := ThemeDB.fallback_font
 	draw_string(font, Vector2(9, 19), "N ↑", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("e7edf0"))
 

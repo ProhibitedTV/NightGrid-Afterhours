@@ -305,11 +305,25 @@ func _render() -> void:
 			_label(col, "Player • quests • shops • bus stops (gold) • M-Line (cyan) • police", 15, Color("adc8d2"))
 			var atlas := Control.new()
 			atlas.name = "WorldMapView"
-			atlas.custom_minimum_size = Vector2(480.0, 480.0)
+			atlas.custom_minimum_size = Vector2(500.0, 500.0)
+			atlas.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 			atlas.set_script(MinimapScript)
 			atlas.set("world_node", _world)
+			atlas.set("interactive", true)
 			col.add_child(atlas)
-			_label(col, "Map addresses and active quests remain stable in the saved world.", 14, Color("a2b5bc"))
+			_focus_order.append(atlas)
+			_first_focus = atlas
+			var destination := Label.new()
+			destination.name = "AtlasDestination"
+			destination.add_theme_color_override("font_color", Color("c9a8ff"))
+			destination.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			col.add_child(destination)
+			var refresh_destination := func() -> void:
+				destination.text = str(_world.call("navigation_text")) if is_instance_valid(_world) else "No waypoint"
+			atlas.connect("destination_changed", refresh_destination)
+			refresh_destination.call()
+			_label(col, "Click to pin  •  Arrows / D-pad move  •  Enter / A pin  •  Right click / X clear", 15, Ui.TEXT)
+			_label(col, "Purple diamond = waypoint. Dotted line = straight-line bearing, not a road route. Esc / B back.", 14, Ui.MUTED)
 			_button(col, "back", "BACK TO PAUSE", "back")
 		"confirm_new":
 			_title(col, "START ANOTHER WORLD?", 24, Color("f0cdab"))
