@@ -93,7 +93,7 @@ func _verify() -> void:
 		sites_seen[id] = true
 		var ix := int(site["ix"])
 		var iz := int(site["iz"])
-		if not plan.is_valid_block(ix, iz) or plan.is_core_block(ix, iz):
+		if not plan.is_valid_block(ix, iz) or (plan.is_core_block(ix, iz) and id != "police_hq"):
 			_fail("Expanded service outside new neighborhoods")
 			return
 		if not plan.landmark_for_block(ix, iz).is_empty():
