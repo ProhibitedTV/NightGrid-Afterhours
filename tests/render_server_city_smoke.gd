@@ -80,7 +80,7 @@ func _verify() -> void:
 		return
 	# Unloading chunks releases their RID owner by the same queue_free that
 	# previously released per-material MultiMeshInstance3D nodes.
-	var previous_owner := weakref(owner)
+	var previous_owner: WeakRef = weakref(owner)
 	city.call("set_focus", Vector3(-203.0, 0.0, -203.0))
 	await process_frame
 	await process_frame
