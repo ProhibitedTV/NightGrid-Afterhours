@@ -192,7 +192,7 @@ func _check() -> void:
 		WorldPlan.manifest_signature(session.call("get_world_manifest")) != original_manifest):
 		_fail("Shopfront portal changed persistent city seed/parcel address")
 		return
-	city.call("set_focus",Vector3(203.0,0.0,203.0))
+	city.call("set_focus",Vector3(203.0,0.0,-203.0))
 	await process_frame
 	if (city.get("_loaded") as Dictionary).has(Vector2i(0,0)):
 		_fail("Central retail geometry was not unloaded with its original chunk")
