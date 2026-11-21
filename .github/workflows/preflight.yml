@@ -42,6 +42,8 @@ jobs:
               assert "version: 4.7.2" in workflow.read_text(encoding="utf-8"), "Export template/engine mismatch: " + name
           print("ENGINE_PINS PASS: Godot 4.7.2, GodotPhysics3D, Vulkan, 60Hz")
           PY
+      - name: Test release gallery revision and runtime-tree gate in isolated git fixtures
+        run: python tools/test_check_release_gallery.py
       - name: Verify committed real game screenshots
         run: python tools/check_screenshots.py
 
