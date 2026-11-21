@@ -172,6 +172,12 @@ jobs:
         run: godot --headless --path . --script res://tests/central_exchange_authored_curbs_smoke.gd
       - name: Verify two source-authored Central Exchange walk-in 3D shopfronts with actual doorway physics and saved-city stream reload
         run: godot --headless --path . --script res://tests/central_exchange_walk_in_shops_smoke.gd
+      - name: Validate Vesper upper-floor window assemblies and preserved shell collision
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/vesper_window_assembly_smoke.gd 2>&1 | tee /tmp/nightgrid-vesper-windows.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-vesper-windows.log; then exit 1; fi
       - name: Validate 2K photographed road surface, crossing clearance and saved world
         run: godot --headless --path . --script res://tests/central_road_surface_smoke.gd
       - name: Validate new Central Exchange true-mesh architecture, source PBR and persistence
