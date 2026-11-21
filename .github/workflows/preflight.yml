@@ -220,6 +220,12 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/logical_traffic_smoke.gd 2>&1 | tee /tmp/nightgrid-logical-traffic.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-logical-traffic.log; then exit 1; fi
+      - name: Validate actual photographic masonry on ordinary building shells
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/photo_masonry_smoke.gd 2>&1 | tee /tmp/nightgrid-photo-masonry.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-photo-masonry.log; then exit 1; fi
       - name: Validate photographic city road replacement, surface coverage and material budget
         timeout-minutes: 2
         run: |
