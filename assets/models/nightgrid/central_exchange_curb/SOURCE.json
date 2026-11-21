@@ -1,5 +1,5 @@
 {
-  "authoring_sha256": "af15a044025dccb4ad4f57bdc4707c7744e6764756620c8b95d5a914e1c96986",
+  "authoring_sha256": "ff64cdbaa46285ad27014dd1aa3be838b17ba3983eb7461220f13c6e35654788",
   "authoring_source": "tools/author_central_curb.py",
   "files": {
     "central_curb_outer_minus.bin": {
@@ -8,7 +8,7 @@
     },
     "central_curb_outer_minus.gltf": {
       "bytes": 7481,
-      "sha256": "1ce4d0b92ec3d1f74568b5b61bf7cd498fcf2030e4f9366e7c295bb29bc29449"
+      "sha256": "b3da3b93a18a5307edfca73e45594914a929433eecde1a9c493687a16c6282ed"
     },
     "central_curb_outer_plus.bin": {
       "bytes": 175392,
@@ -16,7 +16,7 @@
     },
     "central_curb_outer_plus.gltf": {
       "bytes": 7483,
-      "sha256": "e0ca78f4e323830f8c207936788999d3cb8b2c52929b12c78878be0b3de35672"
+      "sha256": "52776b4216a0ef548204c1576c51abab33ce59f3cc747c230a899766e4ebff5c"
     },
     "textures/bitumen_arm_1k.png": {
       "bytes": 4544,
@@ -30,9 +30,9 @@
       "bytes": 228855,
       "sha256": "4bdf5d3bc09637891328fd3a1a57cbe39a072bad467032342a3c36dfddf5d6b0"
     },
-    "textures/concrete_arm_1k.jpg": {
-      "bytes": 354529,
-      "sha256": "f5239e1c6db5f0ddb4c2397e881a5938ab511386aab19a23c20d40f4ab2c181b"
+    "textures/concrete_arm_1k.png": {
+      "bytes": 770054,
+      "sha256": "705217d71f3605a577120add3e7a0fb68d05231860ec8f42ed66bf910a2bf13d"
     },
     "textures/concrete_base_1k.jpg": {
       "bytes": 755740,
@@ -117,22 +117,28 @@
     "license": "CC0 1.0",
     "original_gltf": "https://dl.polyhaven.org/file/ph-assets/Textures/gltf/1k/concrete_floor_01/concrete_floor_01_1k.gltf",
     "texture_sources": {
-      "concrete_arm_1k.jpg": {
-        "bytes": 354529,
-        "sha256": "f5239e1c6db5f0ddb4c2397e881a5938ab511386aab19a23c20d40f4ab2c181b",
+      "concrete_arm_1k.png": {
+        "derived_bytes": 770054,
+        "derived_sha256": "705217d71f3605a577120add3e7a0fb68d05231860ec8f42ed66bf910a2bf13d",
+        "source_bytes": 354529,
         "source_md5": "3d374d86d7a43b93eed95d0d8957759c",
+        "source_sha256": "f5239e1c6db5f0ddb4c2397e881a5938ab511386aab19a23c20d40f4ab2c181b",
         "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_01/concrete_floor_01_rough_1k.jpg"
       },
       "concrete_base_1k.jpg": {
-        "bytes": 755740,
-        "sha256": "db7c800f1464359b5f359fc743e82ac51b34e014fdfd53844f4af34bb1949229",
+        "derived_bytes": 755740,
+        "derived_sha256": "db7c800f1464359b5f359fc743e82ac51b34e014fdfd53844f4af34bb1949229",
+        "source_bytes": 755740,
         "source_md5": "187065cfc20a35eb421eac6d4f38c58f",
+        "source_sha256": "db7c800f1464359b5f359fc743e82ac51b34e014fdfd53844f4af34bb1949229",
         "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_01/concrete_floor_01_diff_1k.jpg"
       },
       "concrete_normal_1k.jpg": {
-        "bytes": 909898,
-        "sha256": "28be1f6fa82eeab137c84954bf7ea0f5d8a4434352d01c29f15e20926eb7227e",
+        "derived_bytes": 909898,
+        "derived_sha256": "28be1f6fa82eeab137c84954bf7ea0f5d8a4434352d01c29f15e20926eb7227e",
+        "source_bytes": 909898,
         "source_md5": "3862d48eb9495b302652cac825738876",
+        "source_sha256": "28be1f6fa82eeab137c84954bf7ea0f5d8a4434352d01c29f15e20926eb7227e",
         "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_01/concrete_floor_01_nor_gl_1k.jpg"
       }
     }
