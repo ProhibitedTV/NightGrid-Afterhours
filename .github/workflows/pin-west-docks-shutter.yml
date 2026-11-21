@@ -1,0 +1,38 @@
+name: Pin verified CC0 West Docks shutter art
+# One-time source import into this deliberately named art branch only.
+# This job may commit ONLY one whitelisted Poly Haven asset directory.
+on:
+  push:
+    branches: [art/west-docks-cc0-shutter-20261121]
+    paths:
+      - tools/import_polyhaven_shutter.py
+      - .github/workflows/pin-west-docks-shutter.yml
+permissions:
+  contents: write
+jobs:
+  import-source-asset:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch and verify original Poly Haven 1K glTF/PBR under CC0
+        run: python tools/import_polyhaven_shutter.py
+      - name: Commit audited source-owned assets only to this exact art branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "art/west-docks-cc0-shutter-20261121"
+          git add -- assets/models/polyhaven/rollershutter_window_01/
+          if git diff --cached --quiet; then
+            echo "Identical source assets already committed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "assets(cc0): pin scanned rollershutter glTF with verified source 1K PBR"
+          git push origin HEAD:refs/heads/art/west-docks-cc0-shutter-20261121
