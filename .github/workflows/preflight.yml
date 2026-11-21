@@ -228,6 +228,12 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/sidewalk_population_smoke.gd 2>&1 | tee /tmp/nightgrid-sidewalk.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-sidewalk.log; then exit 1; fi
+      - name: Validate skinned pedestrian animation and palette adapter
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/pedestrian_rig_smoke.gd 2>&1 | tee /tmp/nightgrid-pedestrian-rig.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-pedestrian-rig.log; then exit 1; fi
       - name: Validate reusable physical pedestrian pool and phase handoff
         timeout-minutes: 2
         run: |
