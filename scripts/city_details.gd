@@ -748,7 +748,7 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 				var flank_width: float = (width * 0.5 - portal_half)
 				for side in [-1.0, 1.0]:
 					var flank := CollisionShape3D.new()
-					flank.name = "BuildingColliderFlank_%s" % str(side)
+					flank.name = "BuildingColliderFlank_%d" % int(side)
 					var flank_shape := BoxShape3D.new()
 					flank_shape.size = Vector3(flank_width, height, depth)
 					flank.shape = flank_shape
