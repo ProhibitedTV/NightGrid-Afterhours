@@ -8,9 +8,9 @@ import math, random, struct, subprocess, tempfile, wave
 import re
 source_text = Path("scripts/police_radio.gd").read_text(encoding="utf-8")
 block = source_text.split("const LINES = {", 1)[1].split("}", 1)[0]
-LINES = {key.lower(): (phrase, key in {"REPORT", "ASSIGNED", "CLOSED"})
+LINES = {key.lower(): (phrase, key in {"REPORT", "ASSIGNED", "CLOSED"} or key.startswith("CIVIC"))
          for key, phrase in re.findall(r'"([A-Z]+)": "([^"]+)"', block)}
-assert set(LINES) == {"report", "assigned", "ack", "contact", "search", "closed", "released", "unavailable", "available"}
+assert set(LINES) == {"report", "assigned", "ack", "contact", "search", "closed", "released", "unavailable", "available", "civicmotorist", "civictraffic", "civicpublic"}
 out = Path("assets/audio/mbpd")
 out.mkdir(parents=True, exist_ok=True)
 for name, (phrase, control) in LINES.items():
@@ -43,4 +43,4 @@ for name, (phrase, control) in LINES.items():
     with wave.open(str(out / (name + ".wav")), "wb") as f:
         f.setnchannels(1); f.setsampwidth(2); f.setframerate(rate)
         f.writeframes(struct.pack("<" + "h"*len(samples), *samples))
-print("MBPD: generated nine original, offline spoken radio clips")
+print("MBPD: generated twelve original, offline spoken radio clips")

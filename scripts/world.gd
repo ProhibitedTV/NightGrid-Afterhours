@@ -71,6 +71,7 @@ var _radio_caption: Label
 var _radio_card: PanelContainer
 var _radio_close_tail := 0.0
 var _radio_was_wanted := false
+var _civic_radio_announced: Dictionary = {}
 var returning_units: Array[CharacterBody3D] = []
 var _sight_clock := 0.0
 var _wanted_label: Label
@@ -265,10 +266,15 @@ func _update_police_radio(delta: float) -> void:
 		_radio_close_tail = 20.0
 	_radio_was_wanted = active
 	_radio_close_tail = maxf(0.0, _radio_close_tail - delta)
-	var in_station := bool(interiors.call("is_inside")) and str(interiors.call("active_site_group")) == "CIVIC" and (civic_services.call("site_by_id", str(interiors.call("active_site_id"))) as Dictionary).has("station_id")
+	var station: Dictionary = {}
+	if bool(interiors.call("is_inside")) and str(interiors.call("active_site_group")) == "CIVIC":
+		station = civic_services.call("site_by_id", str(interiors.call("active_site_id")))
+	var in_station := station.has("station_id")
 	police_radio.call("ingest", dispatch.history)
 	police_radio.call("update_state", active, wanted.police_seen, delta)
 	var closing := _radio_close_tail > 0.0 and bool(police_radio.call("has_traffic"))
+	if in_station and not active and not closing and not bool(day_night.get("paused")):
+		_announce_civic_at_station(station)
 	police_radio.call("tick", delta, active or in_station or closing)
 	if not active and not bool(police_radio.call("has_traffic")):
 		_radio_close_tail = 0.0
@@ -277,6 +283,32 @@ func _update_police_radio(delta: float) -> void:
 	_radio_caption.text = caption
 	if in_station:
 		interiors.call("update_dispatch_board", dispatch.status() + " / CIVIC %d" % ambient_civic.open_count(), officers.size(), returning_units.size(), caption)
+
+func _announce_civic_at_station(station: Dictionary) -> void:
+	# Administrative requests only: no invented unit arrival or resolution.
+	# Never compete with active player dispatch or its closing sequence.
+	if not station.has("station_id") or bool(police_radio.call("has_traffic")):
+		return
+	var cases: Array[Dictionary] = ambient_civic.catalog()
+	var retained := {}
+	for incident in cases:
+		var id := str(incident["id"])
+		if _civic_radio_announced.has(id):
+			retained[id] = true
+	_civic_radio_announced = retained
+	for incident in cases:
+		var id := str(incident["id"])
+		if _civic_radio_announced.has(id) or incident["state"] == "RESOLVED":
+			continue
+		if not bool(station.get("headquarters", false)) and incident["station_id"] != station["station_id"]:
+			continue
+		var kind: String = {"MOTORIST ASSISTANCE":"CIVICMOTORIST", "TRAFFIC SERVICE":"CIVICTRAFFIC", "PUBLIC SERVICE REQUEST":"CIVICPUBLIC"}.get(str(incident["kind"]), "")
+		if kind.is_empty():
+			continue
+		var detail := "%s / %s / %s" % [id, str(incident["station_id"]).to_upper(), str(incident["district"])]
+		police_radio.call("enqueue", kind, detail)
+		_civic_radio_announced[id] = true
+		return
 
 func _build_world_audio() -> void:
 	world_audio = WorldAudioScript.new()
@@ -1311,6 +1343,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 	navigation_waypoint = Nav.decode(data.get("navigation_waypoint", []))
 	weapons.restore(data.get("weapons", {}))
 	ambient_civic.restore(data.get("ambient_civic", {}))
+	_civic_radio_announced.clear()
 	traffic.call("restore", data["traffic"])
 	rail.call("restore", data["rail"])
 	signal_controller.set("elapsed", fposmod(float(data.get("signal_elapsed", 0.0)), 72.0))
