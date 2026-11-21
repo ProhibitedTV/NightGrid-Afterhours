@@ -15,3 +15,5 @@ per-frame meshes. Native closeups of wheel/skirt intersection, door design,
 livery, shadows, and traffic continuity remain necessary before claiming
 realism or measured frame pacing. This branch intentionally does not alter
 the active gallery capture on #111.
+
+Follow-up: four circular wheel-arch cutouts replace the long continuous skirt faces. Twelve samples per arch, dark inner well liners and a recessed underside retain a 0.53m nominal arch radius around the 0.44m tires. The existing tire and body colliders are not changed. Test the actual skirt vertices and clearance; native visual review still required. Wheel-arch geometry is authored, not a black painted decal.

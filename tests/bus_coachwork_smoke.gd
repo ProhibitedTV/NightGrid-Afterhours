@@ -1,4 +1,5 @@
 extends SceneTree
+const Coachwork = preload("res://scripts/bus_coachwork.gd")
 func _initialize()->void:
 	create_timer(35.0,true,false,true).timeout.connect(func()->void: quit(1))
 	call_deferred("_verify")
@@ -23,6 +24,23 @@ func _verify()->void:
 			return
 		var bounds := coach.mesh.get_aabb()
 		if not _check(bounds.size.x<2.70 and bounds.size.y<2.85 and bounds.size.z<8.30,"body stays within existing collision envelope"):
+			return
+		if not _check(int(coach.get_meta("wheel_wells",0))==4 and Coachwork.ARCH_RADIUS>0.44 and Coachwork.AXLE_Y+Coachwork.ARCH_RADIUS<Coachwork.WAIST_Y,"four modeled wheel-well openings with tire clearance"):
+			return
+		# Inspect the actual charcoal skirt surface: its outer skin must
+		# contain no vertices inside the tire profile at either axle.
+		var vertices:PackedVector3Array = coach.mesh.surface_get_arrays(1)[Mesh.ARRAY_VERTEX]
+		var rim_vertices:=0
+		for v in vertices:
+			if absf(v.x)<1.10 or v.y<Coachwork.SKIRT_Y-0.001 or v.y>Coachwork.WAIST_Y+0.001:
+				continue
+			for axle in Coachwork.AXLES:
+				if absf(v.z-axle)>Coachwork.ARCH_RADIUS+0.001:
+					continue
+				if not _check(Vector2(v.z-axle,v.y-Coachwork.AXLE_Y).length()>0.44,"skirt skin does not cross tire circle"):
+					return
+				rim_vertices+=1
+		if not _check(rim_vertices>=48,"actual sampled arch vertices"):
 			return
 		var collider_count:=0
 		var wheels:=0
