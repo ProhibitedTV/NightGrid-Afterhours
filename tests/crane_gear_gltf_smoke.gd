@@ -50,7 +50,7 @@ func _check_asset(lot: Node3D, width: float, height: float, depth: float) -> boo
 		var arrays: Array = mesh.surface_get_arrays(surface)
 		var positions: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 		vertices += positions.size()
-		if positions.size() < 100 or (arrays[Mesh.ARRAY_TEX_UV] as PackedVector2Array).size() != positions.size():
+		if positions.size() < 24 or (arrays[Mesh.ARRAY_TEX_UV] as PackedVector2Array).size() != positions.size():
 			_fail("Original source geometry or UV mapping was dropped at import")
 			return false
 		if (arrays[Mesh.ARRAY_TANGENT] as PackedFloat32Array).size() != positions.size() * 4:
