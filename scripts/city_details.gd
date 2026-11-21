@@ -666,14 +666,15 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 	var back := center.z + depth / 2.0
 	var left := center.x - width / 2.0
 	var right := center.x + width / 2.0
-	# Preserve the original, save-stable collision volume, but do NOT render
-	# a solid BoxMesh behind the windows on the two bespoke Central Exchange
-	# building assemblies. That box visually filled the window apertures.
-	var south_exposure: bool = (ix == -1 and iz == 0 and which == 1) or (ix == 0 and iz == 0 and which == 0)
+	# Preserve the save-stable collider but do not render an opaque block
+	# behind the recessed photo-material architecture. West Docks Dock Watch
+	# is the real civic storefront at (-4,-1), left (west) lot.
+	var dock_watch_exposure := ix == -4 and iz == -1 and which == 0
+	var authored_exposure: bool = dock_watch_exposure or (ix == -1 and iz == 0 and which == 1) or (ix == 0 and iz == 0 and which == 0)
 	var shell_at := Vector3(center.x, height / 2.0 + 0.15, center.z)
 	var shell_size := Vector3(width, height, depth)
 	if not shell_prebuilt:
-		if south_exposure:
+		if authored_exposure:
 			var volume := StaticBody3D.new()
 			volume.name = "PreservedBuildingCollision"
 			volume.position = shell_at
@@ -689,14 +690,11 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 	if shell_only:
 		return
 	_statistics["buildings"] += 1
-	# First physically coherent architecture study: the two south-facing
-	# building fronts at Central Exchange, across from the working signals.
-	# Keep the same parcel/seed, outer collision and publicly exposed shop ID.
-	# The new actual recessed-window ArrayMeshes *replace* the old fake glass
-	# and glowing box stack, rather than doubling those decorations.
-	if south_exposure:
+	# Replace fake-window blockout with contiguous UV-mapped wall surfaces
+	# around actual 3D openings. Keep collision, seeds and public door anchors.
+	if authored_exposure:
 		var names: Array = SHOPS[district]
-		var stable_name: String = names[abs(ix * 11 + iz * 17 + which * 3) % names.size()]
+		var stable_name: String = "DOCK WATCH DESK" if dock_watch_exposure else names[abs(ix * 11 + iz * 17 + which * 3) % names.size()]
 		var facade := CentralFrontage.new()
 		facade.name = "PhotorealFrontage_%d_%d_%d" % [ix, iz, which]
 		facade.configure(width, height, depth, district, stable_name)

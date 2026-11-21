@@ -61,6 +61,8 @@ jobs:
         run: godot --headless --path . --script res://tests/central_road_surface_smoke.gd
       - name: Validate new Central Exchange true-mesh architecture, source PBR and persistence
         run: godot --headless --path . --script res://tests/central_frontages_smoke.gd
+      - name: Validate Dock Watch scanned-cladding architectural pilot, existing civic address and save
+        run: godot --headless --path . --script res://tests/dock_watch_fidelity_smoke.gd
       - name: Validate permanent venues, opening hours and side quests
         run: godot --headless --path . --script res://tests/venues_smoke.gd
       - name: Validate NightGrid FM soundtrack catalog, radio and optional game audio pack

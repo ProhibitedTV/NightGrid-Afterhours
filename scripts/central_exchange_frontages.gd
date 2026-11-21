@@ -1,5 +1,6 @@
 extends Node3D
-## Two permanent Central Exchange street façades: built as coherent UV-mapped
+## Anchored street façades (Central Exchange and West Docks Dock Watch):
+## built as coherent UV-mapped
 ## architectural surfaces with real geometric window and shopfront recesses,
 ## not dozens of overlaid BoxMesh billboards. The existing core collision
 ## volumes and gameplay storefront IDs remain at their original coordinates.
@@ -120,7 +121,7 @@ func _surface_material(family: String) -> Material:
 			out.roughness = 0.30
 		"GLASS":
 			out = StandardMaterial3D.new()
-			if district == "BRICKWATER" or district == "AFTERHOURS":
+			if district == "BRICKWATER" or district == "AFTERHOURS" or district == "WEST DOCKS":
 				# The glass is a distinct surface, with a separate shallow
 				# room backing. The old pilot painted lit windows opaque amber.
 				out.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -231,7 +232,7 @@ func _window(x0: float, x1: float, bottom: float, top: float, is_lit: bool) -> v
 	_push(jamb, Vector3(inner_left, lower, GLASS), Vector3(inner_right, lower, GLASS),
 		Vector3(x1, bottom, FRONT), Vector3(x0, bottom, FRONT))
 	_statistics["reveal_faces"] += 4
-	if district == "BRICKWATER" or district == "AFTERHOURS":
+	if district == "BRICKWATER" or district == "AFTERHOURS" or district == "WEST DOCKS":
 		# One recessed glass plane plus a separately shaded interior at
 		# 0.7m depth. No cutout exposes the sky or old collision volume.
 		_rect("GLASS", inner_left, inner_right, lower, upper, GLASS + 0.007, 0.72)
@@ -324,9 +325,9 @@ func _generate_facade() -> void:
 		finish.name = "BrickwaterSealedCornerAndRoof"
 		finish.configure(building_width, building_height, building_depth)
 		add_child(finish)
-	elif district == "AFTERHOURS":
+	elif district == "AFTERHOURS" or district == "WEST DOCKS":
 		var finish := AfterhoursFinish.new()
-		finish.name = "AfterhoursSealedCornerAndRoof"
+		finish.name = "DockWatchSealedCornerAndRoof" if district == "WEST DOCKS" else "AfterhoursSealedCornerAndRoof"
 		finish.configure(building_width, building_height, building_depth)
 		add_child(finish)
 
