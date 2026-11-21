@@ -543,15 +543,16 @@ func _build_block_base(ix: int, iz: int) -> void:
 		var inside_corner: bool = absf(center.x) == CELL * 0.5 and absf(center.z) == CELL * 0.5
 		var inner_x_edge: bool = inside_corner and (side < 0.0 if center.x > 0.0 else side > 0.0)
 		var inner_z_edge: bool = inside_corner and (side < 0.0 if center.z > 0.0 else side > 0.0)
-		if inner_x_edge:
-			_detail(center + Vector3(side * 20.8, 0.18, signf(center.z) * 3.0),
-				Vector3(0.48, 0.24, 36.0), Color("85888b"))
-		else:
-			_detail(center + Vector3(side * 20.8, 0.18, 0.0), Vector3(0.48, 0.24, 42.0), Color("85888b"))
-		if inner_z_edge:
-			_detail(center + Vector3(signf(center.x) * 3.0, 0.18, side * 20.8),
-				Vector3(36.0, 0.24, 0.48), Color("85888b"))
-		else:
+		# The eight generic 36m inner grey boxes formerly sat exactly at
+		# x/z = +/-8.2 and longitudinal +/-32m. The permanent hero origin now
+		# owns ONE authored photographed glTF replacement per such edge; do not
+		# double-render the old BoxMesh underneath the true beveled curb.
+		# Other 248 neighborhood edges retain their original stage/collider
+		# behavior and are not affected by this one-block pilot.
+		if not inner_x_edge:
+			_detail(center + Vector3(side * 20.8, 0.18, 0.0),
+				Vector3(0.48, 0.24, 42.0), Color("85888b"))
+		if not inner_z_edge:
 			_detail(center + Vector3(0.0, 0.18, side * 20.8),
 				Vector3(42.0, 0.24, 0.48), Color("85888b"))
 		for slab in range(-4, 5):

@@ -1,0 +1,154 @@
+{
+  "authoring_sha256": "ff64cdbaa46285ad27014dd1aa3be838b17ba3983eb7461220f13c6e35654788",
+  "authoring_source": "tools/author_central_curb.py",
+  "files": {
+    "central_curb_outer_minus.bin": {
+      "bytes": 175392,
+      "sha256": "5890de05909089fe064b2f72544701b6056ecd966316f9297ad18369023866f1"
+    },
+    "central_curb_outer_minus.gltf": {
+      "bytes": 7481,
+      "sha256": "b3da3b93a18a5307edfca73e45594914a929433eecde1a9c493687a16c6282ed"
+    },
+    "central_curb_outer_plus.bin": {
+      "bytes": 175392,
+      "sha256": "cde44780831ddc5a96b200f1b2f5b91c16441763b67299c3984de63f79e978c1"
+    },
+    "central_curb_outer_plus.gltf": {
+      "bytes": 7483,
+      "sha256": "52776b4216a0ef548204c1576c51abab33ce59f3cc747c230a899766e4ebff5c"
+    },
+    "textures/bitumen_arm_1k.png": {
+      "bytes": 4544,
+      "sha256": "2ab1ba3a1d040ec9a7256006c2193625451ad03301ab808cb97d1fb389abbf84"
+    },
+    "textures/bitumen_base_1k.jpg": {
+      "bytes": 122425,
+      "sha256": "f65cc38477af243ca6badafd6bf7914b7fe91248c2d9642f87aecddd3843c4d2"
+    },
+    "textures/bitumen_normal_1k.jpg": {
+      "bytes": 228855,
+      "sha256": "4bdf5d3bc09637891328fd3a1a57cbe39a072bad467032342a3c36dfddf5d6b0"
+    },
+    "textures/concrete_arm_1k.png": {
+      "bytes": 770054,
+      "sha256": "705217d71f3605a577120add3e7a0fb68d05231860ec8f42ed66bf910a2bf13d"
+    },
+    "textures/concrete_base_1k.jpg": {
+      "bytes": 755740,
+      "sha256": "db7c800f1464359b5f359fc743e82ac51b34e014fdfd53844f4af34bb1949229"
+    },
+    "textures/concrete_normal_1k.jpg": {
+      "bytes": 909898,
+      "sha256": "28be1f6fa82eeab137c84954bf7ea0f5d8a4434352d01c29f15e20926eb7227e"
+    },
+    "textures/steel_arm_1k.png": {
+      "bytes": 4546,
+      "sha256": "034a83713b7aa2bbd15c9f573f2a3c3d04b2c083d63b5d9190ae6f11383d9cde"
+    },
+    "textures/steel_base_1k.jpg": {
+      "bytes": 119853,
+      "sha256": "c7732d50a52c5ecd28447d65b580061a36c07ce33f7ff99bce05302057071e1e"
+    },
+    "textures/steel_normal_1k.jpg": {
+      "bytes": 64748,
+      "sha256": "09fb7a5d68b9973a87905ae6bd84d0b1592da39e8d00139d060ec3d720ce0be6"
+    }
+  },
+  "license": "CC0 1.0 source photo texture layers; original NightGrid 3D geometry",
+  "material_derivatives": {
+    "BITUMEN": {
+      "bitumen_arm_1k.png": {
+        "bytes": 4544,
+        "sha256": "2ab1ba3a1d040ec9a7256006c2193625451ad03301ab808cb97d1fb389abbf84"
+      },
+      "bitumen_base_1k.jpg": {
+        "bytes": 122425,
+        "sha256": "f65cc38477af243ca6badafd6bf7914b7fe91248c2d9642f87aecddd3843c4d2"
+      },
+      "bitumen_normal_1k.jpg": {
+        "bytes": 228855,
+        "sha256": "4bdf5d3bc09637891328fd3a1a57cbe39a072bad467032342a3c36dfddf5d6b0"
+      }
+    },
+    "STEEL": {
+      "steel_arm_1k.png": {
+        "bytes": 4546,
+        "sha256": "034a83713b7aa2bbd15c9f573f2a3c3d04b2c083d63b5d9190ae6f11383d9cde"
+      },
+      "steel_base_1k.jpg": {
+        "bytes": 119853,
+        "sha256": "c7732d50a52c5ecd28447d65b580061a36c07ce33f7ff99bce05302057071e1e"
+      },
+      "steel_normal_1k.jpg": {
+        "bytes": 64748,
+        "sha256": "09fb7a5d68b9973a87905ae6bd84d0b1592da39e8d00139d060ec3d720ce0be6"
+      }
+    }
+  },
+  "model_variants": [
+    {
+      "concrete_expansion_joints": 11,
+      "curb_stones": 12,
+      "name": "central_curb_outer_minus",
+      "steel_grate_frames": 6,
+      "steel_grate_slots": 54,
+      "surfaces": 3,
+      "triangles": 1560,
+      "vertices": 3264
+    },
+    {
+      "concrete_expansion_joints": 11,
+      "curb_stones": 12,
+      "name": "central_curb_outer_plus",
+      "steel_grate_frames": 6,
+      "steel_grate_slots": 54,
+      "surfaces": 3,
+      "triangles": 1560,
+      "vertices": 3264
+    }
+  ],
+  "original_asset": "NightGrid authored beveled 36m street curb/road gutter modules",
+  "placement": "8 fixed 36m Central Exchange inner curbs, existing corner crossing ramps preserved",
+  "runtime_download_required": false,
+  "source_concrete": {
+    "api": "https://api.polyhaven.com/files/concrete_floor_01",
+    "asset": "concrete_floor_01",
+    "license": "CC0 1.0",
+    "original_gltf": "https://dl.polyhaven.org/file/ph-assets/Textures/gltf/1k/concrete_floor_01/concrete_floor_01_1k.gltf",
+    "texture_sources": {
+      "concrete_arm_1k.png": {
+        "derived_bytes": 770054,
+        "derived_sha256": "705217d71f3605a577120add3e7a0fb68d05231860ec8f42ed66bf910a2bf13d",
+        "source_bytes": 354529,
+        "source_md5": "3d374d86d7a43b93eed95d0d8957759c",
+        "source_sha256": "f5239e1c6db5f0ddb4c2397e881a5938ab511386aab19a23c20d40f4ab2c181b",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_01/concrete_floor_01_rough_1k.jpg"
+      },
+      "concrete_base_1k.jpg": {
+        "derived_bytes": 755740,
+        "derived_sha256": "db7c800f1464359b5f359fc743e82ac51b34e014fdfd53844f4af34bb1949229",
+        "source_bytes": 755740,
+        "source_md5": "187065cfc20a35eb421eac6d4f38c58f",
+        "source_sha256": "db7c800f1464359b5f359fc743e82ac51b34e014fdfd53844f4af34bb1949229",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_01/concrete_floor_01_diff_1k.jpg"
+      },
+      "concrete_normal_1k.jpg": {
+        "derived_bytes": 909898,
+        "derived_sha256": "28be1f6fa82eeab137c84954bf7ea0f5d8a4434352d01c29f15e20926eb7227e",
+        "source_bytes": 909898,
+        "source_md5": "3862d48eb9495b302652cac825738876",
+        "source_sha256": "28be1f6fa82eeab137c84954bf7ea0f5d8a4434352d01c29f15e20926eb7227e",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_01/concrete_floor_01_nor_gl_1k.jpg"
+      }
+    }
+  },
+  "source_existing_2k": {
+    "bitumen_diffuse_2k.jpg": "709bf2bd8753197f90c0ea1fc3a735c1e06ffd7cb4aabdb9bd9401f9df607e31",
+    "bitumen_nor_gl_2k.png": "95914ba4fbd0003373bcdbe08663456712d7fa5ffdad3dd695a403f1a6428e74",
+    "bitumen_rough_2k.png": "fccb4c1f8a02d4a0f91ad5a3a84536da9fb6f9a131aea96c70e6d86989c703dd",
+    "blue_metal_plate_diffuse_2k.jpg": "82855f6297ad07ea7ea4d1c501e6b56ed4c9c758653ca126bda9fd0ebba63c59",
+    "blue_metal_plate_nor_gl_2k.png": "8c5701c09d71bbc7dffe97b45fde3c57b132c5fca8d39851695f7566f54b02e9",
+    "blue_metal_plate_rough_2k.png": "5f6a97dafe6d6d81f7511e9eaa029a73edbc5206e5f1943a14fa9e86a1a35f18"
+  }
+}

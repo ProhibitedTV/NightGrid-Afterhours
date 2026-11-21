@@ -1,0 +1,52 @@
+name: Pin original source-owned Central Exchange curb glTF kit
+# Restricted one-shot production asset authoring. Production game, normal CI
+# and Windows export use committed source/PBR files without internet/Pillow.
+on:
+  push:
+    branches: [art/central-exchange-authored-curbs-20261121]
+    paths:
+      - tools/author_central_curb.py
+      - .github/workflows/pin-central-exchange-curb.yml
+permissions:
+  contents: write
+jobs:
+  author-original-curb-model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned photo-asset authoring library
+        run: python -m pip install Pillow==11.3.0
+      - name: Verify original official CC0 scanned concrete and author two mirrored full-depth 36m glTF modules
+        run: python tools/author_central_curb.py
+      - name: Commit ONLY original authored curb/texture kit to named art branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "art/central-exchange-authored-curbs-20261121"
+          git add -- assets/models/nightgrid/central_exchange_curb/
+          if git diff --cached --quiet; then
+            echo "Pinned curb art already identical"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "art: pin true measured Central Exchange curb glTF and CC0 concrete PBR"
+          # A source-asset job can overlap concurrent GitHub integration edits
+          # on this same temporary branch; preserve ALL intervening commits
+          # with a fast-forward rebase, never force-push the artwork.
+          for attempt in 1 2 3 4 5; do
+            git fetch origin art/central-exchange-authored-curbs-20261121
+            git rebase origin/art/central-exchange-authored-curbs-20261121
+            if git push origin HEAD:refs/heads/art/central-exchange-authored-curbs-20261121; then
+              echo "Original glTF + corrected PBR pinned without losing other commits"
+              exit 0
+            fi
+            echo "Concurrent branch writer during source art pin; retrying ($attempt/5)"
+            sleep 2
+          done
+          echo "Source art pin could not safely fast-forward" >&2
+          exit 1

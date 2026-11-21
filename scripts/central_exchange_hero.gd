@@ -4,6 +4,7 @@ extends Node3D
 ## No procedural randomness, collisions in the travelled roadway, or new save data.
 const Materials = preload("res://scripts/material_library.gd")
 const PhotoStreetKit = preload("res://scripts/central_exchange_street_kit.gd")
+const AuthoredCurbs = preload("res://scripts/central_exchange_curb_kit.gd")
 const CROSSING_DISTANCE = 10.3
 const CURB_AT = 8.1
 const STRIPE_COUNT = 9
@@ -17,7 +18,9 @@ var _stats := {
 	"mounted_signal_heads": 0, "crossing_signs": 0,
 	"batched_instances": 0, "night_lights": 0,
 	"photographed_street_props": 0, "photo_road_decal_projections": 0,
-	"measured_street_colliders": 0
+	"measured_street_colliders": 0,
+	"original_curb_modules": 0, "scanned_curb_draw_surfaces": 0,
+	"beveled_concrete_sections": 0, "original_slotted_drains": 0
 }
 var _night := 0.0
 var _hero_light: OmniLight3D
@@ -40,6 +43,16 @@ func _ready() -> void:
 	_stats["photographed_street_props"] = real_stats["source_installs"]
 	_stats["photo_road_decal_projections"] = real_stats["road_decal_projections"]
 	_stats["measured_street_colliders"] = real_stats["sidewalk_collision_bodies"]
+	# Real modeled curb/grate sidewalk kit replaces only the 8 old
+	# generic 36m inner curb boxes; all road crosswalk ramps are preserved.
+	var curbs := AuthoredCurbs.new()
+	curbs.name = "CentralExchangeAuthoredCurbProfiles"
+	add_child(curbs)
+	var curb_stats: Dictionary = curbs.get_curbstone_stats()
+	_stats["original_curb_modules"] = curb_stats["installed_static_modules"]
+	_stats["scanned_curb_draw_surfaces"] = curb_stats["photographed_material_surfaces"]
+	_stats["beveled_concrete_sections"] = curb_stats["concrete_slab_sections"]
+	_stats["original_slotted_drains"] = curb_stats["gutter_drain_grates"]
 	_build_night_light()
 	set_night_factor(0.0)
 
