@@ -9,6 +9,7 @@ const AVENUE_START = 0.22
 var building_width := 15.0
 var building_height := 20.0
 var building_depth := 23.0
+var walk_in_enabled := false
 var _quads: Dictionary = {}
 var _stats := {
     "sealed_corner_returns": 0,
@@ -20,10 +21,11 @@ var _stats := {
     "new_lights": 0
 }
 
-func configure(width: float, height: float, depth: float) -> void:
+func configure(width: float, height: float, depth: float, walk_in: bool = false) -> void:
     building_width = width
     building_height = height
     building_depth = depth
+    walk_in_enabled = walk_in
 
 func get_finish_stats() -> Dictionary:
     return _stats.duplicate()
@@ -75,11 +77,19 @@ func _build() -> void:
 
     # A continuous footing prevents seeing underneath wall faces where the
     # existing facade visually begins 0.15m above its local origin.
-    _closed_box("MASONRY", Vector3(-half - 0.045, -0.15, FRONT - 0.065),
-        Vector3(half + 0.33, 0.22, FRONT - 0.026))
+    if walk_in_enabled:
+        # A genuine pedestrian opening cannot retain the old full-width,
+        # opaque source-authored low masonry foundation across the door.
+        _closed_box("MASONRY", Vector3(-half - 0.045, -0.15, FRONT - 0.065),
+            Vector3(-1.56, 0.22, FRONT - 0.026))
+        _closed_box("MASONRY", Vector3(1.56, -0.15, FRONT - 0.065),
+            Vector3(half + 0.33, 0.22, FRONT - 0.026))
+    else:
+        _closed_box("MASONRY", Vector3(-half - 0.045, -0.15, FRONT - 0.065),
+            Vector3(half + 0.33, 0.22, FRONT - 0.026))
     _closed_box("MASONRY", Vector3(half + 0.305, -0.15, AVENUE_START),
         Vector3(half + 0.35, 0.22, building_depth - 0.195))
-    _stats["foundation_runs"] = 2
+    _stats["foundation_runs"] = 3 if walk_in_enabled else 2
 
     # Continuous roof membrane over the old structural roof plane, with a
     # complete solid parapet instead of a floating front-facing rectangle.
