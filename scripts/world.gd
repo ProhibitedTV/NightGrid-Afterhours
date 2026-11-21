@@ -28,6 +28,7 @@ const NightLightingScript = preload("res://scripts/night_lighting.gd")
 const WetStreetsScript = preload("res://scripts/wet_streets.gd")
 const HeroIntersectionScript = preload("res://scripts/central_exchange_hero.gd")
 const CentralRoadScanScript = preload("res://scripts/central_exchange_road_surface.gd")
+const PhotoRoadNetwork = preload("res://scripts/photo_road_network.gd")
 const TrafficSignalsScript = preload("res://scripts/traffic_signals.gd")
 const TrafficSystemScript = preload("res://scripts/traffic_system.gd")
 const RailSystemScript = preload("res://scripts/rail_system.gd")
@@ -1150,13 +1151,12 @@ func _build_environment() -> void:
 	_box(self, Vector3(0.0, -0.58, 0.0), Vector3(490.0, 1.0, 490.0), Color("34434a"), true, false, "CONCRETE")
 
 func _build_city() -> void:
-	# The road foundation stays simple; populated streets live in city_details.gd.
-	var road := Color("252b35")
+	# Replace the overlapping visual strips with continuous UV-authored
+	# photographic asphalt. The world foundation remains the collider.
+	var pavement := PhotoRoadNetwork.new()
+	pavement.name = "PhotoRoadNetwork"
+	add_child(pavement)
 	var sidewalk := Color("b2b0ac")
-	for index in range(-GRID_RADIUS, GRID_RADIUS + 1):
-		var axis := float(index) * CELL
-		_box(self, Vector3(axis, -0.055, 0.0), Vector3(14.0, 0.12, 490.0), road, false, false, "ASPHALT")
-		_box(self, Vector3(0.0, -0.05, axis), Vector3(490.0, 0.12, 14.0), road, false, false, "ASPHALT")
 	for block_x in range(-GRID_RADIUS, GRID_RADIUS):
 		for block_z in range(-GRID_RADIUS, GRID_RADIUS):
 			var center := Vector3((float(block_x) + 0.5) * CELL, 0.07, (float(block_z) + 0.5) * CELL)
