@@ -2,7 +2,7 @@
 
 **User reference:** [Why 3D Games Look Bad in Godot](https://www.youtube.com/watch?v=0792U-wuwjA) by **Coding Quests**, published October 2026; creator's exact [companion article, “How to Make Godot 3D Look Better: 12 Changes, Same Models”](https://codingquests.io/blog/how-to-make-godot-3d-look-better).
 
-**Engine migration:** The original **tagged beta.3** is a **Godot 4.3.0** executable, using Filmic baseline and an ACES preview because [Godot 4.3 does not support AgX](https://docs.godotengine.org/en/4.3/classes/class_environment.html). The **current development source now targets Godot 4.7.2 stable**, supporting both ACES and the **actual AgX** tonemapper, with optional AgX contrast/white properties. The default remains Filmic. To avoid conflating an engine upgrade with an art upgrade, we retain all three named modes and log the mode used in every F10 capture. [Full migration and compatibility](GODOT_4_7_2_MIGRATION.md).
+**Engine migration:** The original **tagged beta.3** is a **Godot 4.3.0** executable, using Filmic baseline and an ACES preview because [Godot 4.3 does not support AgX](https://docs.godotengine.org/en/4.3/classes/class_environment.html). **Beta.4 and the current development source use Godot 4.7.2 stable**, supporting both ACES and the **actual AgX** tonemapper, with optional AgX contrast/white properties. The default remains Filmic. To avoid conflating an engine upgrade with an art upgrade, we retain all three named modes and log the mode used in every F10 capture. [Full migration and compatibility](GODOT_4_7_2_MIGRATION.md).
 
 ## Tutorial — what is actually demonstrated
 
