@@ -1,8 +1,19 @@
-# NightGrid: Afterhours — Windows beta 0.1.0-beta.6
+# NightGrid: Afterhours — Windows beta 0.1.0-beta.7
 
 **Status: early, diagnostics-focused beta (Windows x64).**
 
-## New in beta.6 — licensed, real-model West Docks street art
+## New in beta.7 — city art and ambient traffic overhaul
+
+- Photographic asphalt across the established street network, damp gutter materials, and photographic concrete sidewalks/curbs.
+- Ordinary brick shells reuse the existing CC0 photographic masonry maps, and the Moon Noodles parcel has modeled upper-floor window frames and inset glazing.
+- Original mesh replacements for 25 ambient sedan bodies and four city buses, with wheel-well openings, sloping glazing on sedans, shared materials and revised wheel stance; traffic routes, collision shapes, and passenger boarding stay unchanged.
+- Expanded civic simulation, central police dispatch and routine patrol service; bounded road restriction and pedestrian/traffic streaming foundations. Automatic civilian detours and pooled street crowds are not enabled yet.
+- Nine actual game captures on the README, including intentionally staged portraits of real traffic actors. These are Linux compatibility-renderer images, not native RTX frame-time evidence.
+- Visual feedback, gameplay suggestions and bug/performance templates are available on the public issue tracker. Use F7/F8/F10 to capture repeatable playtest evidence.
+
+This version is prepared for publication only after the integrated source and nine-image gallery pass preflight and the Windows export and archive verification complete. It remains an early beta. Native Windows fidelity, continuous driving and 1080p/60 performance require playtesting.
+
+## Previously in beta.6 — licensed, real-model West Docks street art
 
 The first playable art milestone incorporates original, auditably licensed 3D geometry rather than another lighting preset. It is still a technical pilot, **not a finished AAA world**.
 
@@ -55,8 +66,8 @@ This release upgrades the **entire engine/toolchain from Godot 4.3.0 to 4.7.2 st
 
 ## Download and run
 
-1. Download the **NightGrid-Afterhours-v0.1.0-beta.6-windows-x64.zip** asset on the GitHub [Releases](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) page. **Do not** use the GitHub automatically generated "Source code" archive as the executable build.
-2. Optionally check the ZIP against the published `SHA256SUMS.txt` (PowerShell: `Get-FileHash -Algorithm SHA256 .\\NightGrid-Afterhours-v0.1.0-beta.6-windows-x64.zip`).
+1. Download the **NightGrid-Afterhours-v0.1.0-beta.7-windows-x64.zip** asset on the GitHub [Releases](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) page. **Do not** use the GitHub automatically generated "Source code" archive as the executable build.
+2. Optionally check the ZIP against the published `SHA256SUMS.txt` (PowerShell: `Get-FileHash -Algorithm SHA256 .\\NightGrid-Afterhours-v0.1.0-beta.7-windows-x64.zip`).
 3. Extract the **entire ZIP** to a folder. Keep the `NightGrid-Afterhours.exe` and `NightGrid-Afterhours.pck` **in the same folder**. Run the EXE.
 4. Windows SmartScreen or Chrome may flag an **unsigned, newly published executable**. Publishing on GitHub is not code-signing and does not guarantee the download will be unblocked. Confirm the URL is the real project release and inspect/scan files before making any exception. **Do not disable Chrome Safe Browsing or antivirus globally.** If an antivirus reports malware rather than an unknown publisher, do not bypass it; file an issue with the exact warning.
 
