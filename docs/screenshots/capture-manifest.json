@@ -5,8 +5,8 @@
       "sha256": "bc89f9e230145746f3ab3544ef833bdd4e6d94b16cb2bb13b02cf84824d9542c"
     },
     "02-vesper-market-nightlife.png": {
-      "bytes": 800066,
-      "sha256": "e96b7dcb583a67f6397888ce320ea95d98b044bb15e8bba326e83cc6719a29bb"
+      "bytes": 800065,
+      "sha256": "fba44b5d33c85b7ee3838a0918140d66c70a3926cb8473b0ac22182461ec3418"
     },
     "03-m-line-helix-terminal.png": {
       "bytes": 399848,
@@ -17,26 +17,26 @@
       "sha256": "124c20e0c120bcca094706ac095a71020523697c08c4b990f2b8ba918134b606"
     },
     "05-quay-fresh-interior.png": {
-      "bytes": 228067,
-      "sha256": "8dbb8f342fe2ed517aef7e90efbb6a786a5e09c848fb8f7f662c64a997f18ea7"
+      "bytes": 228072,
+      "sha256": "6145dfe86cb1f71ccaf07e51b137c8e77e1fb494909dfaec7e91da8303be13e7"
     },
     "06-title-menu.png": {
       "bytes": 143744,
       "sha256": "81fbe6ab87093830ff340bb5ec15bd659204254457a9eeb01c90f25cfec21217"
     },
     "07-city-map-menu.png": {
-      "bytes": 150808,
-      "sha256": "048311e2f3a8b38c8d3a90a656aaca5c8e35faa43eb7720818ac4842a065df87"
+      "bytes": 150810,
+      "sha256": "3770901c0f70358f2583dce7038d6aaf70878e3b6203a00b1a560b99fba6cd22"
     },
     "08-city-bus-coachwork.png": {
       "bytes": 822677,
       "sha256": "5c99c680a0c189bc4871515981181224abd26c2b5fdb634597cb8cd5e04bd149"
     },
     "09-civilian-sedan-coachwork.png": {
-      "bytes": 595358,
-      "sha256": "4eefbabbb4619d539632f78a20d7e6b49a55367c23d7d05abc710f84728b8c32"
+      "bytes": 595357,
+      "sha256": "29318b6f11f79ee75232f46c99e510a4d456687b461e092f154136b646629e3c"
     }
   },
   "renderer": "Godot 4.7.2 Mesa software OpenGL Compatibility 1280x720 (NOT Vulkan/RTX)",
-  "source_revision": "1caa6bc3635538c4f101033724217c975aef892a"
+  "source_revision": "1fd99523be76c6c88a7150b4cd4b695c72d90567"
 }
