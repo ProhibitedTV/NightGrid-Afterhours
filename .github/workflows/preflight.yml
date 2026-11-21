@@ -72,6 +72,12 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/road_restrictions_smoke.gd 2>&1 | tee /tmp/nightgrid-road-restrictions.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-road-restrictions.log; then exit 1; fi
+      - name: Validate restriction revision invalidates real map and HUD waypoint route
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/civic_waypoint_smoke.gd 2>&1 | tee /tmp/nightgrid-civic-waypoint.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-civic-waypoint.log; then exit 1; fi
       - name: Validate main menus, saved settings and controller action contexts
         timeout-minutes: 2
         run: |

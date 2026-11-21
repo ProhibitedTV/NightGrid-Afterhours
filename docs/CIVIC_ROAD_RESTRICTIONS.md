@@ -17,3 +17,6 @@ A restriction cannot imply an actual officer is present. The scene integration
 must safely defer occupied segments and preserve access to required destinations.
 Headless fallback/detour/connectivity/expiry tests run in preflight; native
 visual and frame-time work belongs to #87/#88.
+
+## Waypoint integration (phase 2A)
+The world now owns a RoadRestrictions instance advanced with naturally elapsed civic minutes. Map and HUD route cache keys include registry revision; even unsuccessful routes are cached. Closure/expiry invalidates the cached route for a stationary actor; a closed target reports unavailable. The empty registry preserves original street routes exactly. Restrictions are cleared on save restore pending a physical scene/save policy. No automatic producer, gameplay barriers, traffic diversion or new live closures are enabled. The test injects a temporary restriction in a controlled world only. Future work must validate occupied segments, bus access and signs before activating real events.
