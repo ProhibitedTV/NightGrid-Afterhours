@@ -3,6 +3,7 @@ const WorldPlan = preload("res://scripts/world_plan.gd")
 const Materials = preload("res://scripts/material_library.gd")
 const CentralFrontage = preload("res://scripts/central_exchange_frontages.gd")
 const WestDocksService = preload("res://scripts/west_docks_service_frontage.gd")
+const CraneGearWarehouse = preload("res://scripts/crane_gear_warehouse.gd")
 const RenderBatchOwner = preload("res://scripts/render_batch_owner.gd")
 ## Seeded city dressing. Static shell collisions + batched decorative geometry.
 ## The four neighborhoods deliberately share road geometry but not street character.
@@ -723,7 +724,8 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 	# is the real civic storefront at (-4,-1), left (west) lot.
 	var dock_watch_exposure := ix == -4 and iz == -1 and which == 0
 	var dock_service_exposure := ix == -4 and iz == -1 and which == 1
-	var authored_exposure: bool = dock_watch_exposure or dock_service_exposure or (ix == -1 and iz == 0 and which == 1) or (ix == 0 and iz == 0 and which == 0)
+	var crane_gear_exposure := ix == -4 and iz == -2 and which == 1
+	var authored_exposure: bool = dock_watch_exposure or dock_service_exposure or crane_gear_exposure or (ix == -1 and iz == 0 and which == 1) or (ix == 0 and iz == 0 and which == 0)
 	var shell_at := Vector3(center.x, height / 2.0 + 0.15, center.z)
 	var shell_size := Vector3(width, height, depth)
 	if not shell_prebuilt:
@@ -754,6 +756,17 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 		service.configure(width, height, depth)
 		service.position = Vector3(center.x, 0.15, center.z)
 		_active_chunk.add_child(service)
+		_statistics["storefronts"] += 1
+		return
+	if crane_gear_exposure:
+		# Actual UV-authored 3D building replacing the old opaque window-sticker
+		# block. Same original save-stable parcel collider, public shop address,
+		# roads/sidewalks and streaming lifetime.
+		var crane_gear := CraneGearWarehouse.new()
+		crane_gear.name = "OriginalCraneGearWarehouse"
+		crane_gear.configure(width, height, depth)
+		crane_gear.position = Vector3(center.x, 0.15, center.z)
+		_active_chunk.add_child(crane_gear)
 		_statistics["storefronts"] += 1
 		return
 	if authored_exposure:
