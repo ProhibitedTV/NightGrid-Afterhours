@@ -56,6 +56,9 @@ func next_point(at: Vector2, goal: Vector2) -> Vector2:
 		index += 1
 	return path[index]
 
+func arrived(at: Vector2, goal: Vector2) -> bool:
+	return not path.is_empty() and destination.is_finite() and destination.distance_to(goal) <= 0.1 and index == path.size() - 1 and at.distance_to(path[-1]) <= 1.5
+
 func reset() -> void:
 	path.clear()
 	index = 0

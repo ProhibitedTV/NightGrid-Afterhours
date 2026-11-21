@@ -19,6 +19,14 @@ func _verify() -> void:
 		if minf(absf(point.x - roundf(point.x / 58.0) * 58.0), absf(point.y - roundf(point.y / 58.0) * 58.0)) > 3.26:
 			_fail("Route waypoint strayed from street envelope")
 			return
+	var planner = Drive.new()
+	var destination := Vector2(58, 42)
+	planner.next_point(Vector2(10, 3.25), destination)
+	planner.next_point(planner.path[0], destination)
+	planner.next_point(planner.path[1], destination)
+	if not planner.arrived(planner.path[-1], destination):
+		_fail("Patrol can advance after reaching its lane endpoint, not only the centreline destination")
+		return
 	if Drive.safe_speed(true, 40, 0, INF, 0, false) != 0.0:
 		_fail("Even urgent response must stop at red")
 		return

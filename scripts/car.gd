@@ -53,7 +53,7 @@ func _physics_process(delta: float) -> void:
 		var goal := police_destination
 		if not responding and not routine_route.is_empty():
 			goal = routine_route[routine_index]
-			if global_position.distance_to(goal) < 6.0:
+			if drive_policy.arrived(Vector2(global_position.x, global_position.z), Vector2(goal.x, goal.z)) or global_position.distance_to(goal) < 1.5:
 				routine_index = (routine_index + 1) % routine_route.size()
 				goal = routine_route[routine_index]
 		if not goal.is_finite():
