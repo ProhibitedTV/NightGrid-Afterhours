@@ -9,6 +9,10 @@ A dedicated [NightGrid FM audio director](docs/NIGHTGRID_FM_SOUNDTRACK.md) now r
 **Audio asset note:** the source code and playlists live on this branch, but the 20 compressed Ogg recordings must also be installed under `assets/audio/nightgrid_fm/` before an export will actually contain music. The [guide](docs/NIGHTGRID_FM_SOUNDTRACK.md) explains the 50 MB creator-provided game-audio pack and checks. Builds without those files remain playable with procedural venue ambience, **but do not yet include the full audible soundtrack**.
 
 
+### West Docks realism pilot from actual Windows beta feedback
+
+The beta's first hands-on West Docks screenshot at **22:07** exposed repeating flat windows, opaque box-buildings and service facades that still read like blockout art. The permanent **Dock Watch Desk (-4,-1, lot 0)** now has a **narrow technical replacement**: scanned CC0 2K steel cladding and bitumen roof, true recessed glazing/window wall openings, backed room depth and a closed canopy/roof envelope. Existing collision, civic interaction, seed and saved-city layout remain fixed. **The rest of West Docks is not rebuilt** and this is **not yet a visually approved Windows/Forward+ result**. [Scope, evidence and actual screenshot acceptance requirements](docs/WEST_DOCKS_DOCK_WATCH_FIDELITY.md).
+
 ### First implemented step toward photorealistic city architecture
 
 **Central Exchange (Brickwater/Afterhours corners):** two fixed building lots now have coherent custom `ArrayMesh` building façades, not the usual stacked `BoxMesh` window cards. Recessed windows, human-scale shop glazing, street-facing side elevations and canopy profiles are textured with **real 2K Poly Haven CC0 photographs** (brick and painted blue steel, each with albedo, OpenGL normal and roughness). Gameplay collision, street geometry, shop identities, save manifests and world seeds are preserved. This is a meaningful *partial world-engineering upgrade*, not a claim of AAA visual fidelity. [Full provenance, implementation, and actual Godot screenshot review](docs/CENTRAL_EXCHANGE_FIDELITY_PILOT.md). The rest of the city and original cars/characters are still visually provisional.
