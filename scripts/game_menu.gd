@@ -118,6 +118,8 @@ func get_settings() -> Dictionary:
 	return settings.duplicate(true)
 
 func _open(value: String) -> void:
+	if is_instance_valid(_world):
+		_world.call("suspend_weapon")
 	var previous := get_viewport().gui_get_focus_owner()
 	if is_instance_valid(previous) and _root.is_ancestor_of(previous):
 		_last_focus[screen] = str(previous.name)

@@ -50,6 +50,11 @@ func _verify() -> void:
 	var patrol: CharacterBody3D = world.call("_create_car", Vector3(0, 1.15, -12), Color("192943"), true)
 	var officers: Array = world.get("officers")
 	officers.append(patrol)
+	# Existing pursuit cleanup despawns officers at heat <0.15. Preserve
+	# the actual real-world collider during this deterministic fixture.
+	world.set("heat", 1.0)
+	world.set("police_cooldown", 100.0)
+	patrol.set_physics_process(false)
 	world.set("yaw", 0.0)
 	world.set("pitch", 0.42)
 	await physics_frame
@@ -60,27 +65,47 @@ func _verify() -> void:
 	if not world.call("_fire_weapon"):
 		_fail("Outdoor aimed fire did not discharge")
 		return
-	if float(patrol.get("condition")) >= 100.0 or float(world.get("heat")) <= old_heat or int(weapons.ammo["pulse"]) != 7:
+	if not is_instance_valid(patrol) or float(patrol.get("condition")) >= 100.0 or float(world.get("heat")) <= old_heat or int(weapons.ammo["pulse"]) != 7:
 		_fail("Real raycast vehicle hit, ammunition and heat were not integrated")
 		return
+	# Real wall obstruction between the player and target.
+	var damaged: float = patrol.get("condition")
+	var wall := StaticBody3D.new()
+	wall.position = Vector3(0, 1.8, -2)
+	var wall_shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(4, 4, 0.4)
+	wall_shape.shape = box
+	wall.add_child(wall_shape)
+	world.add_child(wall)
+	await physics_frame
+	await physics_frame
+	weapons.tick(1.0)
+	world.set("weapon_aiming", true)
+	camera.global_position = Vector3(0, 1.7, 7)
+	camera.look_at(Vector3(0, 1.7, -12), Vector3.UP)
+	if not world.call("_fire_weapon") or not is_equal_approx(float(patrol.get("condition")), damaged):
+		_fail("A real wall must block damage to the patrol behind it")
+		return
+	wall.queue_free()
 	patrol.call("take_arcade_damage", 999.0)
 	if not is_equal_approx(float(patrol.get("condition")), 18.0):
 		_fail("Disabled patrol condition is not bounded")
 		return
 	var snapshot: Dictionary = world.call("_capture_snapshot")
-	if int(snapshot["weapons"]["ammo"]["pulse"]) != 7:
+	if int(snapshot["weapons"]["ammo"]["pulse"]) != 6:
 		_fail("Actual world snapshot omitted ammunition")
 		return
 	var menu := world.get_node("GameMenus")
 	menu.call("open_pause")
 	weapons.tick(1.0)
-	if world.call("_fire_weapon") or int(weapons.ammo["pulse"]) != 7:
+	if world.call("_fire_weapon") or int(weapons.ammo["pulse"]) != 6:
 		_fail("Pause must block discharge")
 		return
 	menu.call("hide_for_game")
 	var cars: Array = world.get("cars")
 	world.set("current_car", cars[0])
-	if world.call("_fire_weapon") or int(weapons.ammo["pulse"]) != 7:
+	if world.call("_fire_weapon") or int(weapons.ammo["pulse"]) != 6:
 		_fail("Driving must block fire")
 		return
 	world.set("current_car", null)
@@ -88,5 +113,5 @@ func _verify() -> void:
 	if bool(world.get("weapon_aiming")):
 		_fail("Aim should not stay active after releasing input")
 		return
-	print("COMBAT_SMOKE PASS: inventory, cooldown, reload, save, real patrol damage, police heat, paused/driver gates and HUD")
+	print("COMBAT_SMOKE PASS: inventory, cooldown, reload, save, real patrol damage, wall occlusion, police heat, paused/driver gates and HUD")
 	quit(0)

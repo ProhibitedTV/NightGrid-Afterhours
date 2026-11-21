@@ -1949,6 +1949,19 @@ func clear_navigation_waypoint() -> void:
 	navigation_waypoint = null
 	_route_cache.clear()
 
+func suspend_weapon() -> void:
+	weapons.holster()
+	weapon_aiming = false
+	_fire_held = true
+	if is_instance_valid(player):
+		player.set("weapon_aiming", false)
+		var rig := player.get_node_or_null("Visual")
+		if is_instance_valid(rig):
+			rig.call("set_weapon_pose", "holstered", false)
+	if is_instance_valid(_weapon_card):
+		_weapon_card.hide()
+		_reticle.hide()
+
 func _can_use_weapon() -> bool:
 	return is_instance_valid(player) and is_instance_valid(venue_panel) and not venue_panel.visible and current_car == null and current_transit == null and not interiors.call("is_inside") and not get_tree().paused and (game_menu == null or not game_menu.call("is_open"))
 
