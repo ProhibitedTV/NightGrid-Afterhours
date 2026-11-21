@@ -3,6 +3,7 @@ extends RefCounted
 ## are not certified walkable until the live scene validates each segment.
 ## No physical bodies, witnesses, player tracking or scene changes here.
 const Plan = preload("res://scripts/world_plan.gd")
+const Routines = preload("res://scripts/civilian_routines.gd")
 const MAX_LOGICAL = 128
 const MAX_ACTIVE = 12
 const MAX_CHANGES = 2
@@ -70,7 +71,8 @@ func configure(seed_value: int, links: Array[Dictionary]) -> void:
 		if id.is_empty() or _routes.has(id) or not a is Vector3 or not b is Vector3 or not a.is_finite() or not b.is_finite() or a.distance_to(b)<1.0:
 			continue
 		_routes[id] = link.duplicate(true)
-		_agents[id] = {"phase":rng.randf(),"speed":rng.randf_range(0.9,1.45),"style":rng.randi_range(0,5)}
+		_agents[id] = {"phase":rng.randf(),"speed":rng.randf_range(0.9,1.45),"style":rng.randi_range(0,5),
+			"routine":Routines.identity(seed_value,id,str(link.get("district","")))}
 
 func ids() -> Array:
 	return _agents.keys()
@@ -88,6 +90,16 @@ func sample(id: String) -> Dictionary:
 	return {"id":id,"position":a.lerp(b,t),"heading":(b-a).normalized()*(1.0 if phase<0.5 else -1.0),
 		"style":agent["style"],"speed":agent["speed"],"district":route.get("district",""),
 		"start":a,"end":b}
+
+## Activation preference only: existing live actors are never removed just
+## because an activity window changed. Old callers may omit this gate.
+func routine_for(id: String) -> Dictionary:
+	if not _agents.has(id):
+		return {}
+	return (_agents[id]["routine"] as Dictionary).duplicate()
+
+func available_at(id: String,hour: float) -> bool:
+	return _agents.has(id) and Routines.eligible(_agents[id]["routine"],str(_routes[id].get("district","")),hour)
 
 func advance(seconds: float, active_ids: Array) -> void:
 	if not is_finite(seconds) or seconds<=0.0:
@@ -133,9 +145,9 @@ func restore(value: Variant) -> void:
 			_agents[id]["phase"] = float(phase)
 
 func plan_changes(focus: Vector3, camera: Vector3, indoors: bool, active: Dictionary,
-		occupied: Array[Vector3], can_walk_and_spawn: Callable, can_hide: Callable) -> Dictionary:
+		occupied: Array[Vector3], can_walk_and_spawn: Callable, can_hide: Callable, hour: float = -1.0) -> Dictionary:
 	var result := {"activate":[],"recycle":[]}
-	if indoors or not focus.is_finite() or not camera.is_finite() or not can_walk_and_spawn.is_valid() or not can_hide.is_valid():
+	if not is_finite(hour) or indoors or not focus.is_finite() or not camera.is_finite() or not can_walk_and_spawn.is_valid() or not can_hide.is_valid():
 		return result
 	for id in active:
 		var at: Variant = active[id]
@@ -146,7 +158,7 @@ func plan_changes(focus: Vector3, camera: Vector3, indoors: bool, active: Dictio
 	var remaining := maxi(0,MAX_ACTIVE-active.size()+result["recycle"].size())
 	var candidates: Array[Dictionary] = []
 	for id in _agents:
-		if active.has(id):
+		if active.has(id) or (hour>=0.0 and not available_at(id,hour)):
 			continue
 		var entry := sample(id)
 		var at: Vector3 = entry["position"]
