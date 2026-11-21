@@ -1,0 +1,133 @@
+{
+  "description": "Original physical walk-in 3D shopfront/vestibule + recessed photo-PBR retail displays",
+  "files": {
+    "afterhours_repair.bin": {
+      "bytes": 199368,
+      "sha256": "4dd3f34ba868dcc16ababde742ec712401cd3008edcde85950cd15b0bfb1b76b"
+    },
+    "afterhours_repair.gltf": {
+      "bytes": 13267,
+      "sha256": "32b1e0a277636784e64197978df8f62456bdd0f71ad55b5de936bfc4b996cb3d"
+    },
+    "brickwater_retail.bin": {
+      "bytes": 198072,
+      "sha256": "12a95d9bb4ddc223d81619e6bb36fdd0ae0dbe2d5b4cbf3fe83ae1b7292d7908"
+    },
+    "brickwater_retail.gltf": {
+      "bytes": 13283,
+      "sha256": "7649c4d812ae47dd96d5be0981c01fde0aa53c28b0429187cbcd5437cb8b6128"
+    },
+    "textures/bitumen_arm_1k.png": {
+      "bytes": 4544,
+      "sha256": "2ab1ba3a1d040ec9a7256006c2193625451ad03301ab808cb97d1fb389abbf84"
+    },
+    "textures/bitumen_base_1k.jpg": {
+      "bytes": 113328,
+      "sha256": "3e22a176684888f0f1be0e934bd9258049e268958895985e39465395fc0e4806"
+    },
+    "textures/bitumen_normal_1k.jpg": {
+      "bytes": 267785,
+      "sha256": "086817a2edf300037f1704eca08488b785be8a1e7222ef5fbce7e0d06999047b"
+    },
+    "textures/concrete_arm_1k.png": {
+      "bytes": 770054,
+      "sha256": "705217d71f3605a577120add3e7a0fb68d05231860ec8f42ed66bf910a2bf13d"
+    },
+    "textures/concrete_base_1k.jpg": {
+      "bytes": 755740,
+      "sha256": "db7c800f1464359b5f359fc743e82ac51b34e014fdfd53844f4af34bb1949229"
+    },
+    "textures/concrete_normal_1k.jpg": {
+      "bytes": 909898,
+      "sha256": "28be1f6fa82eeab137c84954bf7ea0f5d8a4434352d01c29f15e20926eb7227e"
+    },
+    "textures/masonry_arm_1k.png": {
+      "bytes": 606763,
+      "sha256": "d9483a4fb809fb57f51bf5e04b309faa54a871c39c3d93392bd65d8dec211f3d"
+    },
+    "textures/masonry_base_1k.jpg": {
+      "bytes": 328014,
+      "sha256": "2e4474c865a45ac2fce9d153636fb1262d3acda2ba6f00ed316df96398e3de51"
+    },
+    "textures/masonry_normal_1k.jpg": {
+      "bytes": 622945,
+      "sha256": "6fa44068b2816f581a0f34f479c032493ff5af40b22524bf088f64dd194e8989"
+    },
+    "textures/steel_arm_1k.png": {
+      "bytes": 4546,
+      "sha256": "034a83713b7aa2bbd15c9f573f2a3c3d04b2c083d63b5d9190ae6f11383d9cde"
+    },
+    "textures/steel_base_1k.jpg": {
+      "bytes": 110127,
+      "sha256": "6093225c4c2b01a81ebd7296edadc96b644717178143778b17ed67c583393116"
+    },
+    "textures/steel_normal_1k.jpg": {
+      "bytes": 73180,
+      "sha256": "07f76e943e2d92a9ddeabaab2ba316f0c47080e62fea3455c3111b853ff74e59"
+    }
+  },
+  "generator_sha256": "5c561cdd46642088f3e50bf1a941d3cc8d0fe153fc763df908cd32c6523d1ff3",
+  "license": "Original 3D geometry; Poly Haven photo maps CC0 1.0",
+  "license_url": "https://polyhaven.com/license",
+  "models": [
+    {
+      "added_dynamic_lights": 0,
+      "display_windows": 2,
+      "materials": 6,
+      "name": "brickwater_retail",
+      "physical_stock_items": 26,
+      "portal_clear_height_m": 3.17,
+      "portal_half_width_m": 1.42,
+      "room_depth_m": 3.35,
+      "triangles": 1834,
+      "vertices": 3668
+    },
+    {
+      "added_dynamic_lights": 0,
+      "display_windows": 2,
+      "materials": 6,
+      "name": "afterhours_repair",
+      "physical_stock_items": 26,
+      "portal_clear_height_m": 3.17,
+      "portal_half_width_m": 1.42,
+      "room_depth_m": 3.35,
+      "triangles": 1846,
+      "vertices": 3692
+    }
+  ],
+  "permanent_parcels": [
+    {
+      "ix": -1,
+      "iz": 0,
+      "which": 1
+    },
+    {
+      "ix": 0,
+      "iz": 0,
+      "which": 0
+    }
+  ],
+  "runtime_download_required": false,
+  "source_generator": "tools/author_exchange_storefronts.py",
+  "source_saved_world_version_unchanged": true,
+  "source_sha256": {
+    "assets/models/nightgrid/central_exchange_curb/textures/concrete_arm_1k.png": "705217d71f3605a577120add3e7a0fb68d05231860ec8f42ed66bf910a2bf13d",
+    "assets/models/nightgrid/central_exchange_curb/textures/concrete_base_1k.jpg": "db7c800f1464359b5f359fc743e82ac51b34e014fdfd53844f4af34bb1949229",
+    "assets/models/nightgrid/central_exchange_curb/textures/concrete_normal_1k.jpg": "28be1f6fa82eeab137c84954bf7ea0f5d8a4434352d01c29f15e20926eb7227e",
+    "assets/pbr/polyhaven/bitumen_diffuse_2k.jpg": "709bf2bd8753197f90c0ea1fc3a735c1e06ffd7cb4aabdb9bd9401f9df607e31",
+    "assets/pbr/polyhaven/bitumen_nor_gl_2k.png": "95914ba4fbd0003373bcdbe08663456712d7fa5ffdad3dd695a403f1a6428e74",
+    "assets/pbr/polyhaven/bitumen_rough_2k.png": "fccb4c1f8a02d4a0f91ad5a3a84536da9fb6f9a131aea96c70e6d86989c703dd",
+    "assets/pbr/polyhaven/blue_metal_plate_diffuse_2k.jpg": "82855f6297ad07ea7ea4d1c501e6b56ed4c9c758653ca126bda9fd0ebba63c59",
+    "assets/pbr/polyhaven/blue_metal_plate_nor_gl_2k.png": "8c5701c09d71bbc7dffe97b45fde3c57b132c5fca8d39851695f7566f54b02e9",
+    "assets/pbr/polyhaven/blue_metal_plate_rough_2k.png": "5f6a97dafe6d6d81f7511e9eaa029a73edbc5206e5f1943a14fa9e86a1a35f18",
+    "assets/pbr/polyhaven/brick_wall_001_diffuse_2k.jpg": "aefa7f3743282de2c7df4e4282c868de204239ac3c94e818b1ef74f2a2d74f1a",
+    "assets/pbr/polyhaven/brick_wall_001_nor_gl_2k.png": "186647594418f425a3bb757f444144c01a1eda7a9f109c49b9a09400b3ff8607",
+    "assets/pbr/polyhaven/brick_wall_001_rough_2k.png": "4b0056816b438068e52c472ce8bf99fae37c167dadacd2883999c0d18c090e2a"
+  },
+  "sources": [
+    "https://polyhaven.com/a/brick_wall_001",
+    "https://polyhaven.com/a/blue_metal_plate",
+    "https://polyhaven.com/a/bitumen",
+    "https://polyhaven.com/a/concrete_floor_01"
+  ]
+}
