@@ -5,6 +5,9 @@ extends Node3D
 const Population = preload("res://scripts/sidewalk_population.gd")
 const RADIUS = 0.32
 const HEIGHT = 1.8
+const YIELD_SECONDS = 1.2
+const TURN_COOLDOWN = 2.0
+const MAX_LATERAL_OFFSET = 0.6
 var _slots: Array[CharacterBody3D] = []
 var _leases: Dictionary = {}
 var _visuals: Array[Node3D] = []
@@ -79,7 +82,7 @@ func activate(population, id: String, ground_y: float, allowed: Callable) -> boo
 		body.global_position = Vector3(at.x,ground_y+0.02,at.z)
 		body.rotation.y = atan2(heading.x,heading.z)
 		body.velocity = Vector3.ZERO
-		_leases[id] = {"slot":i,"start":sample["start"],"end":sample["end"],"heading":heading,"speed":sample["speed"]}
+		_leases[id] = {"slot":i,"start":sample["start"],"end":sample["end"],"heading":heading,"speed":sample["speed"],"blocked_time":0.0,"turn_cooldown":0.0,"state":"WALK"}
 		body.collision_layer = 1
 		body.collision_mask = 1
 		body.process_mode = Node.PROCESS_MODE_INHERIT
@@ -110,15 +113,46 @@ func step(delta: float) -> void:
 			lease["heading"] = heading
 			target = a if toward_end else b
 			remaining = (target-body.global_position).dot(heading)
+		var offset := body.global_position-a
+		offset.y = 0.0
+		var lateral := (offset-axis*offset.dot(axis)).length()
 		var desired := heading*minf(float(lease["speed"]),maxf(0.0,remaining)/delta)
+		lease["turn_cooldown"] = maxf(0.0,float(lease["turn_cooldown"])-delta)
+		# Do not keep walking sideways off a certified strip after a slide.
+		# A displaced actor remains visible and leased for explicit recovery.
+		if lateral>MAX_LATERAL_OFFSET:
+			desired = Vector3.ZERO
+			lease["state"] = "DISPLACED"
+		else:
+			lease["state"] = "WALK"
 		body.velocity.x = desired.x
 		body.velocity.z = desired.z
 		body.velocity.y = -0.5 if body.is_on_floor() else maxf(-12.0,body.velocity.y-9.8*delta)
+		var before := body.global_position
 		body.move_and_slide()
+		var progress := maxf(0.0,(body.global_position-before).dot(heading)/delta)
+		if desired.length()>0.2 and progress<0.15 and body.is_on_floor():
+			lease["state"] = "YIELD"
+			lease["blocked_time"] = float(lease["blocked_time"])+delta
+			# A sustained obstruction warrants walking back along the same
+			# link, not stepping into the street or teleporting through it.
+			if float(lease["blocked_time"])>=YIELD_SECONDS and float(lease["turn_cooldown"])<=0.0:
+				heading = -heading
+				lease["heading"] = heading
+				lease["blocked_time"] = 0.0
+				lease["turn_cooldown"] = TURN_COOLDOWN
+		else:
+			lease["blocked_time"] = 0.0
 		body.rotation.y = atan2(heading.x,heading.z)
 		if _visuals[i].has_method("set_locomotion"):
 			var v := body.get_real_velocity()
 			_visuals[i].call("set_locomotion",Vector2(v.x,v.z).length())
+
+func movement_states() -> Dictionary:
+	var result := {}
+	for id in _leases:
+		result[id] = _leases[id]["state"]
+	return result
 
 ## Phase capture must succeed before release; a body displaced far from its
 ## link stays leased for a director to recover safely. No forced relocation.

@@ -130,7 +130,8 @@ func restore(value: Variant) -> bool:
 	return true
 
 func stats() -> Dictionary:
-	return {"logical":_population.ids().size(),"active":_leases.size(),"activations":_activation_count,
+	var movement: Dictionary = _pool.call("movement_states") if is_instance_valid(_pool) else {}
+	return {"movement":movement,"logical":_population.ids().size(),"active":_leases.size(),"activations":_activation_count,
 		"releases":_release_count,"failed_activations":_failed_activation,"failed_recycles":_pending_release}
 
 ## For level destruction or explicit transition only, not ordinary streaming.

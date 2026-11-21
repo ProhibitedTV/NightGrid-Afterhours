@@ -16,3 +16,12 @@ No witnesses are exposed yet. Actual rigged visuals, live World wiring,
 dynamic obstacle recovery, camera motion prediction and genuine native
 playtest evidence remain rollout blockers. The fixture tests real physics
 and camera guards with a minimal city API; not a full native city validation.
+
+## Local movement recovery
+The pool now reports WALK, YIELD or DISPLACED for live leases. A grounded
+actor making negligible forward progress for 1.2 seconds reverses along the
+same link with a 2-second reversal cooldown. If deflected more than 0.6 m
+laterally it stops horizontal motion and stays leased. This is conservative
+obstacle handling, not a freeform pathfinder; actors do not sidestep into
+traffic or teleport. The physical pool smoke adds a real static obstruction
+and checks yield/reversal. Native crowded-street validation remains required.

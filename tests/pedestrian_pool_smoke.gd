@@ -48,6 +48,30 @@ func _verify() -> void:
 		pool.step(1.0/60.0)
 	if not _check(body.global_position.distance_to(before)>0.15 and body.is_on_floor(),"physics movement and ground contact"):
 		return
+	# A temporary obstruction in front of a live actor triggers a bounded
+	# yield followed by a reversal on the same certified line.
+	var heading := Vector3(sin(body.rotation.y),0,cos(body.rotation.y))
+	var blocker := StaticBody3D.new()
+	var blocker_collision := CollisionShape3D.new()
+	var blocker_shape := BoxShape3D.new()
+	blocker_shape.size = Vector3(0.8,1.8,0.8)
+	blocker_collision.shape = blocker_shape
+	blocker.add_child(blocker_collision)
+	root.add_child(blocker)
+	blocker.global_position = body.global_position+heading*1.1+Vector3.UP*0.9
+	var yielded := false
+	var reversed := false
+	for i in range(170):
+		await physics_frame
+		pool.step(1.0/60.0)
+		yielded = yielded or pool.movement_states().get(id)=="YIELD"
+		var direction := Vector3(sin(body.rotation.y),0,cos(body.rotation.y))
+		if direction.dot(heading)<-0.9:
+			reversed = true
+			break
+	if not _check(yielded and reversed,"sustained obstruction yields then reverses"):
+		return
+	blocker.queue_free()
 	if not _check(not pool.recycle(pop,id,show),"visible actor cannot recycle"):
 		return
 	var last := body.global_position
