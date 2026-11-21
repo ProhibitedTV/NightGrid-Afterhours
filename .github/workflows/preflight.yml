@@ -242,6 +242,12 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/logical_traffic_smoke.gd 2>&1 | tee /tmp/nightgrid-logical-traffic.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-logical-traffic.log; then exit 1; fi
+      - name: Validate Brickwater authored alley floor contact and solid steel dumpster
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/brickwater_alley_smoke.gd 2>&1 | tee /tmp/nightgrid-brickwater-alley.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-brickwater-alley.log; then exit 1; fi
       - name: Validate actual photographic masonry on ordinary building shells
         timeout-minutes: 2
         run: |
