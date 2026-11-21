@@ -1,0 +1,48 @@
+name: Pin original photoreal Central Exchange enterable shopfront meshes
+# Offline DCC-like authoring only. GitHub branch scoped; production game builds
+# and Windows export never need Pillow or access to the source art generator.
+on:
+  push:
+    branches: [art/central-exchange-walk-in-storefronts-20261121]
+    paths:
+      - tools/author_exchange_storefronts.py
+      - .github/workflows/pin-central-exchange-storefronts.yml
+permissions:
+  contents: write
+jobs:
+  original-source-storefronts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install source-only pinned PBR processing library
+        run: python -m pip install Pillow==11.3.0
+      - name: Generate two original 3D retail facades and walkable 3.35m vestibules from existing CC0 photo scans
+        run: python tools/author_exchange_storefronts.py
+      - name: Pin audited binary glTF assets with fast-forward-only retry
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "art/central-exchange-walk-in-storefronts-20261121"
+          git add -- assets/models/nightgrid/central_exchange_storefront/
+          if git diff --cached --quiet; then
+            echo "Original source assets already committed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "art: pin two original 3D enterable Central Exchange storefront glTF models"
+          for attempt in 1 2 3 4; do
+            git fetch origin art/central-exchange-walk-in-storefronts-20261121
+            git rebase origin/art/central-exchange-walk-in-storefronts-20261121
+            if git push origin HEAD:refs/heads/art/central-exchange-walk-in-storefronts-20261121; then
+              echo "Source-art pin passed with all concurrent commits preserved"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Failed safe fast-forward of binary authoring assets" >&2
+          exit 1
