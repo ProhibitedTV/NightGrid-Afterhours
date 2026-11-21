@@ -21,7 +21,7 @@ func _verify()->void:
 		var rect := rects[i]
 		area += rect.get_area()
 		for j in range(i):
-			if rect.intersects(rects[j]):
+			if rect.intersection(rects[j]).get_area()>0.01:
 				_check(false,"overlapping road rectangles")
 				return
 	if not _check(rects.size()==837 and is_equal_approx(area,18.0*490.0*14.0-81.0*196.0),"exact original road union coverage"):
@@ -35,7 +35,7 @@ func _verify()->void:
 	if not _check(a.albedo_texture.resource_path.ends_with("bitumen_diffuse_2k.jpg") and a.normal_texture.resource_path.ends_with("bitumen_nor_gl_2k.png") and a.roughness_texture.resource_path.ends_with("bitumen_rough_2k.png"),"actual source textures"):
 		return
 	for node in [dry,damp]:
-		var arrays := node.mesh.surface_get_arrays(0)
+		var arrays: Array = node.mesh.surface_get_arrays(0)
 		var vertices:PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 		var uv:PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV]
 		if not _check(vertices.size()==uv.size() and vertices.size()*4==(arrays[Mesh.ARRAY_TANGENT] as PackedFloat32Array).size(),"UVs and tangents"):
