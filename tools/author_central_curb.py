@@ -85,10 +85,28 @@ def source_image_set():
         suffix=Path(uri).suffix.lower()
         if suffix not in (".jpg",".jpeg",".png"):
             raise ValueError("Unsupported photographed texture file "+uri)
-        dest=TEX/("concrete_"+channel+"_1k"+suffix)
-        dest.write_bytes(data)
-        source_provenance["texture_sources"][dest.name]={"url":info["url"],"sha256":digest(dest),
-            "source_md5":str(info.get("md5","")).lower(),"bytes":len(data)}
+        if channel == "arm":
+            # Upstream maps this grayscale ROUGH texture as a source PBR
+            # input. glTF requires channel G=roughness and B=metalness:
+            # copying grayscale unchanged wrongly makes concrete metallic.
+            from io import BytesIO
+            for outdated in TEX.glob("concrete_arm_1k.*"):
+                outdated.unlink()
+            dest=TEX/"concrete_arm_1k.png"
+            rough_photo=Image.open(BytesIO(data)).convert("L")
+            if rough_photo.size != (1024,1024):
+                raise ValueError("Expected official 1K concrete roughness photo")
+            packed=Image.merge("RGB", (Image.new("L",rough_photo.size,255),
+                                      rough_photo, Image.new("L",rough_photo.size,0)))
+            packed.save(dest,optimize=True)
+        else:
+            dest=TEX/("concrete_"+channel+"_1k"+suffix)
+            dest.write_bytes(data)
+        source_provenance["texture_sources"][dest.name]={"url":info["url"],
+            "source_sha256":hashlib.sha256(data).hexdigest(),
+            "derived_sha256":digest(dest),
+            "source_md5":str(info.get("md5","")).lower(),
+            "source_bytes":len(data),"derived_bytes":dest.stat().st_size}
     return source_provenance
 
 def existing_material(kind, origin):
