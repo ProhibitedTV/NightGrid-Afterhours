@@ -29,8 +29,19 @@ This is an alpha-quality playable prototype, not a commercial AAA release. The o
 | F5 / F9 | Pause → Save/Load | Save/load |
 | T / Y | — | Debug clock advance / pause |
 | F3 | Settings | Rolling frame-time p95/p99/1% lows, streamed-block overlay |
+| F7 | — | Mark a visible bug right now in the automatic playtest log (no pause) |
 | F8 | — | Start/stop frame-by-frame driving trace (CSV in Godot user-data folder) |
 | F10 | — | Save an actual clean gameplay PNG with camera/world/graphics/frame-time JSON |
+
+### Automatic diagnostics for the next Windows playtest
+
+**No setup needed:** a new local `.jsonl` diagnostic file starts automatically whenever the Windows game world launches. The console prints its full path as `NIGHTGRID_PLAYTEST_LOG:`. Logs are kept in Godot's `user://playtest-logs` folder (use the **exact path printed on startup or shown after F7**, since the Windows folder name is chosen by Godot).
+
+- **F7** immediately adds a `manual_marker` and displays the full local log path. Press it when a car clips into a crate, the camera jumps, a building pops, a venue exit glitches, or audio unexpectedly changes. Repeat if necessary.
+- The log automatically records **frame intervals above 50 ms** (rate-limited to one detailed event every 1.5 seconds; all slow frames are counted), chunk-collision fallback events, 15-second health/streaming summaries, camera jumps, vehicle/transit and door transitions, respawns, save/load events, and F8/F10 capture actions.
+- **F8** remains the optional full frame-by-frame CSV for deeper hitch diagnosis. **F10** still captures the real clean viewport PNG and JSON metadata. For a useful issue, press **F7**, then **F10** if the problem is visual; start **F8** before a repeatable driving route.
+- Logs are **local-only** and never automatically uploaded. Each run receives a separate timestamped filename; writes are buffered/flushed periodically, capped at 6,000 events, and flushed on normal exit. A hard crash or power loss can lose the most recent buffered entries. The JSONL is structured game diagnostics, **not** a complete engine-crash dump or a GPU profiler trace.
+- When filing an issue, attach the **JSONL**, the related **F8 CSV** (if recorded), and **F10 PNG/JSON**. The F7 marker's timestamp helps correlate the three. Keep a copy of the logs before deleting/reinstalling the game.
 
 Enable **F3** for rolling measured frame intervals and **F8** to capture a repeatable per-frame CSV while driving. A recording holds up to 18,000 frames; stop with F8 to export, then compare Southworks-to-Central Exchange cold/warm drives. Frame intervals include VSync and are not GPU-only timings. Use the pause **Settings** toggles for SSR, bloom, contact shading and fog if the GPU struggles. Hardware target is **1080p/60 on RTX 3060**, *not yet benchmarked*. On a poor-performing system, first test with SSR/ambient occlusion off rather than assuming gameplay bugs.
 

@@ -37,6 +37,8 @@ jobs:
         run: godot --headless --path . --script res://tests/frame_time_recorder_smoke.gd
       - name: Validate F10 real-frame evidence exporter, camera pose and paired metrics JSON
         run: godot --headless --path . --script res://tests/playtest_evidence_smoke.gd
+      - name: Validate automatic local playtest logs and F7 incident markers
+        run: godot --headless --path . --script res://tests/playtest_logger_smoke.gd
       - name: Assert city generation and district composition
         run: godot --headless --path . --script res://tests/city_smoke.gd
       - name: Validate physical world edges, coast and saved city layout

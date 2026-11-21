@@ -122,6 +122,8 @@ This is part of the playable city, **not** a separate showcase map or a fake sta
 
 The playable Lantern Cup now hosts **five distinct regulars** seated along the wall-side banquettes: Rin, Ivo, Tamsin, Len and Aya. They wear different workwear, hair and accessories and perform deterministic, low-cost **coffee sipping, phone scrolling, reading and conversation idles**. Approach a regular and press **G** to overhear a short authored line that fits Morrow Bay; customer gossip never costs cash, alters quests or blocks Mara's original notes or counter. All customers stay in the café, leave the center walkway clear, share materials and introduce **no additional real-time lights or collision obstacles**. Their identities and seats reconstruct identically after Save/Load. This completes the final planned visual-feature pass before the first hands-on Windows playtest.
 
+**Automatic Windows playtest logs:** Each play session now creates a local bounded, structured JSONL under `user://playtest-logs`, recording hitches, chunk fallbacks, camera jumps and major gameplay transitions. Press **F7** to mark a bug and see the exact file path; **F8** saves a full driving-frame CSV, while **F10** saves a real frame and its metadata. Nothing is uploaded automatically. [See the playtest diagnostics guide](docs/PLAYTEST_CHECKLIST.md#automatic-diagnostics-for-the-next-windows-playtest).
+
 **Start here:** [Windows playtest instructions, five-minute route and reporting checklist](docs/PLAYTEST_CHECKLIST.md). Download the latest successful `nightgrid-afterhours-windows-x64` from [GitHub Actions](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/workflows/windows-build.yml).
 
 ### MARA — the first responsive NightGrid character hero
