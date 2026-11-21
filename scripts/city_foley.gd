@@ -75,6 +75,11 @@ static func sound(kind: String, variation: int = 0) -> AudioStreamWAV:
 			"LAND":
 				sample = (noise * 0.13 + low_noise * 0.25) * exp(-29.0 * t)
 				sample += 0.055 * sin(TAU * 91.0 * t) * exp(-24.0 * t)
+			"PULSE", "ARC":
+				var pitch_hz := 310.0 if kind == "PULSE" else 510.0
+				sample = (noise * 0.17 + sin(TAU * (pitch_hz - 180.0 * t) * t) * 0.12) * exp(-21.0 * t)
+			"RELOAD":
+				sample = (noise * 0.08 + sin(TAU * 860.0 * t) * 0.045) * exp(-36.0 * t)
 			"UI":
 				sample = 0.055 * sin(TAU * (780.0 - 150.0 * t) * t) * exp(-32.0 * t)
 			_:

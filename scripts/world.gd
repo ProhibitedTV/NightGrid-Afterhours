@@ -9,6 +9,9 @@ const MinimapScript = preload("res://scripts/minimap.gd")
 const Ui = preload("res://scripts/ui_style.gd")
 const Nav = preload("res://scripts/navigation_waypoint.gd")
 const StreetRoute = preload("res://scripts/street_route.gd")
+const Arsenal = preload("res://scripts/arsenal.gd")
+const Reticle = preload("res://scripts/weapon_reticle.gd")
+const CombatFoley = preload("res://scripts/city_foley.gd")
 const CityDetailsScript = preload("res://scripts/city_details.gd")
 const CityPerimeterScript = preload("res://scripts/city_perimeter.gd")
 const DayNightScript = preload("res://scripts/day_night.gd")
@@ -60,6 +63,14 @@ var marker_light: OmniLight3D
 var hud_label: Label
 var hud_objective: Label
 var hud_navigation: Label
+var weapons = Arsenal.new()
+var weapon_aiming := false
+var _fire_held := true
+var _hit_feedback := 0.0
+var _weapon_audio: AudioStreamPlayer3D
+var _weapon_card: PanelContainer
+var _weapon_label: Label
+var _reticle: Control
 var navigation_waypoint: Variant = null
 var _route_cache: Dictionary = {}
 var _route_origin := Vector2.INF
@@ -256,6 +267,7 @@ func _journal_context() -> Dictionary:
 		"venue_job": _venue_job_text(),
 		"civic_job": _civic_job_text(),
 		"cash": cash, "health": health, "heat": heat,
+		"weapons": weapons.inventory_text(),
 		"supplies": ration_packs, "deliveries": deliveries,
 		"venue_completed": venue_job_completed.size(),
 		"civic_completed": civic_job_completed.size(),
@@ -340,6 +352,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			_venue_action(3)
 		elif event.is_action_pressed("interact"):
 			_close_venue()
+	elif event.is_action_pressed("weapon_cycle") and _can_use_weapon():
+		weapons.cycle()
+		_fire_held = true
+	elif event.is_action_pressed("weapon_reload") and _can_use_weapon():
+		if weapons.reload():
+			_play_weapon_sound("RELOAD")
 	elif event.is_action_pressed("car_toggle"):
 		_toggle_car()
 	elif event.is_action_pressed("transit_toggle"):
@@ -515,6 +533,7 @@ func _physics_process(delta: float) -> void:
 		return
 	var actor := _actor()
 	var indoors: bool = interiors.call("is_inside")
+	_update_combat(delta)
 	if not indoors and current_transit == null and actor.global_position.distance_to(mission_position) < 5.3:
 		_advance_mission()
 	if (actor.global_position.y < -15.0 or not indoors and
@@ -533,7 +552,7 @@ func _physics_process(delta: float) -> void:
 	for officer in officers:
 		if is_instance_valid(officer) and not indoors:
 			officer.set("police_target", actor)
-			if officer.global_position.distance_to(actor.global_position) < 3.8:
+			if float(officer.get("condition")) > 18.0 and officer.global_position.distance_to(actor.global_position) < 3.8:
 				health -= delta * 7.0
 	if health <= 0.0:
 		_respawn()
@@ -589,6 +608,13 @@ func _update_camera(delta: float, teleport: bool = false) -> void:
 	if camera == null or not is_instance_valid(player):
 		return
 	var focus := _camera_focus()
+	if weapon_aiming and _can_use_weapon():
+		var shoulder := player.global_position + Vector3.UP * 0.65
+		var forward := Vector3(0, sin(0.42 - pitch), -cos(0.42 - pitch)).rotated(Vector3.UP, yaw)
+		var offset := Vector3(0.64, 0.20, 3.2).rotated(Vector3.UP, yaw)
+		camera.global_position = _camera_clearance(shoulder, shoulder + offset)
+		camera.look_at(camera.global_position + forward, Vector3.UP)
+		return
 	var goal := _camera_clearance(focus, _camera_goal())
 	var distance_to_goal := camera.global_position.distance_to(goal)
 	# Suppress stale camera positions after a save-load or streaming jump
@@ -706,6 +732,9 @@ func _spawn_police() -> void:
 func _respawn() -> void:
 	_log_playtest("respawn", {"health": health, "reason": "fall_or_boundary_or_damage"})
 	_close_venue()
+	weapons.holster()
+	weapon_aiming = false
+	_fire_held = true
 	if interiors.call("is_inside"):
 		interiors.call("leave")
 	current_transit = null
@@ -884,6 +913,15 @@ func _create_player() -> void:
 	visual.position.y = -0.90
 	player.add_child(visual)
 	add_child(player)
+	_weapon_audio = AudioStreamPlayer3D.new()
+	_weapon_audio.name = "WeaponEffects"
+	_weapon_audio.bus = AudioMix.EFFECTS
+	_weapon_audio.unit_size = 4.0
+	_weapon_audio.max_distance = 65.0
+	player.add_child(_weapon_audio)
+	# Cache original effects once, not on the physics tick.
+	for kind in ["PULSE", "ARC", "RELOAD"]:
+		CombatFoley.sound(kind)
 
 func _create_car(where: Vector3, color: Color, police: bool = false) -> CharacterBody3D:
 	var car := CharacterBody3D.new()
@@ -1037,12 +1075,14 @@ func _capture_snapshot() -> Dictionary:
 		"civic_job_active": civic_job_active, "civic_job_completed": civic_job_completed.duplicate(),
 		"civic_intel": civic_intel.duplicate(), "ration_packs": ration_packs,
 		"interior": interiors.call("snapshot"),
-		"navigation_waypoint": [] if navigation_waypoint == null else [navigation_waypoint.x, navigation_waypoint.y]
+		"navigation_waypoint": [] if navigation_waypoint == null else [navigation_waypoint.x, navigation_waypoint.y],
+		"weapons": weapons.snapshot()
 	}
 
 func _apply_snapshot(data: Dictionary) -> void:
 	# Geometry is already reconstructed from the saved immutable seed.
 	navigation_waypoint = Nav.decode(data.get("navigation_waypoint", []))
+	weapons.restore(data.get("weapons", {}))
 	traffic.call("restore", data["traffic"])
 	rail.call("restore", data["rail"])
 	signal_controller.set("elapsed", fposmod(float(data.get("signal_elapsed", 0.0)), 72.0))
@@ -1680,6 +1720,16 @@ func _build_hud() -> void:
 	hud_prompt_card = _hud_card(ui, "ContextCard", 0.5, 1.0, Vector4(-460, -152, 460, -24))
 	hud_prompt = _hud_text(hud_prompt_card, "ContextActions", 19, Ui.TEXT)
 	hud_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_weapon_card = _hud_card(ui, "WeaponCard", 1.0, 1.0, Vector4(-342, -142, -24, -24))
+	_weapon_label = _hud_text(_weapon_card, "WeaponAmmo", 20, Ui.TEXT)
+	_weapon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_weapon_card.hide()
+	_reticle = Reticle.new()
+	_reticle.name = "AimReticle"
+	_reticle.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_reticle.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	ui.add_child(_reticle)
+	_reticle.hide()
 	minimap = Control.new()
 	minimap.name = "Minimap"
 	minimap.set_script(MinimapScript)
@@ -1856,6 +1906,8 @@ func _update_hud() -> void:
 			prompts.append("%s  %s (%s)   •   %s Enter" % [interact_key, str(nearby_service["name"]), availability, enter_key])
 		if prompts.is_empty():
 			prompts.append("Y Vehicle  •  RB Transit  •  X Interact" if gamepad_active else "E Vehicle  •  F Transit  •  G Interact")
+	if _can_use_weapon():
+		prompts.append("D-pad ← Equipment" if gamepad_active else "Q Equipment")
 	prompts.append(utility)
 	hud_prompt.text = "\n".join(prompts)
 	hud_prompt_card.visible = not venue_panel.visible
@@ -1896,6 +1948,78 @@ func set_navigation_waypoint(point: Vector2) -> Vector2:
 func clear_navigation_waypoint() -> void:
 	navigation_waypoint = null
 	_route_cache.clear()
+
+func _can_use_weapon() -> bool:
+	return is_instance_valid(player) and is_instance_valid(venue_panel) and not venue_panel.visible and current_car == null and current_transit == null and not interiors.call("is_inside") and not get_tree().paused and (game_menu == null or not game_menu.call("is_open"))
+
+func _play_weapon_sound(kind: String) -> void:
+	if is_instance_valid(_weapon_audio):
+		_weapon_audio.stream = CombatFoley.sound(kind)
+		_weapon_audio.play()
+
+func _update_combat(delta: float) -> void:
+	_hit_feedback = maxf(0.0, _hit_feedback - delta)
+	var permitted := _can_use_weapon()
+	var fire := Input.is_action_pressed("weapon_fire")
+	if not permitted:
+		weapons.holster()
+		_fire_held = true
+	else:
+		weapons.tick(delta)
+	weapon_aiming = permitted and weapons.equipped != "holstered" and Input.is_action_pressed("weapon_aim")
+	player.set("weapon_aiming", weapon_aiming)
+	var rig := player.get_node_or_null("Visual")
+	if is_instance_valid(rig):
+		rig.call("set_weapon_pose", weapons.equipped, weapon_aiming)
+	# Fire is edge-triggered; held RT when exiting a car/dialogue cannot
+	# accidentally discharge. Camera updates in the same fixed tick.
+	if permitted and weapon_aiming and fire and not _fire_held:
+		_update_camera(0.0, true)
+		_fire_weapon()
+	_fire_held = fire or not permitted
+	_update_weapon_hud()
+
+func _update_weapon_hud() -> void:
+	if not is_instance_valid(_weapon_card):
+		return
+	_weapon_card.visible = _can_use_weapon() and weapons.equipped != "holstered"
+	if _weapon_card.visible:
+		var help := "LT aim • RT fire • ↑ reload" if gamepad_active else "RMB aim • LMB fire • Z reload"
+		_weapon_label.text = weapons.status_text() + "\n" + help
+	_reticle.visible = weapon_aiming and _can_use_weapon()
+	_reticle.set("impact", _hit_feedback > 0.0)
+	if _reticle.visible:
+		_reticle.queue_redraw()
+
+func _fire_weapon() -> bool:
+	if not _can_use_weapon() or not weapon_aiming or not weapons.discharge():
+		return false
+	var spec: Dictionary = weapons.spec()
+	_play_weapon_sound("PULSE" if weapons.equipped == "pulse" else "ARC")
+	# Game-only arcade hitscan: first find the screen-center target, then
+	# check the player-to-target segment so walls block camera-peeking.
+	var screen_center := get_viewport().get_visible_rect().size * 0.5
+	var view_start := camera.project_ray_origin(screen_center)
+	var view_end := view_start + camera.project_ray_normal(screen_center) * float(spec["reach"])
+	var ignore: Array[RID] = [player.get_rid()]
+	var query := PhysicsRayQueryParameters3D.create(view_start, view_end, 1, ignore)
+	var space := get_world_3d().direct_space_state
+	var camera_hit := space.intersect_ray(query)
+	var target: Vector3 = camera_hit.get("position", view_end)
+	var origin := player.global_position + Vector3.UP * 0.55
+	var direction := origin.direction_to(target)
+	var endpoint := origin + direction * minf(origin.distance_to(target) + 0.05, float(spec["reach"]))
+	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(origin, endpoint, 1, ignore))
+	heat = minf(5.0, heat + 0.45)
+	if not hit.is_empty():
+		var body: Object = hit["collider"]
+		if is_instance_valid(body) and body.has_method("take_arcade_damage"):
+			body.call("take_arcade_damage", float(spec["damage"]))
+			_hit_feedback = 0.22
+			if body in officers and float(body.get("condition")) <= 18.0:
+				_notify("PATROL DISABLED • police heat remains")
+	_log_playtest("weapon_discharge", {"equipment": weapons.equipped, "vehicle_hit": _hit_feedback > 0.0})
+	return true
 
 func _navigation_origin() -> Vector2:
 	var pos: Vector3 = interiors.get("exterior_position") if interiors.call("is_inside") else _actor().global_position

@@ -9,7 +9,8 @@ const ACTIONS = [
 	"use_supply", "service_one", "service_two", "service_three", "radio_toggle", "radio_next",
 	"game_pause", "game_back", "map_open", "journal_open", "game_save", "game_load", "game_new",
 	"advance_clock", "pause_clock", "toggle_fps", "toggle_ssr", "record_frame_trace",
-	"capture_playtest_frame", "playtest_mark", "compare_render_look"
+	"capture_playtest_frame", "playtest_mark", "compare_render_look",
+	"weapon_cycle", "weapon_aim", "weapon_fire", "weapon_reload"
 ]
 
 static func install() -> void:
@@ -50,6 +51,14 @@ static func install() -> void:
 	_key("interior_toggle", KEY_H)
 	_button("interior_toggle", JOY_BUTTON_LEFT_SHOULDER)
 	_key("use_supply", KEY_R)
+	_key("weapon_cycle", KEY_Q)
+	_key("weapon_reload", KEY_Z)
+	_mouse("weapon_aim", MOUSE_BUTTON_RIGHT)
+	_mouse("weapon_fire", MOUSE_BUTTON_LEFT)
+	_button("weapon_cycle", JOY_BUTTON_DPAD_LEFT)
+	_button("weapon_reload", JOY_BUTTON_DPAD_UP)
+	_axis("weapon_aim", JOY_AXIS_TRIGGER_LEFT, 1.0)
+	_axis("weapon_fire", JOY_AXIS_TRIGGER_RIGHT, 1.0)
 	_key("radio_toggle", KEY_B)
 	_key("radio_next", KEY_N)
 	_button("radio_toggle", JOY_BUTTON_DPAD_RIGHT)
@@ -102,6 +111,11 @@ static func is_gamepad_event(event: InputEvent) -> bool:
 	if event is InputEventJoypadMotion:
 		return absf(event.axis_value) > 0.32
 	return false
+
+static func _mouse(action: String, index: MouseButton) -> void:
+	var event := InputEventMouseButton.new()
+	event.button_index = index
+	InputMap.action_add_event(action, event)
 
 static func _key(action: String, code: Key) -> void:
 	var event := InputEventKey.new()

@@ -24,7 +24,10 @@ func _physics_process(delta: float) -> void:
 	_impact_cooldown = maxf(0.0, _impact_cooldown - delta)
 	var visual_steer := 0.0
 	var braking := false
-	if is_police and is_instance_valid(police_target):
+	if is_police and condition <= 18.0:
+		speed = move_toward(speed, 0.0, BRAKE * delta)
+		braking = true
+	elif is_police and is_instance_valid(police_target):
 		var vector := police_target.global_position - global_position
 		vector.y = 0.0
 		if vector.length_squared() > 0.5:
@@ -69,6 +72,9 @@ func _physics_process(delta: float) -> void:
 				break
 	if hero_visual != null:
 		hero_visual.call("update_motion", speed, visual_steer, braking, occupied, is_police, delta)
+
+func take_arcade_damage(amount: float) -> void:
+	condition = maxf(18.0, condition - maxf(amount, 0.0))
 
 func repair() -> void:
 	condition = 100.0

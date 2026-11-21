@@ -10,6 +10,7 @@ const GRAVITY = 24.0
 var camera_yaw := 0.0
 var driving := false
 var input_blocked := false
+var weapon_aiming := false
 var visual: Node3D
 
 func _ready() -> void:
@@ -40,6 +41,8 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= GRAVITY * delta
 	# Human mesh faces local +Z (nose/eyes are on +Z). Movement uses -Z
 	# for W; negate neither axis or the player faces the camera while moving.
-	if visual != null and move_direction.length_squared() > 0.01:
+	if visual != null and weapon_aiming:
+		visual.rotation.y = lerp_angle(visual.rotation.y, camera_yaw + PI, minf(delta * 18.0, 1.0))
+	elif visual != null and move_direction.length_squared() > 0.01:
 		visual.rotation.y = lerp_angle(visual.rotation.y, visual_yaw_for_motion(move_direction), minf(delta * 12.0, 1.0))
 	move_and_slide()

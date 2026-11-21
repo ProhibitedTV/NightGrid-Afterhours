@@ -20,6 +20,8 @@ const DEFAULT_SETTINGS = {
 const HELP_SECTIONS = [
 	{"title": "ON FOOT", "keyboard": "WASD move · Mouse look · Shift sprint · Space jump",
 		"pad": "Left stick move · Right stick look · L3 sprint · A jump"},
+	{"title": "WEAPONS / ON FOOT", "keyboard": "Q cycle / holster · Hold RMB aim · LMB fire · Z reload",
+		"pad": "D-pad Left cycle · LT aim · RT fire · D-pad Up reload"},
 	{"title": "WORLD ACTIONS", "keyboard": "E vehicle · F bus/train · H enter/exit shop · G interact · R supplies",
 		"pad": "Y vehicle · RB bus/train · LB enter/exit shop · X interact · D-pad Down supplies"},
 	{"title": "DRIVING / NIGHTGRID FM", "keyboard": "W accelerate · S reverse · A/D steer · Space brake · B radio · N next song",
@@ -287,6 +289,7 @@ func _render() -> void:
 				16, Color("bfced5"))
 			_divider(col)
 			_title(col, "INVENTORY / STATUS", 18, Color("f0d1a0"))
+			_label(col, str(_journal_data.get("weapons", "No equipment data")), 16, Ui.ACCENT)
 			_label(col, "CASH  $%d     HEALTH  %d     HEAT  %.1f" % [
 				int(_journal_data.get("cash", 0)), int(_journal_data.get("health", 100)),
 				float(_journal_data.get("heat", 0.0))], 17, Color("e1ebef"))
