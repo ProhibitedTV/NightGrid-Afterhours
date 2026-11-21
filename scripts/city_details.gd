@@ -65,6 +65,7 @@ var _peak_stream_build_usec := 0
 var _queue_replans := 0
 var _stream_steps := 0
 var _total_build_usec := 0
+var _occupied_collision_fallback_stages := 0
 
 func set_world_seed(value: int) -> void:
 	assert(not _initialized)
@@ -115,7 +116,8 @@ func get_streaming_stats() -> Dictionary:
 		"queue_replans": _queue_replans,
 		"last_build_usec": _last_stream_build_usec,
 		"peak_build_usec": _peak_stream_build_usec,
-		"prefetch_seconds": PREFETCH_SECONDS
+		"prefetch_seconds": PREFETCH_SECONDS,
+		"occupied_collision_fallback_stages": _occupied_collision_fallback_stages
 	}
 
 func get_loaded_blocks() -> Array[Vector2i]:
@@ -188,14 +190,11 @@ func request_focus(at: Vector3, velocity: Vector3 = Vector3.ZERO) -> void:
 	_requested_cell = current
 	_prefetch_cell = forecast
 	_current_block = current
-	# A cutscene, unusual physics jump or extreme-speed transit can outrun the
-	# predictive window. Guarantee the occupied cell's collider immediately;
-	# all other additions remain scheduled and spread over render frames.
+	# A fast arrival must never finish an entire partially staged city chunk
+	# in the physics callback. Prime only the collision-bearing stage(s);
+	# decorative parcels and material batches remain queued for render frames.
 	if not _loaded.has(current):
-		var started := Time.get_ticks_usec()
-		_load_block(current)
-		_last_stream_build_usec = Time.get_ticks_usec() - started
-		_peak_stream_build_usec = maxi(_peak_stream_build_usec, _last_stream_build_usec)
+		_ensure_occupied_collision(current)
 	_pending = _required_blocks(current, forecast)
 	_discard_unrequested_stages()
 	_queue_replans += 1
@@ -244,9 +243,25 @@ func set_focus(at: Vector3) -> void:
 	_discard_unrequested_stages()
 	_prune_distant(cell, cell)
 
+func _ensure_occupied_collision(block: Vector2i) -> void:
+	if _loaded.has(block):
+		return
+	# The initial build stage creates both parcel collision shells. If that
+	# stage is already staged, do not finish its visual work on actor arrival.
+	if not _staging.has(block):
+		_run_build_stage(block)
+		_occupied_collision_fallback_stages += 1
+	# Landmarks build their physical structures in phase 1 rather than the
+	# normal parcel-shell phase 0. Complete only that collision-bearing stage.
+	if not WorldPlan.landmark_for_block(block.x, block.y).is_empty() and _staging.has(block):
+		var work: Dictionary = _staging[block]
+		if int(work["phase"]) == 1:
+			_run_build_stage(block)
+			_occupied_collision_fallback_stages += 1
+
 func _load_block(block: Vector2i) -> void:
-	# Synchronous restore / emergency actor-cell fallback completes any
-	# already-started work, never duplicates its colliders or rolls its RNG.
+	# Explicit teleport, interior exit, save restore and initial spawn need a
+	# completely solid destination ring. This path is intentionally blocking.
 	while not _loaded.has(block):
 		_run_build_stage(block)
 
