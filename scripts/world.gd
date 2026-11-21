@@ -8,6 +8,7 @@ const KestrelVisual = preload("res://scripts/kestrel_s6_visual.gd")
 const MinimapScript = preload("res://scripts/minimap.gd")
 const Ui = preload("res://scripts/ui_style.gd")
 const Nav = preload("res://scripts/navigation_waypoint.gd")
+const StreetRoute = preload("res://scripts/street_route.gd")
 const CityDetailsScript = preload("res://scripts/city_details.gd")
 const CityPerimeterScript = preload("res://scripts/city_perimeter.gd")
 const DayNightScript = preload("res://scripts/day_night.gd")
@@ -60,6 +61,9 @@ var hud_label: Label
 var hud_objective: Label
 var hud_navigation: Label
 var navigation_waypoint: Variant = null
+var _route_cache: Dictionary = {}
+var _route_origin := Vector2.INF
+var _route_target := Vector2.INF
 var hud_jobs: Label
 var hud_location: Label
 var hud_health: ProgressBar
@@ -1886,17 +1890,34 @@ func set_navigation_waypoint(point: Vector2) -> Vector2:
 			selected = candidate
 			distance = gap
 	navigation_waypoint = selected
+	_route_cache.clear()
 	return selected
 
 func clear_navigation_waypoint() -> void:
 	navigation_waypoint = null
+	_route_cache.clear()
+
+func _navigation_origin() -> Vector2:
+	var pos: Vector3 = interiors.get("exterior_position") if interiors.call("is_inside") else _actor().global_position
+	return Vector2(pos.x, pos.z)
+
+func _navigation_route(origin: Vector2) -> Dictionary:
+	if navigation_waypoint == null:
+		return {}
+	var target: Vector2 = navigation_waypoint
+	# At most one small graph calculation per meaningful movement; the map
+	# and HUD share it. This remains independent of render/physics cadence.
+	if _route_cache.is_empty() or _route_target != target or _route_origin.distance_to(origin) >= 1.0:
+		_route_origin = origin
+		_route_target = target
+		_route_cache = StreetRoute.plan(origin, target)
+	return _route_cache
 
 func navigation_text() -> String:
 	if navigation_waypoint == null:
 		return "No custom waypoint"
 	var destination: Vector2 = navigation_waypoint
-	var actor_pos: Vector3 = interiors.get("exterior_position") if interiors.call("is_inside") else _actor().global_position
-	var origin := Vector2(actor_pos.x, actor_pos.z)
+	var origin := _navigation_origin()
 	var label := city_details.call("get_district_at", Vector3(destination.x, 0.0, destination.y)) as String
 	for pin in venue_system.call("get_map_pins"):
 		var p: Vector3 = venue_system.call("venue_position", str(pin["id"]))
@@ -1908,7 +1929,15 @@ func navigation_text() -> String:
 		if destination.distance_to(Vector2(p.x, p.z)) < 0.1:
 			label = str(civic_services.call("site_by_id", str(pin["id"]))["name"])
 			break
-	return "WAYPOINT  %s  •  %dm %s" % [label, roundi(origin.distance_to(destination)), Nav.bearing(origin, destination)]
+	var route := _navigation_route(origin)
+	var line := "WAYPOINT  %s  •  %dm direct" % [label, roundi(origin.distance_to(destination))]
+	if route.is_empty():
+		return line
+	if interiors.call("is_inside"):
+		return line + "\nExit building to follow street route"
+	if current_transit != null:
+		return line + "\nLeave transit at a stop to follow street route"
+	return line + "\n%d m by street  |  %s" % [roundi(float(route["road_m"])), StreetRoute.guidance(route, origin, destination)]
 
 func get_map_state() -> Dictionary:
 	var car_positions: Array[Vector2] = []
@@ -1923,6 +1952,7 @@ func get_map_state() -> Dictionary:
 		"mission": Vector2(mission_position.x, mission_position.z),
 		"waypoint_active": navigation_waypoint != null,
 		"waypoint": Vector2.ZERO if navigation_waypoint == null else navigation_waypoint,
+		"street_route": _navigation_route(Vector2(map_actor.x, map_actor.z)),
 		"officers": car_positions,
 		"carrying": carrying,
 		"side_quest": Vector2(quest.x, quest.z),

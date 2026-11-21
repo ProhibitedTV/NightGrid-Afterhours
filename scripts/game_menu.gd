@@ -323,7 +323,7 @@ func _render() -> void:
 			atlas.connect("destination_changed", refresh_destination)
 			refresh_destination.call()
 			_label(col, "Click to pin  •  Arrows / D-pad move  •  Enter / A pin  •  Right click / X clear", 15, Ui.TEXT)
-			_label(col, "Purple diamond = waypoint. Dotted line = straight-line bearing, not a road route. Esc / B back.", 14, Ui.MUTED)
+			_label(col, "Purple diamond = waypoint. Solid line = street route. Dotted links = off-street access, not a drivable route. Esc / B back.", 14, Ui.MUTED)
 			_button(col, "back", "BACK TO PAUSE", "back")
 		"confirm_new":
 			_title(col, "START ANOTHER WORLD?", 24, Color("f0cdab"))

@@ -58,9 +58,15 @@ jobs:
           set -o pipefail
           godot --headless --path . --import --quit 2>&1 | tee /tmp/nightgrid-import.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-import.log; then exit 1; fi
+      - name: Validate deterministic road routes, intersection turns and off-road access
+        timeout-minutes: 2
+        run: timeout 75s godot --headless --path . --script res://tests/street_route_smoke.gd
       - name: Validate main menus, saved settings and controller action contexts
         timeout-minutes: 2
-        run: timeout 75s godot --headless --path . --script res://tests/menus_gamepad_smoke.gd
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/menus_gamepad_smoke.gd 2>&1 | tee /tmp/nightgrid-menu.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-menu.log; then exit 1; fi
       - name: Validate Southworks solid cargo and player movement orientation regressions
         run: godot --headless --path . --script res://tests/southworks_playtest_smoke.gd
       - name: Validate fixed 60Hz physics and independent rendered train cadence

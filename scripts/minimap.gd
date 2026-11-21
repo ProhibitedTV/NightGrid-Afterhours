@@ -142,8 +142,24 @@ func _draw() -> void:
 		if bool(state.get("waypoint_active", false)):
 			var destination: Vector2 = state["waypoint"]
 			var target_pin := _to_map(destination, side, scale)
-			# This dotted bearing line is explicitly not a drivable route.
-			draw_dashed_line(_to_map(actor, side, scale), target_pin, Nav.COLOR, 1.7, 6.0, true, true)
+			var route: Dictionary = state.get("street_route", {})
+			if not route.is_empty():
+				var road: Array[Vector2] = route["points"]
+				var plotted := PackedVector2Array()
+				for point in road:
+					plotted.append(_to_map(point, side, scale))
+				if plotted.size() > 1:
+					draw_polyline(plotted, Color("101821"), 5.0, true)
+					draw_polyline(plotted, Nav.COLOR, 2.8, true)
+				# Dotted access segments explicitly are not road routes.
+				var entry: Vector2 = route["entry"]
+				var exit: Vector2 = route["exit"]
+				if actor.distance_to(entry) >= 0.1:
+					draw_dashed_line(_to_map(actor, side, scale), _to_map(entry, side, scale), Nav.COLOR, 1.4, 4.0, true, true)
+				if destination.distance_to(exit) >= 0.1:
+					draw_dashed_line(_to_map(exit, side, scale), target_pin, Nav.COLOR, 1.4, 4.0, true, true)
+			else:
+				draw_dashed_line(_to_map(actor, side, scale), target_pin, Nav.COLOR, 1.4, 4.0, true, true)
 			var diamond := PackedVector2Array([target_pin + Vector2(0, -8), target_pin + Vector2(8, 0),
 				target_pin + Vector2(0, 8), target_pin + Vector2(-8, 0), target_pin + Vector2(0, -8)])
 			draw_polyline(diamond, Nav.COLOR, 2.5, true)

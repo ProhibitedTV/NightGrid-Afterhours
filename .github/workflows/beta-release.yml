@@ -92,7 +92,10 @@ jobs:
 
       - name: Import game resources
         if: steps.eligibility.outputs.publish == 'true'
-        run: godot --headless --path . --import --quit
+        run: |
+          set -o pipefail
+          godot --headless --path . --import --quit 2>&1 | tee /tmp/nightgrid-import.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-import.log; then exit 1; fi
 
       - name: Export Windows x64 (EXE and external PCK)
         if: steps.eligibility.outputs.publish == 'true'
