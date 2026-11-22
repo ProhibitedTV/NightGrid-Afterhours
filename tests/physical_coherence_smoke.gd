@@ -196,6 +196,11 @@ func _check_station() -> void:
 	_expect(rail.call("on_platform", player.global_position, 4),
 		"Walk continuously from the actual East Gardens lift to the boardable platform")
 	rail.call("restore", {"x": 232.0, "current_station": 4, "next_station": 3, "direction": -1, "dwell": 7.0})
+	_expect(not rail.call("boardable_from", player.global_position), "Platform boarding must be aligned with real train doors")
+	Input.action_press("move_left")
+	await _wait_ticks(56)
+	Input.action_release("move_left")
+	_expect(rail.call("boardable_from", player.global_position), "Walk to the marked door of the stopped train")
 	await _capture("east-gardens-platform")
 	world.call("_toggle_transit")
 	var aboard: Dictionary = world.call("_capture_snapshot")

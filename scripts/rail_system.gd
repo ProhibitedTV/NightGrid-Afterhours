@@ -11,6 +11,7 @@ const PLATFORM_FLOOR = 12.2825
 const PIER_SETBACK = 11.1
 const LIFT_X = 11.25
 const LIFT_Z = 12.02
+const DOOR_BOARD_WIDTH = 1.65
 var train: Node3D
 var train_visual: Node3D
 var speed := 0.0
@@ -94,7 +95,12 @@ func boardable_from(at: Vector3) -> bool:
 	if dwell_remaining <= 0.1:
 		return false
 	if on_platform(at, current_station):
-		return true
+		if at.z > TRACK_Z + 5.2:
+			return false
+		for center in TrainVisual.CAR_CENTERS:
+			if absf(at.x - train.position.x - float(center)) < DOOR_BOARD_WIDTH:
+				return true
+		return false
 	# Retain the legacy curb shortcut at the four original pickup markers.
 	if current_station == STATIONS.size() - 1 or at.y < 0.3 or at.y > 2.5:
 		return false
@@ -120,7 +126,8 @@ func station_entrance(index: int) -> Vector3:
 
 func alight_position(platform: bool = false) -> Vector3:
 	if platform:
-		return Vector3(STATIONS[current_station] + 1.2, PLATFORM_FLOOR + 0.97, TRACK_Z + 3.75)
+		return Vector3(STATIONS[current_station] + float(TrainVisual.CAR_CENTERS[1]),
+			PLATFORM_FLOOR + 0.97, TRACK_Z + 3.75)
 	return station_entrance(current_station)
 
 func station_name() -> String:
@@ -222,6 +229,9 @@ func _build_station(index: int) -> void:
 	for tile in range(22):
 		_station_box(platform, Vector3(-13.1 + float(tile) * 1.24, 12.30, 2.67),
 			Vector3(0.77, 0.033, 0.13), "METAL", Color("c4aa76"))
+	for door_x in TrainVisual.CAR_CENTERS:
+		_station_box(platform, Vector3(door_x, PLATFORM_FLOOR + 0.006, 3.45),
+			Vector3(1.62, 0.012, 0.26), "EMISSION", Color("64b8ac"))
 	# Structural canopy is high enough above the M8 roof hardware.
 	_station_box(platform, Vector3(0.0, 15.88, 4.62),
 		Vector3(29.1, 0.25, 5.05), "METAL", Color("253d50"), "PlatformCanopy")
