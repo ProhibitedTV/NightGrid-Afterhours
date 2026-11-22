@@ -239,7 +239,7 @@ func _verify()->void:
 	if not _check(neighbor_chunk != null, "adjacent fixed parcel loaded"):
 		return
 	var neighbor := neighbor_chunk.get_node_or_null("BrickwaterNeighborArchitecture") as Node3D
-	if not _check(neighbor != null and neighbor.get_child_count() == 3, "residential-only kit"):
+	if not _check(neighbor != null and neighbor.get_child_count() == 4, "residential-only kit"):
 		return
 	for label in ["WestApartmentFront", "EastApartmentFront"]:
 		var face := neighbor.get_node(label) as Node3D
@@ -289,5 +289,24 @@ func _verify()->void:
 	for material in occupied_materials.values():
 		if not _check(is_zero_approx(material.emission_energy_multiplier), "occupied windows cease emitting in daylight"):
 			return
+	# The two permanent parcels each receive three selected PBR
+	# condenser assemblies, no extra floor collision or lights.
+	for assembly in [architecture, neighbor]:
+		var vents: Node3D = assembly.get_node_or_null("ResidentialVentilation")
+		if not _check(vents != null and vents.get_child_count() == 3, "bounded residential ventilation"):
+			return
+		for fixture in vents.get_children():
+			var unit := fixture.get_node("ScannedCondenser") as MeshInstance3D
+			var bounds := unit.mesh.get_aabb()
+			if not _check(unit.has_meta("authored_ventilation") and fixture.get_child_count() == 4 and absf(unit.position.z + bounds.position.z) < 0.002, "scanned condenser meets masonry"):
+				return
+			if not _check(fixture.position.y + unit.position.y + bounds.position.y >= 4.8 and unit.position.x + bounds.end.x < -1.95, "unit clears narrow window and passage"):
+				return
+			if not _check(unit.mesh.surface_get_material(0) is StandardMaterial3D and (unit.mesh.surface_get_material(0) as StandardMaterial3D).albedo_texture != null, "original condenser photo material"):
+				return
+			var line := fixture.get_node("CondensateLine") as MeshInstance3D
+			var wall_return := fixture.get_node("WallReturn") as MeshInstance3D
+			if not _check((line.transform.basis * Vector3.RIGHT).y < -0.61 and wall_return.position.z == 0.0 and ((wall_return.transform.basis * Vector3.RIGHT).z > 0.05), "service pipe descends and returns into wall"):
+				return
 	print("BRICKWATER_ALLEY_SMOKE PASS: physical floor, authored ground props, upper facade, cable trunks, overhead escape")
 	quit(0)

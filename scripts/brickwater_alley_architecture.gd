@@ -4,6 +4,8 @@ extends Node3D
 const FACADE = preload("res://assets/models/polyhaven/modular_urban_apartments_facade/modular_urban_apartments_facade.gltf")
 const ESCAPE = preload("res://assets/models/polyhaven/modular_fire_escape/modular_fire_escape.gltf")
 const CABLE = preload("res://assets/models/polyhaven/modular_electric_cables/modular_electric_cables.gltf")
+const HVAC = preload("res://assets/models/polyhaven/exterior_aircon_unit/exterior_aircon_unit.gltf")
+const PIPE = preload("res://assets/models/polyhaven/modular_pipes/modular_pipes.gltf")
 const NEIGHBOR_BLOCK = Vector2i(-1, 1)
 const FACE_OFFSET = 0.27
 const BAY_WIDTH = 3.0
@@ -52,6 +54,7 @@ func _ready() -> void:
 		if not residential_only:
 			_cable_run(wall, side)
 	_escape_landing()
+	_residential_ventilation()
 	if residential_only:
 		return
 	_service_entrance("WestServiceEntrance", left_wall, -0.6, PI * 0.5, "centered_small_01")
@@ -252,3 +255,46 @@ func _apply_occupancy(view: MeshInstance3D, variant: String, side: int, level: i
 		# This is an illuminated surface, not a modeled room or a light source.
 		_window_materials[key] = glass
 	view.set_surface_override_material(surface, _window_materials[key])
+
+func _residential_ventilation() -> void:
+	# Handpicked narrow-window bays: unit remains to the left of the
+	# glazing, clear of cornices and the west emergency stair flight.
+	# [side, level, bay, weathered variant]. These are fixed parcel sites,
+	# not random decorations. The existing glTF contains the support legs.
+	var sites := [[-1,1,0,true],[1,0,1,false],[1,0,3,true]]
+	if residential_only:
+		sites = [[-1,0,0,false],[1,0,1,true],[1,1,2,false]]
+	var group := Node3D.new()
+	group.name = "ResidentialVentilation"
+	add_child(group)
+	for i in range(sites.size()):
+		var site: Array = sites[i]
+		var side: int = site[0]
+		var level: int = site[1]
+		var bay: int = site[2]
+		var worn: bool = site[3]
+		var wall := left_wall if side == -1 else right_wall
+		var yaw := PI * 0.5 if side == -1 else -PI * 0.5
+		var z := MIN_Z + BAY_WIDTH * float(bay) + (BAY_WIDTH if side == 1 else 0.0)
+		var y := FIRST_LEVEL + float(level) * 3.0
+		var fixture := Node3D.new()
+		fixture.name = "VentilationBay_%d" % i
+		fixture.position = Vector3(wall - float(side) * FACE_OFFSET, y, z)
+		fixture.rotation.y = yaw
+		fixture.set_meta("bay", Vector3i(side, level, bay))
+		group.add_child(fixture)
+		# Source AABB rear Z=-0.216: offset by the exact depth so the
+		# support/back meets the facade at local Z=0, not a floating gap.
+		var component := "exterior_aircon_unit_rusted" if worn else "exterior_aircon_unit"
+		var unit := _place(fixture, "ScannedCondenser", HVAC, component, Vector3(-2.43,0.82,0.216), Basis.IDENTITY)
+		unit.set_meta("authored_ventilation", true)
+		# Thin metal service line descends behind the unit, then connects
+		# into the wall. The original pipe axis is +X; rotate it downward.
+		var line_axes := Basis(Vector3.FORWARD, PI * 0.5) * Basis.from_scale(Vector3(0.62,1.0,1.0))
+		_place(fixture, "CondensateLine", PIPE, "pipe_thin_100cm_metal", Vector3(-2.76,0.67,0.055), line_axes)
+		# A short section of the same source pipe into the facade.
+		var return_axes := Basis(Vector3.UP, -PI * 0.5) * Basis.from_scale(Vector3(0.055,1.0,1.0))
+		_place(fixture, "WallReturn", PIPE, "pipe_thin_100cm_metal", Vector3(-2.76,0.05,0.0), return_axes)
+		# The pipe support source is oriented along +Z from masonry.
+		var clamp_axes := Basis.IDENTITY * Basis.from_scale(Vector3(1.0,1.0,0.55))
+		_place(fixture, "MountedPipeClamp", PIPE, "pipe_thin_support_metal", Vector3(-2.76,0.34,0.0), clamp_axes)
