@@ -1,0 +1,46 @@
+{
+  "sample_rate_hz": 32000,
+  "license": "CC0-1.0",
+  "public_previews": {
+    "traffic": {
+      "id": 223093,
+      "sha256": "f2ac02efee5250abf15b5bbff7ad7aae7a56c29d8b966f07281995b92c34a371"
+    },
+    "harbor": {
+      "id": 254125,
+      "sha256": "d59316bc1e39d43cbdac7a0fad4c12083e91b27d6988e4626b0c224dcd8e917d"
+    },
+    "stone": {
+      "id": 521590,
+      "sha256": "62a89ab50b329495d917a553846795f967c76391aaed5a28419781adcd41efdf"
+    },
+    "tile": {
+      "id": 834027,
+      "sha256": "3912d47e76e0544cb7bd386a79a9dd528feec63ff5aa5ae638cc8a7d5b969ec6"
+    },
+    "gravel": {
+      "id": 521588,
+      "sha256": "085013ce436bc00838d28cf18bc90ac797c65db2aa49869f728c7dd10f3ded17"
+    }
+  },
+  "files": {
+    "traffic.ogg": "727c37cdd4f178caaaf36053ab9e2a05f38dcfed79bb6bc32eab8254ac21dbc7",
+    "harbor.ogg": "bfe36f66301015a7e7a639ac923588e87b05828c0f3fe778c96220b818f22173",
+    "steps/stone_1.wav": "82af38e4cf6518c12c08032ad6eab0dada27a02819e67979711b45cf4bb76e84",
+    "steps/stone_2.wav": "525d748b26facb12d471321924fe072f274c51f1b9a4be924430baacb3936141",
+    "steps/stone_3.wav": "d7b893ffc02292dde7df2198a8a759ff848b9a6e5f0e74c5322cc0ec42fe0b1d",
+    "steps/stone_4.wav": "5c7a1648c0a0d8a577b692d246f3094a9dcaca7a20197f965933a5aaffcd0c8f",
+    "steps/tile_1.wav": "be774a92823cab80e3960933b85e20668347e65a854cf409a14fcd2dbb21272b",
+    "steps/tile_2.wav": "1f0793e21282b4fef92f10038e552ce260f45da38bc4bd14eb17536dafa4f6fd",
+    "steps/tile_3.wav": "58dbd8a7144a8c916861e7203d9a6f411cb3e1be77c0e182bce563a3953f6116",
+    "steps/tile_4.wav": "af1a284e532b380f815406d9744e8507a572e556e0a4c49f1a24150fed3e3829",
+    "steps/gravel_1.wav": "391f4657da516e1b305ff04631b45ba46ce5ce642219f887978e0ae5772fa898",
+    "steps/gravel_2.wav": "3d31f26eb8d7e9e9ba5efb87fd0a9ede89605977b793d0cadc843dc912235e0b",
+    "steps/gravel_3.wav": "54a18aeede0d45bf27a6fe852450e6a3e00fbe89c87bc27c881b664134d88ce7",
+    "steps/gravel_4.wav": "d1ca5d98e0a3242599478e0c1e3ade7b15f4f97e98431a970a9023facc3c7a99",
+    "steps/asphalt_1.wav": "e65b95d1dcdfa64fae9e28c8742ef73a47685b399e51845df7ed12e84f47100e",
+    "steps/asphalt_2.wav": "82c424e2a87b560e98f71d1973f20467fab619e1b15be566d3c536622a07cf0b",
+    "steps/asphalt_3.wav": "9fb7ce73751f3bdb6129bcf0df181e6de598a28002ded657c41a486908c1fefa",
+    "steps/asphalt_4.wav": "6b6835b0804fd4b6581423ea7a58a359c92a608583195dae4cb1ccd91d2d92fa"
+  }
+}

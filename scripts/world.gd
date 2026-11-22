@@ -87,6 +87,7 @@ var _radio_card: PanelContainer
 var _radio_close_tail := 0.0
 var _radio_was_wanted := false
 var _civic_radio_announced: Dictionary = {}
+var _receiver_sites: Array[Dictionary] = []
 var returning_units: Array[CharacterBody3D] = []
 var _sight_clock := 0.0
 var _wanted_label: Label
@@ -296,15 +297,29 @@ func _update_police_radio(delta: float) -> void:
 	_radio_was_wanted = active
 	_radio_close_tail = maxf(0.0, _radio_close_tail - delta)
 	var station: Dictionary = {}
+	var receiver := Vector3.INF
 	if bool(interiors.call("is_inside")) and str(interiors.call("active_site_group")) == "CIVIC":
 		station = civic_services.call("site_by_id", str(interiors.call("active_site_id")))
 	var in_station := station.has("station_id")
+	if in_station:
+		receiver = (interiors.call("get_counter_point") as Vector3) + Vector3(0.75, 0.3, 0.25)
+	elif not active and not bool(interiors.call("is_inside")):
+		for site in _receiver_sites:
+			var address: Vector3 = site["address"]
+			if player.global_position.distance_squared_to(address) < 12.0 * 12.0:
+				station = {"station_id": site["id"], "headquarters": site["hq"]}
+				receiver = address + Vector3.UP * 0.7
+				break
 	police_radio.call("ingest", dispatch.history)
 	police_radio.call("update_state", active, wanted.police_seen, delta)
 	var closing := _radio_close_tail > 0.0 and bool(police_radio.call("has_traffic"))
-	if in_station and not active and not closing and not bool(day_night.get("paused")):
+	var local_receiver := receiver.is_finite() and not active and not closing
+	if local_receiver and not bool(day_night.get("paused")):
 		_announce_civic_at_station(station)
-	police_radio.call("tick", delta, active or in_station or closing)
+	police_radio.call("set_receiver", receiver if local_receiver else Vector3.INF)
+	police_radio.call("tick", delta, active or local_receiver or closing)
+	if is_instance_valid(nightgrid_fm):
+		nightgrid_fm.set("dialogue_active", police_radio.call("speaking"))
 	if not active and not bool(police_radio.call("has_traffic")):
 		_radio_close_tail = 0.0
 	var caption: String = police_radio.get("current")
@@ -344,7 +359,9 @@ func _build_world_audio() -> void:
 	world_audio.name = "WorldAudio"
 	world_audio.set("menu", game_menu)
 	add_child(world_audio)
+	_receiver_sites = civic_services.call("police_station_sites")
 	world_audio.call("set_traffic", traffic)
+	world_audio.call("set_pedestrians", pedestrians)
 	var options: Dictionary = game_menu.call("get_settings")
 	world_audio.call("set_preferences", float(options.get("ambience_volume", 0.65)),
 		float(options.get("sfx_volume", 0.75)))
@@ -395,6 +412,7 @@ func _apply_game_settings(options: Dictionary) -> void:
 		nightgrid_fm.call("set_preferences", float(options.get("music_volume", 0.65)), bool(options.get("radio_on", true)))
 	if is_instance_valid(world_audio):
 		world_audio.call("set_preferences", float(options.get("ambience_volume", 0.65)), float(options.get("sfx_volume", 0.75)))
+	AudioMix.set_level(AudioMix.DIALOGUE, float(options.get("dialogue_volume", 0.82)))
 	var bus_index := AudioServer.get_bus_index("Master")
 	if bus_index >= 0:
 		AudioServer.set_bus_volume_db(bus_index, linear_to_db(maxf(0.001, float(options.get("master_volume", 0.8)))))
@@ -592,19 +610,28 @@ func _process(delta: float) -> void:
 		"car" if current_car != null else ("transit_" + transit_kind.to_lower() if current_transit != null else "on_foot"))
 	var indoors: bool = interiors.call("is_inside")
 	_update_police_radio(delta)
+	var interior_id := str(interiors.call("active_site_id")) if indoors else ""
+	var interior_kind := ""
+	if indoors and str(interiors.call("active_site_group")) == "VENUE":
+		interior_kind = str((venue_system.call("venue_by_id", interior_id) as Dictionary).get("kind", ""))
 	if is_instance_valid(nightgrid_fm):
-		var interior_id := str(interiors.call("active_site_id")) if indoors else ""
-		var interior_kind := ""
-		if indoors and str(interiors.call("active_site_group")) == "VENUE":
-			interior_kind = str((venue_system.call("venue_by_id", interior_id) as Dictionary).get("kind", ""))
-		nightgrid_fm.call("update_listener", actor.global_position, current_car != null, interior_id, interior_kind)
+		nightgrid_fm.call("update_listener", actor.global_position, current_car != null, interior_id, interior_kind, current_transit != null)
 	if is_instance_valid(world_audio):
+		world_audio.call("set_room_kind", interior_kind)
 		var street_position: Vector3 = interiors.get("exterior_position") if indoors else actor.global_position
 		var district: String = city_details.call("get_district_at", street_position)
 		var foot_speed := Vector2(player.velocity.x, player.velocity.z).length()
 		world_audio.call("update_context", actor.global_position, player.global_position,
 			current_car == null and current_transit == null, player.is_on_floor(),
 			indoors, district, float(day_night.get("hour")), foot_speed, player.velocity.y)
+		if is_instance_valid(current_car):
+			world_audio.call("set_transport", "CAR", float(current_car.get("speed")), Input.is_action_pressed("drive_brake"))
+		elif transit_kind == "TRAIN":
+			world_audio.call("set_transport", "TRAIN", float(rail.get("speed")), false)
+		elif transit_kind == "BUS" and is_instance_valid(current_transit):
+			world_audio.call("set_transport", "BUS", float(current_transit.get("speed")), false)
+		else:
+			world_audio.call("set_transport", "", 0.0, false)
 	if indoors and str(interiors.call("active_site_id")) == "lantern_cup":
 		interiors.call("set_mara_focus", player.global_position)
 	if not venue_panel.visible:
@@ -703,6 +730,8 @@ func enable_living_streets() -> bool:
 		director.queue_free()
 		return false
 	pedestrians = director
+	if is_instance_valid(world_audio):
+		world_audio.call("set_pedestrians", pedestrians)
 	return true
 
 func _update_pedestrians(delta: float, actor: Node3D, indoors: bool) -> void:
@@ -1411,7 +1440,7 @@ func _toggle_transit() -> void:
 		return
 	_notify("Board a stopped vehicle or use a marked M-Line lift.")
 
-func _board_transit(vehicle: Node3D, kind: String) -> void:
+func _board_transit(vehicle: Node3D, kind: String, play_audio: bool = true) -> void:
 	current_transit = vehicle
 	transit_kind = kind
 	player.set("driving", true)
@@ -1419,11 +1448,12 @@ func _board_transit(vehicle: Node3D, kind: String) -> void:
 	player.collision_layer = 0
 	player.collision_mask = 0
 	player.velocity = Vector3.ZERO
-	world_audio.call("play_event", "TRANSIT", vehicle.global_position)
+	if play_audio:
+		world_audio.call("play_event", _transit_sound(kind), vehicle.global_position)
 	_log_playtest("transit_board", {"kind": kind})
 
 func _leave_transit(at: Vector3, message: String = "Back on the street.") -> void:
-	world_audio.call("play_event", "TRANSIT", at)
+	world_audio.call("play_event", _transit_sound(transit_kind), at)
 	_log_playtest("transit_exit", {"kind": transit_kind, "destination": [at.x, at.y, at.z]})
 	current_transit = null
 	transit_kind = ""
@@ -1435,6 +1465,13 @@ func _leave_transit(at: Vector3, message: String = "Back on the street.") -> voi
 	player.visible = true
 	player.set("driving", false)
 	_notify(message)
+
+func _transit_sound(kind: String) -> String:
+	if kind == "TRAIN":
+		return "RAIL_DOOR"
+	if kind == "BUS":
+		return "BUS_DOOR"
+	return "TRANSIT"
 
 func _save_game() -> void:
 	if bool(session.call("save_snapshot", _capture_snapshot())):
@@ -1504,10 +1541,16 @@ func _capture_snapshot() -> Dictionary:
 		var street_state: Dictionary = pedestrians.call("snapshot")
 		if not street_state.is_empty():
 			state["sidewalk_population"] = street_state
+	if is_instance_valid(nightgrid_fm):
+		var tuning: Dictionary = nightgrid_fm.call("snapshot")
+		if not tuning.is_empty():
+			state["nightgrid_radio"] = tuning
 	return state
 
 func _apply_snapshot(data: Dictionary) -> void:
 	# Geometry is already reconstructed from the saved immutable seed.
+	if is_instance_valid(nightgrid_fm):
+		nightgrid_fm.call("restore", data.get("nightgrid_radio", {}))
 	if is_instance_valid(pedestrians):
 		pedestrians.call("restore", data.get("sidewalk_population", {}))
 	navigation_waypoint = Nav.decode(data.get("navigation_waypoint", []))
@@ -1562,9 +1605,9 @@ func _apply_snapshot(data: Dictionary) -> void:
 		if saved_transit == "BUS":
 			var bus: CharacterBody3D = traffic.call("bus_by_id", str(data.get("transit_id", "")))
 			if bus != null:
-				_board_transit(bus, "BUS")
+				_board_transit(bus, "BUS", false)
 		elif saved_transit == "TRAIN":
-			_board_transit(rail.get_node("MorrowLineTrain"), "TRAIN")
+			_board_transit(rail.get_node("MorrowLineTrain"), "TRAIN", false)
 			_rail_platform_rider = bool(data.get("rail_platform_rider", false))
 	day_night.call("set_hour", float(data.get("hour", 19.25)))
 	venue_system.call("set_hour", float(day_night.get("hour")))

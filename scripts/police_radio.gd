@@ -23,6 +23,8 @@ var current := ""
 var last_sequence := 0
 var elapsed := 0.0
 var _voice: AudioStreamPlayer
+var _local_voice: AudioStreamPlayer3D
+var _receiver := Vector3.INF
 var _clips: Dictionary = {}
 var _last_state := ""
 var _cooldown := 0.0
@@ -30,9 +32,16 @@ var _cooldown := 0.0
 func _ready() -> void:
 	_voice = AudioStreamPlayer.new()
 	_voice.name = "MBPDReceiver"
-	_voice.bus = Mix.EFFECTS
-	_voice.volume_db = -8.0
+	_voice.bus = Mix.DIALOGUE
+	_voice.volume_db = -5.0
 	add_child(_voice)
+	_local_voice = AudioStreamPlayer3D.new()
+	_local_voice.name = "MBPDLocalReceiver"
+	_local_voice.bus = Mix.DIALOGUE
+	_local_voice.volume_db = -3.0
+	_local_voice.unit_size = 7.0
+	_local_voice.max_distance = 18.0
+	add_child(_local_voice)
 	for key in LINES:
 		var resource := "res://assets/audio/mbpd/" + str(key).to_lower() + ".wav"
 		if ResourceLoader.exists(resource):
@@ -55,10 +64,19 @@ func enqueue(kind: String, detail: String = "") -> void:
 	for item in pending:
 		if item["kind"] == kind and item["detail"] == detail:
 			return
+	var urgent := kind in ["REPORT", "CONTACT", "ASSIGNED"]
+	if not urgent and pending.size() >= MAX_QUEUE:
+		return
 	if pending.size() >= MAX_QUEUE:
-		# Do not evict the closure announcement in a burst of unit releases.
-		pending.remove_at(1 if pending[0]["kind"] == "CLOSED" else 0)
-	pending.append({"kind":kind, "detail":detail})
+		pending.pop_back()
+	var entry := {"kind":kind, "detail":detail}
+	if urgent:
+		var index := 0
+		while index < pending.size() and pending[index]["kind"] in ["CLOSED", "REPORT", "CONTACT", "ASSIGNED"]:
+			index += 1
+		pending.insert(index, entry)
+	else:
+		pending.append(entry)
 
 func ingest(events: Array[Dictionary]) -> void:
 	for event in events:
@@ -89,6 +107,7 @@ func tick(delta: float, audible: bool) -> void:
 		current = ""
 		elapsed = 0.0
 		_voice.stop()
+		_local_voice.stop()
 		return
 	elapsed = maxf(0.0, elapsed - delta)
 	if elapsed > 0.0:
@@ -103,9 +122,23 @@ func tick(delta: float, audible: bool) -> void:
 	if not detail.is_empty():
 		current += "  [" + detail + "]"
 	var clip: AudioStream = _clips.get(kind, Foley.sound("UI"))
-	_voice.stream = clip
-	_voice.play()
+	_voice.stop()
+	_local_voice.stop()
+	if _receiver.is_finite():
+		_local_voice.global_position = _receiver
+		_local_voice.stream = clip
+		_local_voice.play()
+	else:
+		_voice.stream = clip
+		_voice.play()
 	elapsed = maxf(2.7, clip.get_length() + 0.35)
+
+func set_receiver(at: Vector3) -> void:
+	_receiver = at
+
+func speaking() -> bool:
+	var bus := AudioServer.get_bus_index(Mix.DIALOGUE)
+	return not AudioServer.is_bus_mute(bus) and (_voice.playing or _local_voice.playing)
 
 func has_traffic() -> bool:
 	return elapsed > 0.0 or not pending.is_empty()

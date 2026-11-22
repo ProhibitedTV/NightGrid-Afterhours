@@ -1,11 +1,22 @@
 extends SceneTree
-## Runs in source-only and fully packaged checkouts.
+## Exercises the original packed library and the bounded asynchronous mixer.
 func _initialize() -> void:
+	create_timer(22.0, true, false, true).timeout.connect(func() -> void: quit(1))
 	call_deferred("_verify")
 
 func _fail(message: String) -> void:
 	push_error("NIGHTGRID_FM_SMOKE: " + message)
 	quit(1)
+
+func _wait_track(radio: Node, different_from: String = "") -> Dictionary:
+	var deadline := Time.get_ticks_msec() + 5000
+	while Time.get_ticks_msec() < deadline:
+		var stats: Dictionary = radio.call("playback_stats")
+		var track: String = stats["track"]
+		if not track.is_empty() and track != different_from:
+			return stats
+		await process_frame
+	return {}
 
 func _verify() -> void:
 	var script = load("res://scripts/nightgrid_fm.gd")
@@ -42,21 +53,32 @@ func _verify() -> void:
 		_fail("Interior programming is broken")
 		return
 	var available: int = radio.call("available_tracks")
-	if available != 0 and available != tracks.size():
-		_fail("Incomplete audio pack: expected 0 (source-only) or 20 Ogg assets, found %d" % available)
+	if available != tracks.size():
+		_fail("Incomplete audio pack: expected twenty original Ogg assets, found %d" % available)
 		return
 	radio.call("set_preferences", 0.25, true)
 	radio.call("update_listener", Vector3.ZERO, true, "", "")
-	radio.call("_process", 0.3)
-	if available == tracks.size():
-		if not radio.call("next_car_track") or not str(radio.call("get_now_playing")).begins_with("NIGHTGRID FM"):
-			_fail("Installed soundtrack does not tune in from the car")
-			return
-	else:
-		if radio.call("next_car_track"):
-			_fail("Missing audio pack should not report successful playback")
-			return
+	var first := await _wait_track(radio)
+	if first.is_empty() or first["context"] != "car" or not radio.call("next_car_track"):
+		_fail("Installed soundtrack does not tune into or skip through the car station")
+		return
+	var second := await _wait_track(radio, first["track"])
+	if second.is_empty() or int(second["playing"]) != 2 or int(second["pending_loads"]) > 3:
+		_fail("Car skip must keep the outgoing decoder during the bounded crossfade")
+		return
+	var saved: Dictionary = radio.call("snapshot")
+	var restored: Node = script.new()
+	root.add_child(restored)
+	restored.call("restore", saved)
+	restored.call("update_listener", Vector3.ZERO, true, "", "")
+	var resume := await _wait_track(restored)
+	if resume.get("track", "") != second["track"]:
+		_fail("The v1 optional tuning slot did not restore the saved track")
+		return
 	radio.call("set_preferences", 0.0, false)
-	radio.call("_process", 0.3)
-	print("NIGHTGRID_FM_SMOKE PASS: 20/20 tracks curated; %d audio resources installed" % available)
+	await process_frame
+	if radio.call("next_car_track") or str(radio.call("get_now_playing")) != "NIGHTGRID FM  /  OFF":
+		_fail("Car radio power must block skip and clear the station display")
+		return
+	print("NIGHTGRID_FM_SMOKE PASS: twenty original tracks, asynchronous skip, overlapping decks and v1 tuning restore")
 	quit(0)

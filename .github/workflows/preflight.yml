@@ -16,6 +16,10 @@ jobs:
           python-version: '3.12'
       - name: Check files and resource references
         run: python tools/check_project.py
+      - name: Verify the twenty creator-owned NightGrid FM track hashes
+        run: python tools/prepare_nightgrid_fm.py
+      - name: Verify the CC0 Morrow Bay field recordings and footfall bank
+        run: python tools/prepare_morrow_bay_audio.py
       - name: Verify official CC0 shutter mesh, source hashes and photo maps
         run: python tools/check_cc0_shutter.py
       - name: Audit original CC0 HVAC mesh, four source PBR maps and per-file hashes

@@ -1,17 +1,5 @@
-# NightGrid FM — creator-owned chipwave soundtrack
+# NightGrid FM
 
-This directory holds the optional 20-track NightGrid FM soundtrack, shipped as
-48 kHz stereo Ogg Vorbis assets named `<track_id>.ogg`.
+This directory contains all twenty original NightGrid FM tracks from the creator's Chipwave albums *Afterimage* and *Free Play Until Dawn*. The creator authorized their use in **NightGrid Afterhours**, including its builds, menus, vehicles and venues. Credit the music as **NightGrid FM — original chipwave by the game's creator**. Third-party rights for use outside this game remain with the creator.
 
-The files are not the procedural venue sound effects. They are the user's
-original music, explicitly authorized by the creator for use in this game.
-**No public-domain or Creative Commons grant is implied.** Contact the creator
-for any use outside NightGrid Afterhours.
-
-For efficient development, the creator-supplied WAV masters are preserved
-separately and the game loads compressed Ogg assets on demand. See
-[the integration guide](../../../docs/NIGHTGRID_FM_SOUNDTRACK.md) for complete
-file names, controls, playlists, installation and test instructions.
-
-If no Ogg files have been installed, the game runs with its existing
-procedural venue sounds but without the NightGrid FM music layer.
+The repository contains 48 kHz stereo Ogg Vorbis encodes. The soundtrack manifest records the source master names and hashes, encoded sizes, durations and hashes. The uncompressed masters remain outside the repository. [Soundtrack manifest](NIGHTGRID_FM_AUDIO_MANIFEST.json) · [Playback and verification](../../../docs/NIGHTGRID_FM_SOUNDTRACK.md).
