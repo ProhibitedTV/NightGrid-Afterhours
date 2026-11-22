@@ -1,6 +1,7 @@
 extends Node3D
 ## Fixed first service-alley vertical slice, at the existing two-building parcel.
 const PILOT_BLOCK = Vector2i(-2,1)
+const SurfacePass = preload("res://scripts/brickwater_surface_pass.gd")
 const Architecture = preload("res://scripts/brickwater_alley_architecture.gd")
 const ServiceProps = preload("res://scripts/brickwater_service_props.gd")
 const Maps = preload("res://scripts/material_library.gd")
@@ -42,6 +43,10 @@ func _ready()->void:
 	architecture.name = "AuthoredUpperArchitecture"
 	architecture.configure(left_wall, right_wall)
 	add_child(architecture)
+	var surfaces := SurfacePass.new()
+	surfaces.name = "AlleySurfacePass"
+	surfaces.configure(left_wall, right_wall, FLOOR_Y)
+	add_child(surfaces)
 
 func _view(parent:Node3D, label:String, mesh:Mesh, at:Vector3, material:Material)->MeshInstance3D:
 	var node:=MeshInstance3D.new()
@@ -98,7 +103,7 @@ func _build_floor()->void:
 	var mesh:=PlaneMesh.new()
 	mesh.size=Vector2(hi-lo,END_Z-START_Z)
 	var center:=Vector3((lo+hi)*0.5,FLOOR_Y+0.002,(START_Z+END_Z)*0.5)
-	_view(self,"PhotographicAlleyPavement",mesh,center,Maps.surface("PHOTO_SIDEWALK",Color("797870")))
+	_view(self,"PhotographicAlleyPavement",mesh,center,SurfacePass.damp_concrete())
 	if _grime_material==null:
 		_grime_material=StandardMaterial3D.new()
 		_grime_material.albedo_texture=GRIME

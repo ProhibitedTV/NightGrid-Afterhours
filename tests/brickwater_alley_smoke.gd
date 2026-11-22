@@ -125,5 +125,25 @@ func _verify()->void:
 		var bounds: AABB = view.transform * view.mesh.get_aabb()
 		if not _check(bounds.position.y > 4.1, "escape remains overhead"):
 			return
+	var surface_pass := alley.get_node_or_null("AlleySurfacePass") as Node3D
+	if not _check(surface_pass != null, "local damp surface layer"):
+		return
+	var damp := pavement.material_override as StandardMaterial3D
+	if not _check(damp.clearcoat_enabled and damp.roughness < 0.8 and damp.normal_texture != null, "damp photographic concrete"):
+		return
+	var dry := preload("res://scripts/material_library.gd").surface("PHOTO_SIDEWALK", Color("797870"))
+	if not _check(dry != damp and is_equal_approx(dry.roughness, 1.0), "shared dry material unchanged"):
+		return
+	for item in ["DrainRunoff", "LowPointPuddle", "EntryRunoff"]:
+		var patch := surface_pass.get_node_or_null(item) as MeshInstance3D
+		if not _check(patch != null and patch.mesh is ArrayMesh and absf(patch.position.y - Alley.FLOOR_Y) < 0.02 and patch.get_child_count() == 0, "flush collision-free water " + item):
+			return
+		var wet := patch.material_override as StandardMaterial3D
+		if not _check(wet.roughness < damp.roughness and wet.metallic == 0.0, "dielectric puddle response"):
+			return
+	for item in ["NightShiftRepairs", "JadeLaundry"]:
+		var sign := surface_pass.get_node_or_null(item) as MeshInstance3D
+		if not _check(sign != null and (sign.material_override as StandardMaterial3D).emission_enabled, "original mounted sign " + item):
+			return
 	print("BRICKWATER_ALLEY_SMOKE PASS: physical floor, authored ground props, upper facade, cable trunks, overhead escape")
 	quit(0)

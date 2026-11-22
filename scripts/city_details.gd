@@ -975,7 +975,7 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 				var wz := center.z + (float(side_window) - 0.5) * depth * 0.38
 				# The authored alley panels replace stickers only on facing walls
 				# within the two covered storeys and the five-bay frontage.
-				var alley_side := (which == 0 and side > 0.0) or (which == 1 and side < 0.0)
+				var alley_side: bool = (which == 0 and side > 0.0) or (which == 1 and side < 0.0)
 				var local_z := wz - (float(iz) + 0.5) * CELL
 				if Vector2i(ix, iz) == BrickwaterAlley.PILOT_BLOCK and alley_side and fy >= 4.8 and fy <= 10.8 and local_z >= -12.0 and local_z <= 3.0:
 					continue
