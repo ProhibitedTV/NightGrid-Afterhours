@@ -17,13 +17,36 @@ permissions:
 jobs:
   export-windows:
     runs-on: ubuntu-latest
+    env:
+      SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The PR's source head, not an ephemeral refs/pull/N/merge SHA.
+          ref: ${{ env.SOURCE_SHA }}
+          persist-credentials: false
       - uses: chickensoft-games/setup-godot@v2
         with:
           version: 4.7.2
           use-dotnet: false
           include-templates: true
+      - name: Stamp source revision into development build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          path = Path("scripts/build_info.gd")
+          text = path.read_text(encoding="utf-8")
+          marker = 'const REVISION = "development"'
+          assert text.count(marker) == 1, "Unexpected build-info source"
+          assert text.count('const CHANNEL = "development"') == 1
+          text = text.replace(marker, f'const REVISION = "{os.environ["SOURCE_SHA"]}"')
+          path.write_text(text, encoding="utf-8")
+          PY
+          grep -q "$SOURCE_SHA" scripts/build_info.gd
       - name: Generate original offline MBPD radio speech
         run: |
           sudo apt-get update -qq
@@ -35,13 +58,29 @@ jobs:
           godot --headless --path . --import --quit 2>&1 | tee /tmp/nightgrid-import.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-import.log; then exit 1; fi
       - name: Export Windows executable
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p dist
           godot --headless --path . --export-release "Windows Desktop" "dist/NightGrid-Afterhours.exe"
           test -s dist/NightGrid-Afterhours.exe
+          test -s dist/NightGrid-Afterhours.pck
           cp assets/models/nightgrid/courier/SOURCE.md dist/COURIER-ASSET-CREDITS.md
           cp assets/audio/nightgrid_fm/README.md dist/NIGHTGRID-FM-CREDITS.md
           cp assets/audio/morrow_bay/SOURCE.md dist/MORROW-BAY-AUDIO-CREDITS.md
+      - name: Verify candidate archive contents and SHA-256 manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'NightGrid: Afterhours Windows x64 playtest\nSource commit: %s\nChannel: development\nGodot: 4.7.2\nRenderer: Forward+ / Vulkan\nThis is not a published beta release.\n' "$SOURCE_SHA" > dist/BUILD-INFO.txt
+          (
+            cd dist
+            sha256sum NightGrid-Afterhours.exe NightGrid-Afterhours.pck \
+              BUILD-INFO.txt COURIER-ASSET-CREDITS.md NIGHTGRID-FM-CREDITS.md \
+              MORROW-BAY-AUDIO-CREDITS.md > SHA256SUMS.txt
+            sha256sum --check SHA256SUMS.txt
+          )
+          grep -Fx "Source commit: $SOURCE_SHA" dist/BUILD-INFO.txt
       - name: Upload Windows playtest
         uses: actions/upload-artifact@v4
         with:
