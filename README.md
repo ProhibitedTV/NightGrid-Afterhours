@@ -38,6 +38,13 @@ Your city layout and progress persist when you save and return.
 
 All nine images are actual Godot 4.7.2 viewport captures from the development build. The two vehicle portraits stage real existing traffic actors on their route for an unobstructed comparison; they're not concept art or a driving benchmark. These development-build screenshots may be newer than the downloadable tagged beta. [Capture date/source, renderer and checksums](docs/screenshots/capture-manifest.json) · [Capture method](docs/screenshots/README.md). The gallery uses Linux software-rendered OpenGL; the Windows Forward+/Vulkan build may look different.
 
+<!-- brickwater-gallery:start -->
+### Brickwater — revamped service alley
+
+The new alley screenshot set is being captured from the actual development-branch game. [View the capture run and artifacts](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/runs/44975198902). Verified images and their camera manifest will appear here when the screenshot workflow publishes them; no concept art or placeholder images are included.
+
+<!-- brickwater-gallery:end -->
+
 ## Play the beta
 
 1. Open [GitHub Releases](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) and download the Windows x64 beta ZIP, **not** the source code ZIP.
