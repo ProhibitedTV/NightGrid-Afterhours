@@ -38,6 +38,18 @@ Your city layout and progress persist when you save and return.
 
 All nine images are actual Godot 4.7.2 viewport captures from the development build. The two vehicle portraits stage real existing traffic actors on their route for an unobstructed comparison; they're not concept art or a driving benchmark. These development-build screenshots may be newer than the downloadable tagged beta. [Capture date/source, renderer and checksums](docs/screenshots/capture-manifest.json) · [Capture method](docs/screenshots/README.md). The gallery uses Linux software-rendered OpenGL; the Windows Forward+/Vulkan build may look different.
 
+## Latest Windows development screenshots (unreleased)
+
+These are **genuine Godot 4.7.2 Forward+/Vulkan captures at 1920×1080 on an RTX 3060**, drawn from pending development PRs. They are **not** screenshots of the downloadable Beta.7 and should not be read as a 60 FPS benchmark. Final artistic and integrated-game acceptance is still open.
+
+[**See the 13-image development gallery**](docs/screenshots/development/GALLERY.md) · [Exact screenshot provenance](docs/screenshots/development/provenance.json)
+
+| Brickwater night | New Morrow courier | East Gardens M-Line |
+|:--:|:--:|:--:|
+| ![Brickwater draft #163 at night](docs/screenshots/development/brickwater/01-alley-night-north.png) | ![Rigged player draft #166 in daylight](docs/screenshots/development/courier/day-face-after.png) | ![M-Line platform draft #165](docs/screenshots/development/physical/east-gardens-platform.png) |
+
+[Brickwater PR #163](https://github.com/ProhibitedTV/NightGrid-Afterhours/pull/163) · [Transport PR #165](https://github.com/ProhibitedTV/NightGrid-Afterhours/pull/165) · [Courier PR #166](https://github.com/ProhibitedTV/NightGrid-Afterhours/pull/166)
+
 ## Play the beta
 
 1. Open [GitHub Releases](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) and download the Windows x64 beta ZIP, **not** the source code ZIP.

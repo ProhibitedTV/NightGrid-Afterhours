@@ -26,3 +26,7 @@ The two new close views use the actual four-bus/25-car fleet rather than a separ
 
 ## Verified nine-image capture
 [Capture run 44956626055](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/runs/44956626055) succeeded, rendering `1caa6bc3635538c4f101033724217c975aef892a`. All nine committed PNG byte lengths match the manifest. Visual inspection confirms the new bus and sedan bodies in the real Vesper streetscape. Remaining art limitations include angular silhouettes, simplified wheel faces, opaque windows, repeating street/facade detail, and daylight haze. This is a prototype art improvement, not photorealistic or native Windows performance acceptance. Final preflight rechecks every image hash before merging.
+
+## Native Windows development showcase (unreleased)
+
+[Browse 13 Windows Forward+/Vulkan development captures](development/GALLERY.md) from pending PRs #163, #165 and #166. The original Git screenshot blobs were copied without alteration into `docs/screenshots/development/`; [provenance.json](development/provenance.json) records the exact source commit, path and blob SHA for each image. These are not images from the currently released Beta.7. They are separate from the nine-image Linux Mesa manifest above and from the draft 33-image general gallery in PR #127. Native game/visual review and 60 FPS acceptance remain pending.
