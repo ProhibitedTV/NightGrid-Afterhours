@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="384" viewBox="0 0 1024 384">
+<g transform="translate(42 35)" fill="#baad8d" opacity=".63">
+<!-- LAST SHIFT, original stencil outlines; segmented counters and strokes -->
+<path d="M0 24h22v110h59v22H0ZM100 156l33-132h26l34 132h-24l-8-34h-29l-8 34Zm39-56h17l-8-37ZM207 24h75v22h-52v33h52v77h-75v-22h53v-33h-53ZM294 24h89v22h-34v110h-23V46h-32Z"/>
+<path d="M418 24h75v22h-52v33h52v77h-75v-22h53v-33h-53ZM507 24h23v55h41V24h23v132h-23v-55h-41v55h-23ZM609 24h67v20h-22v92h22v20h-67v-20h22V44h-22ZM691 24h80v22h-57v33h47v22h-47v55h-23ZM782 24h89v22h-34v110h-23V46h-32Z"/>
+<path d="M0 177h874v5H0zM0 198h145v8H0zM165 198h250v8H165zM435 198h92v8h-92zM554 198h320v8H554z" opacity=".6"/>
+<path d="M105 237h22v75h-22zM149 237h75v17h-27v58h-21v-58h-27zM244 237h83v17h-83zM244 266h64v17h-64zM244 295h83v17h-83zM667 237h100v75H667zM791 237l83 37-83 38v-19l44-19-44-19z" opacity=".64"/>
+</g><g fill="none" stroke="#5b4b42" opacity=".25" stroke-width="3"><path d="M33 84l260-7 109 8 402-8m-717 56 504 4 270-8m-622 55 385-8m-480 61 293-8" stroke-dasharray="9 21 4 18"/></g>
+</svg>

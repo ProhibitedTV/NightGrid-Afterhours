@@ -7,6 +7,7 @@ const TRASH = preload("res://assets/models/polyhaven/metal_trash_can/metal_trash
 const HVAC = preload("res://assets/models/polyhaven/exterior_aircon_unit/exterior_aircon_unit.gltf")
 const GRIME = preload("res://assets/models/nightgrid/brickwater_alley/alley_weathering.svg")
 const NOTICE = preload("res://assets/models/nightgrid/brickwater_alley/waste_notice.svg")
+const WallArt = preload("res://scripts/brickwater_wall_art.gd")
 const PBR = "res://assets/pbr/polyhaven/"
 const FLOOR_Y = 0.14
 const FOUNDATION_Y = -0.08
@@ -32,6 +33,10 @@ func _ready()->void:
 	_build_dumpster()
 	_build_services()
 	_install_reused_props()
+	var wall_art := WallArt.new()
+	wall_art.name = "BrickwaterWallArt"
+	add_child(wall_art)
+	wall_art.install(left_wall, right_wall)
 
 func _view(parent:Node3D, label:String, mesh:Mesh, at:Vector3, material:Material)->MeshInstance3D:
 	var node:=MeshInstance3D.new()

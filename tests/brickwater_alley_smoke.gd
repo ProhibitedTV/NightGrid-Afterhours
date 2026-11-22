@@ -58,5 +58,29 @@ func _verify()->void:
 					return
 		if not _check(visible_count==(4 if item=="ReusedRustedWasteCan" else 1),"one complete selected variant"):
 			return
+	var art := alley.get_node_or_null("BrickwaterWallArt") as Node3D
+	if not _check(art != null and art.get_child_count() == 5, "five fixed wall art placements"):
+		return
+	var textures: Array[Texture2D] = []
+	for child in art.get_children():
+		var paint := child as MeshInstance3D
+		if not _check(paint != null and paint.mesh is QuadMesh and paint.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF, "flat paint only"):
+			return
+		var mat := paint.material_override as StandardMaterial3D
+		if not _check(mat != null and mat.albedo_texture != null and mat.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA and not mat.emission_enabled, "lit transparent artwork"):
+			return
+		if not _check(not textures.has(mat.albedo_texture), "unique artwork, not repeated identical tags"):
+			return
+		textures.append(mat.albedo_texture)
+		var expected_wall: float = float(alley.get("left_wall")) if paint.position.x < x else float(alley.get("right_wall"))
+		var inward := Vector3.RIGHT if paint.position.x < x else Vector3.LEFT
+		if not _check(absf(paint.position.x - expected_wall) < 0.02 and paint.transform.basis.z.normalized().dot(inward) > 0.99, "flush placement and front faces lane"):
+			return
+		# Verify each artwork center and corners with actual shell ray contact.
+		for local in [Vector3.ZERO, Vector3(-0.46,-0.46,0), Vector3(0.46,-0.46,0), Vector3(-0.46,0.46,0), Vector3(0.46,0.46,0)]:
+			var at: Vector3 = paint.to_global(local)
+			var wall_hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(at + inward * 0.04, at - inward * 0.10, 1))
+			if not _check(not wall_hit.is_empty() and absf(float(wall_hit["position"].x) - (alley.global_position.x + expected_wall)) < 0.025, "wall behind artwork, not floating or crossing a corner"):
+				return
 	print("BRICKWATER_ALLEY_SMOKE PASS: physical floor, closed model, photo materials, clear path")
 	quit(0)
