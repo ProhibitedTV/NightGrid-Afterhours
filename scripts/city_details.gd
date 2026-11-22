@@ -7,6 +7,7 @@ const WestDocksService = preload("res://scripts/west_docks_service_frontage.gd")
 const CraneGearWarehouse = preload("res://scripts/crane_gear_warehouse.gd")
 const RenderBatchOwner = preload("res://scripts/render_batch_owner.gd")
 const VesperWindows = preload("res://scripts/vesper_window_assembly.gd")
+const BrickwaterAlley = preload("res://scripts/brickwater_alley.gd")
 ## Seeded city dressing. Static shell collisions + batched decorative geometry.
 ## The four neighborhoods deliberately share road geometry but not street character.
 
@@ -412,6 +413,8 @@ func _run_build_stage(block: Vector2i) -> bool:
 			_build_block_base(block.x, block.y)
 			if landmark.is_empty():
 				_build_block_shells(block.x, block.y)
+				if block == BrickwaterAlley.PILOT_BLOCK:
+					_build_brickwater_alley(block.x, block.y)
 			work["phase"] = 1
 		1:
 			if landmark.is_empty():
@@ -655,14 +658,24 @@ func _build_block_lot(ix: int, iz: int, which: int) -> void:
 	_build_building(Vector3(x, 0.0, z), profile, get_district_at(center), ix, iz, which, false, true)
 	_statistics["authored_lots"] += 1
 
+func _build_brickwater_alley(ix: int, iz: int) -> void:
+	var left := _block_lot_profile(ix,iz,0)
+	var right := _block_lot_profile(ix,iz,1)
+	var alley := BrickwaterAlley.new()
+	alley.name = "BrickwaterServiceAlley"
+	alley.position = Vector3((float(ix)+0.5)*CELL,0.0,(float(iz)+0.5)*CELL)
+	alley.configure(-10.5+float(left["width"])*0.5,10.5-float(right["width"])*0.5)
+	_active_chunk.add_child(alley)
+
 func _build_block_street(ix: int, iz: int) -> void:
 	var center := Vector3((float(ix) + 0.5) * CELL, 0.0, (float(iz) + 0.5) * CELL)
 	var district := get_district_at(center)
-	# The gap between the two buildings reads as a service alley.
-	_detail(center + Vector3(0.0, 0.155, 3.0), Vector3(3.8, 0.035, 25.0), Color("353e48"))
-	for mark in range(4):
-		_detail(center + Vector3(0.0, 0.175, -6.0 + float(mark) * 6.0), Vector3(3.4, 0.02, 0.10), Color("62686e"))
-	_dumpster(center + Vector3(0.0, 0.3, 10.0))
+	# The pilot replaces the old raised decorative slab and ghost dumpster.
+	if Vector2i(ix,iz) != BrickwaterAlley.PILOT_BLOCK:
+		_detail(center + Vector3(0.0, 0.155, 3.0), Vector3(3.8, 0.035, 25.0), Color("353e48"))
+		for mark in range(4):
+			_detail(center + Vector3(0.0, 0.175, -6.0 + float(mark) * 6.0), Vector3(3.4, 0.02, 0.10), Color("62686e"))
+		_dumpster(center + Vector3(0.0, 0.3, 10.0))
 	_furniture(center, district)
 	_statistics["street_props"] += 1
 
