@@ -30,8 +30,8 @@
         1280,
         720
       ],
-      "sha256": "898f29d60e16418f5e4a4179aef7a1a20612f69a8ea233642f80aba8b9b879bc",
-      "bytes": 1217682
+      "sha256": "5a7a685b703410ea64d87889b084c4e597d36313bb535f9a379d1cb12de49ef9",
+      "bytes": 1220342
     },
     {
       "camera": [
@@ -51,8 +51,8 @@
         1280,
         720
       ],
-      "sha256": "7feef2ecb768421d660722e064449ec59cc242a5f1c7a87966be5a7126f30d8a",
-      "bytes": 1407199
+      "sha256": "58e2e2fec5d31e7b153b87d819f11027afff8716e4d576d5c691109bbb08d68a",
+      "bytes": 1409376
     },
     {
       "camera": [
@@ -72,8 +72,8 @@
         1280,
         720
       ],
-      "sha256": "08b707aa20142f2705e90dc6804576abb1fc6fed02cb7c8066d628c99a573ddb",
-      "bytes": 1321052
+      "sha256": "483189f76e2ccb0b67006f84e08edc5c99ce3ba659c0cebb52e827252f4d5617",
+      "bytes": 1323210
     },
     {
       "camera": [
@@ -93,8 +93,8 @@
         1280,
         720
       ],
-      "sha256": "1ebbe91f0044e4e87b3602748820ad057c27a66e11cacee664c2b6be1e80683d",
-      "bytes": 1043427
+      "sha256": "c37bddd565776bb0101ef63092fc90378aa66094e2762ed27ff279e7b475d73a",
+      "bytes": 1043224
     },
     {
       "camera": [
@@ -114,8 +114,8 @@
         1280,
         720
       ],
-      "sha256": "0474e033ed20dc80912fed469ca95fc576d5f7a71a5f90a1ee5c0641569fbcde",
-      "bytes": 1196797
+      "sha256": "83fd724d17d70bb61c5bf6049580e3d1bf9b7307cf1eebe67d32dc9f88d4b70c",
+      "bytes": 1196548
     },
     {
       "camera": [
@@ -135,8 +135,8 @@
         1280,
         720
       ],
-      "sha256": "bfa9a8852e4ff467f67b8a51fbafb554e87907bc250e23ea39622bf908d1f28a",
-      "bytes": 1221575
+      "sha256": "29f30f5a7f143415d8b2160821a64747a73a8f84924b89b5461ce58b240c591b",
+      "bytes": 1223291
     },
     {
       "camera": [
@@ -156,10 +156,11 @@
         1280,
         720
       ],
-      "sha256": "43caf88f698e962aee5e486a53e171e7e45b42f80235f61f6b896aa826cea875",
-      "bytes": 1258627
+      "sha256": "1df2c01cf183dfe8268a0b769371b5d33f81b1fbffc371f72e5750ec422df800",
+      "bytes": 1260578
     }
   ],
-  "source_revision": "edacfdba138770eb4355bc0d9f8939e8c7a04910",
+  "timing_note": "Optional stationary viewport frame intervals; no moving gameplay, no screenshot readback in timing window; not GPU-only timings.",
+  "source_revision": "05938393ecfd15354b55cf2c3d06c4daf156717c",
   "quality_note": "Actual Godot software OpenGL; not Windows Forward+ or RTX performance evidence."
 }
