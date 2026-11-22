@@ -11,6 +11,7 @@ const BrickwaterAlley = preload("res://scripts/brickwater_alley.gd")
 const BrickwaterArchitecture = preload("res://scripts/brickwater_alley_architecture.gd")
 const BrickwaterEnvelope = preload("res://scripts/brickwater_envelope.gd")
 const BrickwaterSigns = preload("res://scripts/brickwater_business_frontage.gd")
+const StreamProfile = preload("res://scripts/streaming_profile.gd")
 ## Seeded city dressing. Static shell collisions + batched decorative geometry.
 ## The four neighborhoods deliberately share road geometry but not street character.
 
@@ -324,6 +325,7 @@ func _process(_delta: float) -> void:
 		_prune_distant(_requested_cell, _prefetch_cell)
 
 func _prune_distant(focus: Vector2i, forecast: Vector2i) -> void:
+	var profile_started := StreamProfile.begin()
 	_reservation_prune_due = false
 	var pinned := {}
 	for cell in _pedestrian_reservations.values():
@@ -340,6 +342,8 @@ func _prune_distant(focus: Vector2i, forecast: Vector2i) -> void:
 		_loaded.erase(block)
 		node.queue_free()
 		_unloads += 1
+	if StreamProfile.enabled and not obsolete.is_empty():
+		StreamProfile.end(profile_started, "queue_chunk_evictions", obsolete.size())
 
 func set_focus(at: Vector3) -> void:
 	# Teleport, save restore and explicit tests need an immediately solid ring.
@@ -394,7 +398,9 @@ func _discard_unrequested_stages() -> void:
 
 func _run_build_stage(block: Vector2i) -> bool:
 	var started := Time.get_ticks_usec()
+	var profiled := StreamProfile.enabled
 	if not _staging.has(block):
+		var activation_started := StreamProfile.begin()
 		var node := Node3D.new()
 		node.name = "Block_%d_%d" % [block.x, block.y]
 		add_child(node)
@@ -405,6 +411,8 @@ func _run_build_stage(block: Vector2i) -> bool:
 			"node": node, "phase": 0, "rng_state": seeded.state,
 			"batches": {}, "flush_keys": [], "flush_cursor": 0
 		}
+		if profiled:
+			StreamProfile.end(activation_started, "chunk_root_activation", str(block))
 	var work: Dictionary = _staging[block]
 	_active_chunk = work["node"]
 	_batches = work["batches"]
@@ -416,9 +424,12 @@ func _run_build_stage(block: Vector2i) -> bool:
 		0:
 			_build_block_base(block.x, block.y)
 			if landmark.is_empty():
+				var collision_started := StreamProfile.begin()
 				_build_block_shells(block.x, block.y)
 				if block == BrickwaterAlley.PILOT_BLOCK:
 					_build_brickwater_alley(block.x, block.y)
+				if profiled:
+					StreamProfile.end(collision_started, "shell_creation_and_registration", str(block))
 			work["phase"] = 1
 		1:
 			if landmark.is_empty():
@@ -465,6 +476,8 @@ func _run_build_stage(block: Vector2i) -> bool:
 	work["rng_state"] = _rng.state
 	_batches = {}
 	var cost: int = Time.get_ticks_usec() - started
+	if profiled:
+		StreamProfile.end(started, "chunk_stage", {"block": [block.x, block.y], "phase": phase, "landmark": landmark})
 	_last_stream_build_usec = cost
 	_peak_stream_build_usec = maxi(_peak_stream_build_usec, cost)
 	_total_build_usec += cost

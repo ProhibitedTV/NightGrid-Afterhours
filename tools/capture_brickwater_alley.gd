@@ -1,12 +1,16 @@
 extends SceneTree
 ## Real, unmodified framebuffer captures from the actual playable city.
 const BLOCK = Vector2i(-2, 1)
+const StreamProfile = preload("res://scripts/streaming_profile.gd")
 var output: String
 var world: Node3D
 var camera: Camera3D
 var records: Array[Dictionary] = []
 var measure_native: bool = false
 var walk_records: Array[Dictionary] = []
+var profile_pass := ""
+var profile_frames: Array[Dictionary] = []
+var previous_draw_us := 0
 
 func _initialize() -> void:
 	call_deferred("_capture")
@@ -32,8 +36,19 @@ func _capture() -> void:
 		if RenderingServer.get_current_rendering_method() != "forward_plus":
 			_fail("Frame timing mode requires Forward+; do not benchmark software compatibility captures")
 			return
-	world = load("res://scenes/main.tscn").instantiate()
+	StreamProfile.enabled = "--profile" in OS.get_cmdline_user_args()
+	if StreamProfile.enabled:
+		RenderingServer.viewport_set_measure_render_time(root.get_viewport_rid(), true)
+		RenderingServer.frame_post_draw.connect(_profile_frame)
+	var started := StreamProfile.begin()
+	var scene := load("res://scenes/main.tscn") as PackedScene
+	StreamProfile.end(started, "main_scene_resource_load")
+	started = StreamProfile.begin()
+	world = scene.instantiate()
+	StreamProfile.end(started, "main_scene_instantiation")
+	started = StreamProfile.begin()
 	root.add_child(world)
+	StreamProfile.end(started, "main_scene_activation")
 	await process_frame
 	camera = world.get("camera")
 	var hud := world.get_node_or_null("HUD") as CanvasLayer
@@ -55,11 +70,43 @@ func _capture() -> void:
 	var scene_options := (world.get("world_environment") as WorldEnvironment).environment
 	if "--ssr-off" in OS.get_cmdline_user_args():
 		scene_options.ssr_enabled = false
+	var settings := {"ssr": scene_options.ssr_enabled, "ambient_occlusion": scene_options.ssao_enabled,
+		"fog": scene_options.fog_enabled, "glow": scene_options.glow_enabled,
+		"vsync": DisplayServer.window_get_vsync_mode(), "physics_hz": Engine.physics_ticks_per_second}
+	var arguments := OS.get_cmdline_user_args()
+	if "--settled" in arguments:
+		# Sample traversal after 60 rendered frames at the spawn camera.
+		# The immediate-start run includes first-visible-frame costs.
+		for frame in range(60):
+			await RenderingServer.frame_post_draw
 	if "--walk" in OS.get_cmdline_user_args():
 		clock.call("set_hour", 22.1)
 		for pass_name in ["first", "repeat"]:
 			if not await _walk(city, player, origin, pass_name):
 				return
+	if "--drive-night" in arguments or "--drive-noon" in arguments:
+		clock.call("set_hour", 21.5 if "--drive-night" in arguments else 12.0)
+		# Keep the real roadway and vehicle/collision controllers. Disable the
+		# ambient traffic process only for this reproducible lane-clear fixture.
+		(world.get("traffic") as Node).process_mode = Node.PROCESS_MODE_DISABLED
+		for pass_name in ["first", "repeat"]:
+			if not await _drive(city, player, pass_name):
+				return
+	if StreamProfile.enabled:
+		var profile := FileAccess.open(output.path_join("stream-profile.json"), FileAccess.WRITE)
+		if profile == null:
+			_fail("Could not save profiler evidence")
+			return
+		var session := root.get_node("GameSession")
+		profile.store_string(JSON.stringify({"frames": profile_frames, "spans": StreamProfile.events,
+			"runs": walk_records, "seed": session.get("world_seed"), "arguments": arguments,
+			"resolution": [root.size.x, root.size.y], "settings": settings,
+			"revision": OS.get_environment("NIGHTGRID_SOURCE_REVISION"),
+			"adapter": RenderingServer.get_video_adapter_name(), "driver": RenderingServer.get_current_rendering_driver_name()}))
+		profile.close()
+	if "--trace-only" in OS.get_cmdline_user_args():
+		quit(0)
+		return
 	world.set_process(false)
 	world.set_physics_process(false)
 	player.set_physics_process(false)
@@ -120,9 +167,7 @@ func _capture() -> void:
 		"renderer": RenderingServer.get_current_rendering_method(), "adapter": RenderingServer.get_video_adapter_name(),
 		"driver": RenderingServer.get_current_rendering_driver_name(), "adapter_api": RenderingServer.get_video_adapter_api_version(),
 		"revision": OS.get_environment("NIGHTGRID_SOURCE_REVISION"), "engine": Engine.get_version_info().get("string"),
-		"settings": {"ssr": scene_options.ssr_enabled, "ambient_occlusion": scene_options.ssao_enabled,
-			"fog": scene_options.fog_enabled, "glow": scene_options.glow_enabled,
-			"vsync": DisplayServer.window_get_vsync_mode(), "physics_hz": Engine.physics_ticks_per_second},
+		"settings": settings,
 		"render_video_memory_bytes": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_VIDEO_MEM_USED),
 		"shots": records, "walk_traces": walk_records,
 		"timing_note": "Viewport frame intervals, including CPU and GPU work. Walk traces use the same recorder as F8."
@@ -146,11 +191,13 @@ func _walk(city: Node3D, player: CharacterBody3D, origin: Vector3, label: String
 	var initial: Dictionary = city.call("get_streaming_stats")
 	var recorder: RefCounted = world.get("frame_time_recorder")
 	recorder.call("begin_capture", int(initial.get("loads", 0)), int(initial.get("stage_steps", 0)), int(initial.get("total_build_usec", 0)))
+	profile_pass = "walk-" + label
 	Input.action_press("move_forward")
 	var deadline := Time.get_ticks_msec() + 40000
 	while player.global_position.z < finish_z and Time.get_ticks_msec() < deadline:
 		await process_frame
 	Input.action_release("move_forward")
+	profile_pass = ""
 	recorder.call("end_capture")
 	var filename := "walk-%s.csv" % label
 	if str(recorder.call("export_csv", output.path_join(filename))).is_empty():
@@ -159,6 +206,77 @@ func _walk(city: Node3D, player: CharacterBody3D, origin: Vector3, label: String
 	walk_records.append({"file": filename, "frames": recorder.call("captured_frames"),
 		"distance_z_m": player.global_position.z - start.z, "reached_end": player.global_position.z >= finish_z})
 	return true
+
+func _drive(city: Node3D, player: CharacterBody3D, label: String) -> bool:
+	var car: CharacterBody3D = world.get("cars")[0]
+	var start := Vector3(3.35, 0.65, 203.0)
+	car.global_position = start
+	car.rotation = Vector3.ZERO
+	car.velocity = Vector3.ZERO
+	car.set("speed", 0.0)
+	car.call("repair")
+	if world.get("current_car") == null:
+		player.global_position = start + Vector3.RIGHT * 2.8
+		car.set_meta("claimed", true)
+		world.call("_toggle_car")
+	if world.get("current_car") != car:
+		_fail("Could not enter the benchmark car")
+		return false
+	world.set("yaw", 0.0)
+	world.call("_snap_camera")
+	for frame in range(4):
+		await physics_frame
+	var initial: Dictionary = city.call("get_streaming_stats")
+	var recorder: RefCounted = world.get("frame_time_recorder")
+	recorder.call("begin_capture", int(initial["loads"]), int(initial["stage_steps"]), int(initial["total_build_usec"]))
+	profile_pass = "drive-" + label
+	Input.action_press("drive_accelerate")
+	var peak_kph := 0
+	var districts: Array[String] = []
+	var deadline := Time.get_ticks_msec() + 20000
+	while car.global_position.z > -24.0 and Time.get_ticks_msec() < deadline:
+		await process_frame
+		var z := car.global_position.z
+		# Rotate through a full turn across the same 45 m on both revisions.
+		world.set("yaw", TAU * clampf((155.0 - z) / 45.0, 0.0, 1.0))
+		peak_kph = maxi(peak_kph, int(car.call("speed_kph")))
+		var district: String = city.call("get_district_at", car.global_position)
+		if district not in districts:
+			districts.append(district)
+	Input.action_release("drive_accelerate")
+	profile_pass = ""
+	recorder.call("end_capture")
+	var filename := "drive-%s.csv" % label
+	if str(recorder.call("export_csv", output.path_join(filename))).is_empty():
+		_fail("Could not save drive trace")
+		return false
+	walk_records.append({"file": filename, "frames": recorder.call("captured_frames"),
+		"distance_z_m": start.z - car.global_position.z, "reached_end": car.global_position.z <= -24.0,
+		"peak_kph": peak_kph, "districts": districts, "condition": car.get("condition")})
+	if car.global_position.z > -24.0 or peak_kph < 125 or districts.size() < 3:
+		_fail("Drive did not qualify: " + str(walk_records.back()))
+		return false
+	return true
+
+func _profile_frame() -> void:
+	var now := Time.get_ticks_usec()
+	if not profile_pass.is_empty() and previous_draw_us > 0 and profile_frames.size() < StreamProfile.MAX_EVENTS:
+		var viewport := root.get_viewport_rid()
+		profile_frames.append({
+			"pass": profile_pass, "frame": Engine.get_process_frames(), "end_us": now,
+			"frame_ms": (now - previous_draw_us) / 1000.0,
+			"focused": root.has_focus(),
+			"render_setup_ms": RenderingServer.get_frame_setup_time_cpu(),
+			"render_cpu_ms": RenderingServer.viewport_get_measured_render_time_cpu(viewport),
+			"render_gpu_ms": RenderingServer.viewport_get_measured_render_time_gpu(viewport),
+			"physics_process_ms": Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
+			"texture_bytes": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TEXTURE_MEM_USED),
+			"mesh_pipelines": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_MESH),
+			"surface_pipelines": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_SURFACE),
+			"draw_pipelines": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_DRAW),
+			"specializations": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_SPECIALIZATION)
+		})
+	previous_draw_us = now
 
 func _save(name: String, hour: float, at: Vector3, look: Vector3) -> bool:
 	var pixels: Image = root.get_texture().get_image()

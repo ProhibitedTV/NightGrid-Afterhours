@@ -2,6 +2,7 @@ extends RefCounted
 ## Shared, deterministic PBR textures for the entire city. No external asset dependencies.
 ## Albedo, tangent-space normals and roughness are baked on demand, once per surface type.
 const SIZE = 128
+const StreamProfile = preload("res://scripts/streaming_profile.gd")
 static var _maps: Dictionary = {}
 static var _normals: Dictionary = {}
 static var _roughness_maps: Dictionary = {}
@@ -50,9 +51,11 @@ static func _photo_concrete(kind: String,tint: Color,key: String) -> StandardMat
 	# Reuse the actual CC0 concrete_floor_01 maps already imported with
 	# the Central Exchange curb kit; green is the packed roughness channel.
 	var material := StandardMaterial3D.new()
+	var started := StreamProfile.begin()
 	material.albedo_texture = load(PHOTO_CONCRETE_ROOT+"base_1k.jpg") as Texture2D
 	material.normal_texture = load(PHOTO_CONCRETE_ROOT+"normal_1k.jpg") as Texture2D
 	material.roughness_texture = load(PHOTO_CONCRETE_ROOT+"arm_1k.png") as Texture2D
+	StreamProfile.end(started, "photo_texture_resource_load", kind)
 	if material.albedo_texture==null or material.normal_texture==null or material.roughness_texture==null:
 		push_error("Photo concrete maps unavailable")
 	material.albedo_color = tint
@@ -126,6 +129,7 @@ static func _roughness_at(kind: String, x: int, y: int) -> float:
 static func _ensure_maps(kind: String) -> void:
 	if _maps.has(kind):
 		return
+	var started := StreamProfile.begin()
 	var albedo := Image.create(SIZE, SIZE, false, Image.FORMAT_RGBA8)
 	var normal := Image.create(SIZE, SIZE, false, Image.FORMAT_RGBA8)
 	var rough := Image.create(SIZE, SIZE, false, Image.FORMAT_RGBA8)
@@ -159,9 +163,12 @@ static func _ensure_maps(kind: String) -> void:
 	albedo.generate_mipmaps()
 	normal.generate_mipmaps()
 	rough.generate_mipmaps()
+	StreamProfile.end(started, "material_image_bake", kind)
+	started = StreamProfile.begin()
 	_maps[kind] = ImageTexture.create_from_image(albedo)
 	_normals[kind] = ImageTexture.create_from_image(normal)
 	_roughness_maps[kind] = ImageTexture.create_from_image(rough)
+	StreamProfile.end(started, "texture_submission", kind)
 
 static func material_count() -> int:
 	return _surfaces.size()

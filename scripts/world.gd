@@ -41,6 +41,7 @@ const NightGridFMScript = preload("res://scripts/nightgrid_fm.gd")
 const WorldAudioScript = preload("res://scripts/world_audio.gd")
 const AudioMix = preload("res://scripts/audio_mix.gd")
 const FrameTimeRecorder = preload("res://scripts/frame_time_recorder.gd")
+const StreamProfile = preload("res://scripts/streaming_profile.gd")
 const PlaytestEvidence = preload("res://scripts/playtest_evidence.gd")
 const PlaytestLogger = preload("res://scripts/playtest_logger.gd")
 const BuildInfo = preload("res://scripts/build_info.gd")
@@ -599,9 +600,15 @@ func _process(delta: float) -> void:
 			if actor is CharacterBody3D:
 				traversal_velocity = (actor as CharacterBody3D).velocity
 			city_details.call("request_focus", actor.global_position, traversal_velocity)
+		var started := StreamProfile.begin()
 		street_lights.call("set_focus", interiors.get("exterior_position") if indoors else actor.global_position)
+		StreamProfile.end(started, "street_light_focus")
+		started = StreamProfile.begin()
 		venue_system.call("set_focus", actor.global_position)
+		StreamProfile.end(started, "venue_focus")
+		started = StreamProfile.begin()
 		civic_services.call("set_focus", actor.global_position)
+		StreamProfile.end(started, "civic_focus")
 	_venue_clock_tick += delta
 	if _venue_clock_tick >= 0.5:
 		_venue_clock_tick = 0.0
