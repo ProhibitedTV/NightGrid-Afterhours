@@ -1,0 +1,43 @@
+name: Pin verified Brickwater CC0 source packages
+on:
+  push:
+    branches: [art/brickwater-cc0-intake]
+    paths:
+      - '.github/workflows/pin-brickwater-cc0.yml'
+      - 'tools/check_brickwater_cc0.py'
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: pin-brickwater-cc0
+  cancel-in-progress: false
+jobs:
+  pin:
+    if: github.repository == 'ProhibitedTV/NightGrid-Afterhours' && github.ref == 'refs/heads/art/brickwater-cc0-intake'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download exact successful acquisition run
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 44964726498
+          pattern: brickwater-cc0-*
+          path: ${{ runner.temp }}/brickwater-pinned
+          merge-multiple: false
+      - name: Audit all nine packages and install atomically before staging
+        run: |
+          set -euo pipefail
+          python3 tools/check_brickwater_cc0.py --stage "$RUNNER_TEMP/brickwater-pinned"
+          python3 tools/check_brickwater_cc0.py
+      - name: Commit only verified asset directories to the art branch
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = art/brickwater-cc0-intake
+          git add -- assets/models/polyhaven/{modular_urban_apartments_facade,modular_fire_escape,modular_electric_cables,modular_pipes,industrial_caged_sconce,trashbag,cardboard_box_01,plastic_crate_01,hand_truck}/
+          git diff --cached --stat
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'assets(cc0): ingest nine verified Brickwater glTF source packages'
+          git push origin HEAD:refs/heads/art/brickwater-cc0-intake
