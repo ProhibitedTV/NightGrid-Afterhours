@@ -8,6 +8,7 @@ const CraneGearWarehouse = preload("res://scripts/crane_gear_warehouse.gd")
 const RenderBatchOwner = preload("res://scripts/render_batch_owner.gd")
 const VesperWindows = preload("res://scripts/vesper_window_assembly.gd")
 const BrickwaterAlley = preload("res://scripts/brickwater_alley.gd")
+const BrickwaterFacade = preload("res://scripts/brickwater_facade.gd")
 ## Seeded city dressing. Static shell collisions + batched decorative geometry.
 ## The four neighborhoods deliberately share road geometry but not street character.
 
@@ -805,11 +806,12 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 	var dock_service_exposure := ix == -4 and iz == -1 and which == 1
 	var crane_gear_exposure := ix == -4 and iz == -2 and which == 1
 	var exchange_walk_in: bool = (ix == -1 and iz == 0 and which == 1) or (ix == 0 and iz == 0 and which == 0)
+	var brickwater_exposure := Vector2i(ix,iz)==BrickwaterAlley.PILOT_BLOCK
 	var authored_exposure: bool = dock_watch_exposure or dock_service_exposure or crane_gear_exposure or exchange_walk_in
 	var shell_at := Vector3(center.x, height / 2.0 + 0.15, center.z)
 	var shell_size := Vector3(width, height, depth)
 	if not shell_prebuilt:
-		if authored_exposure:
+		if authored_exposure or brickwater_exposure:
 			var volume := StaticBody3D.new()
 			volume.name = "PreservedBuildingCollision"
 			volume.position = shell_at
@@ -856,6 +858,12 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 				collision.shape = shape
 				volume.add_child(collision)
 			(_active_chunk if _active_chunk != null else self).add_child(volume)
+			if brickwater_exposure:
+				var envelope := BrickwaterFacade.new()
+				envelope.name = "BrickwaterFacade_%d"%which
+				envelope.position = Vector3(center.x,0.15,center.z)
+				_active_chunk.add_child(envelope)
+				envelope.install(width,height,depth,which,wall)
 		else:
 			_solid(shell_at, shell_size, wall, "PHOTO_BRICK" if surface_kind == "BRICK" else surface_kind)
 	if shell_only:
@@ -908,7 +916,7 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 		# Rooftop water tank and a vertical fire escape.
 		_detail(Vector3(center.x + 3.8, height + 3.2, center.z), Vector3(3.6, 4.4, 3.6), Color("4f6570"))
 		_detail(Vector3(center.x + 3.8, height + 5.5, center.z), Vector3(4.0, 0.22, 4.0), Color("a0a2a0"))
-		for floor_step in range(2, int(height / 3.4)):
+		for floor_step in range(2, int(height / 3.4)) if not brickwater_exposure else []:
 			var step_y := float(floor_step) * 3.4
 			_detail(Vector3(right + 0.28, step_y, center.z + 0.5), Vector3(0.65, 0.17, 5.4), Color("65757c"))
 			_detail(Vector3(right + 0.54, step_y + 0.9, center.z + 0.5), Vector3(0.09, 1.70, 5.3), Color("819198"))
@@ -970,6 +978,8 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 		# Floor banding gives each building a perceived internal structure.
 		_detail(Vector3(center.x, fy - 1.55, front - 0.055), Vector3(width, 0.11, 0.13), Color("252d3d"))
 		for side in [-1.0, 1.0]:
+			if brickwater_exposure and side == (1.0 if which == 0 else -1.0):
+				continue
 			for side_window in range(2):
 				var wz := center.z + (float(side_window) - 0.5) * depth * 0.38
 				_detail(Vector3(center.x + side * (width / 2.0 + 0.07), fy, wz), Vector3(0.11, 1.45, 2.0), Color("426178"), false, "GLASS")

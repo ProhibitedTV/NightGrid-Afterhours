@@ -88,13 +88,6 @@ func install(left_wall: float, right_wall: float, y: float) -> void:
 	left = left_wall
 	right = right_wall
 	floor_y = y
-	# First-storey windows: their real frames, glazing and surrounds have
-	# authored depth. The solid existing opaque shell remains behind them.
-	# Not represented as traversable interiors or actual open apertures.
-	for z in [-10.0,-2.5,4.5]:
-		_wall("WestWindow_%s"%str(z),FACADE,"window_centered_large_03",-1,3.35,z)
-	for z in [-8.5,-2.0,4.5]:
-		_wall("EastWindow_%s"%str(z),FACADE,"window_centered_double_03",1,3.35,z)
 	# Real wall-mounted caged fixtures, warm pools rather than unmotivated neon.
 	for spec in [[-1,-8.6],[1,3.25]]:
 		var side: int = spec[0]

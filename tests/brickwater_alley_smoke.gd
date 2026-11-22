@@ -82,8 +82,27 @@ func _verify()->void:
 			var wall_hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(at + inward * 0.04, at - inward * 0.10, 1))
 			if not _check(not wall_hit.is_empty() and absf(float(wall_hit["position"].x) - (alley.global_position.x + expected_wall)) < 0.025, "wall behind artwork, not floating or crossing a corner"):
 				return
+	for which in range(2):
+		var envelope := chunk.get_node_or_null("BrickwaterFacade_%d"%which) as Node3D
+		if not _check(envelope != null and int(envelope.get_meta("window_bays",0))>=12,"real modular envelope at each saved parcel"):
+			return
+		var backing := envelope.get_node_or_null("RecessBacking") as MeshInstance3D
+		if not _check(backing != null and is_equal_approx(absf(backing.position.x),absf(float(envelope.get_meta("saved_width"))*0.5-0.36)),"window backing behind facade"):
+			return
+		var walls := 0
+		var windows := 0
+		for node in envelope.get_children():
+			if node is MultiMeshInstance3D:
+				if str(node.name).begins_with("wall_window"):
+					walls += node.multimesh.instance_count
+				elif str(node.name).begins_with("window_centered"):
+					windows += node.multimesh.instance_count
+				if not _check(node.multimesh.mesh is ArrayMesh,"source modular geometry, not a cube"):
+					return
+		if not _check(walls==windows and walls==int(envelope.get_meta("window_bays")),"one matched cutout and actual window per bay"):
+			return
 	var gold := alley.get_node_or_null("BrickwaterGoldArt") as Node3D
-	if not _check(gold != null and gold.get_child_count()==24,"curated authored art layer (no asset display scenes)"):
+	if not _check(gold != null and gold.get_child_count()==18,"curated authored art layer (no asset display scenes)"):
 		return
 	var lit := 0
 	for item in gold.get_children():
