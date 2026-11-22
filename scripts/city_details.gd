@@ -62,6 +62,7 @@ const MAX_PEDESTRIAN_RESERVATIONS = 12
 var _pedestrian_reservations: Dictionary = {}
 var _reservation_prune_due := false
 var _loaded: Dictionary = {}
+var _brickwater_night := 0.0
 var _staging: Dictionary = {}
 var _active_chunk: Node3D
 var _current_block := Vector2i(999, 999)
@@ -471,6 +472,15 @@ func get_nearby_landmark(position: Vector3) -> String:
 	return WorldPlan.nearby_landmark(position)
 
 func set_night_factor(value: float) -> void:
+	_brickwater_night=clampf(value,0.0,1.0)
+	BrickwaterFacade.set_night_factor(_brickwater_night)
+	var chunk: Node3D = _loaded.get(BrickwaterAlley.PILOT_BLOCK)
+	if chunk == null and _staging.has(BrickwaterAlley.PILOT_BLOCK):
+		chunk = _staging[BrickwaterAlley.PILOT_BLOCK]["node"]
+	if chunk != null:
+		var alley := chunk.get_node_or_null("BrickwaterServiceAlley")
+		if alley != null:
+			alley.call("set_night_factor",_brickwater_night)
 	# Static shared emissive materials change with the time controller.
 	var brightness := 2.35 * smoothstep(0.42, 0.78, clampf(value, 0.0, 1.0))
 	for key in _palette:
@@ -667,6 +677,7 @@ func _build_brickwater_alley(ix: int, iz: int) -> void:
 	alley.position = Vector3((float(ix)+0.5)*CELL,0.0,(float(iz)+0.5)*CELL)
 	alley.configure(-10.5+float(left["width"])*0.5,10.5-float(right["width"])*0.5)
 	_active_chunk.add_child(alley)
+	alley.set_night_factor(_brickwater_night)
 
 func _build_block_street(ix: int, iz: int) -> void:
 	var center := Vector3((float(ix) + 0.5) * CELL, 0.0, (float(iz) + 0.5) * CELL)

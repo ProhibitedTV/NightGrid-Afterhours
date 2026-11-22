@@ -7,6 +7,9 @@ const Maps = preload("res://scripts/material_library.gd")
 const MODULE = 3.0
 const MAX_DETAILED_STOREYS = 4
 const RECESS_BACK = 0.36
+static var _lit_meshes: Dictionary = {}
+static var _lit_materials: Array[StandardMaterial3D] = []
+static var _night := 0.0
 var _groups: Dictionary = {}
 var _wall_material: Material
 
@@ -29,11 +32,36 @@ func _module(member: String, at: Vector3, yaw: float) -> void:
 	var transforms: Array = _groups[member]
 	transforms.append(Transform3D(Basis(Vector3.UP,yaw),at))
 
+static func set_night_factor(value: float) -> void:
+	_night=smoothstep(0.35,0.85,clampf(value,0.0,1.0))
+	for material in _lit_materials:
+		material.emission_energy_multiplier=0.85*_night
+
+static func _window_mesh(member: String) -> Mesh:
+	if not member.ends_with("_lit"):
+		return Gold._source(Gold.FACADE,member)
+	if _lit_meshes.has(member):
+		return _lit_meshes[member]
+	var original := Gold._source(Gold.FACADE,member.trim_suffix("_lit"))
+	var copy := original.duplicate() as Mesh
+	for index in range(copy.get_surface_count()):
+		var original_mat := copy.surface_get_material(index) as StandardMaterial3D
+		if original_mat == null or not original_mat.resource_name.to_lower().contains("glass"):
+			continue
+		var warm := original_mat.duplicate() as StandardMaterial3D
+		warm.emission_enabled=true
+		warm.emission=Color("f9c389")
+		warm.emission_energy_multiplier=0.85*_night
+		copy.surface_set_material(index,warm)
+		_lit_materials.append(warm)
+	_lit_meshes[member]=copy
+	return copy
+
 func _flush() -> void:
 	for member in _groups:
 		var batch := MultiMesh.new()
 		batch.transform_format = MultiMesh.TRANSFORM_3D
-		batch.mesh = Gold._source(Gold.FACADE,member)
+		batch.mesh = _window_mesh(member)
 		var transforms: Array = _groups[member]
 		batch.instance_count = transforms.size()
 		for i in range(transforms.size()):
@@ -74,7 +102,9 @@ func install(width: float, height: float, depth: float, which: int, tint: Color)
 			if (bay+row*2+which)%4==0:
 				variant = "small"
 			_module("wall_window_centered_%s_03"%variant,origin,yaw)
-			_module("window_centered_%s_03"%variant,origin,yaw)
+			# Stable occupancy pattern: only some apartments glow, no random flicker.
+			var occupied := (bay*7+row*3+which*2)%9 in [1,4,7]
+			_module("window_centered_%s_03"%variant+("_lit" if occupied else ""),origin,yaw)
 	# End strips and upper band close the envelope; a dark continuous backing
 	# sits behind the imported reveals, never at the front plane.
 	for edge in [-1.0,1.0]:

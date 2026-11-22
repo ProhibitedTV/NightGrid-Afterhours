@@ -121,3 +121,11 @@ func install(left_wall: float, right_wall: float, y: float) -> void:
 	_ground("FoldedCarton",BOX,"cardboard_box_01",1,-10.55,0.3,1.15)
 	_ground("ProduceCrate",CRATE,"plastic_crate_01",1,-7.9,0.18,1.25)
 	_ground("SpareCrate",CRATE,"plastic_crate_01",1,-7.35,-0.12,1.0)
+
+func set_night_factor(value: float) -> void:
+	var night := smoothstep(0.35,0.85,clampf(value,0.0,1.0))
+	for child in get_children():
+		var lamp := child.get_node_or_null("PracticalAmber") as OmniLight3D
+		if lamp != null:
+			lamp.light_energy=1.6*night
+			lamp.visible=night>0.001

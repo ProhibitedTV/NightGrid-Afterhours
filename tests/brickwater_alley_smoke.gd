@@ -151,5 +151,30 @@ func _verify()->void:
 		var bounds := bundle.mesh.get_aabb()
 		if not _check(west.get_child_count()==3 and east.get_child_count()==3 and absf(bounds.position.x-west.position.x)<0.03 and absf(bounds.end.x-east.position.x)<0.03 and bounds.position.y>4.9,"each continuous cable span reaches both wall anchors above street"):
 			return
+	var signs := alley.get_node_or_null("BrickwaterSigns") as Node3D
+	if not _check(signs!=null and signs.get_child_count()==2,"two original commercial signs"):
+		return
+	var window_lights: Array[StandardMaterial3D]=[]
+	for which in range(2):
+		var env := chunk.get_node("BrickwaterFacade_%d"%which)
+		for node in env.get_children():
+			if node is MultiMeshInstance3D and str(node.name).ends_with("_lit"):
+				for i in range(node.multimesh.mesh.get_surface_count()):
+					var mat := node.multimesh.mesh.surface_get_material(i) as StandardMaterial3D
+					if mat != null and mat.emission_enabled and mat.resource_name.to_lower().contains("glass"):
+						window_lights.append(mat)
+	if not _check(not window_lights.is_empty(),"selective real glass surface emission"):
+		return
+	for night in [0.0,1.0]:
+		city.call("set_night_factor",night)
+		for sign in signs.get_children():
+			var face := sign.get_node("OriginalPrintedSignFace") as MeshInstance3D
+			var lamp := sign.get_node("SignSpill") as OmniLight3D
+			var material := face.material_override as StandardMaterial3D
+			if not _check(material.emission_texture!=null and is_equal_approx(material.emission_energy_multiplier,1.45*night) and is_equal_approx(lamp.light_energy,0.72*night) and not lamp.shadow_enabled,"sign day/night cycle and bounded practical spill"):
+				return
+		for mat in window_lights:
+			if not _check(is_equal_approx(mat.emission_energy_multiplier,0.85*night),"occupied glass follows world clock"):
+				return
 	print("BRICKWATER_ALLEY_SMOKE PASS: physical floor, closed model, photo materials, clear path")
 	quit(0)

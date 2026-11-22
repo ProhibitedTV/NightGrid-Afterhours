@@ -10,6 +10,7 @@ const NOTICE = preload("res://assets/models/nightgrid/brickwater_alley/waste_not
 const WallArt = preload("res://scripts/brickwater_wall_art.gd")
 const GoldArt = preload("res://scripts/brickwater_gold_art.gd")
 const Overhead = preload("res://scripts/brickwater_overhead.gd")
+const Signs = preload("res://scripts/brickwater_signs.gd")
 const WetSurface = preload("res://assets/shaders/brickwater_wet_concrete.gdshader")
 const PHOTO_ROOT = Maps.PHOTO_CONCRETE_ROOT
 const PBR = "res://assets/pbr/polyhaven/"
@@ -49,6 +50,14 @@ func _ready()->void:
 	overhead.name = "BrickwaterOverhead"
 	add_child(overhead)
 	overhead.install(left_wall,right_wall)
+	var signs := Signs.new()
+	signs.name="BrickwaterSigns"
+	add_child(signs)
+	signs.install(left_wall,right_wall)
+
+func set_night_factor(value: float) -> void:
+	get_node("BrickwaterSigns").call("set_night_factor",value)
+	get_node("BrickwaterGoldArt").call("set_night_factor",value)
 
 func _view(parent:Node3D, label:String, mesh:Mesh, at:Vector3, material:Material)->MeshInstance3D:
 	var node:=MeshInstance3D.new()
