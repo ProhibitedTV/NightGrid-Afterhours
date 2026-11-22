@@ -1,10 +1,11 @@
 extends SceneTree
 ## Real, unmodified framebuffer captures from the actual playable city.
 const ALLEY = preload("res://scripts/brickwater_alley.gd")
-const DIR = "res://exports/brickwater_review"
+const DIR = "res:" + "//exports/brickwater_review" # runtime output, not an imported resource
 var world: Node3D
 var camera: Camera3D
 var records: Array[Dictionary] = []
+var measure_native: bool = false
 
 func _initialize() -> void:
 	call_deferred("_capture")
@@ -17,6 +18,13 @@ func _capture() -> void:
 	if DisplayServer.get_name() == "headless":
 		_fail("Requires a graphical renderer, not headless")
 		return
+	measure_native = "--measure" in OS.get_cmdline_user_args()
+	if measure_native:
+		if RenderingServer.get_current_rendering_method() != "forward_plus":
+			_fail("Frame timing mode requires Forward+; do not benchmark software compatibility captures")
+			return
+		Engine.max_fps = 0
+		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	world = load("res://scenes/main.tscn").instantiate()
 	root.add_child(world)
 	await process_frame
@@ -84,11 +92,14 @@ func _capture() -> void:
 			await RenderingServer.frame_post_draw
 		if not _save(name, hour, origin + at, origin + look):
 			return
+		if measure_native:
+			var timing: Dictionary = await _measure_frames()
+			records[records.size() - 1]["stationary_frame_timing"] = timing
 	var manifest := FileAccess.open(DIR + "/camera-manifest.json", FileAccess.WRITE)
 	if manifest == null:
 		_fail("Cannot write manifest")
 		return
-	manifest.store_string(JSON.stringify({"block":[block.x,block.y],"origin":[origin.x,origin.y,origin.z],"renderer":RenderingServer.get_current_rendering_method(),"adapter":RenderingServer.get_video_adapter_name(),"engine":Engine.get_version_info().get("string"),"shots":records}, "\t"))
+	manifest.store_string(JSON.stringify({"block":[block.x,block.y],"origin":[origin.x,origin.y,origin.z],"renderer":RenderingServer.get_current_rendering_method(),"adapter":RenderingServer.get_video_adapter_name(),"engine":Engine.get_version_info().get("string"),"shots":records,"timing_note":"Optional stationary viewport frame intervals; no moving gameplay, no screenshot readback in timing window; not GPU-only timings."}, "\t"))
 	manifest.close()
 	print("BRICKWATER_CAPTURE PASS: ", records.size(), " actual framebuffer images")
 	quit(0)
@@ -113,3 +124,26 @@ func _save(name: String, hour: float, at: Vector3, look: Vector3) -> bool:
 	records.append({"file":name,"hour":hour,"camera":[at.x,at.y,at.z],"look":[look.x,look.y,look.z],"fov":camera.fov,"resolution":[pixels.get_width(),pixels.get_height()]})
 	print("ACTUAL_BRICKWATER_FRAME: ",path)
 	return true
+
+func _measure_frames() -> Dictionary:
+	# Warm up before a separate interval sample. Do not include PNG encoding
+	# or screenshot downloads. This is stationary rendering, not streaming.
+	for frame in range(60):
+		await process_frame
+		await RenderingServer.frame_post_draw
+	var times: Array[float] = []
+	var previous := Time.get_ticks_usec()
+	for frame in range(180):
+		await process_frame
+		await RenderingServer.frame_post_draw
+		var now := Time.get_ticks_usec()
+		times.append(float(now - previous) / 1000.0)
+		previous = now
+	times.sort()
+	var total := 0.0
+	for value in times:
+		total += value
+	return {"samples":times.size(),"mean_ms":total / float(times.size()),
+		"p50_ms":times[89],"p95_ms":times[170],"p99_ms":times[178],
+		"max_ms":times[179],"target_ms":1000.0 / 60.0,
+		"vsync_mode":DisplayServer.window_get_vsync_mode()}

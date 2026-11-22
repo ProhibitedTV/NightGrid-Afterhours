@@ -46,6 +46,11 @@ jobs:
         run: python tools/test_check_release_gallery.py
       - name: Verify committed real game screenshots
         run: python tools/check_screenshots.py
+      - name: Verify published Brickwater gallery, if present
+        run: |
+          if [ -f docs/art/brickwater-review/camera-manifest.json ]; then
+            python tools/publish_brickwater_gallery.py --check
+          fi
       - name: Verify exact beta.7 capture provenance on the release candidate
         if: github.head_ref == 'release/beta-7-gallery-milestone' || github.ref == 'refs/heads/release/beta-7-gallery-milestone'
         run: |
