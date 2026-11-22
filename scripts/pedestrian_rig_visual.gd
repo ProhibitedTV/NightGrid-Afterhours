@@ -28,6 +28,7 @@ var _model: PackedScene
 var _activity := "WALK"
 var _animation_elapsed := 0.0
 static var _materials_by_source := {}
+static var _street_surface_by_source := {}
 
 func set_pedestrian_model(model: PackedScene) -> void:
 	_model = model
@@ -54,6 +55,8 @@ func _ready() -> void:
 	if not _validate():
 		set_process(false)
 		return
+	if _model != null:
+		_apply_street_surface()
 	_build_variants()
 	_valid = true
 	set_pedestrian_style(_style)
@@ -83,6 +86,26 @@ func _validate() -> bool:
 			if format & Mesh.ARRAY_FORMAT_BONES and format & Mesh.ARRAY_FORMAT_WEIGHTS:
 				weighted = true
 	return weighted
+
+func _apply_street_surface() -> void:
+	# The publisher's packed roughness map has a white blue channel. Keep
+	# the green roughness channel and disable the unused metal sample.
+	for child in find_children("*", "MeshInstance3D", true, false):
+		var model := child as MeshInstance3D
+		if model.mesh == null:
+			continue
+		for surface in range(model.mesh.get_surface_count()):
+			var source := model.get_active_material(surface) as BaseMaterial3D
+			if source == null:
+				continue
+			if not _street_surface_by_source.has(source):
+				var material := source.duplicate() as BaseMaterial3D
+				material.metallic = 0.0
+				material.metallic_texture = null
+				material.metallic_specular = 0.18
+				material.normal_scale = 0.55
+				_street_surface_by_source[source] = material
+			model.set_surface_override_material(surface, _street_surface_by_source[source])
 
 func _build_variants() -> void:
 	if not is_instance_valid(_clothing) or _clothing.mesh==null or clothing_surface<0 or clothing_surface>=_clothing.mesh.get_surface_count():

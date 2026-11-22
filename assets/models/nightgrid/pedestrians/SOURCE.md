@@ -18,3 +18,5 @@ node tools/prepare_pedestrian_models.mjs dist/pedestrian-source assets/models/ni
 ```
 
 Place the verified source files in `dist/pedestrian-source` first. The four asset file names match the publisher model IDs. The game and regressions use the committed converted GLBs offline.
+
+The rig adapter shares one Godot material override per source. It retains the original color, normal and green-channel roughness maps, disables metallic sampling for skin and cloth, and reduces the specular and normal strength after native daylight review.

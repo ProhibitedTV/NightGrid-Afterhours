@@ -40,6 +40,7 @@ func _verify() -> void:
 		quit(1)
 		return
 	var director: Node3D = game.get("pedestrians")
+	_check_imports(director)
 	player.global_position = ANCHOR
 	city.call("set_focus", ANCHOR)
 	camera.global_position = ANCHOR + Vector3(0, 1.6, 0)
@@ -103,6 +104,19 @@ func _verify() -> void:
 			"Normal world save application restores the same IDs and phases")
 	print("LIVING_STREETS_SMOKE ", "PASS" if faults == 0 else "FAIL")
 	quit(0 if faults == 0 else 1)
+
+func _check_imports(director: Node3D) -> void:
+	var imported := 0
+	for child in director.find_children("*", "MeshInstance3D", true, false):
+		var model := child as MeshInstance3D
+		if model.skin == null:
+			continue
+		var material := model.get_active_material(0) as BaseMaterial3D
+		_expect(material != null and material.albedo_texture != null and material.normal_texture != null and
+			material.roughness_texture != null and material.metallic_texture == null and is_zero_approx(material.metallic),
+			"Imported civilian surface preserves color, roughness and normals as a dielectric material")
+		imported += 1
+	_expect(imported == 12, "Each of the twelve bounded slots owns one weighted authored mesh")
 
 func _check_witness(director: Node3D, camera: Camera3D, active: Dictionary) -> void:
 	var at: Vector3 = active.get("0,0:0", active.values()[-1])

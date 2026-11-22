@@ -14,6 +14,7 @@ var reports: Array[Dictionary] = []
 var reference_views := {}
 
 func _initialize() -> void:
+	create_timer(250.0, true, false, true).timeout.connect(func() -> void: quit(1))
 	call_deferred("_capture")
 
 func _capture() -> void:
@@ -107,7 +108,9 @@ func _sample(district: String, hour: float) -> bool:
 	var active: Dictionary = pedestrians.call("active_positions") if is_instance_valid(pedestrians) else {}
 	var visible := 0
 	var unobstructed := 0
-	var excluded: Array[RID] = pedestrians.call("camera_exclusions") if is_instance_valid(pedestrians) else []
+	var excluded: Array[RID] = []
+	if is_instance_valid(pedestrians):
+		excluded = pedestrians.call("camera_exclusions")
 	var space := game.get_world_3d().direct_space_state
 	for at in active.values():
 		if camera.is_position_in_frustum(at + Vector3.UP):
