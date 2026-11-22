@@ -12,6 +12,7 @@ const BrickwaterArchitecture = preload("res://scripts/brickwater_alley_architect
 const BrickwaterEnvelope = preload("res://scripts/brickwater_envelope.gd")
 const BrickwaterSigns = preload("res://scripts/brickwater_business_frontage.gd")
 const StreamProfile = preload("res://scripts/streaming_profile.gd")
+const MarketCarton = preload("res://scripts/market_carton.gd")
 ## Seeded city dressing. Static shell collisions + batched decorative geometry.
 ## The four neighborhoods deliberately share road geometry but not street character.
 
@@ -430,6 +431,10 @@ func _run_build_stage(block: Vector2i) -> bool:
 				_build_block_shells(block.x, block.y)
 				if block == BrickwaterAlley.PILOT_BLOCK:
 					_build_brickwater_alley(block.x, block.y)
+				else:
+					var alley_center := Vector3((float(block.x) + 0.5) * CELL, 0.15,
+						(float(block.y) + 0.5) * CELL + 10.0)
+					_build_dumpster(alley_center)
 				if profiled:
 					StreamProfile.end(collision_started, "shell_creation_and_registration", str(block))
 			work["phase"] = 1
@@ -719,7 +724,6 @@ func _build_block_street(ix: int, iz: int) -> void:
 		_detail(center + Vector3(0.0, 0.155, 3.0), Vector3(3.8, 0.035, 25.0), Color("353e48"))
 		for mark in range(4):
 			_detail(center + Vector3(0.0, 0.175, -6.0 + float(mark) * 6.0), Vector3(3.4, 0.02, 0.10), Color("62686e"))
-		_dumpster(center + Vector3(0.0, 0.3, 10.0))
 	_furniture(center, district, Vector2i(ix, iz) != BrickwaterAlley.PILOT_BLOCK)
 	_statistics["street_props"] += 1
 
@@ -772,14 +776,20 @@ func _build_landmark(center: Vector3, name: String) -> void:
 			for x in [-13.0, 13.0]:
 				for z in [-10.0, 10.0]:
 					_solid(center + Vector3(x, 3.20, z), Vector3(0.58, 6.3, 0.58), Color("738d91"), "METAL")
-			_detail(center + Vector3(0.0, 6.55, 0.0), Vector3(31.0, 0.42, 24.0), Color("365c65"))
+			_solid(center + Vector3(0.0, 6.55, 0.0), Vector3(31.0, 0.42, 24.0), Color("365c65"), "METAL")
 			_detail(center + Vector3(0.0, 6.85, -12.0), Vector3(30.0, 0.18, 0.18), label_color, true)
 			for row in [-6.0, 6.0]:
 				for x in [-9.0, -3.0, 3.0, 9.0]:
-					_detail(center + Vector3(x, 0.65, row), Vector3(4.15, 1.02, 2.20), Color("69777b"))
-					_detail(center + Vector3(x, 1.35, row), Vector3(3.75, 0.23, 1.8), Color("d1a775"))
+					_solid(center + Vector3(x, 0.65, row), Vector3(4.15, 1.02, 2.20), Color("69777b"))
+					_solid(center + Vector3(x, 1.265, row), Vector3(3.75, 0.23, 1.8), Color("d1a775"), "WOOD")
 					for produce in [-1.0, 0.0, 1.0]:
-						_detail(center + Vector3(x + produce, 1.61, row), Vector3(0.55, 0.32, 0.45), Color("78af78"))
+						_detail(center + Vector3(x + produce, 1.54, row), Vector3(0.55, 0.32, 0.45), Color("78af78"))
+			for x in [-6.0, -1.85, 4.8, 10.6]:
+				var carton := MarketCarton.new()
+				carton.name = "DeliveryCarton_%d" % roundi(x * 100.0)
+				carton.position = center + Vector3(x, 0.15, -11.55)
+				carton.rotation.y = x * 0.12
+				_active_chunk.add_child(carton)
 			_label("NORTH QUAY EXCHANGE", center + Vector3(0.0, 5.45, -12.2), label_color, 46)
 		"PIER NINE DEPOT":
 			label_color = Color("e2ac76")
@@ -804,7 +814,7 @@ func _build_landmark(center: Vector3, name: String) -> void:
 					_detail(center + Vector3(x, 0.19, z), Vector3(5.5, 0.13, 5.4), Color("4d8068"))
 			for x in [-8.0, 8.0]:
 				_solid(center + Vector3(x, 2.70, 11.0), Vector3(0.40, 5.0, 0.40), Color("729d9a"))
-			_detail(center + Vector3(0.0, 5.4, 11.0), Vector3(22.0, 0.45, 8.5), Color("4b7176"))
+			_solid(center + Vector3(0.0, 5.4, 11.0), Vector3(22.0, 0.45, 8.5), Color("4b7176"), "METAL")
 			_detail(center + Vector3(0.0, 4.6, 6.8), Vector3(4.0, 0.16, 0.16), Color("e4fae2"), true)
 			_label("HORIZON COMMONS", center + Vector3(0.0, 5.8, 15.4), label_color, 54)
 		"SOUTHWORKS HALL":
@@ -1125,10 +1135,37 @@ func _bin(at: Vector3, physical: bool = false) -> void:
 	_detail(at + Vector3.UP * 0.94, Vector3(0.92, 0.10, 0.92), Color("728088"))
 	_statistics["street_props"] += 1
 
-func _dumpster(at: Vector3) -> void:
-	_detail(at + Vector3.UP * 0.6, Vector3(2.35, 1.3, 1.8), Color("28666a"))
-	_detail(at + Vector3.UP * 1.32, Vector3(2.48, 0.14, 1.9), Color("1b353d"))
-	_detail(at + Vector3(-0.70, 0.5, -0.94), Vector3(0.5, 0.25, 0.1), Color("e7c56e"))
+const DUMPSTER_BODY = Vector3(2.35, 1.30, 1.80)
+const DUMPSTER_LID = Vector3(2.48, 0.14, 1.90)
+const DUMPSTER_BODY_Y = 0.65
+const DUMPSTER_LID_Y = 1.37
+
+func _build_dumpster(at: Vector3) -> void:
+	var props := Node3D.new()
+	props.name = "StreetPropCollision"
+	_active_chunk.add_child(props)
+	var body := StaticBody3D.new()
+	body.name = "AlleyDumpster"
+	body.position = at
+	for part in [[DUMPSTER_BODY_Y, DUMPSTER_BODY, Color("28666a")],
+			[DUMPSTER_LID_Y, DUMPSTER_LID, Color("1b353d")]]:
+		var box := BoxShape3D.new()
+		box.size = part[1]
+		var shape := CollisionShape3D.new()
+		shape.shape = box
+		shape.position.y = part[0]
+		body.add_child(shape)
+		_dumpster_surface(body, Vector3.UP * float(part[0]), part[1], part[2])
+	_dumpster_surface(body, Vector3(-0.70, 0.5, -0.94), Vector3(0.5, 0.25, 0.1), Color("e7c56e"))
+	props.add_child(body)
+
+func _dumpster_surface(body: StaticBody3D, at: Vector3, size: Vector3, color: Color) -> void:
+	var surface := MeshInstance3D.new()
+	surface.mesh = _detail_unit_mesh
+	surface.scale = size
+	surface.position = at
+	surface.material_override = _material(color)
+	body.add_child(surface)
 
 func _vendor(at: Vector3, color: Color) -> void:
 	_detail(at + Vector3.UP * 1.0, Vector3(3.1, 0.8, 1.65), Color("48515b"))
