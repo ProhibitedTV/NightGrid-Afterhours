@@ -28,7 +28,13 @@ func _verify()->void:
 	var model:=dumpster.get_node("BeveledSteelBody") as MeshInstance3D
 	if not _check(floor_body.get_child_count()==3 and model.mesh is ArrayMesh and dumpster.get_child_count()>=9,"real floor, shaped art and solid dumpster"):
 		return
-	if not _check((pavement.material_override as StandardMaterial3D).albedo_texture!=null and (model.material_override as StandardMaterial3D).normal_enabled,"photo materials"):
+	var wet := pavement.material_override as ShaderMaterial
+	if not _check(wet != null and wet.shader == Alley.WetSurface and (model.material_override as StandardMaterial3D).normal_enabled,"photo materials"):
+		return
+	for channel in ["concrete_albedo","concrete_normal","concrete_arm"]:
+		if not _check(wet.get_shader_parameter(channel) is Texture2D,"bundled photographic channel "+channel):
+			return
+	if not _check((wet.get_shader_parameter("lane_size") as Vector2).is_equal_approx((pavement.mesh as PlaneMesh).size),"wet mask is anchored to real floor size"):
 		return
 	var space:=world.get_world_3d().direct_space_state
 	var x:float=(float(alley.get("left_wall"))+float(alley.get("right_wall")))*0.5

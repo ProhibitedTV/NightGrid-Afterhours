@@ -9,6 +9,8 @@ const GRIME = preload("res://assets/models/nightgrid/brickwater_alley/alley_weat
 const NOTICE = preload("res://assets/models/nightgrid/brickwater_alley/waste_notice.svg")
 const WallArt = preload("res://scripts/brickwater_wall_art.gd")
 const GoldArt = preload("res://scripts/brickwater_gold_art.gd")
+const WetSurface = preload("res://assets/shaders/brickwater_wet_concrete.gdshader")
+const PHOTO_ROOT = Maps.PHOTO_CONCRETE_ROOT
 const PBR = "res://assets/pbr/polyhaven/"
 const FLOOR_Y = 0.14
 const FOUNDATION_Y = -0.08
@@ -98,7 +100,13 @@ func _build_floor()->void:
 	var mesh:=PlaneMesh.new()
 	mesh.size=Vector2(hi-lo,END_Z-START_Z)
 	var center:=Vector3((lo+hi)*0.5,FLOOR_Y+0.002,(START_Z+END_Z)*0.5)
-	_view(self,"PhotographicAlleyPavement",mesh,center,Maps.surface("PHOTO_SIDEWALK",Color("797870")))
+	var surface := ShaderMaterial.new()
+	surface.shader = WetSurface
+	surface.set_shader_parameter("concrete_albedo",load(PHOTO_ROOT+"base_1k.jpg"))
+	surface.set_shader_parameter("concrete_normal",load(PHOTO_ROOT+"normal_1k.jpg"))
+	surface.set_shader_parameter("concrete_arm",load(PHOTO_ROOT+"arm_1k.png"))
+	surface.set_shader_parameter("lane_size",mesh.size)
+	_view(self,"PhotographicAlleyPavement",mesh,center,surface)
 	if _grime_material==null:
 		_grime_material=StandardMaterial3D.new()
 		_grime_material.albedo_texture=GRIME

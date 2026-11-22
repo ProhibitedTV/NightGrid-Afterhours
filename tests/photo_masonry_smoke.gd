@@ -42,9 +42,18 @@ func _verify()->void:
 						visual=part
 					elif part is CollisionShape3D:
 						collision=part
-				if visual==null or collision==null or not visual.mesh is BoxMesh or not collision.shape is BoxShape3D:
+				if collision==null or not collision.shape is BoxShape3D or (collision.shape as BoxShape3D).size!=expected_size:
 					continue
-				if (visual.mesh as BoxMesh).size!=expected_size or (collision.shape as BoxShape3D).size!=expected_size:
+				if block==Vector2i(-2,1):
+					var envelope := chunk.get_node_or_null("BrickwaterFacade_%d"%i) as Node3D
+					if not _check(visual==null and envelope!=null,"pilot retains collision but removes opaque shell"):
+						return
+					if not _check(Vector3(float(envelope.get_meta("saved_width")),float(envelope.get_meta("saved_height")),float(envelope.get_meta("saved_depth"))).is_equal_approx(expected_size),"pilot envelope maintains parcel dimensions"):
+						return
+					visual = envelope.get_node("GroundMasonry") as MeshInstance3D
+					if not _check(visual!=null and visual.mesh is QuadMesh,"actual pilot ground wall surface"):
+						return
+				elif visual==null or not visual.mesh is BoxMesh or (visual.mesh as BoxMesh).size!=expected_size:
 					continue
 				var material := visual.material_override as StandardMaterial3D
 				var expected := Masonry.surface(Color(str(lot["wall"])))
@@ -63,5 +72,5 @@ func _verify()->void:
 				return
 	if not _check(mapped>=1,"at least one actual masonry lot"):
 		return
-	print("PHOTO_MASONRY_SMOKE PASS: ",mapped," original brick shells use shared photo PBR, exact original dimensions")
+	print("PHOTO_MASONRY_SMOKE PASS: ",mapped," brick shells / replacement envelopes use shared photo PBR, exact original collision dimensions")
 	quit(0)
