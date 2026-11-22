@@ -166,6 +166,12 @@ jobs:
         run: godot --headless --path . --script res://tests/hero_fern_smoke.gd
       - name: Validate fixed lots and lighting/material policies
         run: godot --headless --path . --script res://tests/render_smoke.gd
+      - name: Validate unchanged-clock sky deduplication and streamed lighting synchronization
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/clock_atmosphere_smoke.gd 2>&1 | tee /tmp/nightgrid-clock-atmosphere.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-clock-atmosphere.log; then exit 1; fi
       - name: Validate physically anchored storefront and street lighting with eight-light pool
         run: godot --headless --path . --script res://tests/practical_lighting_smoke.gd
       - name: Verify photo-glTF-source Central Exchange 3D shop practical lighting shares original 8 lamps across dusk/noon/night and streaming

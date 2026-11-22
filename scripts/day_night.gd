@@ -13,6 +13,11 @@ var _city: Node
 var _lights: Node
 var _hero_intersection: Node
 var _update_accumulator := 0.0
+var _last_atmosphere_hour := -1.0
+var _last_atmosphere_profile := ""
+var _last_sky_light := -1.0
+var _atmosphere_updates := 0
+var _sky_updates := 0
 # Temporary comparison only. The legacy Filmic renderer remains the default;
 # we will not promote a preset without Windows Forward+ and frame-time review.
 var _compare_sky_aces := false
@@ -28,6 +33,9 @@ func configure(world_environment: WorldEnvironment, sun: DirectionalLight3D, cit
 	_hero_intersection = hero_intersection
 	_original_shadow_distance = _sun.directional_shadow_max_distance
 	_original_sun_angle = _sun.light_angular_distance
+	_last_atmosphere_hour = -1.0
+	_last_atmosphere_profile = ""
+	_last_sky_light = -1.0
 	_sky = ProceduralSkyMaterial.new()
 	var sky := Sky.new()
 	sky.sky_material = _sky
@@ -92,14 +100,36 @@ func _apply() -> void:
 	if _environment == null or _sun == null or _sky == null:
 		return
 	var light := daylight_amount()
+	var profile := get_render_profile()
+	if hour != _last_atmosphere_hour or profile != _last_atmosphere_profile:
+		_apply_atmosphere(light)
+		_last_atmosphere_hour = hour
+		_last_atmosphere_profile = profile
+		_atmosphere_updates += 1
+	# Keep notifications at their original cadence: newly streamed materials
+	# and newly focused practical lights may need synchronization even when
+	# the player pauses the time of day.
+	if is_instance_valid(_city):
+		_city.call("set_night_factor", 1.0 - light)
+	if is_instance_valid(_lights):
+		_lights.call("set_night_factor", 1.0 - light)
+	if is_instance_valid(_hero_intersection):
+		_hero_intersection.call("set_night_factor", 1.0 - light)
+
+func _apply_atmosphere(light:float) -> void:
 	var noon := clampf(sin((hour - 6.0) / 12.0 * PI), 0.0, 1.0)
 	var twilight := 1.0 - absf(light * 2.0 - 1.0)
-	var night_top := Color("10182d")
-	var day_top := Color("74b7cf")
-	_sky.sky_top_color = night_top.lerp(day_top, light)
-	_sky.sky_horizon_color = Color("4c3153").lerp(Color("d9c5a3"), light)
-	_sky.ground_bottom_color = Color("0f1728").lerp(Color("617276"), light)
-	_sky.ground_horizon_color = Color("433145").lerp(Color("b4a999"), light)
+	# Day/night plateaus have byte-identical sky colors. Do not dirty the sky
+	# resource just because the sun rotates or F11 changes tonemapping.
+	if light != _last_sky_light:
+		var night_top := Color("10182d")
+		var day_top := Color("74b7cf")
+		_sky.sky_top_color = night_top.lerp(day_top, light)
+		_sky.sky_horizon_color = Color("4c3153").lerp(Color("d9c5a3"), light)
+		_sky.ground_bottom_color = Color("0f1728").lerp(Color("617276"), light)
+		_sky.ground_horizon_color = Color("433145").lerp(Color("b4a999"), light)
+		_last_sky_light = light
+		_sky_updates += 1
 	_environment.environment.ambient_light_color = Color("8291b5").lerp(Color("f3dbb5"), light)
 	_environment.environment.ambient_light_energy = lerpf(0.40, 0.78, light)
 	# Godot 4.7.2 supports the video creator's AgX highlight rolloff.
@@ -125,9 +155,4 @@ func _apply() -> void:
 	_sun.light_energy = lerpf(0.13, 1.30, light)
 	var altitude := 9.0 + 64.0 * noon
 	_sun.rotation_degrees = Vector3(-altitude, hour * 15.0 + 90.0, -4.0)
-	if is_instance_valid(_city):
-		_city.call("set_night_factor", 1.0 - light)
-	if is_instance_valid(_lights):
-		_lights.call("set_night_factor", 1.0 - light)
-	if is_instance_valid(_hero_intersection):
-		_hero_intersection.call("set_night_factor", 1.0 - light)
+
