@@ -40,6 +40,8 @@ jobs:
           godot --headless --path . --export-release "Windows Desktop" "dist/NightGrid-Afterhours.exe"
           test -s dist/NightGrid-Afterhours.exe
           cp assets/models/nightgrid/courier/SOURCE.md dist/COURIER-ASSET-CREDITS.md
+          cp assets/audio/nightgrid_fm/README.md dist/NIGHTGRID-FM-CREDITS.md
+          cp assets/audio/morrow_bay/SOURCE.md dist/MORROW-BAY-AUDIO-CREDITS.md
       - name: Upload Windows playtest
         uses: actions/upload-artifact@v4
         with:

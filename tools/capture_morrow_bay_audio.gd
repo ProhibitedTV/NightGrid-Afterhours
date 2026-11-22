@@ -51,12 +51,15 @@ func _run() -> void:
 	AudioServer.add_bus_effect(master, record)
 	_expect(fm.call("available_tracks") == 20, "The twenty original tracks must be imported")
 	await _title()
-	await _brickwater()
-	await _cafe_and_club()
-	await _drive()
-	await _transit()
-	await _dispatch()
-	await _harbor()
+	if "--nearby-pedestrians" in OS.get_cmdline_user_args():
+		await _nearby_pedestrians()
+	else:
+		await _brickwater()
+		await _cafe_and_club()
+		await _drive()
+		await _transit()
+		await _dispatch()
+		await _harbor()
 	AudioServer.remove_bus_effect(master, effect_index)
 	var file := FileAccess.open(output.path_join("manifest.json"), FileAccess.WRITE)
 	if file == null:
@@ -135,6 +138,46 @@ func _brickwater() -> void:
 	_expect(after["district"] == "BRICKWATER" and after["steps"] > before["steps"],
 		"Actual Brickwater movement must produce footsteps and district context")
 	await _finish("02-brickwater-sidewalk-and-vents")
+
+func _nearby_pedestrians() -> void:
+	var director: Node3D = game.get("pedestrians")
+	if not is_instance_valid(director):
+		_expect(false, "Use --living-streets to record passing residents")
+		return
+	_clock(12.0)
+	_place(Vector3(-18.5, 1.18, -37), PI * 0.5)
+	await _wait(4.1)
+	var initial: Dictionary = director.call("active_positions")
+	await _wait(0.4)
+	var moving: Dictionary = director.call("active_positions")
+	var resident := Vector3.INF
+	var direction := Vector3.ZERO
+	var distance := INF
+	for id in moving:
+		if not initial.has(id):
+			continue
+		var at: Vector3 = moving[id]
+		var displacement: Vector3 = at - initial[id]
+		var nearby := at.distance_squared_to(player.global_position)
+		if nearby < distance and displacement.length_squared() > 0.04:
+			resident = at
+			direction = displacement.normalized()
+			distance = nearby
+	if not resident.is_finite():
+		_expect(false, "Could not find a moving resident near the Brickwater start")
+		return
+	_place(resident - direction * 3.5 + Vector3.UP * 1.10, atan2(-direction.x, -direction.z))
+	await _wait(0.4)
+	var previous: Dictionary = sound.call("get_audio_stats")
+	record.set_recording_active(true)
+	await _wait(8.0)
+	var current: Dictionary = sound.call("get_audio_stats")
+	var initial_steps := int(previous["sites"]["pedestrian_steps"])
+	var footsteps := int(current["sites"]["pedestrian_steps"]) - initial_steps
+	_expect(footsteps > 0 and current["steps"] == previous["steps"],
+		"A stationary courier must hear footsteps from active residents")
+	await _finish("09-brickwater-daytime-pedestrians", {"resident_steps": footsteps, "courier_steps": 0,
+		"courier_at": str(player.global_position), "resident_start": str(resident), "residents": director.call("stats")})
 
 func _cafe_and_club() -> void:
 	var venues := game.get_node("SocialVenues")

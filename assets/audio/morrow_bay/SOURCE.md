@@ -12,6 +12,6 @@ These are non-musical sound effects from the creators' public Freesound previews
 
 The ambience uses 32 kHz Vorbis loops with filtered lows and an 800 ms circular seam. The boot bank uses four individually trimmed 32 kHz mono PCM clips per surface. Asphalt is a filtered derivative of the stone recordings. The manifest records all five downloaded preview hashes and all eighteen edited file hashes. [Manifest](MANIFEST.json).
 
-To rebuild, save the public  previews as `traffic-preview.mp3`, `harbor-preview.mp3`, `stone-preview.mp3`, `tile-preview.mp3` and `gravel-preview.mp3`. The script checks loop length and writes the WAV cuts and Ogg loops using FFmpeg with libvorbis. [Authoring script](../../../tools/prepare_morrow_bay_audio.py).
+To rebuild, save the public previews as `traffic-preview.mp3`, `harbor-preview.mp3`, `stone-preview.mp3`, `tile-preview.mp3` and `gravel-preview.mp3`. The script checks loop length and writes the WAV cuts and Ogg loops using FFmpeg with libvorbis. [Authoring script](../../../tools/prepare_morrow_bay_audio.py).
 
 Original game-designed electrical fans, service machinery, wind details, tire roll, brake transients and door cues are synthesized deterministically by the repository's audio code. Existing Kestrel and M-Line sounds remain game-authored effects. MBPD voice recordings are generated offline from the game's fictional dispatch captions with eSpeak NG. [Dispatch source notes](../mbpd/README.md).

@@ -136,6 +136,8 @@ jobs:
           cp docs/BETA_RELEASE_NOTES.md "stage/$package/RELEASE-NOTES.md"
           cp docs/PLAYTEST_CHECKLIST.md "stage/$package/PLAYTEST-CHECKLIST.md"
           cp assets/models/nightgrid/courier/SOURCE.md "stage/$package/COURIER-ASSET-CREDITS.md"
+          cp assets/audio/nightgrid_fm/README.md "stage/$package/NIGHTGRID-FM-CREDITS.md"
+          cp assets/audio/morrow_bay/SOURCE.md "stage/$package/MORROW-BAY-AUDIO-CREDITS.md"
           printf 'Version: %s\nRelease commit: %s\nGodot: 4.7.2\nPlatform: Windows x64\nDiagnostic logs: automatic, local-only; press F7 for their path\n' "$RELEASE_TAG" "$SOURCE_SHA" > "stage/$package/BUILD-INFO.txt"
           (cd stage && zip -q -9 -r "../dist/$package.zip" "$package")
           unzip -t "dist/$package.zip"
