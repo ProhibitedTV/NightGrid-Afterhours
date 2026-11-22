@@ -17,6 +17,8 @@ func _verify() -> void:
 	var inside := Radar.clip_segment(Vector2.ZERO,Vector2(20,0),10)
 	if not check(inside.size()==2 and inside[0]==Vector2.ZERO and inside[1].is_equal_approx(Vector2(10,0)),"outgoing route clipped"):
 		return
+	if not check(Radar.clip_segment(Vector2.INF, Vector2.ZERO, 10).is_empty(), "nonfinite segment rejected"):
+		return
 	var world: Node3D = load("res://scenes/main.tscn").instantiate()
 	root.add_child(world)
 	await process_frame
@@ -28,6 +30,19 @@ func _verify() -> void:
 	var state: Dictionary = world.call("get_map_state")
 	if not check(state.has("player_heading") and (state["player_heading"] as Vector2).is_finite(),"live actor heading"):
 		return
+	var player: Node3D = world.get("player")
+	var visual: Node3D = player.get("visual")
+	visual.global_rotation = Vector3(0, PI * 0.5, 0)
+	state = world.call("get_map_state")
+	if not check((state["player_heading"] as Vector2).normalized().is_equal_approx(Vector2.RIGHT), "player arrow follows actual visual heading"):
+		return
+	var car: CharacterBody3D = (world.get("cars") as Array)[0]
+	world.set("current_car", car)
+	car.global_rotation = Vector3(0, -PI * 0.5, 0)
+	state = world.call("get_map_state")
+	if not check((state["player_heading"] as Vector2).normalized().is_equal_approx(Vector2.RIGHT), "vehicle arrow follows vehicle forward axis"):
+		return
+	world.set("current_car", null)
 	var dialogue: Control = world.get("venue_panel")
 	dialogue.show()
 	if not check(not radar.visible,"dialogue no radar overlap"):

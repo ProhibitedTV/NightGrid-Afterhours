@@ -22,7 +22,7 @@ static func clip_segment(a: Vector2, b: Vector2, radius: float) -> PackedVector2
 	# Solve the segment/circle quadratic in radar-centred coordinates.
 	var d := b - a
 	var aa := d.length_squared()
-	if radius <= 0.0 or aa < 0.000001:
+	if not a.is_finite() or not b.is_finite() or not is_finite(radius) or radius <= 0.0 or aa < 0.000001:
 		return PackedVector2Array()
 	var bb := 2.0 * a.dot(d)
 	var cc := a.length_squared() - radius * radius
@@ -88,9 +88,9 @@ func _draw() -> void:
 	if is_instance_valid(world_node):
 		var state: Dictionary = world_node.call("get_map_state")
 		_origin = state["player"]
-		var extent: float = float(Plan.GRID_RADIUS) * 58.0
+		var extent: float = float(Plan.GRID_RADIUS) * Plan.BLOCK_SIZE
 		for i in range(-Plan.GRID_RADIUS, Plan.GRID_RADIUS + 1):
-			var x := float(i) * 58.0
+			var x := float(i) * Plan.BLOCK_SIZE
 			_segment(Vector2(x,-extent), Vector2(x,extent), Color("52616e"), 4.0)
 			_segment(Vector2(-extent,x), Vector2(extent,x), Color("52616e"), 4.0)
 		_segment(Vector2(-223,-58), Vector2(241,-58), Color("47787d"), 2.0)
