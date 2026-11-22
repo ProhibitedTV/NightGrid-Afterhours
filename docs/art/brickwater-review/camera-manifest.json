@@ -30,8 +30,8 @@
         1280,
         720
       ],
-      "sha256": "d253d5389f181eee05fe0957dd935e6a196cb088f7ff0fb85c9a39db7585a4db",
-      "bytes": 1217590
+      "sha256": "898f29d60e16418f5e4a4179aef7a1a20612f69a8ea233642f80aba8b9b879bc",
+      "bytes": 1217682
     },
     {
       "camera": [
@@ -51,8 +51,8 @@
         1280,
         720
       ],
-      "sha256": "169baf9fe6513f241d11567b426507af1e80f07cf8c68cf402b07290270142fe",
-      "bytes": 1407209
+      "sha256": "7feef2ecb768421d660722e064449ec59cc242a5f1c7a87966be5a7126f30d8a",
+      "bytes": 1407199
     },
     {
       "camera": [
@@ -72,8 +72,8 @@
         1280,
         720
       ],
-      "sha256": "47582f95b280ce7e5991596797fcd34076735f24f8d4e448b865ff6a604f4091",
-      "bytes": 1321011
+      "sha256": "08b707aa20142f2705e90dc6804576abb1fc6fed02cb7c8066d628c99a573ddb",
+      "bytes": 1321052
     },
     {
       "camera": [
@@ -93,8 +93,8 @@
         1280,
         720
       ],
-      "sha256": "3cc5df144a6a7fb04c9fec0cc9c72c61c537853f398f79c94dac5d4a9dc5fa35",
-      "bytes": 1043360
+      "sha256": "1ebbe91f0044e4e87b3602748820ad057c27a66e11cacee664c2b6be1e80683d",
+      "bytes": 1043427
     },
     {
       "camera": [
@@ -156,10 +156,10 @@
         1280,
         720
       ],
-      "sha256": "96ee4018c8232fc9973f299f710ce3b291a099650b3bf76b9f65d851a84c023f",
-      "bytes": 1258749
+      "sha256": "43caf88f698e962aee5e486a53e171e7e45b42f80235f61f6b896aa826cea875",
+      "bytes": 1258627
     }
   ],
-  "source_revision": "2adf52964353fe6f6e90868b39a6f7cc416aef52",
+  "source_revision": "edacfdba138770eb4355bc0d9f8939e8c7a04910",
   "quality_note": "Actual Godot software OpenGL; not Windows Forward+ or RTX performance evidence."
 }

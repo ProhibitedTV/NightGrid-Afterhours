@@ -41,7 +41,23 @@ All nine images are actual Godot 4.7.2 viewport captures from the development bu
 <!-- brickwater-gallery:start -->
 ### Brickwater — revamped service alley
 
-The new alley screenshot set is being captured from the actual development-branch game. [View the capture run and artifacts](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/runs/44975198902). Verified images and their camera manifest will appear here when the screenshot workflow publishes them; no concept art or placeholder images are included.
+![Brickwater at 22:06 — northbound](docs/art/brickwater-review/01-alley-night-north.png)
+
+*Northbound at 22:06.*
+
+| Matched daylight view | Night — reverse direction |
+|:--:|:--:|
+| ![Matched daylight view](docs/art/brickwater-review/02-alley-daylight-matched.png) | ![Night — reverse direction](docs/art/brickwater-review/03-alley-night-south.png) |
+
+| Wet ground and drain | Graffiti and service frontage |
+|:--:|:--:|
+| ![Wet ground and drain](docs/art/brickwater-review/04-wet-ground-and-drain.png) | ![Graffiti and service frontage](docs/art/brickwater-review/05-graffiti-and-service-front.png) |
+
+| Overhead infrastructure | Driving-height approach |
+|:--:|:--:|
+| ![Overhead infrastructure](docs/art/brickwater-review/06-overhead-infrastructure.png) | ![Driving-height approach](docs/art/brickwater-review/07-driving-height-approach.png) |
+
+Actual development-branch Godot 4.7.2 framebuffer captures, rendered at 1280×720 using software OpenGL Compatibility. These are not concept art, the released beta, or native Forward+/Vulkan validation. [Camera positions, source revision and checksums](docs/art/brickwater-review/camera-manifest.json).
 
 <!-- brickwater-gallery:end -->
 
