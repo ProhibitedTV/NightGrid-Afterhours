@@ -11,7 +11,7 @@
 				1920,
 				1080
 			],
-			"sha256": "2fa9abf1f910fc06a06f183dba5bf87be58652f2e1b1f4d2cfefc8e97d550a50"
+			"sha256": "909ba5cd92896b39eef7371ff686361f78edd67f359b24c714f44db0da4abbd1"
 		},
 		{
 			"camera": "(-84.1, 1.44, 81.78)",
@@ -23,7 +23,7 @@
 				1920,
 				1080
 			],
-			"sha256": "165b9d63201da0cd3243abd46fce521bb53a58cda55f2770bec4f9119f8d581c"
+			"sha256": "2b5e5e606ec9cc67e667f9526f6e63430dc3ff494a5d99fedd77bae3c3e03383"
 		},
 		{
 			"camera": "(-86.15, 1.79, 78.7)",
@@ -35,7 +35,7 @@
 				1920,
 				1080
 			],
-			"sha256": "8c888c711c90e0dca79febe90ce275d116c4188cd9847541a5e12cc37977f271"
+			"sha256": "ec28a722bff803c46009a2ea02379bdcf4a8fe505239ef4bbf0cd26dd344edbf"
 		},
 		{
 			"camera": "(-87.2, 1.96, 83.38)",
@@ -47,7 +47,7 @@
 				1920,
 				1080
 			],
-			"sha256": "9ca202db731c3cb8a507bfe5f0596389c5cb93dbd7395f1ce6c16e34d376781a"
+			"sha256": "de831a59b6a38dc1a8494cabd4929cdfc3fad83806eab29a063a3aaf1f4670ca"
 		},
 		{
 			"camera": "(-87.65, 1.55, 85.45)",
@@ -59,7 +59,7 @@
 				1920,
 				1080
 			],
-			"sha256": "b1268bfeca1d254cd34df0460115a6547a39fb59b808a9c9f8b5ececd7763f0e"
+			"sha256": "9d92c623e2c7546e72310d28aeda40b3a9a77187170b41f714e8a50917e6947a"
 		},
 		{
 			"camera": "(-86.15, 1.79, 78.7)",
@@ -71,7 +71,7 @@
 				1920,
 				1080
 			],
-			"sha256": "949e8dcbffd6b339b9f71aa1d973c8cfebab760dff5634ca3d3b6690aabe7251"
+			"sha256": "9feb0b942f98bae4665c77ac5e8d62a1a3deb69d2c82098a399a22cd26c1dc86"
 		},
 		{
 			"camera": "(-84.35, 1.42082, 83.33516)",
@@ -83,7 +83,7 @@
 				1920,
 				1080
 			],
-			"sha256": "f8ae8db635407389cccecefdd55bd43d09e703d2327a46ee48a62e6d30f30bef"
+			"sha256": "ad8b63d57c51ec1b12420df1a6c38779ac2e5a81ab88e70bc0cc057e5c7d8d73"
 		},
 		{
 			"camera": "(-84.35, 1.42082, 87.56503)",
@@ -95,11 +95,11 @@
 				1920,
 				1080
 			],
-			"sha256": "6b1ec8ba42cf41eecc6668a8cbaebc444744743a528adbda478d28cb3f74bff9"
+			"sha256": "04d70cdacd8531805cd9bb65711bf09f96f8c12d938032e82192a85766148af7"
 		}
 	],
 	"driver": "vulkan",
 	"renderer": "forward_plus",
-	"revision": "171c9e6e04df4874c5ec507cd766429b8ca6e3ba",
+	"revision": "1d45c0ae29830b8ceec74e9593723f5caa6703eb",
 	"seed": 834726
 }

@@ -11,7 +11,7 @@
 				1920,
 				1080
 			],
-			"sha256": "27302cc60299d0024d47db864b72e52ac6ceef65b8c55e1243bc3b3b02f70f2b"
+			"sha256": "178992b26c08f11be492badbed8c538d8159246272a51f9b1159b81d9e796de8"
 		},
 		{
 			"camera": "(-84.1, 1.44, 81.78)",
@@ -23,7 +23,7 @@
 				1920,
 				1080
 			],
-			"sha256": "b080b026637a6ad69cc934cf39bf3cfb1cafb55676cdd3a8df6892a6ca2cb677"
+			"sha256": "fb2aab32f1616f200ff4a98fa998807230363417d17a3520f84ab652035d5788"
 		},
 		{
 			"camera": "(-86.15, 1.79, 78.7)",
@@ -35,7 +35,7 @@
 				1920,
 				1080
 			],
-			"sha256": "b726e0ebebdd6a19fc52267105dee8a7ac1e7a05ad827f6da10fe09f0d01e7cc"
+			"sha256": "bd17c8d87a6512ee1952c6123a4e96df9f04a6e8cb89e3af0de4084188175609"
 		},
 		{
 			"camera": "(-87.2, 1.96, 83.38)",
@@ -47,7 +47,7 @@
 				1920,
 				1080
 			],
-			"sha256": "38f7150307351dcca44564feb0eb89a83d2c6b40e97bcab404e37db8818d8933"
+			"sha256": "f959624e70fe6987ad88ee584ae261b7b8d11530225b637ace9180099c39520a"
 		},
 		{
 			"camera": "(-87.65, 1.55, 85.45)",
@@ -59,7 +59,7 @@
 				1920,
 				1080
 			],
-			"sha256": "ac2e3c18b640d9a11759007e1cd5cb4fa9e04b58187090cf3df13bd4f6d0dac3"
+			"sha256": "8a05ec09142f70087ee61582e6659bb159b688d3f6ce76e8b7a622f0f9c2b356"
 		},
 		{
 			"camera": "(-86.15, 1.79, 78.7)",
@@ -71,7 +71,7 @@
 				1920,
 				1080
 			],
-			"sha256": "6602ec948c61e70dc79a0dbde84cfed1677560aee2aab50669bc9bcf3fd25dab"
+			"sha256": "c80427d26f21b169d5a86f28288c3184e5716666d018396debce2d8df26e515b"
 		},
 		{
 			"camera": "(-84.35, 1.42082, 83.33516)",
@@ -100,6 +100,6 @@
 	],
 	"driver": "vulkan",
 	"renderer": "forward_plus",
-	"revision": "c361e497fd38749cbb5e46deaa0d8c38ee364d9e",
+	"revision": "17ad6cf27a5cc55d6efd1073871d087d995e3953",
 	"seed": 834726
 }

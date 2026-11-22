@@ -9,25 +9,32 @@ The playable courier uses a skinned adult model with short dark hair, photo-base
 - The existing Pulse and Arc actions use a hand-bound visual prop and equipped clips. The weapon system still owns firing, ammunition, hit tests, reload requirements and raycasts. At a reachable indoor service counter, the existing interaction can play a reach gesture.
 - The same skinned model moves to the driver's seat while the player capsule is disabled. A stopped driver-side approach plays the boarding clip. Other valid entries use the seated pose. Exiting uses the curb-side end of the alighting clip at the existing gameplay exit point. Occupied v1 saves restore the seated pose from the existing car index.
 
-This branch is based on PR #164. Its runtime and workflow changes merged cleanly in a trial merge with the physical-coherence branch. Pedestrian, transportation and lot-generation code files are outside this pass.
+The character branch includes PR #165 at `1d45c0a`, with PRs #164 and #163 under it. It carries its player-specific integrations in the courier, player and world scripts. The game rig uses standard humanoid bone names and stable clip names in a shared animation library. The skinned scene and motions can be retargeted separately from the driver's seat and equipment attachments. The pedestrian branch has no dependency on this character.
 
 ## Validation
 
-Clean Windows preflight at `acb33cd` passed all 68 Godot regressions and the Windows release export. It includes the real skinned-face and animated-joint checks, the Southworks orientation regression, gamepad actions, interiors, combat, transport and occupied save restore. The baked city material check also passed. The exported executable booted on the RTX 3060 with Forward+ and Vulkan and exited normally after 180 frames. [Hosted preflight](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/runs/45045724495) · [Hosted Windows build](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/runs/45045724280).
+The combined regression covers the skinned face and animated joints, the Southworks orientation regression, gamepad actions, interiors, combat and occupied save restore. Its integration fixture takes the player through Horizon Commons vehicle entry and exit, the North Quay counter, East Gardens lift access, boarding at a modeled M-Line door and platform alighting at Helix. The final runtime at `8270356` also passes a native check that immediately re-equips the same weapon on exit and verifies that the prop returns to the courier's hand.
+
+The integrated capture revision `17ad6cf` passed all 69 Godot regressions, project preflight, byte-level verification of the baked material maps and the Windows release export. The exported game opened with Windows Forward+ / Vulkan on the RTX 3060. The Windows playtest and beta packaging include the courier attribution. [Hosted preflight](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/runs/45068049302) · [Hosted Windows export](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/runs/45068049169).
 
 ## Native gameplay evidence
 
-Both builds used Windows Godot 4.7.2, Forward+ / Vulkan, an RTX 3060 12 GB and 1920×1080. The pairs compare the PR #164 game tree `171c9e6` with the courier game tree `c361e49`. The fixed views share the existing city seed, same camera pose, lens and game clock. Walking and running use real analogue-strength and sprint inputs. The labels show the camera or action from which each real engine frame was captured.
+Both builds used Windows Godot 4.7.2, Forward+ / Vulkan, an RTX 3060 12 GB and 1920×1080. The pairs compare PR #165 at `1d45c0a` with the integrated courier game at `17ad6cf`. Every pair shares a city seed, camera, lens and game clock. The walking and sprinting photos also share scripted movement inputs. [Baseline manifest](playtest/courier-132/before-manifest.json) · [Courier manifest](playtest/courier-132/after-manifest.json).
 
 | View | Prototype | Courier |
 | --- | --- | --- |
+| Daylight front | [Before](playtest/courier-132/day-front-before.png) | [After](playtest/courier-132/day-front-after.png) |
 | Daylight face and collar | [Before](playtest/courier-132/day-face-before.png) | [After](playtest/courier-132/day-face-after.png) |
 | Daylight rear and pack | [Before](playtest/courier-132/day-rear-before.png) | [After](playtest/courier-132/day-rear-after.png) |
 | Daylight side | [Before](playtest/courier-132/day-side-before.png) | [After](playtest/courier-132/day-side-after.png) |
 | Daylight walking | [Before](playtest/courier-132/day-walking-before.png) | [After](playtest/courier-132/day-walking-after.png) |
+| Daylight sprinting | [Before](playtest/courier-132/day-running-before.png) | [After](playtest/courier-132/day-running-after.png) |
+| Brickwater front at 22:06 | [Before](playtest/courier-132/night-front-before.png) | [After](playtest/courier-132/night-front-after.png) |
 | Brickwater at 22:06 | [Before](playtest/courier-132/night-rear-before.png) | [After](playtest/courier-132/night-rear-after.png) |
 
-The native playback exercised eight directions and a stationary camera orbit, actual grounded walking, sprinting and jumping, the equipped wrist position, firing and reload, driver-side boarding, seating, occupied restore and curb-side alighting. The boot origin was within 0.65 mm of the test floor when idle. [Aim close-up](playtest/courier-132/aim-detail.png) · [Driver seated](playtest/courier-132/vehicle-seated.png) · [Playback measurements](playtest/courier-132/playback.json).
+The final native playback at `8270356` exercised eight directions and a stationary camera orbit, walking, sprinting and jumping, aiming, firing and reload, driver-side boarding, seating, occupied restore and curb-side alighting. The boot origin was within 0.65 mm of the test floor when idle. [Aim close-up](playtest/courier-132/aim-detail.png) · [Driver entry](playtest/courier-132/vehicle-entry.png) · [Driver seated](playtest/courier-132/vehicle-seated.png) · [Curb-side exit](playtest/courier-132/vehicle-exit.png).
+
+The car chase camera stayed at 4.85 m under the Horizon canopy and the courier stopped at the North Quay counter. The East Gardens lift and stopped train kept the correct pedestrian rig owner, and alighting restored the visible courier with the capsule grounded at Helix. [Horizon chase](playtest/courier-132/horizon-chase.png) · [North Quay collision](playtest/courier-132/market-counter.png) · [East Gardens boarding](playtest/courier-132/east-gardens-platform.png) · [Helix alighting](playtest/courier-132/helix-alight.png) · [Measured playback](playtest/courier-132/playback.json).
 
 Set `NIGHTGRID_COURIER_CAPTURE_DIR` to a new absolute directory and `NIGHTGRID_SOURCE_REVISION` to the runtime commit before running the capture tool. For the baseline, copy the capture script alone into the baseline checkout.
 
@@ -36,24 +43,20 @@ godot --path . --rendering-method forward_plus --rendering-driver vulkan --fulls
 godot --path . --rendering-method forward_plus --rendering-driver vulkan --write-movie dist/courier.avi --fixed-fps 30 --script res://tools/capture_courier.gd -- --showcase
 ```
 
-The 11.53-second video is a scripted live-game replay using Movie Maker's fixed recording cadence. All 346 frames decoded after H.264 encoding. It is separate from the real-time benchmark. [Native gameplay video](playtest/courier-132/courier-gameplay.mp4).
+The 11.53-second video is a scripted live-game replay using Movie Maker's fixed recording cadence. All 346 frames decoded after H.264 encoding. Movie Maker reported an ObjectDB cleanup warning as it exited after recording. The real-time replay and F8 runs completed separately. [Native gameplay video](playtest/courier-132/courier-gameplay.mp4).
 
 ## F8 frame times
 
-The same seeded Brickwater walking route ran at 1920×1080 on the RTX 3060 12 GB, Ryzen 7 2700X and 32 GB RAM. The settings used SSR, AO, glow and fog, a 60 Hz physics step, VSync off and a 60-rendered-frame settle. Each pass reached the route endpoint. These are game F8 frame times. The raw profile also includes wall intervals and reported renderer timing.
+The same seeded Brickwater walking route ran at 1920×1080 on the RTX 3060 12 GB, Ryzen 7 2700X and 32 GB RAM. The settings used SSR, AO, glow and fog, a 60 Hz physics step, VSync off and a 60-rendered-frame settle. Each pass reached the route endpoint. The table shows F8 frame times on the matched capture revisions `1d45c0a` and `17ad6cf`. The raw profile also includes wall intervals and reported renderer timing.
 
 | Revision | Pass | Median ms | p95 ms | p99 ms | Max ms | >16.67 ms | >33.3 ms |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| #164 baseline | First | 8.33 | 40.00 | 137.18 | 150.00 | 56 | 42 |
-| #164 baseline | Repeat | 9.52 | 13.33 | 15.29 | 16.72 | 1 | 0 |
-| Courier | First | 8.33 | 11.26 | 13.33 | 18.60 | 1 | 0 |
-| Courier | Repeat | 9.72 | 12.96 | 14.10 | 15.86 | 0 | 0 |
-| #164 baseline confirmation | First | 9.09 | 12.50 | 15.08 | 18.18 | 1 | 0 |
-| #164 baseline confirmation | Repeat | 9.30 | 13.89 | 15.26 | 16.45 | 0 | 0 |
-| Courier confirmation | First | 8.33 | 16.67 | 54.17 | 133.33 | 36 | 17 |
-| Courier confirmation | Repeat | 9.09 | 13.89 | 15.22 | 18.27 | 1 | 0 |
+| #165 baseline | First | 9.09 | 11.91 | 16.67 | 22.83 | 4 | 0 |
+| #165 baseline | Repeat | 9.09 | 13.33 | 14.29 | 15.65 | 0 | 0 |
+| Integrated courier | First | 9.26 | 11.67 | 16.67 | 27.17 | 4 | 0 |
+| Integrated courier | Repeat | 9.09 | 12.96 | 14.28 | 16.73 | 1 | 0 |
 
-Both revisions saw an outlying first pass. The baseline peaked at a 555.42 ms wall interval and the courier at 1,011.78 ms. At the latter interval the sampled viewport reported 3.66 ms CPU, 4.66 ms GPU and a 0.13 ms tagged chunk stage. Both intervals remain unattributed, and neither recorded focus loss. The courier's two warm F8 p99 results were within 16.67 ms. Peak Godot texture memory in the first matched pair was 833.71 MiB on baseline and 955.20 MiB with the courier. These measurements cover one route. The cold results do not establish sustained 60 FPS. [Timing summary](playtest/courier-132/f8-statistics.json) · [Raw CSVs and profiler events](playtest/courier-132/f8-traces.zip).
+All four passes recorded zero F8 frames above 33.3 ms and zero runtime material bakes. The wall intervals peaked at 26.30 ms before and 29.87 ms after. Peak Godot texture memory was 833.21 MiB on baseline and 954.70 MiB with the courier. Earlier runs on the #164 stack contained unattributed first-pass stalls on both revisions. This matched #165 comparison covers one walking route. Citywide sustained 60 FPS remains unverified. [Current timing summary](playtest/courier-132/f8-statistics.json) · [Raw CSVs and profiler events](playtest/courier-132/f8-traces.zip) · [Earlier #164 measurements](https://github.com/ProhibitedTV/NightGrid-Afterhours/blob/f1774a2b86d429435c1ccd712b360aaacdcb2ea0/docs/PROTAGONIST_COURIER.md).
 
 ## Remaining limits
 
