@@ -1,0 +1,35 @@
+name: Brickwater focused validation
+on:
+  push:
+    branches: [art/brickwater-authored-service-props]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  brickwater:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Audit pinned source packages before imports
+        run: python3 tools/check_brickwater_cc0.py
+      - name: Generate offline radio resources
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq espeak-ng
+          python3 tools/generate_mbpd_radio.py
+      - name: Import project
+        run: |
+          set -o pipefail
+          godot --headless --path . --import --quit 2>&1 | tee /tmp/brickwater-import.log
+          if grep -q "SCRIPT ERROR:" /tmp/brickwater-import.log; then exit 1; fi
+      - name: Validate actual Brickwater chunk and all nine asset packages
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/brickwater_alley_smoke.gd 2>&1 | tee /tmp/brickwater-smoke.log
+          if grep -q "SCRIPT ERROR:" /tmp/brickwater-smoke.log; then exit 1; fi
+          grep -q "BRICKWATER_ALLEY_SMOKE PASS" /tmp/brickwater-smoke.log

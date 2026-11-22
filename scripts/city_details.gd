@@ -908,10 +908,11 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 		# Rooftop water tank and a vertical fire escape.
 		_detail(Vector3(center.x + 3.8, height + 3.2, center.z), Vector3(3.6, 4.4, 3.6), Color("4f6570"))
 		_detail(Vector3(center.x + 3.8, height + 5.5, center.z), Vector3(4.0, 0.22, 4.0), Color("a0a2a0"))
-		for floor_step in range(2, int(height / 3.4)) if not (Vector2i(ix, iz) == BrickwaterAlley.PILOT_BLOCK and which == 0) else []:
-			var step_y := float(floor_step) * 3.4
-			_detail(Vector3(right + 0.28, step_y, center.z + 0.5), Vector3(0.65, 0.17, 5.4), Color("65757c"))
-			_detail(Vector3(right + 0.54, step_y + 0.9, center.z + 0.5), Vector3(0.09, 1.70, 5.3), Color("819198"))
+		if not (Vector2i(ix, iz) == BrickwaterAlley.PILOT_BLOCK and which == 0):
+			for floor_step in range(2, int(height / 3.4)):
+				var step_y := float(floor_step) * 3.4
+				_detail(Vector3(right + 0.28, step_y, center.z + 0.5), Vector3(0.65, 0.17, 5.4), Color("65757c"))
+				_detail(Vector3(right + 0.54, step_y + 0.9, center.z + 0.5), Vector3(0.09, 1.70, 5.3), Color("819198"))
 	if district == "GLASSLINE" or district == "NORTH QUAY":
 		# Facade fins, lit corner spines and tall skyline silhouettes.
 		for edge in [left + 0.40, right - 0.40]:

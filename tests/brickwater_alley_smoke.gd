@@ -103,24 +103,27 @@ func _verify()->void:
 		var face := architecture.get_node(label) as Node3D
 		if not _check(face.get_child_count() == 30, "two floors with five complete bays"):
 			return
-		for view in face.get_children():
-			if not _check(view is MeshInstance3D and view.mesh != null and view.position.y >= 4.8, "selected facade mesh and overhead clearance"):
+		for child in face.get_children():
+			var view := child as MeshInstance3D
+			if not _check(view != null and view.mesh != null and view.position.y >= 4.8, "selected facade mesh and overhead clearance"):
 				return
 	for label in ["WestElectricalTrunk", "EastElectricalTrunk"]:
 		var trunk := architecture.get_node(label) as Node3D
 		if not _check(trunk.get_child_count() == 14, "bounded cable trunk with two terminal boxes"):
 			return
-		for view in trunk.get_children():
-			if not _check(view.mesh != null and absf(view.transform.basis.determinant() - 1.0) < 0.001, "cable source and proper orientation"):
+		for child in trunk.get_children():
+			var view := child as MeshInstance3D
+			if not _check(view != null and view.mesh != null and absf(view.transform.basis.determinant() - 1.0) < 0.001, "cable source and proper orientation"):
 				return
 	var escape := architecture.get_node("WestEmergencyEscape") as Node3D
 	if not _check(escape.get_child_count() == 5, "selected escape assembly"):
 		return
-	for view in escape.get_children():
-		if not _check(view.mesh != null, "authored fire escape mesh"):
+	for child in escape.get_children():
+		var view := child as MeshInstance3D
+		if not _check(view != null and view.mesh != null, "authored fire escape mesh"):
 			return
 		var bounds: AABB = view.transform * view.mesh.get_aabb()
 		if not _check(bounds.position.y > 4.1, "escape remains overhead"):
 			return
-	print("BRICKWATER_ALLEY_SMOKE PASS: physical floor, closed model, photo materials, clear path")
+	print("BRICKWATER_ALLEY_SMOKE PASS: physical floor, authored ground props, upper facade, cable trunks, overhead escape")
 	quit(0)
