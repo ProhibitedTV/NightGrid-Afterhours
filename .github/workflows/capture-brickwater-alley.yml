@@ -83,7 +83,8 @@ jobs:
           git reset --hard "origin/$GITHUB_REF_NAME"
           mkdir -p docs/art/brickwater-review
           cp "$RUNNER_TEMP/brickwater-frames/"* docs/art/brickwater-review/
-          git add docs/art/brickwater-review/
+          python3 tools/publish_brickwater_gallery.py
+          git add docs/art/brickwater-review/ README.md
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "docs(art): actual Brickwater alley framebuffer gallery"
+          git commit -m "docs(art): publish actual Brickwater alley frames in README"
           git push origin "HEAD:$GITHUB_REF_NAME"
