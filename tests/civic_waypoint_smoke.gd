@@ -1,5 +1,6 @@
 extends SceneTree
 const Route = preload("res://scripts/street_route.gd")
+const Nav = preload("res://scripts/navigation_waypoint.gd")
 func _initialize() -> void:
 	create_timer(30.0,true,false,true).timeout.connect(func() -> void: quit(1))
 	call_deferred("_verify")
@@ -30,12 +31,21 @@ func _verify() -> void:
 	var state: Dictionary = world.call("get_map_state")
 	if not _check(is_equal_approx(float(state["street_route"]["road_m"]),174.0) and str(world.call("navigation_text")).contains("174 m by street"),"map and HUD update without actor movement"):
 		return
+	var restrictions: Dictionary = state["road_restrictions"]
+	if not _check(restrictions.size()==1,"live closure exported to both maps"):
+		return
+	var edge := Nav.closure_segment(restrictions.values()[0])
+	if not _check(edge.size()==2 and edge[0]==start and edge[1]==goal and Nav.closure_segment({"a":Vector2i.ZERO,"b":Vector2i(2,0)}).is_empty(),"closure markers use world coordinates and valid single edges"):
+		return
 	world.set("navigation_waypoint",Vector2(20,0))
 	if not _check((world.call("_navigation_route",start) as Dictionary).is_empty() and str(world.call("navigation_text")).contains("Street route unavailable"),"closed target shows no route"):
 		return
 	world.set("navigation_waypoint",goal)
 	registry.advance(10.0)
 	if not _check(world.call("_navigation_route",start)==baseline and world.get("mission_position")==old_mission and float(world.get("heat"))==0.0,"expiry invalidation independent of mission and heat"):
+		return
+	state = world.call("get_map_state")
+	if not _check((state["road_restrictions"] as Dictionary).is_empty(),"expired closure disappears from both maps"):
 		return
 	world.call("clear_navigation_waypoint")
 	if not _check((world.call("_navigation_route",start) as Dictionary).is_empty(),"clear route"):

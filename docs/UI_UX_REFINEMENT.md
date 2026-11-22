@@ -23,3 +23,6 @@ The passive HUD now shows a 240 logical-pixel circular north-up local radar, anc
 
 ### Framebuffer QA
 Dedicated read-only workflow captures actual game on foot and in an entered player vehicle, plus interactive atlas, at 1280x720, 1920x1080 and 1920x810. The output is an isolated Actions artifact, not a replacement of the public gallery. Verify viewport anchors in-game and exact PNG resolution/hash. Software OpenGL evidence is not native Windows Forward+ validation and is not a GPU benchmark. Added cardinal direction tests for foot and vehicle heading and nonfinite clipping rejection.
+
+### Live road closures
+Both circular radar and square atlas receive a copied live civic restriction catalog and draw an orange dashed edge with a transverse bar, using the canonical world intersection spacing. Radar clips the marks to its circle. A blocked/unavailable route keeps its purple destination pin or edge arrow but no longer suggests a direct dotted path; valid first/last-mile access links remain. Regression asserts the exposed edge coordinates and expiry, in addition to existing detour routing. No change to simulation, navigation decisions or saves.

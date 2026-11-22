@@ -2496,6 +2496,7 @@ func get_map_state() -> Dictionary:
 		"waypoint_active": navigation_waypoint != null,
 		"waypoint": Vector2.ZERO if navigation_waypoint == null else navigation_waypoint,
 		"street_route": _navigation_route(Vector2(map_actor.x, map_actor.z)),
+		"road_restrictions": road_restrictions.catalog(),
 		"officers": car_positions,
 		"routine_patrols": patrol_positions,
 		"police_stations": dispatch.catalog(),

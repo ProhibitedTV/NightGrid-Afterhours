@@ -94,6 +94,15 @@ func _draw() -> void:
 			_segment(Vector2(x,-extent), Vector2(x,extent), Color("52616e"), 4.0)
 			_segment(Vector2(-extent,x), Vector2(extent,x), Color("52616e"), 4.0)
 		_segment(Vector2(-223,-58), Vector2(241,-58), Color("47787d"), 2.0)
+		var closures: Dictionary = state.get("road_restrictions", {})
+		for record in closures.values():
+			var edge := Nav.closure_segment(record)
+			if edge.size() == 2:
+				_segment(edge[0],edge[1],Color("101821"),5.5)
+				_segment(edge[0],edge[1],Nav.CLOSURE_COLOR,3.2,true)
+				var mid := (edge[0]+edge[1])*0.5
+				var crossbar := (edge[1]-edge[0]).orthogonal().normalized()*4.0
+				_segment(mid-crossbar,mid+crossbar,Nav.CLOSURE_COLOR,2.3)
 		for stop in state.get("bus_stops", []):
 			_point(stop, Color("f3cb7a"), 2.2)
 		for station in state.get("rail_stations", []):
@@ -134,8 +143,7 @@ func _draw() -> void:
 					_segment(road[i],road[i+1],Nav.COLOR,2.8)
 				_segment(_origin,route["entry"],Nav.COLOR,1.4,true)
 				_segment(route["exit"],goal,Nav.COLOR,1.4,true)
-			else:
-				_segment(_origin,goal,Nav.COLOR,1.4,true)
+			# No road route: retain destination marker without a misleading line.
 			_target(goal,Nav.COLOR,true)
 		if bool(state.get("side_quest_active", false)):
 			_target(state["side_quest"],Color("fff0ad"),true)
