@@ -26,3 +26,6 @@ Dedicated read-only workflow captures actual game on foot and in an entered play
 
 ### Live road closures
 Both circular radar and square atlas receive a copied live civic restriction catalog and draw an orange dashed edge with a transverse bar, using the canonical world intersection spacing. Radar clips the marks to its circle. A blocked/unavailable route keeps its purple destination pin or edge arrow but no longer suggests a direct dotted path; valid first/last-mile access links remain. Regression asserts the exposed edge coordinates and expiry, in addition to existing detour routing. No change to simulation, navigation decisions or saves.
+
+### Capture reliability
+Software-rendered QA freezes simulation while rendering real gameplay scenes, captures a live registered closure in driving and atlas views, hides the gameplay HUD in the atlas shot, and logs each render stage. A SceneTree watchdog and external timeout bound failures. Superseded screenshot runs are cancelled and diagnostics are published even when a framebuffer capture fails. Complete gameplay preflight and Windows export passed at a9c57057; the capture-only follow-up does not change game runtime behavior. Native Vulkan visual review remains required.
