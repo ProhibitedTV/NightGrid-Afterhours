@@ -1,5 +1,5 @@
 extends SceneTree
-const Start := Vector3(3.35, 1.15, 26.0)
+const START = Vector3(3.35, 1.15, 26.0)
 var world: Node3D
 var player: CharacterBody3D
 var visual: Node3D
@@ -103,7 +103,7 @@ func _check_controls() -> void:
 		[["move_backward", "move_right"], Vector3(1, 0, 1)]]
 	for i in range(paths.size()):
 		var yaw := float(i - 4) * 0.38
-		var displacement: Vector3 = await _walk_to(Start, yaw, paths[i][0], 29)
+		var displacement: Vector3 = await _walk_to(START, yaw, paths[i][0], 29)
 		displacement.y = 0.0
 		var expected: Vector3 = (paths[i][1] as Vector3).rotated(Vector3.UP, yaw).normalized()
 		_expect(displacement.length() > 1.1 and expected.dot(displacement.normalized()) > 0.98
@@ -113,11 +113,11 @@ func _check_controls() -> void:
 	world.set("yaw", 2.764)
 	await _ticks(13)
 	_expect(visual.global_basis.z.dot(facing) > 0.999, "Stationary camera orbit rotated the courier")
-	await _walk_to(Start, 0.0, ["move_forward"], 28, 0.23)
+	await _walk_to(START, 0.0, ["move_forward"], 28, 0.23)
 	_expect(visual.get("current_pose") == &"walk", "Analogue-strength movement did not select the authored walk")
 	await _capture("walk")
 	Input.action_press("sprint")
-	await _walk_to(Start, 0.0, ["move_forward"], 39)
+	await _walk_to(START, 0.0, ["move_forward"], 39)
 	Input.action_release("sprint")
 	_expect(visual.get("current_pose") == &"run" and player.get_real_velocity().length() > 11.5,
 		"Sprint must retain its gameplay speed and select the run animation")

@@ -1,7 +1,7 @@
 extends SceneTree
 ## Capture the player in the real city with identical views on each revision.
 
-const ANCHOR := Vector3(-87.0, 1.30, 82.0)
+const ANCHOR = Vector3(-87.0, 1.30, 82.0)
 var world: Node3D
 var player: CharacterBody3D
 var camera: Camera3D
