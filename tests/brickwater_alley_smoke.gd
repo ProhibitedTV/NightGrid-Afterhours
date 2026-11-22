@@ -230,5 +230,30 @@ func _verify()->void:
 			var sheet := body.get_node("CorrugatedWeatheredSheet") as MeshInstance3D
 			if not _check(sheet.mesh is ArrayMesh and (sheet.material_override as StandardMaterial3D).normal_enabled, "corrugated photo-metal canopy"):
 				return
+	var neighbor_block := Vector2i(-1, 1)
+	var neighbor_center := Vector3((float(neighbor_block.x)+0.5)*58.0,0.0,(float(neighbor_block.y)+0.5)*58.0)
+	city.call("set_focus", neighbor_center)
+	await physics_frame
+	await physics_frame
+	var neighbor_chunk := (city.get("_loaded") as Dictionary).get(neighbor_block) as Node3D
+	if not _check(neighbor_chunk != null, "adjacent fixed parcel loaded"):
+		return
+	var neighbor := neighbor_chunk.get_node_or_null("BrickwaterNeighborArchitecture") as Node3D
+	if not _check(neighbor != null and neighbor.get_child_count() == 3, "residential-only kit"):
+		return
+	for label in ["WestApartmentFront", "EastApartmentFront"]:
+		var face := neighbor.get_node(label) as Node3D
+		if not _check(face.get_child_count() == 24, "four distinct authored bays on two floors"):
+			return
+		for child in face.get_children():
+			var view := child as MeshInstance3D
+			if not _check(view != null and view.mesh != null and view.position.y >= 4.8, "neighbor mesh and clearance"):
+				return
+	if not _check(neighbor.get_node_or_null("WestEmergencyEscape") != null and neighbor_chunk.get_node_or_null("BrickwaterServiceAlley") == null and neighbor.get_node_or_null("OverheadUtilitySpans") == null, "no duplicate pilot businesses or effects"):
+		return
+	var neighbor_middle := (float(neighbor.get("left_wall")) + float(neighbor.get("right_wall"))) * 0.5
+	var neighbor_hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(neighbor_center + Vector3(neighbor_middle,2,-5),neighbor_center + Vector3(neighbor_middle,-0.3,-5),1))
+	if not _check(not neighbor_hit.is_empty(), "existing neighboring ground collision preserved"):
+		return
 	print("BRICKWATER_ALLEY_SMOKE PASS: physical floor, authored ground props, upper facade, cable trunks, overhead escape")
 	quit(0)

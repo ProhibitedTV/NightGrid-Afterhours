@@ -8,6 +8,7 @@ const CraneGearWarehouse = preload("res://scripts/crane_gear_warehouse.gd")
 const RenderBatchOwner = preload("res://scripts/render_batch_owner.gd")
 const VesperWindows = preload("res://scripts/vesper_window_assembly.gd")
 const BrickwaterAlley = preload("res://scripts/brickwater_alley.gd")
+const BrickwaterArchitecture = preload("res://scripts/brickwater_alley_architecture.gd")
 ## Seeded city dressing. Static shell collisions + batched decorative geometry.
 ## The four neighborhoods deliberately share road geometry but not street character.
 
@@ -431,6 +432,8 @@ func _run_build_stage(block: Vector2i) -> bool:
 			work["phase"] = 3
 		3:
 			_build_block_street(block.x, block.y)
+			if block == BrickwaterArchitecture.NEIGHBOR_BLOCK:
+				_build_brickwater_neighbor(block.x, block.y)
 			work["phase"] = 4
 		4:
 			var keys: Array = work["flush_keys"]
@@ -666,6 +669,15 @@ func _build_brickwater_alley(ix: int, iz: int) -> void:
 	alley.position = Vector3((float(ix)+0.5)*CELL,0.0,(float(iz)+0.5)*CELL)
 	alley.configure(-10.5+float(left["width"])*0.5,10.5-float(right["width"])*0.5)
 	_active_chunk.add_child(alley)
+
+func _build_brickwater_neighbor(ix: int, iz: int) -> void:
+	var left := _block_lot_profile(ix, iz, 0)
+	var right := _block_lot_profile(ix, iz, 1)
+	var facade := BrickwaterArchitecture.new()
+	facade.name = "BrickwaterNeighborArchitecture"
+	facade.position = Vector3((float(ix)+0.5)*CELL,0.0,(float(iz)+0.5)*CELL)
+	facade.configure(-10.5 + float(left["width"]) * 0.5, 10.5 - float(right["width"]) * 0.5, true)
+	_active_chunk.add_child(facade)
 
 func _build_block_street(ix: int, iz: int) -> void:
 	var center := Vector3((float(ix) + 0.5) * CELL, 0.0, (float(iz) + 0.5) * CELL)
@@ -908,7 +920,7 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 		# Rooftop water tank and a vertical fire escape.
 		_detail(Vector3(center.x + 3.8, height + 3.2, center.z), Vector3(3.6, 4.4, 3.6), Color("4f6570"))
 		_detail(Vector3(center.x + 3.8, height + 5.5, center.z), Vector3(4.0, 0.22, 4.0), Color("a0a2a0"))
-		if not (Vector2i(ix, iz) == BrickwaterAlley.PILOT_BLOCK and which == 0):
+		if not (Vector2i(ix, iz) in [BrickwaterAlley.PILOT_BLOCK, BrickwaterArchitecture.NEIGHBOR_BLOCK] and which == 0):
 			for floor_step in range(2, int(height / 3.4)):
 				var step_y := float(floor_step) * 3.4
 				_detail(Vector3(right + 0.28, step_y, center.z + 0.5), Vector3(0.65, 0.17, 5.4), Color("65757c"))
@@ -977,7 +989,9 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 				# within the two covered storeys and the five-bay frontage.
 				var alley_side: bool = (which == 0 and side > 0.0) or (which == 1 and side < 0.0)
 				var local_z := wz - (float(iz) + 0.5) * CELL
-				if Vector2i(ix, iz) == BrickwaterAlley.PILOT_BLOCK and alley_side and fy >= 4.8 and fy <= 10.8 and local_z >= -12.0 and local_z <= 3.0:
+				var authored_alley: bool = Vector2i(ix, iz) in [BrickwaterAlley.PILOT_BLOCK, BrickwaterArchitecture.NEIGHBOR_BLOCK]
+				var covered_end := 0.0 if Vector2i(ix, iz) == BrickwaterArchitecture.NEIGHBOR_BLOCK else 3.0
+				if authored_alley and alley_side and fy >= 4.8 and fy <= 10.8 and local_z >= -12.0 and local_z <= covered_end:
 					continue
 				_detail(Vector3(center.x + side * (width / 2.0 + 0.07), fy, wz), Vector3(0.11, 1.45, 2.0), Color("426178"), false, "GLASS")
 

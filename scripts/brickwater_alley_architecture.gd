@@ -4,6 +4,7 @@ extends Node3D
 const FACADE = preload("res://assets/models/polyhaven/modular_urban_apartments_facade/modular_urban_apartments_facade.gltf")
 const ESCAPE = preload("res://assets/models/polyhaven/modular_fire_escape/modular_fire_escape.gltf")
 const CABLE = preload("res://assets/models/polyhaven/modular_electric_cables/modular_electric_cables.gltf")
+const NEIGHBOR_BLOCK = Vector2i(-1, 1)
 const FACE_OFFSET = 0.27
 const BAY_WIDTH = 3.0
 const FIRST_LEVEL = 4.8
@@ -13,10 +14,12 @@ const MAX_Z = 3.0
 static var _meshes: Dictionary = {}
 var left_wall: float
 var right_wall: float
+var residential_only: bool = false
 
-func configure(left: float, right: float) -> void:
+func configure(left: float, right: float, neighbor: bool = false) -> void:
 	left_wall = left
 	right_wall = right
+	residential_only = neighbor
 
 func _ready() -> void:
 	# Local kit X spans -3..0, Y spans 0..3, and +Z faces the alley.
@@ -31,20 +34,23 @@ func _ready() -> void:
 		facade.position.x = face_x
 		add_child(facade)
 		for level in range(LEVELS):
-			for bay in range(5):
+			for bay in range(4 if residential_only else 5):
 				var z := MIN_Z + BAY_WIDTH * float(bay)
 				if side == 1:
 					z += BAY_WIDTH
 				var y := FIRST_LEVEL + float(level) * 3.0
-				var variant: String = ["centered_large_02", "centered_double_02", "centered_small_03", "centered_large_03", "offset_small_03"][(bay + level * 2 + (1 if side == 1 else 0)) % 5]
+				var variant: String = ["centered_large_02", "centered_double_02", "centered_small_03", "centered_large_03", "offset_small_03"][(bay + level * 2 + (1 if side == 1 else 0) + (2 if residential_only else 0)) % 5]
 				var at := Vector3(0, y, z)
 				_place(facade, "PlasterBay", FACADE, "wall_window_" + variant, at, Basis(Vector3.UP, yaw))
 				_place(facade, "RecessedWindow", FACADE, "window_" + variant, at, Basis(Vector3.UP, yaw))
 				_place(facade, "Cornice", FACADE, "cornice_standard_standard_01", at + Vector3.UP * 2.8, Basis(Vector3.UP, yaw))
 		# Cable trunks below the facade, along the original wall, with
 		# source junction boxes and clips rather than floating wires.
-		_cable_run(wall, side)
+		if not residential_only:
+			_cable_run(wall, side)
 	_escape_landing()
+	if residential_only:
+		return
 	_service_entrance("WestServiceEntrance", left_wall, -0.6, PI * 0.5, "centered_small_01")
 	_service_entrance("EastServiceEntrance", right_wall, 6.85, -PI * 0.5, "centered_small_02")
 	_overhead_spans()
