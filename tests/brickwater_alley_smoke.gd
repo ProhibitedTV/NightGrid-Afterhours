@@ -92,8 +92,8 @@ func _verify()->void:
 	if not _check(pipe_parts == 14, "only selected modular pipe pieces"):
 		return
 	for z in [-10.0, -5.0, 0.0, 5.0, 7.5]:
-		var from := center + Vector3(x, 0.9, z)
-		var clear := space.intersect_ray(PhysicsRayQueryParameters3D.create(from, from + Vector3(0, 0, 0.4), 1))
+		var ray_start := center + Vector3(x, 0.9, z)
+		var clear := space.intersect_ray(PhysicsRayQueryParameters3D.create(ray_start, ray_start + Vector3(0, 0, 0.4), 1))
 		if not _check(clear.is_empty(), "centerline remains clear"):
 			return
 	print("BRICKWATER_ALLEY_SMOKE PASS: physical floor, closed model, photo materials, clear path")
