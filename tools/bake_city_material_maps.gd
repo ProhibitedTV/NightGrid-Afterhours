@@ -1,6 +1,6 @@
 extends SceneTree
 ## Rebuilds the checked-in lossless RGBA8 city texture data with its original mipmaps.
-## godot --headless --path . --script res://tools/bake_city_material_maps.gd
+## Run as a headless SceneTree script. Pass --verify to compare the stored image bytes.
 const TARGET = "res://assets/pbr/nightgrid/city_material_maps.res"
 const SIZE = 128
 const KINDS = ["ASPHALT", "BRICK", "CONCRETE", "GLASS", "METAL", "PAVERS", "WET", "WOOD"]
