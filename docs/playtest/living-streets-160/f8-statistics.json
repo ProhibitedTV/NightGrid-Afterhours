@@ -1,0 +1,176 @@
+{
+  "seed": 834726,
+  "revision": "22aab3e56451d7d14cac8ef03136dfd8928a0e41",
+  "adapter": "NVIDIA GeForce RTX 3060",
+  "driver": "vulkan",
+  "renderer": "forward_plus",
+  "resolution": [
+    1920,
+    1080
+  ],
+  "settings": {
+    "ao": true,
+    "fog": true,
+    "glow": true,
+    "ssr": true,
+    "vsync": false
+  },
+  "cases": [
+    {
+      "label": "brickwater-day",
+      "distance_m": 19.5050506591797,
+      "peak_active": 5,
+      "unobstructed_in_frame": 1,
+      "off": {
+        "frames": 513,
+        "median_ms": 9.722,
+        "p95_ms": 11.111,
+        "p99_ms": 11.613,
+        "max_ms": 13.988,
+        "over_16_67": 0,
+        "over_33_3": 0,
+        "max_stream_build_ms": 0.0
+      },
+      "on": {
+        "frames": 407,
+        "median_ms": 11.667,
+        "p95_ms": 14.225,
+        "p99_ms": 16.432,
+        "max_ms": 18.221,
+        "over_16_67": 2,
+        "over_33_3": 0,
+        "max_stream_build_ms": 0.0
+      }
+    },
+    {
+      "label": "brickwater-night",
+      "distance_m": 19.5050506591797,
+      "peak_active": 4,
+      "unobstructed_in_frame": 1,
+      "off": {
+        "frames": 245,
+        "median_ms": 19.697,
+        "p95_ms": 21.212,
+        "p99_ms": 23.393,
+        "max_ms": 27.608,
+        "over_16_67": 241,
+        "over_33_3": 0,
+        "max_stream_build_ms": 0.0
+      },
+      "on": {
+        "frames": 224,
+        "median_ms": 21.212,
+        "p95_ms": 25.0,
+        "p99_ms": 28.31,
+        "max_ms": 30.023,
+        "over_16_67": 224,
+        "over_33_3": 0,
+        "max_stream_build_ms": 0.0
+      }
+    },
+    {
+      "label": "afterhours-day",
+      "distance_m": 19.5049209594727,
+      "peak_active": 7,
+      "unobstructed_in_frame": 1,
+      "off": {
+        "frames": 441,
+        "median_ms": 10.391,
+        "p95_ms": 14.837,
+        "p99_ms": 23.79,
+        "max_ms": 101.465,
+        "over_16_67": 9,
+        "over_33_3": 4,
+        "max_stream_build_ms": 0.0
+      },
+      "on": {
+        "frames": 396,
+        "median_ms": 12.5,
+        "p95_ms": 15.483,
+        "p99_ms": 17.446,
+        "max_ms": 18.236,
+        "over_16_67": 6,
+        "over_33_3": 0,
+        "max_stream_build_ms": 0.0
+      }
+    },
+    {
+      "label": "afterhours-night",
+      "distance_m": 19.5049209594727,
+      "peak_active": 5,
+      "unobstructed_in_frame": 1,
+      "off": {
+        "frames": 466,
+        "median_ms": 10.417,
+        "p95_ms": 11.52,
+        "p99_ms": 13.458,
+        "max_ms": 15.861,
+        "over_16_67": 0,
+        "over_33_3": 0,
+        "max_stream_build_ms": 0.0
+      },
+      "on": {
+        "frames": 395,
+        "median_ms": 12.254,
+        "p95_ms": 14.752,
+        "p99_ms": 16.111,
+        "max_ms": 20.8,
+        "over_16_67": 1,
+        "over_33_3": 0,
+        "max_stream_build_ms": 0.0
+      }
+    },
+    {
+      "label": "west-docks-day",
+      "distance_m": 19.5070495605469,
+      "peak_active": 3,
+      "unobstructed_in_frame": 1,
+      "off": {
+        "frames": 1172,
+        "median_ms": 4.167,
+        "p95_ms": 4.545,
+        "p99_ms": 5.0,
+        "max_ms": 8.478,
+        "over_16_67": 0,
+        "over_33_3": 0,
+        "max_stream_build_ms": 0.0
+      },
+      "on": {
+        "frames": 450,
+        "median_ms": 4.762,
+        "p95_ms": 49.724,
+        "p99_ms": 133.333,
+        "max_ms": 144.774,
+        "over_16_67": 42,
+        "over_33_3": 34,
+        "max_stream_build_ms": 0.0
+      }
+    },
+    {
+      "label": "west-docks-night",
+      "distance_m": 19.5070495605469,
+      "peak_active": 2,
+      "unobstructed_in_frame": 1,
+      "off": {
+        "frames": 365,
+        "median_ms": 12.963,
+        "p95_ms": 15.07,
+        "p99_ms": 16.554,
+        "max_ms": 16.831,
+        "over_16_67": 2,
+        "over_33_3": 0,
+        "max_stream_build_ms": 0.0
+      },
+      "on": {
+        "frames": 338,
+        "median_ms": 14.286,
+        "p95_ms": 15.763,
+        "p99_ms": 16.815,
+        "max_ms": 20.335,
+        "over_16_67": 4,
+        "over_33_3": 0,
+        "max_stream_build_ms": 0.0
+      }
+    }
+  ]
+}

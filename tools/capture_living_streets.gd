@@ -12,6 +12,7 @@ const DISTRICTS = {
 var output: String
 var reports: Array[Dictionary] = []
 var reference_views := {}
+var diagnostic := false
 
 func _initialize() -> void:
 	create_timer(250.0, true, false, true).timeout.connect(func() -> void: quit(1))
@@ -36,10 +37,16 @@ func _capture() -> void:
 			var shot: Dictionary = record["screenshot"]
 			reference_views[record["label"]] = [_point(shot["camera_at"]), _point(shot["look_at"])]
 	var district_filter := OS.get_environment("NIGHTGRID_LIVING_STREETS_DISTRICT")
+	var hour_filter := OS.get_environment("NIGHTGRID_LIVING_STREETS_HOUR")
+	diagnostic = "--diagnostic" in OS.get_cmdline_user_args()
+	if diagnostic:
+		RenderingServer.viewport_set_measure_render_time(root.get_viewport_rid(), true)
 	for district in DISTRICTS:
 		if not district_filter.is_empty() and district != district_filter:
 			continue
 		for hour in [12.0, 22.0]:
+			if not hour_filter.is_empty() and not is_equal_approx(float(hour_filter), hour):
+				continue
 			if not await _sample(district, hour):
 				quit(1)
 				return
@@ -93,7 +100,7 @@ func _sample(district: String, hour: float) -> bool:
 	city.call("set_focus", player.global_position)
 	game.get_node("HUD").hide()
 	var view: Array = reference_views.get(label, [locations[2], locations[3]])
-	if is_instance_valid(pedestrians):
+	if is_instance_valid(pedestrians) and not reference_views.has(label):
 		view = _street_view(pedestrians, STREET_NAMES[district], locations[1], view)
 	camera.global_position = view[0]
 	camera.look_at(view[1])
@@ -135,17 +142,42 @@ func _sample(district: String, hour: float) -> bool:
 	recorder.begin_capture(stream["loads"], stream["stage_steps"], stream["total_build_usec"])
 	var start := player.global_position
 	var peak := active.size()
+	var sampled := 0
+	var focus_losses := 0
+	var viewport := root.get_viewport_rid()
+	var wall_time := [Time.get_ticks_usec()]
+	var samples: Array[String] = ["wall_ms,render_cpu_ms,render_gpu_ms,focused,world_x,world_z"]
+	var render_sample := func() -> void:
+		var now := Time.get_ticks_usec()
+		var focused := DisplayServer.window_is_focused()
+		samples.append("%.3f,%.3f,%.3f,%d,%.4f,%.4f" % [
+			float(now - wall_time[0]) / 1000.0, RenderingServer.viewport_get_measured_render_time_cpu(viewport),
+			RenderingServer.viewport_get_measured_render_time_gpu(viewport), int(focused),
+			player.global_position.x, player.global_position.z])
+		wall_time[0] = now
+	if diagnostic:
+		RenderingServer.frame_post_draw.connect(render_sample)
 	Input.action_press("move_forward", 0.63)
 	for index in range(290):
 		await physics_frame
+		sampled += 1
+		focus_losses += int(not DisplayServer.window_is_focused())
 		if is_instance_valid(pedestrians) and index % 12 == 0:
 			peak = maxi(peak, int((pedestrians.call("stats") as Dictionary)["active"]))
 	Input.action_release("move_forward")
+	if diagnostic:
+		RenderingServer.frame_post_draw.disconnect(render_sample)
+		var profile := FileAccess.open(output.path_join(label + "-renderer.csv"), FileAccess.WRITE)
+		if profile == null:
+			return false
+		profile.store_string("\n".join(PackedStringArray(samples)) + "\n")
+		profile.close()
 	recorder.end_capture()
 	var csv: String = recorder.export_csv(output.path_join(label + ".csv"))
 	var report := {"label": label, "hour": hour, "screenshot": shot, "start": str(start),
 		"end": str(player.global_position), "distance_m": player.global_position.distance_to(start),
-		"frames": recorder.captured_frames(), "peak_active": peak}
+		"frames": recorder.captured_frames(), "peak_active": peak, "physics_ticks": sampled,
+		"unfocused_ticks": focus_losses}
 	if is_instance_valid(pedestrians):
 		report["population"] = pedestrians.call("stats")
 	reports.append(report)
