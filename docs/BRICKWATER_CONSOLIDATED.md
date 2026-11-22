@@ -22,6 +22,8 @@ The publisher, CC0 terms, exact upstream URLs, sizes and hashes are recorded in 
 
 ## Reproduce native evidence
 
+See the [matched Windows screenshots and walking traces](art/brickwater-consolidated/README.md).
+
 Use Godot 4.7.2 on Windows and start from an imported project. For the before pass, copy the same capture script to the beta.7 checkout at `78442f988a631bc13848c6cd5eea770040d98967`. Set the revision and a fresh absolute output directory in each checkout.
 
 ```powershell
