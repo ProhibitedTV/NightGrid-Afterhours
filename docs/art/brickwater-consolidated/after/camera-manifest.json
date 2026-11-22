@@ -1,0 +1,153 @@
+{
+  "adapter": "NVIDIA GeForce RTX 3060",
+  "adapter_api": "1.4.357",
+  "block": [
+    -2,
+    1
+  ],
+  "driver": "vulkan",
+  "engine": "4.7.2-stable (official)",
+  "origin": [
+    -87.0,
+    0.0,
+    87.0
+  ],
+  "render_video_memory_bytes": 1089495264,
+  "renderer": "forward_plus",
+  "revision": "6c7ac1e0b0c3e2806a7d9c24e29d152e39bd2565",
+  "settings": {
+    "ambient_occlusion": true,
+    "fog": true,
+    "glow": true,
+    "physics_hz": 60,
+    "ssr": true,
+    "vsync": 0
+  },
+  "shots": [
+    {
+      "camera": [
+        -86.8000030517578,
+        1.75,
+        76.4000015258789
+      ],
+      "file": "01-alley-night-north.png",
+      "fov": 70.0,
+      "hour": 22.1,
+      "look": [
+        -86.6500015258789,
+        2.59999990463257,
+        93.5
+      ],
+      "resolution": [
+        1920,
+        1080
+      ],
+      "sha256": "3c9b1b4bc2bdce80c9206273a650157c648a0cf906acca03dde7bdb3385c8762",
+      "stationary_frame_timing": {
+        "max_ms": 9.083,
+        "mean_ms": 6.48242222222223,
+        "p50_ms": 5.842,
+        "p95_ms": 8.214,
+        "p99_ms": 8.633,
+        "samples": 180,
+        "target_ms": 16.6666666666667,
+        "vsync_mode": 0
+      }
+    },
+    {
+      "camera": [
+        -86.8000030517578,
+        1.75,
+        76.4000015258789
+      ],
+      "file": "02-alley-daylight-matched.png",
+      "fov": 70.0,
+      "hour": 12.0,
+      "look": [
+        -86.6500015258789,
+        2.59999990463257,
+        93.5
+      ],
+      "resolution": [
+        1920,
+        1080
+      ],
+      "sha256": "3f17ea281c688504c6b8d6ee8628529d773487257a890ef49d26d4a7dd516749"
+    },
+    {
+      "camera": [
+        -86.8000030517578,
+        1.32000005245209,
+        74.6999969482422
+      ],
+      "file": "07-driving-height-approach.png",
+      "fov": 70.0,
+      "hour": 22.1,
+      "look": [
+        -86.8000030517578,
+        1.70000004768372,
+        94.0
+      ],
+      "resolution": [
+        1920,
+        1080
+      ],
+      "sha256": "20dd4ba8c303de6d61858887496a88180378e0b353dcb481fde525f861de2fd7"
+    },
+    {
+      "camera": [
+        -84.4499969482422,
+        1.70000004768372,
+        80.3000030517578
+      ],
+      "file": "08-workroom-detail.png",
+      "fov": 70.0,
+      "hour": 22.1,
+      "look": [
+        -89.629997253418,
+        1.54999995231628,
+        81.3499984741211
+      ],
+      "resolution": [
+        1920,
+        1080
+      ],
+      "sha256": "88fd74f499b644364317f06339da96d26ee4dc34c5831a6dd4f9d2ef116877b3"
+    },
+    {
+      "camera": [
+        -86.8000030517578,
+        1.75,
+        76.4000015258789
+      ],
+      "file": "09-alley-dusk.png",
+      "fov": 70.0,
+      "hour": 19.15,
+      "look": [
+        -86.6500015258789,
+        2.59999990463257,
+        93.5
+      ],
+      "resolution": [
+        1920,
+        1080
+      ],
+      "sha256": "ccf5a4a8846f8bff7e6904b7239169165856fae2340988277cb2aaf4f9d15b71"
+    }
+  ],
+  "timing_note": "Viewport frame intervals, including CPU and GPU work. Walk traces use the same recorder as F8.",
+  "walk_traces": [
+    {
+      "distance_z_m": 44.5910568237305,
+      "file": "walk-first.csv",
+      "frames": 614,
+      "reached_end": true
+    },
+    {
+      "distance_z_m": 44.5911026000977,
+      "file": "walk-repeat.csv",
+      "frames": 622,
+      "reached_end": true
+    }
+  ]
+}

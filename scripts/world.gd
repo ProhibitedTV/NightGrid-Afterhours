@@ -2,7 +2,15 @@ extends Node3D
 ## NIGHTGRID: AFTERHOURS — a generated 3D city with an original courier/crime loop.
 
 const PlayerScript = preload("res://scripts/player.gd")
-const HumanoidVisualScript = preload("res://scripts/humanoid_visual.gd")
+const CourierVisual = preload("res://scripts/courier_visual.gd")
+const PedestrianDirector = preload("res://scripts/pedestrian_director.gd")
+const PedestrianRoutes = preload("res://scripts/pedestrian_routes.gd")
+const PEDESTRIAN_MODELS = [
+	"res://assets/models/nightgrid/pedestrians/casual-walker.glb",
+	"res://assets/models/nightgrid/pedestrians/dog-walker.glb",
+	"res://assets/models/nightgrid/pedestrians/road-worker.glb",
+	"res://assets/models/nightgrid/pedestrians/hiker.glb",
+]
 const CarScript = preload("res://scripts/car.gd")
 const KestrelVisual = preload("res://scripts/kestrel_s6_visual.gd")
 const MinimapScript = preload("res://scripts/minimap.gd")
@@ -41,6 +49,7 @@ const NightGridFMScript = preload("res://scripts/nightgrid_fm.gd")
 const WorldAudioScript = preload("res://scripts/world_audio.gd")
 const AudioMix = preload("res://scripts/audio_mix.gd")
 const FrameTimeRecorder = preload("res://scripts/frame_time_recorder.gd")
+const StreamProfile = preload("res://scripts/streaming_profile.gd")
 const PlaytestEvidence = preload("res://scripts/playtest_evidence.gd")
 const PlaytestLogger = preload("res://scripts/playtest_logger.gd")
 const BuildInfo = preload("res://scripts/build_info.gd")
@@ -78,6 +87,7 @@ var _radio_card: PanelContainer
 var _radio_close_tail := 0.0
 var _radio_was_wanted := false
 var _civic_radio_announced: Dictionary = {}
+var _receiver_sites: Array[Dictionary] = []
 var returning_units: Array[CharacterBody3D] = []
 var _sight_clock := 0.0
 var _wanted_label: Label
@@ -114,6 +124,8 @@ var performance_label: Label
 var performance_overlay := false
 var minimap: Control
 var city_details: Node3D
+var pedestrians: Node3D
+var _pedestrian_scan := 0.0
 var city_perimeter: Node3D
 var flora: Node3D
 var day_night: Node
@@ -158,6 +170,9 @@ var _focus_update_clock := 1.0
 var _hud_update_clock := 1.0
 var current_transit: Node3D
 var transit_kind := ""
+var _active_station_lift: Node3D
+var _rail_platform_rider := false
+var _camera_probe := PhysicsShapeQueryParameters3D.new()
 var session: Node
 var world_environment: WorldEnvironment
 var sun_light: DirectionalLight3D
@@ -174,6 +189,11 @@ var notification_time := 8.0
 var police_cooldown := 4.0
 
 func _ready() -> void:
+	var clearance_ball := SphereShape3D.new()
+	clearance_ball.radius = 0.30
+	_camera_probe.shape = clearance_ball
+	_camera_probe.margin = 0.02
+	_camera_probe.collision_mask = 1
 	GameInput.install()
 	AudioMix.ensure()
 	session = get_node("/root/GameSession")
@@ -199,6 +219,8 @@ func _ready() -> void:
 	_configure_ambient_civic()
 	_build_routine_patrols()
 	_create_camera()
+	if "--living-streets" in OS.get_cmdline_user_args():
+		enable_living_streets()
 	_create_marker()
 	_build_hud()
 	_build_game_menu()
@@ -275,15 +297,29 @@ func _update_police_radio(delta: float) -> void:
 	_radio_was_wanted = active
 	_radio_close_tail = maxf(0.0, _radio_close_tail - delta)
 	var station: Dictionary = {}
+	var receiver := Vector3.INF
 	if bool(interiors.call("is_inside")) and str(interiors.call("active_site_group")) == "CIVIC":
 		station = civic_services.call("site_by_id", str(interiors.call("active_site_id")))
 	var in_station := station.has("station_id")
+	if in_station:
+		receiver = (interiors.call("get_counter_point") as Vector3) + Vector3(0.75, 0.3, 0.25)
+	elif not active and not bool(interiors.call("is_inside")):
+		for site in _receiver_sites:
+			var address: Vector3 = site["address"]
+			if player.global_position.distance_squared_to(address) < 12.0 * 12.0:
+				station = {"station_id": site["id"], "headquarters": site["hq"]}
+				receiver = address + Vector3.UP * 0.7
+				break
 	police_radio.call("ingest", dispatch.history)
 	police_radio.call("update_state", active, wanted.police_seen, delta)
 	var closing := _radio_close_tail > 0.0 and bool(police_radio.call("has_traffic"))
-	if in_station and not active and not closing and not bool(day_night.get("paused")):
+	var local_receiver := receiver.is_finite() and not active and not closing
+	if local_receiver and not bool(day_night.get("paused")):
 		_announce_civic_at_station(station)
-	police_radio.call("tick", delta, active or in_station or closing)
+	police_radio.call("set_receiver", receiver if local_receiver else Vector3.INF)
+	police_radio.call("tick", delta, active or local_receiver or closing)
+	if is_instance_valid(nightgrid_fm):
+		nightgrid_fm.set("dialogue_active", police_radio.call("speaking"))
 	if not active and not bool(police_radio.call("has_traffic")):
 		_radio_close_tail = 0.0
 	var caption: String = police_radio.get("current")
@@ -323,7 +359,9 @@ func _build_world_audio() -> void:
 	world_audio.name = "WorldAudio"
 	world_audio.set("menu", game_menu)
 	add_child(world_audio)
+	_receiver_sites = civic_services.call("police_station_sites")
 	world_audio.call("set_traffic", traffic)
+	world_audio.call("set_pedestrians", pedestrians)
 	var options: Dictionary = game_menu.call("get_settings")
 	world_audio.call("set_preferences", float(options.get("ambience_volume", 0.65)),
 		float(options.get("sfx_volume", 0.75)))
@@ -374,6 +412,7 @@ func _apply_game_settings(options: Dictionary) -> void:
 		nightgrid_fm.call("set_preferences", float(options.get("music_volume", 0.65)), bool(options.get("radio_on", true)))
 	if is_instance_valid(world_audio):
 		world_audio.call("set_preferences", float(options.get("ambience_volume", 0.65)), float(options.get("sfx_volume", 0.75)))
+	AudioMix.set_level(AudioMix.DIALOGUE, float(options.get("dialogue_volume", 0.82)))
 	var bus_index := AudioServer.get_bus_index("Master")
 	if bus_index >= 0:
 		AudioServer.set_bus_volume_db(bus_index, linear_to_db(maxf(0.001, float(options.get("master_volume", 0.8)))))
@@ -534,7 +573,7 @@ func _capture_playtest_frame() -> void:
 	if current_car != null:
 		motion = "player_vehicle"
 	elif current_transit != null:
-		motion = "rail" if transit_kind == "TRAIN" else "bus"
+		motion = {"TRAIN": "rail", "BUS": "bus", "LIFT": "station_lift"}[transit_kind]
 	var metadata: Dictionary = PlaytestEvidence.build_metadata(camera, actual_actor, {
 		"world_seed": int(session.get("world_seed")),
 		"game_clock": str(day_night.call("clock_string")),
@@ -571,19 +610,28 @@ func _process(delta: float) -> void:
 		"car" if current_car != null else ("transit_" + transit_kind.to_lower() if current_transit != null else "on_foot"))
 	var indoors: bool = interiors.call("is_inside")
 	_update_police_radio(delta)
+	var interior_id := str(interiors.call("active_site_id")) if indoors else ""
+	var interior_kind := ""
+	if indoors and str(interiors.call("active_site_group")) == "VENUE":
+		interior_kind = str((venue_system.call("venue_by_id", interior_id) as Dictionary).get("kind", ""))
 	if is_instance_valid(nightgrid_fm):
-		var interior_id := str(interiors.call("active_site_id")) if indoors else ""
-		var interior_kind := ""
-		if indoors and str(interiors.call("active_site_group")) == "VENUE":
-			interior_kind = str((venue_system.call("venue_by_id", interior_id) as Dictionary).get("kind", ""))
-		nightgrid_fm.call("update_listener", actor.global_position, current_car != null, interior_id, interior_kind)
+		nightgrid_fm.call("update_listener", actor.global_position, current_car != null, interior_id, interior_kind, current_transit != null)
 	if is_instance_valid(world_audio):
+		world_audio.call("set_room_kind", interior_kind)
 		var street_position: Vector3 = interiors.get("exterior_position") if indoors else actor.global_position
 		var district: String = city_details.call("get_district_at", street_position)
 		var foot_speed := Vector2(player.velocity.x, player.velocity.z).length()
 		world_audio.call("update_context", actor.global_position, player.global_position,
 			current_car == null and current_transit == null, player.is_on_floor(),
 			indoors, district, float(day_night.get("hour")), foot_speed, player.velocity.y)
+		if is_instance_valid(current_car):
+			world_audio.call("set_transport", "CAR", float(current_car.get("speed")), Input.is_action_pressed("drive_brake"))
+		elif transit_kind == "TRAIN":
+			world_audio.call("set_transport", "TRAIN", float(rail.get("speed")), false)
+		elif transit_kind == "BUS" and is_instance_valid(current_transit):
+			world_audio.call("set_transport", "BUS", float(current_transit.get("speed")), false)
+		else:
+			world_audio.call("set_transport", "", 0.0, false)
 	if indoors and str(interiors.call("active_site_id")) == "lantern_cup":
 		interiors.call("set_mara_focus", player.global_position)
 	if not venue_panel.visible:
@@ -599,9 +647,15 @@ func _process(delta: float) -> void:
 			if actor is CharacterBody3D:
 				traversal_velocity = (actor as CharacterBody3D).velocity
 			city_details.call("request_focus", actor.global_position, traversal_velocity)
+		var started := StreamProfile.begin()
 		street_lights.call("set_focus", interiors.get("exterior_position") if indoors else actor.global_position)
+		StreamProfile.end(started, "street_light_focus")
+		started = StreamProfile.begin()
 		venue_system.call("set_focus", actor.global_position)
+		StreamProfile.end(started, "venue_focus")
+		started = StreamProfile.begin()
 		civic_services.call("set_focus", actor.global_position)
+		StreamProfile.end(started, "civic_focus")
 	_venue_clock_tick += delta
 	if _venue_clock_tick >= 0.5:
 		_venue_clock_tick = 0.0
@@ -625,8 +679,15 @@ func _physics_process(delta: float) -> void:
 	# Gameplay mission/heat/damage timers are fixed-tick, not render-tick.
 	if not is_instance_valid(player):
 		return
+	if _active_station_lift != null and not bool(_active_station_lift.get("travelling")):
+		var landing: Vector3 = _active_station_lift.call("destination")
+		var upstairs: bool = _active_station_lift.get("going_up")
+		_active_station_lift = null
+		_leave_transit(landing, "M-Line platform. Board a stopped train." if upstairs else "Back at street level.")
 	var actor := _actor()
 	var indoors: bool = interiors.call("is_inside")
+	if is_instance_valid(pedestrians):
+		_update_pedestrians(delta, actor, indoors)
 	_update_combat(delta)
 	if not indoors and current_transit == null and actor.global_position.distance_to(mission_position) < 5.3:
 		_advance_mission()
@@ -652,6 +713,43 @@ func _actor() -> Node3D:
 		return current_transit
 	return current_car if current_car != null else player
 
+func enable_living_streets() -> bool:
+	if is_instance_valid(pedestrians):
+		return true
+	var models: Array[PackedScene] = []
+	for path in PEDESTRIAN_MODELS:
+		var model := load(path) as PackedScene
+		if model == null:
+			return false
+		models.append(model)
+	var director := PedestrianDirector.new()
+	director.name = "LivingStreets"
+	add_child(director)
+	var visual := load("res://scenes/pedestrian_visual.tscn") as PackedScene
+	if not director.configure(city_details, int(session.get("world_seed")), PedestrianRoutes.city_links(), visual, 12, models):
+		director.queue_free()
+		return false
+	pedestrians = director
+	if is_instance_valid(world_audio):
+		world_audio.call("set_pedestrians", pedestrians)
+	return true
+
+func _update_pedestrians(delta: float, actor: Node3D, indoors: bool) -> void:
+	var occupied: Array[Vector3] = [actor.global_position]
+	var street_mode := not indoors and current_transit == null and is_instance_valid(camera)
+	pedestrians.call("tick", delta, actor.global_position, camera, not street_mode,
+		occupied, float(day_night.get("hour")), signal_controller)
+	_pedestrian_scan += delta
+	if not street_mode or _pedestrian_scan < 0.18:
+		return
+	_pedestrian_scan = 0.0
+	var nearby: Array[CharacterBody3D] = []
+	var fleet: Array = traffic.get("fleet")
+	for vehicle in cars + officers + routine_patrols + fleet:
+		if is_instance_valid(vehicle) and actor.global_position.distance_squared_to(vehicle.global_position) < 105.0 * 105.0:
+			nearby.append(vehicle)
+	pedestrians.call("react_to_traffic", nearby)
+
 # The former chase camera always interpolated over the full world distance.
 # Interiors are in a dedicated scene at (950, 950); on H exit this exposed the
 # empty space between it and the city for many frames. A spatial discontinuity
@@ -670,27 +768,33 @@ func _camera_goal() -> Vector3:
 		cos(pitch) * distance).rotated(Vector3.UP, yaw)
 
 func _camera_clearance(focus: Vector3, target: Vector3) -> Vector3:
-	# Physics-backed camera arm. The camera never goes THROUGH a collidable
-	# building or a venue wall, even when the player rotates next to it.
-	var distance := focus.distance_to(target)
-	if distance < 0.001:
+	var motion := target - focus
+	if motion.length_squared() < 0.000001:
 		return target
+	# Sweep the near plane's clearance volume so canopy edges and corners
+	# protect the whole view even when the camera arm's centre ray misses.
+	_camera_probe.transform.origin = focus
+	_camera_probe.motion = motion
 	var ignored: Array[RID] = [player.get_rid()]
 	if current_car != null:
 		ignored.append(current_car.get_rid())
 	if current_transit is CollisionObject3D:
 		ignored.append((current_transit as CollisionObject3D).get_rid())
-	var query := PhysicsRayQueryParameters3D.create(focus, target)
-	query.exclude = ignored
-	query.collision_mask = 1
-	query.collide_with_areas = false
-	var obstruction: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
+	if is_instance_valid(pedestrians):
+		ignored.append_array(pedestrians.call("camera_exclusions"))
+	_camera_probe.exclude = ignored
+	var space := get_world_3d().direct_space_state
+	var clearance := space.cast_motion(_camera_probe)
+	if clearance[0] < 1.0:
+		return focus + motion * clearance[0]
+	# A sweep ignores a collider overlapping its starting volume. Check
+	# the centreline so an avatar tight against a wall cannot orbit through it.
+	var ray := PhysicsRayQueryParameters3D.create(focus, target, 1, ignored)
+	var obstruction := space.intersect_ray(ray)
 	if obstruction.is_empty():
 		return target
-	# Keep the camera in front of the wall; minimum 0.65m from focus.
 	var hit: Vector3 = obstruction["position"]
-	var safe_distance := maxf(0.65, focus.distance_to(hit) - 0.38)
-	return focus + (target - focus).normalized() * minf(distance, safe_distance)
+	return focus + motion.normalized() * maxf(0.0, focus.distance_to(hit) - 0.30)
 
 func _update_camera(delta: float, teleport: bool = false) -> void:
 	if camera == null or not is_instance_valid(player):
@@ -703,18 +807,19 @@ func _update_camera(delta: float, teleport: bool = false) -> void:
 		camera.global_position = _camera_clearance(shoulder, shoulder + offset)
 		camera.look_at(camera.global_position + forward, Vector3.UP)
 		return
-	var goal := _camera_clearance(focus, _camera_goal())
+	var goal := _camera_goal()
 	var distance_to_goal := camera.global_position.distance_to(goal)
 	# Suppress stale camera positions after a save-load or streaming jump
 	# even when teleport was triggered through another system.
 	if teleport or distance_to_goal > 35.0:
 		if not teleport and distance_to_goal > 35.0:
 			_log_playtest("camera_distance_snap", {"distance_m": snappedf(distance_to_goal, 0.01)})
-		camera.global_position = goal
+		camera.global_position = _camera_clearance(focus, goal)
 	else:
 		var smoothed := camera.global_position.lerp(goal, minf(delta * 7.0, 1.0))
 		camera.global_position = _camera_clearance(focus, smoothed)
-	camera.look_at(focus, Vector3.UP)
+	if camera.global_position.distance_squared_to(focus) > 0.000001:
+		camera.look_at(focus, Vector3.UP)
 
 func _snap_camera() -> void:
 	_update_camera(0.0, true)
@@ -738,6 +843,7 @@ func _toggle_car() -> void:
 		player.collision_mask = 1
 		player.visible = true
 		player.set("driving", false)
+		player.call("play_visual_action", &"alight_car")
 		world_audio.call("play_event", "DOOR", current_car.global_position)
 		current_car.set("occupied", false)
 		current_car = null
@@ -764,6 +870,7 @@ func _toggle_car() -> void:
 	player.visible = false
 	player.collision_layer = 0
 	player.collision_mask = 0
+	player.call("show_vehicle_rider", current_car, true)
 	if not current_car.has_meta("claimed"):
 		current_car.set_meta("claimed", true)
 		# Capture the entry position before the player is hidden. Resolve the
@@ -905,6 +1012,8 @@ func _build_routine_patrols() -> void:
 func _witness_candidates(at: Vector3) -> Array[Dictionary]:
 	var candidates: Array[Dictionary] = venue_system.call("witness_candidates", at)
 	candidates.append_array(traffic.call("witness_candidates", at))
+	if is_instance_valid(pedestrians) and not interiors.call("is_inside"):
+		candidates.append_array(pedestrians.call("witness_candidates", at, camera))
 	for patrol in routine_patrols + officers:
 		if is_instance_valid(patrol) and float(patrol.get("condition")) > 18.0 and patrol.global_position.distance_squared_to(at) < 45.0 * 45.0:
 			candidates.append({"eye": patrol.global_position + Vector3.UP * 0.65, "facing": -patrol.global_basis.z, "police": true, "rid": patrol.get_rid()})
@@ -924,6 +1033,9 @@ func _report_incident(reason: String, at: Vector3, officer: bool) -> void:
 	if Wanted.stars(heat) > previous:
 		police_cooldown = minf(police_cooldown, 1.0)
 	_notify("REPORTED • %s • %d STAR%s" % [reason, Wanted.stars(heat), "" if Wanted.stars(heat) == 1 else "S"])
+	if is_instance_valid(pedestrians) and officer:
+		var ignore: Array[RID] = [player.get_rid()]
+		pedestrians.call("react_to_incident", at, 18.0, ignore)
 
 func _update_wanted(delta: float) -> void:
 	var actor := _actor()
@@ -1052,6 +1164,8 @@ func _respawn() -> void:
 		interiors.call("leave")
 	current_transit = null
 	transit_kind = ""
+	_active_station_lift = null
+	_rail_platform_rider = false
 	if current_car != null:
 		current_car.set("occupied", false)
 		current_car = null
@@ -1222,11 +1336,10 @@ func _create_player() -> void:
 	collision.height = 1.9
 	capsule.shape = collision
 	player.add_child(capsule)
-	var visual := HumanoidVisualScript.new()
+	var visual := CourierVisual.new()
 	visual.name = "Visual"
-	visual.configure(0, "PLAYER")
 	# The avatar's boots meet the physical 1.9-metre capsule footprint.
-	visual.position.y = -0.90
+	visual.position.y = CourierVisual.FOOT_OFFSET
 	player.add_child(visual)
 	add_child(player)
 	_weapon_audio = AudioStreamPlayer3D.new()
@@ -1292,6 +1405,9 @@ func _toggle_transit() -> void:
 		_notify("Park and exit your car before boarding transit.")
 		return
 	if current_transit != null:
+		if transit_kind == "LIFT":
+			_notify("Wait for the lift to reach the landing.")
+			return
 		var exit_pos := Vector3.ZERO
 		if transit_kind == "BUS":
 			if not bool(current_transit.call("is_boardable")):
@@ -1302,11 +1418,19 @@ func _toggle_transit() -> void:
 			if not bool(rail.call("can_alight")):
 				_notify("M-Line is moving. Wait for the next station.")
 				return
-			exit_pos = rail.call("alight_position")
-		_leave_transit(exit_pos)
+			exit_pos = rail.call("alight_position", _rail_platform_rider)
+		_leave_transit(exit_pos, "M-Line platform. Use the lift to return to the street." if _rail_platform_rider else "Back on the street.")
+		return
+	var lift: Node3D = rail.call("lift_at", player.global_position)
+	if lift != null:
+		_active_station_lift = lift
+		lift.call("start", player.global_position)
+		_board_transit(lift.get("carrier"), "LIFT")
+		_notify("M-Line lift called.")
 		return
 	if bool(rail.call("boardable_from", player.global_position)):
 		_board_transit(rail.get_node("MorrowLineTrain"), "TRAIN")
+		_rail_platform_rider = rail.call("on_platform", player.global_position, int(rail.get("current_station")))
 		_notify("M-Line boarded. F to leave at a station.")
 		return
 	var bus: CharacterBody3D = traffic.call("get_boardable_bus", player.global_position)
@@ -1314,9 +1438,9 @@ func _toggle_transit() -> void:
 		_board_transit(bus, "BUS")
 		_notify("City Loop boarded. F to leave at the next stop.")
 		return
-	_notify("Board with F at a marked bus stop or M-Line elevator when a vehicle is stopped.")
+	_notify("Board a stopped vehicle or use a marked M-Line lift.")
 
-func _board_transit(vehicle: Node3D, kind: String) -> void:
+func _board_transit(vehicle: Node3D, kind: String, play_audio: bool = true) -> void:
 	current_transit = vehicle
 	transit_kind = kind
 	player.set("driving", true)
@@ -1324,21 +1448,30 @@ func _board_transit(vehicle: Node3D, kind: String) -> void:
 	player.collision_layer = 0
 	player.collision_mask = 0
 	player.velocity = Vector3.ZERO
-	world_audio.call("play_event", "TRANSIT", vehicle.global_position)
+	if play_audio:
+		world_audio.call("play_event", _transit_sound(kind), vehicle.global_position)
 	_log_playtest("transit_board", {"kind": kind})
 
-func _leave_transit(at: Vector3) -> void:
-	world_audio.call("play_event", "TRANSIT", at)
+func _leave_transit(at: Vector3, message: String = "Back on the street.") -> void:
+	world_audio.call("play_event", _transit_sound(transit_kind), at)
 	_log_playtest("transit_exit", {"kind": transit_kind, "destination": [at.x, at.y, at.z]})
 	current_transit = null
 	transit_kind = ""
+	_rail_platform_rider = false
 	player.global_position = at
 	player.velocity = Vector3.ZERO
 	player.collision_layer = 1
 	player.collision_mask = 1
 	player.visible = true
 	player.set("driving", false)
-	_notify("Back on the street.")
+	_notify(message)
+
+func _transit_sound(kind: String) -> String:
+	if kind == "TRAIN":
+		return "RAIL_DOOR"
+	if kind == "BUS":
+		return "BUS_DOOR"
+	return "TRANSIT"
 
 func _save_game() -> void:
 	if bool(session.call("save_snapshot", _capture_snapshot())):
@@ -1380,15 +1513,20 @@ func _capture_snapshot() -> Dictionary:
 	var aboard_id := ""
 	if transit_kind == "BUS" and current_transit != null:
 		aboard_id = str(current_transit.get("vehicle_id"))
-	return {
-		"player_position": [player.global_position.x, player.global_position.y, player.global_position.z],
+	# A save during an elevator transfer resumes safely at its destination.
+	var saved_at := player.global_position
+	if _active_station_lift != null:
+		saved_at = _active_station_lift.call("destination")
+	var state := {
+		"player_position": [saved_at.x, saved_at.y, saved_at.z],
 		"camera_yaw": yaw, "cash": cash, "health": health, "heat": heat,
 		"deliveries": deliveries, "carrying": carrying,
 		"hour": day_night.get("hour"), "cars": stored_cars,
 		"occupied_car": cars.find(current_car),
 		"traffic": traffic.call("snapshot"), "rail": rail.call("snapshot"),
 		"signal_elapsed": signal_controller.get("elapsed"),
-		"transit_kind": transit_kind, "transit_id": aboard_id,
+		"transit_kind": "" if transit_kind == "LIFT" else transit_kind, "transit_id": aboard_id,
+		"rail_platform_rider": _rail_platform_rider,
 		"venue_job_active": venue_job_active, "venue_job_completed": venue_job_completed.duplicate(),
 		"civic_job_active": civic_job_active, "civic_job_completed": civic_job_completed.duplicate(),
 		"civic_intel": civic_intel.duplicate(), "ration_packs": ration_packs,
@@ -1399,9 +1537,22 @@ func _capture_snapshot() -> Dictionary:
 		"civic_patrol_service": civic_patrol_service.snapshot(),
 		"wanted_last_known": [wanted.last_known.x, wanted.last_known.y, wanted.last_known.z] if wanted.last_known.is_finite() else []
 	}
+	if is_instance_valid(pedestrians):
+		var street_state: Dictionary = pedestrians.call("snapshot")
+		if not street_state.is_empty():
+			state["sidewalk_population"] = street_state
+	if is_instance_valid(nightgrid_fm):
+		var tuning: Dictionary = nightgrid_fm.call("snapshot")
+		if not tuning.is_empty():
+			state["nightgrid_radio"] = tuning
+	return state
 
 func _apply_snapshot(data: Dictionary) -> void:
 	# Geometry is already reconstructed from the saved immutable seed.
+	if is_instance_valid(nightgrid_fm):
+		nightgrid_fm.call("restore", data.get("nightgrid_radio", {}))
+	if is_instance_valid(pedestrians):
+		pedestrians.call("restore", data.get("sidewalk_population", {}))
 	navigation_waypoint = Nav.decode(data.get("navigation_waypoint", []))
 	# No live closures are saved until physical scene/traffic integration.
 	road_restrictions = RoadRestrictions.new()
@@ -1448,14 +1599,16 @@ func _apply_snapshot(data: Dictionary) -> void:
 		player.visible = false
 		player.collision_layer = 0
 		player.collision_mask = 0
+		player.call("show_vehicle_rider", current_car, false)
 	else:
 		var saved_transit := str(data.get("transit_kind", ""))
 		if saved_transit == "BUS":
 			var bus: CharacterBody3D = traffic.call("bus_by_id", str(data.get("transit_id", "")))
 			if bus != null:
-				_board_transit(bus, "BUS")
+				_board_transit(bus, "BUS", false)
 		elif saved_transit == "TRAIN":
-			_board_transit(rail.get_node("MorrowLineTrain"), "TRAIN")
+			_board_transit(rail.get_node("MorrowLineTrain"), "TRAIN", false)
+			_rail_platform_rider = bool(data.get("rail_platform_rider", false))
 	day_night.call("set_hour", float(data.get("hour", 19.25)))
 	venue_system.call("set_hour", float(day_night.get("hour")))
 	civic_services.call("set_hour", float(day_night.get("hour")))
@@ -1583,6 +1736,7 @@ func _toggle_interaction() -> void:
 		if not interiors.call("counter_reachable", player.global_position):
 			_notify("Walk toward the staffed service counter to interact.")
 			return
+		player.call("play_visual_action", &"interact")
 		if str(interiors.call("active_site_group")) == "CIVIC":
 			_toggle_civic()
 		else:
@@ -2190,7 +2344,7 @@ func _update_hud() -> void:
 	if current_car != null:
 		vehicle_text = "DRIVING • %d km/h" % int(current_car.call("speed_kph"))
 	elif current_transit != null:
-		vehicle_text = "M-LINE RIDER" if transit_kind == "TRAIN" else "CITY LOOP RIDER"
+		vehicle_text = {"TRAIN": "M-LINE RIDER", "BUS": "CITY LOOP RIDER", "LIFT": "STATION LIFT"}[transit_kind]
 	var tier: int = Wanted.stars(heat)
 	var wanted_text := "★".repeat(tier) + "☆".repeat(5 - tier)
 	_wanted_label.text = "%s  •  %s" % [wanted.status_text(heat), "%d RESPONSE UNIT%s" % [officers.size(), "" if officers.size() == 1 else "S"]]
@@ -2353,6 +2507,7 @@ func _can_use_weapon() -> bool:
 	return is_instance_valid(player) and is_instance_valid(venue_panel) and not venue_panel.visible and current_car == null and current_transit == null and not interiors.call("is_inside") and not get_tree().paused and (game_menu == null or not game_menu.call("is_open"))
 
 func _play_weapon_sound(kind: String) -> void:
+	player.call("play_visual_action", &"reload" if kind == "RELOAD" else &"fire")
 	if is_instance_valid(_weapon_audio):
 		_weapon_audio.stream = CombatFoley.sound(kind)
 		_weapon_audio.play()
@@ -2407,6 +2562,8 @@ func _fire_weapon() -> bool:
 	var camera_hit := space.intersect_ray(query)
 	var target: Vector3 = camera_hit.get("position", view_end)
 	var origin := player.global_position + Vector3.UP * 0.55
+	if is_instance_valid(pedestrians):
+		pedestrians.call("react_to_incident", origin, 22.0, ignore)
 	var direction := origin.direction_to(target)
 	var endpoint := origin + direction * minf(origin.distance_to(target) + 0.05, float(spec["reach"]))
 	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(origin, endpoint, 1, ignore))

@@ -109,6 +109,7 @@ func _verify() -> void:
 	bus.set("dwell_remaining", 7.0)
 	car.set("speed", 0.0)
 	soundfield.call("_refresh_sources")
+	soundfield.call("_process", 0.8)
 	if int(soundfield.call("get_stats")["active_voices"]) != 0:
 		_fail("Stationary cars and buses at a stop must release their voices")
 		return
@@ -125,6 +126,7 @@ func _verify() -> void:
 		return
 	soundfield.call("update_listener", Vector3(9000.0, 0.0, 9000.0), false, false, 0.7)
 	soundfield.call("_refresh_sources")
+	soundfield.call("_process", 0.8)
 	if int(soundfield.call("get_stats")["active_voices"]) != 0:
 		_fail("Remote vehicles still consume audible voices")
 		return

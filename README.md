@@ -81,7 +81,7 @@ NightGrid is a rough but playable indie project. We're working toward richer str
 
 The intended look is a realistic, atmospheric cyberpunk city, but visuals are still provisional. 1080p at 60 FPS on an RTX 3060 is a target, not a measured guarantee.
 
-NightGrid FM uses original, creator-owned chipwave music. The music system is implemented, but the complete track pack is not currently included in the downloadable beta. See [soundtrack details](docs/NIGHTGRID_FM_SOUNDTRACK.md).
+The development branch includes all twenty creator-owned NightGrid FM chipwave tracks. Existing downloadable beta releases predate this soundtrack update. [Soundtrack details](docs/NIGHTGRID_FM_SOUNDTRACK.md).
 
 ## For developers
 

@@ -23,6 +23,7 @@ var _effects_volume := 0.75
 var _refresh_clock := 0.0
 var _voices: Array[AudioStreamPlayer3D] = []
 var _owners: Array[Node3D] = []
+var _retiring: Array[bool] = []
 var _reassignments := 0
 
 static func bus_sound() -> AudioStreamWAV:
@@ -66,7 +67,7 @@ func _ready() -> void:
 		var voice := AudioStreamPlayer3D.new()
 		voice.name = "PassingTrafficVoice_%d" % index
 		AudioMix.ensure()
-		voice.bus = AudioMix.EFFECTS
+		voice.bus = AudioMix.OUTSIDE_EFFECTS
 		voice.max_distance = 74.0
 		voice.unit_size = 6.0
 		voice.volume_db = -80.0
@@ -74,6 +75,7 @@ func _ready() -> void:
 		add_child(voice)
 		_voices.append(voice)
 		_owners.append(null)
+		_retiring.append(false)
 
 func set_traffic(root: Node3D) -> void:
 	traffic = root
@@ -138,18 +140,16 @@ func _refresh_sources() -> void:
 		var actor: Node3D = candidate["vehicle"]
 		if not target.has(actor):
 			target.append(actor)
-	# Release owners no longer selected before assigning the new ones.
+	# Reassign an emitter only after its outgoing motor has faded.
 	for i in range(_owners.size()):
-		if _owners[i] != null and not target.has(_owners[i]):
-			_owners[i] = null
-			_voices[i].stop()
-			_voices[i].volume_db = -80.0
+		_retiring[i] = not is_instance_valid(_owners[i]) or not target.has(_owners[i])
 	for owner in target:
 		if _owners.has(owner):
 			continue
 		for i in range(_owners.size()):
-			if _owners[i] == null:
+			if not is_instance_valid(_owners[i]) and not _voices[i].playing:
 				_owners[i] = owner
+				_retiring[i] = false
 				var bus: bool = bool(owner.get("buses"))
 				var voice: AudioStreamPlayer3D = _voices[i]
 				voice.stream = bus_sound() if bus else CarAudio.sound()
@@ -166,9 +166,13 @@ func _process(delta: float) -> void:
 		_refresh_sources()
 	for index in range(_owners.size()):
 		var source: Node3D = _owners[index]
-		if not is_instance_valid(source):
-			continue
 		var voice: AudioStreamPlayer3D = _voices[index]
+		if _retiring[index] or not is_instance_valid(source):
+			voice.volume_db = move_toward(voice.volume_db, -80.0, delta * 94.0)
+			if voice.volume_db < -72.0:
+				voice.stop()
+				_owners[index] = null
+			continue
 		voice.global_position = source.global_position + Vector3(0.0, 0.55, 0.0)
 		var speed := absf(float(source.get("speed")))
 		var bus: bool = bool(source.get("buses"))

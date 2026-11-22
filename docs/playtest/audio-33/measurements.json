@@ -1,0 +1,247 @@
+{
+  "native_levels": [
+    {
+      "scenario": "01-title-and-fade",
+      "seconds": 7.851,
+      "rms_dbfs": -29.95,
+      "peak_dbfs": -14.05,
+      "stereo_difference_dbfs": -31.38,
+      "sha256": "273fece10847c316052fec2043ee528f885b536dbc955f470599579cfe2b5aa1"
+    },
+    {
+      "scenario": "02-brickwater-sidewalk-and-vents",
+      "seconds": 2.912,
+      "rms_dbfs": -45.36,
+      "peak_dbfs": -31.78,
+      "stereo_difference_dbfs": -44.26,
+      "sha256": "672d450acce55468b5800d5f85f01b9f7e3d67c8029b6e29e147f24887151fe2"
+    },
+    {
+      "scenario": "03-cafe-doorway",
+      "seconds": 4.843,
+      "rms_dbfs": -34.83,
+      "peak_dbfs": -20.78,
+      "stereo_difference_dbfs": -32.82,
+      "sha256": "6c9a4818cce901ebf6bee790feab36f074117ef096be583f0e96293e6412e15e"
+    },
+    {
+      "scenario": "04-club-doorway",
+      "seconds": 4.896,
+      "rms_dbfs": -36.2,
+      "peak_dbfs": -17.35,
+      "stereo_difference_dbfs": -36.92,
+      "sha256": "7247abe29b38733eb5b03e83137babc0e632ca508423f2db1eaa5ec1bbd6b0c8"
+    },
+    {
+      "scenario": "05-southworks-engine-brake-and-fm",
+      "seconds": 9.749,
+      "rms_dbfs": -30.26,
+      "peak_dbfs": -12.29,
+      "stereo_difference_dbfs": -33.56,
+      "sha256": "7cc495a12db69ef78c8cade68afb291eb53cd205929f31d1fbd4f84b9939d470"
+    },
+    {
+      "scenario": "06-city-loop-and-m-line",
+      "seconds": 5.397,
+      "rms_dbfs": -39.67,
+      "peak_dbfs": -17.31,
+      "stereo_difference_dbfs": -40.57,
+      "sha256": "fa2a64eae5cc9bd6baf13e6cc1825cb0b8de070b5a7de727de36a4d1135c2968"
+    },
+    {
+      "scenario": "07-mbpd-live-receiver",
+      "seconds": 3.307,
+      "rms_dbfs": -43.15,
+      "peak_dbfs": -26.16,
+      "stereo_difference_dbfs": -58.72,
+      "sha256": "db7b895f73049cbc04b8fc744acae30f090f8742b9edefb15cda5223a63aba67"
+    },
+    {
+      "scenario": "08-west-docks-harbor",
+      "seconds": 3.189,
+      "rms_dbfs": -51.48,
+      "peak_dbfs": -37.68,
+      "stereo_difference_dbfs": -51.14,
+      "sha256": "4d59126a56a53c86b693bc4d8d8765ea9475241b8ba3526fd644611161f3b67c"
+    }
+  ],
+  "audio_traversal": {
+    "seed": 834726,
+    "settings": {
+      "ambient_occlusion": true,
+      "fog": true,
+      "glow": true,
+      "physics_hz": 60,
+      "ssr": true,
+      "vsync": 0
+    },
+    "resolution": [
+      1920,
+      1080
+    ],
+    "adapter": "NVIDIA GeForce RTX 3060",
+    "driver": "vulkan",
+    "arguments": [
+      "--measure",
+      "--profile",
+      "--drive-night",
+      "--trace-only",
+      "--settled",
+      "--living-streets"
+    ],
+    "before": {
+      "revision": "22aab3e56451d7d14cac8ef03136dfd8928a0e41",
+      "runs": [
+        {
+          "route": {
+            "condition": 100.0,
+            "distance_z_m": 227.125642776489,
+            "districts": [
+              "SOUTHWORKS",
+              "AFTERHOURS",
+              "GLASSLINE"
+            ],
+            "file": "drive-first.csv",
+            "frames": 344,
+            "peak_kph": 130,
+            "reached_end": true
+          },
+          "f8": {
+            "frames": 344,
+            "median_ms": 21.607,
+            "p95_ms": 29.167,
+            "p99_ms": 30.567,
+            "maximum_ms": 31.284,
+            "over_16_67": 273,
+            "over_33_3": 0
+          },
+          "wall": {
+            "frames": 344,
+            "median_ms": 21.285,
+            "p95_ms": 30.094,
+            "p99_ms": 32.014,
+            "maximum_ms": 33.292,
+            "over_16_67": 266,
+            "over_33_3": 0
+          },
+          "max_scene_build_ms": 3.378,
+          "focus_lost_frames": 0,
+          "material_bakes": 0
+        },
+        {
+          "route": {
+            "condition": 100.0,
+            "distance_z_m": 227.125642776489,
+            "districts": [
+              "SOUTHWORKS",
+              "AFTERHOURS",
+              "GLASSLINE"
+            ],
+            "file": "drive-repeat.csv",
+            "frames": 323,
+            "peak_kph": 130,
+            "reached_end": true
+          },
+          "f8": {
+            "frames": 323,
+            "median_ms": 22.222,
+            "p95_ms": 31.944,
+            "p99_ms": 34.352,
+            "maximum_ms": 38.448,
+            "over_16_67": 264,
+            "over_33_3": 8
+          },
+          "wall": {
+            "frames": 323,
+            "median_ms": 22.338,
+            "p95_ms": 32.436,
+            "p99_ms": 34.596,
+            "maximum_ms": 39.04,
+            "over_16_67": 259,
+            "over_33_3": 10
+          },
+          "max_scene_build_ms": 2.286,
+          "focus_lost_frames": 0,
+          "material_bakes": 0
+        }
+      ]
+    },
+    "after": {
+      "revision": "0d1e5efc48be2772d1310353033e23ff37d1d9ef",
+      "runs": [
+        {
+          "route": {
+            "condition": 100.0,
+            "distance_z_m": 227.725643157959,
+            "districts": [
+              "SOUTHWORKS",
+              "AFTERHOURS",
+              "GLASSLINE"
+            ],
+            "file": "drive-first.csv",
+            "frames": 339,
+            "peak_kph": 130,
+            "reached_end": true
+          },
+          "f8": {
+            "frames": 339,
+            "median_ms": 20.833,
+            "p95_ms": 30.0,
+            "p99_ms": 31.022,
+            "maximum_ms": 32.799,
+            "over_16_67": 268,
+            "over_33_3": 0
+          },
+          "wall": {
+            "frames": 339,
+            "median_ms": 20.878,
+            "p95_ms": 30.71,
+            "p99_ms": 32.888,
+            "maximum_ms": 33.395,
+            "over_16_67": 264,
+            "over_33_3": 1
+          },
+          "max_scene_build_ms": 2.404,
+          "focus_lost_frames": 0,
+          "material_bakes": 0
+        },
+        {
+          "route": {
+            "condition": 100.0,
+            "distance_z_m": 227.725643157959,
+            "districts": [
+              "SOUTHWORKS",
+              "AFTERHOURS",
+              "GLASSLINE"
+            ],
+            "file": "drive-repeat.csv",
+            "frames": 323,
+            "peak_kph": 130,
+            "reached_end": true
+          },
+          "f8": {
+            "frames": 323,
+            "median_ms": 22.222,
+            "p95_ms": 29.167,
+            "p99_ms": 38.483,
+            "maximum_ms": 45.154,
+            "over_16_67": 260,
+            "over_33_3": 5
+          },
+          "wall": {
+            "frames": 323,
+            "median_ms": 22.995,
+            "p95_ms": 31.188,
+            "p99_ms": 34.2,
+            "maximum_ms": 65.36,
+            "over_16_67": 257,
+            "over_33_3": 5
+          },
+          "max_scene_build_ms": 2.15,
+          "focus_lost_frames": 0,
+          "material_bakes": 0
+        }
+      ]
+    }
+  }
+}

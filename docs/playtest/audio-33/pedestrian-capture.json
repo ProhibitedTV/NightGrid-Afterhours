@@ -1,0 +1,124 @@
+{
+  "adapter": "NVIDIA GeForce RTX 3060",
+  "captures": [
+    {
+      "details": {
+        "title_track": "boot_sequence"
+      },
+      "file": "01-title-and-fade.wav",
+      "music": {
+        "context": "",
+        "cue": {},
+        "music_gain": 0.65,
+        "pending_loads": 0,
+        "playing": 0,
+        "track": "boot_sequence",
+        "venue": "",
+        "venue_track": ""
+      },
+      "scenario": "01-title-and-fade",
+      "seconds": 4.128,
+      "soundscape": {
+        "action_cues": 0,
+        "action_voices": 4,
+        "district": "AFTERHOURS",
+        "environment_layers": 4,
+        "exterior_cutoff": 18000.0,
+        "foley_cached": 23,
+        "inside": false,
+        "last_event": "",
+        "sites": {
+          "active_sites": 1,
+          "occluded_sites": 0,
+          "pedestrian_steps": 0,
+          "pedestrian_voice_limit": 2,
+          "site_voice_limit": 2
+        },
+        "steps": 0,
+        "surface": "CONCRETE",
+        "traffic_audio": {
+          "active_voices": 0,
+          "allocated_voices": 5,
+          "bus_voices": 0,
+          "distinct_cached_sounds": 2,
+          "reassignments": 0,
+          "voice_limit": 5
+        },
+        "transport": ""
+      }
+    },
+    {
+      "details": {
+        "courier_at": "(-18.5, 0.869682, 6.756269)",
+        "courier_steps": 0,
+        "resident_start": "(-18.5, -0.083164, 10.25614)",
+        "resident_steps": 4,
+        "residents": {
+          "activations": 8,
+          "active": 8,
+          "failed_activations": 0,
+          "failed_recycles": 0,
+          "logical": 128,
+          "movement": {
+            "-1,-2:0": "WALK",
+            "-1,0:2": "WALK",
+            "-1,1:0": "WALK",
+            "0,-1:2": "WALK",
+            "0,0:0": "WALK",
+            "0,1:0": "WALK",
+            "1,0:0": "WALK",
+            "central-retail--1": "WALK"
+          },
+          "releases": 0
+        }
+      },
+      "file": "09-brickwater-daytime-pedestrians.wav",
+      "music": {
+        "context": "",
+        "cue": {},
+        "music_gain": 0.65,
+        "pending_loads": 0,
+        "playing": 0,
+        "track": "boot_sequence",
+        "venue": "",
+        "venue_track": ""
+      },
+      "scenario": "09-brickwater-daytime-pedestrians",
+      "seconds": 8.0,
+      "soundscape": {
+        "action_cues": 0,
+        "action_voices": 4,
+        "district": "BRICKWATER",
+        "environment_layers": 4,
+        "exterior_cutoff": 18000.0,
+        "foley_cached": 23,
+        "inside": false,
+        "last_event": "",
+        "sites": {
+          "active_sites": 0,
+          "occluded_sites": 0,
+          "pedestrian_steps": 4,
+          "pedestrian_voice_limit": 2,
+          "site_voice_limit": 2
+        },
+        "steps": 0,
+        "surface": "CONCRETE",
+        "traffic_audio": {
+          "active_voices": 1,
+          "allocated_voices": 5,
+          "bus_voices": 0,
+          "distinct_cached_sounds": 2,
+          "reassignments": 1,
+          "voice_limit": 5
+        },
+        "transport": ""
+      }
+    }
+  ],
+  "driver": "vulkan",
+  "failures": [],
+  "mix_rate": 48000.0,
+  "renderer": "forward_plus",
+  "revision": "0d1e5efc48be2772d1310353033e23ff37d1d9ef",
+  "seed": 834726
+}

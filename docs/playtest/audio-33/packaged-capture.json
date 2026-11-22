@@ -1,0 +1,384 @@
+{
+  "adapter": "NVIDIA GeForce RTX 3060",
+  "captures": [
+    {
+      "details": {
+        "title_track": "boot_sequence"
+      },
+      "file": "01-title-and-fade.wav",
+      "music": {
+        "context": "",
+        "cue": {},
+        "music_gain": 0.65,
+        "pending_loads": 0,
+        "playing": 0,
+        "track": "boot_sequence",
+        "venue": "",
+        "venue_track": ""
+      },
+      "scenario": "01-title-and-fade",
+      "seconds": 4.128,
+      "soundscape": {
+        "action_cues": 0,
+        "action_voices": 4,
+        "district": "AFTERHOURS",
+        "environment_layers": 4,
+        "exterior_cutoff": 18000.0,
+        "foley_cached": 23,
+        "inside": false,
+        "last_event": "",
+        "sites": {
+          "active_sites": 1,
+          "occluded_sites": 0,
+          "pedestrian_steps": 0,
+          "pedestrian_voice_limit": 2,
+          "site_voice_limit": 2
+        },
+        "steps": 0,
+        "surface": "CONCRETE",
+        "traffic_audio": {
+          "active_voices": 0,
+          "allocated_voices": 5,
+          "bus_voices": 0,
+          "distinct_cached_sounds": 2,
+          "reassignments": 0,
+          "voice_limit": 5
+        },
+        "transport": ""
+      }
+    },
+    {
+      "details": {},
+      "file": "02-brickwater-sidewalk-and-vents.wav",
+      "music": {
+        "context": "",
+        "cue": {},
+        "music_gain": 0.65,
+        "pending_loads": 0,
+        "playing": 1,
+        "track": "boot_sequence",
+        "venue": "furnace_skewers",
+        "venue_track": "door_on_the_spin_cycle"
+      },
+      "scenario": "02-brickwater-sidewalk-and-vents",
+      "seconds": 2.912,
+      "soundscape": {
+        "action_cues": 2,
+        "action_voices": 4,
+        "district": "BRICKWATER",
+        "environment_layers": 4,
+        "exterior_cutoff": 18000.0,
+        "foley_cached": 23,
+        "inside": false,
+        "last_event": "LAND",
+        "sites": {
+          "active_sites": 2,
+          "occluded_sites": 1,
+          "pedestrian_steps": 0,
+          "pedestrian_voice_limit": 2,
+          "site_voice_limit": 2
+        },
+        "steps": 3,
+        "surface": "CONCRETE",
+        "traffic_audio": {
+          "active_voices": 1,
+          "allocated_voices": 5,
+          "bus_voices": 0,
+          "distinct_cached_sounds": 2,
+          "reassignments": 1,
+          "voice_limit": 5
+        },
+        "transport": ""
+      }
+    },
+    {
+      "details": {
+        "room_playhead": 2.26664590835571,
+        "room_track": "save_point",
+        "street_playhead": 0.663999974727631,
+        "street_track": "save_point"
+      },
+      "file": "03-cafe-doorway.wav",
+      "music": {
+        "context": "interior:cafe:lantern_cup",
+        "cue": {},
+        "music_gain": 0.65,
+        "pending_loads": 0,
+        "playing": 1,
+        "track": "save_point",
+        "venue": "",
+        "venue_track": "save_point"
+      },
+      "scenario": "03-cafe-doorway",
+      "seconds": 4.864,
+      "soundscape": {
+        "action_cues": 2,
+        "action_voices": 4,
+        "district": "VESPER MARKET",
+        "environment_layers": 4,
+        "exterior_cutoff": 950.000257777646,
+        "foley_cached": 23,
+        "inside": true,
+        "last_event": "LAND",
+        "sites": {
+          "active_sites": 0,
+          "occluded_sites": 0,
+          "pedestrian_steps": 0,
+          "pedestrian_voice_limit": 2,
+          "site_voice_limit": 2
+        },
+        "steps": 5,
+        "surface": "TILE",
+        "traffic_audio": {
+          "active_voices": 0,
+          "allocated_voices": 5,
+          "bus_voices": 0,
+          "distinct_cached_sounds": 2,
+          "reassignments": 2,
+          "voice_limit": 5
+        },
+        "transport": ""
+      }
+    },
+    {
+      "details": {
+        "room_playhead": 2.90664577484131,
+        "room_track": "tournament_in_the_back_room",
+        "street_playhead": 1.31466662883759,
+        "street_track": "tournament_in_the_back_room"
+      },
+      "file": "04-club-doorway.wav",
+      "music": {
+        "context": "interior:club:static_room",
+        "cue": {},
+        "music_gain": 0.65,
+        "pending_loads": 0,
+        "playing": 1,
+        "track": "tournament_in_the_back_room",
+        "venue": "",
+        "venue_track": "tournament_in_the_back_room"
+      },
+      "scenario": "04-club-doorway",
+      "seconds": 4.864,
+      "soundscape": {
+        "action_cues": 2,
+        "action_voices": 4,
+        "district": "AFTERHOURS",
+        "environment_layers": 4,
+        "exterior_cutoff": 950.000257333036,
+        "foley_cached": 23,
+        "inside": true,
+        "last_event": "LAND",
+        "sites": {
+          "active_sites": 0,
+          "occluded_sites": 0,
+          "pedestrian_steps": 0,
+          "pedestrian_voice_limit": 2,
+          "site_voice_limit": 2
+        },
+        "steps": 7,
+        "surface": "TILE",
+        "traffic_audio": {
+          "active_voices": 0,
+          "allocated_voices": 5,
+          "bus_voices": 0,
+          "distinct_cached_sounds": 2,
+          "reassignments": 3,
+          "voice_limit": 5
+        },
+        "transport": ""
+      }
+    },
+    {
+      "details": {
+        "controller_track": "overclock",
+        "distance_m": 165.324096679688,
+        "f8_frames": 178,
+        "keyboard_track": "memory_address",
+        "paused_gain": 0.286
+      },
+      "file": "05-southworks-engine-brake-and-fm.wav",
+      "music": {
+        "context": "car",
+        "cue": {},
+        "music_gain": 0.65,
+        "pending_loads": 0,
+        "playing": 1,
+        "track": "overclock",
+        "venue": "",
+        "venue_track": "tournament_in_the_back_room"
+      },
+      "scenario": "05-southworks-engine-brake-and-fm",
+      "seconds": 12.8746666666667,
+      "soundscape": {
+        "action_cues": 3,
+        "action_voices": 4,
+        "district": "AFTERHOURS",
+        "environment_layers": 4,
+        "exterior_cutoff": 2700.0,
+        "foley_cached": 23,
+        "inside": false,
+        "last_event": "DOOR",
+        "sites": {
+          "active_sites": 0,
+          "occluded_sites": 0,
+          "pedestrian_steps": 0,
+          "pedestrian_voice_limit": 2,
+          "site_voice_limit": 2
+        },
+        "steps": 7,
+        "surface": "TILE",
+        "traffic_audio": {
+          "active_voices": 3,
+          "allocated_voices": 5,
+          "bus_voices": 0,
+          "distinct_cached_sounds": 2,
+          "reassignments": 9,
+          "voice_limit": 5
+        },
+        "transport": "CAR"
+      }
+    },
+    {
+      "details": {},
+      "file": "06-city-loop-and-m-line.wav",
+      "music": {
+        "context": "",
+        "cue": {},
+        "music_gain": 0.65,
+        "pending_loads": 0,
+        "playing": 0,
+        "track": "overclock",
+        "venue": "",
+        "venue_track": "tournament_in_the_back_room"
+      },
+      "scenario": "06-city-loop-and-m-line",
+      "seconds": 5.376,
+      "soundscape": {
+        "action_cues": 8,
+        "action_voices": 4,
+        "district": "GLASSLINE",
+        "environment_layers": 4,
+        "exterior_cutoff": 2700.00000435973,
+        "foley_cached": 23,
+        "inside": false,
+        "last_event": "RAIL_DOOR",
+        "sites": {
+          "active_sites": 1,
+          "occluded_sites": 1,
+          "pedestrian_steps": 0,
+          "pedestrian_voice_limit": 2,
+          "site_voice_limit": 2
+        },
+        "steps": 7,
+        "surface": "TILE",
+        "traffic_audio": {
+          "active_voices": 0,
+          "allocated_voices": 5,
+          "bus_voices": 0,
+          "distinct_cached_sounds": 2,
+          "reassignments": 9,
+          "voice_limit": 5
+        },
+        "transport": "TRAIN"
+      }
+    },
+    {
+      "details": {
+        "clips": 12,
+        "positional_receiver": true
+      },
+      "file": "07-mbpd-live-receiver.wav",
+      "music": {
+        "context": "",
+        "cue": {},
+        "music_gain": 0.377,
+        "pending_loads": 0,
+        "playing": 0,
+        "track": "overclock",
+        "venue": "",
+        "venue_track": "tournament_in_the_back_room"
+      },
+      "scenario": "07-mbpd-live-receiver",
+      "seconds": 3.30666666666667,
+      "soundscape": {
+        "action_cues": 9,
+        "action_voices": 4,
+        "district": "AFTERHOURS",
+        "environment_layers": 4,
+        "exterior_cutoff": 950.000002342981,
+        "foley_cached": 23,
+        "inside": true,
+        "last_event": "RAIL_DOOR",
+        "sites": {
+          "active_sites": 0,
+          "occluded_sites": 0,
+          "pedestrian_steps": 0,
+          "pedestrian_voice_limit": 2,
+          "site_voice_limit": 2
+        },
+        "steps": 7,
+        "surface": "TILE",
+        "traffic_audio": {
+          "active_voices": 0,
+          "allocated_voices": 5,
+          "bus_voices": 0,
+          "distinct_cached_sounds": 2,
+          "reassignments": 9,
+          "voice_limit": 5
+        },
+        "transport": ""
+      }
+    },
+    {
+      "details": {},
+      "file": "08-west-docks-harbor.wav",
+      "music": {
+        "context": "",
+        "cue": {},
+        "music_gain": 0.65,
+        "pending_loads": 0,
+        "playing": 0,
+        "track": "overclock",
+        "venue": "",
+        "venue_track": "tournament_in_the_back_room"
+      },
+      "scenario": "08-west-docks-harbor",
+      "seconds": 3.21066666666667,
+      "soundscape": {
+        "action_cues": 9,
+        "action_voices": 4,
+        "district": "WEST DOCKS",
+        "environment_layers": 4,
+        "exterior_cutoff": 17999.9999999698,
+        "foley_cached": 23,
+        "inside": false,
+        "last_event": "RAIL_DOOR",
+        "sites": {
+          "active_sites": 1,
+          "occluded_sites": 0,
+          "pedestrian_steps": 0,
+          "pedestrian_voice_limit": 2,
+          "site_voice_limit": 2
+        },
+        "steps": 7,
+        "surface": "TILE",
+        "traffic_audio": {
+          "active_voices": 0,
+          "allocated_voices": 5,
+          "bus_voices": 0,
+          "distinct_cached_sounds": 2,
+          "reassignments": 9,
+          "voice_limit": 5
+        },
+        "transport": ""
+      }
+    }
+  ],
+  "driver": "vulkan",
+  "failures": [],
+  "mix_rate": 48000.0,
+  "renderer": "forward_plus",
+  "revision": "0d1e5efc48be2772d1310353033e23ff37d1d9ef",
+  "seed": 834726
+}

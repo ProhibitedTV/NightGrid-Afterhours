@@ -3,24 +3,28 @@ extends RefCounted
 ## PCM is generated on first use and cached, never synthesized in a render tick.
 const RATE = 11025
 const BED_SECONDS = 9.0
+const DETAIL_LOOPS = ["VENT", "SERVICE", "GARDEN", "ROAD_ROLL"]
 static var _cache: Dictionary = {}
 
 static func sound(kind: String, variation: int = 0) -> AudioStreamWAV:
 	var key := "%s_%d" % [kind, variation]
 	if _cache.has(key):
 		return _cache[key]
-	var is_bed := kind in ["WIND", "TRAFFIC", "INDUSTRIAL", "WATER", "RESPONSE_WARNING"]
-	var seconds := BED_SECONDS if is_bed else (0.19 if kind.begins_with("STEP") else (0.12 if kind == "UI" else 0.44))
+	var is_detail := kind in DETAIL_LOOPS
+	var is_bed := is_detail or kind in ["WIND", "TRAFFIC", "INDUSTRIAL", "WATER", "RESPONSE_WARNING"]
+	var seconds := 14.0 if is_detail else (BED_SECONDS if is_bed else (0.19 if kind.begins_with("STEP") else (0.12 if kind == "UI" else 0.44)))
 	var frames := roundi(float(RATE) * seconds)
 	var data := PackedByteArray()
 	data.resize(frames * 2)
 	var generator := RandomNumberGenerator.new()
 	generator.seed = 117293 + kind.hash() * 7 + variation * 5197
 	var low_noise := 0.0
+	var mid_noise := 0.0
 	for i in range(frames):
 		var t := float(i) / float(RATE)
 		var noise := generator.randf_range(-1.0, 1.0)
 		low_noise = lerpf(low_noise, noise, 0.011)
+		mid_noise = lerpf(mid_noise, noise, 0.12)
 		var sample := 0.0
 		match kind:
 			"WIND":
@@ -41,6 +45,22 @@ static func sound(kind: String, variation: int = 0) -> AudioStreamWAV:
 			"WATER":
 				var swell := 0.48 + 0.34 * sin(TAU * 0.17 * t) + 0.13 * sin(TAU * 0.37 * t)
 				sample = noise * 0.014 * swell + low_noise * 0.26 * swell
+			"VENT":
+				var fan := 0.82 + sin(TAU * 0.17 * t) * 0.14
+				sample = fan * (0.095 * mid_noise + 0.065 * sin(TAU * 59.0 * t) +
+					0.027 * sin(TAU * 118.0 * t + sin(TAU * 2.3 * t) * 0.2))
+			"SERVICE":
+				var rhythm := fposmod(t + 0.4 * sin(t * 0.78), 3.57)
+				var tap := exp(-25.0 * rhythm)
+				sample = 0.068 * mid_noise + 0.018 * sin(TAU * 96.0 * t) + tap * (
+					0.065 * noise + 0.08 * sin(TAU * 444.0 * rhythm))
+			"GARDEN":
+				var gust := pow(0.5 + 0.5 * sin(t * 1.63 + 0.65 * cos(t * 0.31)), 2.0)
+				sample = (0.14 * mid_noise + 0.10 * low_noise + noise * 0.034) * (0.23 + gust)
+			"ROAD_ROLL":
+				var tread := 0.7 + 0.3 * sin(TAU * 17.0 * t) * sin(TAU * 2.0 * t)
+				sample = tread * (0.40 * low_noise + 0.11 * mid_noise + 0.028 * noise +
+					0.016 * sin(TAU * 62.0 * t))
 			"STEP_CONCRETE", "STEP_TILE":
 				var decay := exp(-36.0 * t) * (0.8 + 0.04 * float(variation))
 				var heel := noise * 0.135 * decay + sin(TAU * (155.0 + variation * 18.0) * t) * decay * 0.050
@@ -55,6 +75,23 @@ static func sound(kind: String, variation: int = 0) -> AudioStreamWAV:
 				sample = sin(TAU * (92.0 + 85.0 * t) * t) * exp(-18.0 * t) * 0.095
 				if t >= 0.19:
 					sample += (noise * 0.11 + low_noise * 0.19) * exp(-34.0 * latch_time)
+			"BRAKE":
+				var pressure := sin(PI * clampf(t / 0.40, 0.0, 1.0))
+				sample = (mid_noise * 0.25 + noise * 0.061 +
+					0.017 * sin(TAU * (910.0 - t * 880.0) * t)) * pressure
+			"RAIL_DOOR", "BUS_DOOR":
+				var valve := exp(-10.0 * t)
+				var latch_time := maxf(0.0, t - 0.24)
+				sample = (noise * 0.105 + mid_noise * 0.25) * valve
+				if t >= 0.24:
+					sample += exp(-38.0 * latch_time) * (low_noise * 0.22 +
+						0.16 * sin(TAU * (175.0 if kind == "RAIL_DOOR" else 97.0) * latch_time))
+			"VEHICLE_IMPACT":
+				sample = sin(TAU * (68.0 + 51.0 * exp(-25.0 * t)) * t) * exp(-16.0 * t) * 0.36
+				sample += (noise * 0.16 + low_noise * 0.37) * exp(-21.0 * t)
+			"CARTON_IMPACT":
+				sample = (noise * 0.14 + low_noise * 0.31) * exp(-20.0 * t)
+				sample += sin(TAU * 96.0 * t) * exp(-38.0 * t) * 0.12
 			"TRANSIT":
 				# Short, distinctive two-tone boarding/alighting acknowledgement.
 				sample = 0.095 * sin(TAU * 523.25 * t) * exp(-15.0 * t)

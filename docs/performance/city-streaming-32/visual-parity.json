@@ -1,0 +1,214 @@
+{
+  "frames": [
+    {
+      "file": "01-alley-night-north.png",
+      "hour": 22.1,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "camera": [
+        -86.8000030517578,
+        1.75,
+        76.4000015258789
+      ],
+      "look": [
+        -86.6500015258789,
+        2.59999990463257,
+        93.5
+      ],
+      "fov": 70.0,
+      "reference_sha256": "43a495e8690624c7c8ec0ea882aac333178b803d07798c1e7bb5b2f6ce9b97b5",
+      "candidate_sha256": "43a495e8690624c7c8ec0ea882aac333178b803d07798c1e7bb5b2f6ce9b97b5",
+      "byte_identical": true
+    },
+    {
+      "file": "02-alley-daylight-matched.png",
+      "hour": 12.0,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "camera": [
+        -86.8000030517578,
+        1.75,
+        76.4000015258789
+      ],
+      "look": [
+        -86.6500015258789,
+        2.59999990463257,
+        93.5
+      ],
+      "fov": 70.0,
+      "reference_sha256": "ec7b45049d06ee10ba2e1ab408b2505607dcdf1ee9433b53ebaafbb178e95e56",
+      "candidate_sha256": "ec7b45049d06ee10ba2e1ab408b2505607dcdf1ee9433b53ebaafbb178e95e56",
+      "byte_identical": true
+    },
+    {
+      "file": "03-alley-night-south.png",
+      "hour": 22.1,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "camera": [
+        -86.8000030517578,
+        1.75,
+        94.1999969482422
+      ],
+      "look": [
+        -87.0,
+        2.59999990463257,
+        78.0
+      ],
+      "fov": 70.0,
+      "reference_sha256": "118cf629e54cc9d7aa3b6e0310328527a7a7dfc817f3bf0c3cc2fc84a91db94b",
+      "candidate_sha256": "118cf629e54cc9d7aa3b6e0310328527a7a7dfc817f3bf0c3cc2fc84a91db94b",
+      "byte_identical": true
+    },
+    {
+      "file": "04-wet-ground-and-drain.png",
+      "hour": 22.1,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "camera": [
+        -87.25,
+        0.850000023841858,
+        86.9000015258789
+      ],
+      "look": [
+        -84.2699966430664,
+        0.209999993443489,
+        83.9000015258789
+      ],
+      "fov": 70.0,
+      "reference_sha256": "bd4b4f5305fdeff48009c3d1c8d77bb134a751e96158ce209e1482b639e085c7",
+      "candidate_sha256": "bd4b4f5305fdeff48009c3d1c8d77bb134a751e96158ce209e1482b639e085c7",
+      "byte_identical": true
+    },
+    {
+      "file": "05-graffiti-and-service-front.png",
+      "hour": 22.1,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "camera": [
+        -84.5999984741211,
+        1.79999995231628,
+        81.5
+      ],
+      "look": [
+        -89.4899978637695,
+        2.15000009536743,
+        83.4000015258789
+      ],
+      "fov": 70.0,
+      "reference_sha256": "bfd4ba0316e00b17c1bc9a21f5227143ec34b1cdacf7ae8a743ca6e6ef8221b2",
+      "candidate_sha256": "bfd4ba0316e00b17c1bc9a21f5227143ec34b1cdacf7ae8a743ca6e6ef8221b2",
+      "byte_identical": true
+    },
+    {
+      "file": "06-overhead-infrastructure.png",
+      "hour": 22.1,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "camera": [
+        -86.8000030517578,
+        1.85000002384186,
+        83.1999969482422
+      ],
+      "look": [
+        -86.8000030517578,
+        5.40000009536743,
+        90.0
+      ],
+      "fov": 70.0,
+      "reference_sha256": "8f977536880c327aa8417b19c68ca16bd403edef1709728786f604c4de58c163",
+      "candidate_sha256": "8f977536880c327aa8417b19c68ca16bd403edef1709728786f604c4de58c163",
+      "byte_identical": true
+    },
+    {
+      "file": "07-driving-height-approach.png",
+      "hour": 22.1,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "camera": [
+        -86.8000030517578,
+        1.32000005245209,
+        74.6999969482422
+      ],
+      "look": [
+        -86.8000030517578,
+        1.70000004768372,
+        94.0
+      ],
+      "fov": 70.0,
+      "reference_sha256": "f8ba539f6f529b66cbcc464e81ae4fe41ca7674c01dc31ee252d9f4deab9d057",
+      "candidate_sha256": "f8ba539f6f529b66cbcc464e81ae4fe41ca7674c01dc31ee252d9f4deab9d057",
+      "byte_identical": true
+    },
+    {
+      "file": "08-workroom-detail.png",
+      "hour": 22.1,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "camera": [
+        -84.4499969482422,
+        1.70000004768372,
+        80.3000030517578
+      ],
+      "look": [
+        -89.629997253418,
+        1.54999995231628,
+        81.3499984741211
+      ],
+      "fov": 70.0,
+      "reference_sha256": "88fd74f499b644364317f06339da96d26ee4dc34c5831a6dd4f9d2ef116877b3",
+      "candidate_sha256": "88fd74f499b644364317f06339da96d26ee4dc34c5831a6dd4f9d2ef116877b3",
+      "byte_identical": true
+    },
+    {
+      "file": "09-alley-dusk.png",
+      "hour": 19.15,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "camera": [
+        -86.8000030517578,
+        1.75,
+        76.4000015258789
+      ],
+      "look": [
+        -86.6500015258789,
+        2.59999990463257,
+        93.5
+      ],
+      "fov": 70.0,
+      "reference_sha256": "41be66b9c2a205611793317882ddcfc6b31559a623ba3923bd2c7a555d755571",
+      "candidate_sha256": "41be66b9c2a205611793317882ddcfc6b31559a623ba3923bd2c7a555d755571",
+      "byte_identical": true
+    }
+  ],
+  "candidate": "bab9a2c3846548e74cd466ceee4a3fee6500b9e1",
+  "settings": {
+    "ambient_occlusion": true,
+    "fog": true,
+    "glow": true,
+    "physics_hz": 60,
+    "ssr": true,
+    "vsync": 1
+  },
+  "driver": "vulkan",
+  "renderer": "forward_plus",
+  "reference": "a1c68638b8a1bac4ddec3feb943caa86d68a3d47"
+}
