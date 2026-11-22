@@ -240,6 +240,13 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/pedestrian_pool_smoke.gd 2>&1 | tee /tmp/nightgrid-pedestrian-pool.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-pedestrian-pool.log; then exit 1; fi
+      - name: Validate pedestrian director and visible civilian witnesses in Morrow Bay
+        shell: bash
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/pedestrian_director_smoke.gd 2>&1 | tee /tmp/nightgrid-pedestrian-director.log
+          timeout 90s godot --headless --path . --script res://tests/living_streets_smoke.gd 2>&1 | tee /tmp/nightgrid-living-streets.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-pedestrian-{director,pool}.log /tmp/nightgrid-living-streets.log; then exit 1; fi
       - name: Validate bounded sidewalk link ground and obstacle certification
         timeout-minutes: 2
         run: |

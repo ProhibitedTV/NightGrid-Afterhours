@@ -3,6 +3,14 @@ extends Node3D
 
 const PlayerScript = preload("res://scripts/player.gd")
 const CourierVisual = preload("res://scripts/courier_visual.gd")
+const PedestrianDirector = preload("res://scripts/pedestrian_director.gd")
+const PedestrianRoutes = preload("res://scripts/pedestrian_routes.gd")
+const PEDESTRIAN_MODELS = [
+	"res://assets/models/nightgrid/pedestrians/casual-walker.glb",
+	"res://assets/models/nightgrid/pedestrians/dog-walker.glb",
+	"res://assets/models/nightgrid/pedestrians/road-worker.glb",
+	"res://assets/models/nightgrid/pedestrians/hiker.glb",
+]
 const CarScript = preload("res://scripts/car.gd")
 const KestrelVisual = preload("res://scripts/kestrel_s6_visual.gd")
 const MinimapScript = preload("res://scripts/minimap.gd")
@@ -115,6 +123,8 @@ var performance_label: Label
 var performance_overlay := false
 var minimap: Control
 var city_details: Node3D
+var pedestrians: Node3D
+var _pedestrian_scan := 0.0
 var city_perimeter: Node3D
 var flora: Node3D
 var day_night: Node
@@ -208,6 +218,8 @@ func _ready() -> void:
 	_configure_ambient_civic()
 	_build_routine_patrols()
 	_create_camera()
+	if "--living-streets" in OS.get_cmdline_user_args():
+		enable_living_streets()
 	_create_marker()
 	_build_hud()
 	_build_game_menu()
@@ -647,6 +659,8 @@ func _physics_process(delta: float) -> void:
 		_leave_transit(landing, "M-Line platform. Board a stopped train." if upstairs else "Back at street level.")
 	var actor := _actor()
 	var indoors: bool = interiors.call("is_inside")
+	if is_instance_valid(pedestrians):
+		_update_pedestrians(delta, actor, indoors)
 	_update_combat(delta)
 	if not indoors and current_transit == null and actor.global_position.distance_to(mission_position) < 5.3:
 		_advance_mission()
@@ -671,6 +685,41 @@ func _actor() -> Node3D:
 	if current_transit != null:
 		return current_transit
 	return current_car if current_car != null else player
+
+func enable_living_streets() -> bool:
+	if is_instance_valid(pedestrians):
+		return true
+	var models: Array[PackedScene] = []
+	for path in PEDESTRIAN_MODELS:
+		var model := load(path) as PackedScene
+		if model == null:
+			return false
+		models.append(model)
+	var director := PedestrianDirector.new()
+	director.name = "LivingStreets"
+	add_child(director)
+	var visual := load("res://scenes/pedestrian_visual.tscn") as PackedScene
+	if not director.configure(city_details, int(session.get("world_seed")), PedestrianRoutes.city_links(), visual, 12, models):
+		director.queue_free()
+		return false
+	pedestrians = director
+	return true
+
+func _update_pedestrians(delta: float, actor: Node3D, indoors: bool) -> void:
+	var occupied: Array[Vector3] = [actor.global_position]
+	var street_mode := not indoors and current_transit == null and is_instance_valid(camera)
+	pedestrians.call("tick", delta, actor.global_position, camera, not street_mode,
+		occupied, float(day_night.get("hour")), signal_controller)
+	_pedestrian_scan += delta
+	if not street_mode or _pedestrian_scan < 0.18:
+		return
+	_pedestrian_scan = 0.0
+	var nearby: Array[CharacterBody3D] = []
+	var fleet: Array = traffic.get("fleet")
+	for vehicle in cars + officers + routine_patrols + fleet:
+		if is_instance_valid(vehicle) and actor.global_position.distance_squared_to(vehicle.global_position) < 105.0 * 105.0:
+			nearby.append(vehicle)
+	pedestrians.call("react_to_traffic", nearby)
 
 # The former chase camera always interpolated over the full world distance.
 # Interiors are in a dedicated scene at (950, 950); on H exit this exposed the
@@ -702,6 +751,8 @@ func _camera_clearance(focus: Vector3, target: Vector3) -> Vector3:
 		ignored.append(current_car.get_rid())
 	if current_transit is CollisionObject3D:
 		ignored.append((current_transit as CollisionObject3D).get_rid())
+	if is_instance_valid(pedestrians):
+		ignored.append_array(pedestrians.call("camera_exclusions"))
 	_camera_probe.exclude = ignored
 	var space := get_world_3d().direct_space_state
 	var clearance := space.cast_motion(_camera_probe)
@@ -932,6 +983,8 @@ func _build_routine_patrols() -> void:
 func _witness_candidates(at: Vector3) -> Array[Dictionary]:
 	var candidates: Array[Dictionary] = venue_system.call("witness_candidates", at)
 	candidates.append_array(traffic.call("witness_candidates", at))
+	if is_instance_valid(pedestrians) and not interiors.call("is_inside"):
+		candidates.append_array(pedestrians.call("witness_candidates", at, camera))
 	for patrol in routine_patrols + officers:
 		if is_instance_valid(patrol) and float(patrol.get("condition")) > 18.0 and patrol.global_position.distance_squared_to(at) < 45.0 * 45.0:
 			candidates.append({"eye": patrol.global_position + Vector3.UP * 0.65, "facing": -patrol.global_basis.z, "police": true, "rid": patrol.get_rid()})
@@ -951,6 +1004,9 @@ func _report_incident(reason: String, at: Vector3, officer: bool) -> void:
 	if Wanted.stars(heat) > previous:
 		police_cooldown = minf(police_cooldown, 1.0)
 	_notify("REPORTED • %s • %d STAR%s" % [reason, Wanted.stars(heat), "" if Wanted.stars(heat) == 1 else "S"])
+	if is_instance_valid(pedestrians) and officer:
+		var ignore: Array[RID] = [player.get_rid()]
+		pedestrians.call("react_to_incident", at, 18.0, ignore)
 
 func _update_wanted(delta: float) -> void:
 	var actor := _actor()
@@ -1424,7 +1480,7 @@ func _capture_snapshot() -> Dictionary:
 	var saved_at := player.global_position
 	if _active_station_lift != null:
 		saved_at = _active_station_lift.call("destination")
-	return {
+	var state := {
 		"player_position": [saved_at.x, saved_at.y, saved_at.z],
 		"camera_yaw": yaw, "cash": cash, "health": health, "heat": heat,
 		"deliveries": deliveries, "carrying": carrying,
@@ -1444,9 +1500,16 @@ func _capture_snapshot() -> Dictionary:
 		"civic_patrol_service": civic_patrol_service.snapshot(),
 		"wanted_last_known": [wanted.last_known.x, wanted.last_known.y, wanted.last_known.z] if wanted.last_known.is_finite() else []
 	}
+	if is_instance_valid(pedestrians):
+		var street_state: Dictionary = pedestrians.call("snapshot")
+		if not street_state.is_empty():
+			state["sidewalk_population"] = street_state
+	return state
 
 func _apply_snapshot(data: Dictionary) -> void:
 	# Geometry is already reconstructed from the saved immutable seed.
+	if is_instance_valid(pedestrians):
+		pedestrians.call("restore", data.get("sidewalk_population", {}))
 	navigation_waypoint = Nav.decode(data.get("navigation_waypoint", []))
 	# No live closures are saved until physical scene/traffic integration.
 	road_restrictions = RoadRestrictions.new()
@@ -2456,6 +2519,8 @@ func _fire_weapon() -> bool:
 	var camera_hit := space.intersect_ray(query)
 	var target: Vector3 = camera_hit.get("position", view_end)
 	var origin := player.global_position + Vector3.UP * 0.55
+	if is_instance_valid(pedestrians):
+		pedestrians.call("react_to_incident", origin, 22.0, ignore)
 	var direction := origin.direction_to(target)
 	var endpoint := origin + direction * minf(origin.distance_to(target) + 0.05, float(spec["reach"]))
 	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(origin, endpoint, 1, ignore))

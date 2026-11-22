@@ -49,6 +49,11 @@ static func _valid_link(entry: Dictionary) -> bool:
 	var cell := Vector2i(floori(a.x/Plan.BLOCK_SIZE),floori(a.z/Plan.BLOCK_SIZE))
 	if not Plan.is_valid_block(cell.x,cell.y) or Vector2i(floori(b.x/Plan.BLOCK_SIZE),floori(b.z/Plan.BLOCK_SIZE))!=cell:
 		return false
+	if entry.get("kind", "") == "retail_portal":
+		# Only the two explicitly modeled open portals may leave the curb strip.
+		# The sweeps and support samples below still apply to every meter.
+		return cell.y == 0 and absf(a.x - b.x) < 0.01 and absf(absf(a.x) - 18.5) < 0.01 and (
+			absf(a.z - 9.7) < 0.01 and absf(b.z - 15.45) < 0.01)
 	var center := Vector3((cell.x+0.5)*Plan.BLOCK_SIZE,a.y,(cell.y+0.5)*Plan.BLOCK_SIZE)
 	var x: Vector3 = a-center
 	var y: Vector3 = b-center
