@@ -18,7 +18,19 @@ static func _source(scene: PackedScene, member: String) -> Mesh:
 	if _meshes.has(key):
 		return _meshes[key]
 	var root := scene.instantiate()
-	var node := root as MeshInstance3D if str(root.name) == member else root.find_child(member,true,false) as MeshInstance3D
+	var node: MeshInstance3D
+	if root is MeshInstance3D and str(root.name) == member:
+		node = root
+	else:
+		node = root.find_child(member,true,false) as MeshInstance3D
+	# The four single-object glTF imports may be wrapped by an importer-
+	# generated root. Only permit this fallback for known one-mesh assets.
+	if node == null and scene in [BAG,BOX,CRATE,TRUCK]:
+		var candidates := root.find_children("*","MeshInstance3D",true,false)
+		if root is MeshInstance3D:
+			candidates.append(root)
+		if candidates.size() == 1:
+			node = candidates[0] as MeshInstance3D
 	assert(node != null and node.mesh != null, "Missing exact authored kit member: " + key)
 	if node == null:
 		root.free()
@@ -111,7 +123,7 @@ func install(left_wall: float, right_wall: float, y: float) -> void:
 		_view("ElectricalRun%d"%i,cable,Vector3(left+0.007,1.65+0.60*i,-4.5),Basis.IDENTITY,Vector3.ONE,Vector3.ZERO,false)
 	# Group street waste and deliveries by use, not evenly spaced decoration.
 	_ground("WasteBagA",BAG,"trashbag",-1,7.35,0.4,1.0)
-	_ground("WasteBagB",BAG,"trashbag",-1,7.85,-0.8,0.85)
+	_ground("WasteBagB",BAG,"trashbag",-1,7.70,-0.8,0.85)
 	_ground("DeliveryCart",TRUCK,"hand_truck",1,-11.25,-PI*0.5)
 	_ground("FoldedCarton",BOX,"cardboard_box_01",1,-10.55,0.3,1.15)
 	_ground("ProduceCrate",CRATE,"plastic_crate_01",1,-7.9,0.18,1.25)
