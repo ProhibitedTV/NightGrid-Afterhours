@@ -25,7 +25,12 @@ func _capture() -> void:
 	world = load("res://scenes/main.tscn").instantiate()
 	root.add_child(world)
 	await process_frame
-	world.get_node("GameMenus").call("hide_for_game")
+	var menu := world.get_node_or_null("GameMenus") as CanvasLayer
+	var hud := world.get_node_or_null("HUD") as CanvasLayer
+	if menu==null or hud==null:
+		_fail("Missing main game UI")
+		return
+	menu.call("hide_for_game")
 	world.set_process(false)
 	world.set_physics_process(false)
 	var player: CharacterBody3D = world.get("player")
@@ -33,9 +38,13 @@ func _capture() -> void:
 	cam = world.get("camera")
 	var clock: Node = world.get("day_night")
 	clock.set("paused",true)
-	world.get_node("HUD").hide()
+	hud.visible=false
+	# Freeze simulated vehicle/pedestrian movement for matched comparisons.
+	# Only use this tool for art evidence, not live performance measurements.
+	paused=true
 	var anchor := Vector3(-87,1.15,77)
 	player.global_position = anchor
+	player.velocity=Vector3.ZERO
 	for system in ["city_details","street_lights","venue_system","civic_services"]:
 		world.get(system).call("set_focus",anchor)
 	var captures := [
@@ -50,19 +59,33 @@ func _capture() -> void:
 		cam.global_position = shot[2]
 		cam.look_at(shot[3],Vector3.UP)
 		cam.fov = shot[4]
+		cam.make_current()
 		print("GOLD_CAPTURE staging ",shot[0])
-		for frame in range(3):
+		for frame in range(2):
 			await process_frame
 			await RenderingServer.frame_post_draw
+			print("GOLD_CAPTURE rendered ",shot[0]," frame ",frame+1)
 		var frame_image: Image = root.get_texture().get_image()
 		if frame_image == null or frame_image.is_empty():
 			_fail("No live framebuffer")
+			return
+		if frame_image.get_width()<1100 or frame_image.get_height()<600:
+			_fail("Framebuffer too small: "+str(frame_image.get_size()))
+			return
+		var unique := {}
+		for xx in range(13):
+			for yy in range(8):
+				var px := roundi(float(xx)*float(frame_image.get_width()-1)/12.0)
+				var py := roundi(float(yy)*float(frame_image.get_height()-1)/7.0)
+				unique[frame_image.get_pixel(px,py).to_html(false)]=true
+		if unique.size()<10:
+			_fail("Almost-uniform framebuffer "+str(shot[0]))
 			return
 		var filename: String = str(shot[0])+".png"
 		if frame_image.save_png(output.path_join(filename)) != OK:
 			_fail("Could not save "+filename)
 			return
-		manifest[filename] = {"hour":shot[1],"position":str(shot[2]),"look_at":str(shot[3]),"fov":shot[4],"width":frame_image.get_width(),"height":frame_image.get_height()}
+		manifest[filename] = {"hour":shot[1],"position":str(shot[2]),"look_at":str(shot[3]),"fov":shot[4],"width":frame_image.get_width(),"height":frame_image.get_height(),"sha256":FileAccess.get_sha256(output.path_join(filename))}
 		print("GOLD_CAPTURED ",filename)
 	var file := FileAccess.open(output.path_join("capture.json"),FileAccess.WRITE)
 	if file==null:
