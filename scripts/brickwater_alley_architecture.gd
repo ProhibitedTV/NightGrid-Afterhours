@@ -4,12 +4,12 @@ extends Node3D
 const FACADE = preload("res://assets/models/polyhaven/modular_urban_apartments_facade/modular_urban_apartments_facade.gltf")
 const ESCAPE = preload("res://assets/models/polyhaven/modular_fire_escape/modular_fire_escape.gltf")
 const CABLE = preload("res://assets/models/polyhaven/modular_electric_cables/modular_electric_cables.gltf")
-const FACE_OFFSET := 0.27
-const BAY_WIDTH := 3.0
-const FIRST_LEVEL := 4.8
-const LEVELS := 2
-const MIN_Z := -12.0
-const MAX_Z := 3.0
+const FACE_OFFSET = 0.27
+const BAY_WIDTH = 3.0
+const FIRST_LEVEL = 4.8
+const LEVELS = 2
+const MIN_Z = -12.0
+const MAX_Z = 3.0
 static var _meshes: Dictionary = {}
 var left_wall: float
 var right_wall: float
@@ -45,6 +45,9 @@ func _ready() -> void:
 		# source junction boxes and clips rather than floating wires.
 		_cable_run(wall, side)
 	_escape_landing()
+	_service_entrance("WestServiceEntrance", left_wall, -0.6, PI * 0.5, "centered_small_01")
+	_service_entrance("EastServiceEntrance", right_wall, 7.5, -PI * 0.5, "centered_small_02")
+	_overhead_spans()
 
 func _collect(node: Node, cache: Dictionary) -> void:
 	if node is MeshInstance3D and node.mesh != null:
@@ -110,3 +113,89 @@ func _escape_landing() -> void:
 	# next. Native review must confirm the stair tread/landing join.
 	var stairs_basis := Basis.IDENTITY.scaled(Vector3(1.0, 0.749, 1.0))
 	_place(group, "StairFlight", ESCAPE, "modular_fire_escape_stairs", Vector3(0, 6.87, 1.14), stairs_basis)
+
+func _service_entrance(label: String, wall: float, z: float, yaw: float, variant: String) -> void:
+	# A closed door set into a real authored opening. Retain the original
+	# parcel backing; do not advertise an enterable building yet.
+	var body := StaticBody3D.new()
+	body.name = label
+	body.position = Vector3(wall, 0.14, z)
+	body.rotation.y = yaw
+	add_child(body)
+	var at := Vector3(0, 0, FACE_OFFSET)
+	_place(body, "AuthoredMasonryReveal", FACADE, "wall_door_" + variant, at, Basis.IDENTITY)
+	_place(body, "ClosedServiceDoor", FACADE, "door_" + variant, at, Basis.IDENTITY)
+	_place(body, "Header", FACADE, "cornice_standard_standard_01", at + Vector3.UP * 2.8, Basis.IDENTITY)
+	# Approximate the thin extension only; the original building collider
+	# still blocks the bulk of the parcel. No collision across the passage.
+	var collision := CollisionShape3D.new()
+	collision.name = "ServiceFrontCollider"
+	var shape := BoxShape3D.new()
+	var depth := 0.47 if variant == "centered_small_01" else 0.31
+	shape.size = Vector3(3.0, 3.0, depth)
+	collision.shape = shape
+	collision.position = Vector3(-1.5, 1.5, depth * 0.5)
+	body.add_child(collision)
+
+func _overhead_spans() -> void:
+	var group := Node3D.new()
+	group.name = "OverheadUtilitySpans"
+	add_child(group)
+	var jacket := StandardMaterial3D.new()
+	jacket.albedo_color = Color("29292a")
+	jacket.roughness = 0.79
+	jacket.metallic = 0.0
+	# West feed/end are Z=3.0/-0.8; east feed/end are -0.6/3.2.
+	# Each pair terminates at the existing mounted junction boxes,
+	# rather than disappearing into the air or cutting through windows.
+	for row in range(2):
+		var west_z := -0.8 if row == 0 else 3.0
+		var east_z := -0.6 if row == 0 else 3.2
+		for strand in range(2):
+			var offset := -0.018 + float(strand) * 0.035
+			var a := Vector3(left_wall + 0.038, 4.30, west_z + offset)
+			var b := Vector3(right_wall - 0.038, 4.30, east_z + offset)
+			var sag := 0.30 + float(row) * 0.08 + float(strand) * 0.10
+			var view := MeshInstance3D.new()
+			view.name = "UtilityCable_%d_%d" % [row, strand]
+			view.mesh = _cable_mesh(a, b, sag)
+			view.material_override = jacket
+			view.set_meta("west_anchor", a)
+			view.set_meta("east_anchor", b)
+			group.add_child(view)
+
+func _cable_mesh(a: Vector3, b: Vector3, sag: float) -> ArrayMesh:
+	# A continuous UV-mapped round cable, not disconnected rods. Fixed
+	# quadratic sag and radial normals; 24 segments x 8 sides x 2 tris.
+	var vertices := PackedVector3Array()
+	var normals := PackedVector3Array()
+	var uv := PackedVector2Array()
+	var indices := PackedInt32Array()
+	var segments := 24
+	var sides := 8
+	for i in range(segments + 1):
+		var t := float(i) / float(segments)
+		var center := a.lerp(b, t) - Vector3.UP * (4.0 * sag * t * (1.0 - t))
+		var tangent := (b - a - Vector3.UP * (4.0 * sag * (1.0 - 2.0 * t))).normalized()
+		var lateral := tangent.cross(Vector3.UP).normalized()
+		var vertical := lateral.cross(tangent).normalized()
+		for j in range(sides + 1):
+			var angle := TAU * float(j) / float(sides)
+			var normal := vertical * cos(angle) + lateral * sin(angle)
+			vertices.append(center + normal * 0.013)
+			normals.append(normal)
+			uv.append(Vector2(t * a.distance_to(b), float(j) / float(sides)))
+	for i in range(segments):
+		for j in range(sides):
+			var p := i * (sides + 1) + j
+			var q := p + sides + 1
+			indices.append_array(PackedInt32Array([p, q, q + 1, p, q + 1, p + 1]))
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_TEX_UV] = uv
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh

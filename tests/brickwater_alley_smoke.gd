@@ -184,5 +184,32 @@ func _verify()->void:
 			lights += 1
 	if not _check(papers == 4 and lights == 2, "limited atmosphere dressing budget"):
 		return
+	var spans := architecture.get_node_or_null("OverheadUtilitySpans") as Node3D
+	if not _check(spans != null and spans.get_child_count() == 4, "four bounded overhead utility cables"):
+		return
+	for child in spans.get_children():
+		var cable := child as MeshInstance3D
+		if not _check(cable != null and cable.mesh is ArrayMesh, "continuous round cable"):
+			return
+		var bounds := cable.mesh.get_aabb()
+		var west_anchor: Vector3 = cable.get_meta("west_anchor")
+		var east_anchor: Vector3 = cable.get_meta("east_anchor")
+		if not _check(bounds.position.y >= 3.7 and bounds.position.y < 4.1 and absf(west_anchor.x - float(alley.get("left_wall"))) < 0.05 and absf(east_anchor.x - float(alley.get("right_wall"))) < 0.05, "sag and wall attachment"):
+			return
+		if not _check(cable.mesh.surface_get_array_index_len(0) == 1152, "bounded cable topology"):
+			return
+	for label in ["WestServiceEntrance", "EastServiceEntrance"]:
+		var entrance := architecture.get_node_or_null(label) as StaticBody3D
+		if not _check(entrance != null and entrance.get_child_count() == 4, "closed authored service front"):
+			return
+		var door := entrance.get_node("ClosedServiceDoor") as MeshInstance3D
+		var collider := entrance.get_node("ServiceFrontCollider") as CollisionShape3D
+		if not _check(door.mesh != null and collider.shape is BoxShape3D and (collider.shape as BoxShape3D).size.z <= 0.47, "door and shallow wall collision"):
+			return
+		var at := entrance.to_global(Vector3(-1.5, 1.1, 0.0))
+		var outward := entrance.global_transform.basis.z
+		var door_hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(at + outward * 0.75, at + outward * 0.08, 1))
+		if not _check(not door_hit.is_empty() and door_hit["collider"] == entrance, "closed service entrance has physical contact"):
+			return
 	print("BRICKWATER_ALLEY_SMOKE PASS: physical floor, authored ground props, upper facade, cable trunks, overhead escape")
 	quit(0)

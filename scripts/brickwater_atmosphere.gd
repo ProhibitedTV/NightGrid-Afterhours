@@ -20,7 +20,7 @@ func _ready() -> void:
 	_litter("OldFlyer", Vector3(left_wall + 0.61, floor_y + 0.006, 3.1), 1.8, paper)
 	_litter("WetBroadsheet", Vector3(right_wall - 0.80, floor_y + 0.006, 6.8), -1.2, paper)
 	_poster("WestTornPoster", Vector3(left_wall + 0.024, 1.73, -8.0), PI * 0.5)
-	_poster("EastTornPoster", Vector3(right_wall - 0.024, 1.55, 5.0), -PI * 0.5)
+	_poster("EastTornPoster", Vector3(right_wall - 0.024, 1.55, -8.0), -PI * 0.5)
 	# Match the existing authored sign positions. Low energy, shadowless
 	# direct illumination on nearby masonry and wet pavement.
 	_sign_spill("RepairSignSpill", Vector3(left_wall + 0.16, 2.35, -1.6), Color("d8799d"))

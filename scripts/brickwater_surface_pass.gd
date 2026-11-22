@@ -61,7 +61,7 @@ func _ready() -> void:
 	_overlay("EastWallRunoff", SEEP, Vector2(18.0, 4.6), Vector3(right_wall - 0.013, 2.45, -3.0), -PI * 0.5)
 	_overlay("SwitchyardPaint", TAG_WEST, Vector2(2.8, 1.4), Vector3(left_wall + 0.019, 1.85, -6.7), PI * 0.5)
 	_overlay("LowlinePaint", TAG_EAST, Vector2(2.65, 1.325), Vector3(right_wall - 0.019, 1.70, -3.0), -PI * 0.5)
-	_overlay("FadedChalkTag", TAG_SMALL, Vector2(1.45, 0.725), Vector3(left_wall + 0.019, 1.05, 1.7), PI * 0.5)
+	_overlay("FadedChalkTag", TAG_SMALL, Vector2(1.45, 0.725), Vector3(left_wall + 0.019, 1.05, 3.45), PI * 0.5)
 	# Signs are flush wall plates, not hovering billboards or new lights.
 	_sign("NightShiftRepairs", SIGN_WEST, left_wall + 0.033, -1.6, PI * 0.5)
 	_sign("JadeLaundry", SIGN_EAST, right_wall - 0.033, 2.8, -PI * 0.5)
