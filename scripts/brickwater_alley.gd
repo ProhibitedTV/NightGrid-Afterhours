@@ -9,6 +9,7 @@ const GRIME = preload("res://assets/models/nightgrid/brickwater_alley/alley_weat
 const NOTICE = preload("res://assets/models/nightgrid/brickwater_alley/waste_notice.svg")
 const WallArt = preload("res://scripts/brickwater_wall_art.gd")
 const GoldArt = preload("res://scripts/brickwater_gold_art.gd")
+const Overhead = preload("res://scripts/brickwater_overhead.gd")
 const WetSurface = preload("res://assets/shaders/brickwater_wet_concrete.gdshader")
 const PHOTO_ROOT = Maps.PHOTO_CONCRETE_ROOT
 const PBR = "res://assets/pbr/polyhaven/"
@@ -44,6 +45,10 @@ func _ready()->void:
 	authored.name = "BrickwaterGoldArt"
 	add_child(authored)
 	authored.install(left_wall,right_wall,FLOOR_Y)
+	var overhead := Overhead.new()
+	overhead.name = "BrickwaterOverhead"
+	add_child(overhead)
+	overhead.install(left_wall,right_wall)
 
 func _view(parent:Node3D, label:String, mesh:Mesh, at:Vector3, material:Material)->MeshInstance3D:
 	var node:=MeshInstance3D.new()

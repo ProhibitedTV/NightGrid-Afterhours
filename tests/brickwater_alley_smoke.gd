@@ -126,5 +126,30 @@ func _verify()->void:
 				return
 	if not _check(lit==2,"two physically located practical light sources"):
 		return
+	var overhead := alley.get_node_or_null("BrickwaterOverhead") as Node3D
+	if not _check(overhead != null and overhead.get_child_count()==3,"one authored escape and two connected spans"):
+		return
+	var escape := overhead.get_node_or_null("WestServiceFireEscape") as Node3D
+	if not _check(escape != null and escape.get_child_count()==5,"paired steel landings, rails and stair"):
+		return
+	for part in escape.get_children():
+		var mesh_part := part as MeshInstance3D
+		if not _check(mesh_part != null and mesh_part.mesh is ArrayMesh and mesh_part.get_child(0) is StaticBody3D,"authored steel geometry and actual collision"):
+			return
+		var collider := mesh_part.get_node("SteelCollision").get_child(0) as CollisionShape3D
+		if not _check(collider.shape is ConcavePolygonShape3D,"open steel collision instead of solid wall"):
+			return
+		var bounds := mesh_part.transform * mesh_part.mesh.get_aabb()
+		if not _check(bounds.position.y+escape.position.y > 4.0,"escape remains clear of street actors"):
+			return
+	for span in overhead.get_children():
+		if span == escape:
+			continue
+		var west := span.get_node("WestWallAnchor") as Node3D
+		var east := span.get_node("EastWallAnchor") as Node3D
+		var bundle := span.get_node("ContinuousCableBundle") as MeshInstance3D
+		var bounds := bundle.mesh.get_aabb()
+		if not _check(west.get_child_count()==3 and east.get_child_count()==3 and absf(bounds.position.x-west.position.x)<0.03 and absf(bounds.end.x-east.position.x)<0.03 and bounds.position.y>4.9,"each continuous cable span reaches both wall anchors above street"):
+			return
 	print("BRICKWATER_ALLEY_SMOKE PASS: physical floor, closed model, photo materials, clear path")
 	quit(0)
