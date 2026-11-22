@@ -42,6 +42,8 @@ func _run() -> void:
 	await _check_controls()
 	await _check_jump_and_equipment()
 	await _check_vehicle_and_save()
+	await _check_integrated_collision()
+	await _check_integrated_rail()
 	print("COURIER_EVIDENCE ", JSON.stringify(evidence))
 	print("COURIER_SMOKE ", "PASS" if faults.is_empty() else "FAIL")
 	quit(0 if faults.is_empty() else 1)
@@ -205,6 +207,86 @@ func _check_vehicle_and_save() -> void:
 	await _ticks(14)
 	await _capture("vehicle-exit", player.global_position + Vector3(2.65, 0.95, -1.80),
 		player.global_position + Vector3(-0.5, 0.1, 0.0))
+
+func _check_integrated_collision() -> void:
+	var city: Node3D = world.get("city_details")
+	var car: CharacterBody3D = world.get("cars")[0]
+	car.global_position = Vector3(203.0, 0.75, 38.0)
+	car.rotation = Vector3.ZERO
+	car.velocity = Vector3.ZERO
+	car.set("speed", 0.0)
+	player.global_position = car.global_position + Vector3(-1.65, 0.45, -0.43)
+	player.velocity = Vector3.ZERO
+	city.call("set_focus", car.global_position)
+	world.call("_toggle_car")
+	world.set("yaw", 0.0)
+	world.set("pitch", 0.82)
+	await _ticks(125)
+	world.call("_snap_camera")
+	var camera: Camera3D = world.get("camera")
+	var chase_height := camera.global_position.y
+	_expect(world.get("current_car") == car and visual.get_parent() == car
+		and visual.get("current_pose") == &"drive_car" and chase_height < 5.0,
+		"The seated courier must preserve the car chase sweep under the actual Horizon canopy")
+	evidence["horizon_chase_height_m"] = chase_height
+	await _capture("horizon-chase")
+	world.call("_toggle_car")
+	await _ticks(22)
+	_expect(player.visible and visual.get_parent() == player and player.collision_layer == 1
+		and player.is_on_floor(), "Canopy-area vehicle exit must restore the same grounded courier")
+	var market := Vector3(-32.0, 1.12, -214.0)
+	city.call("set_focus", market)
+	await _walk_to(market, PI, ["move_forward"], 88)
+	_expect(player.global_position.z > -211.0 and player.global_position.z < -210.40 and player.is_on_floor()
+		and visual.get("current_pose") == &"idle", "The courier must stop and settle against the actual North Quay counter")
+	evidence["north_quay_counter_stop_z"] = player.global_position.z
+	await _capture("market-counter", player.global_position + Vector3(2.1, 0.60, -2.3),
+		player.global_position + Vector3(0.0, 0.02, 0.35))
+
+func _check_integrated_rail() -> void:
+	var rail := world.get_node("MorrowLine")
+	var lift := rail.get_node_or_null("MLineStation_04/AccessibleLift")
+	if lift == null:
+		_expect(false, "Missing the integrated East Gardens lift")
+		return
+	var lower: Vector3 = lift.call("landing_position", false)
+	var upper: Vector3 = lift.call("landing_position", true)
+	player.global_position = lower
+	player.velocity = Vector3.ZERO
+	world.get("city_details").call("set_focus", lower)
+	world.set("yaw", 0.0)
+	world.set("pitch", 0.38)
+	await _ticks(4)
+	world.call("_toggle_transit")
+	_expect(world.get("transit_kind") == "LIFT" and not visual.is_visible_in_tree()
+		and visual.get_parent() == player, "Lift passengers must hide the pedestrian rig and keep its owner")
+	await _ticks(205)
+	_expect(world.get("current_transit") == null and visual.is_visible_in_tree() and player.is_on_floor()
+		and player.global_position.distance_to(upper) < 0.16, "Lift arrival must restore the grounded skinned courier")
+	Input.action_press("move_forward")
+	await _ticks(53)
+	Input.action_release("move_forward")
+	rail.call("restore", {"x": 232.0, "current_station": 4, "next_station": 3, "direction": -1, "dwell": 7.0})
+	Input.action_press("move_left")
+	await _ticks(56)
+	Input.action_release("move_left")
+	_expect(rail.call("boardable_from", player.global_position) and visual.is_visible_in_tree(),
+		"Walk the integrated bridge and platform to the actual stopped M-Line door")
+	await _capture("east-gardens-platform")
+	world.call("_toggle_transit")
+	var journey: Dictionary = world.call("_capture_snapshot")
+	_expect(world.get("transit_kind") == "TRAIN" and journey.get("rail_platform_rider") == true
+		and not visual.is_visible_in_tree() and visual.get_parent() == player,
+		"Door-side boarding must preserve the platform status and hide the on-foot rig")
+	rail.call("restore", {"x": 120.0, "current_station": 4, "next_station": 3, "direction": -1, "speed": 6.0})
+	await _ticks(120)
+	world.call("_toggle_transit")
+	await _ticks(10)
+	_expect(world.get("current_transit") == null and rail.call("on_platform", player.global_position, 3)
+		and player.is_on_floor() and visual.is_visible_in_tree() and visual.get_parent() == player,
+		"Train alight must restore the courier, capsule and correct platform")
+	evidence["helix_alight_position"] = str(player.global_position)
+	await _capture("helix-alight")
 
 func _capture(label: String, at: Vector3 = Vector3.INF, look: Vector3 = Vector3.ZERO) -> void:
 	if captures.is_empty():
