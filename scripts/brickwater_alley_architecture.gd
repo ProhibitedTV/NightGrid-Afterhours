@@ -46,7 +46,7 @@ func _ready() -> void:
 		_cable_run(wall, side)
 	_escape_landing()
 	_service_entrance("WestServiceEntrance", left_wall, -0.6, PI * 0.5, "centered_small_01")
-	_service_entrance("EastServiceEntrance", right_wall, 7.5, -PI * 0.5, "centered_small_02")
+	_service_entrance("EastServiceEntrance", right_wall, 6.85, -PI * 0.5, "centered_small_02")
 	_overhead_spans()
 
 func _collect(node: Node, cache: Dictionary) -> void:

@@ -211,5 +211,24 @@ func _verify()->void:
 		var door_hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(at + outward * 0.75, at + outward * 0.08, 1))
 		if not _check(not door_hit.is_empty() and door_hit["collider"] == entrance, "closed service entrance has physical contact"):
 			return
+	var business := alley.get_node_or_null("BusinessFrontage") as Node3D
+	if not _check(business != null and business.get_child_count() == 4, "two blade signs and rain shelters"):
+		return
+	for child in business.get_children():
+		var body := child as StaticBody3D
+		if not _check(body != null and absf(body.position.x - (float(alley.get("left_wall")) if body.position.x < x else float(alley.get("right_wall")))) < 0.01, "frontage physically mounted"):
+			return
+		var shape_node := body.get_node("MeasuredEnvelope") as CollisionShape3D
+		var shape := shape_node.shape as BoxShape3D
+		if not _check(shape != null and body.position.y + shape_node.position.y - shape.size.y * 0.5 >= 3.0 and shape.size.z <= 0.92, "clear passage below frontage"):
+			return
+		if str(body.name).ends_with("Blade"):
+			var housing := body.get_node("FoldedEnamelHousing") as MeshInstance3D
+			if not _check(housing.mesh is ArrayMesh and body.get_child_count() == 4, "modeled sign housing and two faces"):
+				return
+		else:
+			var sheet := body.get_node("CorrugatedWeatheredSheet") as MeshInstance3D
+			if not _check(sheet.mesh is ArrayMesh and (sheet.material_override as StandardMaterial3D).normal_enabled, "corrugated photo-metal canopy"):
+				return
 	print("BRICKWATER_ALLEY_SMOKE PASS: physical floor, authored ground props, upper facade, cable trunks, overhead escape")
 	quit(0)
