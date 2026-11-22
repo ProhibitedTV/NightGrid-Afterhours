@@ -1,6 +1,7 @@
 extends Node3D
 ## Fixed first service-alley vertical slice, at the existing two-building parcel.
 const PILOT_BLOCK = Vector2i(-2,1)
+const Architecture = preload("res://scripts/brickwater_alley_architecture.gd")
 const ServiceProps = preload("res://scripts/brickwater_service_props.gd")
 const Maps = preload("res://scripts/material_library.gd")
 const CABINET = preload("res://assets/models/polyhaven/utility_box_01/utility_box_01.gltf")
@@ -37,6 +38,10 @@ func _ready()->void:
 	props.name = "AuthoredStreetProps"
 	props.configure(left_wall, right_wall, FLOOR_Y)
 	add_child(props)
+	var architecture := Architecture.new()
+	architecture.name = "AuthoredUpperArchitecture"
+	architecture.configure(left_wall, right_wall)
+	add_child(architecture)
 
 func _view(parent:Node3D, label:String, mesh:Mesh, at:Vector3, material:Material)->MeshInstance3D:
 	var node:=MeshInstance3D.new()

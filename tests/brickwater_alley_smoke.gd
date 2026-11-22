@@ -96,5 +96,31 @@ func _verify()->void:
 		var clear := space.intersect_ray(PhysicsRayQueryParameters3D.create(ray_start, ray_start + Vector3(0, 0, 0.4), 1))
 		if not _check(clear.is_empty(), "centerline remains clear"):
 			return
+	var architecture := alley.get_node_or_null("AuthoredUpperArchitecture") as Node3D
+	if not _check(architecture != null, "upper architecture installed"):
+		return
+	for label in ["WestApartmentFront", "EastApartmentFront"]:
+		var face := architecture.get_node(label) as Node3D
+		if not _check(face.get_child_count() == 30, "two floors with five complete bays"):
+			return
+		for view in face.get_children():
+			if not _check(view is MeshInstance3D and view.mesh != null and view.position.y >= 4.8, "selected facade mesh and overhead clearance"):
+				return
+	for label in ["WestElectricalTrunk", "EastElectricalTrunk"]:
+		var trunk := architecture.get_node(label) as Node3D
+		if not _check(trunk.get_child_count() == 14, "bounded cable trunk with two terminal boxes"):
+			return
+		for view in trunk.get_children():
+			if not _check(view.mesh != null and absf(view.transform.basis.determinant() - 1.0) < 0.001, "cable source and proper orientation"):
+				return
+	var escape := architecture.get_node("WestEmergencyEscape") as Node3D
+	if not _check(escape.get_child_count() == 5, "selected escape assembly"):
+		return
+	for view in escape.get_children():
+		if not _check(view.mesh != null, "authored fire escape mesh"):
+			return
+		var bounds: AABB = view.transform * view.mesh.get_aabb()
+		if not _check(bounds.position.y > 4.1, "escape remains overhead"):
+			return
 	print("BRICKWATER_ALLEY_SMOKE PASS: physical floor, closed model, photo materials, clear path")
 	quit(0)

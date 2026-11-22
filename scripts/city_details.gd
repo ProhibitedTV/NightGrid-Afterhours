@@ -908,7 +908,7 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 		# Rooftop water tank and a vertical fire escape.
 		_detail(Vector3(center.x + 3.8, height + 3.2, center.z), Vector3(3.6, 4.4, 3.6), Color("4f6570"))
 		_detail(Vector3(center.x + 3.8, height + 5.5, center.z), Vector3(4.0, 0.22, 4.0), Color("a0a2a0"))
-		for floor_step in range(2, int(height / 3.4)):
+		for floor_step in range(2, int(height / 3.4)) if not (Vector2i(ix, iz) == BrickwaterAlley.PILOT_BLOCK and which == 0) else []:
 			var step_y := float(floor_step) * 3.4
 			_detail(Vector3(right + 0.28, step_y, center.z + 0.5), Vector3(0.65, 0.17, 5.4), Color("65757c"))
 			_detail(Vector3(right + 0.54, step_y + 0.9, center.z + 0.5), Vector3(0.09, 1.70, 5.3), Color("819198"))
@@ -972,6 +972,12 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 		for side in [-1.0, 1.0]:
 			for side_window in range(2):
 				var wz := center.z + (float(side_window) - 0.5) * depth * 0.38
+				# The authored alley panels replace stickers only on facing walls
+				# within the two covered storeys and the five-bay frontage.
+				var alley_side := (which == 0 and side > 0.0) or (which == 1 and side < 0.0)
+				var local_z := wz - (float(iz) + 0.5) * CELL
+				if Vector2i(ix, iz) == BrickwaterAlley.PILOT_BLOCK and alley_side and fy >= 4.8 and fy <= 10.8 and local_z >= -12.0 and local_z <= 3.0:
+					continue
 				_detail(Vector3(center.x + side * (width / 2.0 + 0.07), fy, wz), Vector3(0.11, 1.45, 2.0), Color("426178"), false, "GLASS")
 
 	if pilot_windows and not window_specs.is_empty():
