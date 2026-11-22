@@ -159,6 +159,9 @@ var _focus_update_clock := 1.0
 var _hud_update_clock := 1.0
 var current_transit: Node3D
 var transit_kind := ""
+var _active_station_lift: Node3D
+var _rail_platform_rider := false
+var _camera_probe := PhysicsShapeQueryParameters3D.new()
 var session: Node
 var world_environment: WorldEnvironment
 var sun_light: DirectionalLight3D
@@ -175,6 +178,11 @@ var notification_time := 8.0
 var police_cooldown := 4.0
 
 func _ready() -> void:
+	var clearance_ball := SphereShape3D.new()
+	clearance_ball.radius = 0.30
+	_camera_probe.shape = clearance_ball
+	_camera_probe.margin = 0.02
+	_camera_probe.collision_mask = 1
 	GameInput.install()
 	AudioMix.ensure()
 	session = get_node("/root/GameSession")
@@ -535,7 +543,7 @@ func _capture_playtest_frame() -> void:
 	if current_car != null:
 		motion = "player_vehicle"
 	elif current_transit != null:
-		motion = "rail" if transit_kind == "TRAIN" else "bus"
+		motion = {"TRAIN": "rail", "BUS": "bus", "LIFT": "station_lift"}[transit_kind]
 	var metadata: Dictionary = PlaytestEvidence.build_metadata(camera, actual_actor, {
 		"world_seed": int(session.get("world_seed")),
 		"game_clock": str(day_night.call("clock_string")),
@@ -632,6 +640,11 @@ func _physics_process(delta: float) -> void:
 	# Gameplay mission/heat/damage timers are fixed-tick, not render-tick.
 	if not is_instance_valid(player):
 		return
+	if _active_station_lift != null and not bool(_active_station_lift.get("travelling")):
+		var landing: Vector3 = _active_station_lift.call("destination")
+		var upstairs: bool = _active_station_lift.get("going_up")
+		_active_station_lift = null
+		_leave_transit(landing, "M-Line platform. Board a stopped train." if upstairs else "Back at street level.")
 	var actor := _actor()
 	var indoors: bool = interiors.call("is_inside")
 	_update_combat(delta)
@@ -677,27 +690,31 @@ func _camera_goal() -> Vector3:
 		cos(pitch) * distance).rotated(Vector3.UP, yaw)
 
 func _camera_clearance(focus: Vector3, target: Vector3) -> Vector3:
-	# Physics-backed camera arm. The camera never goes THROUGH a collidable
-	# building or a venue wall, even when the player rotates next to it.
-	var distance := focus.distance_to(target)
-	if distance < 0.001:
+	var motion := target - focus
+	if motion.length_squared() < 0.000001:
 		return target
+	# Sweep the near plane's clearance volume so canopy edges and corners
+	# protect the whole view even when the camera arm's centre ray misses.
+	_camera_probe.transform.origin = focus
+	_camera_probe.motion = motion
 	var ignored: Array[RID] = [player.get_rid()]
 	if current_car != null:
 		ignored.append(current_car.get_rid())
 	if current_transit is CollisionObject3D:
 		ignored.append((current_transit as CollisionObject3D).get_rid())
-	var query := PhysicsRayQueryParameters3D.create(focus, target)
-	query.exclude = ignored
-	query.collision_mask = 1
-	query.collide_with_areas = false
-	var obstruction: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
+	_camera_probe.exclude = ignored
+	var space := get_world_3d().direct_space_state
+	var clearance := space.cast_motion(_camera_probe)
+	if clearance[0] < 1.0:
+		return focus + motion * clearance[0]
+	# A sweep ignores a collider overlapping its starting volume. Check
+	# the centreline so an avatar tight against a wall cannot orbit through it.
+	var ray := PhysicsRayQueryParameters3D.create(focus, target, 1, ignored)
+	var obstruction := space.intersect_ray(ray)
 	if obstruction.is_empty():
 		return target
-	# Keep the camera in front of the wall; minimum 0.65m from focus.
 	var hit: Vector3 = obstruction["position"]
-	var safe_distance := maxf(0.65, focus.distance_to(hit) - 0.38)
-	return focus + (target - focus).normalized() * minf(distance, safe_distance)
+	return focus + motion.normalized() * maxf(0.0, focus.distance_to(hit) - 0.30)
 
 func _update_camera(delta: float, teleport: bool = false) -> void:
 	if camera == null or not is_instance_valid(player):
@@ -710,18 +727,19 @@ func _update_camera(delta: float, teleport: bool = false) -> void:
 		camera.global_position = _camera_clearance(shoulder, shoulder + offset)
 		camera.look_at(camera.global_position + forward, Vector3.UP)
 		return
-	var goal := _camera_clearance(focus, _camera_goal())
+	var goal := _camera_goal()
 	var distance_to_goal := camera.global_position.distance_to(goal)
 	# Suppress stale camera positions after a save-load or streaming jump
 	# even when teleport was triggered through another system.
 	if teleport or distance_to_goal > 35.0:
 		if not teleport and distance_to_goal > 35.0:
 			_log_playtest("camera_distance_snap", {"distance_m": snappedf(distance_to_goal, 0.01)})
-		camera.global_position = goal
+		camera.global_position = _camera_clearance(focus, goal)
 	else:
 		var smoothed := camera.global_position.lerp(goal, minf(delta * 7.0, 1.0))
 		camera.global_position = _camera_clearance(focus, smoothed)
-	camera.look_at(focus, Vector3.UP)
+	if camera.global_position.distance_squared_to(focus) > 0.000001:
+		camera.look_at(focus, Vector3.UP)
 
 func _snap_camera() -> void:
 	_update_camera(0.0, true)
@@ -1061,6 +1079,8 @@ func _respawn() -> void:
 		interiors.call("leave")
 	current_transit = null
 	transit_kind = ""
+	_active_station_lift = null
+	_rail_platform_rider = false
 	if current_car != null:
 		current_car.set("occupied", false)
 		current_car = null
@@ -1300,6 +1320,9 @@ func _toggle_transit() -> void:
 		_notify("Park and exit your car before boarding transit.")
 		return
 	if current_transit != null:
+		if transit_kind == "LIFT":
+			_notify("Wait for the lift to reach the landing.")
+			return
 		var exit_pos := Vector3.ZERO
 		if transit_kind == "BUS":
 			if not bool(current_transit.call("is_boardable")):
@@ -1310,11 +1333,19 @@ func _toggle_transit() -> void:
 			if not bool(rail.call("can_alight")):
 				_notify("M-Line is moving. Wait for the next station.")
 				return
-			exit_pos = rail.call("alight_position")
-		_leave_transit(exit_pos)
+			exit_pos = rail.call("alight_position", _rail_platform_rider)
+		_leave_transit(exit_pos, "M-Line platform. Use the lift to return to the street." if _rail_platform_rider else "Back on the street.")
+		return
+	var lift: Node3D = rail.call("lift_at", player.global_position)
+	if lift != null:
+		_active_station_lift = lift
+		lift.call("start", player.global_position)
+		_board_transit(lift.get("carrier"), "LIFT")
+		_notify("M-Line lift called.")
 		return
 	if bool(rail.call("boardable_from", player.global_position)):
 		_board_transit(rail.get_node("MorrowLineTrain"), "TRAIN")
+		_rail_platform_rider = rail.call("on_platform", player.global_position, int(rail.get("current_station")))
 		_notify("M-Line boarded. F to leave at a station.")
 		return
 	var bus: CharacterBody3D = traffic.call("get_boardable_bus", player.global_position)
@@ -1322,7 +1353,7 @@ func _toggle_transit() -> void:
 		_board_transit(bus, "BUS")
 		_notify("City Loop boarded. F to leave at the next stop.")
 		return
-	_notify("Board with F at a marked bus stop or M-Line elevator when a vehicle is stopped.")
+	_notify("Board a stopped vehicle or use a marked M-Line lift.")
 
 func _board_transit(vehicle: Node3D, kind: String) -> void:
 	current_transit = vehicle
@@ -1335,18 +1366,19 @@ func _board_transit(vehicle: Node3D, kind: String) -> void:
 	world_audio.call("play_event", "TRANSIT", vehicle.global_position)
 	_log_playtest("transit_board", {"kind": kind})
 
-func _leave_transit(at: Vector3) -> void:
+func _leave_transit(at: Vector3, message: String = "Back on the street.") -> void:
 	world_audio.call("play_event", "TRANSIT", at)
 	_log_playtest("transit_exit", {"kind": transit_kind, "destination": [at.x, at.y, at.z]})
 	current_transit = null
 	transit_kind = ""
+	_rail_platform_rider = false
 	player.global_position = at
 	player.velocity = Vector3.ZERO
 	player.collision_layer = 1
 	player.collision_mask = 1
 	player.visible = true
 	player.set("driving", false)
-	_notify("Back on the street.")
+	_notify(message)
 
 func _save_game() -> void:
 	if bool(session.call("save_snapshot", _capture_snapshot())):
@@ -1388,15 +1420,20 @@ func _capture_snapshot() -> Dictionary:
 	var aboard_id := ""
 	if transit_kind == "BUS" and current_transit != null:
 		aboard_id = str(current_transit.get("vehicle_id"))
+	# A save during an elevator transfer resumes safely at its destination.
+	var saved_at := player.global_position
+	if _active_station_lift != null:
+		saved_at = _active_station_lift.call("destination")
 	return {
-		"player_position": [player.global_position.x, player.global_position.y, player.global_position.z],
+		"player_position": [saved_at.x, saved_at.y, saved_at.z],
 		"camera_yaw": yaw, "cash": cash, "health": health, "heat": heat,
 		"deliveries": deliveries, "carrying": carrying,
 		"hour": day_night.get("hour"), "cars": stored_cars,
 		"occupied_car": cars.find(current_car),
 		"traffic": traffic.call("snapshot"), "rail": rail.call("snapshot"),
 		"signal_elapsed": signal_controller.get("elapsed"),
-		"transit_kind": transit_kind, "transit_id": aboard_id,
+		"transit_kind": "" if transit_kind == "LIFT" else transit_kind, "transit_id": aboard_id,
+		"rail_platform_rider": _rail_platform_rider,
 		"venue_job_active": venue_job_active, "venue_job_completed": venue_job_completed.duplicate(),
 		"civic_job_active": civic_job_active, "civic_job_completed": civic_job_completed.duplicate(),
 		"civic_intel": civic_intel.duplicate(), "ration_packs": ration_packs,
@@ -1465,6 +1502,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 				_board_transit(bus, "BUS")
 		elif saved_transit == "TRAIN":
 			_board_transit(rail.get_node("MorrowLineTrain"), "TRAIN")
+			_rail_platform_rider = bool(data.get("rail_platform_rider", false))
 	day_night.call("set_hour", float(data.get("hour", 19.25)))
 	venue_system.call("set_hour", float(day_night.get("hour")))
 	civic_services.call("set_hour", float(day_night.get("hour")))
@@ -2200,7 +2238,7 @@ func _update_hud() -> void:
 	if current_car != null:
 		vehicle_text = "DRIVING • %d km/h" % int(current_car.call("speed_kph"))
 	elif current_transit != null:
-		vehicle_text = "M-LINE RIDER" if transit_kind == "TRAIN" else "CITY LOOP RIDER"
+		vehicle_text = {"TRAIN": "M-LINE RIDER", "BUS": "CITY LOOP RIDER", "LIFT": "STATION LIFT"}[transit_kind]
 	var tier: int = Wanted.stars(heat)
 	var wanted_text := "★".repeat(tier) + "☆".repeat(5 - tier)
 	_wanted_label.text = "%s  •  %s" % [wanted.status_text(heat), "%d RESPONSE UNIT%s" % [officers.size(), "" if officers.size() == 1 else "S"]]

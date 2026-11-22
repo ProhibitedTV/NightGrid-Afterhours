@@ -28,6 +28,9 @@ var _siren: AudioStreamPlayer3D
 var speed := 0.0
 var condition := 100.0
 var _impact_cooldown := 0.0
+var _impact_audio: AudioStreamPlayer3D
+var _hard_impact_sound: AudioStreamWAV
+var _carton_impact_sound: AudioStreamWAV
 @onready var hero_visual: Node3D = get_node_or_null("KestrelS6HeroVisual")
 
 func _ready() -> void:
@@ -41,6 +44,14 @@ func _ready() -> void:
 		_siren.unit_size = 8.0
 		_siren.max_distance = 60.0
 		add_child(_siren)
+	else:
+		_hard_impact_sound = Foley.sound("VEHICLE_IMPACT")
+		_carton_impact_sound = Foley.sound("CARTON_IMPACT")
+		_impact_audio = AudioStreamPlayer3D.new()
+		_impact_audio.name = "VehicleImpact"
+		_impact_audio.bus = Mix.EFFECTS
+		_impact_audio.max_distance = 38.0
+		add_child(_impact_audio)
 
 func _physics_process(delta: float) -> void:
 	_impact_cooldown = maxf(0.0, _impact_cooldown - delta)
@@ -100,16 +111,9 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= GRAVITY * delta
 	else:
 		velocity.y = -0.1
+	var incoming := Vector3(velocity.x, 0.0, velocity.z)
 	move_and_slide()
-	if absf(speed) > 8.0:
-		for i in get_slide_collision_count():
-			if get_slide_collision(i).get_normal().y < 0.5:
-				if not is_police and _impact_cooldown <= 0.0:
-					condition = maxf(18.0, condition - 9.0)
-					_impact_cooldown = 1.2
-				speed *= 0.5
-				braking = true
-				break
+	braking = _resolve_contacts(incoming) or braking
 	var warning := is_police and condition > 18.0 and police_destination.is_finite() and police_priority
 	if is_instance_valid(_siren):
 		if warning and not _siren.playing:
@@ -118,6 +122,48 @@ func _physics_process(delta: float) -> void:
 			_siren.stop()
 	if hero_visual != null:
 		hero_visual.call("update_motion", speed, visual_steer, braking, occupied, warning, delta)
+
+func _resolve_contacts(incoming: Vector3) -> bool:
+	var entry_speed := incoming.length()
+	if entry_speed < 0.1:
+		return false
+	var retained := 1.0
+	var hard_closing := 0.0
+	var light_closing := 0.0
+	for i in get_slide_collision_count():
+		var contact := get_slide_collision(i)
+		var normal := contact.get_normal()
+		if absf(normal.y) >= 0.50:
+			continue
+		normal = Vector3(normal.x, 0.0, normal.z).normalized()
+		var closing := -(incoming - contact.get_collider_velocity()).dot(normal)
+		if closing <= 0.2:
+			continue
+		var obstacle := contact.get_collider()
+		if obstacle != null and obstacle.has_method("knock_loose"):
+			if obstacle.call("knock_loose", closing, -normal, contact.get_position()):
+				light_closing = maxf(light_closing, closing)
+				retained = minf(retained, 0.90)
+				continue
+		# A glancing scrape sheds only its into-wall component. A direct
+		# strike loses forward momentum even during the damage cooldown.
+		var incidence := clampf(-incoming.dot(normal) / entry_speed, 0.0, 1.0)
+		retained = minf(retained, sqrt(1.0 - incidence * incidence))
+		hard_closing = maxf(hard_closing, closing)
+	speed *= retained
+	if not is_police:
+		if hard_closing >= 5.0 and _impact_cooldown <= 0.0:
+			take_arcade_damage(clampf((hard_closing - 4.0) * 0.62, 1.0, 20.0))
+			_impact_cooldown = 0.65
+			_play_impact(_hard_impact_sound, hard_closing, 30.0)
+		elif light_closing > 0.0 and not _impact_audio.playing:
+			_play_impact(_carton_impact_sound, light_closing, 18.0)
+	return retained < 0.75
+
+func _play_impact(stream: AudioStreamWAV, closing_speed: float, full_scale: float) -> void:
+	_impact_audio.stream = stream
+	_impact_audio.volume_db = lerpf(-22.0, -5.0, clampf(closing_speed / full_scale, 0.0, 1.0))
+	_impact_audio.play()
 
 func take_arcade_damage(amount: float) -> void:
 	condition = maxf(18.0, condition - maxf(amount, 0.0))

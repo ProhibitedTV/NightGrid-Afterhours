@@ -55,6 +55,12 @@ static func sound(kind: String, variation: int = 0) -> AudioStreamWAV:
 				sample = sin(TAU * (92.0 + 85.0 * t) * t) * exp(-18.0 * t) * 0.095
 				if t >= 0.19:
 					sample += (noise * 0.11 + low_noise * 0.19) * exp(-34.0 * latch_time)
+			"VEHICLE_IMPACT":
+				sample = sin(TAU * (68.0 + 51.0 * exp(-25.0 * t)) * t) * exp(-16.0 * t) * 0.36
+				sample += (noise * 0.16 + low_noise * 0.37) * exp(-21.0 * t)
+			"CARTON_IMPACT":
+				sample = (noise * 0.14 + low_noise * 0.31) * exp(-20.0 * t)
+				sample += sin(TAU * 96.0 * t) * exp(-38.0 * t) * 0.12
 			"TRANSIT":
 				# Short, distinctive two-tone boarding/alighting acknowledgement.
 				sample = 0.095 * sin(TAU * 523.25 * t) * exp(-15.0 * t)

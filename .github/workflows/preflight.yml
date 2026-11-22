@@ -318,5 +318,11 @@ jobs:
         run: godot --headless --path . --script res://tests/cafe_patrons_smoke.gd
       - name: Validate first-playtest club exit, camera obstruction, contact geometry and building fronts
         run: godot --headless --path . --script res://tests/playtest_geometry_smoke.gd
+      - name: Validate Morrow Bay rail, signals, lift, collisions, chase clearance and impacts
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 90s godot --headless --path . --script res://tests/physical_coherence_smoke.gd 2>&1 | tee /tmp/nightgrid-physical-coherence.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-physical-coherence.log; then exit 1; fi
       - name: Run smoke test for 90 frames
         run: godot --headless --path . --quit-after 90
