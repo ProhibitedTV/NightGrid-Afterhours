@@ -8,7 +8,6 @@ const Maps = preload("res://scripts/material_library.gd")
 const CABINET = preload("res://assets/models/polyhaven/utility_box_01/utility_box_01.gltf")
 const TRASH = preload("res://assets/models/polyhaven/metal_trash_can/metal_trash_can.gltf")
 const HVAC = preload("res://assets/models/polyhaven/exterior_aircon_unit/exterior_aircon_unit.gltf")
-const GRIME = preload("res://assets/models/nightgrid/brickwater_alley/alley_weathering.svg")
 const NOTICE = preload("res://assets/models/nightgrid/brickwater_alley/waste_notice.svg")
 const PBR = "res://assets/pbr/polyhaven/"
 const FLOOR_Y = 0.14
@@ -19,7 +18,6 @@ var left_wall := -2.65
 var right_wall := 2.65
 static var _metal: StandardMaterial3D
 static var _lid: StandardMaterial3D
-static var _grime_material: StandardMaterial3D
 static var _notice_material: StandardMaterial3D
 static var _dumpster_mesh: ArrayMesh
 static var _lid_mesh: ArrayMesh
@@ -103,15 +101,7 @@ func _build_floor()->void:
 	var mesh:=PlaneMesh.new()
 	mesh.size=Vector2(hi-lo,END_Z-START_Z)
 	var center:=Vector3((lo+hi)*0.5,FLOOR_Y+0.002,(START_Z+END_Z)*0.5)
-	_view(self,"PhotographicAlleyPavement",mesh,center,SurfacePass.damp_concrete())
-	if _grime_material==null:
-		_grime_material=StandardMaterial3D.new()
-		_grime_material.albedo_texture=GRIME
-		_grime_material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
-		_grime_material.roughness=0.76
-		_grime_material.texture_filter=BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	var stain:=_view(self,"AuthoredWeatheringAtlas",mesh,center+Vector3.UP*0.003,_grime_material)
-	stain.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_view(self,"PhotographicAlleyPavement",mesh,center,SurfacePass.pavement_material())
 
 static func _ring(x:float,z:float,y:float,bevel:float)->PackedVector3Array:
 	return PackedVector3Array([Vector3(-x+bevel,y,-z),Vector3(x-bevel,y,-z),

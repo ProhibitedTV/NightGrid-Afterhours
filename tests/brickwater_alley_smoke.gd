@@ -28,7 +28,7 @@ func _verify()->void:
 	var model:=dumpster.get_node("BeveledSteelBody") as MeshInstance3D
 	if not _check(floor_body.get_child_count()==3 and model.mesh is ArrayMesh and dumpster.get_child_count()>=9,"real floor, shaped art and solid dumpster"):
 		return
-	if not _check((pavement.material_override as StandardMaterial3D).albedo_texture!=null and (model.material_override as StandardMaterial3D).normal_enabled,"photo materials"):
+	if not _check((pavement.material_override as ShaderMaterial).get_shader_parameter("concrete_color")!=null and (model.material_override as StandardMaterial3D).normal_enabled,"photo materials"):
 		return
 	var space:=world.get_world_3d().direct_space_state
 	var x:float=(float(alley.get("left_wall"))+float(alley.get("right_wall")))*0.5
@@ -128,18 +128,33 @@ func _verify()->void:
 	var surface_pass := alley.get_node_or_null("AlleySurfacePass") as Node3D
 	if not _check(surface_pass != null, "local damp surface layer"):
 		return
-	var damp := pavement.material_override as StandardMaterial3D
-	if not _check(damp.clearcoat_enabled and damp.roughness < 0.8 and damp.normal_texture != null, "damp photographic concrete"):
+	var damp := pavement.material_override as ShaderMaterial
+	if not _check(damp != null and damp.shader != null, "opaque wetness shader"):
+		return
+	for parameter in ["concrete_color", "concrete_normal", "concrete_arm", "wetness_atlas", "grime_atlas"]:
+		if not _check(damp.get_shader_parameter(parameter) is Texture2D, "bound photo/mask texture " + parameter):
+			return
+	var wet_mask := damp.get_shader_parameter("wetness_atlas") as Texture2D
+	var pixels := wet_mask.get_image()
+	if pixels.is_compressed():
+		pixels.decompress()
+	var pool := pixels.get_pixel(int(pixels.get_width() * 0.48), int(pixels.get_height() * 0.65)).r
+	var dry_zone := pixels.get_pixel(int(pixels.get_width() * 0.50), int(pixels.get_height() * 0.02)).r
+	if not _check(pool > dry_zone + 0.35, "authored wetness has pooled cores and dry islands"):
 		return
 	var dry := preload("res://scripts/material_library.gd").surface("PHOTO_SIDEWALK", Color("797870"))
-	if not _check(dry != damp and is_equal_approx(dry.roughness, 1.0), "shared dry material unchanged"):
+	if not _check(is_equal_approx(dry.roughness, 1.0), "shared dry material unchanged"):
 		return
-	for item in ["DrainRunoff", "LowPointPuddle", "EntryRunoff"]:
-		var patch := surface_pass.get_node_or_null(item) as MeshInstance3D
-		if not _check(patch != null and patch.mesh is ArrayMesh and absf(patch.position.y - Alley.FLOOR_Y) < 0.02 and patch.get_child_count() == 0, "flush collision-free water " + item):
+	for item in ["WestWallRunoff", "EastWallRunoff", "SwitchyardPaint", "LowlinePaint", "FadedChalkTag"]:
+		var overlay := surface_pass.get_node_or_null(item) as MeshInstance3D
+		if not _check(overlay != null and overlay.has_meta("surface_art") and overlay.get_child_count() == 0, "nonphysical wall art " + item):
 			return
-		var wet := patch.material_override as StandardMaterial3D
-		if not _check(wet.roughness < damp.roughness and wet.metallic == 0.0, "dielectric puddle response"):
+		var paint := overlay.material_override as StandardMaterial3D
+		if not _check(paint.albedo_texture != null and paint.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA and not paint.emission_enabled, "matte painted surface"):
+			return
+		var west: bool = overlay.position.x < x
+		var wall: float = float(alley.get("left_wall")) if west else float(alley.get("right_wall"))
+		if not _check(absf(overlay.position.x - wall) <= 0.025, "paint is wall mounted"):
 			return
 	for item in ["NightShiftRepairs", "JadeLaundry"]:
 		var sign := surface_pass.get_node_or_null(item) as MeshInstance3D
