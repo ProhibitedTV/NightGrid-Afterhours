@@ -46,6 +46,8 @@ jobs:
         run: python tools/test_check_release_gallery.py
       - name: Verify committed real game screenshots
         run: python tools/check_screenshots.py
+      - name: Audit nine pinned Brickwater CC0 source packages
+        run: python tools/check_brickwater_cc0.py
       - name: Verify exact beta.7 capture provenance on the release candidate
         if: github.head_ref == 'release/beta-7-gallery-milestone' || github.ref == 'refs/heads/release/beta-7-gallery-milestone'
         run: |
@@ -56,7 +58,7 @@ jobs:
           python tools/check_release_gallery.py "$capture_sha"
 
   godot-headless:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - uses: chickensoft-games/setup-godot@v2
@@ -242,6 +244,12 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/logical_traffic_smoke.gd 2>&1 | tee /tmp/nightgrid-logical-traffic.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-logical-traffic.log; then exit 1; fi
+      - name: Validate Brickwater alley layout, collision and art
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/brickwater_alley_smoke.gd 2>&1 | tee /tmp/nightgrid-brickwater-alley.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-brickwater-alley.log; then exit 1; fi
       - name: Validate actual photographic masonry on ordinary building shells
         timeout-minutes: 2
         run: |
