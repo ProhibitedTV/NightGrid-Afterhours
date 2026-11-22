@@ -34,10 +34,14 @@ func _run() -> void:
 	root.add_child(world)
 	await process_frame
 	world.get_node("GameMenus").call("hide_for_game")
+	# The scripted camera must ignore desktop mouse motion during native replay.
+	world.set_process_input(false)
 	world.get_node("SurfaceTraffic").process_mode = Node.PROCESS_MODE_DISABLED
 	player = world.get("player")
 	visual = player.get_node("Visual")
 	rig = visual.get("skeleton")
+	world.get("city_details").call("set_focus", START)
+	await _ticks(30)
 	_check_asset()
 	await _check_controls()
 	await _check_jump_and_equipment()
@@ -109,7 +113,9 @@ func _check_controls() -> void:
 		displacement.y = 0.0
 		var expected: Vector3 = (paths[i][1] as Vector3).rotated(Vector3.UP, yaw).normalized()
 		_expect(displacement.length() > 1.1 and expected.dot(displacement.normalized()) > 0.98
-			and visual.global_basis.z.dot(expected) > 0.98, "Camera-relative facing failed for " + str(paths[i][0]))
+			and visual.global_basis.z.dot(expected) > 0.98,
+			"Camera-relative facing failed for %s (movement %s, expected %s, facing %s)" %
+			[str(paths[i][0]), displacement, expected, visual.global_basis.z])
 	player.velocity = Vector3.ZERO
 	var facing := visual.global_basis.z
 	world.set("yaw", 2.764)
@@ -181,9 +187,15 @@ func _check_vehicle_and_save() -> void:
 	player.global_position = car.global_position + Vector3(-1.65, 0.5, -0.43)
 	player.velocity = Vector3.ZERO
 	car.set_meta("claimed", true)
+	var equipment = world.get("weapons")
+	equipment.equip("pulse")
+	await _ticks(2)
+	var prop := rig.get_node("RightHandEquipment/EquippedWeapon") as Node3D
+	_expect(prop.visible, "The equipment prop must be visible before vehicle entry")
 	world.call("_toggle_car")
 	_expect(world.get("current_car") == car and not player.visible and visual.get_parent() == car
 		and visual.get("current_pose") == &"board_car", "Vehicle entry must seat the real rig without changing the player capsule")
+	_expect(not prop.visible, "The seated courier must stow the equipped prop")
 	await _ticks(24)
 	await _capture("vehicle-entry", car.global_position + Vector3(-3.7, 1.35, -1.2),
 		car.global_position + Vector3(-0.6, 0.45, -0.43))
@@ -204,6 +216,10 @@ func _check_vehicle_and_save() -> void:
 	world.call("_toggle_car")
 	_expect(player.visible and visual.get_parent() == player and player.collision_layer == 1
 		and visual.get("current_pose") == &"alight_car", "Car exit must return the same rig and restore the capsule")
+	equipment.equip("pulse")
+	await _ticks(2)
+	_expect(prop.visible, "Re-equipping the same item immediately on exit must restore its prop")
+	equipment.holster()
 	await _ticks(14)
 	await _capture("vehicle-exit", player.global_position + Vector3(2.65, 0.95, -1.80),
 		player.global_position + Vector3(-0.5, 0.1, 0.0))

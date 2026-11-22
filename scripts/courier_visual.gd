@@ -101,6 +101,10 @@ func sit_in_vehicle(car: Node3D, play_entry: bool, ground_y: float) -> void:
 	rotation = Vector3(0.0, PI, 0.0)
 	_seat = true
 	_horizontal = Vector3.ZERO
+	# The combat controller holsters while driving. Forget the last on-foot
+	# pose so re-equipping that item on exit always restores the held prop.
+	_equipment = "holstered"
+	_aiming = false
 	_weapon_display.hide()
 	_action = &"board_car" if play_entry else &""
 	_entry_ground_y = ground_y
