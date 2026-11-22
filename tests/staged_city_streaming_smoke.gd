@@ -10,12 +10,13 @@ func _fail(reason: String) -> void:
 	quit(1)
 
 func _geometry_signature(chunk: Node3D) -> Dictionary:
-	var result := {"solid": 0, "mesh": 0, "instances": 0, "signs": 0, "façades": 0}
+	var result := {"solid": 0, "dumpsters": 0, "mesh": 0, "instances": 0, "signs": 0, "façades": 0}
 	var pending: Array[Node] = [chunk]
 	while not pending.is_empty():
 		var node: Node = pending.pop_back()
 		if node is StaticBody3D:
-			result["solid"] += 1
+			var count_key := "dumpsters" if node.name == &"AlleyDumpster" else "solid"
+			result[count_key] += 1
 		elif node is MeshInstance3D:
 			result["mesh"] += 1
 		elif node.name == "VisualBatches" and node.has_method("get_batch_stats"):
@@ -77,6 +78,11 @@ func _verify() -> void:
 	if shells != 2:
 		_fail("Both building colliders must exist before decorative mesh stages")
 		return
+	var dumpster := partial.get_node_or_null("StreetPropCollision/AlleyDumpster") as StaticBody3D
+	if (dumpster == null or dumpster.find_children("*", "CollisionShape3D", false, false).size() != 2
+			or dumpster.find_children("*", "MeshInstance3D", false, false).size() != 3):
+		_fail("The alley dumpster must appear with its matching collision in the first phase")
+		return
 	var after_first: Dictionary = city.call("get_streaming_stats")
 	if int(after_first["stage_steps"]) != int(before["stage_steps"]) + 1 or int(after_first["loads"]) != int(before["loads"]):
 		_fail("One stage advanced multiple completed chunk builds")
@@ -103,8 +109,8 @@ func _verify() -> void:
 		_fail("A forced arrival duplicated the staged colliders instead of completing them")
 		return
 	var before_reload := _geometry_signature(original)
-	if int(before_reload["solid"]) != 2 or int(before_reload["instances"]) < 40:
-		_fail("Completed staged lot lost its solid buildings or visual material batches: " + str(before_reload))
+	if int(before_reload["solid"]) != 2 or int(before_reload["dumpsters"]) != 1 or int(before_reload["instances"]) < 40:
+		_fail("Completed staged lot lost its solid buildings, alley dumpster or visual material batches: " + str(before_reload))
 		return
 
 	city.call("set_focus", Vector3(-203.0, 0.0, -203.0))

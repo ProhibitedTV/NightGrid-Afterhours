@@ -42,15 +42,30 @@ func _capture() -> void:
 		camera.look_at(shot[3])
 		for frame in range(100):
 			await RenderingServer.frame_post_draw
-		var pixels := root.get_texture().get_image()
-		var path := output.path_join(shot[0] + ".png")
-		if pixels == null or pixels.is_empty() or pixels.save_png(path) != OK:
-			push_error("Could not capture " + path)
+		if not _save_frame(output, manifest, shot[0], camera, shot[3], shot[4]):
 			quit(1)
 			return
-		manifest.append({"file": shot[0] + ".png", "sha256": FileAccess.get_sha256(path),
-			"resolution": [pixels.get_width(), pixels.get_height()], "camera": str(shot[2]),
-			"look": str(shot[3]), "hour": shot[4], "fov": camera.fov})
+	var car: CharacterBody3D = world.get("cars")[0]
+	car.global_position = Vector3(203.0, 0.65, 38.0)
+	car.rotation = Vector3.ZERO
+	car.velocity = Vector3.ZERO
+	car.set("speed", 0.0)
+	car.set_meta("claimed", true)
+	player.global_position = car.global_position + Vector3.RIGHT * 2.6
+	city.call("set_focus", car.global_position)
+	clock.call("set_hour", 2.02)
+	world.call("_toggle_car")
+	for frame in range(10):
+		await physics_frame
+	world.set("yaw", 0.0)
+	world.set("pitch", 0.58)
+	world.call("_snap_camera")
+	for frame in range(60):
+		await RenderingServer.frame_post_draw
+	if world.get("current_car") != car or not _save_frame(output, manifest, "horizon-gameplay-camera",
+			camera, world.call("_camera_focus"), 2.02):
+		quit(1)
+		return
 	var file := FileAccess.open(output.path_join("manifest.json"), FileAccess.WRITE)
 	if file == null:
 		quit(1)
@@ -61,3 +76,15 @@ func _capture() -> void:
 	file.close()
 	print("PHYSICAL_COHERENCE_CAPTURE_PASS")
 	quit()
+
+func _save_frame(output: String, manifest: Array[Dictionary], name: String, camera: Camera3D,
+		look: Vector3, hour: float) -> bool:
+	var pixels := root.get_texture().get_image()
+	var path := output.path_join(name + ".png")
+	if pixels == null or pixels.is_empty() or pixels.save_png(path) != OK:
+		push_error("Could not capture " + path)
+		return false
+	manifest.append({"file": name + ".png", "sha256": FileAccess.get_sha256(path),
+		"resolution": [pixels.get_width(), pixels.get_height()], "camera": str(camera.global_position),
+		"look": str(look), "hour": hour, "fov": camera.fov})
+	return true
