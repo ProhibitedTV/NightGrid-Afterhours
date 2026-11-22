@@ -125,4 +125,4 @@ func _canopy(label: String, wall: float, z: float, yaw: float) -> void:
 			braces.set_uv(Vector2(p.z,p.y+0.32))
 			braces.add_vertex(p)
 	_view(body,"WallMountedGussets",_finish(braces),_steel())
-	_collider(body,Vector3(0,-0.10,0.46),Vector3(1.94,0.25,0.92))
+	_collider(body,Vector3(0,-0.14,0.46),Vector3(1.94,0.35,0.92))

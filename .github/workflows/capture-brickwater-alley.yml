@@ -1,0 +1,89 @@
+name: Capture actual revamped Brickwater alley
+on:
+  push:
+    branches: [art/brickwater-authored-service-props]
+    paths:
+      - tools/capture_brickwater_alley.gd
+      - scripts/brickwater*.gd
+      - scripts/shaders/brickwater*.gdshader
+      - assets/models/nightgrid/brickwater_alley/**
+      - .github/workflows/capture-brickwater-alley.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  capture:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Install real graphical software renderer and offline radio tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb xauth libgl1-mesa-dri libgl1 libx11-6 libxext6 libxrandr2 mesa-utils espeak-ng
+          python3 tools/generate_mbpd_radio.py
+      - name: Import actual game assets
+        run: |
+          set -o pipefail
+          godot --headless --path . --import --quit 2>&1 | tee /tmp/brickwater-capture-import.log
+          ! grep -q 'SCRIPT ERROR:' /tmp/brickwater-capture-import.log
+      - name: Capture seven genuine in-engine frames
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          MESA_GL_VERSION_OVERRIDE: '3.3'
+        run: |
+          set -o pipefail
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --display-driver x11 --rendering-driver opengl3 --rendering-method gl_compatibility --resolution 1280x720 --script res://tools/capture_brickwater_alley.gd 2>&1 | tee /tmp/brickwater-capture.log
+          ! grep -q 'SCRIPT ERROR:' /tmp/brickwater-capture.log
+          grep -q 'BRICKWATER_CAPTURE PASS:' /tmp/brickwater-capture.log
+      - name: Validate source revision, camera metadata and PNG bytes
+        run: |
+          python3 - <<'PY'
+          import json, struct, hashlib, os
+          from pathlib import Path
+          folder = Path('exports/brickwater_review')
+          manifest = json.loads((folder/'camera-manifest.json').read_text())
+          assert len(manifest['shots']) == 7
+          assert manifest['renderer'] == 'gl_compatibility', manifest
+          manifest['source_revision'] = os.environ['GITHUB_SHA']
+          manifest['quality_note'] = 'Actual Godot software OpenGL; not Windows Forward+ or RTX performance evidence.'
+          for shot in manifest['shots']:
+              data = (folder/shot['file']).read_bytes()
+              assert data[:8] == bytes.fromhex('89504e470d0a1a0a')
+              assert struct.unpack('>II',data[16:24]) == (1280,720)
+              assert len(data) > 16000
+              shot['sha256'] = hashlib.sha256(data).hexdigest()
+              shot['bytes'] = len(data)
+              print(shot['file'],len(data))
+          assert len(list(folder.glob('*.png'))) == 7
+          (folder/'camera-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: brickwater-actual-gameplay-opengl
+          path: exports/brickwater_review/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Publish verified images on feature branch only
+        if: ${{ github.event_name == 'push' && github.ref_name == 'art/brickwater-authored-service-props' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p "$RUNNER_TEMP/brickwater-frames"
+          cp exports/brickwater_review/* "$RUNNER_TEMP/brickwater-frames/"
+          git fetch origin "$GITHUB_REF_NAME"
+          if ! git diff --quiet "$GITHUB_SHA" "origin/$GITHUB_REF_NAME" -- project.godot scripts scenes assets tools/capture_brickwater_alley.gd; then
+            echo "Captured source changed; keeping the versioned artifact, not publishing stale screenshots"
+            exit 0
+          fi
+          git reset --hard "origin/$GITHUB_REF_NAME"
+          mkdir -p docs/art/brickwater-review
+          cp "$RUNNER_TEMP/brickwater-frames/"* docs/art/brickwater-review/
+          git add docs/art/brickwater-review/
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "docs(art): actual Brickwater alley framebuffer gallery"
+          git push origin "HEAD:$GITHUB_REF_NAME"

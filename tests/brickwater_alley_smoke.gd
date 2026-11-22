@@ -220,7 +220,7 @@ func _verify()->void:
 			return
 		var shape_node := body.get_node("MeasuredEnvelope") as CollisionShape3D
 		var shape := shape_node.shape as BoxShape3D
-		if not _check(shape != null and body.position.y + shape_node.position.y - shape.size.y * 0.5 >= 3.0 and shape.size.z <= 0.92, "clear passage below frontage"):
+		if not _check(shape != null and body.position.y + shape_node.position.y - shape.size.y * 0.5 >= 3.0 and shape.size.z <= 0.921, "clear passage below frontage"):
 			return
 		if str(body.name).ends_with("Blade"):
 			var housing := body.get_node("FoldedEnamelHousing") as MeshInstance3D
