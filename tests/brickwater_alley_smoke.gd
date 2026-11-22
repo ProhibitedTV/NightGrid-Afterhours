@@ -255,5 +255,39 @@ func _verify()->void:
 	var neighbor_hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(neighbor_center + Vector3(neighbor_middle,2,-5),neighbor_center + Vector3(neighbor_middle,-0.3,-5),1))
 	if not _check(not neighbor_hit.is_empty(), "existing neighboring ground collision preserved"):
 		return
+	# Both blocks share a bounded palette of independent glass overrides.
+	# No source material or mesh is mutated; day/night changes only copies.
+	city.call("set_night_factor", 1.0)
+	var occupancy_counts := [0, 0, 0]
+	var occupied_materials: Dictionary = {}
+	for assembly in [architecture, neighbor]:
+		for label in ["WestApartmentFront", "EastApartmentFront"]:
+			var facade: Node3D = assembly.get_node(label)
+			for child in facade.get_children():
+				var window := child as MeshInstance3D
+				if not window.has_meta("occupancy_state"):
+					continue
+				var state: int = window.get_meta("occupancy_state")
+				var surface: int = window.get_meta("glazing_surface")
+				occupancy_counts[state] += 1
+				var source := window.mesh.surface_get_material(surface) as StandardMaterial3D
+				var override := window.get_surface_override_material(surface) as StandardMaterial3D
+				if not _check(source.resource_name.to_lower().contains("glass") and window.get_surface_override_material(0) == null, "only glazing may be overridden"):
+					return
+				if state == 0:
+					if not _check(override == null, "unoccupied windows retain original glass"):
+						return
+				else:
+					if not _check(override != null and override != source and override.emission_enabled and override.emission_energy_multiplier > 0.3 and override.albedo_texture == source.albedo_texture, "nighttime occupied glass copy"):
+						return
+					occupied_materials[override.get_instance_id()] = override
+	if not _check(occupancy_counts[0] > 0 and occupancy_counts[1] > 0 and occupancy_counts[2] > 0 and occupancy_counts[0] + occupancy_counts[1] + occupancy_counts[2] == 36, "mixed deterministic apartment occupancy"):
+		return
+	if not _check(occupied_materials.size() <= 2, "shared glass palette"):
+		return
+	city.call("set_night_factor", 0.0)
+	for material in occupied_materials.values():
+		if not _check(is_zero_approx(material.emission_energy_multiplier), "occupied windows cease emitting in daylight"):
+			return
 	print("BRICKWATER_ALLEY_SMOKE PASS: physical floor, authored ground props, upper facade, cable trunks, overhead escape")
 	quit(0)

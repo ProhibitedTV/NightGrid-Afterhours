@@ -473,6 +473,7 @@ func get_nearby_landmark(position: Vector3) -> String:
 	return WorldPlan.nearby_landmark(position)
 
 func set_night_factor(value: float) -> void:
+	BrickwaterArchitecture.set_window_night_factor(value)
 	# Static shared emissive materials change with the time controller.
 	var brightness := 2.35 * smoothstep(0.42, 0.78, clampf(value, 0.0, 1.0))
 	for key in _palette:

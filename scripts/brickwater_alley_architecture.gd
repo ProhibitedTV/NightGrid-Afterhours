@@ -12,6 +12,8 @@ const LEVELS = 2
 const MIN_Z = -12.0
 const MAX_Z = 3.0
 static var _meshes: Dictionary = {}
+static var _window_materials: Dictionary = {}
+static var _night_factor: float = 0.0
 var left_wall: float
 var right_wall: float
 var residential_only: bool = false
@@ -42,7 +44,8 @@ func _ready() -> void:
 				var variant: String = ["centered_large_02", "centered_double_02", "centered_small_03", "centered_large_03", "offset_small_03"][(bay + level * 2 + (1 if side == 1 else 0) + (2 if residential_only else 0)) % 5]
 				var at := Vector3(0, y, z)
 				_place(facade, "PlasterBay", FACADE, "wall_window_" + variant, at, Basis(Vector3.UP, yaw))
-				_place(facade, "RecessedWindow", FACADE, "window_" + variant, at, Basis(Vector3.UP, yaw))
+				var window := _place(facade, "RecessedWindow", FACADE, "window_" + variant, at, Basis(Vector3.UP, yaw))
+				_apply_occupancy(window, variant, int(side), level, bay)
 				_place(facade, "Cornice", FACADE, "cornice_standard_standard_01", at + Vector3.UP * 2.8, Basis(Vector3.UP, yaw))
 		# Cable trunks below the facade, along the original wall, with
 		# source junction boxes and clips rather than floating wires.
@@ -205,3 +208,47 @@ func _cable_mesh(a: Vector3, b: Vector3, sag: float) -> ArrayMesh:
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	return mesh
+
+static func set_window_night_factor(value: float) -> void:
+	# City clock drives shared surface-only copies. No per-window process
+	# callbacks, dynamic lights or changes to the imported source material.
+	_night_factor = clampf(value, 0.0, 1.0)
+	for key in _window_materials:
+		var material: StandardMaterial3D = _window_materials[key]
+		var state: int = int(material.get_meta("occupancy_state"))
+		material.emission_energy_multiplier = _occupancy_energy(state)
+
+static func _occupancy_energy(state: int) -> float:
+	var intensity := smoothstep(0.30, 0.85, _night_factor)
+	return (0.65 if state == 1 else 0.35) * intensity
+
+func _apply_occupancy(view: MeshInstance3D, variant: String, side: int, level: int, bay: int) -> void:
+	# The pinned source glTF contains separate glass primitives: index 2
+	# on centered_small_03 and index 1 on the other four selected variants.
+	# Source frame/trim materials remain unchanged.
+	var surface := 2 if variant == "centered_small_03" else 1
+	var original := view.mesh.surface_get_material(surface) as StandardMaterial3D
+	if original == null or not original.resource_name.to_lower().contains("glass"):
+		push_error("Unexpected Brickwater glazing material: " + variant)
+		return
+	# Fixed asymmetric composition; no runtime randomness or save mutation.
+	var selector := posmod(bay * 7 + level * 3 + (2 if side == 1 else 0) + (3 if residential_only else 0), 7)
+	# Avoid a regular alternating pattern: the bay term must vary modulo 7.
+	selector = posmod(selector + bay * bay + bay * 2, 7)
+	var state := 1 if selector in [0, 3] else (2 if selector == 5 else 0)
+	view.set_meta("occupancy_state", state)
+	view.set_meta("glazing_surface", surface)
+	if state == 0:
+		return
+	var key := "%s:%d" % [str(original.get_instance_id()), state]
+	if not _window_materials.has(key):
+		var glass := original.duplicate() as StandardMaterial3D
+		glass.resource_name = "BrickwaterWarmOccupiedGlass" if state == 1 else "BrickwaterCoolOccupiedGlass"
+		glass.set_meta("occupancy_state", state)
+		glass.emission_enabled = true
+		glass.emission = Color("e7b987") if state == 1 else Color("91b8ba")
+		glass.emission_energy_multiplier = _occupancy_energy(state)
+		# Keep the imported albedo/normal/roughness and glass alpha behavior.
+		# This is an illuminated surface, not a modeled room or a light source.
+		_window_materials[key] = glass
+	view.set_surface_override_material(surface, _window_materials[key])
