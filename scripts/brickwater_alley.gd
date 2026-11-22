@@ -1,6 +1,7 @@
 extends Node3D
 ## Fixed first service-alley vertical slice, at the existing two-building parcel.
 const PILOT_BLOCK = Vector2i(-2,1)
+const Atmosphere = preload("res://scripts/brickwater_atmosphere.gd")
 const SurfacePass = preload("res://scripts/brickwater_surface_pass.gd")
 const Architecture = preload("res://scripts/brickwater_alley_architecture.gd")
 const ServiceProps = preload("res://scripts/brickwater_service_props.gd")
@@ -45,6 +46,10 @@ func _ready()->void:
 	surfaces.name = "AlleySurfacePass"
 	surfaces.configure(left_wall, right_wall, FLOOR_Y)
 	add_child(surfaces)
+	var atmosphere := Atmosphere.new()
+	atmosphere.name = "StreetAtmosphere"
+	atmosphere.configure(left_wall, right_wall, FLOOR_Y)
+	add_child(atmosphere)
 
 func _view(parent:Node3D, label:String, mesh:Mesh, at:Vector3, material:Material)->MeshInstance3D:
 	var node:=MeshInstance3D.new()

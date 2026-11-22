@@ -160,5 +160,29 @@ func _verify()->void:
 		var sign := surface_pass.get_node_or_null(item) as MeshInstance3D
 		if not _check(sign != null and (sign.material_override as StandardMaterial3D).emission_enabled, "original mounted sign " + item):
 			return
+	var atmosphere := alley.get_node_or_null("StreetAtmosphere") as Node3D
+	if not _check(atmosphere != null, "local atmosphere layer"):
+		return
+	var steam := atmosphere.get_node_or_null("DrainSteam") as CPUParticles3D
+	if not _check(steam != null and steam.amount <= 14 and steam.visibility_range_end <= 24.0 and steam.mesh != null, "bounded drain vapor"):
+		return
+	var drain := alley.get_node("FlushDrainCover") as MeshInstance3D
+	if not _check(Vector2(steam.position.x, steam.position.z).distance_to(Vector2(drain.position.x, drain.position.z)) < 0.01, "steam is anchored to drain"):
+		return
+	var papers := 0
+	var lights := 0
+	for child in atmosphere.get_children():
+		if child.has_meta("street_litter"):
+			var paper := child as MeshInstance3D
+			if not _check(paper != null and paper.mesh is ArrayMesh and absf(paper.position.y - Alley.FLOOR_Y) < 0.02 and absf(paper.position.x - x) > 1.0, "folded wall-side litter"):
+				return
+			papers += 1
+		if child is OmniLight3D:
+			var light := child as OmniLight3D
+			if not _check(not light.shadow_enabled and light.omni_range <= 3.2 and light.light_energy <= 0.35, "bounded sign light"):
+				return
+			lights += 1
+	if not _check(papers == 4 and lights == 2, "limited atmosphere dressing budget"):
+		return
 	print("BRICKWATER_ALLEY_SMOKE PASS: physical floor, authored ground props, upper facade, cable trunks, overhead escape")
 	quit(0)
