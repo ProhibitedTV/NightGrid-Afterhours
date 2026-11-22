@@ -254,5 +254,13 @@ func _check_envelope() -> void:
 	measurements["warehouse_normals"] = [str(normals[0]), str(walls[0])]
 	_expect(normals[0].dot(Vector3.UP) > 0.999 and walls[0].dot(Vector3.FORWARD) > 0.999,
 		"Pier Storage's roof and front must be outward-facing")
-	var alley := _ray(Vector3(-203, 0.65, -21.0), Vector3(-203, 0.65, -17.0))
-	_expect(alley != null and alley.name == &"AlleyDumpster", "The West Docks alley dumpster must be solid")
+	var dumpster := facade.get_parent().get_node_or_null("StreetPropCollision/AlleyDumpster") as StaticBody3D
+	if dumpster == null:
+		_expect(false, "Missing the West Docks alley dumpster")
+		return
+	var center := dumpster.global_position + Vector3.UP * 0.50
+	_expect(_ray(center - Vector3.BACK * 2.0, center + Vector3.BACK * 2.0) == dumpster,
+		"The West Docks alley dumpster must be solid")
+	var passage := center + Vector3.RIGHT * 1.95
+	_expect(_ray(passage - Vector3.BACK * 2.0, passage + Vector3.BACK * 2.0) == null,
+		"The solid dumpster must leave a clear passage next to the building")

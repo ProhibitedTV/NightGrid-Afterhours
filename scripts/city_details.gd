@@ -432,9 +432,13 @@ func _run_build_stage(block: Vector2i) -> bool:
 				if block == BrickwaterAlley.PILOT_BLOCK:
 					_build_brickwater_alley(block.x, block.y)
 				else:
-					var alley_center := Vector3((float(block.x) + 0.5) * CELL, 0.15,
+					var left_lot := _block_lot_profile(block.x, block.y, 0)
+					# Dock the dumpster alongside the lot, leaving a single
+					# continuous pedestrian lane through even the narrow parcels.
+					var dock_offset := -10.5 + float(left_lot["width"]) * 0.5 + DUMPSTER_LID.x * 0.5 + 0.08
+					var service_dock := Vector3((float(block.x) + 0.5) * CELL + dock_offset, 0.15,
 						(float(block.y) + 0.5) * CELL + 10.0)
-					_build_dumpster(alley_center)
+					_build_dumpster(service_dock)
 				if profiled:
 					StreamProfile.end(collision_started, "shell_creation_and_registration", str(block))
 			work["phase"] = 1
@@ -815,7 +819,9 @@ func _build_landmark(center: Vector3, name: String) -> void:
 			for x in [-8.0, 8.0]:
 				_solid(center + Vector3(x, 2.70, 11.0), Vector3(0.40, 5.0, 0.40), Color("729d9a"))
 			_solid(center + Vector3(0.0, 5.4, 11.0), Vector3(22.0, 0.45, 8.5), Color("4b7176"), "METAL")
-			_detail(center + Vector3(0.0, 4.6, 6.8), Vector3(4.0, 0.16, 0.16), Color("e4fae2"), true)
+			_detail(center + Vector3(0.0, 5.12, 7.05), Vector3(4.08, 0.13, 0.22),
+				Color("415355"), false, "METAL")
+			_detail(center + Vector3(0.0, 5.035, 7.05), Vector3(4.0, 0.045, 0.15), Color("e4fae2"), true)
 			_label("HORIZON COMMONS", center + Vector3(0.0, 5.8, 15.4), label_color, 54)
 		"SOUTHWORKS HALL":
 			label_color = Color("ebc38c")
