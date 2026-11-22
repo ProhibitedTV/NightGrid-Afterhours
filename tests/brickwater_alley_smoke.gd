@@ -82,5 +82,24 @@ func _verify()->void:
 			var wall_hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(at + inward * 0.04, at - inward * 0.10, 1))
 			if not _check(not wall_hit.is_empty() and absf(float(wall_hit["position"].x) - (alley.global_position.x + expected_wall)) < 0.025, "wall behind artwork, not floating or crossing a corner"):
 				return
+	var gold := alley.get_node_or_null("BrickwaterGoldArt") as Node3D
+	if not _check(gold != null and gold.get_child_count()==24,"curated authored art layer (no asset display scenes)"):
+		return
+	var lit := 0
+	for item in gold.get_children():
+		var view := item.get_node_or_null("AuthoredMesh") as MeshInstance3D
+		if not _check(view != null and view.mesh is ArrayMesh and view.mesh.get_surface_count()>0,"actual imported geometry "+str(item.name)):
+			return
+		if item.get_node_or_null("PracticalAmber") is OmniLight3D:
+			lit += 1
+		if item is StaticBody3D:
+			var shape := item.get_child(1) as CollisionShape3D
+			if not _check(shape != null and shape.shape is BoxShape3D,"reachable authored art collision"):
+				return
+			var bounds := view.mesh.get_aabb()
+			if not _check((shape.shape as BoxShape3D).size.is_equal_approx(bounds.size*view.scale),"collider matches authored asset bounds"):
+				return
+	if not _check(lit==2,"two physically located practical light sources"):
+		return
 	print("BRICKWATER_ALLEY_SMOKE PASS: physical floor, closed model, photo materials, clear path")
 	quit(0)

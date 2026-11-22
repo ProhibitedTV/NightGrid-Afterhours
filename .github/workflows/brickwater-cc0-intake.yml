@@ -1,0 +1,33 @@
+name: Brickwater CC0 asset intake
+on:
+  push:
+    branches: [art/brickwater-cc0-intake]
+    paths:
+      - 'tools/brickwater_cc0_intake.json'
+      - 'tools/intake_brickwater_cc0.py'
+      - 'tools/import_polyhaven_urban_props.py'
+      - '.github/workflows/brickwater-cc0-intake.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  intake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        batch: [architecture, utilities, clutter]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Acquire and verify original files
+        run: python tools/intake_brickwater_cc0.py --batch ${{ matrix.batch }} --out "$RUNNER_TEMP/brickwater-${{ matrix.batch }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: brickwater-cc0-${{ matrix.batch }}
+          path: ${{ runner.temp }}/brickwater-${{ matrix.batch }}
+          if-no-files-found: error
+          retention-days: 14
