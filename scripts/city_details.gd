@@ -46,6 +46,7 @@ const ROAD_PAINT = Color("b9b8aa")
 const DARK_GLASS = Color("1d3449")
 
 var _rng := RandomNumberGenerator.new()
+var _detail_unit_mesh := BoxMesh.new()
 var _batches: Dictionary = {}
 var _palette: Dictionary = {}
 var _statistics := {"buildings": 0, "storefronts": 0, "street_props": 0, "batched_details": 0, "districts": 8, "landmarks": 0, "authored_lots": 0, "variant_lots": 0}
@@ -102,6 +103,7 @@ func generate() -> void:
 		return
 	_initialized = true
 	_rng.seed = int(SEED) ^ world_seed
+	_detail_unit_mesh.size = Vector3.ONE
 	# Roads, intersection controls and skyline are global; occupied blocks
 	# allocate collisions and facade MultiMeshes only when nearby.
 	_build_road_language()
@@ -465,10 +467,8 @@ func _run_build_stage(block: Vector2i) -> bool:
 				work["flush_keys"] = keys
 			var cursor: int = int(work["flush_cursor"])
 			var end: int = mini(cursor + STREAM_BATCHES_PER_STAGE, keys.size())
-			var unit_mesh := BoxMesh.new()
-			unit_mesh.size = Vector3.ONE
 			for index in range(cursor, end):
-				_flush_instance_key(str(keys[index]), unit_mesh)
+				_flush_instance_key(str(keys[index]))
 			work["flush_cursor"] = end
 			finished = end >= keys.size()
 	_active_chunk = null
@@ -564,14 +564,14 @@ func _solid(at: Vector3, size: Vector3, color: Color, surface_kind: String = "CO
 	body.add_child(visual)
 	(_active_chunk if _active_chunk != null else self).add_child(body)
 
-func _flush_instance_key(key: String, unit_mesh: BoxMesh) -> void:
+func _flush_instance_key(key: String) -> void:
 	var transforms: Array = _batches.get(key, [])
 	if transforms.is_empty():
 		_batches.erase(key)
 		return
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
-	multimesh.mesh = unit_mesh
+	multimesh.mesh = _detail_unit_mesh
 	multimesh.instance_count = transforms.size()
 	for index in range(transforms.size()):
 		multimesh.set_instance_transform(index, transforms[index])
@@ -591,10 +591,8 @@ func _flush_instance_key(key: String, unit_mesh: BoxMesh) -> void:
 	_batches.erase(key)
 
 func _flush_instances() -> void:
-	var unit_mesh := BoxMesh.new()
-	unit_mesh.size = Vector3.ONE
 	for key in _batches.keys():
-		_flush_instance_key(str(key), unit_mesh)
+		_flush_instance_key(str(key))
 
 func _build_road_language() -> void:
 	for road_index in range(-GRID_RADIUS, GRID_RADIUS + 1):

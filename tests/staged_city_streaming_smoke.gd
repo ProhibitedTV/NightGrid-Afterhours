@@ -138,5 +138,31 @@ func _verify() -> void:
 	if int(session.get("world_seed")) != old_seed or WorldPlan.manifest_signature(session.call("get_world_manifest")) != signature:
 		_fail("Staged loading mutated save seed or authored world manifest")
 		return
-	print("STAGED_CITY_SMOKE PASS: early physical shells, bounded stage progress, no duplicates, cancellation and deterministic reload")
+	# Exercise the save encoder, disk reader and actual world restore while a
+	# previous district still has speculative work queued. Use a test-only slot.
+	world.set_process(false)
+	var player: CharacterBody3D = world.get("player")
+	var path := "user://tests/staged_city_streaming_restore.json"
+	var disk_signature := WorldPlan.manifest_signature(JSON.parse_string(JSON.stringify(old_manifest)))
+	for at in [Vector3(-86.8, 1.15, 81), Vector3(3.35, 1.15, 203), Vector3(3.35, 1.15, -145)]:
+		player.global_position = at
+		if not session.call("save_snapshot_to", world.call("_capture_snapshot"), path):
+			_fail("Could not write the traversal save fixture")
+			return
+		var data: Dictionary = session.call("read_snapshot_from", path)
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+		if int(data.get("version", -1)) != 1 or int(data.get("seed", -1)) != old_seed:
+			_fail("Repeated traversal save lost its v1 layout or world seed")
+			return
+		city.call("request_focus", -at, Vector3(0, 0, 36.0))
+		world.call("_apply_snapshot", data)
+		var occupied := Vector2i(floori(at.x / WorldPlan.BLOCK_SIZE), floori(at.z / WorldPlan.BLOCK_SIZE))
+		if not player.global_position.is_equal_approx(at) or occupied not in city.call("get_loaded_blocks"):
+			_fail("Restore did not rebuild the occupied district before returning control")
+			return
+		if WorldPlan.manifest_signature(data["world_manifest"]) != disk_signature:
+			_fail("Exterior save/restore changed the seeded parcel layout")
+			return
+		await process_frame
+	print("STAGED_CITY_SMOKE PASS: early shells, stage progress, cancellation and three deterministic exterior restores")
 	quit(0)

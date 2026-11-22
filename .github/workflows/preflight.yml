@@ -75,6 +75,8 @@ jobs:
           set -o pipefail
           godot --headless --path . --import --quit 2>&1 | tee /tmp/nightgrid-import.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-import.log; then exit 1; fi
+      - name: Verify the baked city textures match the original generator byte for byte
+        run: godot --headless --path . --script res://tools/bake_city_material_maps.gd -- --verify
       - name: Validate deterministic road routes, intersection turns and off-road access
         timeout-minutes: 2
         run: timeout 75s godot --headless --path . --script res://tests/street_route_smoke.gd
