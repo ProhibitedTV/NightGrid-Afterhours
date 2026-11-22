@@ -8,7 +8,11 @@ const ACCEL = 24.0
 const GRAVITY = 24.0
 
 var camera_yaw := 0.0
-var driving := false
+var driving := false:
+	set(value):
+		driving = value
+		if not driving and is_instance_valid(visual) and visual.get_parent() != self:
+			visual.call("return_to_player", self)
 var input_blocked := false
 var weapon_aiming := false
 var visual: Node3D
@@ -29,13 +33,14 @@ func _physics_process(delta: float) -> void:
 		return
 	var axes := Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
 	var move_direction := Vector3(axes.x, 0.0, axes.y).rotated(Vector3.UP, camera_yaw)
-	var speed := RUN_SPEED if Input.is_action_pressed("sprint") else WALK_SPEED
-	if visual != null and visual.has_method("set_locomotion"):
-		visual.call("set_locomotion", move_direction.length() * speed)
+	var sprinting := Input.is_action_pressed("sprint")
+	var speed := RUN_SPEED if sprinting else WALK_SPEED
 	velocity.x = move_toward(velocity.x, move_direction.x * speed, ACCEL * delta)
 	velocity.z = move_toward(velocity.z, move_direction.z * speed, ACCEL * delta)
-	if is_on_floor():
-		if Input.is_action_just_pressed("jump"):
+	var was_grounded := is_on_floor()
+	var jumped := was_grounded and Input.is_action_just_pressed("jump")
+	if was_grounded:
+		if jumped:
 			velocity.y = JUMP_SPEED
 	else:
 		velocity.y -= GRAVITY * delta
@@ -46,3 +51,18 @@ func _physics_process(delta: float) -> void:
 	elif visual != null and move_direction.length_squared() > 0.01:
 		visual.rotation.y = lerp_angle(visual.rotation.y, visual_yaw_for_motion(move_direction), minf(delta * 12.0, 1.0))
 	move_and_slide()
+	if visual != null and visual.has_method("update_motion"):
+		var local_velocity := visual.global_basis.inverse() * get_real_velocity()
+		visual.call("update_motion", local_velocity, is_on_floor(), jumped, not was_grounded and is_on_floor(), sprinting)
+
+func show_vehicle_rider(vehicle: Node3D, offer_entry: bool) -> void:
+	if visual == null or not visual.has_method("sit_in_vehicle"):
+		return
+	var at := vehicle.to_local(global_position)
+	var at_driver_side := at.x < -1.0 and at.x > -2.4 and absf(at.z + 0.43) < 0.9
+	var local_boot_y := vehicle.to_local(visual.global_position).y
+	visual.call("sit_in_vehicle", vehicle, offer_entry and at_driver_side, local_boot_y)
+
+func play_visual_action(clip: StringName) -> void:
+	if not driving and is_instance_valid(visual):
+		visual.call("play_action", clip)

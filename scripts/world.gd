@@ -2,7 +2,7 @@ extends Node3D
 ## NIGHTGRID: AFTERHOURS — a generated 3D city with an original courier/crime loop.
 
 const PlayerScript = preload("res://scripts/player.gd")
-const HumanoidVisualScript = preload("res://scripts/humanoid_visual.gd")
+const CourierVisual = preload("res://scripts/courier_visual.gd")
 const CarScript = preload("res://scripts/car.gd")
 const KestrelVisual = preload("res://scripts/kestrel_s6_visual.gd")
 const MinimapScript = preload("res://scripts/minimap.gd")
@@ -745,6 +745,7 @@ func _toggle_car() -> void:
 		player.collision_mask = 1
 		player.visible = true
 		player.set("driving", false)
+		player.call("play_visual_action", &"alight_car")
 		world_audio.call("play_event", "DOOR", current_car.global_position)
 		current_car.set("occupied", false)
 		current_car = null
@@ -771,6 +772,7 @@ func _toggle_car() -> void:
 	player.visible = false
 	player.collision_layer = 0
 	player.collision_mask = 0
+	player.call("show_vehicle_rider", current_car, true)
 	if not current_car.has_meta("claimed"):
 		current_car.set_meta("claimed", true)
 		# Capture the entry position before the player is hidden. Resolve the
@@ -1229,11 +1231,10 @@ func _create_player() -> void:
 	collision.height = 1.9
 	capsule.shape = collision
 	player.add_child(capsule)
-	var visual := HumanoidVisualScript.new()
+	var visual := CourierVisual.new()
 	visual.name = "Visual"
-	visual.configure(0, "PLAYER")
 	# The avatar's boots meet the physical 1.9-metre capsule footprint.
-	visual.position.y = -0.90
+	visual.position.y = CourierVisual.FOOT_OFFSET
 	player.add_child(visual)
 	add_child(player)
 	_weapon_audio = AudioStreamPlayer3D.new()
@@ -1455,6 +1456,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 		player.visible = false
 		player.collision_layer = 0
 		player.collision_mask = 0
+		player.call("show_vehicle_rider", current_car, false)
 	else:
 		var saved_transit := str(data.get("transit_kind", ""))
 		if saved_transit == "BUS":
@@ -1590,6 +1592,7 @@ func _toggle_interaction() -> void:
 		if not interiors.call("counter_reachable", player.global_position):
 			_notify("Walk toward the staffed service counter to interact.")
 			return
+		player.call("play_visual_action", &"interact")
 		if str(interiors.call("active_site_group")) == "CIVIC":
 			_toggle_civic()
 		else:
@@ -2360,6 +2363,7 @@ func _can_use_weapon() -> bool:
 	return is_instance_valid(player) and is_instance_valid(venue_panel) and not venue_panel.visible and current_car == null and current_transit == null and not interiors.call("is_inside") and not get_tree().paused and (game_menu == null or not game_menu.call("is_open"))
 
 func _play_weapon_sound(kind: String) -> void:
+	player.call("play_visual_action", &"reload" if kind == "RELOAD" else &"fire")
 	if is_instance_valid(_weapon_audio):
 		_weapon_audio.stream = CombatFoley.sound(kind)
 		_weapon_audio.play()

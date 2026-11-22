@@ -148,6 +148,12 @@ jobs:
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-radio.log; then exit 1; fi
       - name: Validate Southworks solid cargo and player movement orientation regressions
         run: godot --headless --path . --script res://tests/southworks_playtest_smoke.gd
+      - name: Validate the skinned courier, camera-relative movement, equipment and occupied saves
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 95s godot --headless --path . --script res://tests/courier_smoke.gd 2>&1 | tee /tmp/nightgrid-courier.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-courier.log; then exit 1; fi
       - name: Validate fixed 60Hz physics and independent rendered train cadence
         run: godot --headless --path . --script res://tests/frame_pacing_smoke.gd
       - name: Validate on-device frame interval percentile and CSV capture integrity
