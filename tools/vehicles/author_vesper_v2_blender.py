@@ -484,7 +484,7 @@ def cameras_and_preview(preview_col):
     return cam
 
 
-def render_views(camera, output_dir):
+def render_views(camera, output_dir, prefix=''):
     shots={
         "front_three_quarter":((5.7,3.3,-6.2),(0,.69,0)),
         "rear_three_quarter":((-5.7,3.1,6.2),(0,.69,0)),
@@ -498,7 +498,7 @@ def render_views(camera, output_dir):
         target_blender=(target[0],-target[2],target[1])
         direction=Vector(target_blender)-camera.location
         camera.rotation_euler=direction.to_track_quat("-Z","Y").to_euler()
-        bpy.context.scene.render.filepath=str(output_dir/(name+".png"))
+        bpy.context.scene.render.filepath=str(output_dir/(prefix+name+".png"))
         bpy.ops.render.render(write_still=True)
 
 
