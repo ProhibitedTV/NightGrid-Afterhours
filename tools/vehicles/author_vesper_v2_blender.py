@@ -320,17 +320,34 @@ def build_geometry(col,high,socket_prefix=''):
     ACTIVE_COLLECTION=col
     span=60 if high else 25
     for side,name in ((-1,"Left"),(1,"Right")):
-        panel("FrontWing"+name,side,-2.13,-.73,span,"VesperPetrolBlue")
-        panel("DoorSkin"+name,side,-.725,.69,span,"VesperPetrolBlue")
-        panel("RearQuarter"+name,side,.695,2.12,span,"VesperPetrolBlue")
-    bezier_deck("ForwardBonnet",-2.13,-.78,.785,.925,.060,24 if high else 10,"VesperPetrolBlue")
-    bezier_deck("RearTonneau",.71,2.10,.923,.788,.043,24 if high else 10,"VesperPetrolBlue")
-    # Front/rear fascia and sill structural components.
-    box("FrontCrashCover",(0,.48,-2.13),(1.52,.35,.12),"VesperPetrolBlue",.09,high)
-    box("FrontInlet",(0,.405,-2.203),(1.03,.105,.012),"DarkComposite",.030,high)
-    box("RearCrashCover",(0,.45,2.095),(1.65,.39,.12),"VesperPetrolBlue",.075,high)
-    box("RearVent",(0,.445,2.164),(1.28,.13,.022),"DarkComposite",.03,high)
-    box("Underbody",(0,.33,0),(1.55,.14,3.92),"DarkComposite",.05,high)
+        panel("FrontWing"+name,side,-2.18,-.779,span,"VesperPetrolBlue")
+        panel("DoorSkin"+name,side,-.772,.700,span,"VesperPetrolBlue")
+        panel("RearQuarter"+name,side,.707,2.18,span,"VesperPetrolBlue")
+    # Common station splines make each long hood/rear-deck edge meet its
+    # own fender shoulder. High resolution adds curvature, not bulk boxes.
+    bezier_deck("ForwardBonnet",-2.18,-.78,0,0,0,
+                24 if high else 10,"VesperPetrolBlue")
+    bezier_deck("RearTonneau",.70,2.18,0,0,0,
+                24 if high else 10,"VesperPetrolBlue")
+    # Curved body-color fascia skins and correctly inset grille openings.
+    front=sculpt_fascia(True,58 if high else 28,18 if high else 10)
+    rear=sculpt_fascia(False,58 if high else 28,18 if high else 10)
+    mesh("FrontSculptedFascia",front.positions,front.faces,"VesperPetrolBlue")
+    mesh("RearSculptedFascia",rear.positions,rear.faces,"VesperPetrolBlue")
+    # Dark manufactured inner bumper structure (not an opaque replacement shell).
+    box("FrontInlet",(0,.413,-2.253),(.94,.135,.014),
+        "DarkComposite",.012,high)
+    box("FrontInletCopperLip",(0,.503,-2.235),(1.00,.010,.018),
+        "VesperCopper",.004,high)
+    box("RearVent",(0,.397,2.258),(1.07,.096,.018),
+        "DarkComposite",.011,high)
+    box("Underbody",(0,.33,0),(1.55,.14,3.92),
+        "DarkComposite",.035,high)
+    for side,label in ((-1,"L"),(1,"R")):
+        for z,axle_label in zip(AXLES,("F","R")):
+            arch=sculpt_liner(z,side,48 if high else 24)
+            mesh("ArchInnerLip"+axle_label+label,arch.positions,arch.faces,
+                 "DarkComposite")
     for side,name in ((-1,"L"),(1,"R")):
         box("Sill"+name,(side*.77,.33,0.0),(.12,.10,1.53),"DarkComposite",.025,high)
         box("DoorHandlePocket"+name,(side*.845,.862,-.17),
@@ -338,8 +355,8 @@ def build_geometry(col,high,socket_prefix=''):
         box("DoorHandle"+name,(side*.859,.866,-.17),
             (.025,.016,.126),"VesperCopper",.005,high)
         # Real forward aero blade, but no R9 body asset reuse.
-        box("FrontLowerBlade"+name,(side*.67,.340,-2.05),(.31,.031,.32),
-            "DarkComposite",.016,high)
+        box("FrontLowerBlade"+name,(side*.62,.334,-2.166),(.245,.024,.125),
+            "DarkComposite",.006,high)
         lamp("HeadLamp"+name,side*.622,-1.93,.83,"LightWhite",high)
         lamp("TailLamp"+name,side*.63,2.13,.786,"LightRed",high,rear=True)
     # Cabin: actually open above its side rails, not a painted roof.
