@@ -26,10 +26,11 @@ jobs:
       - name: Install Blender for offline DCC verification
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y blender
+          sudo apt-get install -y blender python3-numpy
       - name: Build original editable master and low-poly candidate
         run: |
-          blender --background --python tools/vehicles/author_r9_optic_blender.py -- --output-dir out/r9-optic
+          blender --background --python-exit-code 1 --python-expr "import numpy; print('Blender numpy', numpy.__version__)"
+          blender --background --python-exit-code 1 --python tools/vehicles/author_r9_optic_blender.py -- --output-dir out/r9-optic
       - name: Validate exported GLB, topology and sockets
         run: |
           python3 tools/vehicles/validate_gltf.py out/r9-optic/r9_optic_game.glb \
