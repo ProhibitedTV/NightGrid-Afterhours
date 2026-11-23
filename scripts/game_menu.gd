@@ -11,7 +11,7 @@ signal settings_changed(settings: Dictionary)
 const SAVE_SETTINGS = "user://settings.cfg"
 const DEFAULT_SETTINGS = {
 	"master_volume": 0.80, "music_volume": 0.65, "ambience_volume": 0.65,
-	"sfx_volume": 0.75, "radio_on": true, "mouse_sensitivity": 0.0032,
+	"sfx_volume": 0.75, "dialogue_volume": 0.82, "radio_on": true, "mouse_sensitivity": 0.0032,
 	"stick_sensitivity": 2.6, "invert_look_y": false,
 	"ssr_enabled": true, "glow_enabled": true,
 	"ao_enabled": true, "fog_enabled": true,
@@ -157,6 +157,7 @@ func _normalize() -> void:
 	settings["music_volume"] = clampf(float(settings.get("music_volume", 0.65)), 0.0, 1.0)
 	settings["ambience_volume"] = clampf(float(settings.get("ambience_volume", 0.65)), 0.0, 1.0)
 	settings["sfx_volume"] = clampf(float(settings.get("sfx_volume", 0.75)), 0.0, 1.0)
+	settings["dialogue_volume"] = clampf(float(settings.get("dialogue_volume", 0.82)), 0.0, 1.0)
 	settings["radio_on"] = bool(settings.get("radio_on", true))
 	settings["mouse_sensitivity"] = clampf(float(settings.get("mouse_sensitivity", 0.0032)), 0.001, 0.010)
 	settings["stick_sensitivity"] = clampf(float(settings.get("stick_sensitivity", 2.6)), 0.5, 5.0)
@@ -251,6 +252,7 @@ func _render() -> void:
 			_slider(col, "NIGHTGRID FM / MUSIC VOLUME", "music_volume", 0.0, 1.0, 0.05)
 			_slider(col, "CITY AMBIENCE", "ambience_volume", 0.0, 1.0, 0.05)
 			_slider(col, "FOOTSTEPS / INTERACTIONS / UI", "sfx_volume", 0.0, 1.0, 0.05)
+			_slider(col, "DISPATCH DIALOGUE", "dialogue_volume", 0.0, 1.0, 0.05)
 			_check(col, "CAR RADIO ENABLED BY DEFAULT", "radio_on")
 			_divider(col)
 			_label(col, "CONTROLS", 16, Ui.AMBER)

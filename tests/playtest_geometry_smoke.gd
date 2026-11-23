@@ -26,17 +26,13 @@ func _verify() -> void:
 		return
 	# The player and the ordinary club contact used to be three box meshes.
 	var avatar := player.get_node_or_null("Visual")
-	if avatar == null or not avatar.has_method("set_locomotion"):
-		_fail("Player is still an unmoving rectangle mannequin")
+	if avatar == null or not avatar.has_method("update_motion"):
+		_fail("Player is missing the authored animation controller")
 		return
-	var avatar_stats: Dictionary = avatar.call("get_visual_stats")
-	if int(avatar_stats.get("face_parts", 0)) < 10 or int(avatar_stats.get("articulated_limbs", 0)) != 4:
-		_fail("Player does not have original rounded face and limb rigs")
-		return
-	avatar.call("set_locomotion", 7.5)
-	avatar.call("_process", 0.20)
-	if absf((avatar.get_node("BreathingTorso") as Node3D).position.y - 0.95) < 0.0001:
-		_fail("Movement does not animate courier body")
+	var rig: Skeleton3D = avatar.get("skeleton")
+	var mixer: AnimationPlayer = avatar.get("animations")
+	if rig == null or rig.find_bone("RightHand") < 0 or mixer == null or not mixer.has_animation(&"walk"):
+		_fail("Player is missing the skinned humanoid and an authored gait")
 		return
 	var original_seed: int = int(root.get_node("GameSession").get("world_seed"))
 	var exterior: Vector3 = venues.call("venue_position", "static_room")

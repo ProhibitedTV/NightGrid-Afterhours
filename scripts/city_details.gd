@@ -8,6 +8,12 @@ const CraneGearWarehouse = preload("res://scripts/crane_gear_warehouse.gd")
 const RenderBatchOwner = preload("res://scripts/render_batch_owner.gd")
 const VesperWindows = preload("res://scripts/vesper_window_assembly.gd")
 const BrickwaterAlley = preload("res://scripts/brickwater_alley.gd")
+const BrickwaterArchitecture = preload("res://scripts/brickwater_alley_architecture.gd")
+const BrickwaterEnvelope = preload("res://scripts/brickwater_envelope.gd")
+const BrickwaterRepair = preload("res://scripts/brickwater_storefront.gd")
+const BrickwaterSigns = preload("res://scripts/brickwater_business_frontage.gd")
+const StreamProfile = preload("res://scripts/streaming_profile.gd")
+const MarketCarton = preload("res://scripts/market_carton.gd")
 ## Seeded city dressing. Static shell collisions + batched decorative geometry.
 ## The four neighborhoods deliberately share road geometry but not street character.
 
@@ -42,6 +48,7 @@ const ROAD_PAINT = Color("b9b8aa")
 const DARK_GLASS = Color("1d3449")
 
 var _rng := RandomNumberGenerator.new()
+var _detail_unit_mesh := BoxMesh.new()
 var _batches: Dictionary = {}
 var _palette: Dictionary = {}
 var _statistics := {"buildings": 0, "storefronts": 0, "street_props": 0, "batched_details": 0, "districts": 8, "landmarks": 0, "authored_lots": 0, "variant_lots": 0}
@@ -61,6 +68,7 @@ const MAX_PEDESTRIAN_RESERVATIONS = 12
 var _pedestrian_reservations: Dictionary = {}
 var _reservation_prune_due := false
 var _loaded: Dictionary = {}
+var _brickwater_night := 0.0
 var _staging: Dictionary = {}
 var _active_chunk: Node3D
 var _current_block := Vector2i(999, 999)
@@ -97,6 +105,7 @@ func generate() -> void:
 		return
 	_initialized = true
 	_rng.seed = int(SEED) ^ world_seed
+	_detail_unit_mesh.size = Vector3.ONE
 	# Roads, intersection controls and skyline are global; occupied blocks
 	# allocate collisions and facade MultiMeshes only when nearby.
 	_build_road_language()
@@ -320,6 +329,7 @@ func _process(_delta: float) -> void:
 		_prune_distant(_requested_cell, _prefetch_cell)
 
 func _prune_distant(focus: Vector2i, forecast: Vector2i) -> void:
+	var profile_started := StreamProfile.begin()
 	_reservation_prune_due = false
 	var pinned := {}
 	for cell in _pedestrian_reservations.values():
@@ -336,6 +346,8 @@ func _prune_distant(focus: Vector2i, forecast: Vector2i) -> void:
 		_loaded.erase(block)
 		node.queue_free()
 		_unloads += 1
+	if StreamProfile.enabled and not obsolete.is_empty():
+		StreamProfile.end(profile_started, "queue_chunk_evictions", obsolete.size())
 
 func set_focus(at: Vector3) -> void:
 	# Teleport, save restore and explicit tests need an immediately solid ring.
@@ -390,7 +402,9 @@ func _discard_unrequested_stages() -> void:
 
 func _run_build_stage(block: Vector2i) -> bool:
 	var started := Time.get_ticks_usec()
+	var profiled := StreamProfile.enabled
 	if not _staging.has(block):
+		var activation_started := StreamProfile.begin()
 		var node := Node3D.new()
 		node.name = "Block_%d_%d" % [block.x, block.y]
 		add_child(node)
@@ -401,6 +415,8 @@ func _run_build_stage(block: Vector2i) -> bool:
 			"node": node, "phase": 0, "rng_state": seeded.state,
 			"batches": {}, "flush_keys": [], "flush_cursor": 0
 		}
+		if profiled:
+			StreamProfile.end(activation_started, "chunk_root_activation", str(block))
 	var work: Dictionary = _staging[block]
 	_active_chunk = work["node"]
 	_batches = work["batches"]
@@ -412,13 +428,27 @@ func _run_build_stage(block: Vector2i) -> bool:
 		0:
 			_build_block_base(block.x, block.y)
 			if landmark.is_empty():
+				var collision_started := StreamProfile.begin()
 				_build_block_shells(block.x, block.y)
 				if block == BrickwaterAlley.PILOT_BLOCK:
 					_build_brickwater_alley(block.x, block.y)
+				else:
+					var left_lot := _block_lot_profile(block.x, block.y, 0)
+					# Dock the dumpster alongside the lot, leaving a single
+					# continuous pedestrian lane through even the narrow parcels.
+					var dock_offset := -10.5 + float(left_lot["width"]) * 0.5 + DUMPSTER_LID.x * 0.5 + 0.08
+					var service_dock := Vector3((float(block.x) + 0.5) * CELL + dock_offset, 0.15,
+						(float(block.y) + 0.5) * CELL + 10.0)
+					_build_dumpster(service_dock)
+				if profiled:
+					StreamProfile.end(collision_started, "shell_creation_and_registration", str(block))
 			work["phase"] = 1
 		1:
 			if landmark.is_empty():
 				_build_block_lot(block.x, block.y, 0)
+				if block == BrickwaterAlley.PILOT_BLOCK:
+					_active_chunk.get_node("BrickwaterServiceAlley").install_repair_workshop()
+					_active_chunk.get_node("BrickwaterServiceAlley").install_ground_dressing()
 				work["phase"] = 2
 			else:
 				var center := Vector3((float(block.x) + 0.5) * CELL,
@@ -428,9 +458,17 @@ func _run_build_stage(block: Vector2i) -> bool:
 				work["phase"] = 4
 		2:
 			_build_block_lot(block.x, block.y, 1)
+			if block == BrickwaterAlley.PILOT_BLOCK:
+				_active_chunk.get_node("BrickwaterServiceAlley").install_upper_dressing()
 			work["phase"] = 3
 		3:
 			_build_block_street(block.x, block.y)
+			if block == BrickwaterAlley.PILOT_BLOCK:
+				var alley := _active_chunk.get_node("BrickwaterServiceAlley")
+				alley.install_lighting_and_signage()
+				alley.set_night_factor(_brickwater_night)
+			if block == BrickwaterArchitecture.NEIGHBOR_BLOCK:
+				_build_brickwater_neighbor(block.x, block.y)
 			work["phase"] = 4
 		4:
 			var keys: Array = work["flush_keys"]
@@ -440,10 +478,8 @@ func _run_build_stage(block: Vector2i) -> bool:
 				work["flush_keys"] = keys
 			var cursor: int = int(work["flush_cursor"])
 			var end: int = mini(cursor + STREAM_BATCHES_PER_STAGE, keys.size())
-			var unit_mesh := BoxMesh.new()
-			unit_mesh.size = Vector3.ONE
 			for index in range(cursor, end):
-				_flush_instance_key(str(keys[index]), unit_mesh)
+				_flush_instance_key(str(keys[index]))
 			work["flush_cursor"] = end
 			finished = end >= keys.size()
 	_active_chunk = null
@@ -451,6 +487,8 @@ func _run_build_stage(block: Vector2i) -> bool:
 	work["rng_state"] = _rng.state
 	_batches = {}
 	var cost: int = Time.get_ticks_usec() - started
+	if profiled:
+		StreamProfile.end(started, "chunk_stage", {"block": [block.x, block.y], "phase": phase, "landmark": landmark})
 	_last_stream_build_usec = cost
 	_peak_stream_build_usec = maxi(_peak_stream_build_usec, cost)
 	_total_build_usec += cost
@@ -470,6 +508,16 @@ func get_nearby_landmark(position: Vector3) -> String:
 	return WorldPlan.nearby_landmark(position)
 
 func set_night_factor(value: float) -> void:
+	_brickwater_night = clampf(value, 0.0, 1.0)
+	BrickwaterArchitecture.set_window_night_factor(value)
+	BrickwaterSigns.set_night_factor(value)
+	var alley_chunk: Node3D = _loaded.get(BrickwaterAlley.PILOT_BLOCK)
+	if alley_chunk == null and _staging.has(BrickwaterAlley.PILOT_BLOCK):
+		alley_chunk = _staging[BrickwaterAlley.PILOT_BLOCK]["node"]
+	if alley_chunk != null:
+		var alley := alley_chunk.get_node_or_null("BrickwaterServiceAlley")
+		if alley != null:
+			alley.set_night_factor(value)
 	# Static shared emissive materials change with the time controller.
 	var brightness := 2.35 * smoothstep(0.42, 0.78, clampf(value, 0.0, 1.0))
 	for key in _palette:
@@ -527,14 +575,14 @@ func _solid(at: Vector3, size: Vector3, color: Color, surface_kind: String = "CO
 	body.add_child(visual)
 	(_active_chunk if _active_chunk != null else self).add_child(body)
 
-func _flush_instance_key(key: String, unit_mesh: BoxMesh) -> void:
+func _flush_instance_key(key: String) -> void:
 	var transforms: Array = _batches.get(key, [])
 	if transforms.is_empty():
 		_batches.erase(key)
 		return
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
-	multimesh.mesh = unit_mesh
+	multimesh.mesh = _detail_unit_mesh
 	multimesh.instance_count = transforms.size()
 	for index in range(transforms.size()):
 		multimesh.set_instance_transform(index, transforms[index])
@@ -554,10 +602,8 @@ func _flush_instance_key(key: String, unit_mesh: BoxMesh) -> void:
 	_batches.erase(key)
 
 func _flush_instances() -> void:
-	var unit_mesh := BoxMesh.new()
-	unit_mesh.size = Vector3.ONE
 	for key in _batches.keys():
-		_flush_instance_key(str(key), unit_mesh)
+		_flush_instance_key(str(key))
 
 func _build_road_language() -> void:
 	for road_index in range(-GRID_RADIUS, GRID_RADIUS + 1):
@@ -667,6 +713,43 @@ func _build_brickwater_alley(ix: int, iz: int) -> void:
 	alley.configure(-10.5+float(left["width"])*0.5,10.5-float(right["width"])*0.5)
 	_active_chunk.add_child(alley)
 
+func repair_storefront() -> Node3D:
+	var block := BrickwaterAlley.PILOT_BLOCK
+	var chunk: Node3D = _loaded.get(block)
+	if chunk == null and _staging.has(block):
+		chunk = _staging[block]["node"]
+	return chunk.get_node_or_null("BrickwaterServiceAlley/NightShiftRepairs") if chunk != null else null
+
+func _repair_parcel_around_room(volume: StaticBody3D, size: Vector3) -> void:
+	var half := size * 0.5
+	var west := half.x + BrickwaterRepair.BACK
+	var entrance := BrickwaterRepair.DOOR_Z + WorldPlan.PUBLIC_FACADE_SETBACK - half.z
+	var south := entrance + BrickwaterRepair.Z_MIN
+	var north := entrance + BrickwaterRepair.Z_MAX
+	var ceiling := -half.y + BrickwaterRepair.CEILING - 0.01
+	_parcel_section(volume, "UnchangedParcelWest", -half, Vector3(west, half.y, half.z))
+	_parcel_section(volume, "UnchangedParcelSouth", Vector3(west, -half.y, -half.z), Vector3(half.x, half.y, south))
+	_parcel_section(volume, "UnchangedParcelNorth", Vector3(west, -half.y, north), half)
+	_parcel_section(volume, "UpperFloors", Vector3(west, ceiling, south), Vector3(half.x, half.y, north))
+
+func _parcel_section(volume: StaticBody3D, label: String, low: Vector3, high: Vector3) -> void:
+	var collider := CollisionShape3D.new()
+	collider.name = label
+	var shape := BoxShape3D.new()
+	shape.size = high - low
+	collider.shape = shape
+	collider.position = (low + high) * 0.5
+	volume.add_child(collider)
+
+func _build_brickwater_neighbor(ix: int, iz: int) -> void:
+	var left := _block_lot_profile(ix, iz, 0)
+	var right := _block_lot_profile(ix, iz, 1)
+	var facade := BrickwaterArchitecture.new()
+	facade.name = "BrickwaterNeighborArchitecture"
+	facade.position = Vector3((float(ix)+0.5)*CELL,0.0,(float(iz)+0.5)*CELL)
+	facade.configure(-10.5 + float(left["width"]) * 0.5, 10.5 - float(right["width"]) * 0.5, true)
+	_active_chunk.add_child(facade)
+
 func _build_block_street(ix: int, iz: int) -> void:
 	var center := Vector3((float(ix) + 0.5) * CELL, 0.0, (float(iz) + 0.5) * CELL)
 	var district := get_district_at(center)
@@ -675,8 +758,7 @@ func _build_block_street(ix: int, iz: int) -> void:
 		_detail(center + Vector3(0.0, 0.155, 3.0), Vector3(3.8, 0.035, 25.0), Color("353e48"))
 		for mark in range(4):
 			_detail(center + Vector3(0.0, 0.175, -6.0 + float(mark) * 6.0), Vector3(3.4, 0.02, 0.10), Color("62686e"))
-		_dumpster(center + Vector3(0.0, 0.3, 10.0))
-	_furniture(center, district)
+	_furniture(center, district, Vector2i(ix, iz) != BrickwaterAlley.PILOT_BLOCK)
 	_statistics["street_props"] += 1
 
 
@@ -728,14 +810,20 @@ func _build_landmark(center: Vector3, name: String) -> void:
 			for x in [-13.0, 13.0]:
 				for z in [-10.0, 10.0]:
 					_solid(center + Vector3(x, 3.20, z), Vector3(0.58, 6.3, 0.58), Color("738d91"), "METAL")
-			_detail(center + Vector3(0.0, 6.55, 0.0), Vector3(31.0, 0.42, 24.0), Color("365c65"))
+			_solid(center + Vector3(0.0, 6.55, 0.0), Vector3(31.0, 0.42, 24.0), Color("365c65"), "METAL")
 			_detail(center + Vector3(0.0, 6.85, -12.0), Vector3(30.0, 0.18, 0.18), label_color, true)
 			for row in [-6.0, 6.0]:
 				for x in [-9.0, -3.0, 3.0, 9.0]:
-					_detail(center + Vector3(x, 0.65, row), Vector3(4.15, 1.02, 2.20), Color("69777b"))
-					_detail(center + Vector3(x, 1.35, row), Vector3(3.75, 0.23, 1.8), Color("d1a775"))
+					_solid(center + Vector3(x, 0.65, row), Vector3(4.15, 1.02, 2.20), Color("69777b"))
+					_solid(center + Vector3(x, 1.265, row), Vector3(3.75, 0.23, 1.8), Color("d1a775"), "WOOD")
 					for produce in [-1.0, 0.0, 1.0]:
-						_detail(center + Vector3(x + produce, 1.61, row), Vector3(0.55, 0.32, 0.45), Color("78af78"))
+						_detail(center + Vector3(x + produce, 1.54, row), Vector3(0.55, 0.32, 0.45), Color("78af78"))
+			for x in [-6.0, -1.85, 4.8, 10.6]:
+				var carton := MarketCarton.new()
+				carton.name = "DeliveryCarton_%d" % roundi(x * 100.0)
+				carton.position = center + Vector3(x, 0.15, -11.55)
+				carton.rotation.y = x * 0.12
+				_active_chunk.add_child(carton)
 			_label("NORTH QUAY EXCHANGE", center + Vector3(0.0, 5.45, -12.2), label_color, 46)
 		"PIER NINE DEPOT":
 			label_color = Color("e2ac76")
@@ -760,8 +848,10 @@ func _build_landmark(center: Vector3, name: String) -> void:
 					_detail(center + Vector3(x, 0.19, z), Vector3(5.5, 0.13, 5.4), Color("4d8068"))
 			for x in [-8.0, 8.0]:
 				_solid(center + Vector3(x, 2.70, 11.0), Vector3(0.40, 5.0, 0.40), Color("729d9a"))
-			_detail(center + Vector3(0.0, 5.4, 11.0), Vector3(22.0, 0.45, 8.5), Color("4b7176"))
-			_detail(center + Vector3(0.0, 4.6, 6.8), Vector3(4.0, 0.16, 0.16), Color("e4fae2"), true)
+			_solid(center + Vector3(0.0, 5.4, 11.0), Vector3(22.0, 0.45, 8.5), Color("4b7176"), "METAL")
+			_detail(center + Vector3(0.0, 5.12, 7.05), Vector3(4.08, 0.13, 0.22),
+				Color("415355"), false, "METAL")
+			_detail(center + Vector3(0.0, 5.035, 7.05), Vector3(4.0, 0.045, 0.15), Color("e4fae2"), true)
 			_label("HORIZON COMMONS", center + Vector3(0.0, 5.8, 15.4), label_color, 54)
 		"SOUTHWORKS HALL":
 			label_color = Color("ebc38c")
@@ -805,7 +895,9 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 	var dock_service_exposure := ix == -4 and iz == -1 and which == 1
 	var crane_gear_exposure := ix == -4 and iz == -2 and which == 1
 	var exchange_walk_in: bool = (ix == -1 and iz == 0 and which == 1) or (ix == 0 and iz == 0 and which == 0)
-	var authored_exposure: bool = dock_watch_exposure or dock_service_exposure or crane_gear_exposure or exchange_walk_in
+	var brickwater_exposure := Vector2i(ix, iz) in [BrickwaterAlley.PILOT_BLOCK, BrickwaterArchitecture.NEIGHBOR_BLOCK]
+	var brickwater_repair := Vector2i(ix, iz) == BrickwaterAlley.PILOT_BLOCK and which == 0
+	var authored_exposure: bool = dock_watch_exposure or dock_service_exposure or crane_gear_exposure or exchange_walk_in or brickwater_exposure
 	var shell_at := Vector3(center.x, height / 2.0 + 0.15, center.z)
 	var shell_size := Vector3(width, height, depth)
 	if not shell_prebuilt:
@@ -813,7 +905,9 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 			var volume := StaticBody3D.new()
 			volume.name = "PreservedBuildingCollision"
 			volume.position = shell_at
-			if exchange_walk_in:
+			if brickwater_repair:
+				_repair_parcel_around_room(volume, shell_size)
+			elif exchange_walk_in:
 				# Replace JUST the two fixed Central Exchange whole-volume boxes
 				# with a tightly partitioned four-Box collision envelope. The
 				# previously solid center is now a 2.84m x 3.35m pedestrian
@@ -860,6 +954,13 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 			_solid(shell_at, shell_size, wall, "PHOTO_BRICK" if surface_kind == "BRICK" else surface_kind)
 	if shell_only:
 		return
+	if brickwater_exposure:
+		var envelope := BrickwaterEnvelope.new()
+		envelope.name = "BrickwaterEnvelope_%d" % which
+		envelope.position = Vector3(center.x, 0.15, center.z)
+		_active_chunk.add_child(envelope)
+		envelope.install(Vector3(width, height, depth), which, wall, surface_kind,
+			Vector2i(ix, iz) == BrickwaterArchitecture.NEIGHBOR_BLOCK)
 	_statistics["buildings"] += 1
 	# Replace fake-window blockout with contiguous UV-mapped wall surfaces
 	# around actual 3D openings. Keep collision, seeds and public door anchors.
@@ -885,7 +986,7 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 		_active_chunk.add_child(crane_gear)
 		_statistics["storefronts"] += 1
 		return
-	if authored_exposure:
+	if authored_exposure and not brickwater_exposure:
 		var names: Array = SHOPS[district]
 		var stable_name: String = "DOCK WATCH DESK" if dock_watch_exposure else names[abs(ix * 11 + iz * 17 + which * 3) % names.size()]
 		var facade := CentralFrontage.new()
@@ -908,10 +1009,11 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 		# Rooftop water tank and a vertical fire escape.
 		_detail(Vector3(center.x + 3.8, height + 3.2, center.z), Vector3(3.6, 4.4, 3.6), Color("4f6570"))
 		_detail(Vector3(center.x + 3.8, height + 5.5, center.z), Vector3(4.0, 0.22, 4.0), Color("a0a2a0"))
-		for floor_step in range(2, int(height / 3.4)):
-			var step_y := float(floor_step) * 3.4
-			_detail(Vector3(right + 0.28, step_y, center.z + 0.5), Vector3(0.65, 0.17, 5.4), Color("65757c"))
-			_detail(Vector3(right + 0.54, step_y + 0.9, center.z + 0.5), Vector3(0.09, 1.70, 5.3), Color("819198"))
+		if not (brickwater_exposure and which == 0):
+			for floor_step in range(2, int(height / 3.4)):
+				var step_y := float(floor_step) * 3.4
+				_detail(Vector3(right + 0.28, step_y, center.z + 0.5), Vector3(0.65, 0.17, 5.4), Color("65757c"))
+				_detail(Vector3(right + 0.54, step_y + 0.9, center.z + 0.5), Vector3(0.09, 1.70, 5.3), Color("819198"))
 	if district == "GLASSLINE" or district == "NORTH QUAY":
 		# Facade fins, lit corner spines and tall skyline silhouettes.
 		for edge in [left + 0.40, right - 0.40]:
@@ -972,6 +1074,10 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 		for side in [-1.0, 1.0]:
 			for side_window in range(2):
 				var wz := center.z + (float(side_window) - 0.5) * depth * 0.38
+				# Keep the replacement wall and its recesses free of legacy glazing.
+				var alley_side: bool = (which == 0 and side > 0.0) or (which == 1 and side < 0.0)
+				if brickwater_exposure and alley_side:
+					continue
 				_detail(Vector3(center.x + side * (width / 2.0 + 0.07), fy, wz), Vector3(0.11, 1.45, 2.0), Color("426178"), false, "GLASS")
 
 	if pilot_windows and not window_specs.is_empty():
@@ -1014,7 +1120,7 @@ func _label(value: String, at: Vector3, color: Color, point_size: int = 48) -> v
 	sign.double_sided = true
 	(_active_chunk if _active_chunk != null else self).add_child(sign)
 
-func _furniture(center: Vector3, district: String) -> void:
+func _furniture(center: Vector3, district: String, legacy_alley_patches: bool = true) -> void:
 	var color: Color = ACCENT[district]
 	# Furnishing faces the road, stays on the sidewalks, not in traffic lanes.
 	for side in [-1.0, 1.0]:
@@ -1053,7 +1159,9 @@ func _furniture(center: Vector3, district: String) -> void:
 	for patch in range(3):
 		var x := center.x + _rng.randf_range(-1.25, 1.25)
 		var z := center.z + _rng.randf_range(-9.0, 12.0)
-		_detail(Vector3(x, 0.195, z), Vector3(_rng.randf_range(0.7, 2.0), 0.025, _rng.randf_range(0.8, 2.1)), Color("1c2736"))
+		var size := Vector3(_rng.randf_range(0.7, 2.0), 0.025, _rng.randf_range(0.8, 2.1))
+		if legacy_alley_patches:
+			_detail(Vector3(x, 0.195, z), size, Color("1c2736"))
 
 func _bin(at: Vector3, physical: bool = false) -> void:
 	# Solid-looking waist-high street furniture must have an accurately
@@ -1066,10 +1174,37 @@ func _bin(at: Vector3, physical: bool = false) -> void:
 	_detail(at + Vector3.UP * 0.94, Vector3(0.92, 0.10, 0.92), Color("728088"))
 	_statistics["street_props"] += 1
 
-func _dumpster(at: Vector3) -> void:
-	_detail(at + Vector3.UP * 0.6, Vector3(2.35, 1.3, 1.8), Color("28666a"))
-	_detail(at + Vector3.UP * 1.32, Vector3(2.48, 0.14, 1.9), Color("1b353d"))
-	_detail(at + Vector3(-0.70, 0.5, -0.94), Vector3(0.5, 0.25, 0.1), Color("e7c56e"))
+const DUMPSTER_BODY = Vector3(2.35, 1.30, 1.80)
+const DUMPSTER_LID = Vector3(2.48, 0.14, 1.90)
+const DUMPSTER_BODY_Y = 0.65
+const DUMPSTER_LID_Y = 1.37
+
+func _build_dumpster(at: Vector3) -> void:
+	var props := Node3D.new()
+	props.name = "StreetPropCollision"
+	_active_chunk.add_child(props)
+	var body := StaticBody3D.new()
+	body.name = "AlleyDumpster"
+	body.position = at
+	for part in [[DUMPSTER_BODY_Y, DUMPSTER_BODY, Color("28666a")],
+			[DUMPSTER_LID_Y, DUMPSTER_LID, Color("1b353d")]]:
+		var box := BoxShape3D.new()
+		box.size = part[1]
+		var shape := CollisionShape3D.new()
+		shape.shape = box
+		shape.position.y = part[0]
+		body.add_child(shape)
+		_dumpster_surface(body, Vector3.UP * float(part[0]), part[1], part[2])
+	_dumpster_surface(body, Vector3(-0.70, 0.5, -0.94), Vector3(0.5, 0.25, 0.1), Color("e7c56e"))
+	props.add_child(body)
+
+func _dumpster_surface(body: StaticBody3D, at: Vector3, size: Vector3, color: Color) -> void:
+	var surface := MeshInstance3D.new()
+	surface.mesh = _detail_unit_mesh
+	surface.scale = size
+	surface.position = at
+	surface.material_override = _material(color)
+	body.add_child(surface)
 
 func _vendor(at: Vector3, color: Color) -> void:
 	_detail(at + Vector3.UP * 1.0, Vector3(3.1, 0.8, 1.65), Color("48515b"))

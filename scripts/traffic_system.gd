@@ -2,6 +2,7 @@ extends Node3D
 ## A small, bounded, lane-following fleet; no free-roaming physics pathfinding.
 ## Road geometry and bus stops are fixed; traffic coloration/spacing is seeded.
 const TrafficVehicle = preload("res://scripts/traffic_vehicle.gd")
+const AmbientPool = preload("res://scripts/ambient_traffic_pool.gd")
 const CELL = 58.0
 const ClosureEligibility = preload("res://scripts/closure_eligibility.gd")
 var signals: Node
@@ -9,18 +10,32 @@ var fleet: Array[CharacterBody3D] = []
 var buses: Array[CharacterBody3D] = []
 var _rng := RandomNumberGenerator.new()
 var _stops: Array[Vector3] = []
+var _ambient_pool: AmbientPool
+var _headway_frame := -1
+var _headway_fleet: Array[CharacterBody3D] = []
+var _headway_positions := PackedVector3Array()
 
-func initialize(world_seed: int, controller: Node) -> void:
+func initialize(world_seed: int, controller: Node, pooled := false) -> void:
 	signals = controller
 	_rng.seed = int(world_seed) ^ 928377
 	var perimeter := loop_route(-232.0, 232.0, -232.0, 232.0, 1.0)
 	var outer := loop_route(-174.0, 174.0, -174.0, 174.0, 1.0)
 	var inner := loop_route(-116.0, 116.0, -116.0, 116.0, 1.0)
 	var core := loop_route(-58.0, 58.0, -58.0, 58.0, 1.0)
-	_spawn_loop("perimeter", perimeter, 8)
-	_spawn_loop("outer", outer, 7)
-	_spawn_loop("inner", inner, 6)
-	_spawn_loop("core", core, 4)
+	var routes: Array[Dictionary] = [
+		{"id":"perimeter", "path":perimeter, "count":8},
+		{"id":"outer", "path":outer, "count":7},
+		{"id":"inner", "path":inner, "count":6},
+		{"id":"core", "path":core, "count":4},
+	]
+	if pooled:
+		_ambient_pool = AmbientPool.new()
+		_ambient_pool.name = "AmbientTrafficPool"
+		add_child(_ambient_pool)
+		_ambient_pool.configure(self, signals, world_seed, routes)
+	else:
+		for spec in routes:
+			_spawn_loop(spec["id"], spec["path"], spec["count"])
 	_stops = [
 		Vector3(-41.0, 1.75, -112.75), Vector3(75.0, 1.75, -112.75),
 		Vector3(112.75, 1.75, -41.0), Vector3(112.75, 1.75, 75.0),
@@ -51,6 +66,19 @@ func initialize(world_seed: int, controller: Node) -> void:
 		fleet.append(bus)
 		buses.append(bus)
 	_build_bus_stops()
+
+func tick_pooled(delta: float, at: Vector3, speed: float, camera: Camera3D, city: Node3D,
+		indoors: bool, other_actors: Array[CharacterBody3D], road_rules: RefCounted) -> void:
+	if _ambient_pool == null:
+		return
+	var occupied: Array[Vector3] = [at]
+	for vehicle in buses + other_actors:
+		if is_instance_valid(vehicle) and vehicle.global_position.distance_squared_to(at) < 200.0 * 200.0:
+			occupied.append(vehicle.global_position)
+	_ambient_pool.tick(delta, at, speed, camera, city, indoors, occupied, road_rules)
+
+func pooled_speed_cap(at: Vector3, heading: Vector3, cap: float) -> float:
+	return _ambient_pool.safe_speed_cap(at, heading, cap) if _ambient_pool != null else cap
 
 func loop_route(left: float, right: float, north: float, south: float, level: float) -> Array[Vector3]:
 	# Right-side driving along a clockwise rectangular circulation route.
@@ -90,17 +118,38 @@ func sample_route(path: Array[Vector3], fraction: float) -> Dictionary:
 
 func headway_speed_cap(candidate: CharacterBody3D, heading: Vector3, cap: float) -> float:
 	# Approximate following distance using a longitudinal gap on the same lane.
-	for other in fleet:
+	var origin := candidate.global_position
+	var desired_gap := 10.0 if candidate.get("buses") else 7.0
+	var tick := Engine.get_physics_frames()
+	if _headway_frame != tick:
+		_headway_frame = tick
+		_headway_fleet.clear()
+		_headway_positions.clear()
+		for vehicle in fleet:
+			if is_instance_valid(vehicle):
+				_headway_fleet.append(vehicle)
+				_headway_positions.append(vehicle.global_position)
+	for index in range(_headway_positions.size()):
+		var at := _headway_positions[index]
+		# The two-metre margin exceeds a civilian's motion in one fixed tick.
+		# Read the live body for the actual cap so iteration order is preserved.
+		if absf(at.x - origin.x) > 26.0 or absf(at.z - origin.z) > 26.0:
+			continue
+		var other := _headway_fleet[index]
 		if other == candidate or not is_instance_valid(other):
 			continue
-		var gap := other.global_position - candidate.global_position
-		gap.y = 0.0
-		var forward_distance := gap.dot(heading)
+		at = other.global_position
+		var dx := at.x - origin.x
+		var dz := at.z - origin.z
+		if absf(dx) > 26.0 or absf(dz) > 26.0:
+			continue
+		var forward_distance := dx * heading.x + dz * heading.z
 		if forward_distance < 0.0 or forward_distance >= 23.0:
 			continue
-		var lateral := (gap - heading * forward_distance).length()
-		if lateral < 2.7:
-			cap = minf(cap, maxf(0.0, (forward_distance - (10.0 if candidate.get("buses") else 7.0)) * 1.25))
+		if absf(dx * heading.z - dz * heading.x) < 2.7:
+			cap = minf(cap, maxf(0.0, (forward_distance - desired_gap) * 1.25))
+			if cap == 0.0:
+				break
 	return cap
 
 func closure_eligibility(a: Vector2i, b: Vector2i, other_actors: Array[Vector3]) -> String:
@@ -134,9 +183,15 @@ func snapshot() -> Dictionary:
 	var vehicles := []
 	for car in fleet:
 		vehicles.append(car.call("snapshot"))
-	return {"vehicles": vehicles}
+	var state := {"vehicles": vehicles}
+	if _ambient_pool != null:
+		_ambient_pool.append_snapshot(state)
+	return state
 
 func restore(data: Dictionary) -> void:
+	_headway_frame = -1
+	if _ambient_pool != null:
+		_ambient_pool.restore(data)
 	var by_id := {}
 	for entry in data.get("vehicles", []):
 		if entry is Dictionary:
@@ -166,8 +221,11 @@ func get_map_stops() -> Array[Vector2]:
 	return result
 
 func get_counts() -> Dictionary:
-	return {"ambient_cars": fleet.size() - buses.size(), "buses": buses.size(),
+	var counts := {"ambient_cars": fleet.size() - buses.size(), "buses": buses.size(),
 		"stops": _stops.size(), "signals": 81}
+	if _ambient_pool != null:
+		counts.merge(_ambient_pool.stats())
+	return counts
 
 func _build_bus_stops() -> void:
 	var directions := [Vector3.RIGHT, Vector3.RIGHT, Vector3.BACK, Vector3.BACK,

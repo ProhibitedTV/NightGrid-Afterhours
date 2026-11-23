@@ -1,15 +1,21 @@
 extends Node3D
 ## Opt-in pool of reusable CharacterBody3D sidewalk actors.
-## Not installed in World. A director must supply an approved visual scene,
-## live spawn/recycle predicates, actual ground height and physics-tick calls.
+## The director supplies the visual rig, live spawn/recycle predicates,
+## actual ground height and one physics-tick call.
 const Population = preload("res://scripts/sidewalk_population.gd")
 const RADIUS = 0.32
 const HEIGHT = 1.8
+const YIELD_SECONDS = 1.2
+const TURN_COOLDOWN = 2.0
+const MAX_LATERAL_OFFSET = 0.6
+const SIDEWALK_RENDER_TOP = 0.14
 var _slots: Array[CharacterBody3D] = []
 var _leases: Dictionary = {}
 var _visuals: Array[Node3D] = []
+var _model_count := 1
 
-func build(visual_scene: PackedScene, capacity: int = Population.MAX_ACTIVE) -> bool:
+func build(visual_scene: PackedScene, capacity: int = Population.MAX_ACTIVE,
+		models: Array[PackedScene] = []) -> bool:
 	if not is_inside_tree() or not _slots.is_empty() or visual_scene == null or capacity<1 or capacity>Population.MAX_ACTIVE:
 		return false
 	# Instantiate all assets once. Fail without leaving partial pool bodies.
@@ -23,9 +29,17 @@ func build(visual_scene: PackedScene, capacity: int = Population.MAX_ACTIVE) -> 
 				visual.free()
 			return false
 		pending.append(candidate)
+		if not models.is_empty():
+			if not candidate.has_method("set_pedestrian_model"):
+				for visual in pending:
+					visual.free()
+				return false
+			candidate.call("set_pedestrian_model", models[i % models.size()])
+	_model_count = maxi(1, models.size())
 	var capsule := CapsuleShape3D.new()
 	capsule.radius = RADIUS
 	capsule.height = HEIGHT
+	var valid := true
 	for i in range(capacity):
 		var body := CharacterBody3D.new()
 		body.name = "PedestrianSlot%d" % i
@@ -42,7 +56,9 @@ func build(visual_scene: PackedScene, capacity: int = Population.MAX_ACTIVE) -> 
 		add_child(body)
 		_slots.append(body)
 		_visuals.append(pending[i])
-	return true
+		if pending[i].has_method("is_pedestrian_visual_ready") and not pending[i].call("is_pedestrian_visual_ready"):
+			valid = false
+	return valid
 
 func active_positions() -> Dictionary:
 	var result := {}
@@ -53,6 +69,15 @@ func active_positions() -> Dictionary:
 
 func capacity() -> int:
 	return _slots.size()
+
+func has_free_style(style: int) -> bool:
+	var used := {}
+	for lease in _leases.values():
+		used[lease["slot"]] = true
+	for i in range(style % _model_count, _slots.size(), _model_count):
+		if not used.has(i):
+			return true
+	return false
 
 func activate(population, id: String, ground_y: float, allowed: Callable) -> bool:
 	if population == null or _leases.has(id) or not allowed.is_valid() or not is_finite(ground_y):
@@ -71,7 +96,7 @@ func activate(population, id: String, ground_y: float, allowed: Callable) -> boo
 		var existing: CharacterBody3D = _slots[lease["slot"]]
 		if existing.global_position.distance_to(at)<Population.MIN_SEPARATION:
 			return false
-	for i in range(_slots.size()):
+	for i in range(int(sample["style"]) % _model_count, _slots.size(), _model_count):
 		if used.has(i):
 			continue
 		var body := _slots[i]
@@ -79,10 +104,16 @@ func activate(population, id: String, ground_y: float, allowed: Callable) -> boo
 		body.global_position = Vector3(at.x,ground_y+0.02,at.z)
 		body.rotation.y = atan2(heading.x,heading.z)
 		body.velocity = Vector3.ZERO
-		_leases[id] = {"slot":i,"start":sample["start"],"end":sample["end"],"heading":heading,"speed":sample["speed"]}
+		_leases[id] = {"slot":i,"start":sample["start"],"end":sample["end"],"heading":heading,"speed":sample["speed"],
+			"blocked_time":0.0,"turn_cooldown":0.0,"state":"WALK","hold":0.0,"alert":0.0,
+			"arrival":sample.get("arrival", ""), "signal":sample.get("signal", Vector3i.ZERO),
+			"social":0.0,"social_cooldown":0.0,"social_facing":Vector3.ZERO}
 		body.collision_layer = 1
 		body.collision_mask = 1
 		body.process_mode = Node.PROCESS_MODE_INHERIT
+		if _visuals[i].has_method("reset_pedestrian_visual"):
+			_visuals[i].call("reset_pedestrian_visual")
+		_visuals[i].position.y = maxf(0.0, SIDEWALK_RENDER_TOP - ground_y - 0.02)
 		body.show()
 		if _visuals[i].has_method("set_pedestrian_style"):
 			_visuals[i].call("set_pedestrian_style",sample["style"])
@@ -91,7 +122,7 @@ func activate(population, id: String, ground_y: float, allowed: Callable) -> boo
 
 ## Caller invokes once per physics tick. Stop on collision; do not teleport
 ## or push an actor back onto the nominal line. Grounded motion uses physics.
-func step(delta: float) -> void:
+func step(delta: float, signals: Node = null) -> void:
 	if not is_finite(delta) or delta<=0.0 or delta>0.1:
 		return
 	for id in _leases:
@@ -105,20 +136,161 @@ func step(delta: float) -> void:
 		var toward_end := heading.dot(axis)>0.0
 		var target := b if toward_end else a
 		var remaining := (target-body.global_position).dot(heading)
+		var arrival: String = lease["arrival"]
 		if remaining<=0.06:
 			heading = -heading
 			lease["heading"] = heading
 			target = a if toward_end else b
 			remaining = (target-body.global_position).dot(heading)
+			if toward_end:
+				lease["hold"] = _hold_duration(arrival, lease["signal"], signals)
+		var offset := body.global_position-a
+		offset.y = 0.0
+		var lateral := (offset-axis*offset.dot(axis)).length()
 		var desired := heading*minf(float(lease["speed"]),maxf(0.0,remaining)/delta)
+		lease["turn_cooldown"] = maxf(0.0,float(lease["turn_cooldown"])-delta)
+		# Do not keep walking sideways off a certified strip after a slide.
+		# A displaced actor remains visible and leased for explicit recovery.
+		lease["alert"] = maxf(0.0, float(lease["alert"]) - delta)
+		lease["hold"] = maxf(0.0, float(lease["hold"]) - delta)
+		lease["social"] = maxf(0.0, float(lease["social"]) - delta)
+		lease["social_cooldown"] = maxf(0.0, float(lease["social_cooldown"]) - delta)
+		if lateral>MAX_LATERAL_OFFSET:
+			desired = Vector3.ZERO
+			lease["state"] = "DISPLACED"
+		elif float(lease["alert"]) > 0.0:
+			desired = Vector3.ZERO
+			lease["state"] = "ALERT"
+		elif float(lease["social"]) > 0.0:
+			desired = Vector3.ZERO
+			lease["state"] = "SOCIALIZE"
+		elif float(lease["hold"]) > 0.0:
+			desired = Vector3.ZERO
+			lease["state"] = arrival
+		else:
+			lease["state"] = "WALK"
 		body.velocity.x = desired.x
 		body.velocity.z = desired.z
 		body.velocity.y = -0.5 if body.is_on_floor() else maxf(-12.0,body.velocity.y-9.8*delta)
+		var before := body.global_position
 		body.move_and_slide()
-		body.rotation.y = atan2(heading.x,heading.z)
+		if body.is_on_floor():
+			# The photo sidewalk overlays the established foundation collider.
+			# Keep the visual feet at its surface without changing the capsule.
+			var lift := maxf(0.0, SIDEWALK_RENDER_TOP - body.global_position.y)
+			_visuals[i].position.y = move_toward(_visuals[i].position.y, lift, delta * 2.5)
+		var progress := maxf(0.0,(body.global_position-before).dot(heading)/delta)
+		if desired.length()>0.2 and progress<0.15 and body.is_on_floor():
+			lease["state"] = "YIELD"
+			lease["blocked_time"] = float(lease["blocked_time"])+delta
+			# A sustained obstruction warrants walking back along the same
+			# link, not stepping into the street or teleporting through it.
+			if float(lease["blocked_time"])>=YIELD_SECONDS and float(lease["turn_cooldown"])<=0.0:
+				heading = -heading
+				lease["heading"] = heading
+				lease["blocked_time"] = 0.0
+				lease["turn_cooldown"] = TURN_COOLDOWN
+		else:
+			lease["blocked_time"] = 0.0
+		var facing: Vector3 = lease["social_facing"] if lease["state"] == "SOCIALIZE" else heading
+		body.rotation.y = lerp_angle(body.rotation.y, atan2(facing.x,facing.z), minf(1.0, 9.0 * delta))
 		if _visuals[i].has_method("set_locomotion"):
 			var v := body.get_real_velocity()
 			_visuals[i].call("set_locomotion",Vector2(v.x,v.z).length())
+		if _visuals[i].has_method("set_activity"):
+			_visuals[i].call("set_activity", lease["state"])
+
+func _hold_duration(arrival: String, crossing: Vector3i, signals: Node) -> float:
+	match arrival:
+		"WAIT_CROSSING":
+			if is_instance_valid(signals):
+				var axis := "x" if crossing.z == 0 else "z"
+				return 2.3 if signals.call("phase_at", crossing.x, crossing.y, axis) != "GREEN" else 0.0
+		"STOREFRONT":
+			return 3.0
+		"RESTING":
+			return 2.0
+	return 0.0
+
+func react_to_incident(space: PhysicsDirectSpaceState3D, at: Vector3, radius: float, ignored: Array[RID]) -> void:
+	for id in _leases:
+		var lease: Dictionary = _leases[id]
+		var body := _slots[int(lease["slot"])]
+		var eye := body.global_position + Vector3.UP * 1.6
+		if eye.distance_squared_to(at) > radius * radius:
+			continue
+		var exclude := ignored.duplicate()
+		exclude.append(body.get_rid())
+		if space.intersect_ray(PhysicsRayQueryParameters3D.create(eye, at, 1, exclude)).is_empty():
+			lease["alert"] = 2.6
+
+func react_to_traffic(vehicles: Array[CharacterBody3D]) -> void:
+	for id in _leases:
+		var lease: Dictionary = _leases[id]
+		var body := _slots[int(lease["slot"])]
+		for vehicle in vehicles:
+			var offset := body.global_position - vehicle.global_position
+			offset.y = 0.0
+			if offset.length_squared() > 9.0 * 9.0:
+				continue
+			var velocity := Vector3(vehicle.velocity.x, 0, vehicle.velocity.z)
+			var speed := velocity.length()
+			if speed < 4.0:
+				continue
+			var leading := offset.dot(velocity / speed)
+			if leading > -0.8 and leading < 1.1 * speed and (offset - velocity / speed * leading).length() < 2.25:
+				lease["alert"] = maxf(float(lease["alert"]), 0.65)
+				break
+
+func socialize_nearby(space: PhysicsDirectSpaceState3D) -> void:
+	var resting: Array[Dictionary] = []
+	for lease in _leases.values():
+		if lease["state"] in ["RESTING", "STOREFRONT", "WAIT_CROSSING"] and float(lease["social_cooldown"]) <= 0.0:
+			resting.append(lease)
+	for i in range(resting.size()):
+		var first := _slots[int(resting[i]["slot"])]
+		for j in range(i + 1, resting.size()):
+			var second := _slots[int(resting[j]["slot"])]
+			var distance := first.global_position.distance_to(second.global_position)
+			if distance < 1.35 or distance > 4.0:
+				continue
+			var ignore: Array[RID] = [first.get_rid(), second.get_rid()]
+			var query := PhysicsRayQueryParameters3D.create(first.global_position + Vector3.UP * 1.6,
+				second.global_position + Vector3.UP * 1.6, 1, ignore)
+			if not space.intersect_ray(query).is_empty():
+				continue
+			var heading := first.global_position.direction_to(second.global_position)
+			resting[i]["social_facing"] = heading
+			resting[j]["social_facing"] = -heading
+			for lease in [resting[i], resting[j]]:
+				lease["social"] = 3.5
+				lease["social_cooldown"] = 18.0
+			return
+
+func live_body_rids() -> Array[RID]:
+	var result: Array[RID] = []
+	for lease in _leases.values():
+		result.append(_slots[int(lease["slot"])].get_rid())
+	return result
+
+func witness_candidates(target: Vector3, camera: Camera3D) -> Array[Dictionary]:
+	var candidates: Array[Dictionary] = []
+	for id in _leases:
+		var slot: int = _leases[id]["slot"]
+		var body := _slots[slot]
+		var visual := _visuals[slot]
+		var eye := visual.global_position + Vector3.UP * 1.62
+		if not body.is_visible_in_tree() or not visual.has_method("is_pedestrian_visual_ready") or not visual.call("is_pedestrian_visual_ready"):
+			continue
+		if eye.distance_squared_to(target) <= 30.0 * 30.0 and camera.is_position_in_frustum(eye):
+			candidates.append({"eye":eye, "facing":body.global_basis.z, "police":false, "rid":body.get_rid()})
+	return candidates
+
+func movement_states() -> Dictionary:
+	var result := {}
+	for id in _leases:
+		result[id] = _leases[id]["state"]
+	return result
 
 ## Phase capture must succeed before release; a body displaced far from its
 ## link stays leased for a director to recover safely. No forced relocation.
@@ -138,8 +310,26 @@ func recycle(population, id: String, hidden: Callable) -> bool:
 	body.process_mode = Node.PROCESS_MODE_DISABLED
 	return true
 
-## For a future director's occupied-chunk protection and native diagnostics.
-## No witness candidates are produced until the director integrates LOS and
-## actual approved rendered assets with the world's existing witness system.
 func stats() -> Dictionary:
 	return {"capacity":_slots.size(),"active":_leases.size(),"inactive":_slots.size()-_leases.size()}
+
+## Explicit teardown only; caller must release parcel leases AFTER this call.
+func disable_all() -> void:
+	for id in _leases:
+		var slot: int = _leases[id]["slot"]
+		var body := _slots[slot]
+		body.velocity = Vector3.ZERO
+		body.collision_layer = 0
+		body.collision_mask = 0
+		body.hide()
+		body.process_mode = Node.PROCESS_MODE_DISABLED
+	_leases.clear()
+
+func capture_active(population) -> bool:
+	var ok := true
+	for id in _leases:
+		var lease: Dictionary = _leases[id]
+		var body := _slots[int(lease["slot"])]
+		if not population.capture_live(id,body.global_position,lease["heading"]):
+			ok = false
+	return ok

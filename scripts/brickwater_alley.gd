@@ -1,13 +1,18 @@
 extends Node3D
 ## Fixed first service-alley vertical slice, at the existing two-building parcel.
 const PILOT_BLOCK = Vector2i(-2,1)
+const Frontage = preload("res://scripts/brickwater_business_frontage.gd")
+const Atmosphere = preload("res://scripts/brickwater_atmosphere.gd")
+const SurfacePass = preload("res://scripts/brickwater_surface_pass.gd")
+const Architecture = preload("res://scripts/brickwater_alley_architecture.gd")
+const Repair = preload("res://scripts/brickwater_storefront.gd")
+const ServiceProps = preload("res://scripts/brickwater_service_props.gd")
+const WallArt = preload("res://scripts/brickwater_wall_art.gd")
 const Maps = preload("res://scripts/material_library.gd")
 const CABINET = preload("res://assets/models/polyhaven/utility_box_01/utility_box_01.gltf")
 const TRASH = preload("res://assets/models/polyhaven/metal_trash_can/metal_trash_can.gltf")
 const HVAC = preload("res://assets/models/polyhaven/exterior_aircon_unit/exterior_aircon_unit.gltf")
-const GRIME = preload("res://assets/models/nightgrid/brickwater_alley/alley_weathering.svg")
 const NOTICE = preload("res://assets/models/nightgrid/brickwater_alley/waste_notice.svg")
-const WallArt = preload("res://scripts/brickwater_wall_art.gd")
 const PBR = "res://assets/pbr/polyhaven/"
 const FLOOR_Y = 0.14
 const FOUNDATION_Y = -0.08
@@ -17,11 +22,20 @@ var left_wall := -2.65
 var right_wall := 2.65
 static var _metal: StandardMaterial3D
 static var _lid: StandardMaterial3D
-static var _grime_material: StandardMaterial3D
 static var _notice_material: StandardMaterial3D
 static var _dumpster_mesh: ArrayMesh
 static var _lid_mesh: ArrayMesh
 var _floor: StaticBody3D
+var _pavement: MeshInstance3D
+
+func set_night_factor(value: float) -> void:
+	_pavement.set_instance_shader_parameter("neon_night", smoothstep(0.3, 0.85, value))
+	var atmosphere := get_node_or_null("StreetAtmosphere")
+	if atmosphere != null:
+		atmosphere.set_night_factor(value)
+	var props := get_node_or_null("AuthoredStreetProps")
+	if props != null:
+		props.set_night_factor(value)
 
 func configure(left:float,right:float)->void:
 	left_wall=left
@@ -30,13 +44,46 @@ func configure(left:float,right:float)->void:
 func _ready()->void:
 	assert(right_wall-left_wall>=4.0)
 	_build_floor()
+	var repair := Repair.new()
+	repair.name = "NightShiftRepairs"
+	repair.position = Vector3(left_wall, Repair.FLOOR_Y, Repair.DOOR_Z)
+	add_child(repair)
+
+func install_ground_dressing() -> void:
 	_build_dumpster()
 	_build_services()
 	_install_reused_props()
+	var props := ServiceProps.new()
+	props.name = "AuthoredStreetProps"
+	props.configure(left_wall, right_wall, FLOOR_Y)
+	add_child(props)
 	var wall_art := WallArt.new()
 	wall_art.name = "BrickwaterWallArt"
 	add_child(wall_art)
 	wall_art.install(left_wall, right_wall)
+
+func install_upper_dressing() -> void:
+	var architecture := Architecture.new()
+	architecture.name = "AuthoredUpperArchitecture"
+	architecture.configure(left_wall, right_wall)
+	add_child(architecture)
+
+func install_repair_workshop() -> void:
+	$NightShiftRepairs.install_art()
+
+func install_lighting_and_signage() -> void:
+	var surfaces := SurfacePass.new()
+	surfaces.name = "AlleySurfacePass"
+	surfaces.configure(left_wall, right_wall)
+	add_child(surfaces)
+	var atmosphere := Atmosphere.new()
+	atmosphere.name = "StreetAtmosphere"
+	atmosphere.configure(left_wall, right_wall, FLOOR_Y)
+	add_child(atmosphere)
+	var frontage := Frontage.new()
+	frontage.name = "BusinessFrontage"
+	frontage.configure(left_wall, right_wall)
+	add_child(frontage)
 
 func _view(parent:Node3D, label:String, mesh:Mesh, at:Vector3, material:Material)->MeshInstance3D:
 	var node:=MeshInstance3D.new()
@@ -93,15 +140,25 @@ func _build_floor()->void:
 	var mesh:=PlaneMesh.new()
 	mesh.size=Vector2(hi-lo,END_Z-START_Z)
 	var center:=Vector3((lo+hi)*0.5,FLOOR_Y+0.002,(START_Z+END_Z)*0.5)
-	_view(self,"PhotographicAlleyPavement",mesh,center,Maps.surface("PHOTO_SIDEWALK",Color("797870")))
-	if _grime_material==null:
-		_grime_material=StandardMaterial3D.new()
-		_grime_material.albedo_texture=GRIME
-		_grime_material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
-		_grime_material.roughness=0.76
-		_grime_material.texture_filter=BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	var stain:=_view(self,"AuthoredWeatheringAtlas",mesh,center+Vector3.UP*0.003,_grime_material)
-	stain.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_pavement = _view(self,"PhotographicAlleyPavement",mesh,center,SurfacePass.pavement_material())
+	_pavement.set_instance_shader_parameter("repair_plane",
+		Vector3(left_wall + 0.61, Frontage.BLADE_HEIGHT, Frontage.REPAIR_Z) - center)
+	_pavement.set_instance_shader_parameter("laundry_plane",
+		Vector3(right_wall - 0.61, Frontage.BLADE_HEIGHT, Frontage.LAUNDRY_Z) - center)
+	var approach := Maps.surface("PHOTO_SIDEWALK", Color("68645e"))
+	_pave_approach("SouthApproach", lo, hi, START_Z - 1.0, START_Z, FOUNDATION_Y, FLOOR_Y, approach)
+	_pave_approach("NorthApproach", lo, hi, END_Z, END_Z + 1.0, FLOOR_Y, FOUNDATION_Y, approach)
+
+func _pave_approach(label: String, lo: float, hi: float, z0: float, z1: float,
+		y0: float, y1: float, material: Material) -> void:
+	var lift := 0.002
+	var builder := SurfaceTool.new()
+	builder.begin(Mesh.PRIMITIVE_TRIANGLES)
+	_quad(builder, Vector3(lo, y0 + lift, z0), Vector3(hi, y0 + lift, z0),
+		Vector3(hi, y1 + lift, z1), Vector3(lo, y1 + lift, z1))
+	builder.generate_normals()
+	builder.generate_tangents()
+	_view(self, label, builder.commit(), Vector3.ZERO, material)
 
 static func _ring(x:float,z:float,y:float,bevel:float)->PackedVector3Array:
 	return PackedVector3Array([Vector3(-x+bevel,y,-z),Vector3(x-bevel,y,-z),
@@ -194,26 +251,6 @@ func _build_services()->void:
 	source.scale=Vector3.ONE*0.85
 	source.rotation.y=PI*0.5
 	source.position=Vector3(left_wall+0.30,3.9,-6.0)
-	# Conduit runs along the actual wall. Round pipe cross-sections, flanged
-	# brackets and a wall-mounted cabinet preserve an uncluttered ground path.
-	for z in [-7.0,1.0]:
-		var pipe:=CylinderMesh.new()
-		pipe.top_radius=0.065
-		pipe.bottom_radius=0.065
-		pipe.height=3.1
-		pipe.radial_segments=16
-		pipe.rings=1
-		_view(self,"WallConduit",pipe,Vector3(right_wall-0.09,2.1,z),_metal)
-		for y in [0.85,2.2,3.35]:
-			_plate(self,"ConduitBracket",Vector3(right_wall-0.08,y,z),Vector3(0.16,0.09,0.19),_lid)
-	var run:=CylinderMesh.new()
-	run.top_radius=0.055
-	run.bottom_radius=0.055
-	run.height=8.0
-	run.radial_segments=16
-	run.rings=1
-	var horizontal:=_view(self,"OverheadServiceConduit",run,Vector3(right_wall-0.09,3.62,-3.0),_metal)
-	horizontal.rotation.x=PI*0.5
 	# Shared photo steel for a grounded drain cover, nearly flush to pavement.
 	var drain:=_plate(self,"FlushDrainCover",Vector3(right_wall-0.28,FLOOR_Y+0.008,-3.0),Vector3(0.32,0.015,0.72),_lid)
 	drain.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

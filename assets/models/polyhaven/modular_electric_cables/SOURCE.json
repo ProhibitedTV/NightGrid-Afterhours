@@ -1,0 +1,116 @@
+{
+  "asset": "modular_electric_cables",
+  "author": "Kuutti Siitonen",
+  "files": {
+    "modular_electric_cables.bin": {
+      "bytes": 1563316,
+      "sha256": "3990f8b60c244ecfc64f80b1242d2a0fef0a3e39288c9ba9fd31becad4734d8a",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/modular_electric_cables/modular_electric_cables.bin",
+      "source_md5": "1444b0e21d201c344a99e86937bbe5fc"
+    },
+    "modular_electric_cables.gltf": {
+      "bytes": 82607,
+      "sha256": "f9292a9eff5bea32dde06356633da84615c508c9c0ee0246fc96c301cfd71fe8",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/modular_electric_cables/modular_electric_cables_1k.gltf",
+      "source_md5": "452d8189381a17d02467785ec1691f2b"
+    },
+    "textures/modular_electric_cables_arm_1k.jpg": {
+      "bytes": 797169,
+      "sha256": "d8d48ae3499f575be301fe0b9ae91d4e0316a51c1e1234e186e0e0e9409f1a32",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modular_electric_cables/modular_electric_cables_arm_1k.jpg",
+      "source_md5": "196560790b8dcb085c569a7755648d7b"
+    },
+    "textures/modular_electric_cables_boxes_arm_1k.jpg": {
+      "bytes": 856332,
+      "sha256": "3e1e8f5e854cdae94c5f5eee57241e4679c4198aa95d800873ca2cab87bd6bcc",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modular_electric_cables/modular_electric_cables_boxes_arm_1k.jpg",
+      "source_md5": "a0c541de1da2bd138152e45be9383e72"
+    },
+    "textures/modular_electric_cables_boxes_diff_1k.jpg": {
+      "bytes": 646895,
+      "sha256": "7dba8bfdd0a9c46294b5ec4930b4420b102a817469bf002d24136f8c3310c519",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modular_electric_cables/modular_electric_cables_boxes_diff_1k.jpg",
+      "source_md5": "b561a3ec8790af4033504609e70baa12"
+    },
+    "textures/modular_electric_cables_boxes_nor_gl_1k.jpg": {
+      "bytes": 749676,
+      "sha256": "5e3d896e8bceaa8d843b30941c8d6f50779d4fbde534080dd3837f499471af5a",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modular_electric_cables/modular_electric_cables_boxes_nor_gl_1k.jpg",
+      "source_md5": "cf66abe69419fdaac4afc36c940502d4"
+    },
+    "textures/modular_electric_cables_diff_1k.jpg": {
+      "bytes": 474284,
+      "sha256": "181c8811d6f3d3f5a0ea02497cd6c375868c558aedf70a8221f301d323430c1a",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modular_electric_cables/modular_electric_cables_diff_1k.jpg",
+      "source_md5": "bf807ef977dc49143dd8ed97c0ffec3c"
+    },
+    "textures/modular_electric_cables_nor_gl_1k.jpg": {
+      "bytes": 848440,
+      "sha256": "c32eeb9c064afc0265f38b7f133f41bebee559e416d7064d441098c4821c7dcd",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modular_electric_cables/modular_electric_cables_nor_gl_1k.jpg",
+      "source_md5": "089c0dda6a7b06fc587eb23a9367fda2"
+    }
+  },
+  "license": "CC0 1.0",
+  "license_url": "https://polyhaven.com/license",
+  "materials": 2,
+  "mesh_count": 49,
+  "model": "modular_electric_cables.gltf",
+  "native_approved": false,
+  "node_names": [
+    "cable_straight_medium",
+    "cable_straight_short",
+    "cable_mount",
+    "cable_end",
+    "cable_straight_long",
+    "cable_scurve_1",
+    "cable_scurve_4",
+    "cable_turn_long",
+    "cable_turn_short",
+    "cable_corner_towards",
+    "cable_10cm",
+    "cable_5cm",
+    "cable_2cm",
+    "cable_scurve_2",
+    "cable_scurve_3",
+    "cable_bridge_2",
+    "cable_bridge_3",
+    "cable_bridge_1",
+    "cable_corner_away",
+    "cable_3way_junction",
+    "cable_double",
+    "cable_double_10cm",
+    "cable_double_alt_long",
+    "cable_double_alt_short",
+    "cable_double_alt_turn",
+    "cable_double_end",
+    "cable_double_junction",
+    "cable_double_mount",
+    "cable_double_scurve",
+    "cable_double_turn_long",
+    "cable_double_turn_short",
+    "cable_double_uturn",
+    "cable_to_double_1",
+    "cable_to_double_2",
+    "cable_to_double_3",
+    "cable_to_double_4",
+    "cable_box_3way",
+    "cable_box_4way",
+    "cable_box_double",
+    "cable_box_double_to_single",
+    "cable_box_double_to_single_2",
+    "cable_box_turn",
+    "cable_lightswitch",
+    "cable_lightswitch_2",
+    "cable_lightswitch_double",
+    "cable_plug_4x",
+    "cable_plug_covered",
+    "cable_plug_covered_2",
+    "cable_switch"
+  ],
+  "resolution": "1k",
+  "runtime_download_required": false,
+  "source_api": "https://api.polyhaven.com/files/modular_electric_cables",
+  "source_mesh_triangles": 42078,
+  "source_page": "https://polyhaven.com/a/modular_electric_cables"
+}

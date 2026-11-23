@@ -16,6 +16,10 @@ jobs:
           python-version: '3.12'
       - name: Check files and resource references
         run: python tools/check_project.py
+      - name: Verify the twenty creator-owned NightGrid FM track hashes
+        run: python tools/prepare_nightgrid_fm.py
+      - name: Verify the CC0 Morrow Bay field recordings and footfall bank
+        run: python tools/prepare_morrow_bay_audio.py
       - name: Verify official CC0 shutter mesh, source hashes and photo maps
         run: python tools/check_cc0_shutter.py
       - name: Audit original CC0 HVAC mesh, four source PBR maps and per-file hashes
@@ -46,6 +50,10 @@ jobs:
         run: python tools/test_check_release_gallery.py
       - name: Verify committed real game screenshots
         run: python tools/check_screenshots.py
+      - name: Verify native Windows development gallery and original Git screenshot blobs
+        run: python tools/check_development_gallery.py
+      - name: Audit nine pinned Brickwater CC0 source packages
+        run: python tools/check_brickwater_cc0.py
       - name: Verify exact beta.7 capture provenance on the release candidate
         if: github.head_ref == 'release/beta-7-gallery-milestone' || github.ref == 'refs/heads/release/beta-7-gallery-milestone'
         run: |
@@ -56,7 +64,7 @@ jobs:
           python tools/check_release_gallery.py "$capture_sha"
 
   godot-headless:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - uses: chickensoft-games/setup-godot@v2
@@ -72,7 +80,9 @@ jobs:
         run: |
           set -o pipefail
           godot --headless --path . --import --quit 2>&1 | tee /tmp/nightgrid-import.log
-          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-import.log; then exit 1; fi
+          if grep -Eq 'SCRIPT ERROR:|p_image->is_compressed\(\)|Cannot generate mipmaps from compressed image formats' /tmp/nightgrid-import.log; then exit 1; fi
+      - name: Verify the baked city textures match the original generator byte for byte
+        run: godot --headless --path . --script res://tools/bake_city_material_maps.gd -- --verify
       - name: Validate deterministic road routes, intersection turns and off-road access
         timeout-minutes: 2
         run: timeout 75s godot --headless --path . --script res://tests/street_route_smoke.gd
@@ -144,6 +154,12 @@ jobs:
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-radio.log; then exit 1; fi
       - name: Validate Southworks solid cargo and player movement orientation regressions
         run: godot --headless --path . --script res://tests/southworks_playtest_smoke.gd
+      - name: Validate the skinned courier, camera-relative movement, equipment and occupied saves
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 95s godot --headless --path . --script res://tests/courier_smoke.gd 2>&1 | tee /tmp/nightgrid-courier.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-courier.log; then exit 1; fi
       - name: Validate fixed 60Hz physics and independent rendered train cadence
         run: godot --headless --path . --script res://tests/frame_pacing_smoke.gd
       - name: Validate on-device frame interval percentile and CSV capture integrity
@@ -164,12 +180,20 @@ jobs:
         run: godot --headless --path . --script res://tests/hero_fern_smoke.gd
       - name: Validate fixed lots and lighting/material policies
         run: godot --headless --path . --script res://tests/render_smoke.gd
+      - name: Validate unchanged-clock sky deduplication and streamed lighting synchronization
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/clock_atmosphere_smoke.gd 2>&1 | tee /tmp/nightgrid-clock-atmosphere.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-clock-atmosphere.log; then exit 1; fi
       - name: Validate physically anchored storefront and street lighting with eight-light pool
         run: godot --headless --path . --script res://tests/practical_lighting_smoke.gd
       - name: Verify photo-glTF-source Central Exchange 3D shop practical lighting shares original 8 lamps across dusk/noon/night and streaming
         run: godot --headless --path . --script res://tests/central_exchange_shop_lighting_smoke.gd
       - name: Validate signals, transit boarding and persistent save seeds
         run: godot --headless --path . --script res://tests/transport_smoke.gd
+      - name: Verify older saves keep their position through the first physics ticks
+        run: godot --headless --path . --script res://tests/legacy_save_boot_smoke.gd
       - name: Validate Kestrel S6 hero body, dynamic lights and save stability
         run: godot --headless --path . --script res://tests/hero_vehicle_smoke.gd
       - name: Audit closed Kestrel rear hatch manifold, trunk bulkhead and police variant
@@ -202,7 +226,7 @@ jobs:
         run: godot --headless --path . --script res://tests/crane_gear_gltf_smoke.gd
       - name: Validate permanent venues, opening hours and side quests
         run: godot --headless --path . --script res://tests/venues_smoke.gd
-      - name: Validate NightGrid FM soundtrack catalog, radio and optional game audio pack
+      - name: Validate NightGrid FM soundtrack catalog, radio and packaged tracks
         run: godot --headless --path . --script res://tests/nightgrid_fm_smoke.gd
       - name: Validate original city soundscapes, footfalls and volume settings
         run: godot --headless --path . --script res://tests/world_audio_smoke.gd
@@ -218,12 +242,25 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/sidewalk_population_smoke.gd 2>&1 | tee /tmp/nightgrid-sidewalk.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-sidewalk.log; then exit 1; fi
+      - name: Validate skinned pedestrian animation and palette adapter
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/pedestrian_rig_smoke.gd 2>&1 | tee /tmp/nightgrid-pedestrian-rig.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-pedestrian-rig.log; then exit 1; fi
       - name: Validate reusable physical pedestrian pool and phase handoff
         timeout-minutes: 2
         run: |
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/pedestrian_pool_smoke.gd 2>&1 | tee /tmp/nightgrid-pedestrian-pool.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-pedestrian-pool.log; then exit 1; fi
+      - name: Validate pedestrian director and visible civilian witnesses in Morrow Bay
+        shell: bash
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/pedestrian_director_smoke.gd 2>&1 | tee /tmp/nightgrid-pedestrian-director.log
+          timeout 90s godot --headless --path . --script res://tests/living_streets_smoke.gd 2>&1 | tee /tmp/nightgrid-living-streets.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-pedestrian-{director,pool}.log /tmp/nightgrid-living-streets.log; then exit 1; fi
       - name: Validate bounded sidewalk link ground and obstacle certification
         timeout-minutes: 2
         run: |
@@ -242,12 +279,24 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/logical_traffic_smoke.gd 2>&1 | tee /tmp/nightgrid-logical-traffic.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-logical-traffic.log; then exit 1; fi
-      - name: Validate Brickwater authored alley floor contact and solid steel dumpster
+      - name: Validate Brickwater alley layout, collision and art
         timeout-minutes: 2
         run: |
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/brickwater_alley_smoke.gd 2>&1 | tee /tmp/nightgrid-brickwater-alley.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-brickwater-alley.log; then exit 1; fi
+      - name: Validate the opt-in logical traffic pool on loaded city lanes
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 65s godot --headless --path . --script res://tests/pooled_traffic_smoke.gd 2>&1 | tee /tmp/nightgrid-pooled-traffic.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-pooled-traffic.log; then exit 1; fi
+      - name: Validate the continuous Brickwater workshop and repair counter
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 65s godot --headless --path . --script res://tests/brickwater_storefront_smoke.gd 2>&1 | tee /tmp/nightgrid-brickwater-storefront.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-brickwater-storefront.log; then exit 1; fi
       - name: Validate actual photographic masonry on ordinary building shells
         timeout-minutes: 2
         run: |
@@ -308,5 +357,11 @@ jobs:
         run: godot --headless --path . --script res://tests/cafe_patrons_smoke.gd
       - name: Validate first-playtest club exit, camera obstruction, contact geometry and building fronts
         run: godot --headless --path . --script res://tests/playtest_geometry_smoke.gd
+      - name: Validate Morrow Bay rail, signals, lift, collisions, chase clearance and impacts
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 90s godot --headless --path . --script res://tests/physical_coherence_smoke.gd 2>&1 | tee /tmp/nightgrid-physical-coherence.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-physical-coherence.log; then exit 1; fi
       - name: Run smoke test for 90 frames
         run: godot --headless --path . --quit-after 90

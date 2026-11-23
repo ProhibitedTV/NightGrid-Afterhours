@@ -1,0 +1,105 @@
+{
+	"adapter": "NVIDIA GeForce RTX 3060",
+	"captures": [
+		{
+			"camera": "(-87.65, 1.55, 85.45)",
+			"camera_rotation": "(-0.088073, -0.186223, 0.0)",
+			"file": "day-front.png",
+			"fov": 46.0,
+			"hour": 12.0,
+			"resolution": [
+				1920,
+				1080
+			],
+			"sha256": "909ba5cd92896b39eef7371ff686361f78edd67f359b24c714f44db0da4abbd1"
+		},
+		{
+			"camera": "(-84.1, 1.44, 81.78)",
+			"camera_rotation": "(-0.06866, 1.646514, 0.0)",
+			"file": "day-side.png",
+			"fov": 50.0,
+			"hour": 12.0,
+			"resolution": [
+				1920,
+				1080
+			],
+			"sha256": "2b5e5e606ec9cc67e667f9526f6e63430dc3ff494a5d99fedd77bae3c3e03383"
+		},
+		{
+			"camera": "(-86.15, 1.79, 78.7)",
+			"camera_rotation": "(-0.18848, 2.889497, 0.0)",
+			"file": "day-rear.png",
+			"fov": 46.0,
+			"hour": 12.0,
+			"resolution": [
+				1920,
+				1080
+			],
+			"sha256": "ec28a722bff803c46009a2ea02379bdcf4a8fe505239ef4bbf0cd26dd344edbf"
+		},
+		{
+			"camera": "(-87.2, 1.96, 83.38)",
+			"camera_rotation": "(-0.021511, -0.143924, 0.0)",
+			"file": "day-face.png",
+			"fov": 40.0,
+			"hour": 12.0,
+			"resolution": [
+				1920,
+				1080
+			],
+			"sha256": "de831a59b6a38dc1a8494cabd4929cdfc3fad83806eab29a063a3aaf1f4670ca"
+		},
+		{
+			"camera": "(-87.65, 1.55, 85.45)",
+			"camera_rotation": "(-0.088073, -0.186223, 0.0)",
+			"file": "night-front.png",
+			"fov": 46.0,
+			"hour": 22.1,
+			"resolution": [
+				1920,
+				1080
+			],
+			"sha256": "9d92c623e2c7546e72310d28aeda40b3a9a77187170b41f714e8a50917e6947a"
+		},
+		{
+			"camera": "(-86.15, 1.79, 78.7)",
+			"camera_rotation": "(-0.18848, 2.889497, 0.0)",
+			"file": "night-rear.png",
+			"fov": 46.0,
+			"hour": 22.1,
+			"resolution": [
+				1920,
+				1080
+			],
+			"sha256": "9feb0b942f98bae4665c77ac5e8d62a1a3deb69d2c82098a399a22cd26c1dc86"
+		},
+		{
+			"camera": "(-84.35, 1.42082, 83.33516)",
+			"camera_rotation": "(-0.100809, 1.277609, 0.0)",
+			"file": "day-walking.png",
+			"fov": 51.0,
+			"hour": 12.0,
+			"resolution": [
+				1920,
+				1080
+			],
+			"sha256": "ad8b63d57c51ec1b12420df1a6c38779ac2e5a81ab88e70bc0cc057e5c7d8d73"
+		},
+		{
+			"camera": "(-84.35, 1.42082, 87.56503)",
+			"camera_rotation": "(-0.100809, 1.277609, 0.0)",
+			"file": "day-running.png",
+			"fov": 51.0,
+			"hour": 12.0,
+			"resolution": [
+				1920,
+				1080
+			],
+			"sha256": "04d70cdacd8531805cd9bb65711bf09f96f8c12d938032e82192a85766148af7"
+		}
+	],
+	"driver": "vulkan",
+	"renderer": "forward_plus",
+	"revision": "1d45c0ae29830b8ceec74e9593723f5caa6703eb",
+	"seed": 834726
+}

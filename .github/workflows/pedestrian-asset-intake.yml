@@ -1,0 +1,28 @@
+name: Pedestrian asset intake
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'tools/fetch_pedestrian_assets.py'
+      - 'tools/pedestrian_asset_sources.json'
+      - '.github/workflows/pedestrian-asset-intake.yml'
+permissions:
+  contents: read
+jobs:
+  verified-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download and verify pinned CC0 assets
+        run: python tools/fetch_pedestrian_assets.py --out "${RUNNER_TEMP}/pedestrian-intake"
+      - name: Verify cached inputs without network access
+        run: python tools/fetch_pedestrian_assets.py --offline --out "${RUNNER_TEMP}/pedestrian-intake"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pedestrian-cc0-source-review
+          path: ${{ runner.temp }}/pedestrian-intake/
+          retention-days: 7

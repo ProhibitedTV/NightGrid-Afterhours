@@ -81,7 +81,9 @@ func _build(label:String,rects:Array[Rect2],material:StandardMaterial3D) -> void
 		var b := Vector3(rect.end.x,Y,rect.position.y)
 		var c := Vector3(rect.end.x,Y,rect.end.y)
 		var d := Vector3(rect.position.x,Y,rect.end.y)
-		for p in [a,c,b,a,d,c]:
+		# Godot uses clockwise front faces; cross product must oppose UP.
+		# Otherwise the default back-face culling exposes the tiled foundation.
+		for p in [a,b,c,a,c,d]:
 			vertices.append(p)
 			normals.append(Vector3.UP)
 			uv.append(Vector2(p.x,p.z)/TILE_METRES)

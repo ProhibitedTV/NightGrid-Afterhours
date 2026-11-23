@@ -242,7 +242,7 @@ func _build_venue(venue: Dictionary) -> void:
 	var audio := AudioStreamPlayer3D.new()
 	audio.name = "Atmosphere"
 	AudioMix.ensure()
-	audio.bus = AudioMix.AMBIENCE
+	audio.bus = AudioMix.OUTSIDE_BEDS
 	audio.position = Vector3(0.0, 1.9, 0.0)
 	audio.stream = VenueAmbience.soundscape(kind)
 	audio.max_distance = 28.0
