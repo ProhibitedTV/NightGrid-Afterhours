@@ -2,6 +2,7 @@ extends Node
 ## A cheap, continuously interpolated 24-hour light cycle.
 ## A single shadow caster is retained for predictable midrange GPU performance.
 
+const SkyboxLibrary = preload("res://scripts/skybox_library.gd")
 const DAY_LENGTH_SECONDS = 1440.0
 const START_HOUR = 19.25
 var hour: float = START_HOUR
@@ -9,6 +10,15 @@ var paused := false
 var _environment: WorldEnvironment
 var _sun: DirectionalLight3D
 var _sky: ProceduralSkyMaterial
+var _procedural_sky: Sky
+var _panorama_sky: PanoramaSkyMaterial
+var _panorama_resource: Sky
+var _original_skies_enabled := true
+var _sky_weather := "clear"
+var _active_sky_id := ""
+var _last_panorama_energy := -1.0
+var _sky_args_parsed := false
+var _art_sky_updates := 0
 var _city: Node
 var _lights: Node
 var _hero_intersection: Node
@@ -37,9 +47,24 @@ func configure(world_environment: WorldEnvironment, sun: DirectionalLight3D, cit
 	_last_atmosphere_profile = ""
 	_last_sky_light = -1.0
 	_sky = ProceduralSkyMaterial.new()
-	var sky := Sky.new()
-	sky.sky_material = _sky
-	_environment.environment.sky = sky
+	_procedural_sky = Sky.new()
+	_procedural_sky.sky_material = _sky
+	_panorama_sky = PanoramaSkyMaterial.new()
+	_panorama_resource = Sky.new()
+	_panorama_resource.radiance_size = Sky.RADIANCE_SIZE_256
+	_panorama_resource.sky_material = _panorama_sky
+	_active_sky_id = ""
+	_last_panorama_energy = -1.0
+	if not _sky_args_parsed:
+		_sky_args_parsed = true
+		for arg in OS.get_cmdline_user_args():
+			if arg == "--procedural-sky":
+				_original_skies_enabled = false
+			elif arg.begins_with("--sky-weather="):
+				var candidate := arg.trim_prefix("--sky-weather=").to_lower()
+				if SkyboxLibrary.valid_weather(candidate):
+					_sky_weather = candidate
+	_environment.environment.sky = _procedural_sky
 	_environment.environment.background_mode = Environment.BG_SKY
 	_apply()
 
@@ -76,6 +101,59 @@ func get_render_profile() -> String:
 	if _compare_sky_agx:
 		return "sky_agx_experiment"
 	return "sky_aces_experiment" if _compare_sky_aces else "filmic_baseline"
+
+func set_weather(value: String) -> bool:
+	var candidate := value.to_lower()
+	if not SkyboxLibrary.valid_weather(candidate):
+		return false
+	if _sky_weather != candidate:
+		_sky_weather = candidate
+		_last_atmosphere_hour = -1.0
+		_apply()
+	return true
+
+func get_weather() -> String:
+	return _sky_weather
+
+func cycle_weather() -> String:
+	var order: Array = SkyboxLibrary.WEATHER_ORDER
+	var index: int = order.find(_sky_weather)
+	set_weather(str(order[(index + 1) % order.size()]))
+	return _sky_weather
+
+func set_original_sky_enabled(enabled: bool) -> void:
+	if _original_skies_enabled != enabled:
+		_original_skies_enabled = enabled
+		_last_atmosphere_hour = -1.0
+		_apply()
+
+func active_sky_preset() -> String:
+	return _active_sky_id if _original_skies_enabled else "procedural"
+
+func _refresh_original_sky() -> void:
+	if _environment == null or _panorama_sky == null:
+		return
+	if not _original_skies_enabled:
+		if _environment.environment.sky != _procedural_sky:
+			_environment.environment.sky = _procedural_sky
+		_active_sky_id = ""
+		return
+	var selected: String = SkyboxLibrary.select_preset(hour, _sky_weather)
+	if selected != _active_sky_id:
+		var texture := load(SkyboxLibrary.texture_path(selected)) as Texture2D
+		if texture == null:
+			push_warning("Missing original sky art: " + selected + "; falling back to procedural.")
+			_environment.environment.sky = _procedural_sky
+			return
+		_panorama_sky.panorama = texture
+		_active_sky_id = selected
+		_art_sky_updates += 1
+	var energy := SkyboxLibrary.panorama_energy(hour, _sky_weather)
+	if not is_equal_approx(energy, _last_panorama_energy):
+		_panorama_sky.energy_multiplier = energy
+		_last_panorama_energy = energy
+	if _environment.environment.sky != _panorama_resource:
+		_environment.environment.sky = _panorama_resource
 
 func set_hour(value: float) -> void:
 	hour = fposmod(value, 24.0)
@@ -148,11 +226,12 @@ func _apply_atmosphere(light:float) -> void:
 	# Distance haze shifts from cool coastal night to warm daytime air, but does
 	# not override the player's fog toggle or allocate volumetric fog buffers.
 	_environment.environment.fog_density = (lerpf(0.0052, 0.0036, light)
-		if _compare_sky_aces or _compare_sky_agx else lerpf(0.0085, 0.0045, light))
+		if _compare_sky_aces or _compare_sky_agx else lerpf(0.0085, 0.0045, light)) * SkyboxLibrary.fog_factor(_sky_weather)
 	_environment.environment.fog_sky_affect = 0.24 if _compare_sky_aces or _compare_sky_agx else 0.35
 	_environment.environment.fog_light_color = Color("2b354b").lerp(Color("c4d0c7"), light).lerp(Color("b77d65"), twilight * 0.22)
 	_sun.light_color = Color("8eabda").lerp(Color("ffe6c2"), light).lerp(Color("ffad86"), twilight * 0.15)
-	_sun.light_energy = lerpf(0.13, 1.30, light)
+	_sun.light_energy = lerpf(0.13, 1.30, light) * SkyboxLibrary.sun_factor(_sky_weather)
 	var altitude := 9.0 + 64.0 * noon
 	_sun.rotation_degrees = Vector3(-altitude, hour * 15.0 + 90.0, -4.0)
+	_refresh_original_sky()
 
