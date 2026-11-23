@@ -38,7 +38,7 @@ for item in files:
     assert f"]({name})" in GALLERY, f"Missing gallery image: {name}"
 gallery_images = set(re.findall(r"!\[[^\]]*\]\(([^)]+\.png)\)", GALLERY))
 assert gallery_images == listed, "Gallery image links and provenance must match"
-assert "docs/screenshots/development/GALLERY.md" in README
-for name in ("brickwater/01-alley-night-north.png", "courier/day-face-after.png", "physical/east-gardens-platform.png"):
-    assert "docs/screenshots/development/" + name in README, name
+# Keep the public landing page brief: it links to the complete, verified
+# developer gallery instead of duplicating three older captures up front.
+assert "docs/screenshots/development/GALLERY.md" in README, "Link to the verified development gallery is missing"
 print(f"NATIVE_SHOWCASE PASS: {len(files)} exact unmodified Git PNG blobs; links, dimensions and provenance verified")
