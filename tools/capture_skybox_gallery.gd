@@ -3,7 +3,7 @@ extends SceneTree
 ## Runs under a graphical Godot display, not --headless. These are not AI
 ## concepts, mockups or repainted panoramas: each PNG is root viewport pixels.
 
-const DIRECTORY := "res://docs/screenshots/skyboxes"
+const DIRECTORY = "res://docs/screenshots/skyboxes"
 var game: Node3D
 var camera: Camera3D
 var records: Array[Dictionary] = []
