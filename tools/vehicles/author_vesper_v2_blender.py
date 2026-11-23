@@ -537,18 +537,25 @@ def cameras_and_preview(preview_col):
 
 def render_views(camera, output_dir, prefix=''):
     shots={
-        "front_three_quarter":((5.7,3.3,-6.2),(0,.69,0)),
-        "rear_three_quarter":((-5.7,3.1,6.2),(0,.69,0)),
-        "profile":((6.0,2.5,.05),(0,.68,0)),
-        "open_cockpit":((3.8,6.6,-2.1),(0,.68,0)),
+        "front_three_quarter":((5.7,3.3,-6.2),(0,.69,0),6.6),
+        "rear_three_quarter":((-5.7,3.1,6.2),(0,.69,0),6.6),
+        "profile":((6.0,2.5,.05),(0,.68,0),6.6),
+        "open_cockpit":((3.8,6.6,-2.1),(0,.68,0),6.6),
+        # Fixed professional inspection closeups. These reveal whether the
+        # authoring tool actually creates coherent detail rather than detail
+        # that disappears at ordinary gallery viewing distances.
+        "front_optic_macro":((2.6,1.8,-3.42),(.60,.81,-1.93),1.70),
+        "front_wheel_macro":((2.55,1.17,-2.02),(.81,.37,-1.38),1.72),
+        "fender_shoulder_macro":((2.25,2.15,-1.68),(.66,.85,-1.30),1.78),
     }
-    for name,(eye,target) in shots.items():
+    for name,(eye,target,scale) in shots.items():
         # Preview cameras are specified in game coordinates, transformed to
         # Blender's native Z-up world used by the editable source file.
         camera.location=(eye[0],-eye[2],eye[1])
         target_blender=(target[0],-target[2],target[1])
         direction=Vector(target_blender)-camera.location
         camera.rotation_euler=direction.to_track_quat("-Z","Y").to_euler()
+        camera.data.ortho_scale=scale
         bpy.context.scene.render.filepath=str(output_dir/(prefix+name+".png"))
         bpy.ops.render.render(write_still=True)
 
