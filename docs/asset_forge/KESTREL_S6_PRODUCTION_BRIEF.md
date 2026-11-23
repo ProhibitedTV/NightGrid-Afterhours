@@ -42,3 +42,5 @@ The sketch describes the whole-car intent. The first glTF is fitted to current m
 Run `python tools/author_kestrel_fascia.py` and `python tools/check_kestrel_fascia.py` using Python 3.11 or newer. For the native review, set `NIGHTGRID_KESTREL_REVIEW_DIR` to a new absolute directory and `NIGHTGRID_SOURCE_REVISION` to the build SHA. Launch the source project or exported PCK with Godot 4.7.2 using `--rendering-method forward_plus --rendering-driver vulkan --resolution 1920x1080 --script res://tools/review_kestrel_fascia.gd`.
 
 Creator review should focus on the bumper crown in noon and neon, intake balance, the flatter red bar above the grille and how the side returns meet the fenders. The next component is the bonnet and front fender interface, including hood seam datums and the real apertures for the future lamp housing. The rear closure, cabin, production lamps, wheels, wetness and full native performance gate remain on #211–#217.
+
+[Native day and night comparison and timing report](../playtest/kestrel-s6-pass-1/NATIVE_REVIEW.md).
