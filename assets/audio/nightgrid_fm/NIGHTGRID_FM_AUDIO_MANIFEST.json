@@ -1,0 +1,209 @@
+{
+  "schema": 1,
+  "format": "Ogg Vorbis",
+  "sample_rate_hz": 48000,
+  "channels": 2,
+  "vorbis_quality": 5,
+  "tracks": {
+    "boot_sequence": {
+      "title": "BOOT SEQUENCE",
+      "album": "Afterimage",
+      "source_file": "BOOT SEQUENCE.wav",
+      "source_bytes": 41053874,
+      "source_sha256": "524c5148fbee38216339921eb6b32cea2cbf11187adf36411a97556419635605",
+      "duration_seconds": 199.16,
+      "bytes": 3752691,
+      "sha256": "ba5402eb1ab90ca59cada4293a249b54a18a09f6ee39f6f4439893d202b20f9d"
+    },
+    "neon_checksum": {
+      "title": "NEON CHECKSUM",
+      "album": "Afterimage",
+      "source_file": "NEON CHECKSUM.wav",
+      "source_bytes": 42351794,
+      "source_sha256": "2a001a25e3b55c9b3b5fa979c6ac1f257e56f0b875009431a24afc1bf4500963",
+      "duration_seconds": 205.92,
+      "bytes": 3873706,
+      "sha256": "2bb508d46c68826a9417611ba77539632a97508154e010bd3b419a6ba7c1a16f"
+    },
+    "packet_loss": {
+      "title": "PACKET LOSS",
+      "album": "Afterimage",
+      "source_file": "PACKET LOSS.wav",
+      "source_bytes": 42674348,
+      "source_sha256": "d308983dd39ac355f0c647c053ad834de0c14853479ccd1069272b2ce2c1ca97",
+      "duration_seconds": 207.6,
+      "bytes": 3783005,
+      "sha256": "bed70a46c1e45c76f572b45374c1bd347032b5c3040afa7c794aff57a43ea11b"
+    },
+    "phosphor_ghosts": {
+      "title": "PHOSPHOR GHOSTS",
+      "album": "Afterimage",
+      "source_file": "PHOSPHOR GHOSTS.wav",
+      "source_bytes": 44517560,
+      "source_sha256": "6d5a31fefc230b725422536990743febbe9eb5e7372dc15c784eb5c861216914",
+      "duration_seconds": 217.2,
+      "bytes": 4055625,
+      "sha256": "7f4ba55a8e737115d11472dca765e1e88e1d403c99952ece977c3950bc044ec4"
+    },
+    "overclock": {
+      "title": "OVERCLOCK",
+      "album": "Afterimage",
+      "source_file": "OVERCLOCK.wav",
+      "source_bytes": 44747942,
+      "source_sha256": "30a4480ff05164568fd6163fc85fd88dacf35a740aad3cab99175c49193efd6f",
+      "duration_seconds": 218.4,
+      "bytes": 4223758,
+      "sha256": "d26cfac63eab0885a547374c1000f2a691073132819d2697d3f64c3cb5669d61"
+    },
+    "memory_address": {
+      "title": "MEMORY ADDRESS",
+      "album": "Afterimage",
+      "source_file": "MEMORY ADDRESS.wav",
+      "source_bytes": 41745078,
+      "source_sha256": "9229c7d6bc3dc257dc9e211941bb887514cb017783121edeb591feb375ffaf43",
+      "duration_seconds": 202.76,
+      "bytes": 4002410,
+      "sha256": "4d41902ecfb3ba8fc8ac17427ce972be58c83e8a26878ba95f94131358936865"
+    },
+    "midnight_bus": {
+      "title": "MIDNIGHT BUS",
+      "album": "Afterimage",
+      "source_file": "MIDNIGHT BUS.wav",
+      "source_bytes": 37083312,
+      "source_sha256": "81e9fd0f7b560cf76c7fdd45ec25dec6781535702ca095341575ccb359c2f4ee",
+      "duration_seconds": 178.48,
+      "bytes": 3377998,
+      "sha256": "94d80dc8b2c34b5f712f507014cde83b761f3e254a453d268be532ea8d22fc11"
+    },
+    "rasterburn": {
+      "title": "RASTERBURN",
+      "album": "Afterimage",
+      "source_file": "RASTERBURN.wav",
+      "source_bytes": 45754026,
+      "source_sha256": "01210e77442c042d1260d531b89594195cf7922e1a9807ad73e2fe51125c2116",
+      "duration_seconds": 223.64,
+      "bytes": 3920020,
+      "sha256": "d3b30d1115fb7c2f9bb595faf0ba080400968661e2645268daf1229a78dfdf7c"
+    },
+    "save_point": {
+      "title": "SAVE POINT",
+      "album": "Afterimage",
+      "source_file": "SAVE POINT.wav",
+      "source_bytes": 42397866,
+      "source_sha256": "f15066109d7545b85c101959ae625038f1083e3204481c5f559e102e3ec231b5",
+      "duration_seconds": 206.16,
+      "bytes": 3844061,
+      "sha256": "ea49f721d942271a8900853704f6db14cf0ec00214e791d3173960b934c6153d"
+    },
+    "null_district": {
+      "title": "NULL DISTRICT",
+      "album": "Afterimage",
+      "source_file": "NULL DISTRICT.wav",
+      "source_bytes": 46660278,
+      "source_sha256": "d14173028788ebb37529eff94898e5fd08f5882afeb56b7fb622ebca47edf287",
+      "duration_seconds": 228.36,
+      "bytes": 4078029,
+      "sha256": "113e5092fa8de81e19b516778949ca172213639909d7e00a71aeb00f9564b362"
+    },
+    "last_packet_home": {
+      "title": "LAST PACKET HOME",
+      "album": "Afterimage",
+      "source_file": "LAST PACKET HOME.wav",
+      "source_bytes": 42666688,
+      "source_sha256": "5f290dc7b4d2620254446c32a313fe6c9cac6c75d66c2ff9c903c00c44292935",
+      "duration_seconds": 207.56,
+      "bytes": 3896935,
+      "sha256": "fb7df795bae99c297e54a3e8149175291c97a51852457d54b9cd24b8e4354d03"
+    },
+    "carrier_signal": {
+      "title": "CARRIER SIGNAL",
+      "album": "Afterimage",
+      "source_file": "CARRIER SIGNAL.wav",
+      "source_bytes": 42689722,
+      "source_sha256": "d69ec43b9ef67959a14a5ba6135b1d8b66d23e1c8e94b8b8271bc8ac00196622",
+      "duration_seconds": 207.68,
+      "bytes": 3848565,
+      "sha256": "e75cc7aaf9fa18f0466a779ba2097a6983c5397191ccfa86ab122e5e16c355d4"
+    },
+    "blackout_bonus_round": {
+      "title": "Blackout Bonus Round",
+      "album": "Free Play Until Dawn",
+      "source_file": "Blackout Bonus Round.wav",
+      "source_bytes": 47896754,
+      "source_sha256": "9a2d01ea90302f52cfaeadf02c917ecd8af1c48339ec281c9c8c738c29e8201f",
+      "duration_seconds": 153.6,
+      "bytes": 3150944,
+      "sha256": "6db169e38927043e00fc29c79fbfc9ccc87e9e2fbc8d50b49f9d67dc0dfb1091"
+    },
+    "door_on_the_spin_cycle": {
+      "title": "Door on the Spin Cycle",
+      "album": "Free Play Until Dawn",
+      "source_file": "Door on the Spin Cycle.wav",
+      "source_bytes": 50604008,
+      "source_sha256": "902a480f6f4b3f4fbb46c2492136a89c729464c71b2190589d5485ba4d4d16b2",
+      "duration_seconds": 163.0,
+      "bytes": 3462369,
+      "sha256": "2a80a742b3e9bf109c04578514208add7c869929794596c15280a9e9091e2ac4"
+    },
+    "fix_it_with_a_paper_clip": {
+      "title": "Fix It With a Paper Clip",
+      "album": "Free Play Until Dawn",
+      "source_file": "Fix It With a Paper Clip.wav",
+      "source_bytes": 54636012,
+      "source_sha256": "6067e2a7fcd4c9d15b53f5f2f79fc9e00f1275ec6ee2aa8d1c7e29f2bad5cdf4",
+      "duration_seconds": 177.0,
+      "bytes": 3675282,
+      "sha256": "39dcb29419263e81a58bc48e7ee86f4e8e614af177d4745137cb1801200292db"
+    },
+    "high_score_with_no_name": {
+      "title": "High Score With No Name",
+      "album": "Free Play Until Dawn",
+      "source_file": "High Score With No Name.wav",
+      "source_bytes": 56075954,
+      "source_sha256": "aaa6a1718890620c7da9b8d5f9184d4e8e624ed11c32abefcde97dd5c381d6f6",
+      "duration_seconds": 182.0,
+      "bytes": 3731250,
+      "sha256": "7da24ff21bf1157444db2bd273d4416c7e22dd05c27900072f0dbd998aa58ea1"
+    },
+    "second_controller": {
+      "title": "Second Controller",
+      "album": "Free Play Until Dawn",
+      "source_file": "Second Controller.wav",
+      "source_bytes": 51727162,
+      "source_sha256": "86153c597429a6909337a32dea135ac8d4de8fecfd621d55b98f64a0983b4234",
+      "duration_seconds": 166.9,
+      "bytes": 3135598,
+      "sha256": "9142795bbda6beb2d8d54e4d19d73eb89190eb1c807f489cf947cf7a24b1869d"
+    },
+    "sweep_the_carpet_at_sunrise": {
+      "title": "Sweep the Carpet at Sunrise",
+      "album": "Free Play Until Dawn",
+      "source_file": "Sweep the Carpet at Sunrise.wav",
+      "source_bytes": 57544818,
+      "source_sha256": "fa48d97c354c2c181e488f4f6bc2b49bf39972d30c3afcb6268a89b3248f6c28",
+      "duration_seconds": 187.1,
+      "bytes": 3710750,
+      "sha256": "8a075230001dbb3096b550e2becf9e0759884cc9f0ea3bd2db3a1968c462e006"
+    },
+    "the_coin_slot_is_taped": {
+      "title": "The Coin Slot Is Taped",
+      "album": "Free Play Until Dawn",
+      "source_file": "The Coin Slot Is Taped.wav",
+      "source_bytes": 52331970,
+      "source_sha256": "4087682d9c406652fdd921673ba8386629556525b9c7ff9c64fb5f48054f0c31",
+      "duration_seconds": 169.0,
+      "bytes": 3326031,
+      "sha256": "6c93f406de18fe6794c92535e1a520c40ca2e4937e02e1d40d758439ef4af2ed"
+    },
+    "tournament_in_the_back_room": {
+      "title": "Tournament in the Back Room",
+      "album": "Free Play Until Dawn",
+      "source_file": "Tournament in the Back Room.wav",
+      "source_bytes": 55989630,
+      "source_sha256": "c7d07dcb525d8c0b8901a16d36dc7de4099a0ae9da4b25986e8e7d21a40cf431",
+      "duration_seconds": 181.7,
+      "bytes": 3664409,
+      "sha256": "c07e54caa86793c16823b3a52a6ae52893224b746a0d0506629f5ce5bf799ab2"
+    }
+  }
+}

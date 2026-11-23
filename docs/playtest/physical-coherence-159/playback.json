@@ -1,0 +1,26 @@
+{
+  "canopy": {
+    "edge_sweep_y": 4.89921855926514,
+    "vehicle_camera_y": 4.87491512298584
+  },
+  "north_quay_impacts": {
+    "after_carton_mps": 21.285,
+    "condition": 86.1936332702637,
+    "final_kph": 0,
+    "final_z": -212.451400756836
+  },
+  "rail_road": {
+    "condition": 100.0,
+    "end_x": 215.066528320313,
+    "peak_kph": 130
+  },
+  "rail_visit": {
+    "east_gardens_landing_y": 13.2524995803833,
+    "exit": "(121.1, 13.23268, -54.25)",
+    "helix_street": "(127.25, 1.100176, -47.97)"
+  },
+  "warehouse_normals": [
+    "(0.0, 1.0, -0.000015)",
+    "(0.0, 0.0, -1.0)"
+  ]
+}

@@ -46,6 +46,21 @@ func _verify() -> void:
 	if west.position.x + (west.mesh as PlaneMesh).size.x * 0.5 > -WorldPlan.city_bounds() - 12.0:
 		_fail("Western water is covering a playable street")
 		return
+	var north_size: Vector2 = (north.mesh as PlaneMesh).size
+	var west_size: Vector2 = (west.mesh as PlaneMesh).size
+	if not is_equal_approx(north.position.z+north_size.y*0.5,west.position.z-west_size.y*0.5):
+		_fail("Harbor planes overlap or leave a northwest seam")
+		return
+	if north.position.x-north_size.x*0.5>west.position.x-west_size.x*0.5:
+		_fail("Harbor northwest corner has an uncovered strip")
+		return
+	var water := north.material_override as ShaderMaterial
+	if water==null or water!=west.material_override or water.shader==null or water.shader.resource_path!="res://shaders/harbor_water.gdshader":
+		_fail("Both harbor planes must share the continuous world-space water shader")
+		return
+	if north.cast_shadow!=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF or west.cast_shadow!=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+		_fail("Harbor should not consume shadow passes")
+		return
 	for prefix in ["NorthQuay_Crane_","WestDocks_Crane_"]:
 		var amount := 4 if prefix.begins_with("North") else 3
 		for i in range(amount):

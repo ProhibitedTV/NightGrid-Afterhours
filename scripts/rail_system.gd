@@ -1,12 +1,17 @@
 extends Node3D
-## Fixed elevated transit corridor. Stations have street-level boarding/elevator
-## markers, so boarding never requires climbing procedural geometry.
+## Fixed elevated transit corridor with accessible lifts and solid platforms.
 const STATIONS = [-232.0, -116.0, 0.0, 116.0, 232.0]
 const TrainVisual = preload("res://scripts/m_line_train_visual.gd")
 const Materials = preload("res://scripts/material_library.gd")
+const StationLift = preload("res://scripts/m_line_station_lift.gd")
 const STATION_NAMES = ["WEST QUAY GATE", "BRICKWATER CROSSING", "CENTRAL EXCHANGE", "HELIX TERMINAL", "EAST GARDENS"]
 const TRACK_Z = -58.0
 const TRAIN_LEVEL = 12.7
+const PLATFORM_FLOOR = 12.2825
+const PIER_SETBACK = 11.1
+const LIFT_X = 11.25
+const LIFT_Z = 12.02
+const DOOR_BOARD_WIDTH = 1.65
 var train: Node3D
 var train_visual: Node3D
 var speed := 0.0
@@ -15,6 +20,7 @@ var current_station := 0
 var direction := 1
 var dwell_remaining := 8.0
 var _initialized := false
+var _lifts: Array[Node3D] = []
 # Godot 4.3 lacks built-in 3D physics interpolation; only the visual child
 # is smoothed between fixed-tick simulation positions.
 var _previous_train_x := STATIONS[0]
@@ -88,8 +94,29 @@ func _reset_render_history() -> void:
 func boardable_from(at: Vector3) -> bool:
 	if dwell_remaining <= 0.1:
 		return false
+	if on_platform(at, current_station):
+		if at.z > TRACK_Z + 5.2:
+			return false
+		for center in TrainVisual.CAR_CENTERS:
+			if absf(at.x - train.position.x - float(center)) < DOOR_BOARD_WIDTH:
+				return true
+		return false
+	# Retain the legacy curb shortcut at the four original pickup markers.
+	if current_station == STATIONS.size() - 1 or at.y < 0.3 or at.y > 2.5:
+		return false
 	var entrance := station_entrance(current_station)
 	return Vector2(at.x - entrance.x, at.z - entrance.z).length() < 9.0
+
+func on_platform(at: Vector3, index: int) -> bool:
+	var across := at.z - TRACK_Z
+	return absf(at.x - STATIONS[index]) < 13.6 and across > 2.55 and across < 5.95 and (
+		at.y > PLATFORM_FLOOR + 0.55 and at.y < PLATFORM_FLOOR + 2.0)
+
+func lift_at(at: Vector3) -> Node3D:
+	for lift in _lifts:
+		if lift.call("can_request", at):
+			return lift
+	return null
 
 func can_alight() -> bool:
 	return dwell_remaining > 0.05
@@ -97,7 +124,10 @@ func can_alight() -> bool:
 func station_entrance(index: int) -> Vector3:
 	return Vector3(STATIONS[clampi(index, 0, STATIONS.size() - 1)] + 9.0, 1.15, -48.0)
 
-func alight_position() -> Vector3:
+func alight_position(platform: bool = false) -> Vector3:
+	if platform:
+		return Vector3(STATIONS[current_station] + float(TrainVisual.CAR_CENTERS[1]),
+			PLATFORM_FLOOR + 0.97, TRACK_Z + 3.75)
 	return station_entrance(current_station)
 
 func station_name() -> String:
@@ -135,9 +165,13 @@ func get_station_visual_stats() -> Dictionary:
 	return {"stations": STATIONS.size(), "sleeper_instances": 171, "platform_signs": STATIONS.size() * 2}
 
 func _build_track_and_stations() -> void:
-	# One rail corridor, fixed geographically in every save. Components outside
-	# walking height are decorative to preserve traffic signal/road clearance.
-	_box(Vector3(0.0, 11.48, TRACK_Z), Vector3(518.0, 0.44, 5.6), Color("344757"), false, null, "METAL")
+	# The 14 m carriageway stays open under the deck.
+	# A steel transfer girder brings the load back to the curbside pier.
+	_station_box(self, Vector3(0.0, 11.48, TRACK_Z), Vector3(518.0, 0.44, 5.6),
+		"METAL", Color("344757"), "MLineGuideway")
+	for side in [-1.0, 1.0]:
+		_station_box(self, Vector3(0.0, 10.64, TRACK_Z + side * 1.77),
+			Vector3(518.0, 1.28, 0.73), "METAL", Color("344653"), "MLineStringer_%d" % int(side))
 	_box(Vector3(0.0, 11.77, TRACK_Z), Vector3(518.0, 0.19, 4.94), Color("232f3c"), false, null, "METAL")
 	for offset in [-1.15, 1.15]:
 		_box(Vector3(0.0, 11.97, TRACK_Z + float(offset)),
@@ -146,15 +180,12 @@ func _build_track_and_stations() -> void:
 			Vector3(520.0, 0.11, 0.36), Color("46515d"), false, null, "METAL")
 	_build_sleepers()
 	for x in [-203.0, -145.0, -87.0, -29.0, 29.0, 87.0, 145.0, 203.0]:
-		# Bridge structural load paths read as engineered steel/concrete,
-		# while piers still avoid through lanes.
-		_box(Vector3(x, 5.91, TRACK_Z + 5.25),
-			Vector3(1.45, 11.75, 1.45), Color("63717c"), false, null, "CONCRETE")
-		_box(Vector3(x, 11.25, TRACK_Z + 2.73),
-			Vector3(6.65, 0.68, 6.35), Color("576b76"), false, null, "METAL")
-		for foot in [-0.5, 0.5]:
-			_box(Vector3(x + float(foot), 2.6, TRACK_Z + 5.25),
-				Vector3(0.18, 5.1, 1.65), Color("3b4b57"), false, null, "METAL")
+		_station_box(self, Vector3(x, 5.20, TRACK_Z + PIER_SETBACK),
+			Vector3(1.48, 10.4, 1.58), "CONCRETE", Color("63717c"), "MLinePier_%d" % int(x))
+		_station_box(self, Vector3(x, 0.22, TRACK_Z + PIER_SETBACK),
+			Vector3(1.74, 0.44, 1.94), "CONCRETE", Color("737e84"), "PierFooting_%d" % int(x))
+		_station_box(self, Vector3(x, 10.72, TRACK_Z + 5.0),
+			Vector3(1.62, 1.08, 14.0), "METAL", Color("576b76"), "PierGirder_%d" % int(x))
 	for index in range(STATIONS.size()):
 		_build_station(index)
 
@@ -184,9 +215,12 @@ func _build_station(index: int) -> void:
 	add_child(platform)
 	# Door thresholds and platform top are at approximately the same level.
 	_station_box(platform, Vector3(0.0, 12.04, 4.1),
-		Vector3(29.5, 0.36, 4.5), "CONCRETE", Color("8498a1"))
+		Vector3(29.5, 0.36, 4.5), "CONCRETE", Color("8498a1"), "PlatformDeck")
 	_station_box(platform, Vector3(0.0, 12.25, 4.1),
-		Vector3(28.2, 0.065, 4.04), "PAVERS", Color("6d8490"))
+		Vector3(28.2, 0.065, 4.04), "PAVERS", Color("6d8490"), "PlatformWalkingSurface")
+	for dx in [-10.0, 0.0, 10.0]:
+		_station_box(platform, Vector3(dx, 11.49, 3.65),
+			Vector3(0.65, 0.74, 5.55), "METAL", Color("526875"), "PlatformCrossbeam_%d" % int(dx))
 	_station_box(platform, Vector3(0.0, 12.30, 2.18),
 		Vector3(27.5, 0.032, 0.23), "EMISSION", Color("f6b66b"))
 	_station_box(platform, Vector3(0.0, 12.29, 2.48),
@@ -195,9 +229,12 @@ func _build_station(index: int) -> void:
 	for tile in range(22):
 		_station_box(platform, Vector3(-13.1 + float(tile) * 1.24, 12.30, 2.67),
 			Vector3(0.77, 0.033, 0.13), "METAL", Color("c4aa76"))
+	for door_x in TrainVisual.CAR_CENTERS:
+		_station_box(platform, Vector3(door_x, PLATFORM_FLOOR + 0.006, 3.45),
+			Vector3(1.62, 0.012, 0.26), "EMISSION", Color("64b8ac"))
 	# Structural canopy is high enough above the M8 roof hardware.
 	_station_box(platform, Vector3(0.0, 15.88, 4.62),
-		Vector3(29.1, 0.25, 5.05), "METAL", Color("253d50"))
+		Vector3(29.1, 0.25, 5.05), "METAL", Color("253d50"), "PlatformCanopy")
 	_station_box(platform, Vector3(0.0, 16.04, 4.62),
 		Vector3(28.4, 0.06, 4.81), "METAL", Color("758c98"))
 	for dx in [-12.8, -6.4, 0.0, 6.4, 12.8]:
@@ -205,14 +242,14 @@ func _build_station(index: int) -> void:
 			Vector3(0.18, 0.16, 4.79), "METAL", Color("697d8c"))
 		for side in [3.07, 6.22]:
 			_station_box(platform, Vector3(dx, 14.05, side),
-				Vector3(0.25, 3.68, 0.25), "METAL", Color("7c8c91"))
+				Vector3(0.25, 3.68, 0.25), "METAL", Color("7c8c91"), "CanopyPost_%d_%d" % [int(dx * 10.0), int(side)])
 	for dx in [-10.5, -3.5, 3.5, 10.5]:
 		_station_box(platform, Vector3(dx, 15.70, 4.05),
 			Vector3(3.6, 0.08, 0.21), "EMISSION", Color("c5e7df"))
 	# Glazing, wayfinding and floating display panels give each stop an identity.
 	for dx in [-12.6, 12.6]:
 		_station_box(platform, Vector3(dx, 13.40, 6.21),
-			Vector3(0.12, 2.0, 2.75), "TRANSPARENT_GLASS", Color(0.34, 0.54, 0.60, 0.48))
+			Vector3(0.12, 2.0, 2.75), "TRANSPARENT_GLASS", Color(0.34, 0.54, 0.60, 0.48), "WindScreen_%d" % int(dx))
 		_station_box(platform, Vector3(dx, 14.45, 6.21),
 			Vector3(0.17, 0.10, 2.92), "METAL", Color("a7aca5"))
 	_station_box(platform, Vector3(0.0, 14.75, 6.13),
@@ -223,40 +260,33 @@ func _build_station(index: int) -> void:
 		Vector3(0.0, 14.78, 6.31), Color("e0eee5"), 36)
 	_station_label(platform, "%02d   ALL NIGHT  //  MORROW BAY" % [index + 1],
 		Vector3(0.0, 13.44, 6.31), Color("8fd3d1"), 24)
-	# Visible elevated pedestrian bridge ties the lift shaft to the platform;
-	# the original street-level instant boarding contract is unchanged.
-	_station_box(platform, Vector3(9.0, 12.10, 7.7),
-		Vector3(2.5, 0.24, 5.4), "METAL", Color("647d86"))
-	for walkway_side in [-1.0, 1.0]:
-		_station_box(platform, Vector3(9.0 + walkway_side * 1.24, 13.03, 7.7),
-			Vector3(0.075, 1.76, 5.38), "TRANSPARENT_GLASS", Color(0.30, 0.50, 0.57, 0.42))
-		_station_box(platform, Vector3(9.0 + walkway_side * 1.24, 13.87, 7.7),
-			Vector3(0.12, 0.10, 5.40), "METAL", Color("a2b0a7"))
-	# Street-level entrance remains exactly where boarding/saving expects it.
-	var entrance := station_entrance(index)
-	_box(Vector3(entrance.x, 6.13, entrance.z), Vector3(3.15, 12.15, 3.15),
-		Color("405766"), false, null, "METAL")
+	# Bridge clear width is 2.2 m. A real guardrail leaves a gap at the landing.
+	_station_box(platform, Vector3(LIFT_X, PLATFORM_FLOOR - 0.12, 8.50),
+		Vector3(2.43, 0.24, 4.73), "METAL", Color("647d86"), "LiftWalkway")
+	_station_box(platform, Vector3(-2.27, 12.83, 6.30),
+		Vector3(24.55, 1.10, 0.065), "TRANSPARENT_GLASS", Color(0.41, 0.58, 0.63, 0.45), "StreetGuardrail")
+	_station_box(platform, Vector3(-2.27, 13.39, 6.30),
+		Vector3(24.55, 0.10, 0.12), "METAL", Color("a2b0a7"), "StreetGuardrailCap")
 	for side in [-1.0, 1.0]:
-		_box(Vector3(entrance.x + side * 1.57, 6.10, entrance.z + 0.01),
-			Vector3(0.11, 11.7, 2.9), Color("a4aaa1"), false, null, "METAL")
-	_box(Vector3(entrance.x, 2.02, entrance.z - 1.64),
-		Vector3(2.1, 3.3, 0.12), Color("5d929b"), false, null, "GLASS")
-	_box(Vector3(entrance.x, 3.82, entrance.z - 1.70),
-		Vector3(2.38, 0.19, 0.16), Color("70e0d5"), true)
-	_box(Vector3(entrance.x, 4.68, entrance.z - 1.66),
-		Vector3(2.5, 0.43, 0.15), Color("263847"), false, null, "METAL")
-	var entrance_label := Label3D.new()
-	entrance_label.name = "MLineStreetWayfinding"
-	entrance_label.text = "M  /  " + STATION_NAMES[index]
-	entrance_label.font_size = 34
-	entrance_label.pixel_size = 0.007
-	entrance_label.modulate = Color("b8f1e9")
-	entrance_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	entrance_label.position = entrance + Vector3.UP * 4.62
-	add_child(entrance_label)
+		_station_box(platform, Vector3(side * 14.67, 12.83, 4.16),
+			Vector3(0.065, 1.10, 4.30), "TRANSPARENT_GLASS", Color(0.41, 0.58, 0.63, 0.45), "EndGuardrail_%d" % int(side))
+	_station_box(platform, Vector3(13.57, 12.83, 6.30),
+		Vector3(2.25, 1.10, 0.065), "TRANSPARENT_GLASS", Color(0.41, 0.58, 0.63, 0.45), "EastGuardrail")
+	for walkway_side in [-1.0, 1.0]:
+		_station_box(platform, Vector3(LIFT_X + walkway_side * 1.18, 12.86, 8.50),
+			Vector3(0.075, 1.15, 4.72), "TRANSPARENT_GLASS", Color(0.30, 0.50, 0.57, 0.42), "WalkwayGuardrail_%d" % int(walkway_side))
+		_station_box(platform, Vector3(LIFT_X + walkway_side * 1.18, 13.46, 8.50),
+			Vector3(0.12, 0.10, 4.72), "METAL", Color("a2b0a7"), "WalkwayHandrail_%d" % int(walkway_side))
+	var lift := StationLift.new()
+	lift.name = "AccessibleLift"
+	lift.position = Vector3(LIFT_X, 0.0, LIFT_Z)
+	lift.platform_floor = PLATFORM_FLOOR
+	lift.station_name = STATION_NAMES[index]
+	platform.add_child(lift)
+	_lifts.append(lift)
 
 func _station_box(parent: Node3D, at: Vector3, dimensions: Vector3, kind: String,
-		tint: Color) -> void:
+		tint: Color, solid_name: String = "") -> void:
 	var obj := MeshInstance3D.new()
 	var mesh := BoxMesh.new()
 	mesh.size = dimensions
@@ -283,7 +313,20 @@ func _station_box(parent: Node3D, at: Vector3, dimensions: Vector3, kind: String
 		obj.material_override = glass
 	else:
 		obj.material_override = Materials.surface(kind, tint)
-	parent.add_child(obj)
+	if solid_name.is_empty():
+		parent.add_child(obj)
+		return
+	var body := StaticBody3D.new()
+	body.name = solid_name
+	body.position = at
+	obj.position = Vector3.ZERO
+	body.add_child(obj)
+	var shape := BoxShape3D.new()
+	shape.size = dimensions
+	var collider := CollisionShape3D.new()
+	collider.shape = shape
+	body.add_child(collider)
+	parent.add_child(body)
 
 func _station_label(parent: Node3D, message: String, at: Vector3, tint: Color, size: int) -> void:
 	var sign := Label3D.new()

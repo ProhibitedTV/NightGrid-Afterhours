@@ -2,6 +2,7 @@ extends CharacterBody3D
 const Materials = preload("res://scripts/material_library.gd")
 const BusCoachwork = preload("res://scripts/bus_coachwork.gd")
 const CarCoachwork = preload("res://scripts/civilian_car_coachwork.gd")
+const StreamProfile = preload("res://scripts/streaming_profile.gd")
 ## Lightweight NPC street vehicle. Follows lane centerlines, obeys stop bars,
 ## slows for vehicles ahead and dwells at marked bus stops.
 var route: Array[Vector3] = []
@@ -17,14 +18,26 @@ var dwell_remaining := 0.0
 var last_served := -1
 var laps := 0
 var paint := Color("4c90a3")
+var _leased := false
 var _detour: Array[Vector3] = []
 var _detour_cursor := 0
 var _detour_rejoin := -1
 var _detour_hold := false
 const HANDOFF_TOLERANCE = 0.55
 const DETOUR_MAX_POINTS = 81
+static var _wheel_sets: Dictionary = {}
+static var _body_shapes: Dictionary = {}
 
 func setup(path: Array[Vector3], first_index: int, position_at: Vector3, bus: bool, identifier: String, tint: Color, signal_controller: Node, owner_fleet: Node) -> void:
+	buses = bus
+	signals = signal_controller
+	fleet = owner_fleet
+	_assign_route(path, first_index, position_at, identifier, tint)
+	cruise_speed = 8.5 if buses else 11.1
+	floor_snap_length = 0.1
+	_build_body()
+
+func _assign_route(path: Array[Vector3], first_index: int, position_at: Vector3, identifier: String, tint: Color) -> void:
 	route = path
 	next_index = first_index % path.size()
 	global_position = position_at
@@ -32,14 +45,39 @@ func setup(path: Array[Vector3], first_index: int, position_at: Vector3, bus: bo
 	initial_direction.y = 0.0
 	if initial_direction.length_squared() > 0.01:
 		rotation.y = atan2(-initial_direction.x, -initial_direction.z)
-	buses = bus
 	vehicle_id = identifier
 	paint = tint
-	signals = signal_controller
-	fleet = owner_fleet
-	cruise_speed = 8.5 if buses else 11.1
-	floor_snap_length = 0.1
-	_build_body()
+
+func lease_ambient(path: Array[Vector3], entry: Dictionary) -> void:
+	_assign_route(path, int(entry["next_index"]), entry["position"], entry["id"], Color(entry["paint"]))
+	_reset_detour()
+	_detour_hold = false
+	cruise_speed = entry["speed"]
+	speed = 0.0
+	velocity = Vector3.ZERO
+	dwell_remaining = 0.0
+	last_served = -1
+	laps = 0
+	_leased = true
+	($CivilianCarCoachwork as MeshInstance3D).mesh = CarCoachwork.mesh_for(paint)
+	collision_layer = 1
+	collision_mask = 1
+	reset_physics_interpolation()
+	show()
+	set_physics_process(true)
+
+func park_ambient() -> void:
+	set_physics_process(false)
+	collision_layer = 0
+	collision_mask = 0
+	hide()
+	speed = 0.0
+	velocity = Vector3.ZERO
+	vehicle_id = ""
+	_leased = false
+
+func can_recycle() -> bool:
+	return not _detour_hold and not finite_detour_active()
 
 func _on_loop_leg(at: Vector3, index: int) -> bool:
 	if route.size()<2 or index<0 or index>=route.size():
@@ -102,6 +140,7 @@ func _physics_process(delta: float) -> void:
 		speed = 0.0
 		velocity = Vector3.ZERO
 		return
+	var driving_started := StreamProfile.begin()
 	var waypoint := _detour[_detour_cursor] if finite_detour_active() else route[next_index]
 	var toward := waypoint - global_position
 	toward.y = 0.0
@@ -128,7 +167,11 @@ func _physics_process(delta: float) -> void:
 		return
 	var cap := cruise_speed
 	cap = float(signals.call("approach_speed_cap", global_position, direction, cap))
+	if _leased:
+		cap = float(fleet.call("pooled_speed_cap", global_position, direction, cap))
+	var headway_started := StreamProfile.begin()
 	cap = float(fleet.call("headway_speed_cap", self, direction, cap))
+	StreamProfile.accumulate(headway_started, "traffic_headway")
 	# Reduce turning speed at the end of each block; no abrupt full-speed cornering.
 	if toward.length() < 10.0:
 		cap = minf(cap, 3.6 + toward.length() * 0.22)
@@ -152,7 +195,10 @@ func _physics_process(delta: float) -> void:
 	speed = move_toward(speed, cap, (3.0 if speed < cap else 9.0) * delta)
 	rotation.y = lerp_angle(rotation.y, atan2(-direction.x, -direction.z), minf(delta * 5.5, 1.0))
 	velocity = direction * speed
+	StreamProfile.accumulate(driving_started, "traffic_control_including_headway")
+	var collision_started := StreamProfile.begin()
 	move_and_slide()
+	StreamProfile.accumulate(collision_started, "traffic_move_and_slide")
 
 func is_boardable() -> bool:
 	return buses and dwell_remaining > 0.05
@@ -185,48 +231,54 @@ func apply_snapshot(data: Dictionary) -> void:
 	laps = maxi(0, int(data.get("laps", 0)))
 
 func _build_body() -> void:
-	var shape := BoxShape3D.new()
-	shape.size = Vector3(2.7, 2.85, 8.3) if buses else Vector3(2.25, 1.55, 4.55)
+	if not _body_shapes.has(buses):
+		var shape := BoxShape3D.new()
+		shape.size = Vector3(2.7, 2.85, 8.3) if buses else Vector3(2.25, 1.55, 4.55)
+		_body_shapes[buses] = shape
 	var hitbox := CollisionShape3D.new()
-	hitbox.shape = shape
+	hitbox.shape = _body_shapes[buses]
 	add_child(hitbox)
-	if buses:
-		var coach := BusCoachwork.build(paint)
-		coach.name = "CityBusCoachwork"
-		add_child(coach)
-		for side in [-1.0,1.0]:
-			for axle in [-2.55,2.55]:
-				var at := Vector3(side*1.18,-1.30,axle)
-				_wheel(at,0.44)
-		return
-	var car := CarCoachwork.build(paint)
-	car.name = "CivilianCarCoachwork"
-	add_child(car)
-	for side in [-1.0,1.0]:
-		for axle in CarCoachwork.AXLES:
-			_wheel(Vector3(side*0.94,CarCoachwork.AXLE_Y,axle),CarCoachwork.TIRE_RADIUS)
+	var coach := BusCoachwork.build(paint) if buses else CarCoachwork.build(paint)
+	coach.name = "CityBusCoachwork" if buses else "CivilianCarCoachwork"
+	add_child(coach)
+	if not _wheel_sets.has(buses):
+		var radius := 0.44 if buses else CarCoachwork.TIRE_RADIUS
+		_wheel_sets[buses] = [
+			_wheel_batch(radius, 0.28, 14),
+			_wheel_batch(radius * 0.47, 0.295, 12),
+		]
+	var tires := MultiMeshInstance3D.new()
+	tires.name = "Tires"
+	tires.multimesh = _wheel_sets[buses][0]
+	tires.material_override = Materials.surface("ASPHALT", Color("171a20"))
+	add_child(tires)
+	var hubs := MultiMeshInstance3D.new()
+	hubs.name = "Hubs"
+	hubs.multimesh = _wheel_sets[buses][1]
+	hubs.material_override = Materials.surface("METAL", Color("89939c"))
+	add_child(hubs)
 
-func _wheel(at: Vector3, radius: float) -> void:
-	var tire := MeshInstance3D.new()
+func _wheel_batch(radius: float, thickness: float, segments: int) -> MultiMesh:
 	var mesh := CylinderMesh.new()
 	mesh.top_radius = radius
 	mesh.bottom_radius = radius
-	mesh.height = 0.28
-	mesh.radial_segments = 14
-	tire.mesh = mesh
-	tire.position = at
-	tire.rotation.z = PI * 0.5
-	tire.material_override = Materials.surface("ASPHALT", Color("171a20"))
-	add_child(tire)
-	var hub := MeshInstance3D.new()
-	var cap := CylinderMesh.new()
-	cap.top_radius = radius * 0.47
-	cap.bottom_radius = radius * 0.47
-	cap.height = 0.295
-	cap.radial_segments = 12
-	hub.mesh = cap
-	hub.position = at
-	hub.rotation.z = PI * 0.5
-	hub.material_override = Materials.surface("METAL", Color("89939c"))
-	add_child(hub)
+	mesh.height = thickness
+	mesh.radial_segments = segments
+	var batch := MultiMesh.new()
+	batch.transform_format = MultiMesh.TRANSFORM_3D
+	batch.mesh = mesh
+	batch.instance_count = 4
+	var axes := Basis(Vector3.BACK, PI * 0.5)
+	var x := 1.18 if buses else 0.94
+	var y := BusCoachwork.AXLE_Y if buses else CarCoachwork.AXLE_Y
+	var axles: Array = BusCoachwork.AXLES if buses else CarCoachwork.AXLES
+	var wheel_transforms: Array[Transform3D] = []
+	for side in [-1.0, 1.0]:
+		for axle in axles:
+			wheel_transforms.append(Transform3D(axes, Vector3(side * x, y, axle)))
+	for index in range(wheel_transforms.size()):
+		batch.set_instance_transform(index, wheel_transforms[index])
+	# Godot's headless renderer cannot read back MultiMesh transforms.
+	batch.set_meta("wheel_transforms", wheel_transforms)
+	return batch
 

@@ -25,6 +25,7 @@ var _destination_text := ""
 var _rolling_audio: AudioStreamPlayer3D
 var _arrival_audio: AudioStreamPlayer3D
 var _previously_stopped := true
+var _arrival_pending := false
 var _last_direction := 1
 var _speed := 0.0
 var _stopped := true
@@ -54,15 +55,8 @@ func set_operational_state(travel_direction: int, velocity: float, stopped_at_st
 		light_node.material_override = _surface("EMISSION", Color("e2ffeb") if leading else Color("ff5269"))
 	for spot in _headlight_spots:
 		spot.visible = _speed > 0.5 and int(spot.get_meta("end")) == _last_direction
-	if _rolling_audio != null:
-		if _speed > 0.45:
-			if not _rolling_audio.playing:
-				_rolling_audio.play()
-			_rolling_audio.volume_db = lerpf(-30.0, -11.0, clampf(_speed / 17.0, 0.0, 1.0))
-		elif _rolling_audio.playing:
-			_rolling_audio.stop()
-	if _arrival_audio != null and _stopped and not _previously_stopped:
-		_arrival_audio.play()
+	if _stopped and not _previously_stopped:
+		_arrival_pending = true
 	_previously_stopped = _stopped
 
 func set_destination(value: String) -> void:
@@ -82,7 +76,7 @@ func _initialize_audio() -> void:
 	_rolling_audio.bus = AudioMix.EFFECTS
 	_rolling_audio.stream = TrainAudio.sound("ROLL")
 	_rolling_audio.max_distance = 75.0
-	_rolling_audio.volume_db = -30.0
+	_rolling_audio.volume_db = -80.0
 	add_child(_rolling_audio)
 	_arrival_audio = AudioStreamPlayer3D.new()
 	_arrival_audio.name = "OriginalStationArrivalChime"
@@ -93,6 +87,18 @@ func _initialize_audio() -> void:
 	add_child(_arrival_audio)
 
 func _process(delta: float) -> void:
+	if _rolling_audio != null:
+		var rolling := _speed > 0.45
+		if rolling and not _rolling_audio.playing:
+			_rolling_audio.play()
+		var roll_db := lerpf(-36.0, -13.0, clampf(_speed / 17.0, 0.0, 1.0)) if rolling else -80.0
+		_rolling_audio.volume_db = move_toward(_rolling_audio.volume_db, roll_db, delta * 94.0)
+		_rolling_audio.pitch_scale = clampf(0.64 + 0.038 * _speed, 0.67, 1.28)
+		if not rolling and _rolling_audio.volume_db <= -75.0:
+			_rolling_audio.stop()
+	if _arrival_pending:
+		_arrival_pending = false
+		_arrival_audio.play()
 	# Purely cosmetic doors. Movement, platform boarding and save-state remain
 	# owned by rail_system.gd; visual animation must never block travel.
 	var target := 1.0 if _stopped else 0.0

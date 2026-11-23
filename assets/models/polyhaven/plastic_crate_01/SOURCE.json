@@ -1,0 +1,50 @@
+{
+  "asset": "plastic_crate_01",
+  "author": "PierreB3D",
+  "files": {
+    "plastic_crate_01.bin": {
+      "bytes": 789920,
+      "sha256": "59b307238a27f304739aeef0b1c9622d1e4efb31a96d805d2cfc0c461f9bb06d",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/plastic_crate_01/plastic_crate_01.bin",
+      "source_md5": "68c6e126a29ad4b72c21aa85f89a48c1"
+    },
+    "plastic_crate_01.gltf": {
+      "bytes": 2793,
+      "sha256": "42556fc8e39e5834ebf474dff79d4c0524fd3074be6c86c0c6704a10be8b3756",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/plastic_crate_01/plastic_crate_01_1k.gltf",
+      "source_md5": "af44f97630da80a640c5e6d70e72c56b"
+    },
+    "textures/plastic_crate_01_arm_1k.jpg": {
+      "bytes": 993636,
+      "sha256": "9a4af28d6fe8d5459a3c1a8706c0f8877221873ac9b83de580e6cfa63c3ecaa0",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/plastic_crate_01/plastic_crate_01_arm_1k.jpg",
+      "source_md5": "a0c021fba58dc9fb16df94b1fdda2308"
+    },
+    "textures/plastic_crate_01_diff_1k.jpg": {
+      "bytes": 518288,
+      "sha256": "d9109a42e397e39bbd7f42976d93122dbd5ccdef8ff64bce353571e1c1b994f6",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/plastic_crate_01/plastic_crate_01_diff_1k.jpg",
+      "source_md5": "0250b2750da634e95ef44b6ffb11681e"
+    },
+    "textures/plastic_crate_01_nor_gl_1k.jpg": {
+      "bytes": 884228,
+      "sha256": "6f0c44778216d50672d6a23660b22dec8b96bb6e71518d699c24630c34cf9217",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/plastic_crate_01/plastic_crate_01_nor_gl_1k.jpg",
+      "source_md5": "95f73143467ebbf4c55fb599269edc7b"
+    }
+  },
+  "license": "CC0 1.0",
+  "license_url": "https://polyhaven.com/license",
+  "materials": 1,
+  "mesh_count": 1,
+  "model": "plastic_crate_01.gltf",
+  "native_approved": false,
+  "node_names": [
+    "plastic_crate_01"
+  ],
+  "resolution": "1k",
+  "runtime_download_required": false,
+  "source_api": "https://api.polyhaven.com/files/plastic_crate_01",
+  "source_mesh_triangles": 18320,
+  "source_page": "https://polyhaven.com/a/plastic_crate_01"
+}

@@ -42,9 +42,15 @@ func _verify()->void:
 						visual=part
 					elif part is CollisionShape3D:
 						collision=part
-				if visual==null or collision==null or not visual.mesh is BoxMesh or not collision.shape is BoxShape3D:
+				if collision == null or not collision.shape is BoxShape3D or (collision.shape as BoxShape3D).size != expected_size:
 					continue
-				if (visual.mesh as BoxMesh).size!=expected_size or (collision.shape as BoxShape3D).size!=expected_size:
+				if block == Vector2i(-2, 1):
+					if not _check(visual == null, "Brickwater retains its collider without the opaque parcel mesh"):
+						return
+					visual = chunk.get_node("BrickwaterEnvelope_%d/StreetMasonry" % i) as MeshInstance3D
+					if not _check(visual.mesh is QuadMesh and (visual.mesh as QuadMesh).size == Vector2(expected_size.x, expected_size.y), "closed authored parcel has original width and height"):
+						return
+				elif visual == null or not visual.mesh is BoxMesh or (visual.mesh as BoxMesh).size != expected_size:
 					continue
 				var material := visual.material_override as StandardMaterial3D
 				var expected := Masonry.surface(Color(str(lot["wall"])))
@@ -63,5 +69,5 @@ func _verify()->void:
 				return
 	if not _check(mapped>=1,"at least one actual masonry lot"):
 		return
-	print("PHOTO_MASONRY_SMOKE PASS: ",mapped," original brick shells use shared photo PBR, exact original dimensions")
+	print("PHOTO_MASONRY_SMOKE PASS: ",mapped," brick parcels use shared photo PBR and exact original colliders")
 	quit(0)

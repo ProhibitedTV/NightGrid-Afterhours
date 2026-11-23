@@ -25,6 +25,8 @@ var _reverse_lenses: Array[MeshInstance3D] = []
 var _police_lenses: Array[MeshInstance3D] = []
 var _beams: Array[SpotLight3D] = []
 var _motor: AudioStreamPlayer3D
+var _motor_active := false
+var _motor_load := 0.0
 var _signal_clock := 0.0
 var _wheel_angle := 0.0
 var _brake_active := false
@@ -56,6 +58,9 @@ func _ready() -> void:
 func update_motion(speed: float, steer: float, braking: bool,
 		occupied: bool, police: bool, delta: float) -> void:
 	# Animation is driven by actual vehicle motion, not synthetic movement.
+	var acceleration := (absf(speed) - absf(_speed)) / maxf(delta, 0.001)
+	_motor_active = occupied or police
+	_motor_load = move_toward(_motor_load, clampf(acceleration / 12.0, 0.0, 1.0), delta * 4.0)
 	_speed = speed
 	_brake_active = braking
 	_wheel_angle = fposmod(_wheel_angle + speed * delta / WHEEL_RADIUS, TAU)
@@ -73,14 +78,6 @@ func update_motion(speed: float, steer: float, braking: bool,
 		# Keep unshadowed headlamps bounded to occupied and pursuing cars,
 		# not the whole parked fleet.
 		beam.visible = occupied or police
-	if _motor != null:
-		if occupied or police:
-			if not _motor.playing:
-				_motor.play()
-			_motor.volume_db = lerpf(-29.0, -15.0, clampf(absf(speed) / 32.0, 0.0, 1.0))
-			_motor.pitch_scale = lerpf(0.86, 1.33, clampf(absf(speed) / 36.0, 0.0, 1.0))
-		elif _motor.playing:
-			_motor.stop()
 	if _police:
 		_signal_clock = fposmod(_signal_clock + delta * 3.8, 2.0)
 		var blue_on := _signal_clock < 1.0
@@ -89,6 +86,22 @@ func update_motion(speed: float, steer: float, braking: bool,
 			_police_lenses[idx].material_override = _mat("LED",
 				Color("438fff") if police and is_blue and blue_on else
 				Color("ff4768") if police and (not is_blue) and (not blue_on) else Color("293c55"))
+
+func _process(delta: float) -> void:
+	if _motor == null:
+		return
+	var target := -80.0
+	if _motor_active:
+		if not _motor.playing:
+			_motor.play()
+		target = lerpf(-35.0, -17.0, clampf(absf(_speed) / 32.0, 0.0, 1.0))
+		target += _motor_load * 5.0
+	_motor.volume_db = move_toward(_motor.volume_db, target, delta * 120.0)
+	_motor.pitch_scale = lerpf(_motor.pitch_scale,
+		clampf(0.82 + absf(_speed) * 0.016 + _motor_load * 0.11, 0.82, 1.49),
+		1.0 - exp(-8.0 * delta))
+	if not _motor_active and _motor.volume_db < -75.0:
+		_motor.stop()
 
 func get_visual_stats() -> Dictionary:
 	return _visual_stats.duplicate()
@@ -530,7 +543,7 @@ func _build_sound() -> void:
 	AudioMix.ensure()
 	_motor.bus = AudioMix.EFFECTS
 	_motor.stream = VehicleAudio.sound()
-	_motor.volume_db = -30.0
+	_motor.volume_db = -80.0
 	_motor.max_distance = 32.0
 	add_child(_motor)
 

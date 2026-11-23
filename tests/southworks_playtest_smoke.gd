@@ -111,12 +111,9 @@ func _check() -> void:
 	if visual == null:
 		_fail("Courier visual missing")
 		return
-	# Confirm the real source character faces +Z: both eyes are slightly
-	# forward of the center of the head in the +Z direction.
-	var head := visual.get_node_or_null("BreathingTorso/HeadLookRig") as Node3D
-	var eye := head.get_node_or_null("LeftBlinkEye") as Node3D if head != null else null
-	if eye == null or eye.position.z < 0.15:
-		_fail("Character mesh forward-axis contract changed")
+	var rig: Skeleton3D = visual.get("skeleton")
+	if rig == null or rig.find_bone("Head") < 0:
+		_fail("Character has no skinned head rig")
 		return
 	var tests := [
 		[Vector2(0.0, -1.0), 0.0], [Vector2(0.0, 1.0), 0.0],

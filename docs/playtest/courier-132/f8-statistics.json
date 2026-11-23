@@ -1,0 +1,462 @@
+[
+  {
+    "adapter": "NVIDIA GeForce RTX 3060",
+    "arguments": [
+      "--measure",
+      "--profile",
+      "--walk",
+      "--trace-only",
+      "--settled"
+    ],
+    "driver": "vulkan",
+    "resolution": [
+      1920,
+      1080
+    ],
+    "revision": "1d45c0ae29830b8ceec74e9593723f5caa6703eb",
+    "seed": 834726,
+    "settings": {
+      "ambient_occlusion": true,
+      "fog": true,
+      "glow": true,
+      "physics_hz": 60,
+      "ssr": true,
+      "vsync": 0
+    },
+    "directory": "f8-physical-before",
+    "startup_spans": [
+      {
+        "category": "main_scene_resource_load",
+        "detail": null,
+        "duration_us": 7468823,
+        "frame": 0,
+        "start_us": 2569004
+      },
+      {
+        "category": "main_scene_instantiation",
+        "detail": null,
+        "duration_us": 129,
+        "frame": 0,
+        "start_us": 10037840
+      },
+      {
+        "category": "main_scene_activation",
+        "detail": null,
+        "duration_us": 3072144,
+        "frame": 0,
+        "start_us": 10037971
+      }
+    ],
+    "runs": [
+      {
+        "distance_z_m": 44.5911560058594,
+        "file": "walk-first.csv",
+        "frames": 648,
+        "reached_end": true,
+        "game_frame": {
+          "frames": 648,
+          "median_ms": 9.091,
+          "p95_ms": 11.905,
+          "p99_ms": 16.667,
+          "max_ms": 22.826,
+          "over_16_67": 4,
+          "over_33_3": 0,
+          "mean_fps": 106.57,
+          "lowest_1pct_fps": 53.73
+        },
+        "draw_interval": {
+          "frames": 648,
+          "median_ms": 9.426,
+          "p95_ms": 14.197,
+          "p99_ms": 16.318,
+          "max_ms": 26.298,
+          "over_16_67": 6,
+          "over_33_3": 0,
+          "mean_fps": 106.39,
+          "lowest_1pct_fps": 50.29
+        },
+        "loaded_chunks": 13,
+        "peak_stage_ms": 11.824,
+        "material_bakes": [],
+        "slowest_spans": [
+          {
+            "category": "chunk_stage",
+            "detail": {
+              "block": [
+                -4,
+                -1
+              ],
+              "landmark": "",
+              "phase": 1
+            },
+            "duration_us": 11824,
+            "frame": 95,
+            "start_us": 15633975
+          },
+          {
+            "category": "chunk_stage",
+            "detail": {
+              "block": [
+                -4,
+                -1
+              ],
+              "landmark": "",
+              "phase": 2
+            },
+            "duration_us": 5972,
+            "frame": 96,
+            "start_us": 15661181
+          },
+          {
+            "category": "chunk_stage",
+            "detail": {
+              "block": [
+                -4,
+                1
+              ],
+              "landmark": "",
+              "phase": 1
+            },
+            "duration_us": 1385,
+            "frame": 104,
+            "start_us": 15780102
+          },
+          {
+            "category": "chunk_stage",
+            "detail": {
+              "block": [
+                -3,
+                3
+              ],
+              "landmark": "",
+              "phase": 0
+            },
+            "duration_us": 1267,
+            "frame": 145,
+            "start_us": 16249589
+          },
+          {
+            "category": "chunk_stage",
+            "detail": {
+              "block": [
+                -4,
+                3
+              ],
+              "landmark": "",
+              "phase": 3
+            },
+            "duration_us": 1222,
+            "frame": 128,
+            "start_us": 16045381
+          }
+        ],
+        "max_viewport_cpu_ms": 6.191,
+        "max_viewport_gpu_ms": 5.937,
+        "draw_pipeline_delta": 0,
+        "unfocused_draws": 0
+      },
+      {
+        "distance_z_m": 44.5911026000977,
+        "file": "walk-repeat.csv",
+        "frames": 627,
+        "reached_end": true,
+        "game_frame": {
+          "frames": 627,
+          "median_ms": 9.091,
+          "p95_ms": 13.333,
+          "p99_ms": 14.286,
+          "max_ms": 15.654,
+          "over_16_67": 0,
+          "over_33_3": 0,
+          "mean_fps": 103.0,
+          "lowest_1pct_fps": 67.34
+        },
+        "draw_interval": {
+          "frames": 627,
+          "median_ms": 9.812,
+          "p95_ms": 14.506,
+          "p99_ms": 15.658,
+          "max_ms": 16.465,
+          "over_16_67": 0,
+          "over_33_3": 0,
+          "mean_fps": 103.24,
+          "lowest_1pct_fps": 63.01
+        },
+        "loaded_chunks": 0,
+        "peak_stage_ms": 0.0,
+        "material_bakes": [],
+        "slowest_spans": [
+          {
+            "category": "street_light_focus",
+            "detail": null,
+            "duration_us": 7,
+            "frame": 1334,
+            "start_us": 27446393
+          },
+          {
+            "category": "street_light_focus",
+            "detail": null,
+            "duration_us": 6,
+            "frame": 718,
+            "start_us": 21473033
+          },
+          {
+            "category": "street_light_focus",
+            "detail": null,
+            "duration_us": 6,
+            "frame": 726,
+            "start_us": 21573986
+          },
+          {
+            "category": "street_light_focus",
+            "detail": null,
+            "duration_us": 6,
+            "frame": 750,
+            "start_us": 21881856
+          },
+          {
+            "category": "street_light_focus",
+            "detail": null,
+            "duration_us": 6,
+            "frame": 799,
+            "start_us": 22430396
+          }
+        ],
+        "max_viewport_cpu_ms": 7.032,
+        "max_viewport_gpu_ms": 5.94,
+        "draw_pipeline_delta": 0,
+        "unfocused_draws": 0
+      }
+    ]
+  },
+  {
+    "adapter": "NVIDIA GeForce RTX 3060",
+    "arguments": [
+      "--measure",
+      "--profile",
+      "--walk",
+      "--trace-only",
+      "--settled"
+    ],
+    "driver": "vulkan",
+    "resolution": [
+      1920,
+      1080
+    ],
+    "revision": "17ad6cf27a5cc55d6efd1073871d087d995e3953",
+    "seed": 834726,
+    "settings": {
+      "ambient_occlusion": true,
+      "fog": true,
+      "glow": true,
+      "physics_hz": 60,
+      "ssr": true,
+      "vsync": 0
+    },
+    "directory": "f8-physical-after",
+    "startup_spans": [
+      {
+        "category": "main_scene_resource_load",
+        "detail": null,
+        "duration_us": 5229835,
+        "frame": 0,
+        "start_us": 1728531
+      },
+      {
+        "category": "main_scene_instantiation",
+        "detail": null,
+        "duration_us": 129,
+        "frame": 0,
+        "start_us": 6958378
+      },
+      {
+        "category": "main_scene_activation",
+        "detail": null,
+        "duration_us": 2533636,
+        "frame": 0,
+        "start_us": 6958509
+      }
+    ],
+    "runs": [
+      {
+        "distance_z_m": 44.5911560058594,
+        "file": "walk-first.csv",
+        "frames": 673,
+        "reached_end": true,
+        "game_frame": {
+          "frames": 673,
+          "median_ms": 9.259,
+          "p95_ms": 11.667,
+          "p99_ms": 16.667,
+          "max_ms": 27.166,
+          "over_16_67": 4,
+          "over_33_3": 0,
+          "mean_fps": 110.53,
+          "lowest_1pct_fps": 50.14
+        },
+        "draw_interval": {
+          "frames": 673,
+          "median_ms": 9.103,
+          "p95_ms": 13.967,
+          "p99_ms": 16.384,
+          "max_ms": 29.867,
+          "over_16_67": 4,
+          "over_33_3": 0,
+          "mean_fps": 110.68,
+          "lowest_1pct_fps": 50.4
+        },
+        "loaded_chunks": 13,
+        "peak_stage_ms": 9.861,
+        "material_bakes": [],
+        "slowest_spans": [
+          {
+            "category": "chunk_stage",
+            "detail": {
+              "block": [
+                -4,
+                -1
+              ],
+              "landmark": "",
+              "phase": 1
+            },
+            "duration_us": 9861,
+            "frame": 96,
+            "start_us": 11780224
+          },
+          {
+            "category": "chunk_stage",
+            "detail": {
+              "block": [
+                -4,
+                -1
+              ],
+              "landmark": "",
+              "phase": 2
+            },
+            "duration_us": 5922,
+            "frame": 97,
+            "start_us": 11804555
+          },
+          {
+            "category": "chunk_stage",
+            "detail": {
+              "block": [
+                -4,
+                3
+              ],
+              "landmark": "",
+              "phase": 3
+            },
+            "duration_us": 1606,
+            "frame": 129,
+            "start_us": 12188865
+          },
+          {
+            "category": "chunk_stage",
+            "detail": {
+              "block": [
+                -3,
+                3
+              ],
+              "landmark": "",
+              "phase": 3
+            },
+            "duration_us": 1394,
+            "frame": 149,
+            "start_us": 12414889
+          },
+          {
+            "category": "chunk_stage",
+            "detail": {
+              "block": [
+                -3,
+                3
+              ],
+              "landmark": "",
+              "phase": 1
+            },
+            "duration_us": 1220,
+            "frame": 147,
+            "start_us": 12383775
+          }
+        ],
+        "max_viewport_cpu_ms": 9.759,
+        "max_viewport_gpu_ms": 6.184,
+        "draw_pipeline_delta": 0,
+        "unfocused_draws": 0
+      },
+      {
+        "distance_z_m": 44.5911026000977,
+        "file": "walk-repeat.csv",
+        "frames": 629,
+        "reached_end": true,
+        "game_frame": {
+          "frames": 629,
+          "median_ms": 9.091,
+          "p95_ms": 12.963,
+          "p99_ms": 14.284,
+          "max_ms": 16.728,
+          "over_16_67": 1,
+          "over_33_3": 0,
+          "mean_fps": 103.42,
+          "lowest_1pct_fps": 65.06
+        },
+        "draw_interval": {
+          "frames": 629,
+          "median_ms": 9.847,
+          "p95_ms": 14.908,
+          "p99_ms": 15.936,
+          "max_ms": 16.734,
+          "over_16_67": 1,
+          "over_33_3": 0,
+          "mean_fps": 103.55,
+          "lowest_1pct_fps": 61.16
+        },
+        "loaded_chunks": 0,
+        "peak_stage_ms": 0.0,
+        "material_bakes": [],
+        "slowest_spans": [
+          {
+            "category": "street_light_focus",
+            "detail": null,
+            "duration_us": 10,
+            "frame": 1055,
+            "start_us": 20984282
+          },
+          {
+            "category": "street_light_focus",
+            "detail": null,
+            "duration_us": 8,
+            "frame": 762,
+            "start_us": 17817659
+          },
+          {
+            "category": "street_light_focus",
+            "detail": null,
+            "duration_us": 7,
+            "frame": 1237,
+            "start_us": 22545043
+          },
+          {
+            "category": "civic_focus",
+            "detail": null,
+            "duration_us": 7,
+            "frame": 1260,
+            "start_us": 22744551
+          },
+          {
+            "category": "street_light_focus",
+            "detail": null,
+            "duration_us": 6,
+            "frame": 753,
+            "start_us": 17714485
+          }
+        ],
+        "max_viewport_cpu_ms": 7.54,
+        "max_viewport_gpu_ms": 5.95,
+        "draw_pipeline_delta": 0,
+        "unfocused_draws": 0
+      }
+    ]
+  }
+]

@@ -1,0 +1,81 @@
+{
+	"adapter": "NVIDIA GeForce RTX 3060",
+	"driver": "vulkan",
+	"renderer": "forward_plus",
+	"revision": "171c9e6e04df4874c5ec507cd766429b8ca6e3ba",
+	"seed": 834726,
+	"shots": [
+		{
+			"camera": "(209.0, 3.0, -62.0)",
+			"file": "m-line-and-signals.png",
+			"fov": 70.0,
+			"hour": 12.0,
+			"look": "(231.0, 10.0, -51.0)",
+			"resolution": [
+				1920,
+				1080
+			],
+			"sha256": "ed90454918f984a94b8d3627af11ca9eff8b49403213a6178078adf49a2d476d"
+		},
+		{
+			"camera": "(234.0, 2.8, -39.0)",
+			"file": "east-gardens.png",
+			"fov": 70.0,
+			"hour": 18.5,
+			"look": "(246.0, 8.0, -48.0)",
+			"resolution": [
+				1920,
+				1080
+			],
+			"sha256": "a233baaafc0f5f00bd0735aed88b68e1c7b97e68be2f2c8b199dcc36ba8cc6d0"
+		},
+		{
+			"camera": "(-199.0, 3.4, -54.0)",
+			"file": "pier-storage.png",
+			"fov": 70.0,
+			"hour": 12.0,
+			"look": "(-193.5, 7.0, -34.0)",
+			"resolution": [
+				1920,
+				1080
+			],
+			"sha256": "deabd7836fbff8aa80ccab4cca5cf2af8711a938d56ee287aa11cfb7c9258af8"
+		},
+		{
+			"camera": "(201.0, 3.05, 55.0)",
+			"file": "horizon-commons.png",
+			"fov": 70.0,
+			"hour": 2.02,
+			"look": "(202.0, 4.1, 39.0)",
+			"resolution": [
+				1920,
+				1080
+			],
+			"sha256": "759b2477e0ffb19976bfc389f43e2c966ad04e2972e2c7a6ebe73a0cfd6f15e6"
+		},
+		{
+			"camera": "(-34.0, 3.0, -191.0)",
+			"file": "north-quay-market.png",
+			"fov": 70.0,
+			"hour": 6.48,
+			"look": "(-29.0, 2.9, -201.0)",
+			"resolution": [
+				1920,
+				1080
+			],
+			"sha256": "b2fec81f6adf7c5b807b771600fe9f7a4916b21ab8eed028a6fa2029d80f654c"
+		},
+		{
+			"camera": "(203.0, 9.519413, 48.87402)",
+			"file": "horizon-gameplay-camera.png",
+			"fov": 70.0,
+			"hour": 2.02,
+			"look": "(203.0, 2.395103, 38.0)",
+			"resolution": [
+				1920,
+				1080
+			],
+			"sha256": "4f47c4323d824cacef28f7368e7e96b3a0a69d85fc493f8a75512fd065b597dd"
+		}
+	]
+}

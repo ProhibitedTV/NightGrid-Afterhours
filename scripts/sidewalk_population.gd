@@ -34,7 +34,10 @@ static func balanced_links(links: Array[Dictionary]) -> Array[Dictionary]:
 	# from exhausting the west side of the map before reaching the east.
 	var groups := {}
 	var sorted := links.duplicate()
-	sorted.sort_custom(func(a: Dictionary,b: Dictionary) -> bool: return str(a.get("id","")) < str(b.get("id","")))
+	sorted.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var first := int(a.get("priority", 0))
+		var second := int(b.get("priority", 0))
+		return first < second if first != second else str(a.get("id", "")) < str(b.get("id", "")))
 	for link in sorted:
 		var district := str(link.get("district",""))
 		if not groups.has(district):
@@ -89,7 +92,8 @@ func sample(id: String) -> Dictionary:
 	var t := 1.0-absf(phase*2.0-1.0)
 	return {"id":id,"position":a.lerp(b,t),"heading":(b-a).normalized()*(1.0 if phase<0.5 else -1.0),
 		"style":agent["style"],"speed":agent["speed"],"district":route.get("district",""),
-		"start":a,"end":b}
+		"start":a,"end":b, "kind":route.get("kind", ""), "arrival":route.get("arrival", ""),
+		"signal":route.get("signal", Vector3i.ZERO)}
 
 ## Activation preference only: existing live actors are never removed just
 ## because an activity window changed. Old callers may omit this gate.

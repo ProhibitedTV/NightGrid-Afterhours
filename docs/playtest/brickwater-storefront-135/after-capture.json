@@ -1,0 +1,95 @@
+{
+	"01-day-front": {
+		"camera": "(-85.4, 1.68, 84.0)",
+		"fov": 69.0,
+		"hour": 12.0,
+		"look": "(-89.5, 1.63, 86.15)",
+		"sha256": "3283b00e8a8785801177d391318ec50839e917b90d67776d96683529ce946a64"
+	},
+	"02-night-front": {
+		"camera": "(-85.4, 1.68, 84.0)",
+		"fov": 69.0,
+		"hour": 22.1,
+		"look": "(-89.5, 1.63, 86.15)",
+		"sha256": "69e6f1d1dc2092baa9310a4c54920f0607a67a1961ae5810bf656bd702ca4953"
+	},
+	"03-display": {
+		"camera": "(-87.1, 1.52, 80.4)",
+		"fov": 57.0,
+		"hour": 22.1,
+		"look": "(-89.6, 1.46, 81.15)",
+		"sha256": "3c6c15109c696918a164a90e971aa04b26511f8a87430ed618cabb8d2dbe7366"
+	},
+	"04-alley-approach": {
+		"camera": "(-86.8, 1.32, 75.1)",
+		"fov": 69.0,
+		"hour": 19.15,
+		"look": "(-89.05, 1.6, 89.2)",
+		"sha256": "eb00c697e189b07fbb75b34dd543c5a66b39d77c4f6b8a676ae4b6c416112b2d"
+	},
+	"07-workbench": {
+		"camera": "(-92.25, 1.82, 86.04)",
+		"fov": 67.0,
+		"hour": 12.0,
+		"look": "(-94.77, 1.57, 82.47)",
+		"sha256": "19d77562fcbcb25f272cb8210728e8e9f26da2c0da0c38099970dab960a11529"
+	},
+	"08-interior-to-door": {
+		"camera": "(-93.95, 1.79, 85.22)",
+		"fov": 66.0,
+		"hour": 22.1,
+		"look": "(-89.45, 1.4, 87.91)",
+		"sha256": "f9273fdc0c04dbf8c4408a6aa0688b524aca47b4dcf88c59e9b8eb1bf52d310f"
+	},
+	"adapter": "NVIDIA GeForce RTX 3060",
+	"approach_end": "(-88.9674, 1.089772, 87.9)",
+	"controller": {
+		"audio_cutoff_hz": 1636.50701052055,
+		"camera_in_workshop": "(-2.389191, 2.791429, -0.034775)",
+		"condition_after_service": 100.0,
+		"counter_gpu_ms": 3.37800002098084,
+		"counter_render_cpu_ms": 2.6800000667572,
+		"exit": "(-88.1122, 1.09077, 87.86523)",
+		"inside": "(-93.01727, 1.09077, 87.86523)",
+		"largest_entry_physics_step_m": 0.0701217651367188,
+		"largest_traversal_physics_step_m": 0.0701322108507156,
+		"outside": "(-88.96721, 1.09043, 87.9)",
+		"repair_price": 24,
+		"saved_version": 1
+	},
+	"controller-counter": {
+		"camera": "(-92.0286, 2.935658, 87.86523)",
+		"fov": 68.0,
+		"hour": 12.0,
+		"sha256": "b2afcb578bbe78a9a5ba717065149177c648ac2df6832e22b84a1ca99a19e2a7"
+	},
+	"driver": "vulkan",
+	"failures": [],
+	"keyboard": {
+		"audio_cutoff_hz": 1641.09468004914,
+		"camera_in_workshop": "(-2.370171, 2.800181, -0.046844)",
+		"condition_after_service": 100.0,
+		"counter_gpu_ms": 3.42799997329712,
+		"counter_render_cpu_ms": 7.35400009155273,
+		"exit": "(-87.55473, 1.090838, 87.85315)",
+		"inside": "(-93.01974, 1.090943, 87.85315)",
+		"largest_entry_physics_step_m": 0.125086888670921,
+		"largest_traversal_physics_step_m": 0.125086888670921,
+		"outside": "(-88.96687, 1.09043, 87.9)",
+		"repair_price": 24,
+		"saved_version": 1
+	},
+	"keyboard-counter": {
+		"camera": "(-92.02103, 2.93984, 87.85315)",
+		"fov": 70.0,
+		"hour": 22.1,
+		"sha256": "7932dd4b2d0f52993c23379cccacec387ee969e0261b83a1fdea180300c900f1"
+	},
+	"renderer": "forward_plus",
+	"revision": "a457e0506e851d7abecf8b4f116c324ab4f814cf",
+	"seed": 834726,
+	"size": [
+		1920,
+		1080
+	]
+}

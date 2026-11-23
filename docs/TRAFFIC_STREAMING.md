@@ -1,4 +1,6 @@
 # Logical traffic and streaming foundation
+
+The opt-in live pool and the default fixed-fleet optimization now have a [native implementation and measurement report](TRAFFIC_OPTIMIZATION_NATIVE.md). Fixed traffic remains the default.
 Part of #89. The current 25 civilian cars and four buses remain unchanged.
 `LogicalTraffic` is a pure RefCounted model, configured with authored route
 specs (id, Vector3 path, count). With the four existing loop specs, seeded

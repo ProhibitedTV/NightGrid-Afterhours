@@ -1,7 +1,6 @@
 extends RefCounted
-## Release channel and source revision are deliberately stamped into the
-## exported build by the gated beta-release workflow. Ordinary editor and
-## Actions playtest builds remain labelled development.
-const VERSION = "0.1.0-beta.6"
+## Windows packaging stamps the exact source revision. Review builds keep
+## the development channel until a separate release promotion.
+const VERSION = "0.1.0-beta.8-rc.1"
 const CHANNEL = "development"
 const REVISION = "development"
