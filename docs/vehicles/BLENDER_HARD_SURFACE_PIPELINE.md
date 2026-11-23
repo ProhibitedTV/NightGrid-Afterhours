@@ -15,7 +15,7 @@ This pilot **does not** yet perform high-to-low normal-map baking, final vehicle
 
 Requires Blender with the glTF exporter and Python 3.11+.
 
-    blender --background --python tools/vehicles/author_r9_optic_blender.py -- --output-dir out/r9-optic
+    blender --background --python-exit-code 1 --python tools/vehicles/author_r9_optic_blender.py -- --output-dir out/r9-optic
 
     python3 tools/vehicles/validate_gltf.py out/r9-optic/r9_optic_game.glb --require-node SocketHeadlampMount --require-node SocketHeadlampBeam --require-node SocketIndicator --max-triangles 5000 --manifest out/r9-optic/source.json
 
@@ -45,4 +45,4 @@ Concept art, Blender renders, and original Godot screenshot evidence are **three
 
 ## Verification limits
 
-Pure Python unit tests and syntax checks passed locally. Blender was unavailable in the local execution environment. The new GitHub Actions Blender build + geometry-gate job is the required next integration check. This PR is a **tooling candidate** until that job succeeds and the exported model receives visual review.
+Pure Python unit tests and syntax checks passed locally. Blender's system-packaged glTF exporter requires NumPy; CI installs python3-numpy and enables --python-exit-code to fail hard on exporter errors. Blender was unavailable in the local execution environment. The new GitHub Actions Blender build + geometry-gate job is the required next integration check. This PR is a **tooling candidate** until that job succeeds and the exported model receives visual review.
