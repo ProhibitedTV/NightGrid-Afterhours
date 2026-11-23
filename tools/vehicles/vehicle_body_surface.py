@@ -114,8 +114,13 @@ def fascia(front:bool,along=36,vertical=12) -> Shell:
         for i in range(stride):
             u=-1+2*i/along
             x=u*w*(.947+.053*sin(pi*t))
+            # The nose/top cap must meet the bonnet's actual center camber,
+            # not a flat station shoulder; otherwise a visible black slot
+            # remains below the hood. Blend in only near the upper seam.
+            cap_y=body_surface_point(z,x/w)[1]
+            yy=y+(cap_y-top)*t*t*t
             depth=.072*sin(pi*t)*(1-.46*abs(u)**1.5)
-            verts.append((x,y,z + (-depth if front else depth)))
+            verts.append((x,yy,z + (-depth if front else depth)))
     for j in range(vertical):
         for i in range(along):
             a=j*stride+i;b=a+1;c=a+stride;d=c+1
