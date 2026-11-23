@@ -6,15 +6,15 @@ Take courier jobs, drive through neon-lit streets, ride the city's buses and tra
 
 **Early playable beta — actively in development.**
 
-**New: test the merged full-stack Windows build:** [download the first verified `main` development artifact](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/runs/45082966816/artifacts/14778197336) (source `50dd617e`, stored by Actions through December 22, 2026). This build includes the authored Brickwater work, physical transit fixes, rigged courier, opt-in pedestrians and original 20-track NightGrid FM. For newer commits, choose a successful `main` run in [Windows playtest builds](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/workflows/windows-build.yml).
+**Beta.8 RC1 is available for Windows playtest review.** Walk Brickwater's neon service alley, get a car repaired at Night Shift Repairs, ride the M-Line and tune into the twenty original NightGrid FM tracks. Living Streets pedestrians and pooled traffic are optional pilots. [Review build and changelog](docs/BETA8_RC1.md) · [Candidate PR and Windows artifacts](https://github.com/ProhibitedTV/NightGrid-Afterhours/pull/196).
 
 **[Follow the integrated-game Windows playtest and verification guide](docs/PLAYTEST_MAIN_ACCEPTANCE.md).** Check the artifact's `BUILD-INFO.txt` full source SHA and `SHA256SUMS.txt`, then run the EXE with its PCK. The [public beta.7 release](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases/tag/v0.1.0-beta.7) is older and has not been replaced.
 
 [**Download for Windows**](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) · [Report a bug or suggest a feature](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues) · [Playtest guide](docs/PLAYTEST_CHECKLIST.md)
 
-![Morrow Bay at night, captured in the actual game](docs/screenshots/01-morrow-bay-neon-night.png)
+![Brickwater's service alley at night in the Beta.8 RC1 Windows build](docs/screenshots/beta8-rc1/brickwater-alley-at-night.png)
 
-*Central Exchange — real in-game rendering, not concept art.*
+*Brickwater at 22:06, captured from the exported Windows candidate on Forward+/Vulkan.* [Beta.8 RC1 gameplay gallery](docs/screenshots/beta8-rc1/GALLERY.md) · [Build, renderer and capture provenance](docs/screenshots/beta8-rc1/provenance.json).
 
 ## Explore Morrow Bay
 
@@ -27,7 +27,17 @@ Take courier jobs, drive through neon-lit streets, ride the city's buses and tra
 
 Your city layout and progress persist when you save and return.
 
-## In-game gallery
+## Beta.8 RC1 in-game gallery
+
+| Night Shift Repairs | East Gardens M-Line |
+|:--:|:--:|
+| ![Courier at the walk-in repair counter](docs/screenshots/beta8-rc1/night-shift-repairs.png) | ![East Gardens station platform](docs/screenshots/beta8-rc1/east-gardens-m-line.png) |
+| **Southworks from the Kestrel** | **Living Streets pilot in Brickwater** |
+| ![Southworks from the vehicle camera](docs/screenshots/beta8-rc1/southworks-at-night.png) | ![Brickwater with the optional civilians enabled](docs/screenshots/beta8-rc1/brickwater-civilians-daylight.png) |
+
+## Earlier in-game gallery
+
+![Central Exchange in the earlier development build](docs/screenshots/01-morrow-bay-neon-night.png)
 
 | Nightlife at Moon Noodles | M-Line elevated railway |
 |:--:|:--:|
