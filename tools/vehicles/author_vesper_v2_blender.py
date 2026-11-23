@@ -135,6 +135,25 @@ def mesh(name, verts, faces, mat, col=None, smooth=True):
     return obj
 
 
+def add_manufactured_thickness(obj, high=False, thickness=.005):
+    """Represent sheet metal as a real open-edge closed shell.
+
+    The exported high/LOD meshes may not have paper-thin fenders or hoods.
+    Keep the outside surface untouched; thickness runs inward. Modifiers stay
+    editable in the native Blender master, then evaluated by glTF export.
+    """
+    modifier=obj.modifiers.new("Panel sheet metal and rolled edge","SOLIDIFY")
+    modifier.thickness=thickness
+    modifier.offset=-1.0
+    modifier.use_rim=True
+    modifier.use_even_offset=True
+    if high:
+        bevel=obj.modifiers.new("Submillimeter stamped edge light","BEVEL")
+        bevel.width=min(thickness*.25,.0015)
+        bevel.segments=2
+    return obj
+
+
 def box(name, loc, dims, mat, bevel=0.0, high=False):
     bpy.ops.mesh.primitive_cube_add(size=1, location=loc)
     obj=attach(bpy.context.object,name,mat)
@@ -194,7 +213,9 @@ def wheel_arch_y(z):
 def panel(name,sign,z0,z1,steps,mat):
     """Sculpted multi-station flank with real cutout and rounded shoulders."""
     source=sculpt_side(z0,z1,sign,max(steps,16),12 if steps>30 else 7)
-    return mesh(name,source.positions,source.faces,mat)
+    return add_manufactured_thickness(
+        mesh(name,source.positions,source.faces,mat),
+        high=steps>30,thickness=.006)
 
 
 def bezier_deck(name,z0,z1,front,back,center_bulge,detail,mat):
@@ -205,7 +226,9 @@ def bezier_deck(name,z0,z1,front,back,center_bulge,detail,mat):
     """
     source=sculpt_top(z0,z1,30 if detail>=20 else 16,
                       60 if detail>=20 else 28)
-    return mesh(name,source.positions,source.faces,mat)
+    return add_manufactured_thickness(
+        mesh(name,source.positions,source.faces,mat),
+        high=detail>=20,thickness=.005)
 
 
 def _oval_lamp_band(name,x,z,scale_outer,scale_inner,outer_lift,inner_lift,
@@ -395,8 +418,12 @@ def build_geometry(col,high,socket_prefix=''):
     # Curved body-color fascia skins and correctly inset grille openings.
     front=sculpt_fascia(True,58 if high else 28,18 if high else 10)
     rear=sculpt_fascia(False,58 if high else 28,18 if high else 10)
-    mesh("FrontSculptedFascia",front.positions,front.faces,"VesperPetrolBlue")
-    mesh("RearSculptedFascia",rear.positions,rear.faces,"VesperPetrolBlue")
+    add_manufactured_thickness(
+        mesh("FrontSculptedFascia",front.positions,front.faces,"VesperPetrolBlue"),
+        high,thickness=.005)
+    add_manufactured_thickness(
+        mesh("RearSculptedFascia",rear.positions,rear.faces,"VesperPetrolBlue"),
+        high,thickness=.005)
     # Dark manufactured inner bumper structure (not an opaque replacement shell).
     box("FrontInlet",(0,.413,-2.253),(.94,.135,.014),
         "DarkComposite",.012,high)
@@ -424,6 +451,14 @@ def build_geometry(col,high,socket_prefix=''):
                  "DarkComposite")
     for side,name in ((-1,"L"),(1,"R")):
         box("Sill"+name,(side*.77,.33,0.0),(.12,.10,1.53),"DarkComposite",.025,high)
+        # Inner construction and door-card visual make the convertible's
+        # side panels read as manufactured assemblies rather than paper shells.
+        box("DoorInnerStructuralRib"+name,(side*.746,.575,-.05),
+            (.046,.43,1.32),"DarkComposite",.018,high)
+        box("DoorInteriorCard"+name,(side*.718,.760,-.12),
+            (.019,.19,1.12),"CabinLeather",.012,high)
+        box("DoorInteriorGrip"+name,(side*.697,.810,-.28),
+            (.024,.030,.265),"VesperCopper",.005,high)
         box("DoorHandlePocket"+name,(side*.845,.862,-.17),
             (.018,.035,.18),"DarkComposite",.008,high)
         box("DoorHandle"+name,(side*.859,.866,-.17),
