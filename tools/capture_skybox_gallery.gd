@@ -40,6 +40,13 @@ func _capture_all() -> void:
 	clock.set("paused", true)
 	camera.make_current()
 	camera.fov = 77.0
+	# Godot/Mesa software panorama radiance convolution is disproportionately
+	# costly with the full 256px cube; reduce ONLY the capture-run radiance
+	# resolution. The actual in-game panorama textures, camera, time, weather,
+	# geometry and lighting logic are unchanged.
+	var capture_sky := clock.get("_panorama_resource") as Sky
+	if capture_sky != null:
+		capture_sky.radiance_size = Sky.RADIANCE_SIZE_32
 	# Identical geography and framing across all eight shots. The camera
 	# overlooks the REAL Brickwater neighborhood, with rooftops below and
 	# clear visible sky above; no separate render-only demonstration scene.
@@ -79,7 +86,7 @@ func _capture_all() -> void:
 		if active != str(shot["expected"]):
 			_fail("Wrong in-game panorama for " + weather + ": " + active)
 			return
-		for frame in range(7):
+		for frame in range(3):
 			await process_frame
 			await RenderingServer.frame_post_draw
 		var image := root.get_texture().get_image()
@@ -120,6 +127,7 @@ func _capture_all() -> void:
 		"render_driver": RenderingServer.get_current_rendering_driver_name(),
 		"adapter": RenderingServer.get_video_adapter_name(),
 		"resolution": [root.size.x, root.size.y],
+		"capture_only_sky_radiance_size": 32,
 		"camera_position": [eye.x, eye.y, eye.z],
 		"camera_look_target": [target.x, target.y, target.z],
 		"district": "Brickwater",
