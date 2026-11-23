@@ -53,6 +53,12 @@ def _material(name, color, metallic=0.0, roughness=0.45,
     mat = bpy.data.materials.new(name)
     mat.diffuse_color = (*color, alpha)
     mat.use_nodes = True
+    # glTF requires an explicit transparent surface mode for optical glazing.
+    if alpha < 1.0:
+        if hasattr(mat, 'surface_render_method'):
+            mat.surface_render_method = 'DITHERED'
+        elif hasattr(mat, 'blend_method'):
+            mat.blend_method = 'BLEND'
     bsdf = next(n for n in mat.node_tree.nodes if n.type == 'BSDF_PRINCIPLED')
     bsdf.inputs['Base Color'].default_value = (*color, alpha)
     bsdf.inputs['Metallic'].default_value = metallic
