@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from bezier_surface import tessellate
 
 import bpy
-from mathutils import Vector
+from mathutils import Vector, Matrix
 
 # +Y is up, -Z is the front of the car; physical units are metres.
 LENGTH = 4.38
@@ -353,7 +353,7 @@ def build_geometry(col,high):
 def cameras_and_preview(preview_col):
     global ACTIVE_COLLECTION
     ACTIVE_COLLECTION=preview_col
-    ground=box("PreviewGround",(0,-.045,0),(200,.075,200),"DarkComposite",0)
+    ground=box("PreviewGround",(0,0,-.045),(200,200,.075),"DarkComposite",0)
     # Render preview includes high-resolution *source* but not game LODs.
     camera=bpy.data.cameras.new("PreviewCamera")
     cam=bpy.data.objects.new("PreviewCamera",camera)
@@ -384,8 +384,11 @@ def render_views(camera, output_dir):
         "open_cockpit":((3.8,6.6,-2.1),(0,.68,0)),
     }
     for name,(eye,target) in shots.items():
-        camera.location=eye
-        direction=Vector(target)-camera.location
+        # Preview cameras are specified in game coordinates, transformed to
+        # Blender's native Z-up world used by the editable source file.
+        camera.location=(eye[0],-eye[2],eye[1])
+        target_blender=(target[0],-target[2],target[1])
+        direction=Vector(target_blender)-camera.location
         camera.rotation_euler=direction.to_track_quat("-Z","Y").to_euler()
         bpy.context.scene.render.filepath=str(output_dir/(name+".png"))
         bpy.ops.render.render(write_still=True)
@@ -404,6 +407,14 @@ def build(output_dir:Path,preview=True):
     # LOD1 begins with the same semantic parts and reduces complexity through
     # a decimation modifier for mesh-only components (do not modify socket empties).
     build_geometry(low1,False)
+    # Authoring geometry and sockets use NightGrid (+Y up, -Z forward);
+    # Blender uses native +Z up. Rotate +90deg about X BEFORE saving/export.
+    # The Blender glTF exporter converts this native basis to glTF +Y up,
+    # restoring the original NightGrid model coordinates on import.
+    to_blender=Matrix.Rotation(math.pi/2,4,"X")
+    for part_collection in (high, low0, low1):
+        for obj in part_collection.objects:
+            obj.matrix_world=to_blender @ obj.matrix_world
     for ob in low1.objects:
         if ob.type=="MESH" and len(ob.data.polygons)>90:
             mod=ob.modifiers.new("distant mesh reduction","DECIMATE")
