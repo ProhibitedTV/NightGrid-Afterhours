@@ -18,6 +18,12 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from bezier_surface import tessellate
+from vehicle_body_surface import (
+    width_shoulder, arch_lower_boundary, body_surface_point, STATIONS,
+    side_panel as sculpt_side, top_panel as sculpt_top,
+    fascia as sculpt_fascia, wheel_liner as sculpt_liner,
+    tire_cross_section as sculpt_tire, continuity_metrics,
+)
 
 import bpy
 from mathutils import Vector, Matrix
@@ -177,106 +183,136 @@ def socket(name,location):
 
 
 def smooth_profile(z):
-    """Vehicle half-width, outer shoulder height; no reused R9 geometry."""
-    w=.83 + .045*math.exp(-((z+1.38)/.46)**2) + .06*math.exp(-((z-1.33)/.51)**2)
-    if z < -1.80: w -= .16 * min(1.0,(-1.80-z)/.38)
-    if z > 1.81: w -= .10 * min(1.0,(z-1.81)/.36)
-    if z<-.77:
-        height=.78 + .14*max(0.,min(1.,(z+2.14)/1.37))
-    elif z<.76: height=.915
-    else: height=.915-.128*max(0.,min(1.,(z-.76)/1.36))
-    return w,height
+    """All exterior assemblies share the same original design stations."""
+    return width_shoulder(z)
 
 
 def wheel_arch_y(z):
-    lower=.245
-    for axle in AXLES:
-        d=abs(z-axle)
-        if d<.445:
-            lower=max(lower,WHEEL_Y+math.sqrt(max(0,.445**2-d*d)))
-    return lower
+    return arch_lower_boundary(z)
 
 
 def panel(name,sign,z0,z1,steps,mat):
-    """Open-body vehicle flank with actual wheel-cutout lower boundary."""
-    verts=[];faces=[]
-    for i in range(steps+1):
-        z=z0+(z1-z0)*i/steps
-        width,upper=smooth_profile(z)
-        lower=min(wheel_arch_y(z),upper-.045)
-        for j in range(6):
-            t=j/5
-            y=lower+(upper-lower)*t
-            x=sign*(width*(.93+.066*math.sin(t*math.pi)))
-            verts.append((x,y,z))
-    for i in range(steps):
-        for j in range(5):
-            a=i*6+j; b=(i+1)*6+j
-            quad=(a,b,b+1,a+1)
-            faces.append(quad if sign<0 else quad[::-1])
-    return mesh(name,verts,faces,mat)
+    """Sculpted multi-station flank with real cutout and rounded shoulders."""
+    source=sculpt_side(z0,z1,sign,max(steps,16),12 if steps>30 else 7)
+    return mesh(name,source.positions,source.faces,mat)
 
 
 def bezier_deck(name,z0,z1,front,back,center_bulge,detail,mat):
-    """A pair of original controlled cubic patches makes a mirror-safe skin."""
-    for side in (-1,1):
-        cage=[]
-        for i in range(4):
-            x0=0.0 if side>0 else -0.80
-            x1=0.80 if side>0 else 0.0
-            x=x0+(x1-x0)*i/3
-            row=[]
-            for j in range(4):
-                z=z0+(z1-z0)*j/3
-                t=j/3
-                y=front+(back-front)*t + center_bulge*(1-(x/.85)**2)
-                y+=.010*math.sin(math.pi*t)
-                row.append((x,y,z))
-            cage.append(tuple(row))
-        patch=tessellate(tuple(cage),detail,round(detail*1.6))
-        mesh(name+("_Right" if side>0 else "_Left"),
-             patch.positions,patch.triangles,mat)
+    """Unified C1 Hermite sheet: camber, stamped creases and rear tonneau humps.
+
+    Former independent half-patches were flat and did not fit side shoulder
+    curves. Keep the legacy function signature for the authoring script.
+    """
+    source=sculpt_top(z0,z1,30 if detail>=20 else 16,
+                      60 if detail>=20 else 28)
+    return mesh(name,source.positions,source.faces,mat)
 
 
-def lamp(name, x, z, y, mat, high=False, rear=False):
-    """Layered original linear lamp module (not a projected light system)."""
-    box(name+"_Bezel",(x,y,z),(.38,.055,.092), "DarkComposite", .014, high)
-    box(name+"_Lens",(x,y+.018,z-(0.05 if not rear else -0.05)),
-        (.32,.025,.020),mat,.009,high)
-    for i in range(3 if high else 2):
-        offset=(i-1)*.053 if high else (i-.5)*.08
-        box(name+"_Guide"+str(i),(x+offset,y+.022,z-(.062 if not rear else -.062)),
-            (.026,.014,.012),mat,.004,high)
+def _oval_lamp_band(name,x,z,scale_outer,scale_inner,outer_lift,inner_lift,
+                    material_name,high=False):
+    count=32 if high else 20
+    vertices=[];faces=[]
+    for radius,lift in ((scale_outer,outer_lift),(scale_inner,inner_lift)):
+        for i in range(count):
+            t=2*math.pi*i/count
+            xx=x+.20*radius*math.cos(t)
+            zz=z+.12*radius*math.sin(t)
+            wx,_=width_shoulder(zz)
+            yy=body_surface_point(zz,xx/wx)[1]+lift
+            vertices.append((xx,yy,zz))
+    for i in range(count):
+        next_i=(i+1)%count
+        faces.append((i,next_i,count+next_i,count+i))
+    return mesh(name,vertices,faces,material_name)
+
+
+def _oval_lamp_plate(name,x,z,radius,lift,material_name,high=False):
+    count=32 if high else 20
+    vertices=[]
+    for i in range(count):
+        t=2*math.pi*i/count
+        xx=x+.20*radius*math.cos(t)
+        zz=z+.12*radius*math.sin(t)
+        wx,_=width_shoulder(zz)
+        yy=body_surface_point(zz,xx/wx)[1]+lift
+        vertices.append((xx,yy,zz))
+    wx,_=width_shoulder(z)
+    vertices.append((x,body_surface_point(z,x/wx)[1]+lift+.007,z))
+    faces=[(i,(i+1)%count,count) for i in range(count)]
+    return mesh(name,vertices,faces,material_name)
+
+
+def lamp(name,x,z,y,mat,high=False,rear=False):
+    """Manufacturable lamp pockets with fitted bezel, lens, LED light guides."""
+    if rear:
+        # Rear units are housed inside the convex tail fascia rather than
+        # suspended off the old squared-off crash-cover slab.
+        box(name+"_TailPocket",(x,.762,2.246),(.407,.095,.034),
+            "DarkComposite",.018,high)
+        box(name+"_RedLens",(x,.772,2.267),(.345,.045,.018),mat,.009,high)
+        box(name+"_LightGuide",(x,.783,2.280),(.274,.010,.008),
+            mat,.004,high)
+        return
+    _oval_lamp_band(name+"_RubberSeal",x,z,1.0,.86,.007,.010,
+                    "DarkComposite",high)
+    _oval_lamp_band(name+"_Reflector",x,z,.87,.63,.011,.013,
+                    "SatinAlloy",high)
+    _oval_lamp_plate(name+"_PolycarbonateLens",x,z,.81,.020,
+                     "Glazing",high)
+    # Three small real projector internals behind the front glazing.
+    count=3 if high else 2
+    for index in range(count):
+        u=index-(count-1)/2
+        xx=x+u*.069
+        zz=z+.006
+        wx,_=width_shoulder(zz)
+        level=body_surface_point(zz,xx/wx)[1]
+        bpy.ops.mesh.primitive_uv_sphere_add(
+            segments=16 if high else 10,ring_count=8 if high else 6,
+            location=(xx,level+.018,zz))
+        obj=attach(bpy.context.object,name+"_Projector"+str(index),
+                   "LightWhite")
+        obj.scale=(.026,.006,.022)
+    # Fitted edge DRL, not a detached billboard rectangle.
+    count=15 if high else 9
+    points=[]
+    for i in range(count):
+        t=math.pi*(.03+.94*i/(count-1))
+        xx=x+.172*math.cos(t)
+        zz=z-.092*math.sin(t)
+        wx,_=width_shoulder(zz)
+        yy=body_surface_point(zz,xx/wx)[1]+.025
+        points.append((xx,yy,zz))
+    for i in range(len(points)-1):
+        beam(name+"_DRL"+str(i),points[i],points[i+1],.0045,mat,high)
 
 
 def tire_and_brake(name,sign,axle,high=False):
+    """Closed sidewalls, molded tread shoulder and actual exposed rim depth."""
     x=sign*WHEEL_X
     at=(x,WHEEL_Y,axle)
-    ring(name+"_Tire",at,.285,.080,"TireRubber",high,(0,math.pi/2,0))
-    # Rotor, hub and rounded rim provide actual physical depth through spokes.
-    bpy.ops.mesh.primitive_cylinder_add(vertices=40 if high else 24,radius=.247,
-                                        depth=.025,location=(x-sign*.035,WHEEL_Y,axle),
-                                        rotation=(0,math.pi/2,0))
+    tire=sculpt_tire(axle,x,56 if high else 32)
+    mesh(name+"_ClosedTire",tire.positions,tire.faces,"TireRubber")
+    ring(name+"_RimLip",(x+sign*.094,WHEEL_Y,axle),.232,.012,
+         "SatinAlloy",high,(0,math.pi/2,0))
+    # Rotor is recessed under the sculpted spoke plane.
+    bpy.ops.mesh.primitive_cylinder_add(
+        vertices=40 if high else 24,radius=.246,depth=.025,
+        location=(x-sign*.035,WHEEL_Y,axle),rotation=(0,math.pi/2,0))
     attach(bpy.context.object,name+"_Rotor","BrakeRotor")
-    bpy.ops.mesh.primitive_cylinder_add(vertices=32 if high else 20,radius=.095,
-                                        depth=.13,location=at,rotation=(0,math.pi/2,0))
+    bpy.ops.mesh.primitive_cylinder_add(
+        vertices=40 if high else 24,radius=.092,depth=.135,
+        location=at,rotation=(0,math.pi/2,0))
     attach(bpy.context.object,name+"_Hub","SatinAlloy")
-    count=8 if high else 6
+    count=10 if high else 7
     for n in range(count):
         t=2*math.pi*n/count
-        inner=(x+sign*.086,WHEEL_Y+.08*math.sin(t),axle+.08*math.cos(t))
-        outer=(x+sign*.086,WHEEL_Y+.247*math.sin(t),axle+.247*math.cos(t))
-        beam(name+"_Spoke"+str(n),inner,outer,.018 if high else .020,"SatinAlloy",high)
-    box(name+"_Caliper",(x-sign*.040,WHEEL_Y+.13,axle-.195),
-        (.105,.105,.100),"BrakeCaliper",.018,high)
-    # Sidewall grooves have controlled cost and are visible only in detail master.
-    if high:
-        for n in range(20):
-            t=2*math.pi*n/20
-            beam(name+"_Tread"+str(n),
-                 (x,WHEEL_Y+.335*math.sin(t),axle+.335*math.cos(t)),
-                 (x,WHEEL_Y+.354*math.sin(t),axle+.354*math.cos(t)),
-                 .006,"TireRubber")
+        inner=(x+sign*.095,WHEEL_Y+.073*math.sin(t),axle+.073*math.cos(t))
+        outer=(x+sign*.090,WHEEL_Y+.228*math.sin(t),axle+.228*math.cos(t))
+        beam(name+"_Spoke"+str(n),inner,outer,.013 if high else .016,
+             "SatinAlloy",high)
+    box(name+"_Caliper",(x-sign*.041,WHEEL_Y+.12,axle-.19),
+        (.105,.10,.090),"BrakeCaliper",.012,high)
 
 
 def build_geometry(col,high,socket_prefix=''):
