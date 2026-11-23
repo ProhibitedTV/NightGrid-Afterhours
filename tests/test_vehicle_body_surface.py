@@ -11,6 +11,7 @@ from vehicle_body_surface import (
     width_shoulder, body_surface_point, arch_lower_boundary,
     continuity_metrics, side_panel, top_panel, fascia, wheel_liner,
     tire_cross_section, mesh_integrity, spline_property, curvature_seam_metrics,
+    side_surface_point, shoulder_normal_alignment, ARCH_CIRCLE_END, ARCH_ROCKER_END,
 )
 
 
@@ -150,16 +151,45 @@ class TestVehicleBodySurface(unittest.TestCase):
         self.assertLess(self._face_normal(front,front.faces[30])[2],0)
         self.assertGreater(self._face_normal(rear,rear.faces[30])[2],0)
 
-    def test_shoulders_have_no_self_folding_width(self):
+    def test_rolled_shoulders_have_one_controlled_return(self):
         for side in (-1,1):
+            for z in (-1.92,-1.42,-1.05,0.,.93,1.50,1.96):
+                values=[side_surface_point(z,side,t/200)[0]*side
+                        for t in range(201)]
+                slopes=[b-a for a,b in zip(values,values[1:])]
+                signs=[x>0 for x in slopes if abs(x)>1e-8]
+                switches=sum(a!=b for a,b in zip(signs,signs[1:]))
+                self.assertLessEqual(switches,1,
+                    "shoulder must have one engineered widest point")
+                width,_=width_shoulder(z)
+                self.assertAlmostEqual(values[-1],width,places=7)
+                self.assertLess(max(values),width*1.055)
+                self.assertGreater(values[0],width*.93)
+                self.assertGreater(max(values),width)
             mesh=side_panel(-2.18,-.78,side,32,12)
-            for i in range(33):
-                columns=mesh.positions[i*13:(i+1)*13]
-                scaled=[x*side for x,_,_ in columns]
-                self.assertTrue(all(b>a for a,b in zip(scaled,scaled[1:])),
-                                "shoulder reverses near the upper body crease")
             outward=self._face_normal(mesh,mesh.faces[20])
             self.assertGreater(outward[0]*side,0)
+
+    def test_hood_side_joint_has_matching_normals(self):
+        # Positions matching is insufficient. True shoulder craftsmanship
+        # needs visually aligned normals from both surfaces on each side.
+        for z in (-1.90,-1.50,-1.15,-.93,.90,1.24,1.62,1.99):
+            for side in (-1,1):
+                angle=shoulder_normal_alignment(z,side)
+                self.assertLess(angle,1.0,
+                                f"disconnected shading at {z}m / side {side}")
+
+    def test_wheel_arch_has_continuous_tangent_at_return(self):
+        # No infinite circle sqrt() slope or hard kink at arch-to-rocker join.
+        for axle in AXLES:
+            for joint in (ARCH_CIRCLE_END,ARCH_ROCKER_END):
+                for side in (-1,1):
+                    z=axle+side*joint
+                    e=.0001
+                    left=(arch_lower_boundary(z)-arch_lower_boundary(z-e))/e
+                    right=(arch_lower_boundary(z+e)-arch_lower_boundary(z))/e
+                    self.assertLess(abs(left-right),.035,
+                                    f"sharp wheel-arch tangent at {z}m")
 
     def test_invalid_external_station_rejected(self):
         with self.assertRaisesRegex(ValueError,"station"):
