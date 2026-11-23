@@ -2,6 +2,7 @@ extends CharacterBody3D
 const Materials = preload("res://scripts/material_library.gd")
 const BusCoachwork = preload("res://scripts/bus_coachwork.gd")
 const CarCoachwork = preload("res://scripts/civilian_car_coachwork.gd")
+const StreamProfile = preload("res://scripts/streaming_profile.gd")
 ## Lightweight NPC street vehicle. Follows lane centerlines, obeys stop bars,
 ## slows for vehicles ahead and dwells at marked bus stops.
 var route: Array[Vector3] = []
@@ -102,6 +103,7 @@ func _physics_process(delta: float) -> void:
 		speed = 0.0
 		velocity = Vector3.ZERO
 		return
+	var driving_started := StreamProfile.begin()
 	var waypoint := _detour[_detour_cursor] if finite_detour_active() else route[next_index]
 	var toward := waypoint - global_position
 	toward.y = 0.0
@@ -128,7 +130,9 @@ func _physics_process(delta: float) -> void:
 		return
 	var cap := cruise_speed
 	cap = float(signals.call("approach_speed_cap", global_position, direction, cap))
+	var headway_started := StreamProfile.begin()
 	cap = float(fleet.call("headway_speed_cap", self, direction, cap))
+	StreamProfile.accumulate(headway_started, "traffic_headway")
 	# Reduce turning speed at the end of each block; no abrupt full-speed cornering.
 	if toward.length() < 10.0:
 		cap = minf(cap, 3.6 + toward.length() * 0.22)
@@ -152,7 +156,10 @@ func _physics_process(delta: float) -> void:
 	speed = move_toward(speed, cap, (3.0 if speed < cap else 9.0) * delta)
 	rotation.y = lerp_angle(rotation.y, atan2(-direction.x, -direction.z), minf(delta * 5.5, 1.0))
 	velocity = direction * speed
+	StreamProfile.accumulate(driving_started, "traffic_control_including_headway")
+	var collision_started := StreamProfile.begin()
 	move_and_slide()
+	StreamProfile.accumulate(collision_started, "traffic_move_and_slide")
 
 func is_boardable() -> bool:
 	return buses and dwell_remaining > 0.05

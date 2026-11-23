@@ -680,7 +680,9 @@ func _process(delta: float) -> void:
 			_close_venue()
 	if current_car == null and current_transit == null:
 		player.set("camera_yaw", yaw)
+	var camera_started := StreamProfile.begin()
 	_update_camera(delta, false)
+	StreamProfile.accumulate(camera_started, "world_camera")
 	_hud_update_clock += delta
 	if _hud_update_clock >= 0.1:
 		_hud_update_clock = 0.0
@@ -697,8 +699,11 @@ func _physics_process(delta: float) -> void:
 		_leave_transit(landing, "M-Line platform. Board a stopped train." if upstairs else "Back at street level.")
 	var actor := _actor()
 	var indoors: bool = interiors.call("is_inside")
+	var started := StreamProfile.begin()
 	if is_instance_valid(pedestrians):
 		_update_pedestrians(delta, actor, indoors)
+	StreamProfile.accumulate(started, "world_pedestrians")
+	started = StreamProfile.begin()
 	_update_combat(delta)
 	if not indoors and current_transit == null and actor.global_position.distance_to(mission_position) < 5.3:
 		_advance_mission()
@@ -708,6 +713,7 @@ func _physics_process(delta: float) -> void:
 	_update_wanted(delta)
 	_update_ambient_civic(delta)
 	_update_civic_patrols(delta)
+	StreamProfile.accumulate(started, "world_civic_combat_and_wanted")
 	if not indoors and wanted.police_seen:
 		for officer in officers:
 			if is_instance_valid(officer) and float(officer.get("condition")) > 18.0 and officer.global_position.distance_to(actor.global_position) < 3.8:
