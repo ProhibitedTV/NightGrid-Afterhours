@@ -18,6 +18,7 @@ var dwell_remaining := 0.0
 var last_served := -1
 var laps := 0
 var paint := Color("4c90a3")
+var _leased := false
 var _detour: Array[Vector3] = []
 var _detour_cursor := 0
 var _detour_rejoin := -1
@@ -26,6 +27,15 @@ const HANDOFF_TOLERANCE = 0.55
 const DETOUR_MAX_POINTS = 81
 
 func setup(path: Array[Vector3], first_index: int, position_at: Vector3, bus: bool, identifier: String, tint: Color, signal_controller: Node, owner_fleet: Node) -> void:
+	buses = bus
+	signals = signal_controller
+	fleet = owner_fleet
+	_assign_route(path, first_index, position_at, identifier, tint)
+	cruise_speed = 8.5 if buses else 11.1
+	floor_snap_length = 0.1
+	_build_body()
+
+func _assign_route(path: Array[Vector3], first_index: int, position_at: Vector3, identifier: String, tint: Color) -> void:
 	route = path
 	next_index = first_index % path.size()
 	global_position = position_at
@@ -33,14 +43,39 @@ func setup(path: Array[Vector3], first_index: int, position_at: Vector3, bus: bo
 	initial_direction.y = 0.0
 	if initial_direction.length_squared() > 0.01:
 		rotation.y = atan2(-initial_direction.x, -initial_direction.z)
-	buses = bus
 	vehicle_id = identifier
 	paint = tint
-	signals = signal_controller
-	fleet = owner_fleet
-	cruise_speed = 8.5 if buses else 11.1
-	floor_snap_length = 0.1
-	_build_body()
+
+func lease_ambient(path: Array[Vector3], entry: Dictionary) -> void:
+	_assign_route(path, int(entry["next_index"]), entry["position"], entry["id"], Color(entry["paint"]))
+	_reset_detour()
+	_detour_hold = false
+	cruise_speed = entry["speed"]
+	speed = 0.0
+	velocity = Vector3.ZERO
+	dwell_remaining = 0.0
+	last_served = -1
+	laps = 0
+	_leased = true
+	($CivilianCarCoachwork as MeshInstance3D).mesh = CarCoachwork.mesh_for(paint)
+	collision_layer = 1
+	collision_mask = 1
+	reset_physics_interpolation()
+	show()
+	set_physics_process(true)
+
+func park_ambient() -> void:
+	set_physics_process(false)
+	collision_layer = 0
+	collision_mask = 0
+	hide()
+	speed = 0.0
+	velocity = Vector3.ZERO
+	vehicle_id = ""
+	_leased = false
+
+func can_recycle() -> bool:
+	return not _detour_hold and not finite_detour_active()
 
 func _on_loop_leg(at: Vector3, index: int) -> bool:
 	if route.size()<2 or index<0 or index>=route.size():
@@ -130,6 +165,8 @@ func _physics_process(delta: float) -> void:
 		return
 	var cap := cruise_speed
 	cap = float(signals.call("approach_speed_cap", global_position, direction, cap))
+	if _leased:
+		cap = float(fleet.call("pooled_speed_cap", global_position, direction, cap))
 	var headway_started := StreamProfile.begin()
 	cap = float(fleet.call("headway_speed_cap", self, direction, cap))
 	StreamProfile.accumulate(headway_started, "traffic_headway")

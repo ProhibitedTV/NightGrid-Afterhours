@@ -108,7 +108,8 @@ func _make_mast(ix: int, iz: int, side: float) -> void:
 	mast.name = "SignalMast_%d_%d_%d" % [ix, iz, int(side)]
 	mast.position = at
 	add_child(mast)
-	var tile := Vector2i(floori(float(ix + 4) / 3.0), floori(float(iz + 4) / 3.0))
+	# Keep each cluster within a single junction for frustum and shadow culling.
+	var tile := Vector2i(ix, iz)
 	if not _render_tiles.has(tile):
 		_render_tiles[tile] = {"supports": [], "casings": [], "lenses": {}}
 	var batch: Dictionary = _render_tiles[tile]

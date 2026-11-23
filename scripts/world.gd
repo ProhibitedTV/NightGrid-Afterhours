@@ -164,6 +164,7 @@ var venue_close_button: Button
 var mara_dialogue_line := ""
 var venue_selected_id := ""
 var _repair_panel := false
+var _pooled_traffic_enabled := false
 var venue_job_active := ""
 var venue_job_completed: Array[String] = []
 var _venue_clock_tick := 0.0
@@ -699,6 +700,10 @@ func _physics_process(delta: float) -> void:
 		_leave_transit(landing, "M-Line platform. Board a stopped train." if upstairs else "Back at street level.")
 	var actor := _actor()
 	var indoors: bool = interiors.call("is_inside")
+	if _pooled_traffic_enabled:
+		var vehicle_speed: float = (actor as CharacterBody3D).velocity.length() if actor is CharacterBody3D else 0.0
+		traffic.call("tick_pooled", delta, actor.global_position, vehicle_speed, camera,
+			city_details, indoors or current_transit != null, cars + officers + routine_patrols, road_restrictions)
 	var started := StreamProfile.begin()
 	if is_instance_valid(pedestrians):
 		_update_pedestrians(delta, actor, indoors)
@@ -1412,7 +1417,8 @@ func _build_transport() -> void:
 	traffic = TrafficSystemScript.new()
 	traffic.name = "SurfaceTraffic"
 	add_child(traffic)
-	traffic.call("initialize", rng.seed, signal_controller)
+	_pooled_traffic_enabled = "--pooled-traffic" in OS.get_cmdline_user_args()
+	traffic.call("initialize", rng.seed, signal_controller, _pooled_traffic_enabled)
 	rail = RailSystemScript.new()
 	rail.name = "MorrowLine"
 	add_child(rail)

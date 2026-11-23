@@ -66,6 +66,7 @@ func _capture() -> void:
 	if measure_native:
 		Engine.max_fps = 0
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+		DisplayServer.window_move_to_foreground()
 	hud.visible = false
 	var player := world.get("player") as CharacterBody3D
 	var clock: Node = world.get("day_night")
@@ -111,7 +112,10 @@ func _capture() -> void:
 			"revision": OS.get_environment("NIGHTGRID_SOURCE_REVISION"),
 			"adapter": RenderingServer.get_video_adapter_name(), "driver": RenderingServer.get_current_rendering_driver_name()}))
 		profile.close()
-	if "--trace-only" in OS.get_cmdline_user_args():
+	if "--trace-only" in arguments:
+		if "--drive-evidence" in arguments:
+			if not await _snapshot_drive():
+				return
 		quit(0)
 		return
 	world.set_process(false)
@@ -278,6 +282,28 @@ func _drive(city: Node3D, player: CharacterBody3D, label: String) -> bool:
 		_fail("Drive did not qualify: " + str(walk_records.back()))
 		return false
 	return true
+
+func _snapshot_drive() -> bool:
+	# Use the same native chase camera after the timed route, with no F8
+	# readback work in the measured interval.
+	var car := world.get("current_car") as CharacterBody3D
+	car.set_physics_process(false)
+	car.global_position = Vector3(3.35, 0.65, 134.0)
+	car.rotation = Vector3.ZERO
+	world.set("yaw", 0.0)
+	world.set("pitch", 0.23)
+	world.get("city_details").call("set_focus", car.global_position)
+	var signals: Node = world.get("signal_controller")
+	signals.set_process(false)
+	signals.set("elapsed", 12.0)
+	signals.call("_refresh")
+	world.call("_snap_camera")
+	world.set_process(false)
+	for frame in range(16):
+		await RenderingServer.frame_post_draw
+	var at := camera.global_position
+	var hour: float = world.get("day_night").get("hour")
+	return _save("southworks-driver-view.png", hour, at, at - camera.global_basis.z * 20.0)
 
 func _profile_frame() -> void:
 	var now := Time.get_ticks_usec()
