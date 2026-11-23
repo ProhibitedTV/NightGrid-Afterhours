@@ -29,3 +29,5 @@ Asset hashes, original-art provenance and the axle/socket coordinates are in [th
 For native evidence run `tools/capture_kestrel_rear.gd` against the Windows Forward+/Vulkan game pack. Set `NIGHTGRID_KESTREL_REAR_DIR` to a new absolute folder and `NIGHTGRID_SOURCE_REVISION` to the exported SHA. `NIGHTGRID_SOUTHWORKS_CAPTURE_DIR` adds two real in-game frames to the native Southworks regression.
 
 Creator sign-off, the complete #211 exterior, front lamps and cabin, the authored wheel assembly, weather-driven wear and fleet performance remain open.
+
+[Native comparison and driving results](playtest/kestrel-rear-and-exit/NATIVE_REVIEW.md).

@@ -1,0 +1,192 @@
+{
+	"adapter": "NVIDIA GeForce RTX 3060",
+	"captures": [
+		{
+			"brake": false,
+			"camera": "(80.93999, 1.68, 174.81)",
+			"draw_calls": 669,
+			"file": "rear-day.png",
+			"fov": 49.0,
+			"gpu_ms": {
+				"max": 6.44999980926514,
+				"median": 3.08699989318848,
+				"p95": 5.44299983978271,
+				"p99": 6.125
+			},
+			"hour": 13.4,
+			"look": "(85.5, 1.12, 177.55)",
+			"ms": {
+				"max": 8.765,
+				"median": 3.883,
+				"p95": 6.696,
+				"p99": 7.706
+			},
+			"over_16_67": 0,
+			"over_33_3": 0,
+			"primitives": 212581,
+			"render_cpu_ms": {
+				"max": 3.20600008964539,
+				"median": 2.00799989700317,
+				"p95": 2.75600004196167,
+				"p99": 3.05100011825562
+			},
+			"reverse": false,
+			"samples": 180,
+			"sha256": "f93e7fd42b648d4e2f861837bf53c3f259518b6c23969c7cde017378aadb445c",
+			"unfocused": 0
+		},
+		{
+			"brake": true,
+			"camera": "(80.93999, 1.68, 174.81)",
+			"draw_calls": 670,
+			"file": "rear-night.png",
+			"fov": 49.0,
+			"gpu_ms": {
+				"max": 4.01599979400635,
+				"median": 3.2720000743866,
+				"p95": 3.85700011253357,
+				"p99": 3.99499988555908
+			},
+			"hour": 21.5,
+			"look": "(85.5, 1.12, 177.55)",
+			"ms": {
+				"max": 7.651,
+				"median": 3.971,
+				"p95": 6.776,
+				"p99": 7.179
+			},
+			"over_16_67": 0,
+			"over_33_3": 0,
+			"primitives": 212581,
+			"render_cpu_ms": {
+				"max": 4.04199981689453,
+				"median": 2.1340000629425,
+				"p95": 2.34999990463257,
+				"p99": 3.21199989318848
+			},
+			"reverse": false,
+			"samples": 180,
+			"sha256": "4109664fae14b38afce6b2e88ea9a18228b93182ca71fb24727324de55d730aa",
+			"unfocused": 0
+		},
+		{
+			"brake": false,
+			"camera": "(81.24, 4.19, 180.4)",
+			"draw_calls": 181,
+			"file": "rear-high.png",
+			"fov": 49.0,
+			"gpu_ms": {
+				"max": 4.14699983596802,
+				"median": 3.40100002288818,
+				"p95": 4.10799980163574,
+				"p99": 4.13700008392334
+			},
+			"hour": 13.4,
+			"look": "(85.46, 1.02, 177.55)",
+			"ms": {
+				"max": 7.496,
+				"median": 4.405,
+				"p95": 6.954,
+				"p99": 7.369
+			},
+			"over_16_67": 0,
+			"over_33_3": 0,
+			"primitives": 179393,
+			"render_cpu_ms": {
+				"max": 3.46600008010864,
+				"median": 2.35700011253357,
+				"p95": 2.90899991989136,
+				"p99": 3.34699988365173
+			},
+			"reverse": false,
+			"samples": 180,
+			"sha256": "a10f99efbe311eebe02a528ef7444a1cde915b534696568f5cc621a60196ca4a",
+			"unfocused": 0
+		},
+		{
+			"brake": false,
+			"camera": "(81.32999, 0.61, 177.55)",
+			"draw_calls": 880,
+			"file": "rear-low.png",
+			"fov": 49.0,
+			"gpu_ms": {
+				"max": 3.41700005531311,
+				"median": 2.71399998664856,
+				"p95": 3.38499999046326,
+				"p99": 3.40499997138977
+			},
+			"hour": 21.5,
+			"look": "(84.71, 1.05, 177.55)",
+			"ms": {
+				"max": 8.722,
+				"median": 4.717,
+				"p95": 7.955,
+				"p99": 8.57
+			},
+			"over_16_67": 0,
+			"over_33_3": 0,
+			"primitives": 232421,
+			"render_cpu_ms": {
+				"max": 3.79699993133545,
+				"median": 2.52300000190735,
+				"p95": 2.76200008392334,
+				"p99": 3.3989999294281
+			},
+			"reverse": true,
+			"samples": 180,
+			"sha256": "b4f4a338a0b383036b947282244342d4639cef6ea9c7dc69bd6fae85061e49e1",
+			"unfocused": 0
+		},
+		{
+			"brake": false,
+			"camera": "(85.32, 1.49, 172.06)",
+			"draw_calls": 274,
+			"file": "quarter-day.png",
+			"fov": 49.0,
+			"gpu_ms": {
+				"max": 3.07100009918213,
+				"median": 2.56900000572205,
+				"p95": 3.04399991035461,
+				"p99": 3.05399990081787
+			},
+			"hour": 13.4,
+			"look": "(86.46, 1.05, 177.55)",
+			"ms": {
+				"max": 7.486,
+				"median": 3.052,
+				"p95": 6.005,
+				"p99": 6.818
+			},
+			"over_16_67": 0,
+			"over_33_3": 0,
+			"primitives": 187239,
+			"render_cpu_ms": {
+				"max": 2.63000011444092,
+				"median": 1.1710000038147,
+				"p95": 1.50399994850159,
+				"p99": 1.84700000286102
+			},
+			"reverse": false,
+			"samples": 180,
+			"sha256": "facfe5319e06cffc15dace2623483b052c6a8c3ce84d5c5e8aaee5e18587cb60",
+			"unfocused": 0
+		}
+	],
+	"driver": "vulkan",
+	"engine": "4.7.2-stable (official)",
+	"mark": "(86.7, 0.84, 177.55)",
+	"renderer": "forward_plus",
+	"resolution": [
+		1920,
+		1080
+	],
+	"revision": "bd38fb95804cb79e0256cf7ccaa54127cae1be8d",
+	"seed": 834726,
+	"settings": {
+		"fog": true,
+		"glow": true,
+		"ssao": true,
+		"ssr": true,
+		"vsync": false
+	}
+}
