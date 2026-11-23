@@ -15,7 +15,8 @@ from vehicle_body_surface import (
     STATIONS, AXLES, WHEEL_Y, TIRE_RADIUS, ARCH_RADIUS,
     arch_lower_boundary, body_surface_point, curvature_seam_metrics,
     fascia, side_panel, top_panel, tire_cross_section, mesh_integrity,
-    width_shoulder,
+    width_shoulder, shoulder_normal_alignment,
+    ARCH_CIRCLE_END, ARCH_ROCKER_END,
 )
 
 
@@ -39,6 +40,20 @@ def calculate() -> dict:
             w,h=width_shoulder(z)
             x,y,_=body_surface_point(z,side)
             max_edge_error=max(max_edge_error,abs(x-side*w),abs(y-h))
+    # G1 hood-to-fender alignment and arch transition quality. Measure
+    # both sides and both panels, not just the longitudinal station profile.
+    shoulder_angles=[shoulder_normal_alignment(z,sign)
+                     for z in (-1.93,-1.61,-1.14,-.94,.87,1.26,1.68,1.96)
+                     for sign in (-1,1)]
+    arch_tangent_jumps=[]
+    for axle in AXLES:
+        for joint in (ARCH_CIRCLE_END,ARCH_ROCKER_END):
+            for side in (-1,1):
+                z=axle+side*joint
+                eps=.0001
+                before=(arch_lower_boundary(z)-arch_lower_boundary(z-eps))/eps
+                after=(arch_lower_boundary(z+eps)-arch_lower_boundary(z))/eps
+                arch_tangent_jumps.append(abs(before-after))
     clearance=math.inf
     for axle in AXLES:
         for i in range(1001):
@@ -63,6 +78,8 @@ def calculate() -> dict:
         "station_seam_max_position_delta_m":gap,
         "hood_fender_shared_edge_max_deviation_m":max_edge_error,
         "min_wheel_clearance_m":clearance,
+        "max_hood_fender_normal_gap_deg":max(shoulder_angles),
+        "max_wheel_arch_tangent_jump":max(arch_tangent_jumps),
         "outward_normals_sample":normals,
         "component_mesh_counts":counts,
         "warning":"Numeric geometry proxies do not prove aesthetic quality, G2 surface joins or native Godot FPS",
@@ -71,6 +88,10 @@ def calculate() -> dict:
         raise ValueError("Body spline / shared manufactured-edge continuity regression")
     if clearance<.045:
         raise ValueError(f"Fender intersects tire: clearance {clearance:.4f}m")
+    if max(shoulder_angles)>1.0:
+        raise ValueError(f"Fender/hood specular tangent discontinuity: {max(shoulder_angles):.3f} degrees")
+    if max(arch_tangent_jumps)>.035:
+        raise ValueError("Wheel-arch rocker transition has a sharp tangent kink")
     if not (normals["bonnet_y"]>0 and normals["front_z"]<0 and normals["rear_z"]>0):
         raise ValueError("One or more major exterior surfaces point inward")
     return report
