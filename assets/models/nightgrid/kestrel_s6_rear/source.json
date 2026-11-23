@@ -1,0 +1,81 @@
+{
+  "source": "tools/author_kestrel_rear.py",
+  "units": "metres",
+  "forward": "-Z",
+  "license": "Original NightGrid project artwork. No separate public license declared.",
+  "pivots": {
+    "QuarterJoin_L": [
+      -1.15,
+      0.25,
+      0.77
+    ],
+    "QuarterJoin_R": [
+      1.15,
+      0.25,
+      0.77
+    ],
+    "RearAxle_L": [
+      -1.1,
+      -0.43,
+      1.49
+    ],
+    "RearAxle_R": [
+      1.1,
+      -0.43,
+      1.49
+    ],
+    "HatchLatch": [
+      0,
+      0.352,
+      2.29
+    ],
+    "TowCover": [
+      0.57,
+      -0.145,
+      2.321
+    ]
+  },
+  "variants": [
+    {
+      "file": "rear_lod0.gltf",
+      "triangles": {
+        "RearHatchSolid": 2160,
+        "RearCabinBulkhead": 60,
+        "HatchFrame": 184,
+        "RearGlass": 36,
+        "RearLowerTrim": 185,
+        "RearBench": 1272,
+        "LampHousingL": 61,
+        "BrakeLensL": 58,
+        "ReverseLensL": 2,
+        "LampHousingR": 53,
+        "BrakeLensR": 58,
+        "ReverseLensR": 2
+      }
+    },
+    {
+      "file": "rear_lod1.gltf",
+      "triangles": {
+        "RearHatchSolid": 756,
+        "RearCabinBulkhead": 60,
+        "HatchFrame": 184,
+        "RearGlass": 36,
+        "RearLowerTrim": 185,
+        "RearBench": 456,
+        "LampHousingL": 61,
+        "BrakeLensL": 58,
+        "ReverseLensL": 2,
+        "LampHousingR": 53,
+        "BrakeLensR": 58,
+        "ReverseLensR": 2
+      }
+    }
+  ],
+  "sha256": {
+    "rear_lod0.bin": "794559a37ab42c65518899b905e825b2e0dc52bfe541a2f378d7ea3d6c8166d9",
+    "rear_lod0.gltf": "e8276992b7e870a5119a761b34cd7e7c71b77a402a18c59fd1a0752b46764e64",
+    "rear_lod1.bin": "24551daa23e656a66a914c8b403dcfc0dd94b2f534cf576af31c7df2a0e18484",
+    "rear_lod1.gltf": "65fc1fe2203078b44dc6be630ecf350efa0ccbd44d602bd2c32ac2809139e4ec"
+  },
+  "texture": "../kestrel_s6_front/crimson_micro_normal.png"
+}

@@ -207,14 +207,7 @@ def grille(far):
     return insert, core
 
 
-def write_asset(stem, far):
-    skin, trims = cover(far)
-    radiator, condenser = grille(far)
-    meshes = {
-        "BumperCover": [skin, trims],
-        "DuctReturns": [ducts(far)],
-        "GrilleAndCore": [radiator, condenser],
-    }
+def write_model(directory, stem, meshes, materials, sockets, generator, image):
     payload = bytearray()
     accessors, views = [], []
 
@@ -248,16 +241,28 @@ def write_asset(stem, far):
             totals[name] += len(surface.indices) // 3
         records.append({"name": name, "primitives": entries})
     nodes = [{"name": name, "mesh": idx} for idx,name in enumerate(meshes)]
-    nodes.extend({"name": name, "translation": point} for name,point in SOCKETS.items())
-    model = {"asset": {"version": "2.0", "generator": "NightGrid Kestrel front fascia authoring"},
+    nodes.extend({"name": name, "translation": point} for name,point in sockets.items())
+    model = {"asset": {"version": "2.0", "generator": generator},
              "extensionsUsed": ["KHR_materials_clearcoat"],
              "nodes": nodes, "scene": 0, "scenes": [{"nodes": list(range(len(nodes)))}],
-             "meshes": records, "materials": MATERIALS, "buffers": [{"uri": stem+".bin", "byteLength": len(payload)}],
+             "meshes": records, "materials": materials, "buffers": [{"uri": stem+".bin", "byteLength": len(payload)}],
              "bufferViews": views, "accessors": accessors, "textures": [{"source": 0}],
-             "images": [{"uri": "crimson_micro_normal.png"}]}
-    (OUT / (stem+".bin")).write_bytes(payload)
-    (OUT / (stem+".gltf")).write_text(json.dumps(model,separators=(",",":"))+"\n",encoding="utf-8",newline="\n")
+             "images": [{"uri": image}]}
+    (directory / (stem+".bin")).write_bytes(payload)
+    (directory / (stem+".gltf")).write_text(json.dumps(model,separators=(",",":"))+"\n",encoding="utf-8",newline="\n")
     return totals
+
+
+def write_asset(stem, far):
+    skin, trims = cover(far)
+    radiator, condenser = grille(far)
+    meshes = {
+        "BumperCover": [skin, trims],
+        "DuctReturns": [ducts(far)],
+        "GrilleAndCore": [radiator, condenser],
+    }
+    return write_model(OUT, stem, meshes, MATERIALS, SOCKETS, "NightGrid Kestrel front fascia authoring",
+                       "crimson_micro_normal.png")
 
 
 def bake_normal(path):

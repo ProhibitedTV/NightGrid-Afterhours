@@ -878,8 +878,11 @@ func _toggle_car() -> void:
 			_log_playtest("vehicle_exit_blocked", {"reason": "speed"})
 			_notify("Slow down before exiting.")
 			return
-		var exit_position := current_car.global_position + current_car.global_transform.basis.x * 3.3
-		exit_position.y = 1.15
+		var exit_position := _clear_car_exit(current_car)
+		if not exit_position.is_finite():
+			_log_playtest("vehicle_exit_blocked", {"reason": "clearance"})
+			_notify("Both sides are blocked. Pull forward to make room.")
+			return
 		player.global_position = exit_position
 		player.velocity = Vector3.ZERO
 		player.collision_layer = 1
@@ -922,6 +925,39 @@ func _toggle_car() -> void:
 		_notify("Vehicle acquired.")
 	else:
 		_notify("Drive with WASD. Space is the handbrake.")
+
+func _clear_car_exit(car: CharacterBody3D) -> Vector3:
+	var space := get_world_3d().direct_space_state
+	var excluded: Array[RID] = [player.get_rid(), car.get_rid()]
+	var capsule := (player.get_node("CollisionShape3D") as CollisionShape3D).shape as CapsuleShape3D
+	var body := (car.get_node("CollisionShape3D") as CollisionShape3D).shape as BoxShape3D
+	var threshold_y := car.global_position.y - body.size.y * .5
+	var clearance := PhysicsShapeQueryParameters3D.new()
+	clearance.shape = capsule
+	clearance.collision_mask = 1
+	clearance.exclude = excluded
+	for side in [1.0, -1.0]:
+		var point := car.to_global(Vector3(side * (body.size.x * .5 + capsule.radius + .125), 0, -.22))
+		var floor := PhysicsRayQueryParameters3D.create(point + Vector3.UP * .80,
+			point - Vector3.UP * 1.42, 1, excluded)
+		var support := space.intersect_ray(floor)
+		if support.is_empty() or (support["normal"] as Vector3).y < .72:
+			continue
+		var ground_y := (support["position"] as Vector3).y
+		if ground_y > threshold_y + .32 or ground_y < threshold_y - .42:
+			continue
+		point.y = ground_y + capsule.height * .5 + .045
+		clearance.transform = Transform3D(Basis.IDENTITY, point)
+		if not space.intersect_shape(clearance, 1).is_empty():
+			continue
+		var sill := car.to_global(Vector3(side * .85, 0, -.22))
+		sill.y = point.y
+		clearance.transform.origin = sill
+		clearance.motion = point - sill
+		# Casts omit overlaps at the start. Check both the sill and end point.
+		if space.intersect_shape(clearance, 1).is_empty() and space.cast_motion(clearance)[0] >= 1.0:
+			return point
+	return Vector3.INF
 
 func _advance_mission() -> void:
 	if not carrying:
@@ -1374,6 +1410,7 @@ func _create_player() -> void:
 	player.set_script(PlayerScript)
 	player.position = PLAYER_START
 	var capsule := CollisionShape3D.new()
+	capsule.name = "CollisionShape3D"
 	var collision := CapsuleShape3D.new()
 	collision.radius = 0.45
 	collision.height = 1.9
@@ -1404,6 +1441,7 @@ func _create_car(where: Vector3, color: Color, police: bool = false) -> Characte
 	if police:
 		car.set("police_signals", signal_controller)
 	var hitbox := CollisionShape3D.new()
+	hitbox.name = "CollisionShape3D"
 	var shape := BoxShape3D.new()
 	shape.size = Vector3(2.35, 1.65, 4.7)
 	hitbox.shape = shape
