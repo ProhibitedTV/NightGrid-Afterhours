@@ -36,7 +36,9 @@ func _capture_all() -> void:
 	hud.visible = false
 	game.set_process(false)
 	player.set_physics_process(false)
-	clock.set_process(false)
+	# Keep the actual clock node processing, as the proven screenshot runner
+	# does: a paused clock still services streamed material subscriptions and
+	# continuously schedules real renderer frames on software/Mesa.
 	clock.set("paused", true)
 	camera.make_current()
 	camera.fov = 77.0
