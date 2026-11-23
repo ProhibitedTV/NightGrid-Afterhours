@@ -31,10 +31,7 @@ func _run() -> void:
 	await process_frame
 	world.get_node("GameMenus").call("hide_for_game")
 	world.get_node("HUD").hide()
-	world.call("_apply_game_settings", {"ssr_enabled":true, "ao_enabled":true,
-		"glow_enabled":true, "fog_enabled":true, "vsync_enabled":false})
-	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
-	Engine.max_fps = 0
+	_capture_settings()
 	player = world.get("player")
 	camera = world.get("camera")
 	clock = world.get("day_night")
@@ -66,6 +63,12 @@ func _run() -> void:
 	file.close()
 	print("BRICKWATER_STOREFRONT_CAPTURE ", JSON.stringify(report))
 	quit(0 if failures.is_empty() else 1)
+
+func _capture_settings() -> void:
+	world.call("_apply_game_settings", {"ssr_enabled":true, "ao_enabled":true,
+		"glow_enabled":true, "fog_enabled":true, "vsync_enabled":false})
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	Engine.max_fps = 0
 
 func _place(at: Vector3) -> void:
 	player.global_position = at
@@ -231,6 +234,7 @@ func _visit(controller: bool) -> void:
 	await process_frame
 	world.get_node("GameMenus").call("hide_for_game")
 	world.get_node("HUD").hide()
+	_capture_settings()
 	player = world.get("player")
 	camera = world.get("camera")
 	city = world.get("city_details")
