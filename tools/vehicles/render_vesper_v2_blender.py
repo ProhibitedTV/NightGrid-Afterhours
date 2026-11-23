@@ -13,6 +13,8 @@ from pathlib import Path
 import sys
 
 import bpy
+# Blender's --python invocation doesn't include the script directory on sys.path.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from author_vesper_v2_blender import cameras_and_preview, collection, render_views
 import author_vesper_v2_blender as author
 
