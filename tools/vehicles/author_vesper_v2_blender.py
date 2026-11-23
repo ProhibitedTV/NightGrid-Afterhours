@@ -567,6 +567,21 @@ def build(output_dir:Path,preview=True):
     # LOD1 begins with the same semantic parts and reduces complexity through
     # a decimation modifier for mesh-only components (do not modify socket empties).
     build_geometry(low1,False,'LOD1_')
+    # Require proper independent double-sided sheet geometry, not simply
+    # accepting paper-thin body geometry because the render happens to look good.
+    sheet_layers={}
+    for layer in (high,low0,low1):
+        manufactured=[
+            (obj,mod) for obj in layer.objects if obj.type=="MESH"
+            for mod in obj.modifiers if mod.type=="SOLIDIFY"]
+        if len(manufactured)<10:
+            raise RuntimeError("Missing manufactured thickness on core body panels: "+layer.name)
+        minimum=min(abs(mod.thickness) for _,mod in manufactured)
+        if minimum<.004:
+            raise RuntimeError("Sheet metal thinner than 4mm in "+layer.name)
+        sheet_layers[layer.name]={
+            "closed_sheet_panel_count":len(manufactured),
+            "minimum_sheet_thickness_mm":round(minimum*1000.,3)}
     # Authoring geometry and sockets use NightGrid (+Y up, -Z forward);
     # Blender uses native +Z up. Rotate +90deg about X BEFORE saving/export.
     # The Blender glTF exporter converts this native basis to glTF +Y up,
@@ -614,6 +629,7 @@ def build(output_dir:Path,preview=True):
         "dimensions":{"length_m":LENGTH,"width_m":WIDTH,
                       "wheelbase_m":WHEELBASE},
         "seat_count":2,"roof":"stowed_prototype_only",
+        "manufactured_sheet_panels":sheet_layers,
         "sockets":list(SOCKETS),
         "files":{},
         "evidence":"PNG files are offline Blender Workbench previews, NOT gameplay",
