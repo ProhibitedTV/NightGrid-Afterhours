@@ -7,32 +7,33 @@
   "up": "+Y",
   "forward": "-Z",
   "triangles": {
-    "HeadLenses": 96,
-    "TailLenses": 72,
+    "HeadLenses": 56,
+    "HeadProjectors": 400,
+    "TailLenses": 56,
     "ReverseLenses": 8,
     "SillLenses": 96,
-    "Cabin": 6494,
-    "FrontClip": 6848,
-    "RearClip": 4752,
-    "DoorL0": 956,
-    "DoorR0": 956,
-    "Wheel": 3992
+    "Cabin": 6994,
+    "FrontClip": 11206,
+    "RearClip": 8416,
+    "DoorL0": 1508,
+    "DoorR0": 1508,
+    "Wheel": 4956
   },
   "sockets": {
     "KeyLeft": [
-      -0.661,
-      0.61,
-      -2.3
+      -0.644,
+      0.567,
+      -2.193
     ],
     "KeyRight": [
-      0.661,
-      0.61,
-      -2.3
+      0.644,
+      0.567,
+      -2.193
     ],
     "TailThrow": [
       0,
-      0.535,
-      2.336
+      0.583,
+      2.323
     ],
     "SillLightLeft": [
       -0.755,
@@ -46,10 +47,10 @@
     ]
   },
   "sha256": {
-    "cinder_r9.gltf": "280761eb33a2d9cfed0516f7950d35dcb8ac5c47f82abb3de3e4cf2e051396d6",
-    "cinder_r9.bin": "db8ca90c1f6eafdf08504c9f24763d559954c0530b63c4dd8a3a0590a1402905",
-    "wheel.gltf": "1cedcbd3d6c95c7d262024677a418058ec4d5ae763e39752531be5ae3d8467b9",
-    "wheel.bin": "b1adeb20161c6b2e05ea335425230c6c23fcec07a9a7a0bd3779141a85444d14",
+    "cinder_r9.gltf": "51b6c9ecc6689c5be46e5eb08361120e6d8a051f83a74446f4b5a453ea27dfe7",
+    "cinder_r9.bin": "9a628c1e0d7b5e16b711848500c8cd4a94a73e6a8fa93594425fabca82f151f9",
+    "wheel.gltf": "a63a609a30dc9754c3c4cfec36266617ad20e3b3db4bd7061c0b1c34cbf905b7",
+    "wheel.bin": "4d18356263ff1bb453c18544107f994744d73c4d8c0260fd00dc1709b5005322",
     "carbon_twill.png": "89c8a41f36faef711f93d6df0996be5bbd845ef65f7ea398de116ad11adc32f5",
     "rain_beads.png": "37106685c200a5b8b4d59c7aca10ec9c523dbd3cce8166a7a0896fbc26a290e8"
   }

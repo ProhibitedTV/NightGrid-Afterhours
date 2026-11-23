@@ -28,6 +28,9 @@ func _verify() -> void:
 		if expected.has(i) and Vector2(slot.position.x, slot.position.z) != expected[i]:
 			_fail("Cinder moved from its established parking address")
 			return
+		if not expected.has(i) and slot.get_node_or_null("KestrelS6HeroVisual") == null:
+			_fail("Kestrel S6 must remain in the other civilian parking slots")
+			return
 	var car: CharacterBody3D = fleet[2]
 	var player: CharacterBody3D = world.get("player")
 	var hero := car.get_node("RoadCarVisual") as Node3D
@@ -42,14 +45,18 @@ func _verify() -> void:
 		if label == "OpticCover":
 			var vertices: PackedVector3Array = front.mesh.surface_get_arrays(i)[Mesh.ARRAY_VERTEX]
 			for vertex in vertices:
-				covered_left = covered_left or (vertex.x < -.45 and vertex.z < -2.21)
-				covered_right = covered_right or (vertex.x > .45 and vertex.z < -2.21)
+				covered_left = covered_left or (vertex.x < -.45 and vertex.z < -2.16)
+				covered_right = covered_right or (vertex.x > .45 and vertex.z < -2.16)
 	for name in ["Paint", "CarbonComposite", "MachinedAlloy", "OpticCover"]:
 		if name not in materials:
 			_fail("Missing authored front surface " + name)
 			return
 	if not covered_left or not covered_right:
 		_fail("Headlamp cover geometry must remain on both front corners")
+		return
+	var projector := shell.get_node_or_null("HeadProjectors") as MeshInstance3D
+	if projector == null or projector.mesh.get_aabb().size.x < 1.1 or projector.mesh.get_aabb().size.y < .035:
+		_fail("Both headlamp assemblies need three-dimensional projector optics")
 		return
 	for i in 5:
 		await physics_frame
@@ -88,7 +95,8 @@ func _verify() -> void:
 	var state: Dictionary = hero.call("get_motion_state")
 	if not head.visible or not tail.visible or not sill.visible or int(state["live_beams"]) != 2 \
 			or (-head.basis.z).dot(Vector3.FORWARD) < .9 or (-tail.basis.z).dot(Vector3.BACK) < .9 \
-			or tail.light_color.r <= tail.light_color.g or float(state["steering"]) < .1:
+			or tail.light_color.r <= tail.light_color.g or float(state["steering"]) < .1 \
+			or not (projector.material_override as StandardMaterial3D).emission_enabled:
 		_fail("Projected night lamps, brake throw or wheel steering did not engage")
 		return
 	hero.call("update_motion", -2.0, 0.0, false, true, -.5, .75, .1)
@@ -97,7 +105,7 @@ func _verify() -> void:
 		return
 	hero.call("set_lighting_hour", 13.4)
 	hero.call("update_motion", 0.0, 0.0, false, true, 0.0, 0.0, .1)
-	if head.visible or tail.visible or sill.visible:
+	if head.visible or tail.visible or sill.visible or (projector.material_override as StandardMaterial3D).emission_enabled:
 		_fail("Unneeded local lights active in daytime")
 		return
 	car.call("restore_damage", [.33, .44, .18, .05])

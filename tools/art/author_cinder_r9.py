@@ -17,6 +17,9 @@ from author_kestrel_fascia import Surface, write_model
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'assets/models/nightgrid/road_cars'
 PAINT, DARK, ALLOY, GLASS, SEAT, LEATHER, HEAD, TAIL, REVERSE, BELT, TYRE, CARBON, TITANIUM, OPTIC, UNDER = range(15)
+SEAM, GRILLE, PROJECTOR, FORGED, REFLECTOR = range(15, 20)
+SIDE_ROWS = (0., .09, .22, .35, .49, .66, .81, .93, 1.)
+ARCH_WIDTH = .428
 
 
 @dataclass
@@ -67,15 +70,20 @@ class Body:
     panels: tuple  # longitudinal station, half width, shoulder height
 
 
-R9 = Body('cinder_r9', 4.66, 1.31, .670, .358, (-1.43, 1.44), (-.38, .49), (-1.11, 1.25),
+R9 = Body('cinder_r9', 4.66, 1.31, .639, .358, (-1.43, 1.44), (-.34, .39), (-1.16, 1.25),
          (-.97, .87), .16, (.40, -.30),
-         ((-2.33, .792, .47), (-2.24, .896, .559), (-1.96, .967, .668), (-1.53, .995, .825),
-          (-1.19, .969, .851), (-.75, .923, .783), (.03, .900, .757), (.63, .978, .800),
-          (1.43, 1.010, .913), (1.82, 1.000, .849), (2.12, .971, .780), (2.33, .864, .712)))
+         ((-2.33, .829, .487), (-2.18, .908, .558), (-1.92, .960, .675), (-1.49, .991, .806),
+          (-1.14, .966, .819), (-.75, .925, .792), (.06, .899, .785), (.71, .973, .831),
+          (1.43, 1.012, .890), (1.79, 1.002, .862), (2.11, .971, .804), (2.33, .884, .754)))
 
 
 def mix(a, b, t):
     return a + (b - a) * t
+
+
+def ease(first, last, at):
+    t = min(1., max(0., (at-first)/(last-first)))
+    return t*t*(3.-2.*t)
 
 
 def interpolate(rows, z):
@@ -100,12 +108,9 @@ def interpolate(rows, z):
 
 
 def arch_minimum(body, z):
-    longitudinal = body.radius * 1.20
-    distance = min(abs(z - wheel) for wheel in body.axles)
-    if distance >= longitudinal:
-        return body.sill
-    # The upright ends are in the fenders. The upper portion follows the tyres.
-    return body.radius * .98 + sqrt(max(0.0, longitudinal**2 - distance**2)) * .99
+    distance = min(abs(z-wheel) for wheel in body.axles)
+    section = sqrt(max(0., 1.-(distance/ARCH_WIDTH)**2))
+    return body.sill + (.752-body.sill)*section**.79
 
 
 def belt(body, z):
@@ -113,22 +118,36 @@ def belt(body, z):
     return width - .046, y - .026
 
 
-def deck(body, z, fraction):
-    width, shoulder = interpolate(body.panels, z)
-    bow = .036
-    return (width-.047)*fraction, shoulder+bow*(1-abs(fraction)**1.5), z
+def end_sweep(z, lateral):
+    # Wrap the painted nose and tail into the shoulders using the same
+    # longitudinal mapping for the bumper, deck and quarter panels.
+    wrap = .135*(1.-ease(-2.33,-1.93,z)) - .115*ease(1.96,2.33,z)
+    return z + wrap*abs(lateral)**2.65
 
 
 def side_profile(body, z, side):
     width, shoulder = interpolate(body.panels, z)
-    bottom = min(shoulder - .07, arch_minimum(body, z))
-    return [(side*(width + inset), mix(bottom, shoulder, column), z)
-            for column, inset in ((0, -.081), (.105, -.043), (.44, -.015), (.79, 0), (1, -.047))]
+    bottom = min(shoulder-.044, arch_minimum(body,z))
+    between_axles = ease(-1.24,-.70,z)*(1.-ease(.75,1.30,z))
+    intake_draw = ease(.21,.86,z)*(1.-ease(.97,1.22,z))
+    wheel_opening = ease(.24,.72,bottom)
+    profile = (-.073+.055*wheel_opening,-.042+.038*wheel_opening,
+               -.060+.021*wheel_opening,-.081,-.068,-.029,0.,-.019,-.047)
+    cove = (0.,0.,.012,.039,.053,.027,0.,0.,0.)
+    scoop = (0.,0.,.012,.027,.019,0.,0.,0.,0.)
+    return [(side*(width+shape-cove[i]*between_axles-scoop[i]*intake_draw),
+             mix(bottom,shoulder,column),end_sweep(z,side))
+            for i,(column,shape) in enumerate(zip(SIDE_ROWS,profile))]
 
 
 def cabin_width(body, z):
-    mid = sum(body.roof_band) * .5
-    return body.roof_width * (1.0 - .095 * abs(z-mid) / max(.6, body.roof_band[1] - body.roof_band[0]))
+    mid = sum(body.roof_band)*.5
+    return body.roof_width - .077*((z-mid)/.52)**2
+
+
+def roof_skin(body, lateral, z):
+    return (cabin_width(body,z)*lateral,
+            body.roof-.067*abs(lateral)**2.35-.034*((z-.015)/.49)**2,z)
 
 
 def canopy(body, z, side):
@@ -137,12 +156,14 @@ def canopy(body, z, side):
     if z < first:
         t = max(0.0, (z - front) / (first - front))
         x, y = belt(body, front)
-        return side * mix(x, cabin_width(body, first), t), mix(y, body.roof-.047, t), z
+        top = roof_skin(body,side,first)
+        return mix(x*side,top[0],t), mix(y,top[1],t)+.045*sin(pi*t), z
     if z > last:
         t = min(1.0, (z - last) / (rear - last))
         x, y = belt(body, rear)
-        return side * mix(cabin_width(body, last), x, t), mix(body.roof-.047, y, t), z
-    return side*cabin_width(body, z), body.roof-.046, z
+        top = roof_skin(body,side,last)
+        return mix(top[0],x*side,t), mix(top[1],y,t)+.032*sin(pi*t), z
+    return roof_skin(body,side,z)
 
 
 def quad(surface, a, b, c, d, normal, tint=(1, 1, 1, 1)):
@@ -276,7 +297,7 @@ def window_patch(mesh, a, b, left, right, outward):
 
 def door(surfaces, body, side, interval):
     first, last = interval
-    chunks = 18
+    chunks = 24
     positions = [mix(first, last, i/chunks) for i in range(chunks+1)]
     paint, dark, glass, leather = [surfaces[index] for index in (PAINT, DARK, GLASS, LEATHER)]
     for a, b in zip(positions, positions[1:]):
@@ -293,56 +314,83 @@ def door(surfaces, body, side, interval):
         outside = side_profile(body, point, side)[1:]
         inside = [(x-side*.075, y, z) for x, y, z in outside]
         skin(dark, outside, inside, (0, 0, facing))
-    at = last - .18
-    x, waist = belt(body, at)
-    ellipsoid(dark, (side*(x+.033), waist-.087, at), (.025, .029, .112), rings=4)
-    ellipsoid(surfaces[ALLOY], (side*(x+.049), waist-.086, at+.009), (.015, .013, .070), rings=4)
+    at = last-.208
+    for tap in range(6):
+        a,b = (mix(at-.071,at+.071,i/6) for i in (tap,tap+1))
+        p,q = [side_profile(body,z,side)[6] for z in (a,b)]
+        reach = .011*sin(pi*(tap+.5)/6)
+        quad(surfaces[SEAM],(p[0]+side*.002,p[1]+reach,p[2]),(q[0]+side*.002,q[1]+reach,q[2]),
+             (q[0]+side*.002,q[1]-.010,q[2]),(p[0]+side*.002,p[1]-.010,p[2]),(side,0,0))
+        quad(paint,(p[0]+side*.004,p[1]+reach-.003,p[2]),(q[0]+side*.004,q[1]+reach-.003,q[2]),
+             (q[0]+side*.004,q[1]-.004,q[2]),(p[0]+side*.004,p[1]-.004,p[2]),(side,0,0))
     if first < -.68:
         x, waist = belt(body, first + .18)
-        tube(dark, (side*x, waist+.055, first+.18), (side*(x+.136), waist+.158, first+.12), .029, 6)
-        ellipsoid(paint, (side*(x+.174), waist+.174, first+.12), (.103, .055, .104), rings=5)
-        ellipsoid(surfaces[ALLOY], (side*(x+.178), waist+.174, first+.201), (.078, .040, .010), rings=5)
+        tube(dark,(side*x,waist+.050,first+.18),(side*(x+.106),waist+.132,first+.127),.022,8)
+        ellipsoid(paint,(side*(x+.141),waist+.151,first+.111),(.095,.044,.094),rings=7,segments=18)
+        ellipsoid(surfaces[GRILLE],(side*(x+.141),waist+.151,first+.181),(.077,.033,.018),rings=5)
+        ellipsoid(surfaces[ALLOY],(side*(x+.141),waist+.151,first+.191),(.071,.029,.007),rings=5)
 
 
-DECK_COLS = (-1, -.96, -.88, -.77, -.64, -.518, -.509, -.48, -.39, -.25, -.21, -.10,
-             0, .10, .21, .25, .39, .48, .509, .518, .64, .77, .88, .96, 1)
-HEAD_Z = (-2.245, -1.854)
-DUCT_Z = (-1.749, -1.305)
-BONNET_Z = (-2.275, -1.154)
+HALF_DECK = (0., .10, .21, .25, .32, .39, .429, .451, .458, .48, .56, .64, .71, .77, .83, .88, .92, .96, 1.)
+DECK_COLS = tuple(-u for u in reversed(HALF_DECK[1:])) + HALF_DECK
+HEAD_Z = (-2.253, -1.774)
+DUCT_Z = (-1.718, -1.337)
+BONNET_Z = (-2.280, -1.190)
 LOUVRE_Z = tuple((1.278+i*.095, 1.317+i*.095) for i in range(7))
-SIDE_INTAKE = (.882, 1.008)
+SIDE_INTAKE = (.891, 1.013)
 
 
 def on_deck(body, lateral, z, offset=0.):
-    # Swept lamp treatment and a tighter outside radius under the front fender.
-    if HEAD_Z[0] <= z <= HEAD_Z[1]:
-        t = (z - HEAD_Z[0]) / (HEAD_Z[1] - HEAD_Z[0])
-        sign = -1 if lateral < 0.0 else 1
-        lateral += sign*.095*sin(pi*t*.92)*max(0., 1-4.5*abs(abs(lateral)-.75))
-    x, y, z = deck(body, z, lateral)
-    feature = max(0., min(1., (-1.11-z)*5, (z+2.32)*5))
-    ridge = max(0., 1.-abs(abs(lateral)-.53)*5.8)**1.4
-    bonnet = .016*max(0., 1.-abs(lateral)*3.)*feature
-    return (x, y + offset + .032*ridge*feature + bonnet, z)
+    width, shoulder = interpolate(body.panels,z)
+    edge = abs(lateral)
+    if z < body.glass[0]:
+        fore = ease(-2.315,-2.105,z)
+        taper = ease(-2.173,-1.774,z)
+        trail = 1.-ease(-1.77,-1.18,z)
+        # Swept polycarbonate assembly broad at the leading end, pinched
+        # into the shoulder at the aft tip. The paint uses the same outline.
+        inner = .48 + (.024*fore + .153*taper)*trail
+        outer = .96 - (.035*(1.-fore)+.010*taper)*trail
+        edge, = interpolate(((0.,0.),(.325,.325),(.48,inner),(.96,outer),(1.,1.)),edge)
+        feature = ease(-2.32,-1.99,z)*(1.-ease(-1.61,-1.16,z))
+        fender = .046*feature*sin(pi*ease(.35,1.,edge))**2
+        crown = 1.-mix(edge**1.6,edge**2,feature)
+        bonnet = (.028+.005*feature)*crown
+        bulge = .010*(1.-ease(.18,.58,edge))*feature
+        height = shoulder + fender + bonnet + bulge
+    else:
+        height = shoulder + .028*(1.-edge**1.6)
+    return ((width-.047)*edge*(-1 if lateral < 0 else 1),height+offset,end_sweep(z,edge))
 
 
 def cap(body, surfaces, side, z):
     cols = DECK_COLS
-    rows = (0., .10, .20, .38, .52, .67, .79, .92, 1.)
+    rows = sorted({*SIDE_ROWS, .10, .20, .29, .38, .52, .67, .73, .79, .87, .92, .964})
     profile = side_profile(body, z, 1)
-    edge = [(v, x, y) for v,(x,y,_) in zip((0.,.105,.44,.79,1.), profile)]
+    edge = [(v,x,y) for v,(x,y,_) in zip(SIDE_ROWS,profile)]
+
+    def edge_at(v):
+        for (a,x,y),(b,u,w) in zip(edge,edge[1:]):
+            if v <= b:
+                t = (v-a)/(b-a)
+                return mix(x,u,t),mix(y,w,t)
+        raise ValueError('Fascia edge outside the side panel')
 
     def point(u, v, recess=0.):
         if v >= .999:
             return on_deck(body, u, z)
-        radius = abs(u) ** 8
-        width, edge_y = interpolate(edge,v)
-        x = u * width
+        radius = abs(u)
+        width, edge_y = edge_at(v)
+        blend = sin(pi*v)*(1.-radius**5)
+        squeeze = (1.-.12*(v-.39)*blend) if side < 0 else (1.+.037*blend)
+        x = u*width*squeeze
         top = on_deck(body, u, z)[1]
-        low = profile[0][1] - .010 * (1-radius)
-        depth = .049*(1-radius)*(1-v)
-        # Keep the mouth between the axial end and the fascia backing.
-        return (x, mix(mix(low, top, v), edge_y, radius), z-side*(depth+recess))
+        low = profile[0][1]-.026*(1.-radius**2)
+        tuck = (.066 if side < 0 else .063)*(1.-radius**3)*(1.-v)**1.85
+        brow = (.031 if side < 0 else .018)*blend*sin(pi*v*1.11)
+        rake = sin(pi*v)*sin(pi*radius)*(-.046 if side < 0 else .024)
+        height = mix(mix(low,top,v),edge_y,radius**7) + rake
+        return (x,height,end_sweep(z,u)-side*(tuck-brow+recess))
 
     def channel(u, v):
         edge = abs(u)
@@ -354,6 +402,8 @@ def cap(body, surfaces, side, z):
                 return 'lamp'
             if v < .38 and edge < .88:
                 return 'diffuser'
+            if .38 < v < .67 and edge < .25:
+                return 'plate'
         return 'skin'
 
     normal = (0, 0, side)
@@ -362,7 +412,7 @@ def cap(body, surfaces, side, z):
             part = channel((u+w)*.5, (v+h)*.5)
             if part != 'skin':
                 continue
-            material = CARBON if h <= .20 else PAINT
+            material = CARBON if h <= (.20 if side < 0 else .10) else PAINT
             quad(surfaces[material], point(u,v), point(w,v), point(w,h), point(u,h), normal)
 
     def socket(a, b, c, d, depth, material):
@@ -380,31 +430,52 @@ def cap(body, surfaces, side, z):
                 quad(surfaces[material], point(width,v), point(width,h),
                      point(width-direction*.016,h,depth), point(width-direction*.016,v,depth), normal)
 
-    def strip(material, x0, x1, center, thickness, depth, rake=0.):
+    def strip(material, x0, x1, center, thickness, depth):
         segments = max(2, round(abs(x1-x0)*14))
         for index in range(segments):
             a,b = (mix(x0,x1,i/segments) for i in (index,index+1))
-            va,vb = (center+abs(u)*rake for u in (a,b))
+            va,vb = center,center
+            if callable(center):
+                va,vb = center(a),center(b)
             quad(surfaces[material], point(a,va,depth), point(b,vb,depth),
                  point(b,vb+thickness,depth), point(a,va+thickness,depth), normal)
 
     if side < 0:
         for a,b in ((-.48,.48), (-.88,-.64), (.64,.88)):
             socket(a,b,.20,.67,.145,CARBON)
-            for i in range(5):
-                strip(ALLOY,a+.018,b-.018,.254+i*.075,.011,.129)
-            for i in range(1, 8 if a == -.48 else 3):
-                u = mix(a,b,i/(8 if a == -.48 else 3))
-                quad(surfaces[DARK], point(u-.007,.24,.131), point(u+.007,.24,.131),
-                     point(u+.007,.63,.131), point(u-.007,.63,.131), normal)
+            for i in range(7):
+                strip(GRILLE,a+.018,b-.018,.233+i*.059,.012,.122)
+            dividers = 11 if a == -.48 else 3
+            for i in range(1,dividers):
+                u = mix(a,b,i/dividers)
+                quad(surfaces[GRILLE],point(u-.005,.228,.127),point(u+.005,.228,.127),
+                     point(u+.005,.649,.127),point(u-.005,.649,.127),normal)
+        # Recessed centre badge and small outboard parking sensors follow the skin.
+        nose = [point(u,v,-.003) for u,v in ((-.047,.87),(0,.816),(.047,.87),(0,.924))]
+        surfaces[GRILLE].face(nose,normal)
+        surfaces[ALLOY].face([point(u,v,-.005) for u,v in ((-.032,.872),(0,.838),(.032,.872),(0,.905))],normal)
+        for u in (-.94,-.548,.548,.94):
+            x,y,p = point(u,.45,-.002)
+            ellipsoid(surfaces[SEAM],(x,y,p),(.011,.010,.004),rings=4,segments=9)
         return
     for a,b in ((-.96,-.25), (.25,.96)):
-        socket(a,b,.67,.92,.053,CARBON)
-        strip(TAIL, a+.029,b-.029,.724,.029,.034,.046)
-        strip(TAIL, a+.029,b-.029,.789,.025,.034,.043)
-        center = .34 if a > 0 else -.34
-        strip(REVERSE,center-.054,center+.054,.711,.024,.034)
-        strip(OPTIC,a+.017,b-.017,.700,.164,.010,.025)
+        socket(a,b,.67,.92,.063,CARBON)
+
+        def ribbon(u):
+            corner = ease(.67,.89,abs(u))
+            return .786 + .051*corner - .015*(1.-ease(.29,.45,abs(u)))
+
+        strip(TAIL,a+.018,b-.018,ribbon,.037,.036)
+        outside = (-.906,-.535) if a < 0 else (.535,.906)
+        strip(TAIL,*outside,lambda u: ribbon(u)-.056,.029,.034)
+        center = .412 if a > 0 else -.412
+        strip(REVERSE,center-.075,center+.075,.719,.022,.032)
+        strip(OPTIC,a+.015,b-.015,.694,.209,.009)
+    socket(-.25,.25,.38,.67,.048,SEAM)
+    strip(GRILLE,-.176,.176,.451,.152,.035)
+    strip(ALLOY,-.143,.143,.560,.010,.031)
+    for u in (-.96,.96):
+        strip(REFLECTOR,u-.023,u+.023,.279,.056,-.002)
     socket(-.88,.88,0.,.38,.135,CARBON)
     for u in (-.75,-.57,-.37,.37,.57,.75):
         a,b = point(u,.045,.132), point(u,.30,.124)
@@ -438,49 +509,51 @@ def exhaust(surfaces, x, y, z):
 
 
 def deck_opening(surfaces, body, sign, a, b, low, high, kind):
+    a,b = round(a,6),round(b,6)
     cols = [u for u in DECK_COLS if low <= sign*u <= high]
     # Use the same z rows as the top skin, keeping the entire lip welded visually.
     steps = [z for z in sampled_stations(body) if a <= z <= b]
-    band_depth = -.034 if kind == 'head' else -.079
+    band_depth = -.115 if kind == 'head' else -.070
+
+    def cover_point(u,z):
+        blend_u = (u-cols[0])/(cols[-1]-cols[0])
+        blend_z = (z-a)/(b-a)
+        crown = .011*sin(pi*blend_u)*sin(pi*blend_z)
+        return on_deck(body,u,z,-.004+crown)
     for start,end in zip(steps,steps[1:]):
         for u,direction in ((cols[0],1),(cols[-1],-1)):
-            quad(surfaces[CARBON], on_deck(body,u,start), on_deck(body,u,end),
-                 on_deck(body,u+direction*.015,end,band_depth),
-                 on_deck(body,u+direction*.015,start,band_depth), (0,1,0))
+            inner = u + direction*.011
+            quad(surfaces[SEAM],on_deck(body,u,start),on_deck(body,u,end),
+                 on_deck(body,inner,end,-.007),on_deck(body,inner,start,-.007),(0,1,0))
+            quad(surfaces[CARBON],on_deck(body,inner,start,-.007),on_deck(body,inner,end,-.007),
+                 on_deck(body,u+direction*.021,end,band_depth),
+                 on_deck(body,u+direction*.021,start,band_depth),(0,1,0))
         for u,v in zip(cols, cols[1:]):
             quad(surfaces[DARK],on_deck(body,u,start,band_depth),on_deck(body,u,end,band_depth),
                  on_deck(body,v,end,band_depth),on_deck(body,v,start,band_depth),(0,1,0))
             if kind == 'head':
-                quad(surfaces[OPTIC],on_deck(body,u,start,-.004),on_deck(body,u,end,-.004),
-                     on_deck(body,v,end,-.004),on_deck(body,v,start,-.004),(0,1,0))
+                quad(surfaces[OPTIC],cover_point(u,start),cover_point(u,end),cover_point(v,end),cover_point(v,start),(0,1,0))
     for z,direction in ((a,1),(b,-1)):
         for u,v in zip(cols,cols[1:]):
             quad(surfaces[CARBON], on_deck(body,u,z), on_deck(body,v,z),
                  on_deck(body,v,z+direction*.012,band_depth),on_deck(body,u,z+direction*.012,band_depth),(0,1,0))
     if kind == 'head':
-        # The trim bezel is visible through the lens. An oversized secondary
-        # shield closes off oblique views underneath the projector pocket.
-        for start,end in zip(steps, steps[1:]):
-            left,right = cols[0]-.027,cols[-1]+.027
-            lower = start-.028 if start == steps[0] else start
-            upper = end+.018 if end == steps[-1] else end
-            quad(surfaces[DARK],on_deck(body,left,lower,-.065),on_deck(body,left,upper,-.065),
-                 on_deck(body,right,upper,-.065),on_deck(body,right,lower,-.065),(0,1,0))
-        at = on_deck(body,sign*.79,a+.08,-.025)
-        ellipsoid(surfaces[ALLOY],at,(.080,.012,.037),rings=5,segments=12)
-        ellipsoid(surfaces[DARK],(at[0],at[1]+.007,at[2]),(.050,.013,.032),rings=5,segments=12)
-        ellipsoid(surfaces[OPTIC],(at[0],at[1]+.016,at[2]),(.039,.009,.028),rings=5,segments=12)
-        for center in (.664,.754,.847):
-            for start,end in zip(steps,steps[1:]):
-                if start < a+.018 or end > b-.034:
-                    continue
-                phase = (start-a)/(b-a)
-                width = .021 if center == .664 else .033
-                lateral = center-.032*(1-phase)
-                for material, extra, y in ((HEAD,0.,-.014),(ALLOY,.014,-.025)):
-                    u,v = sorted((sign*(lateral-extra),sign*(lateral+width+extra)))
-                    quad(surfaces[material],on_deck(body,u,start,y),on_deck(body,u,end,y),
-                         on_deck(body,v,end,y),on_deck(body,v,start,y),(0,1,0))
+        # Two separately turned optic modules sit inside each bonded cover.
+        for lateral,z,radius in ((.699,a+.125,.043),(.770,a+.244,.032)):
+            projector(surfaces,on_deck(body,sign*lateral,z,-.063),radius)
+        for start,end in zip(steps,steps[1:]):
+            if start < a+.021 or end > b-.038:
+                continue
+            leading = 1.-ease(a+.026,a+.128,start)
+            trailing = ease(b-.202,b-.054,start)
+            side_line = .886-.178*leading+.011*trailing
+            for material,edge,y in ((HEAD,0.,-.022),(GRILLE,.009,-.034)):
+                u,v = sorted((sign*(side_line-edge),sign*(side_line+.018+edge)))
+                lateral_b = sign*((.886-.178*(1.-ease(a+.026,a+.128,end))+.011*ease(b-.202,b-.054,end))-side_line)
+                quad(surfaces[material],on_deck(body,u,start,y),on_deck(body,u+lateral_b,end,y),
+                     on_deck(body,v+lateral_b,end,y),on_deck(body,v,start,y),(0,1,0))
+        x,y,z = on_deck(body,sign*.886,a+.094,-.046)
+        ellipsoid(surfaces[REFLECTOR],(x,y,z),(.015,.009,.044),rings=4,segments=10)
     elif kind == 'duct':
         for bend in (.21,.40,.59,.78):
             z = mix(a,b,bend)
@@ -489,75 +562,144 @@ def deck_opening(surfaces, body, sign, a, b, low, high, kind):
                  on_deck(body,cols[0]+.02,z+.025,-.033),(0,1,0))
 
 
+def projector(surfaces, center, radius):
+    axis = (0.,.74,-.673)
+    x,y,z = center
+    profile = ((1.30,-.041,DARK),(1.20,-.014,GRILLE),(1.02,.004,ALLOY),
+               (.91,.008,ALLOY),(.81,.001,GRILLE),(.69,.004,PROJECTOR),
+               (.36,.015,PROJECTOR),(.0,.019,PROJECTOR))
+    rings = [[(x+radius*r*cos(i*pi/10), y+.673*radius*r*sin(i*pi/10)+d*axis[1],
+               z+.74*radius*r*sin(i*pi/10)+d*axis[2]) for i in range(20)] for r,d,_ in profile]
+    for i,(outer,inner) in enumerate(zip(rings,rings[1:])):
+        material = surfaces[profile[i+1][2]]
+        for j in range(20):
+            k = (j+1)%20
+            quad(material,outer[j],outer[k],inner[k],inner[j],axis)
+
+
+def windscreen(body, surfaces, along, roof, facing):
+    def point(lateral,t,extra=0.):
+        x,y,z = on_deck(body,lateral,along,-.015)
+        u,v,w = roof_skin(body,lateral,roof)
+        crown = (1.-lateral**2)*sin(pi*t)
+        return (mix(x,u,t),mix(y,v,t)+.025*crown+extra,
+                mix(z,w,t)+facing*(.067*crown+extra*.72))
+
+    normal = (0.,.6,facing)
+    cols = (-1.,-.955,-.83,-.62,-.40,-.20,0.,.20,.40,.62,.83,.955,1.)
+    rows = (0.,.055,.16,.30,.48,.64,.81,.938,1.)
+    for a,b in zip(cols,cols[1:]):
+        quad(surfaces[SEAM],on_deck(body,a,along),on_deck(body,b,along),point(b,0.),point(a,0.),normal)
+        for u,v in zip(rows,rows[1:]):
+            rubber = max(abs(a),abs(b)) == 1. or u == 0. or v == 1.
+            material = SEAM if rubber else GLASS
+            quad(surfaces[material],point(a,u),point(b,u),point(b,v),point(a,v),normal)
+    for side in (-1,1):
+        windshield_pillar(surfaces[PAINT],surfaces[SEAM],point(side,0.),roof_skin(body,side,roof),
+                         normalize(normal),side,.052 if facing < 0 else .075)
+    if facing < 0:
+        for pivot,tip in [(-.67,-.15),(.20,.68)]:
+            tube(surfaces[DARK],point(pivot,.028,.009),point(tip-.12,.156,.009),.008,5)
+            for left in range(5):
+                a,b = [mix(tip-.24,tip+.10,i/5) for i in (left,left+1)]
+                tube(surfaces[DARK],point(a,.144,.010),point(b,.144,.010),.006,5)
+
+
+def rear_aero(mesh, mounts, body):
+    # Low cambered wing, tapered end sections and a pair of swept supports.
+    chord = ((-.156,.0),(-.115,.016),(-.039,.023),(.049,.014),(.105,.005),(.111,.0),
+             (.056,-.008),(-.047,-.009),(-.115,-.007),(-.156,0.))
+    sections = []
+    for x in (-.822,-.793,-.69,-.49,-.25,0.,.25,.49,.69,.793,.822):
+        y = .961 + .022*(abs(x)/.822)**1.7
+        scale = 1.-.21*(abs(x)/.822)**2
+        sections.append([(x,y+height,2.062+offset*scale+.035*abs(x)) for offset,height in chord])
+    for a,b in zip(sections,sections[1:]):
+        for i in range(len(chord)-1):
+            quad(mesh,a[i],b[i],b[i+1],a[i+1],(0,1 if i < 5 else -1,0))
+    for ring,direction in ((sections[0],-1),(sections[-1],1)):
+        mesh.face(ring[:-1],(direction,0,0))
+    for sign in (-1,1):
+        x = sign*.553
+        bottom = on_deck(body,sign*.606,2.17,-.011)
+        for shift,normal_x in ((-.020,-1),(.020,1)):
+            braced = [(bottom[0]+shift,bottom[1],bottom[2]-.061),(x+shift,.958,2.014),
+                      (x+shift,.955,2.076),(bottom[0]+shift,bottom[1]-.003,bottom[2]+.033)]
+            mounts.face(braced,(normal_x,0,0))
+        quad(mounts,(bottom[0]-.020,bottom[1],bottom[2]-.061), (bottom[0]+.020,bottom[1],bottom[2]-.061),
+             (x+.020,.958,2.014),(x-.020,.958,2.014),(0,.3,-1))
+
+
 def sampled_stations(body):
     hood,tail = body.glass
     limit = body.length*.5
     dimensions = {round(mix(-limit, limit, i/104.0),6) for i in range(105)}
     boundaries = [hood,tail,-limit,limit,*body.roof_band,*HEAD_Z,*DUCT_Z,*SIDE_INTAKE,
-                  *BONNET_Z,BONNET_Z[0]+.010,BONNET_Z[1]-.010]
+                  *BONNET_Z,BONNET_Z[0]+.006,BONNET_Z[1]-.006]
     boundaries.extend(z for pair in LOUVRE_Z for z in pair)
-    boundaries.extend(e+margin for e in body.doors for margin in (-.010,.010))
+    boundaries.extend(e+margin for e in body.doors for margin in (-.005,.005))
     boundaries.extend(z for left,right in (HEAD_Z, DUCT_Z) for z in (left+.021,right-.038))
     for axle in body.axles:
-        boundaries.extend(axle+body.radius*1.20*cos(i*pi/20.0) for i in range(21))
+        boundaries.extend(axle+ARCH_WIDTH*cos(i*pi/24.0) for i in range(25))
     return sorted(dimensions | {round(z,6) for z in boundaries})
 
 
 def body_art(body):
-    chassis, front, rear = ([Mesh() for _ in range(15)] for _ in range(3))
+    chassis, front, rear = ([Mesh() for _ in MATERIALS] for _ in range(3))
     hood, tail = body.glass
     limit = body.length*.5
     steps = sampled_stations(body)
     for a, b in zip(steps, steps[1:]):
         midpoint = (a+b)*.5
         pieces = front if midpoint < hood else (rear if midpoint > tail else chassis)
-        inside_door = body.doors[0]-.009 < midpoint < body.doors[-1]+.009
+        inside_door = body.doors[0]-.005 < midpoint < body.doors[-1]+.005
         for side in [-1, 1]:
             first, last = side_profile(body, a, side), side_profile(body, b, side)
-            skin(pieces[CARBON], first[:2], last[:2], (side, 0, 0))
+            rocker = CARBON if -.99 < midpoint < .97 else PAINT
+            skin(pieces[rocker],first[:2],last[:2],(side,0,0))
             if not inside_door:
                 if SIDE_INTAKE[0] < midpoint < SIDE_INTAKE[1]:
-                    skin(pieces[PAINT], first[3:], last[3:], (side,0,0))
-                    for i in (1,3):
+                    skin(pieces[PAINT], first[5:], last[5:], (side,0,0))
+                    for i in (1,5):
                         p,q = first[i],last[i]
                         quad(pieces[CARBON],p,q,(q[0]-side*.095,*q[1:]),(p[0]-side*.095,*p[1:]),(side,0,0))
                     inner = lambda point: (point[0]-side*.095,*point[1:])
-                    quad(pieces[DARK],inner(first[1]),inner(last[1]),inner(last[3]),inner(first[3]),(side,0,0))
+                    quad(pieces[DARK],inner(first[1]),inner(last[1]),inner(last[5]),inner(first[5]),(side,0,0))
                     for z,profile in ((a,first),(b,last)):
                         if z in SIDE_INTAKE:
-                            quad(pieces[CARBON],profile[1],profile[3],inner(profile[3]),inner(profile[1]),(side,0,0))
+                            quad(pieces[CARBON],profile[1],profile[5],inner(profile[5]),inner(profile[1]),(side,0,0))
                 else:
                     skin(pieces[PAINT], first[1:], last[1:], (side, 0, 0))
             if first[0][1] > body.sill+.03 or last[0][1] > body.sill+.03:
                 depth = .184
-                poly = [first[0], last[0], (last[0][0]-side*depth, last[0][1]-.015, b),
-                        (first[0][0]-side*depth, first[0][1]-.015, a)]
+                poly = [first[0], last[0], (last[0][0]-side*depth, last[0][1]-.015, last[0][2]),
+                        (first[0][0]-side*depth, first[0][1]-.015, first[0][2])]
                 pieces[DARK].face(poly, (0, -1, 0))
         if pieces is not chassis:
             for u,v in zip(DECK_COLS,DECK_COLS[1:]):
                 width = abs(u+v)*.5
                 if HEAD_Z[0] < midpoint < HEAD_Z[1] and .48 < width < .96:
                     continue
-                if DUCT_Z[0] < midpoint < DUCT_Z[1] and .21 < width < .48:
+                if DUCT_Z[0] < midpoint < DUCT_Z[1] and .25 < width < .429:
                     continue
                 if any(left < midpoint < right for left,right in LOUVRE_Z) and .10 < width < .64:
                     continue
                 channel = CARBON if pieces is rear and width < .64 and 1.25 < midpoint < 1.91 else PAINT
-                bonnet_edge = .509 < width < .518 and BONNET_Z[0] < midpoint < BONNET_Z[1]
-                bonnet_ends = width < .518 and (BONNET_Z[0] < midpoint < BONNET_Z[0]+.010
-                                               or BONNET_Z[1]-.010 < midpoint < BONNET_Z[1])
+                bonnet_edge = .451 < width < .458 and BONNET_Z[0] < midpoint < BONNET_Z[1]
+                bonnet_ends = width < .458 and (BONNET_Z[0] < midpoint < BONNET_Z[0]+.006
+                                               or BONNET_Z[1]-.006 < midpoint < BONNET_Z[1])
                 panel = [on_deck(body,width,z) for width,z in ((u,a),(u,b),(v,b),(v,a))]
                 if bonnet_edge or bonnet_ends:
-                    seam = [(x,y-.005,z) for x,y,z in panel]
-                    pieces[DARK].face(seam,(0,1,0))
+                    seam = [(x,y-.0035,z) for x,y,z in panel]
+                    pieces[SEAM].face(seam,(0,1,0))
                     for i in range(4):
                         j = (i+1)%4
-                        quad(pieces[DARK],panel[i],panel[j],seam[j],seam[i],(0,1,0))
+                        quad(pieces[SEAM],panel[i],panel[j],seam[j],seam[i],(0,1,0))
                 else:
                     pieces[channel].face(panel,(0,1,0))
     for sign in (-1,1):
         deck_opening(front,body,sign,*HEAD_Z,.48,.96,'head')
-        deck_opening(front,body,sign,*DUCT_Z,.21,.48,'duct')
+        deck_opening(front,body,sign,*DUCT_Z,.25,.429,'duct')
         for a,b in LOUVRE_Z:
             deck_opening(rear,body,sign,a,b,.10,.64,'louvre')
         x = sign*.747
@@ -569,47 +711,17 @@ def body_art(body):
     compartment(body, chassis)
 
     roof_left, roof_right = body.roof_band
-    arcs = [mix(roof_left, roof_right, index/14.0) for index in range(15)]
-    for a,b in zip(arcs, arcs[1:]):
-        lines = [[(canopy(body,z,1)[0]*factor, body.roof-.046*abs(factor)**1.8, z)
-                  for factor in (-1, -.88, -.55, 0, .55, .88, 1)] for z in (a,b)]
-        skin(chassis[PAINT], *lines, (0,1,0))
-        inner = [[(x*.997,y-.028,z) for x,y,z in line] for line in lines]
-        skin(chassis[DARK], *inner, (0,-1,0))
-        for edge, direction in ((0,-1),(-1,1)):
-            quad(chassis[DARK],lines[0][edge],lines[1][edge],inner[1][edge],inner[0][edge],(direction,0,0))
-    for at, roof, facing in ((hood,roof_left,-1), (tail,roof_right,1)):
-        x, y = belt(body, at)
-        top_a, top_b = canopy(body, roof, -1), canopy(body, roof, 1)
-        lower_a, lower_b = (-x, y, at), (x, y, at)
-        glass_normal = normalize((0, abs(roof - at), facing * (top_a[1] - y)))
-        # Bonded windscreen: the black ceramic border overlaps the laminate and
-        # disappears behind the rounded shoulder of the stamped body pillar.
-        outer = [lower_a, lower_b, top_b, top_a]
-        inset = []
-        for corner, opposite, vertical in [(lower_a, lower_b, top_a), (lower_b, lower_a, top_b),
-                                           (top_b, top_a, lower_b), (top_a, top_b, lower_a)]:
-            inset.append(tuple(value + (across - value) * .024 + (up - value) * .061
-                               for value, across, up in zip(corner, opposite, vertical)))
-        quad(chassis[GLASS], *inset, glass_normal)
-        for index in range(4):
-            following = (index + 1) % 4
-            quad(chassis[DARK], outer[index], outer[following], inset[following], inset[index], glass_normal)
-        for side in [-1, 1]:
-            width = .093 if facing == -1 else .125
-            windshield_pillar(chassis[PAINT], chassis[DARK], (side*x, y, at),
-                             canopy(body, roof, side), glass_normal, side, width)
-        if facing == -1:
-            # Parked blades lie just above the actual sloped glass and are
-            # anchored at the cowl, below the driver's sightline.
-            def on_windscreen(lateral, up):
-                return (lateral * mix(x, top_b[0], up),
-                        mix(y, top_b[1], up) + glass_normal[1] * .016,
-                        mix(at, roof, up) + glass_normal[2] * .016)
-
-            for pivot, tip in [(-.67, -.15), (.20, .68)]:
-                tube(chassis[DARK], on_windscreen(pivot, .028), on_windscreen(tip - .12, .156), .010, 5)
-                tube(chassis[DARK], on_windscreen(tip - .24, .138), on_windscreen(tip + .10, .166), .008, 5)
+    arcs = [mix(roof_left, roof_right, index/16.0) for index in range(17)]
+    cross_roof = (-1.,-.96,-.88,-.73,-.55,-.30,0.,.30,.55,.73,.88,.96,1.)
+    for a,b in zip(arcs,arcs[1:]):
+        lines = [[roof_skin(body,factor,z) for factor in cross_roof] for z in (a,b)]
+        skin(chassis[PAINT],*lines,(0,1,0))
+        inner = [[(x*.998,y-.022,z) for x,y,z in line] for line in lines]
+        skin(chassis[DARK],*inner,(0,-1,0))
+        for edge,direction in ((0,-1),(-1,1)):
+            quad(chassis[SEAM],lines[0][edge],lines[1][edge],inner[1][edge],inner[0][edge],(direction,0,0))
+    windscreen(body,chassis,hood,roof_left,-1)
+    windscreen(body,chassis,tail,roof_right,1)
     for side in [-1, 1]:
         # A real rocker lip bridges the footwell and door threshold. It stays
         # with the chassis when the hinged panel opens.
@@ -617,71 +729,72 @@ def body_art(body):
         floor_y = body.sill + .10
         quad(chassis[DARK], (side*.81,floor_y,start),(side*.81,floor_y,end),
              (side*.891,floor_y+.014,end),(side*.891,floor_y+.014,start),(0,1,0))
-        for pillar in body.doors[1:-1]:
-            x, y = belt(body,pillar)
-            tube(chassis[DARK], (side*(x-.021),y,pillar), canopy(body,pillar,side), .040, 7)
-        for a,b in ((hood,body.doors[0]-.010),(body.doors[-1]+.010,tail)):
+        for a,b in ((hood,body.doors[0]-.005),(body.doors[-1]+.005,tail)):
             x,y = belt(body,a)
             u,v = belt(body,b)
             if b-a > .04:
                 window_patch(chassis[GLASS], (side*x,y,a), (side*u,v,b), canopy(body,a,side), canopy(body,b,side), (side,0,0))
         for axle in body.axles:
             ring = []
-            for index in range(21):
-                theta = index*pi/20
-                z = axle + body.radius*1.20*cos(theta)
-                x = interpolate(body.panels,z)[0]-.077
-                ring.append((side*x, arch_minimum(body,z)+.009, z))
-            for a,b in zip(ring,ring[1:]):
-                tube(chassis[DARK],a,b, .021, 5)
+            for index in range(25):
+                z = axle+ARCH_WIDTH*cos(index*pi/24)
+                ring.append(side_profile(body,z,side)[0])
+            lip = [(x-side*.024,y-.007,z) for x,y,z in ring]
+            skin(chassis[SEAM],ring,lip,(0,-1,0))
             # The curved inner tub encloses the tyre from the passenger side.
             # Its inner plate prevents a sightline from the open door through
             # the far wheel and out underneath the quarter panel.
             inner_x = side*(interpolate(body.panels,axle)[0]-.338)
             interior = [(inner_x,max(.15,y-.040),z) for _,y,z in ring]
-            for a,b,u,v in zip(ring,ring[1:],interior,interior[1:]):
+            for a,b,u,v in zip(lip,lip[1:],interior,interior[1:]):
                 quad(chassis[DARK],a,b,v,u,(0,-1,0))
             shield = [(inner_x,.13,interior[0][2]), *interior, (inner_x,.13,interior[-1][2])]
             chassis[DARK].face(shield,(-side,0,0))
 
-    z,y = 2.04, .974
-    for x in [-.55,.55]:
-        tube(rear[TITANIUM],(x,.78,z+.10),(x,y,z),.040,8)
-    top = [(-.874,y,z-.17),(.874,y,z-.17),(.814,y+.028,z+.10),(-.814,y+.028,z+.10)]
-    bottom = [(x, height-.023, along) for x,height,along in top]
-    rear[CARBON].face(top,(0,1,0))
-    rear[CARBON].face(bottom,(0,-1,0))
-    for a,b,c,d in zip(top,top[1:]+top[:1],bottom[1:]+bottom[:1],bottom):
-        quad(rear[CARBON],a,b,c,d,((a[0]+b[0])*.5,0,(a[2]+b[2])*.5-z))
+    rear_aero(rear[CARBON],rear[TITANIUM],body)
     return chassis, front, rear
 
 
 def build_wheel():
-    parts = [Mesh() for _ in range(15)]
-    profile = [(-.130,.246),(-.138,.308),(-.125,.348),(-.091,.359),(.083,.359),
-               (.119,.349),(.133,.324),(.141,.268),(.129,.240)]
-    rings = [[(x,r*cos(i*2*pi/48),r*sin(i*2*pi/48)) for i in range(48)] for x,r in profile]
-    for inner, outer in zip(rings,rings[1:]):
-        for index in range(48):
-            next_index = (index+1)%48
-            point = outer[index]
-            quad(parts[TYRE],inner[index],outer[index],outer[next_index],inner[next_index],(0,point[1],point[2]))
+    parts = [Mesh() for _ in MATERIALS]
+
+    def ring_mesh(mesh, profile, desired):
+        samples = 48
+        rings = [[(x,r*cos(i*2*pi/samples),r*sin(i*2*pi/samples)) for i in range(samples)] for x,r in profile]
+        for a,b in zip(rings,rings[1:]):
+            for i in range(samples):
+                j = (i+1)%samples
+                quad(mesh,a[i],b[i],b[j],a[j],desired(b[i]))
+
+    sidewalls = [(-.119,.274),(-.143,.298),(-.139,.329),(-.121,.349),(-.085,.358),(-.061,.359),
+                 (-.057,.356),(-.052,.359),(-.006,.359),(-.003,.355),(.003,.355),(.006,.359),
+                 (.058,.359),(.061,.356),(.066,.359),(.094,.358),(.124,.346),(.139,.324),(.143,.294),(.121,.274)]
+    ring_mesh(parts[TYRE],sidewalls, lambda p: (p[0]*2.,p[1],p[2]))
     for side in [-1,1]:
-        x = side*.133
-        for radius, strength in ((.252,.012),(.225,.010)):
-            points = [(x,radius*cos(i*2*pi/32),radius*sin(i*2*pi/32)) for i in range(32)]
-            for i in range(32):
-                tube(parts[ALLOY],points[i],points[(i+1)%32],strength,6)
-        for spoke in range(10):
-            angle = 2*pi*spoke/10
-            pos = lambda factor, turn: (x, factor*cos(angle+turn),factor*sin(angle+turn))
-            quad(parts[ALLOY], pos(.049,-.35),pos(.225,-.045),pos(.235,.055),pos(.083,.23),(side,0,0))
-        tube(parts[DARK], (x-side*.075,0,0), (x+side*.008,0,0), .061, 20)
-        tube(parts[ALLOY], (x-side*.11,0,0), (x-side*.092,0,0), .188, 30)
+        rim = [(side*x,r) for x,r in ((.063,.241),(.107,.247),(.130,.258),(.138,.270),(.129,.277),(.113,.275))]
+        ring_mesh(parts[FORGED],rim,lambda p: (side,.18*p[1],.18*p[2]))
+        ring_mesh(parts[ALLOY],[(side*.131,.257),(side*.135,.270)],lambda _: (side,0,0))
+        ring_mesh(parts[TITANIUM],[(side*.041,.087),(side*.041,.199),(side*.034,.205),(side*.015,.205)],
+                  lambda p: (side,.1*p[1],.1*p[2]))
+        for spoke in range(5):
+            angle = 2*pi*spoke/5
+
+            def pos(r, arc, depth):
+                return (side*depth,r*cos(angle+arc),r*sin(angle+arc))
+
+            for branch in (-1,1):
+                face = [pos(.061,branch*.095,.069),pos(.145,branch*.123,.084),pos(.253,branch*.333,.124),
+                        pos(.257,branch*.235,.126),pos(.158,branch*.027,.093)]
+                parts[FORGED].face(face,(side,0,0))
+                back = [(x-side*.020,y,z) for x,y,z in face]
+                for i in range(len(face)):
+                    j = (i+1)%len(face)
+                    quad(parts[FORGED],face[i],face[j],back[j],back[i],(side*.4,face[j][2]-face[i][2],face[i][1]-face[j][1]))
+        ring_mesh(parts[FORGED],[(side*.073,0.001),(side*.073,.062),(side*.054,.076)],lambda _: (side,0,0))
         for k in range(5):
             turn = k*2*pi/5
             y,z = .043*cos(turn),.043*sin(turn)
-            tube(parts[ALLOY],(x,y,z),(x+side*.016,y,z),.009,7)
+            ellipsoid(parts[ALLOY],(side*.073,y,z),(.007,.008,.008),rings=4,segments=8)
     return parts
 
 
@@ -697,6 +810,9 @@ MATERIALS = [
         ('Tire',(.017,.019,.021),.00,.86), ('CarbonComposite',(.60,.62,.65),.16,.29),
         ('Titanium',(.39,.32,.26),.86,.27), ('OpticCover',(.16,.20,.24),.00,.11),
         ('Underglow',(.04,.62,.75),.00,.31),
+        ('PanelReveal',(.049,.025,.028),.01,.55), ('Grille',(.072,.079,.084),.59,.51),
+        ('ProjectorOptic',(.28,.35,.44),.37,.13), ('ForgedAlloy',(.11,.125,.151),.81,.34),
+        ('MarkerReflector',(.36,.071,.025),.11,.32),
     )
 ]
 MATERIALS[PAINT]['extensions'] = {'KHR_materials_clearcoat': {'clearcoatFactor': .78, 'clearcoatRoughnessFactor': .12}}
@@ -706,8 +822,8 @@ for channel, alpha in ((GLASS,.60),(OPTIC,.29)):
     MATERIALS[channel]['pbrMetallicRoughness']['baseColorFactor'][3] = alpha
 
 SOCKETS = {
-    'KeyLeft': (-.661,.61,-2.300), 'KeyRight': (.661,.61,-2.300),
-    'TailThrow': (0,.535,2.336), 'SillLightLeft': (-.755,.155,-.020),
+    'KeyLeft': (-.644,.567,-2.193), 'KeyRight': (.644,.567,-2.193),
+    'TailThrow': (0,.583,2.323), 'SillLightLeft': (-.755,.155,-.020),
     'SillLightRight': (.755,.155,-.020),
 }
 
@@ -759,7 +875,7 @@ def main():
     bake_carbon(OUT/'carbon_twill.png')
     cabin, front, rear = body_art(R9)
     meshes, pivots = {}, {}
-    for name, owner, channel in (('HeadLenses',front,HEAD),('TailLenses',rear,TAIL),
+    for name, owner, channel in (('HeadLenses',front,HEAD),('HeadProjectors',front,PROJECTOR),('TailLenses',rear,TAIL),
                                  ('ReverseLenses',rear,REVERSE),('SillLenses',cabin,UNDER)):
         part = [Mesh() for _ in MATERIALS]
         part[channel], owner[channel] = owner[channel], part[channel]
@@ -771,7 +887,7 @@ def main():
         part = [Mesh() for _ in MATERIALS]
         hinge,y = belt(R9,a)
         pivots[name] = (side*hinge, y-.11, a)
-        door(part,R9,side,(a+.012,b-.012))
+        door(part,R9,side,(a+.006,b-.006))
         meshes[name] = surfaces_from(part,pivots[name])
     totals = write_model(OUT,'cinder_r9',meshes,MATERIALS,SOCKETS,'NightGrid Cinder R9 authoring',
                          'carbon_twill.png',pivots=pivots)

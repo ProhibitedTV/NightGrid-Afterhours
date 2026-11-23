@@ -6,6 +6,7 @@ uniform vec4 enamel : source_color = vec4(0.24, 0.34, 0.39, 1.0);
 uniform float flake_content : hint_range(0.0, 1.0) = 0.28;
 uniform sampler2D rain_beads : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
 instance uniform float impact = 0.0;
+instance uniform float panel_origin_y = 0.0;
 varying vec3 panel_position;
 
 void vertex() {
@@ -38,12 +39,15 @@ void fragment() {
 	vec2 flake_uv = UV * 1660.0;
 	float close_flake = 1.0 - smoothstep(.25, 1.22, length(fwidth(flake_uv)));
 	float flake = .5 + (patch_noise(flake_uv) - .5) * close_flake;
-	ALBEDO = mix(enamel.rgb * mix(1.0, .91, film) * mix(.93, 1.07, flake), vec3(.058, .059, .064), chips);
+	float rocker_film = 1.0 - smoothstep(.15, .43, panel_position.y + panel_origin_y);
+	vec3 base = enamel.rgb * mix(1.0, .91, film) * mix(.93, 1.07, flake);
+	base = mix(base, base * .79 + vec3(.012, .010, .008), rocker_film * .43);
+	ALBEDO = mix(base, vec3(.058, .059, .064), chips);
 	METALLIC = mix(flake_content + (flake - .5) * .22, .66, chips);
-	ROUGHNESS = mix(mix(.21, .081, film) + (flake - .5) * .055, .63, chips);
+	ROUGHNESS = mix(mix(.184, .085, film) + (flake - .5) * .055 + rocker_film * .07, .63, chips);
 	SPECULAR = .65;
-	CLEARCOAT = mix(.77, 1.0, film) * (1.0 - chips * .87);
-	CLEARCOAT_ROUGHNESS = mix(.135, .047, film) + chips * .28;
+	CLEARCOAT = mix(.86, 1.0, film) * (1.0 - chips * .87 - rocker_film * .12);
+	CLEARCOAT_ROUGHNESS = mix(.104, .05, film) + chips * .28 + rocker_film * .05;
 	float near_view = 1.0 - smoothstep(6.0, 15.0, length(VERTEX));
 	if (film * near_view > .01) {
 		vec3 beads = texture(rain_beads, UV * 11.5).rgb;

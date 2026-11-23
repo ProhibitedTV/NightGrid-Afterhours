@@ -23,6 +23,7 @@ var _spec: Dictionary
 var _shell: Node3D
 var _body_sections: Array[MeshInstance3D] = []
 var _head: MeshInstance3D
+var _projectors: MeshInstance3D
 var _tail: MeshInstance3D
 var _reverse: MeshInstance3D
 var _sill: MeshInstance3D
@@ -56,11 +57,13 @@ func _ready() -> void:
 			continue
 		_finish(part)
 		if part.name.begins_with("Door"):
+			part.set_instance_shader_parameter("panel_origin_y", part.position.y)
 			var side := -1.0 if part.name.begins_with("DoorL") else 1.0
 			var reach := part.mesh.get_aabb().end.z
 			_doors.append({"part": part, "side": side, "reach": reach, "motion": 0.0, "target": 0.0, "hold": -1.0})
 	_body_sections = [_shell.get_node("FrontClip"), _shell.get_node("RearClip"), _shell.get_node("Cabin")]
 	_head = _shell.get_node("HeadLenses")
+	_projectors = _shell.get_node("HeadProjectors")
 	_tail = _shell.get_node("TailLenses")
 	_reverse = _shell.get_node("ReverseLenses")
 	_sill = _shell.get_node("SillLenses")
@@ -83,10 +86,10 @@ func _create_materials() -> void:
 	glass.shader = Glazing
 	glass.set_shader_parameter("rain_beads", RAIN_BEADS)
 	_shared["Glazing"] = glass
-	var optic := _finish_material(Color(0.22, 0.27, 0.32, 0.22), 0.12)
+	var optic := _finish_material(Color(0.24, 0.28, 0.32, 0.21), 0.105)
 	optic.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	optic.clearcoat_enabled = true
-	optic.clearcoat = 0.62
+	optic.clearcoat = 0.74
 	optic.clearcoat_roughness = 0.09
 	_shared["OpticCover"] = optic
 	var titanium := _finish_material(Color("817268"), 0.29, 0.88)
@@ -96,8 +99,10 @@ func _create_materials() -> void:
 	titanium.uv1_scale = Vector3(3.5, 1.2, 1)
 	_shared["Titanium"] = titanium
 	_shared["Instrument"] = _lamp(Color("81c3c8"), 0.57)
-	_shared["Headlamp"] = _lamp(Color("d9ecff"), 3.05)
-	_shared["HeadIdle"] = _finish_material(Color("a8b0bd"), 0.21, 0.46)
+	_shared["Headlamp"] = _lamp(Color("cbdff4"), 1.62)
+	_shared["HeadIdle"] = _finish_material(Color("757e8e"), 0.36, 0.30)
+	_shared["ProjectorOn"] = _lamp(Color("eef4ff"), 3.18)
+	_shared["ProjectorOptic"] = _finish_material(Color("697d96"), 0.18, 0.64)
 	_shared["Taillamp"] = _lamp(Color("b62332"), 0.41)
 	_shared["TailIdle"] = _finish_material(Color("681c2c"), 0.25)
 	_shared["Braking"] = _lamp(Color("f34744"), 2.64)
@@ -135,7 +140,7 @@ func _finish(part: MeshInstance3D) -> void:
 		var label := imported.resource_name
 		if label == "CarbonComposite" and not _shared.has(label):
 			var carbon := imported.duplicate() as StandardMaterial3D
-			carbon.uv1_scale = Vector3(22, 22, 1)
+			carbon.uv1_scale = Vector3(48, 48, 1)
 			carbon.clearcoat_enabled = true
 			carbon.clearcoat = 0.52
 			carbon.clearcoat_roughness = 0.27
@@ -143,7 +148,7 @@ func _finish(part: MeshInstance3D) -> void:
 		var material: Material = _shared.get(key if label == "Paint" else label)
 		if material != null:
 			part.set_surface_override_material(index, material)
-	if part.name.ends_with("Lenses"):
+	if part.name.ends_with("Lenses") or part.name == &"HeadProjectors":
 		part.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 func _build_wheels() -> void:
@@ -160,7 +165,7 @@ func _build_wheels() -> void:
 			_shell.add_child(steering)
 			var detail := MeshInstance3D.new()
 			detail.mesh = _wheel_mesh
-			detail.scale = Vector3(1.0, tyre / WHEEL_MODEL_RADIUS, tyre / WHEEL_MODEL_RADIUS)
+			detail.scale = Vector3(.92, tyre / WHEEL_MODEL_RADIUS, tyre / WHEEL_MODEL_RADIUS)
 			_finish(detail)
 			steering.add_child(detail)
 			_wheels.append(detail)
@@ -172,12 +177,13 @@ func _build_lights() -> void:
 		var beam := SpotLight3D.new()
 		beam.name = str(socket) + "Beam"
 		beam.position = (_shell.get_node(NodePath(socket)) as Node3D).position
-		beam.rotation.x = -0.136
-		beam.light_color = Color("e4eeff")
-		beam.light_energy = 3.45
-		beam.spot_range = 29.0
-		beam.spot_angle = 37.0
-		beam.spot_attenuation = 1.24
+		beam.rotation = Vector3(-.102, -signf(beam.position.x) * .051, 0)
+		beam.light_color = Color("e7eeff")
+		beam.light_energy = 3.15
+		beam.light_specular = .39
+		beam.spot_range = 32.0
+		beam.spot_angle = 35.0
+		beam.spot_attenuation = 1.60
 		beam.visible = false
 		_shell.add_child(beam)
 		_beams.append(beam)
@@ -188,6 +194,7 @@ func _build_lights() -> void:
 	_tail_throw.spot_range = 5.8
 	_tail_throw.spot_angle = 53.0
 	_tail_throw.spot_attenuation = 0.77
+	_tail_throw.light_specular = .46
 	_shell.add_child(_tail_throw)
 	for socket in [&"SillLightLeft", &"SillLightRight"]:
 		var lamp := OmniLight3D.new()
@@ -230,6 +237,7 @@ func _update_lights(occupied: bool, braking: bool, reverse: bool) -> void:
 	var stop_on := occupied and braking and tail_ok
 	var reverse_on := occupied and reverse and tail_ok
 	_head.material_override = _shared["BrokenLamp" if _damage.x > 0.71 else ("Headlamp" if head_on else "HeadIdle")]
+	_projectors.material_override = _shared["BrokenLamp" if _damage.x > 0.71 else ("ProjectorOn" if head_on else "ProjectorOptic")]
 	_tail.material_override = _shared["BrokenLamp" if not tail_ok else (
 		"Braking" if stop_on else ("Taillamp" if night_running else "TailIdle"))]
 	_reverse.material_override = _shared["BrokenLamp" if not tail_ok else ("Reversing" if reverse_on else "ReverseLamp")]
@@ -249,6 +257,7 @@ func apply_damage(zones: Vector4) -> void:
 	_body_sections[0].position = front
 	_body_sections[1].position = rear
 	_head.position = front
+	_projectors.position = front
 	_tail.position = rear
 	_reverse.position = rear
 	_tail_throw.position = (_shell.get_node("TailThrow") as Node3D).position + rear
