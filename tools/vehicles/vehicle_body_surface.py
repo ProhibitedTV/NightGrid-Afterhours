@@ -84,7 +84,7 @@ def top_panel(z0,z1,across_segments=24,long_segments=40) -> Shell:
     for i in range(long_segments):
         for j in range(across_segments):
             a=i*stride+j; b=a+1; c=a+stride; d=c+1
-            faces.append((a,b,d,c))
+            faces.append((a,c,d,b))  # +Y: outside of bonnet/deck
     return Shell(tuple(verts),tuple(faces))
 
 def side_panel(z0,z1,sign,along_segments=40,across_segments=9) -> Shell:
@@ -96,7 +96,7 @@ def side_panel(z0,z1,sign,along_segments=40,across_segments=9) -> Shell:
         w,h=width_shoulder(z); lower=arch_lower_boundary(z)
         for j in range(stride):
             t=j/across_segments
-            verts.append((sign*w*(.945+.055*t+.032*sin(pi*t)),
+            verts.append((sign*w*(.945+.055*t+.008*sin(pi*t)),
                           lower+(h-lower)*t,z))
     for i in range(along_segments):
         for j in range(across_segments):
@@ -124,7 +124,7 @@ def fascia(front:bool,along=36,vertical=12) -> Shell:
     for j in range(vertical):
         for i in range(along):
             a=j*stride+i;b=a+1;c=a+stride;d=c+1
-            faces.append((a,b,d,c) if front else (a,c,d,b))
+            faces.append((a,c,d,b) if front else (a,b,d,c))  # outward -Z / +Z
     return Shell(tuple(verts),tuple(faces))
 
 def wheel_liner(axle,sign,segments=32) -> Shell:
