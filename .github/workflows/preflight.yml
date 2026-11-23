@@ -210,6 +210,8 @@ jobs:
         run: godot --headless --path . --script res://tests/hero_vehicle_smoke.gd
       - name: Audit closed Kestrel rear hatch manifold, trunk bulkhead and police variant
         run: godot --headless --path . --script res://tests/kestrel_rear_closure_smoke.gd
+      - name: Validate Cinder R9 parking indices, doors, projected light and save compatibility
+        run: godot --headless --path . --script res://tests/cinder_r9_smoke.gd
       - name: Validate Central Exchange junction architecture and signal-safe lighting
         run: godot --headless --path . --script res://tests/hero_intersection_smoke.gd
       - name: Validate real-source Central Exchange CC0 street props, collision shells and photo-PBR decals

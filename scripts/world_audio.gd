@@ -59,6 +59,7 @@ var _enclosure := 18000.0
 var _acoustic_clock := 0.0
 var _transport := ""
 var _transport_speed := 0.0
+var _dedicated_transport_foley := false
 var _previous_speed := 0.0
 var _brake_cooldown := 0.0
 var _brake_pressed := false
@@ -142,10 +143,11 @@ func set_room_kind(kind: String) -> void:
 func set_doorway_leak(amount: float) -> void:
 	_doorway_leak = amount
 
-func set_transport(mode: String, speed: float, brakes: bool) -> void:
+func set_transport(mode: String, speed: float, brakes: bool, dedicated_foley: bool = false) -> void:
 	_transport = mode
 	_transport_speed = absf(speed)
 	_brake_pressed = brakes
+	_dedicated_transport_foley = dedicated_foley
 
 func set_preferences(ambience: float, effects: float) -> void:
 	ambience_volume = clampf(ambience, 0.0, 1.0)
@@ -261,7 +263,7 @@ func _target_db(kind: String) -> float:
 	return level # CityAmbience bus holds the player gain for all sources.
 
 func _update_cabin(delta: float, dimmed: bool) -> void:
-	var moving := not _transport.is_empty() and _transport_speed > 1.0
+	var moving := not _dedicated_transport_foley and not _transport.is_empty() and _transport_speed > 1.0
 	var target := -80.0
 	if moving and sfx_volume > 0.0:
 		target = lerpf(-40.0, -13.0, clampf(_transport_speed / 26.0, 0.0, 1.0))

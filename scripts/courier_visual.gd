@@ -20,6 +20,7 @@ var _horizontal := Vector3.ZERO
 var _sprinting := false
 var _reverse_playback := false
 var _entry_ground_y := 0.0
+var _driver_seat := DRIVER_SEAT
 var _weapon_display: Node3D
 
 func _ready() -> void:
@@ -97,7 +98,8 @@ func play_action(clip: StringName) -> void:
 func sit_in_vehicle(car: Node3D, play_entry: bool, ground_y: float) -> void:
 	if get_parent() != car:
 		reparent(car, false)
-	position = DRIVER_SEAT
+	_driver_seat = car.call("driving_seat") if car.has_method("driving_seat") else DRIVER_SEAT
+	position = _driver_seat
 	rotation = Vector3(0.0, PI, 0.0)
 	_seat = true
 	_horizontal = Vector3.ZERO
@@ -118,7 +120,7 @@ func _physics_process(_delta: float) -> void:
 		_finish_action(&"board_car")
 		return
 	var progress := animations.current_animation_position / animations.current_animation_length
-	position.y = lerpf(_entry_ground_y, DRIVER_SEAT.y, smoothstep(0.25, 0.63, progress))
+	position.y = lerpf(_entry_ground_y, _driver_seat.y, smoothstep(0.25, 0.63, progress))
 
 func return_to_player(player: Node3D) -> void:
 	var facing := global_rotation.y
@@ -136,7 +138,7 @@ func _finish_action(clip: StringName) -> void:
 		return
 	_action = &""
 	if _seat:
-		position = DRIVER_SEAT
+		position = _driver_seat
 		set_physics_process(false)
 	_choose_pose()
 

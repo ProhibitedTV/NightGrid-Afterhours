@@ -207,7 +207,7 @@ def grille(far):
     return insert, core
 
 
-def write_model(directory, stem, meshes, materials, sockets, generator, image):
+def write_model(directory, stem, meshes, materials, sockets, generator, image, *, pivots=None):
     payload = bytearray()
     accessors, views = [], []
 
@@ -241,6 +241,9 @@ def write_model(directory, stem, meshes, materials, sockets, generator, image):
             totals[name] += len(surface.indices) // 3
         records.append({"name": name, "primitives": entries})
     nodes = [{"name": name, "mesh": idx} for idx,name in enumerate(meshes)]
+    for node in nodes:
+        if pivots and node["name"] in pivots:
+            node["translation"] = pivots[node["name"]]
     nodes.extend({"name": name, "translation": point} for name,point in sockets.items())
     model = {"asset": {"version": "2.0", "generator": generator},
              "extensionsUsed": ["KHR_materials_clearcoat"],
