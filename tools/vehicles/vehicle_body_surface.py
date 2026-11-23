@@ -27,26 +27,77 @@ TIRE_RADIUS=.365
 ARCH_RADIUS=.438
 ROCKER_Y=.260
 
-def _hermite(x0,x1,v0,v1,m0,m1,x):
-    span=x1-x0; t=(x-x0)/span
-    return ((2*t**3-3*t*t+1)*v0 + (t**3-2*t*t+t)*span*m0
-            + (-2*t**3+3*t*t)*v1 + (t**3-t*t)*span*m1)
+# Natural cubic splines give C2-continuous width and shoulder height across
+# the shared design stations. Compared to Catmull/Hermite C1 joins this avoids
+# abrupt second-derivative transitions that break studio highlights.
+from functools import lru_cache
 
-def width_shoulder(z: float) -> tuple[float,float]:
-    """C1 continuous across shared design stations."""
+
+@lru_cache(maxsize=4)
+def _spline_second_derivatives(column: int) -> tuple[float, ...]:
+    if column not in (1, 2):
+        raise ValueError("station property must be width or shoulder height")
+    x=[row[0] for row in STATIONS]
+    y=[row[column] for row in STATIONS]
+    n=len(x)
+    # Solve the natural cubic spline tridiagonal system using the Thomas
+    # algorithm; first and last second derivatives are fixed to zero.
+    lower=[0.0]*n;diag=[0.0]*n;upper=[0.0]*n;rhs=[0.0]*n
+    diag[0]=diag[-1]=1.0
+    for i in range(1,n-1):
+        h0=x[i]-x[i-1];h1=x[i+1]-x[i]
+        lower[i]=h0
+        diag[i]=2*(h0+h1)
+        upper[i]=h1
+        rhs[i]=6*((y[i+1]-y[i])/h1-(y[i]-y[i-1])/h0)
+    for i in range(1,n):
+        factor=lower[i]/diag[i-1]
+        diag[i]-=factor*upper[i-1]
+        rhs[i]-=factor*rhs[i-1]
+    second=[0.0]*n
+    second[-1]=rhs[-1]/diag[-1]
+    for i in range(n-2,-1,-1):
+        second[i]=(rhs[i]-upper[i]*second[i+1])/diag[i]
+    return tuple(second)
+
+
+def _surface_segment(z: float) -> int:
     if not STATIONS[0][0] <= z <= STATIONS[-1][0]:
         raise ValueError("outside the design station interval")
-    if z == STATIONS[-1][0]:
-        return STATIONS[-1][1:]
+    if z==STATIONS[-1][0]:
+        return len(STATIONS)-2
     for i in range(len(STATIONS)-1):
-        z0,w0,h0=STATIONS[i]; z1,w1,h1=STATIONS[i+1]
-        if z0 <= z <= z1:
-            def derivative(k,part):
-                a=STATIONS[max(k-1,0)]; b=STATIONS[min(k+1,len(STATIONS)-1)]
-                return (b[part]-a[part])/(b[0]-a[0])
-            return (_hermite(z0,z1,w0,w1,derivative(i,1),derivative(i+1,1),z),
-                    _hermite(z0,z1,h0,h1,derivative(i,2),derivative(i+1,2),z))
-    raise AssertionError("unreachable")
+        if STATIONS[i][0] <= z <= STATIONS[i+1][0]:
+            return i
+    raise AssertionError("missing spline segment")
+
+
+def spline_property(z: float, column: int, derivative: int=0) -> float:
+    """Exact C2 cubic spline value, first slope or second curvature proxy.
+
+    Second derivatives describe the station profile, not the full 3D surface
+    principal curvature; human visual and normal-continuity review is still
+    required before treating any result as Class-A.
+    """
+    if derivative not in (0,1,2):
+        raise ValueError("derivative must be 0, 1, or 2")
+    i=_surface_segment(z)
+    x0,x1=STATIONS[i][0],STATIONS[i+1][0]
+    h=x1-x0
+    a=(x1-z)/h;b=(z-x0)/h
+    p0,p1=STATIONS[i][column],STATIONS[i+1][column]
+    s0,s1=_spline_second_derivatives(column)[i:i+2]
+    if derivative==0:
+        return (a*p0+b*p1+(h*h/6)*((a*a*a-a)*s0+(b*b*b-b)*s1))
+    if derivative==1:
+        return ((p1-p0)/h+(h/6)*((1-3*a*a)*s0+(3*b*b-1)*s1))
+    return a*s0+b*s1
+
+
+def width_shoulder(z: float) -> tuple[float,float]:
+    """C2 continuous original sculpt envelope: half-width and top shoulder."""
+    return (spline_property(z,1),spline_property(z,2))
+
 
 def _smoothstep(x):
     t=max(0.,min(1.,x))
@@ -168,6 +219,27 @@ def continuity_metrics(z,delta=.002) -> dict[str,float]:
     r=[(c[i]-b[i])/delta for i in range(2)]
     return {"max_tangent_jump":max(abs(l[i]-r[i]) for i in range(2)),
             "position_gap":0.0}
+
+def curvature_seam_metrics(z: float, epsilon: float=1e-6) -> dict[str,float]:
+    """Continuity of values, tangents and second derivatives near a join.
+
+    This is not a zebra-stripe or surface G2 certification, which still needs
+    visible highlight/surface-normal checks on an actual Blender model.
+    """
+    _surface_segment(z-epsilon)
+    _surface_segment(z+epsilon)
+    return {
+        "max_position_delta":max(abs(spline_property(z-epsilon,c)-
+                                  spline_property(z+epsilon,c))
+                                 for c in (1,2)),
+        "max_tangent_delta":max(abs(spline_property(z-epsilon,c,1)-
+                                 spline_property(z+epsilon,c,1))
+                                for c in (1,2)),
+        "max_second_derivative_delta":max(
+            abs(spline_property(z-epsilon,c,2)-
+                spline_property(z+epsilon,c,2)) for c in (1,2)),
+    }
+
 
 def mesh_integrity(shell:Shell) -> dict[str,int]:
     from math import isfinite
