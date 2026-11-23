@@ -52,6 +52,8 @@ jobs:
         run: python tools/check_screenshots.py
       - name: Verify native Windows development gallery and original Git screenshot blobs
         run: python tools/check_development_gallery.py
+      - name: Authenticate the eight original skybox game screenshot captures
+        run: python tools/check_skybox_gallery.py
       - name: Audit nine pinned Brickwater CC0 source packages
         run: python tools/check_brickwater_cc0.py
       - name: Verify exact beta.7 capture provenance on the release candidate
