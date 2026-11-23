@@ -56,10 +56,13 @@ jobs:
           path = pathlib.Path("out/vesper-v2")
           spec = json.loads((path/"source.json").read_text())
           assert spec["seat_count"] == 2 and spec["roof"] == "stowed_prototype_only"
-          for fname in ["vesper_v2_master.blend", "vesper_v2_lod0.glb", "vesper_v2_lod1.glb",
-                        "geometry_audit.json"]:
+          for fname in ["vesper_v2_master.blend", "vesper_v2_lod0.glb", "vesper_v2_lod1.glb"]:
               assert (path/fname).is_file() and (path/fname).stat().st_size > 1024, fname
-          print("Source, exports and all offline preview frames verified")
+          audit=json.loads((path/"geometry_audit.json").read_text())
+          assert audit["min_wheel_clearance_m"] >= 0.045
+          assert audit["max_hood_fender_normal_gap_deg"] < 1.0
+          assert audit["max_wheel_arch_tangent_jump"] < 0.035
+          print("Source, two LOD exports and numeric manufacturing audit verified")
           PY
       - name: Render offline 360-degree source views with Mesa software OpenGL
         env:
