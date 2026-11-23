@@ -169,6 +169,21 @@ func _capture() -> void:
 		if measure_native and name.begins_with("01-"):
 			var timing: Dictionary = await _measure_frames()
 			records[records.size() - 1]["stationary_frame_timing"] = timing
+	if "--reference-view" in arguments:
+		clock.call("set_hour", 22.10)
+		var courier := origin + Vector3(0.24, 1.091, -8.0)
+		player.global_position = courier
+		player.rotation.y = 0.0
+		player.show()
+		var at := origin + Vector3(0.12, 1.96, -10.8)
+		var look := origin + Vector3(0.40, 2.29, 1.5)
+		camera.global_position = at
+		camera.look_at(look, Vector3.UP)
+		camera.fov = 65.0
+		for frame in range(20):
+			await RenderingServer.frame_post_draw
+		if not _save("10-courier-alley-reference.png", 22.10, at, look):
+			return
 	var manifest := FileAccess.open(output.path_join("camera-manifest.json"), FileAccess.WRITE)
 	if manifest == null:
 		_fail("Cannot write manifest")

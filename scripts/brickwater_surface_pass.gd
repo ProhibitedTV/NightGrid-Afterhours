@@ -7,6 +7,8 @@ const WET_MASK = preload("res://assets/models/nightgrid/brickwater_alley/wetness
 const GRIME = preload("res://assets/models/nightgrid/brickwater_alley/alley_weathering.svg")
 const SEEP = preload("res://assets/models/nightgrid/brickwater_alley/wall_seepage.svg")
 const TAG_SMALL = preload("res://assets/models/nightgrid/brickwater_alley/graffiti_chalk.svg")
+const REPAIR_EMITTER = preload("res://assets/models/nightgrid/brickwater_alley/repair_neon_blade_emitter.png")
+const LAUNDRY_EMITTER = preload("res://assets/models/nightgrid/brickwater_alley/laundry_neon_blade_emitter.png")
 static var _pavement: ShaderMaterial
 var left_wall: float
 var right_wall: float
@@ -24,6 +26,8 @@ static func pavement_material() -> ShaderMaterial:
 		_pavement.set_shader_parameter("concrete_arm", load(Maps.PHOTO_CONCRETE_ROOT + "arm_1k.png"))
 		_pavement.set_shader_parameter("wetness_atlas", WET_MASK)
 		_pavement.set_shader_parameter("grime_atlas", GRIME)
+		_pavement.set_shader_parameter("repair_emitter", REPAIR_EMITTER)
+		_pavement.set_shader_parameter("laundry_emitter", LAUNDRY_EMITTER)
 	return _pavement
 
 func _ready() -> void:

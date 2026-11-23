@@ -25,8 +25,10 @@ static var _notice_material: StandardMaterial3D
 static var _dumpster_mesh: ArrayMesh
 static var _lid_mesh: ArrayMesh
 var _floor: StaticBody3D
+var _pavement: MeshInstance3D
 
 func set_night_factor(value: float) -> void:
+	_pavement.set_instance_shader_parameter("neon_night", smoothstep(0.3, 0.85, value))
 	var atmosphere := get_node_or_null("StreetAtmosphere")
 	if atmosphere != null:
 		atmosphere.set_night_factor(value)
@@ -133,7 +135,11 @@ func _build_floor()->void:
 	var mesh:=PlaneMesh.new()
 	mesh.size=Vector2(hi-lo,END_Z-START_Z)
 	var center:=Vector3((lo+hi)*0.5,FLOOR_Y+0.002,(START_Z+END_Z)*0.5)
-	_view(self,"PhotographicAlleyPavement",mesh,center,SurfacePass.pavement_material())
+	_pavement = _view(self,"PhotographicAlleyPavement",mesh,center,SurfacePass.pavement_material())
+	_pavement.set_instance_shader_parameter("repair_plane",
+		Vector3(left_wall + 0.61, Frontage.BLADE_HEIGHT, Frontage.REPAIR_Z) - center)
+	_pavement.set_instance_shader_parameter("laundry_plane",
+		Vector3(right_wall - 0.61, Frontage.BLADE_HEIGHT, Frontage.LAUNDRY_Z) - center)
 	var approach := Maps.surface("PHOTO_SIDEWALK", Color("68645e"))
 	_pave_approach("SouthApproach", lo, hi, START_Z - 1.0, START_Z, FOUNDATION_Y, FLOOR_Y, approach)
 	_pave_approach("NorthApproach", lo, hi, END_Z, END_Z + 1.0, FLOOR_Y, FOUNDATION_Y, approach)

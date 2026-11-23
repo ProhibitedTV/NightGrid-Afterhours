@@ -204,14 +204,25 @@ func _overhead_spans() -> void:
 	# West feed/end are Z=3.0/-0.8; east feed/end are -0.6/3.2.
 	# Each pair terminates at the existing mounted junction boxes,
 	# rather than disappearing into the air or cutting through windows.
-	for row in range(2):
-		var west_z := -0.8 if row == 0 else 3.0
-		var east_z := -0.6 if row == 0 else 3.2
+	var feed_planes := [
+		Vector3(-0.8, -0.6, 4.30), Vector3(3.0, 3.2, 4.30),
+		Vector3(-8.64, -7.48, 4.56), Vector3(5.3, 6.4, 4.70),
+	]
+	var anchors := Node3D.new()
+	anchors.name = "SecondaryCableAnchors"
+	add_child(anchors)
+	for row in range(feed_planes.size()):
+		var feed: Vector3 = feed_planes[row]
+		if row >= 2:
+			_place(anchors, "WestJunction", CABLE, "cable_box_double",
+				Vector3(left_wall + 0.006, feed.z, feed.x), Basis.IDENTITY)
+			_place(anchors, "EastJunction", CABLE, "cable_box_double",
+				Vector3(right_wall - 0.006, feed.z, feed.y), Basis(Vector3.UP, PI))
 		for strand in range(2):
 			var offset := -0.018 + float(strand) * 0.035
-			var a := Vector3(left_wall + 0.038, 4.30, west_z + offset)
-			var b := Vector3(right_wall - 0.038, 4.30, east_z + offset)
-			var sag := 0.30 + float(row) * 0.08 + float(strand) * 0.10
+			var a := Vector3(left_wall + 0.038, feed.z, feed.x + offset)
+			var b := Vector3(right_wall - 0.038, feed.z, feed.y + offset)
+			var sag := 0.30 + 0.08 * float(row % 2) + float(strand) * 0.10
 			var view := MeshInstance3D.new()
 			view.name = "UtilityCable_%d_%d" % [row, strand]
 			view.mesh = _cable_mesh(a, b, sag)

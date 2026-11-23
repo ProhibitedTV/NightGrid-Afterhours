@@ -188,8 +188,8 @@ def door():
         round_y("metal", 0, -0.007, y, y + 0.13, 0.039)
 
 
-def emit(name, make_geometry):
-    mesh.KINDS = list(PALETTE)
+def emit(name, make_geometry, *, output=OUT, palette=PALETTE, emission=None, generator="NightGrid original Night Shift Repairs"):
+    mesh.KINDS = list(palette)
     mesh.begin()
     make_geometry()
     binary = bytearray()
@@ -217,7 +217,7 @@ def emit(name, make_geometry):
         else:
             path = f"../central_exchange_storefront/textures/{finish}_{channel}_1k{suffix}"
         if path not in texture_lookup:
-            assert (OUT / path).is_file(), path
+            assert (output / path).is_file(), path
             texture_lookup[path] = len(images)
             images.append({"uri": path})
         return {"index": texture_lookup[path]}
@@ -226,14 +226,16 @@ def emit(name, make_geometry):
     for kind, buffers in mesh.ART.items():
         if not buffers["i"]:
             continue
-        finish, color, rough, metallic = PALETTE[kind]
+        finish, color, rough, metallic = palette[kind]
         pbr = {"baseColorFactor": [*color, 0.22 if kind == "glass" else 1],
                "roughnessFactor": rough, "metallicFactor": metallic}
         material = {"name": kind, "pbrMetallicRoughness": pbr}
         if finish:
             pbr.update(baseColorTexture=texture(finish, "base"), metallicRoughnessTexture=texture(finish, "arm"))
             material["normalTexture"] = {**texture(finish, "normal"), "scale": 0.66}
-        if kind == "light":
+        if emission is not None and kind in emission:
+            material["emissiveFactor"] = emission[kind]
+        elif kind == "light":
             material["emissiveFactor"] = [0.82, 0.76, 0.63]
         if kind == "glass":
             material.update(alphaMode="BLEND", doubleSided=True)
@@ -246,13 +248,13 @@ def emit(name, make_geometry):
         })
         materials.append(material)
         triangles += len(buffers["i"]) // 3
-    doc = {"asset": {"version": "2.0", "generator": "NightGrid original Night Shift Repairs"},
+    doc = {"asset": {"version": "2.0", "generator": generator},
            "scene": 0, "scenes": [{"nodes": [0]}], "nodes": [{"name": name, "mesh": 0}],
            "meshes": [{"primitives": primitives}], "buffers": [{"uri": name + ".bin", "byteLength": len(binary)}],
            "bufferViews": views, "accessors": accessors, "materials": materials,
            "images": images, "textures": [{"source": i} for i in range(len(images))]}
-    (OUT / (name + ".bin")).write_bytes(binary)
-    (OUT / (name + ".gltf")).write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+    (output / (name + ".bin")).write_bytes(binary)
+    (output / (name + ".gltf")).write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
     return {"name": name, "triangles": triangles, "materials": len(materials), "textures": list(texture_lookup)}
 
 

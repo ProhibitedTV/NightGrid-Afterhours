@@ -1,0 +1,35 @@
+{
+  "models": [
+    {
+      "name": "repair_neon_blade",
+      "triangles": 2764,
+      "materials": 5,
+      "textures": [
+        "../central_exchange_storefront/textures/steel_base_1k.jpg",
+        "../central_exchange_storefront/textures/steel_arm_1k.png",
+        "../central_exchange_storefront/textures/steel_normal_1k.jpg"
+      ]
+    },
+    {
+      "name": "laundry_neon_blade",
+      "triangles": 2380,
+      "materials": 5,
+      "textures": [
+        "../central_exchange_storefront/textures/steel_base_1k.jpg",
+        "../central_exchange_storefront/textures/steel_arm_1k.png",
+        "../central_exchange_storefront/textures/steel_normal_1k.jpg"
+      ]
+    }
+  ],
+  "source": "tools/author_brickwater_neon.py",
+  "license": "Original modeled signage and lettering. Shared steel photographs are Poly Haven CC0.",
+  "photo_source": "https://polyhaven.com/a/blue_metal_plate",
+  "sha256": {
+    "repair_neon_blade.gltf": "5be2882f04e4292e9633c8316a8991b87ff853c6030dc4586f1a071750a777f2",
+    "repair_neon_blade.bin": "61468baa9ca7963fad3ba48f7694b2c71fef1cf6a1a51ec1e85321771d74e684",
+    "repair_neon_blade_emitter.png": "610b9a85b435bf30019497b7f061741bd246beb5d4024e816c93f434eca14850",
+    "laundry_neon_blade.gltf": "aa523e6c41681cdbbf22473a2a610284c48945db41fc29aba0632109354bf33c",
+    "laundry_neon_blade.bin": "16d94a5ba63373d271e96b469d38cafd79adce8167286038d61672eee95171f9",
+    "laundry_neon_blade_emitter.png": "92eafca29a6416a75a7521ba02ee6516a70c7bc12301474e01b408b1a9d99fa8"
+  }
+}
