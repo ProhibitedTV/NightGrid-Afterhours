@@ -10,7 +10,7 @@ from vehicle_body_surface import (
     STATIONS, ARCH_RADIUS, AXLES, WHEEL_Y, TIRE_RADIUS,
     width_shoulder, body_surface_point, arch_lower_boundary,
     continuity_metrics, side_panel, top_panel, fascia, wheel_liner,
-    tire_cross_section, mesh_integrity,
+    tire_cross_section, mesh_integrity, spline_property, curvature_seam_metrics,
 )
 
 
@@ -22,6 +22,26 @@ class TestVehicleBodySurface(unittest.TestCase):
             audit=continuity_metrics(z)
             self.assertLess(audit["max_tangent_jump"],.015,z)
             self.assertLess(audit["position_gap"],1e-9,z)
+
+    def test_original_c2_profile_curvature_at_design_stations(self):
+        # A smooth professional car body requires more than C0/C1 joins:
+        # abrupt second-derivative jumps break continuous specular highlights.
+        for z,_,_ in STATIONS[1:-1]:
+            seam=curvature_seam_metrics(z)
+            self.assertLess(seam["max_position_delta"],.00001,z)
+            self.assertLess(seam["max_tangent_delta"],.00002,z)
+            self.assertLess(seam["max_second_derivative_delta"],.00005,z)
+            for c in (1,2):
+                self.assertAlmostEqual(spline_property(z,c),width_shoulder(z)[c-1],places=10)
+
+    def test_sculpt_bounds_and_nonnegative_body_dimensions(self):
+        for i in range(1001):
+            z=STATIONS[0][0]+(STATIONS[-1][0]-STATIONS[0][0])*i/1000
+            w,h=width_shoulder(z)
+            self.assertGreater(w,.60)
+            self.assertLess(w,.99)
+            self.assertGreater(h,.65)
+            self.assertLess(h,1.1)
 
     def test_sides_fit_hood_and_rear_deck_at_every_station(self):
         for z in [-2.18,-1.99,-1.70,-1.38,-.78,.70,1.33,2.18]:
