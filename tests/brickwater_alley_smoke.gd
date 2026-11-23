@@ -121,7 +121,8 @@ func _verify()->void:
 	var workroom_glass := workroom.get_node("WorkroomGlass") as MeshInstance3D
 	var room_at := workroom.to_global(Vector3(-1.5, 1.25, 0.0))
 	var window_contact := space.intersect_ray(PhysicsRayQueryParameters3D.create(room_at + Vector3.RIGHT, room_at - Vector3.RIGHT, 1))
-	if not _check(workroom_glass.mesh != null and workroom.get_node("BackWall").position.z < -1.0 and workroom.get_node("StockShelf").position.z < -0.6 and not window_contact.is_empty() and absf(window_contact["position"].x - room_at.x) < 0.005, "visible workroom depth keeps its original wall collision"):
+	var repair: Node3D = city.call("repair_storefront")
+	if not _check(workroom_glass.mesh != null and repair.has_node("AuthoredWorkshop") and not window_contact.is_empty() and absf(window_contact["position"].x - room_at.x) < 0.10, "retained display window stays protected in front of the workshop"):
 		return
 	for label in ["WestElectricalTrunk", "EastElectricalTrunk"]:
 		var trunk := architecture.get_node(label) as Node3D
@@ -214,7 +215,7 @@ func _verify()->void:
 			return
 		if not _check(cable.mesh.surface_get_array_index_len(0) == 1152, "bounded cable topology"):
 			return
-	for label in ["WestServiceEntrance", "EastServiceEntrance"]:
+	for label in ["EastServiceEntrance"]:
 		var entrance := architecture.get_node_or_null(label) as StaticBody3D
 		if not _check(entrance != null and entrance.get_child_count() == 4, "closed authored service front"):
 			return

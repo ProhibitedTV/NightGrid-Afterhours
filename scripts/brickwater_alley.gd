@@ -5,6 +5,7 @@ const Frontage = preload("res://scripts/brickwater_business_frontage.gd")
 const Atmosphere = preload("res://scripts/brickwater_atmosphere.gd")
 const SurfacePass = preload("res://scripts/brickwater_surface_pass.gd")
 const Architecture = preload("res://scripts/brickwater_alley_architecture.gd")
+const Repair = preload("res://scripts/brickwater_storefront.gd")
 const ServiceProps = preload("res://scripts/brickwater_service_props.gd")
 const Maps = preload("res://scripts/material_library.gd")
 const CABINET = preload("res://assets/models/polyhaven/utility_box_01/utility_box_01.gltf")
@@ -40,6 +41,10 @@ func configure(left:float,right:float)->void:
 func _ready()->void:
 	assert(right_wall-left_wall>=4.0)
 	_build_floor()
+	var repair := Repair.new()
+	repair.name = "NightShiftRepairs"
+	repair.position = Vector3(left_wall, Repair.FLOOR_Y, Repair.DOOR_Z)
+	add_child(repair)
 
 func install_ground_dressing() -> void:
 	_build_dumpster()
@@ -55,6 +60,9 @@ func install_upper_dressing() -> void:
 	architecture.name = "AuthoredUpperArchitecture"
 	architecture.configure(left_wall, right_wall)
 	add_child(architecture)
+
+func install_repair_workshop() -> void:
+	$NightShiftRepairs.install_art()
 
 func install_lighting_and_signage() -> void:
 	var surfaces := SurfacePass.new()

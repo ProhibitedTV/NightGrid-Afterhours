@@ -10,6 +10,7 @@ const VesperWindows = preload("res://scripts/vesper_window_assembly.gd")
 const BrickwaterAlley = preload("res://scripts/brickwater_alley.gd")
 const BrickwaterArchitecture = preload("res://scripts/brickwater_alley_architecture.gd")
 const BrickwaterEnvelope = preload("res://scripts/brickwater_envelope.gd")
+const BrickwaterRepair = preload("res://scripts/brickwater_storefront.gd")
 const BrickwaterSigns = preload("res://scripts/brickwater_business_frontage.gd")
 const StreamProfile = preload("res://scripts/streaming_profile.gd")
 const MarketCarton = preload("res://scripts/market_carton.gd")
@@ -446,6 +447,7 @@ func _run_build_stage(block: Vector2i) -> bool:
 			if landmark.is_empty():
 				_build_block_lot(block.x, block.y, 0)
 				if block == BrickwaterAlley.PILOT_BLOCK:
+					_active_chunk.get_node("BrickwaterServiceAlley").install_repair_workshop()
 					_active_chunk.get_node("BrickwaterServiceAlley").install_ground_dressing()
 				work["phase"] = 2
 			else:
@@ -711,6 +713,34 @@ func _build_brickwater_alley(ix: int, iz: int) -> void:
 	alley.configure(-10.5+float(left["width"])*0.5,10.5-float(right["width"])*0.5)
 	_active_chunk.add_child(alley)
 
+func repair_storefront() -> Node3D:
+	var block := BrickwaterAlley.PILOT_BLOCK
+	var chunk: Node3D = _loaded.get(block)
+	if chunk == null and _staging.has(block):
+		chunk = _staging[block]["node"]
+	return chunk.get_node_or_null("BrickwaterServiceAlley/NightShiftRepairs") if chunk != null else null
+
+func _repair_parcel_around_room(volume: StaticBody3D, size: Vector3) -> void:
+	var half := size * 0.5
+	var west := half.x + BrickwaterRepair.BACK
+	var entrance := BrickwaterRepair.DOOR_Z + WorldPlan.PUBLIC_FACADE_SETBACK - half.z
+	var south := entrance + BrickwaterRepair.Z_MIN
+	var north := entrance + BrickwaterRepair.Z_MAX
+	var ceiling := -half.y + BrickwaterRepair.CEILING - 0.01
+	_parcel_section(volume, "UnchangedParcelWest", -half, Vector3(west, half.y, half.z))
+	_parcel_section(volume, "UnchangedParcelSouth", Vector3(west, -half.y, -half.z), Vector3(half.x, half.y, south))
+	_parcel_section(volume, "UnchangedParcelNorth", Vector3(west, -half.y, north), half)
+	_parcel_section(volume, "UpperFloors", Vector3(west, ceiling, south), Vector3(half.x, half.y, north))
+
+func _parcel_section(volume: StaticBody3D, label: String, low: Vector3, high: Vector3) -> void:
+	var collider := CollisionShape3D.new()
+	collider.name = label
+	var shape := BoxShape3D.new()
+	shape.size = high - low
+	collider.shape = shape
+	collider.position = (low + high) * 0.5
+	volume.add_child(collider)
+
 func _build_brickwater_neighbor(ix: int, iz: int) -> void:
 	var left := _block_lot_profile(ix, iz, 0)
 	var right := _block_lot_profile(ix, iz, 1)
@@ -866,6 +896,7 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 	var crane_gear_exposure := ix == -4 and iz == -2 and which == 1
 	var exchange_walk_in: bool = (ix == -1 and iz == 0 and which == 1) or (ix == 0 and iz == 0 and which == 0)
 	var brickwater_exposure := Vector2i(ix, iz) in [BrickwaterAlley.PILOT_BLOCK, BrickwaterArchitecture.NEIGHBOR_BLOCK]
+	var brickwater_repair := Vector2i(ix, iz) == BrickwaterAlley.PILOT_BLOCK and which == 0
 	var authored_exposure: bool = dock_watch_exposure or dock_service_exposure or crane_gear_exposure or exchange_walk_in or brickwater_exposure
 	var shell_at := Vector3(center.x, height / 2.0 + 0.15, center.z)
 	var shell_size := Vector3(width, height, depth)
@@ -874,7 +905,9 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 			var volume := StaticBody3D.new()
 			volume.name = "PreservedBuildingCollision"
 			volume.position = shell_at
-			if exchange_walk_in:
+			if brickwater_repair:
+				_repair_parcel_around_room(volume, shell_size)
+			elif exchange_walk_in:
 				# Replace JUST the two fixed Central Exchange whole-volume boxes
 				# with a tightly partitioned four-Box collision envelope. The
 				# previously solid center is now a 2.84m x 3.35m pedestrian
