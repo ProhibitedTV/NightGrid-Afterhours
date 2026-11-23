@@ -1,5 +1,7 @@
 # City streaming on Windows
 
+The later live-traffic comparison, including the remaining Windows outliers, is in [the Run #8 traffic and traversal report](TRAFFIC_OPTIMIZATION_NATIVE.md).
+
 This change targets issue #32 and builds on the Brickwater implementation in PR #163. The comparison uses the instrumented reference at `a1c68638b8a1bac4ddec3feb943caa86d68a3d47`. That reference uses the same runtime texture generator and streaming scheduler as `0346ed0`. See the [Windows benchmark report, raw traces and visual parity checks](performance/city-streaming-32/README.md).
 
 ## What the trace found

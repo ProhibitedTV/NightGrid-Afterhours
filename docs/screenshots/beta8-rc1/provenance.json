@@ -1,0 +1,48 @@
+{
+  "source_revision": "bd827599672a05b57bf77cd61dcebf7447c6cdfe",
+  "pck_sha256": "1bf6e6500afd26f5788c0d349eccf2c5b0dfddddd5038ca86ef08f4bd0b120a9",
+  "captured_local_date": "2026-11-22",
+  "os": "Windows",
+  "engine": "Godot 4.7.2",
+  "renderer": "Forward+/Vulkan",
+  "adapter": "NVIDIA GeForce RTX 3060",
+  "resolution": [
+    1920,
+    1080
+  ],
+  "seed": 834726,
+  "source_data": "Exported Windows candidate PCK",
+  "capture_method": "Actual Godot root viewport PNG readback after RenderingServer.frame_post_draw",
+  "images": [
+    {
+      "file": "brickwater-alley-at-night.png",
+      "sha256": "5e751c97feec13abeae4968fe6ebca3d81ff869b542f010b460b82bdeb93884f",
+      "capture_script": "tools/capture_brickwater_alley.gd",
+      "description": "Brickwater service alley at 22:06 with the new signs and wet pavement."
+    },
+    {
+      "file": "night-shift-repairs.png",
+      "sha256": "89d631c64887b81bb181a8abb53469345614e46afdf08df0f620d1ea8d8d5ca8",
+      "capture_script": "tools/capture_brickwater_storefront.gd",
+      "description": "The courier at the Night Shift Repairs counter after walking through the actual door."
+    },
+    {
+      "file": "east-gardens-m-line.png",
+      "sha256": "a96ff106c61d137b4827b8516d80bcc0e7669ddb870095180c5bf457aa357110",
+      "capture_script": "tests/physical_coherence_smoke.gd",
+      "description": "East Gardens platform during the lift and rail-boarding replay."
+    },
+    {
+      "file": "southworks-at-night.png",
+      "sha256": "f3147219e7cdb2f80d1289c5b3463e301f017374e2c2df590e8c6e779ea07e71",
+      "capture_script": "tools/capture_brickwater_alley.gd",
+      "description": "Southworks chase camera at a fixed point after the multi-district run."
+    },
+    {
+      "file": "brickwater-civilians-daylight.png",
+      "sha256": "560f6869755ef75a7c85053b9e867daf9010e901ac8b5b9e8bc935e950eb4423",
+      "capture_script": "tools/capture_living_streets.gd",
+      "description": "Brickwater with the experimental Living Streets population enabled at noon."
+    }
+  ]
+}

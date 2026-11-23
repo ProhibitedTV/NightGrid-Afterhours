@@ -2,6 +2,7 @@ extends Node3D
 ## Close the saved parcel around the imported apartment openings. The
 ## original full-size physics box is owned by the collision streaming stage.
 const Architecture = preload("res://scripts/brickwater_alley_architecture.gd")
+const Repair = preload("res://scripts/brickwater_storefront.gd")
 const Maps = preload("res://scripts/material_library.gd")
 const Masonry = preload("res://scripts/photo_masonry.gd")
 const Plan = preload("res://scripts/world_plan.gd")
@@ -29,9 +30,12 @@ func install(size: Vector3, lot: int, tint: Color, surface: String, neighbor: bo
 	if lot == 0 and not neighbor:
 		var room_start := Architecture.WORKROOM_START_Z + Plan.PUBLIC_FACADE_SETBACK - half.z
 		var room_end := room_start + Architecture.BAY_WIDTH
+		var entrance := Repair.DOOR_Z + Plan.PUBLIC_FACADE_SETBACK - half.z
 		_side("GroundMasonry", face, -half.z, room_start, 0, base, yaw, alley_wall)
-		_side("GroundMasonryNorth", face, room_end, half.z, 0, base, yaw, alley_wall)
+		_side("GroundMasonryMiddle", face, room_end, entrance - 1.50, 0, base, yaw, alley_wall)
+		_side("GroundMasonryNorth", face, entrance + 1.50, half.z, 0, base, yaw, alley_wall)
 		_side("WorkroomHeader", face, room_start, room_end, Architecture.BAY_WIDTH, base, yaw, alley_wall)
+		_side("EntranceHeader", face, entrance - 1.50, entrance + 1.50, 3.10, base, yaw, alley_wall)
 	else:
 		_side("GroundMasonry", face, -half.z, half.z, 0, base, yaw, alley_wall)
 	_side("UpperMasonry", face, -half.z, half.z, top, size.y, yaw, alley_wall)

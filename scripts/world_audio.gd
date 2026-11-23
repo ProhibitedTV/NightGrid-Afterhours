@@ -34,6 +34,7 @@ var sfx_volume := 0.75
 var _district := ""
 var _hour := 19.0
 var _indoors := false
+var _doorway_leak := 0.0
 var _in_car := false
 var _moving_on_foot := false
 var _grounded := true
@@ -138,6 +139,9 @@ func set_room_kind(kind: String) -> void:
 		_room_kind = kind
 		AudioMix.set_room_character(kind)
 
+func set_doorway_leak(amount: float) -> void:
+	_doorway_leak = amount
+
 func set_transport(mode: String, speed: float, brakes: bool) -> void:
 	_transport = mode
 	_transport_speed = absf(speed)
@@ -186,7 +190,7 @@ func update_context(actor_position: Vector3, foot_position: Vector3,
 	var stride := maxf(0.70, speed / cadence)
 	if _travel >= stride:
 		_travel = fposmod(_travel, stride)
-		_step_surface = surface_at(foot_position, indoors)
+		_step_surface = "CONCRETE" if _room_kind == "WORKSHOP" else surface_at(foot_position, indoors)
 		_play_step()
 
 static func surface_at(foot_position: Vector3, indoors: bool) -> String:
@@ -282,7 +286,7 @@ func _process(delta: float) -> void:
 	var dimmed := is_instance_valid(menu) and bool(menu.call("is_open"))
 	_sites.call("set_context", _listener, _hour, _indoors, sfx_volume <= 0.0, dimmed)
 	_acoustic_clock += delta
-	var enclosure := 950.0 if _indoors else (2700.0 if _in_car else 18000.0)
+	var enclosure := lerpf(950.0, 7200.0, _doorway_leak) if _indoors else (2700.0 if _in_car else 18000.0)
 	_enclosure = lerpf(_enclosure, enclosure, 1.0 - exp(-6.0 * delta))
 	if _acoustic_clock >= 0.05:
 		_acoustic_clock = fposmod(_acoustic_clock, 0.05)

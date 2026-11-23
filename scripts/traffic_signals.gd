@@ -10,6 +10,7 @@ const MAST_OFFSET = 9.5
 const LANE_OFFSET = 3.25
 const ARM_Y = 6.9
 const HEAD_Y = 6.28
+const StreamProfile = preload("res://scripts/streaming_profile.gd")
 var elapsed := 0.0
 var _heads: Array[Dictionary] = []
 var _visual_tick := 0.0
@@ -65,7 +66,9 @@ func _process(delta: float) -> void:
 	_visual_tick += delta
 	if _visual_tick >= 0.20:
 		_visual_tick = 0.0
+		var started := StreamProfile.begin()
 		_refresh()
+		StreamProfile.accumulate(started, "signal_visual_refresh")
 
 func phase_at(ix: int, iz: int, axis: String) -> String:
 	# Approximate corridor offsets; both axes use the same local controller clock.

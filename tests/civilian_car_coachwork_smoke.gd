@@ -34,10 +34,16 @@ func _verify()->void:
 				colliders+=1
 				if not _check((child.shape as BoxShape3D).size==Vector3(2.25,1.55,4.55),"unchanged collision"):
 					return
-			elif child is MeshInstance3D and child.mesh is CylinderMesh:
-				wheels+=1
-				if not _check(is_equal_approx(child.position.y,Coach.AXLE_Y) and absf(child.position.x)+0.15<1.125,"corrected axle stance"):
+			elif child is MultiMeshInstance3D and child.multimesh.mesh is CylinderMesh:
+				var authored: Array = child.multimesh.get_meta("wheel_transforms", [])
+				if not _check(authored.size() == child.multimesh.instance_count, "four recorded wheel transforms"):
 					return
+				for i in range(child.multimesh.instance_count):
+					var pose: Transform3D = authored[i] if DisplayServer.get_name() == "headless" else child.multimesh.get_instance_transform(i)
+					var at := pose.origin
+					wheels += 1
+					if not _check(is_equal_approx(at.y, Coach.AXLE_Y) and absf(at.x) + 0.15 < 1.125 and is_equal_approx(absf(at.z), 1.36), "corrected axle stance"):
+						return
 		if not _check(colliders==1 and wheels==8 and not car.is_boardable(),"original car gameplay"):
 			return
 		var color:String=car.paint.to_html(false)

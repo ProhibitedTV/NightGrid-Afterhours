@@ -1,0 +1,348 @@
+{
+  "original_png_sha256": {
+    "repeat-reference-night": "a51f5d6cbdecf8f8d4f7a829c6d86c2d1da652d1a0040040cf97d2926d6faa3b",
+    "repeat-fixed-night": "c5f78d60bf0e6216d7cfd6529dc02b93a94a2f0d3b311c235b9e022964a87aa3",
+    "repeat-hybrid-night": "ed75a52e5efa04dbbd78adc380ba33c9fe18e8715be3da23d68cbe9eb6418ed1",
+    "repeat-reference-noon": "6f5a4ee736dbda2ea8085dc353f7c2833ebb0d1301984da7f1674b990d502d93",
+    "focused-fixed-noon": "6f1c649bb5796cbe58908371afe21ae0215510885f4a2114ea5fc65001741838",
+    "repeat-hybrid-noon": "a6472d59ea360b1264db7975356f507bda94ad93fa9e4c2c26d3dc7319e9b6a7"
+  },
+  "traffic_lease_boundaries": [
+    {
+      "run": "repeat-hybrid-night",
+      "frame": 10,
+      "event": "ambient_traffic_admit",
+      "actor_distance": 117.784576416016,
+      "camera_distance": 120.026306152344,
+      "id": "inner-02",
+      "in_expanded_frustum": false,
+      "position": [
+        112.75,
+        1.0,
+        -28.067985534668
+      ]
+    },
+    {
+      "run": "repeat-hybrid-night",
+      "frame": 10,
+      "event": "ambient_traffic_admit",
+      "actor_distance": 140.121444702148,
+      "camera_distance": 135.044906616211,
+      "id": "inner-03",
+      "in_expanded_frustum": false,
+      "position": [
+        90.7658538818359,
+        1.0,
+        112.75
+      ]
+    },
+    {
+      "run": "repeat-hybrid-night",
+      "frame": 53,
+      "event": "ambient_traffic_admit",
+      "actor_distance": 119.400085449219,
+      "camera_distance": 117.406494140625,
+      "id": "inner-05",
+      "in_expanded_frustum": false,
+      "position": [
+        -112.75,
+        1.0,
+        45.2912292480469
+      ]
+    },
+    {
+      "run": "repeat-hybrid-night",
+      "frame": 65,
+      "event": "ambient_traffic_admit",
+      "actor_distance": 91.4184494018555,
+      "camera_distance": 96.5364379882813,
+      "id": "outer-04",
+      "in_expanded_frustum": false,
+      "position": [
+        88.9984893798828,
+        1.0,
+        170.75
+      ]
+    },
+    {
+      "run": "repeat-hybrid-night",
+      "frame": 260,
+      "event": "ambient_traffic_admit",
+      "actor_distance": 134.682342529297,
+      "camera_distance": 143.505493164063,
+      "id": "inner-05",
+      "in_expanded_frustum": false,
+      "position": [
+        -112.75,
+        1.0,
+        16.8096466064453
+      ]
+    },
+    {
+      "run": "repeat-hybrid-night",
+      "frame": 279,
+      "event": "ambient_traffic_admit",
+      "actor_distance": 122.233665466309,
+      "camera_distance": 130.361114501953,
+      "id": "inner-02",
+      "in_expanded_frustum": false,
+      "position": [
+        112.75,
+        1.0,
+        14.9522857666016
+      ]
+    },
+    {
+      "run": "repeat-hybrid-night",
+      "frame": 374,
+      "event": "ambient_traffic_admit",
+      "actor_distance": 155.689270019531,
+      "camera_distance": 145.460357666016,
+      "id": "inner-04",
+      "in_expanded_frustum": false,
+      "position": [
+        -112.75,
+        1.0,
+        103.004089355469
+      ]
+    },
+    {
+      "run": "repeat-hybrid-night",
+      "frame": 422,
+      "event": "ambient_traffic_admit",
+      "actor_distance": 88.941032409668,
+      "camera_distance": 94.2598190307617,
+      "id": "outer-04",
+      "in_expanded_frustum": false,
+      "position": [
+        86.8486175537109,
+        1.0,
+        170.75
+      ]
+    },
+    {
+      "run": "repeat-hybrid-night",
+      "frame": 607,
+      "event": "ambient_traffic_admit",
+      "actor_distance": 134.682342529297,
+      "camera_distance": 143.315612792969,
+      "id": "inner-05",
+      "in_expanded_frustum": false,
+      "position": [
+        -112.75,
+        1.0,
+        16.8096466064453
+      ]
+    },
+    {
+      "run": "repeat-hybrid-night",
+      "frame": 625,
+      "event": "ambient_traffic_admit",
+      "actor_distance": 122.233665466309,
+      "camera_distance": 130.598907470703,
+      "id": "inner-02",
+      "in_expanded_frustum": false,
+      "position": [
+        112.75,
+        1.0,
+        14.9522857666016
+      ]
+    },
+    {
+      "run": "repeat-hybrid-night",
+      "frame": 714,
+      "event": "ambient_traffic_admit",
+      "actor_distance": 155.689270019531,
+      "camera_distance": 145.17106628418,
+      "id": "inner-04",
+      "in_expanded_frustum": false,
+      "position": [
+        -112.75,
+        1.0,
+        103.004089355469
+      ]
+    },
+    {
+      "run": "repeat-hybrid-noon",
+      "frame": 8,
+      "event": "ambient_traffic_admit",
+      "actor_distance": 117.784576416016,
+      "camera_distance": 120.026672363281,
+      "id": "inner-02",
+      "in_expanded_frustum": false,
+      "position": [
+        112.75,
+        1.0,
+        -28.067985534668
+      ]
+    },
+    {
+      "run": "repeat-hybrid-noon",
+      "frame": 8,
+      "event": "ambient_traffic_admit",
+      "actor_distance": 140.121444702148,
+      "camera_distance": 135.04411315918,
+      "id": "inner-03",
+      "in_expanded_frustum": false,
+      "position": [
+        90.7658538818359,
+        1.0,
+        112.75
+      ]
+    },
+    {
+      "run": "repeat-hybrid-noon",
+      "frame": 49,
+      "event": "ambient_traffic_admit",
+      "actor_distance": 119.400085449219,
+      "camera_distance": 117.406494140625,
+      "id": "inner-05",
+      "in_expanded_frustum": false,
+      "position": [
+        -112.75,
+        1.0,
+        45.2912292480469
+      ]
+    },
+    {
+      "run": "repeat-hybrid-noon",
+      "frame": 66,
+      "event": "ambient_traffic_admit",
+      "actor_distance": 91.4184494018555,
+      "camera_distance": 96.5353012084961,
+      "id": "outer-04",
+      "in_expanded_frustum": false,
+      "position": [
+        88.9984893798828,
+        1.0,
+        170.75
+      ]
+    },
+    {
+      "run": "repeat-hybrid-noon",
+      "frame": 199,
+      "event": "ambient_traffic_admit",
+      "actor_distance": 102.390586853027,
+      "camera_distance": 109.511161804199,
+      "id": "inner-04",
+      "in_expanded_frustum": false,
+      "position": [
+        -87.1858367919922,
+        1.0,
+        112.75
+      ]
+    },
+    {
+      "run": "repeat-hybrid-noon",
+      "frame": 614,
+      "event": "ambient_traffic_admit",
+      "actor_distance": 109.402404785156,
+      "camera_distance": 110.511611938477,
+      "id": "inner-02",
+      "in_expanded_frustum": false,
+      "position": [
+        112.75,
+        1.0,
+        71.5579071044922
+      ]
+    },
+    {
+      "run": "repeat-hybrid-noon",
+      "frame": 788,
+      "event": "ambient_traffic_admit",
+      "actor_distance": 127.506034851074,
+      "camera_distance": 135.134323120117,
+      "id": "inner-01",
+      "in_expanded_frustum": false,
+      "position": [
+        112.75,
+        1.0,
+        -37.4623489379883
+      ]
+    },
+    {
+      "run": "repeat-hybrid-noon",
+      "frame": 865,
+      "event": "ambient_traffic_admit",
+      "actor_distance": 127.238067626953,
+      "camera_distance": 116.783462524414,
+      "id": "inner-03",
+      "in_expanded_frustum": false,
+      "position": [
+        -72.2368774414063,
+        1.0,
+        112.75
+      ]
+    },
+    {
+      "run": "repeat-hybrid-noon",
+      "frame": 1044,
+      "event": "ambient_traffic_admit",
+      "actor_distance": 88.941032409668,
+      "camera_distance": 94.2424774169922,
+      "id": "outer-04",
+      "in_expanded_frustum": false,
+      "position": [
+        86.8486175537109,
+        1.0,
+        170.75
+      ]
+    },
+    {
+      "run": "repeat-hybrid-noon",
+      "frame": 1153,
+      "event": "ambient_traffic_admit",
+      "actor_distance": 102.33659362793,
+      "camera_distance": 109.584526062012,
+      "id": "inner-04",
+      "in_expanded_frustum": false,
+      "position": [
+        -87.1858367919922,
+        1.0,
+        112.75
+      ]
+    },
+    {
+      "run": "repeat-hybrid-noon",
+      "frame": 1516,
+      "event": "ambient_traffic_admit",
+      "actor_distance": 109.400466918945,
+      "camera_distance": 110.545120239258,
+      "id": "inner-02",
+      "in_expanded_frustum": false,
+      "position": [
+        112.75,
+        1.0,
+        71.5579071044922
+      ]
+    },
+    {
+      "run": "repeat-hybrid-noon",
+      "frame": 1567,
+      "event": "ambient_traffic_admit",
+      "actor_distance": 126.956855773926,
+      "camera_distance": 134.525695800781,
+      "id": "inner-01",
+      "in_expanded_frustum": false,
+      "position": [
+        112.75,
+        1.0,
+        -37.4623489379883
+      ]
+    },
+    {
+      "run": "repeat-hybrid-noon",
+      "frame": 1635,
+      "event": "ambient_traffic_admit",
+      "actor_distance": 128.083435058594,
+      "camera_distance": 117.440055847168,
+      "id": "inner-03",
+      "in_expanded_frustum": false,
+      "position": [
+        -72.2368774414063,
+        1.0,
+        112.75
+      ]
+    }
+  ]
+}

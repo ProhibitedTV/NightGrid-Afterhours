@@ -80,7 +80,7 @@ jobs:
         run: |
           set -o pipefail
           godot --headless --path . --import --quit 2>&1 | tee /tmp/nightgrid-import.log
-          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-import.log; then exit 1; fi
+          if grep -Eq 'SCRIPT ERROR:|p_image->is_compressed\(\)|Cannot generate mipmaps from compressed image formats' /tmp/nightgrid-import.log; then exit 1; fi
       - name: Verify the baked city textures match the original generator byte for byte
         run: godot --headless --path . --script res://tools/bake_city_material_maps.gd -- --verify
       - name: Validate deterministic road routes, intersection turns and off-road access
@@ -192,6 +192,8 @@ jobs:
         run: godot --headless --path . --script res://tests/central_exchange_shop_lighting_smoke.gd
       - name: Validate signals, transit boarding and persistent save seeds
         run: godot --headless --path . --script res://tests/transport_smoke.gd
+      - name: Verify older saves keep their position through the first physics ticks
+        run: godot --headless --path . --script res://tests/legacy_save_boot_smoke.gd
       - name: Validate Kestrel S6 hero body, dynamic lights and save stability
         run: godot --headless --path . --script res://tests/hero_vehicle_smoke.gd
       - name: Audit closed Kestrel rear hatch manifold, trunk bulkhead and police variant
@@ -283,6 +285,18 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/brickwater_alley_smoke.gd 2>&1 | tee /tmp/nightgrid-brickwater-alley.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-brickwater-alley.log; then exit 1; fi
+      - name: Validate the opt-in logical traffic pool on loaded city lanes
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 65s godot --headless --path . --script res://tests/pooled_traffic_smoke.gd 2>&1 | tee /tmp/nightgrid-pooled-traffic.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-pooled-traffic.log; then exit 1; fi
+      - name: Validate the continuous Brickwater workshop and repair counter
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 65s godot --headless --path . --script res://tests/brickwater_storefront_smoke.gd 2>&1 | tee /tmp/nightgrid-brickwater-storefront.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-brickwater-storefront.log; then exit 1; fi
       - name: Validate actual photographic masonry on ordinary building shells
         timeout-minutes: 2
         run: |

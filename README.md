@@ -6,11 +6,15 @@ Take courier jobs, drive through neon-lit streets, ride the city's buses and tra
 
 **Early playable beta — actively in development.**
 
+**Beta.8 RC1 is available for Windows playtest review.** Walk Brickwater's neon service alley, get a car repaired at Night Shift Repairs, ride the M-Line and tune into the twenty original NightGrid FM tracks. Living Streets pedestrians and pooled traffic are optional pilots. [Review build and changelog](docs/BETA8_RC1.md) · [Candidate PR and Windows artifacts](https://github.com/ProhibitedTV/NightGrid-Afterhours/pull/196).
+
+**[Follow the integrated-game Windows playtest and verification guide](docs/PLAYTEST_MAIN_ACCEPTANCE.md).** Check the artifact's `BUILD-INFO.txt` full source SHA and `SHA256SUMS.txt`, then run the EXE with its PCK. The [public beta.7 release](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases/tag/v0.1.0-beta.7) is older and has not been replaced.
+
 [**Download for Windows**](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) · [Report a bug or suggest a feature](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues) · [Playtest guide](docs/PLAYTEST_CHECKLIST.md)
 
-![Morrow Bay at night, captured in the actual game](docs/screenshots/01-morrow-bay-neon-night.png)
+![Brickwater's service alley at night in the Beta.8 RC1 Windows build](docs/screenshots/beta8-rc1/brickwater-alley-at-night.png)
 
-*Central Exchange — real in-game rendering, not concept art.*
+*Brickwater at 22:06, captured from the exported Windows candidate on Forward+/Vulkan.* [Beta.8 RC1 gameplay gallery](docs/screenshots/beta8-rc1/GALLERY.md) · [Build, renderer and capture provenance](docs/screenshots/beta8-rc1/provenance.json).
 
 ## Explore Morrow Bay
 
@@ -23,7 +27,17 @@ Take courier jobs, drive through neon-lit streets, ride the city's buses and tra
 
 Your city layout and progress persist when you save and return.
 
-## In-game gallery
+## Beta.8 RC1 in-game gallery
+
+| Night Shift Repairs | East Gardens M-Line |
+|:--:|:--:|
+| ![Courier at the walk-in repair counter](docs/screenshots/beta8-rc1/night-shift-repairs.png) | ![East Gardens station platform](docs/screenshots/beta8-rc1/east-gardens-m-line.png) |
+| **Southworks from the Kestrel** | **Living Streets pilot in Brickwater** |
+| ![Southworks from the vehicle camera](docs/screenshots/beta8-rc1/southworks-at-night.png) | ![Brickwater with the optional civilians enabled](docs/screenshots/beta8-rc1/brickwater-civilians-daylight.png) |
+
+## Earlier in-game gallery
+
+![Central Exchange in the earlier development build](docs/screenshots/01-morrow-bay-neon-night.png)
 
 | Nightlife at Moon Noodles | M-Line elevated railway |
 |:--:|:--:|
@@ -38,9 +52,9 @@ Your city layout and progress persist when you save and return.
 
 All nine images are actual Godot 4.7.2 viewport captures from the development build. The two vehicle portraits stage real existing traffic actors on their route for an unobstructed comparison; they're not concept art or a driving benchmark. These development-build screenshots may be newer than the downloadable tagged beta. [Capture date/source, renderer and checksums](docs/screenshots/capture-manifest.json) · [Capture method](docs/screenshots/README.md). The gallery uses Linux software-rendered OpenGL; the Windows Forward+/Vulkan build may look different.
 
-## Latest Windows development screenshots (unreleased)
+## Selected native Windows development screenshots (feature-branch provenance)
 
-These are **genuine Godot 4.7.2 Forward+/Vulkan captures at 1920×1080 on an RTX 3060**, drawn from pending development PRs. They are **not** screenshots of the downloadable Beta.7 and should not be read as a 60 FPS benchmark. Final artistic and integrated-game acceptance is still open.
+These are **genuine Godot 4.7.2 Forward+/Vulkan captures at 1920×1080 on an RTX 3060**, taken on original feature branches that are now integrated through [PR #190](https://github.com/ProhibitedTV/NightGrid-Afterhours/pull/190). The individual frames are **not** a new full-stack main-branch visual approval or screenshots from beta.7; they do not establish sustained 60 FPS. Final integrated gameplay and artistic acceptance remains open.
 
 [**See the 13-image development gallery**](docs/screenshots/development/GALLERY.md) · [Exact screenshot provenance](docs/screenshots/development/provenance.json)
 
@@ -77,11 +91,11 @@ Standard Xbox-style controller mappings are included. See the [full controls](do
 
 ## What's next
 
-NightGrid is a rough but playable indie project. We're working toward richer street life, more detailed environments, dynamic traffic diversions, better animations and seamless movement through the city. The logical pedestrian and traffic foundations are in development; crowds and hybrid traffic streaming are not yet live gameplay.
+NightGrid is a rough but playable indie project. We're working toward richer street life, more detailed environments, dynamic traffic diversions, better animations and seamless movement through the city. The logical pedestrian and traffic foundations remain in development; the new 12-body Living Streets pilot is playable **only when opted in** and still requires material and live performance verification.
 
-The intended look is a realistic, atmospheric cyberpunk city, but visuals are still provisional. 1080p at 60 FPS on an RTX 3060 is a target, not a measured guarantee.
+The merged development build now also has a bounded, **opt-in** Living Streets pilot (run the exported executable with `-- --living-streets`). The old beta.7 does not include this feature. The intended look is a realistic, atmospheric cyberpunk city; visuals are still provisional. 1080p at 60 FPS on an RTX 3060 is a target, not a measured guarantee.
 
-The development branch includes all twenty creator-owned NightGrid FM chipwave tracks. Existing downloadable beta releases predate this soundtrack update. [Soundtrack details](docs/NIGHTGRID_FM_SOUNDTRACK.md).
+The merged `main` **development build** includes all twenty creator-owned NightGrid FM chipwave tracks. The published beta.7 release predates this soundtrack update. [Soundtrack details](docs/NIGHTGRID_FM_SOUNDTRACK.md).
 
 ## For developers
 
