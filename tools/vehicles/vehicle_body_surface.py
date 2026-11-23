@@ -1,5 +1,5 @@
-"""Original Vesper V2 fairings: shared centerline stations, C1 Hermite curves,
-wheel apertures and closable mechanical surfaces. Y up, nose -Z.
+"""Original Vesper V2 fairings: C2 longitudinal stations, G1 shoulder
+joins, wheel arches and mechanically separated surfaces. Y up, nose -Z.
 
 Geometry quality aid, not Class-A/G2 curvature certification.
 """
@@ -103,23 +103,31 @@ def _smoothstep(x):
     t=max(0.,min(1.,x))
     return t*t*(3-2*t)
 
-def arch_lower_boundary(z):
-    """Actual circular wheel opening with a short, continuous rocker return.
+# The arch follows the circular tire offset while the tire still occupies
+# that section. Its end transitions through a matched-tangent Hermite return
+# into the rocker. The original sqrt() arc to R had infinite endpoint slope.
+ARCH_CIRCLE_END=.370
+ARCH_ROCKER_END=.570
 
-    The earlier smoothstep hill intersected tires near their shoulder, even
-    though the center-of-wheel test passed. Mirror the tire envelope using a
-    larger arch radius, with a short sill blend outside the moving tire.
-    """
-    lower=ROCKER_Y
-    for axle in AXLES:
-        d=abs(z-axle)
-        if d<=ARCH_RADIUS:
-            opening=WHEEL_Y+sqrt(max(0.,ARCH_RADIUS**2-d*d))
-            lower=max(lower,opening)
-        elif d<ARCH_RADIUS+.060:
-            t=(d-ARCH_RADIUS)/.060
-            lower=max(lower,ROCKER_Y+(WHEEL_Y-ROCKER_Y)*(1.-_smoothstep(t)))
-    return lower
+
+def _arch_height(offset: float) -> float:
+    d=abs(offset)
+    if d<=ARCH_CIRCLE_END:
+        return WHEEL_Y+sqrt(max(0.,ARCH_RADIUS**2-d*d))
+    if d>=ARCH_ROCKER_END:
+        return ROCKER_Y
+    span=ARCH_ROCKER_END-ARCH_CIRCLE_END
+    t=(d-ARCH_CIRCLE_END)/span
+    y0=WHEEL_Y+sqrt(ARCH_RADIUS**2-ARCH_CIRCLE_END**2)
+    derivative=-ARCH_CIRCLE_END/sqrt(ARCH_RADIUS**2-ARCH_CIRCLE_END**2)
+    return ((2*t**3-3*t*t+1)*y0 +
+            (t**3-2*t*t+t)*span*derivative +
+            (-2*t**3+3*t*t)*ROCKER_Y)
+
+
+def arch_lower_boundary(z):
+    """C1 wheel arch with measured tire clearance and rocker transition."""
+    return max([ROCKER_Y]+[_arch_height(z-axle) for axle in AXLES])
 
 def body_surface_point(z,across):
     w,h=width_shoulder(z)
@@ -156,8 +164,15 @@ def side_panel(z0,z1,sign,along_segments=40,across_segments=9) -> Shell:
         w,h=width_shoulder(z); lower=arch_lower_boundary(z)
         for j in range(stride):
             t=j/across_segments
-            verts.append((sign*w*(.945+.055*t+.008*sin(pi*t)),
-                          lower+(h-lower)*t,z))
+            # Blend the upper shoulder to a horizontal tangent where it
+            # meets the bonnet, instead of merely aligning positions. This
+            # creates an intentional smooth rolled panel transition.
+            shoulder_ease=t*t*(3.-2.*t)
+            flare=0.0
+            for axle in AXLES:
+                flare+=.023*exp(-((z-axle)/.46)**4)*sin(pi*t)**2
+            verts.append((sign*(w*(.945+.055*t+.008*sin(pi*t))+flare),
+                          lower+(h-lower)*shoulder_ease,z))
     for i in range(along_segments):
         for j in range(across_segments):
             a=i*stride+j; b=a+1; c=a+stride; d=c+1
