@@ -155,29 +155,86 @@ def top_panel(z0,z1,across_segments=24,long_segments=40) -> Shell:
             faces.append((a,c,d,b))  # +Y: outside of bonnet/deck
     return Shell(tuple(verts),tuple(faces))
 
+def side_surface_point(z:float,sign:int,t:float):
+    """Original smooth rolled coachwork including a deliberate shoulder return.
+
+    The outer flank reaches its widest point just below the bonnet edge and
+    returns slightly inward before meeting it, as a stamped car fender would.
+    Its tangent aligns with the near-horizontal hood tangent at t=1.
+    """
+    if sign not in (-1,1) or not 0<=t<=1:
+        raise ValueError("side, parameter out of range")
+    w,h=width_shoulder(z)
+    lower=arch_lower_boundary(z)
+    shoulder_ease=t*t*(3.-2.*t)
+    flare=sum(.023*exp(-((z-axle)/.46)**4)*sin(pi*t)**2
+              for axle in AXLES)
+    return (sign*(w*(.945+.055*t+.032*sin(pi*t))+flare),
+            lower+(h-lower)*shoulder_ease,z)
+
+
 def side_panel(z0,z1,sign,along_segments=40,across_segments=9) -> Shell:
     if sign not in (-1,1):
         raise ValueError("sign must be -1 or 1")
     verts=[];faces=[];stride=across_segments+1
     for i in range(along_segments+1):
         z=z0+(z1-z0)*i/along_segments
-        w,h=width_shoulder(z); lower=arch_lower_boundary(z)
         for j in range(stride):
-            t=j/across_segments
-            # Blend the upper shoulder to a horizontal tangent where it
-            # meets the bonnet, instead of merely aligning positions. This
-            # creates an intentional smooth rolled panel transition.
-            shoulder_ease=t*t*(3.-2.*t)
-            flare=0.0
-            for axle in AXLES:
-                flare+=.023*exp(-((z-axle)/.46)**4)*sin(pi*t)**2
-            verts.append((sign*(w*(.945+.055*t+.008*sin(pi*t))+flare),
-                          lower+(h-lower)*shoulder_ease,z))
+            verts.append(side_surface_point(z,sign,j/across_segments))
     for i in range(along_segments):
         for j in range(across_segments):
             a=i*stride+j; b=a+1; c=a+stride; d=c+1
             faces.append((a,c,d,b) if sign==-1 else (a,b,d,c))
     return Shell(tuple(verts),tuple(faces))
+
+
+def _cross(a,b):
+    return (a[1]*b[2]-a[2]*b[1],
+            a[2]*b[0]-a[0]*b[2],
+            a[0]*b[1]-a[1]*b[0])
+
+
+def _delta(a,b):
+    return tuple(a[k]-b[k] for k in range(3))
+
+
+def _unit(a):
+    length=sqrt(sum(v*v for v in a))
+    if length<1e-12:
+        raise ValueError("degenerate surface tangent")
+    return tuple(v/length for v in a)
+
+
+def shoulder_normal_alignment(z,sign,epsilon=.0001):
+    """Angular difference (degrees) between hood and fender surface normals.
+
+    Source analytic approximation. Passing this test alone is not human
+    Class-A/G2 approval; rendered specular flow remains the art-review gate.
+    """
+    if z-epsilon<STATIONS[0][0] or z+epsilon>STATIONS[-1][0]:
+        raise ValueError("normal test outside body interval")
+    if sign not in (-1,1):
+        raise ValueError("invalid side")
+    top0=body_surface_point(z,1 if sign>0 else -1)
+    top_inner=body_surface_point(z,(1-epsilon)*sign)
+    d_across=_delta(top0,top_inner) if sign>0 else _delta(top_inner,top0)
+    d_long=_delta(body_surface_point(z+epsilon,sign),
+                  body_surface_point(z-epsilon,sign))
+    n_top=_unit(_cross(d_long,d_across))
+    out=side_surface_point(z,sign,1.)
+    inward=side_surface_point(z,sign,1.-epsilon)
+    tangent=_delta(out,inward)
+    d_side_long=_delta(side_surface_point(z+epsilon,sign,1.),
+                       side_surface_point(z-epsilon,sign,1.))
+    n_side=_unit(_cross(tangent,d_side_long) if sign>0
+                 else _cross(d_side_long,tangent))
+    dot=max(-1.,min(1.,sum(a*b for a,b in zip(n_top,n_side))))
+    return math_acos_degrees(dot)
+
+
+def math_acos_degrees(dot):
+    from math import acos,degrees
+    return degrees(acos(dot))
 
 def fascia(front:bool,along=36,vertical=12) -> Shell:
     """Smooth, convex manufactured bumper skin, not a floating cube."""
