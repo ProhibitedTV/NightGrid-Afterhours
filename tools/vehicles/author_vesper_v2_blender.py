@@ -138,7 +138,8 @@ def box(name, loc, dims, mat, bevel=0.0, high=False):
         modifier=obj.modifiers.new("Engineered edge radii","BEVEL")
         modifier.width=bevel
         modifier.segments=4 if high else 2
-        modifier.affect="EDGES" if hasattr(modifier,"affect") else None
+        if hasattr(modifier,"affect"):
+            modifier.affect="EDGES"
         smooth=obj.modifiers.new("Weighted corner normals","WEIGHTED_NORMAL")
         smooth.keep_sharp=True
     return obj
