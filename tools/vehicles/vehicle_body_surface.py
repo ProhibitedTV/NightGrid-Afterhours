@@ -104,12 +104,21 @@ def _smoothstep(x):
     return t*t*(3-2*t)
 
 def arch_lower_boundary(z):
+    """Actual circular wheel opening with a short, continuous rocker return.
+
+    The earlier smoothstep hill intersected tires near their shoulder, even
+    though the center-of-wheel test passed. Mirror the tire envelope using a
+    larger arch radius, with a short sill blend outside the moving tire.
+    """
     lower=ROCKER_Y
     for axle in AXLES:
         d=abs(z-axle)
-        if d <= ARCH_RADIUS+.06:
-            t=1.-d/(ARCH_RADIUS+.06)
-            lower=max(lower,ROCKER_Y+(WHEEL_Y+ARCH_RADIUS-ROCKER_Y)*_smoothstep(t))
+        if d<=ARCH_RADIUS:
+            opening=WHEEL_Y+sqrt(max(0.,ARCH_RADIUS**2-d*d))
+            lower=max(lower,opening)
+        elif d<ARCH_RADIUS+.060:
+            t=(d-ARCH_RADIUS)/.060
+            lower=max(lower,ROCKER_Y+(WHEEL_Y-ROCKER_Y)*(1.-_smoothstep(t)))
     return lower
 
 def body_surface_point(z,across):
