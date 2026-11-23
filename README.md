@@ -2,36 +2,34 @@
 
 **A neon-noir open-world game set in Morrow Bay, a restless coastal city.**
 
-![Actual NightGrid: Afterhours gameplay — Brickwater service alley at night, with wet streets and neon storefronts](docs/screenshots/beta8-rc1/brickwater-alley-at-night.png)
+![The real Morrow Bay game under the original golden-hour sky](docs/screenshots/skyboxes/04-evening-golden.png)
 
-*Brickwater, 10:06 PM — captured in the actual Windows game.*
+*Golden hour over Brickwater — an actual Godot game capture with our new original sky art.*
 
-| Explore the city | Step inside |
+| Dawn over Brickwater | Sunny afternoon |
 |:--:|:--:|
-| ![Driving through Southworks at night](docs/screenshots/beta8-rc1/southworks-at-night.png) | ![Inside Night Shift Repairs, a walk-in auto repair shop](docs/screenshots/beta8-rc1/night-shift-repairs.png) |
-| **Ride the M-Line** | **Meet the streets** |
-| ![East Gardens M-Line station platform](docs/screenshots/beta8-rc1/east-gardens-m-line.png) | ![Brickwater in daylight with experimental pedestrians](docs/screenshots/beta8-rc1/brickwater-civilians-daylight.png) |
+| ![Dawn original sky in the actual NightGrid world](docs/screenshots/skyboxes/01-dawn-clear.png) | ![Sunny sky in the actual NightGrid world](docs/screenshots/skyboxes/02-afternoon-sunny.png) |
+| **Moonlit night** | **Approaching storm** |
+| ![The original moonlit NightGrid sky in gameplay](docs/screenshots/skyboxes/05-night-clear.png) | ![The storm sky preview in gameplay](docs/screenshots/skyboxes/08-storm.png) |
 
-*These are genuine 1080p Godot 4.7.2 Windows gameplay captures from the Beta.8 RC1 development candidate—not concept art or screenshots of the older published Beta.7.* [See the full gallery and capture details](docs/screenshots/beta8-rc1/GALLERY.md).
+*These five images are **actual game screenshots**, not standalone sky paintings or concept art. All use the same camera in Brickwater to show the new sky and weather mood changes. [Explore all eight skies](docs/screenshots/skyboxes/GALLERY.md). The captures use Godot 4.7.2 with Linux Mesa rendering; Windows Vulkan appearance may differ.*
 
-## Welcome to Morrow Bay
+## Explore Morrow Bay
 
-Take courier jobs, drive the city, ride trains and buses, enter shops, and explore districts that look and feel different after dark. NightGrid FM brings **20 original tracks** into the streets, cars, and venues. Traffic, police dispatch, and the changing light give the city its own rhythm.
+Take courier jobs, drive through neon-lit streets, ride the M-Line and city buses, step into local shops, and follow the rhythms of a city that changes after dark. Twenty original **NightGrid FM** tracks play across vehicles, venues and neighborhoods.
 
-We're building toward **one large, handcrafted city** with more believable architecture, working interiors, atmospheric weather, and life on every block.
+We're building **one large, handcrafted city**, with believable buildings and interiors, dynamic traffic and street life, cinematic lighting and weather. It is still early development, with plenty left to improve.
 
-**It's early and actively evolving.** You can play a Windows build now, but expect rough edges, unfinished systems, and experiments. Not every screenshot or feature above appears in the currently published release.
+Want to see more than the skies? [Browse the Brickwater, vehicle and transit gameplay gallery](docs/screenshots/beta8-rc1/GALLERY.md).
 
-## Follow along or play
+## Play, follow and contribute
 
-**[Download the Windows release](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases)** · **[Explore the newest development builds](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/workflows/windows-build.yml)** · **[Share feedback and ideas](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues)**
+**[Windows download](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases)** · **[Latest development builds](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/workflows/windows-build.yml)** · **[Feedback and ideas](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues)**
 
-The tagged release is currently **Beta.7**. For newer in-development features, choose a successful `main` Windows build from GitHub Actions. Extract the full ZIP and keep the `.exe` and `.pck` together. [Playtest instructions](docs/PLAYTEST_MAIN_ACCEPTANCE.md).
+The tagged public release is **Beta.7**; these screenshots and original skies are from newer development work. For the latest game, download a successful `main` build, extract the full ZIP, and keep the `.exe` alongside its `.pck`. [Playtest instructions](docs/PLAYTEST_MAIN_ACCEPTANCE.md).
 
-## Help shape Afterhours
+**Help shape Afterhours.** If something looks exciting, unfinished or out of place, we'd like to hear about it. We welcome player feedback, screenshot comparisons, bug reports and ideas for life in Morrow Bay.
 
-If you're interested in the project, follow development here, try a build, or tell us which places and features you'd like to explore. We're especially interested in how the world **looks, sounds, and feels** in motion.
+Made with **Godot 4.7.2**. [Developer notes](docs/DEVELOPMENT.md) · [Roadmap](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/197) · [More real game captures](docs/screenshots/development/GALLERY.md)
 
-Built with **Godot 4.7.2**. [Developer notes](docs/DEVELOPMENT.md) · [More screenshots](docs/screenshots/development/GALLERY.md) · [Project roadmap](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/197)
-
-*The repository does not currently have a general public source license; third-party assets retain their documented licenses.*
+*This repository does not yet have a general public source license; third-party assets retain their documented licenses.*
