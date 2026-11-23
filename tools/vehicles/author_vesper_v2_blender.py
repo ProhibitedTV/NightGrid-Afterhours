@@ -1,0 +1,466 @@
+#!/usr/bin/env python3
+"""Vesper V2: original 2-seat convertible full-car asset study for NightGrid.
+
+Use:
+  blender --background --python-exit-code 1 --python tools/vehicles/author_vesper_v2_blender.py -- --output-dir out/vesper-v2
+
+Creates editable high/low detail Blender collections; separately exported
+LOD0/LOD1 GLBs; offline Workbench reference shots and SHA manifest. This is
+NOT an integrated/drivable vehicle or completed Class-A automotive sculpt.
+"""
+from __future__ import annotations
+import argparse
+import hashlib
+import json
+import math
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from bezier_surface import tessellate
+
+import bpy
+from mathutils import Vector
+
+# +Y is up, -Z is the front of the car; physical units are metres.
+LENGTH = 4.38
+WIDTH = 1.92
+WHEELBASE = 2.71
+AXLES = (-1.38, 1.33)
+WHEEL_Y = 0.365
+WHEEL_X = 0.805
+RADIUS = 0.365
+
+SOCKETS = {
+    "WheelFL": (-WHEEL_X, WHEEL_Y, AXLES[0]),
+    "WheelFR": ( WHEEL_X, WHEEL_Y, AXLES[0]),
+    "WheelRL": (-WHEEL_X, WHEEL_Y, AXLES[1]),
+    "WheelRR": ( WHEEL_X, WHEEL_Y, AXLES[1]),
+    "SeatDriver": (-0.400, 0.62, 0.17),
+    "SeatPassenger": (0.400, 0.62, 0.17),
+    "CameraDriver": (-0.400, 1.12, 0.13),
+    "DoorHingeL": (-0.78, 0.80, -0.53),
+    "DoorHingeR": (0.78, 0.80, -0.53),
+    "RoofStow": (0.0, 0.96, 0.85),
+    "RoofPivotL": (-0.66, 0.95, 0.69),
+    "RoofPivotR": (0.66, 0.95, 0.69),
+    "HeadlampL": (-0.63, 0.83, -1.91),
+    "HeadlampR": (0.63, 0.83, -1.91),
+    "TaillampL": (-0.65, 0.80, 2.12),
+    "TaillampR": (0.65, 0.80, 2.12),
+    "AudioMotor": (0.0, 0.44, 1.27),
+}
+PALETTE = {
+    "VesperPetrolBlue": ((0.020, 0.134, 0.160), 0.66, 0.24),
+    "VesperCopper": ((0.48, 0.235, 0.085), 0.72, 0.31),
+    "DarkComposite": ((0.021, 0.027, 0.032), 0.10, 0.64),
+    "SoftTopStowed": ((0.044, 0.047, 0.057), 0.0, 0.93),
+    "CabinLeather": ((0.095, 0.107, 0.124), 0.0, 0.79),
+    "SatinAlloy": ((0.45, 0.51, 0.54), 0.89, 0.30),
+    "TireRubber": ((0.016, 0.018, 0.021), 0.0, 0.94),
+    "BrakeRotor": ((0.35, 0.38, 0.41), 0.86, 0.50),
+    "BrakeCaliper": ((0.56, 0.20, 0.050), 0.48, 0.41),
+    "Glazing": ((0.12, 0.24, 0.27), 0.0, 0.11),
+    "LightWhite": ((0.67, 0.85, 0.94), 0.0, 0.17),
+    "LightRed": ((0.51, 0.035, 0.045), 0.0, 0.16),
+}
+MATERIALS = {}
+ACTIVE_COLLECTION = None
+
+
+def collection(name):
+    result=bpy.data.collections.new(name)
+    bpy.context.scene.collection.children.link(result)
+    return result
+
+
+def material(name, rgb, metal=0.0, rough=0.5, alpha=1.0):
+    m=bpy.data.materials.new(name)
+    m.diffuse_color=(*rgb, alpha)
+    m.use_nodes=True
+    bsdf=next(n for n in m.node_tree.nodes if n.type=="BSDF_PRINCIPLED")
+    bsdf.inputs["Base Color"].default_value=(*rgb,alpha)
+    bsdf.inputs["Metallic"].default_value=metal
+    bsdf.inputs["Roughness"].default_value=rough
+    bsdf.inputs["Alpha"].default_value=alpha
+    if metal>0.1 and "Coat Weight" in bsdf.inputs and name=="VesperPetrolBlue":
+        bsdf.inputs["Coat Weight"].default_value=0.48
+        bsdf.inputs["Coat Roughness"].default_value=0.14
+    if alpha < 1:
+        if hasattr(m,"surface_render_method"):
+            m.surface_render_method="DITHERED"
+        elif hasattr(m,"blend_method"):
+            m.blend_method="BLEND"
+    if name in ("LightWhite","LightRed"):
+        key="Emission Color" if "Emission Color" in bsdf.inputs else "Emission"
+        if key in bsdf.inputs:
+            bsdf.inputs[key].default_value=(*rgb,1)
+        if "Emission Strength" in bsdf.inputs:
+            bsdf.inputs["Emission Strength"].default_value=0.5
+    return m
+
+
+def attach(obj, name, mat, col=None):
+    col=col or ACTIVE_COLLECTION
+    obj.name=name
+    for orig in list(obj.users_collection):
+        orig.objects.unlink(obj)
+    col.objects.link(obj)
+    if mat is not None:
+        obj.data.materials.append(MATERIALS[mat])
+    return obj
+
+
+def mesh(name, verts, faces, mat, col=None, smooth=True):
+    data=bpy.data.meshes.new(name)
+    data.from_pydata([tuple(v) for v in verts],[],[tuple(f) for f in faces])
+    data.update()
+    obj=bpy.data.objects.new(name,data)
+    (col or ACTIVE_COLLECTION).objects.link(obj)
+    obj.data.materials.append(MATERIALS[mat])
+    for poly in data.polygons:
+        poly.use_smooth=smooth
+    # Reproducible provisional UV coordinates; not a production bake atlas.
+    layer=data.uv_layers.new(name="UVMap")
+    for p in data.polygons:
+        for loop_idx in p.loop_indices:
+            v=data.vertices[data.loops[loop_idx].vertex_index].co
+            layer.data[loop_idx].uv=((v.x+1.25)/2.5,(v.z+2.4)/4.8)
+    return obj
+
+
+def box(name, loc, dims, mat, bevel=0.0, high=False):
+    bpy.ops.mesh.primitive_cube_add(size=1, location=loc)
+    obj=attach(bpy.context.object,name,mat)
+    obj.scale=dims
+    bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
+    if bevel:
+        modifier=obj.modifiers.new("Engineered edge radii","BEVEL")
+        modifier.width=bevel
+        modifier.segments=4 if high else 2
+        modifier.affect="EDGES" if hasattr(modifier,"affect") else None
+        smooth=obj.modifiers.new("Weighted corner normals","WEIGHTED_NORMAL")
+        smooth.keep_sharp=True
+    return obj
+
+
+def beam(name,a,b,radius,mat,high=False):
+    a,b=Vector(a),Vector(b)
+    direction=b-a
+    if direction.length<=0.0001: raise ValueError("beam endpoints must differ")
+    bpy.ops.mesh.primitive_cylinder_add(vertices=16 if high else 10,
+                                       radius=radius,depth=direction.length,
+                                       location=(a+b)*0.5)
+    obj=attach(bpy.context.object,name,mat)
+    obj.rotation_euler=direction.to_track_quat('Z','Y').to_euler()
+    return obj
+
+
+def ring(name, center, major, minor, mat, high=False, rotation=(0,0,0)):
+    bpy.ops.mesh.primitive_torus_add(major_segments=42 if high else 20,
+                                    minor_segments=12 if high else 7,
+                                    location=center,rotation=rotation,
+                                    major_radius=major,minor_radius=minor)
+    return attach(bpy.context.object,name,mat)
+
+
+def socket(name,location):
+    ob=bpy.data.objects.new(name,None)
+    ob.empty_display_type='ARROWS'
+    ob.empty_display_size=.06
+    ob.location=location
+    ACTIVE_COLLECTION.objects.link(ob)
+    return ob
+
+
+def smooth_profile(z):
+    """Vehicle half-width, outer shoulder height; no reused R9 geometry."""
+    w=.83 + .045*math.exp(-((z+1.38)/.46)**2) + .06*math.exp(-((z-1.33)/.51)**2)
+    if z < -1.80: w -= .16 * min(1.0,(-1.80-z)/.38)
+    if z > 1.81: w -= .10 * min(1.0,(z-1.81)/.36)
+    if z<-.77:
+        height=.78 + .14*max(0.,min(1.,(z+2.14)/1.37))
+    elif z<.76: height=.915
+    else: height=.915-.128*max(0.,min(1.,(z-.76)/1.36))
+    return w,height
+
+
+def wheel_arch_y(z):
+    lower=.245
+    for axle in AXLES:
+        d=abs(z-axle)
+        if d<.445:
+            lower=max(lower,WHEEL_Y+math.sqrt(max(0,.445**2-d*d)))
+    return lower
+
+
+def panel(name,sign,z0,z1,steps,mat):
+    """Open-body vehicle flank with actual wheel-cutout lower boundary."""
+    verts=[];faces=[]
+    for i in range(steps+1):
+        z=z0+(z1-z0)*i/steps
+        width,upper=smooth_profile(z)
+        lower=min(wheel_arch_y(z),upper-.045)
+        for j in range(6):
+            t=j/5
+            y=lower+(upper-lower)*t
+            x=sign*(width*(.93+.066*math.sin(t*math.pi)))
+            verts.append((x,y,z))
+    for i in range(steps):
+        for j in range(5):
+            a=i*6+j; b=(i+1)*6+j
+            quad=(a,b,b+1,a+1)
+            faces.append(quad if sign<0 else quad[::-1])
+    return mesh(name,verts,faces,mat)
+
+
+def bezier_deck(name,z0,z1,front,back,center_bulge,detail,mat):
+    """A pair of original controlled cubic patches makes a mirror-safe skin."""
+    for side in (-1,1):
+        cage=[]
+        for i in range(4):
+            x0=0.0 if side>0 else -0.80
+            x1=0.80 if side>0 else 0.0
+            x=x0+(x1-x0)*i/3
+            row=[]
+            for j in range(4):
+                z=z0+(z1-z0)*j/3
+                t=j/3
+                y=front+(back-front)*t + center_bulge*(1-(x/.85)**2)
+                y+=.010*math.sin(math.pi*t)
+                row.append((x,y,z))
+            cage.append(tuple(row))
+        patch=tessellate(tuple(cage),detail,round(detail*1.6))
+        mesh(name+("_Right" if side>0 else "_Left"),
+             patch.positions,patch.triangles,mat)
+
+
+def lamp(name, x, z, y, mat, high=False, rear=False):
+    """Layered original linear lamp module (not a projected light system)."""
+    box(name+"_Bezel",(x,y,z),(.38,.055,.092), "DarkComposite", .014, high)
+    box(name+"_Lens",(x,y+.018,z-(0.05 if not rear else -0.05)),
+        (.32,.025,.020),mat,.009,high)
+    for i in range(3 if high else 2):
+        offset=(i-1)*.053 if high else (i-.5)*.08
+        box(name+"_Guide"+str(i),(x+offset,y+.022,z-(.062 if not rear else -.062)),
+            (.026,.014,.012),mat,.004,high)
+
+
+def tire_and_brake(name,sign,axle,high=False):
+    x=sign*WHEEL_X
+    at=(x,WHEEL_Y,axle)
+    ring(name+"_Tire",at,.285,.080,"TireRubber",high,(0,math.pi/2,0))
+    # Rotor, hub and rounded rim provide actual physical depth through spokes.
+    bpy.ops.mesh.primitive_cylinder_add(vertices=40 if high else 24,radius=.247,
+                                        depth=.025,location=(x-sign*.035,WHEEL_Y,axle),
+                                        rotation=(0,math.pi/2,0))
+    attach(bpy.context.object,name+"_Rotor","BrakeRotor")
+    bpy.ops.mesh.primitive_cylinder_add(vertices=32 if high else 20,radius=.095,
+                                        depth=.13,location=at,rotation=(0,math.pi/2,0))
+    attach(bpy.context.object,name+"_Hub","SatinAlloy")
+    count=8 if high else 6
+    for n in range(count):
+        t=2*math.pi*n/count
+        inner=(x+sign*.086,WHEEL_Y+.08*math.sin(t),axle+.08*math.cos(t))
+        outer=(x+sign*.086,WHEEL_Y+.247*math.sin(t),axle+.247*math.cos(t))
+        beam(name+"_Spoke"+str(n),inner,outer,.018 if high else .020,"SatinAlloy",high)
+    box(name+"_Caliper",(x-sign*.040,WHEEL_Y+.13,axle-.195),
+        (.105,.105,.100),"BrakeCaliper",.018,high)
+    # Sidewall grooves have controlled cost and are visible only in detail master.
+    if high:
+        for n in range(20):
+            t=2*math.pi*n/20
+            beam(name+"_Tread"+str(n),
+                 (x,WHEEL_Y+.335*math.sin(t),axle+.335*math.cos(t)),
+                 (x,WHEEL_Y+.354*math.sin(t),axle+.354*math.cos(t)),
+                 .006,"TireRubber")
+
+
+def build_geometry(col,high):
+    global ACTIVE_COLLECTION
+    ACTIVE_COLLECTION=col
+    span=60 if high else 25
+    for side,name in ((-1,"Left"),(1,"Right")):
+        panel("FrontWing"+name,side,-2.13,-.73,span,"VesperPetrolBlue")
+        panel("DoorSkin"+name,side,-.725,.69,span,"VesperPetrolBlue")
+        panel("RearQuarter"+name,side,.695,2.12,span,"VesperPetrolBlue")
+    bezier_deck("ForwardBonnet",-2.13,-.78,.785,.925,.060,24 if high else 10,"VesperPetrolBlue")
+    bezier_deck("RearTonneau",.71,2.10,.923,.788,.043,24 if high else 10,"VesperPetrolBlue")
+    # Front/rear fascia and sill structural components.
+    box("FrontCrashCover",(0,.48,-2.13),(1.52,.35,.12),"VesperPetrolBlue",.09,high)
+    box("FrontInlet",(0,.405,-2.203),(1.03,.105,.012),"DarkComposite",.030,high)
+    box("RearCrashCover",(0,.45,2.095),(1.65,.39,.12),"VesperPetrolBlue",.075,high)
+    box("RearVent",(0,.445,2.164),(1.28,.13,.022),"DarkComposite",.03,high)
+    box("Underbody",(0,.33,0),(1.55,.14,3.92),"DarkComposite",.05,high)
+    for side,name in ((-1,"L"),(1,"R")):
+        box("Sill"+name,(side*.77,.33,0.0),(.12,.10,1.53),"DarkComposite",.025,high)
+        box("DoorHandlePocket"+name,(side*.845,.862,-.17),
+            (.018,.035,.18),"DarkComposite",.008,high)
+        box("DoorHandle"+name,(side*.859,.866,-.17),
+            (.025,.016,.126),"VesperCopper",.005,high)
+        # Real forward aero blade, but no R9 body asset reuse.
+        box("FrontLowerBlade"+name,(side*.67,.340,-2.05),(.31,.031,.32),
+            "DarkComposite",.016,high)
+        lamp("HeadLamp"+name,side*.622,-1.93,.83,"LightWhite",high)
+        lamp("TailLamp"+name,side*.63,2.13,.786,"LightRed",high,rear=True)
+    # Cabin: actually open above its side rails, not a painted roof.
+    box("CabinTub",(0,.465,-.04),(1.46,.11,1.41),"DarkComposite",.065,high)
+    box("CabinBackBulkhead",(0,.72,.67),(1.46,.52,.065),"DarkComposite",.040,high)
+    box("Dashboard",(0,.855,-.68),(1.45,.205,.24),"DarkComposite",.055,high)
+    box("DigitalCluster",(-.405,.938,-.771),(.30,.085,.008),
+        "LightWhite",.012,high)
+    box("CenterConsole",(0,.61,.04),(.23,.19,1.12),"DarkComposite",.05,high)
+    box("ConsoleCopperSwitch",(0,.73,-.15),(.09,.024,.22),"VesperCopper",.015,high)
+    for side,name in ((-1,"L"),(1,"R")):
+        x=side*.397
+        box("SeatCushion"+name,(x,.570,.13),(.53,.155,.61),"CabinLeather",.075,high)
+        back=box("SeatBack"+name,(x,.824,.43),(.54,.52,.18),
+                 "CabinLeather",.082,high)
+        back.rotation_euler.x=-.11
+        box("SeatHeadrest"+name,(x,1.045,.505),(.31,.16,.13),
+            "CabinLeather",.050,high)
+        beam("RollHoopUp"+name,(x-.165,.94,.74),(x-.132,1.205,.72),
+             .027,"SatinAlloy",high)
+        beam("RollHoopCrown"+name,(x-.132,1.205,.72),(x+.132,1.205,.72),
+             .026,"SatinAlloy",high)
+        beam("RollHoopDown"+name,(x+.132,1.205,.72),(x+.165,.94,.74),
+             .027,"SatinAlloy",high)
+    # Windshield is a real four-corner transparent pane with separately authored frame.
+    corners=[(-.719,.954,-.823),(.719,.954,-.823),
+             (.630,1.310,-.512),(-.630,1.310,-.512)]
+    mesh("WindscreenPane",corners,[(0,1,2),(0,2,3)],"Glazing",smooth=False)
+    for i,j in [(0,3),(3,2),(2,1),(1,0)]:
+        beam("WindshieldFrame"+str(i),corners[i],corners[j],.022,
+             "SatinAlloy",high)
+    beam("WindshieldWiper",(-.46,.966,-.846),(.30,.987,-.838),.009,
+         "DarkComposite")
+    # Steering wheel's toroid remains visible, though not yet driving-animated.
+    ring("SteeringWheel",(-.398,.879,-.485),.121,.011,
+         "DarkComposite",high)
+    beam("SteeringColumn",(-.398,.865,-.487),(-.398,.842,-.600),
+         .018,"SatinAlloy",high)
+    # Soft top is physically stowed, without pretending an animated roof is implemented.
+    box("FoldedSoftTopCassette",(0,.925,.83),(1.23,.14,.31),
+        "SoftTopStowed",.055,high)
+    for sign,name in ((-1,"L"),(1,"R")):
+        for z,label in zip(AXLES,("F","R")):
+            tire_and_brake("Wheel"+label+name,sign,z,high)
+    for name,location in SOCKETS.items():
+        socket(name,location)
+
+
+def cameras_and_preview(preview_col):
+    global ACTIVE_COLLECTION
+    ACTIVE_COLLECTION=preview_col
+    ground=box("PreviewGround",(0,-.045,0),(200,.075,200),"DarkComposite",0)
+    # Render preview includes high-resolution *source* but not game LODs.
+    camera=bpy.data.cameras.new("PreviewCamera")
+    cam=bpy.data.objects.new("PreviewCamera",camera)
+    preview_col.objects.link(cam)
+    bpy.context.scene.camera=cam
+    scene=bpy.context.scene
+    scene.render.engine="BLENDER_WORKBENCH"
+    scene.render.resolution_x=1152
+    scene.render.resolution_y=720
+    scene.render.resolution_percentage=100
+    scene.render.image_settings.file_format="PNG"
+    scene.display.shading.light="STUDIO"
+    scene.display.shading.color_type="MATERIAL"
+    scene.display.shading.show_cavity=True
+    scene.display.shading.cavity_type="BOTH"
+    scene.display.shading.curvature_ridge_factor=1.2
+    scene.render.film_transparent=False
+    scene.camera.data.type="ORTHO"
+    scene.camera.data.ortho_scale=6.6
+    return cam
+
+
+def render_views(camera, output_dir):
+    shots={
+        "front_three_quarter":((5.7,3.3,-6.2),(0,.69,0)),
+        "rear_three_quarter":((-5.7,3.1,6.2),(0,.69,0)),
+        "profile":((6.0,2.5,.05),(0,.68,0)),
+        "open_cockpit":((3.8,6.6,-2.1),(0,.68,0)),
+    }
+    for name,(eye,target) in shots.items():
+        camera.location=eye
+        direction=Vector(target)-camera.location
+        camera.rotation_euler=direction.to_track_quat("-Z","Y").to_euler()
+        bpy.context.scene.render.filepath=str(output_dir/(name+".png"))
+        bpy.ops.render.render(write_still=True)
+
+
+def build(output_dir:Path,preview=True):
+    bpy.ops.object.select_all(action="SELECT")
+    bpy.ops.object.delete(use_global=False)
+    global MATERIALS
+    MATERIALS={name:material(name,*args) for name,args in PALETTE.items()}
+    high=collection("MASTER__DETAIL__NONSHIPPING")
+    low0=collection("GAME__LOD0")
+    low1=collection("GAME__LOD1")
+    build_geometry(high,True)
+    build_geometry(low0,False)
+    # LOD1 begins with the same semantic parts and reduces complexity through
+    # a decimation modifier for mesh-only components (do not modify socket empties).
+    build_geometry(low1,False)
+    for ob in low1.objects:
+        if ob.type=="MESH" and len(ob.data.polygons)>90:
+            mod=ob.modifiers.new("distant mesh reduction","DECIMATE")
+            mod.ratio=.55
+    output_dir.mkdir(parents=True,exist_ok=True)
+    bpy.ops.wm.save_as_mainfile(filepath=str(output_dir/"vesper_v2_master.blend"),compress=True)
+    def export(selected_col,filename):
+        bpy.ops.object.select_all(action="DESELECT")
+        for obj in selected_col.objects:
+            obj.select_set(True)
+        meshes=[ob for ob in selected_col.objects if ob.type=="MESH"]
+        if meshes:
+            bpy.context.view_layer.objects.active=meshes[0]
+        bpy.ops.export_scene.gltf(filepath=str(output_dir/filename),
+            export_format="GLB",use_selection=True,export_apply=True,
+            export_materials="EXPORT")
+    export(low0,"vesper_v2_lod0.glb")
+    export(low1,"vesper_v2_lod1.glb")
+    if preview:
+        preview_col=collection("OFFLINE_PREVIEW_ONLY")
+        camera=cameras_and_preview(preview_col)
+        low0.hide_render=True
+        low1.hide_render=True
+        high.hide_render=False
+        render_views(camera,output_dir)
+    manifest={
+        "id":"nightgrid.vesper_v2.original_roadster",
+        "status":"design_study_nonplayable_not_aaa_approved",
+        "source":"tools/vehicles/author_vesper_v2_blender.py",
+        "blender":bpy.app.version_string,
+        "unit":"metre","up":"+Y","forward":"-Z",
+        "dimensions":{"length_m":LENGTH,"width_m":WIDTH,
+                      "wheelbase_m":WHEELBASE},
+        "seat_count":2,"roof":"stowed_prototype_only",
+        "sockets":list(SOCKETS),
+        "files":{},
+        "evidence":"PNG files are offline Blender Workbench previews, NOT gameplay",
+        "licence":"all authored meshes original to NightGrid; no outside car assets",
+    }
+    for file in output_dir.iterdir():
+        if file.is_file() and file.name!="source.json":
+            manifest["files"][file.name]={
+                "sha256":hashlib.sha256(file.read_bytes()).hexdigest(),
+                "bytes":file.stat().st_size,
+            }
+    (output_dir/"source.json").write_text(
+        json.dumps(manifest,indent=2,sort_keys=True)+"\n",encoding="utf-8")
+    return manifest
+
+
+def main():
+    args=sys.argv[sys.argv.index("--")+1:] if "--" in sys.argv else []
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output-dir",required=True,type=Path)
+    parser.add_argument("--skip-preview",action="store_true")
+    opts=parser.parse_args(args)
+    print(json.dumps(build(opts.output_dir,not opts.skip_preview),indent=2))
+
+
+if __name__=="__main__":
+    main()
