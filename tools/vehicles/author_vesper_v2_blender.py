@@ -315,6 +315,64 @@ def tire_and_brake(name,sign,axle,high=False):
         (.105,.10,.090),"BrakeCaliper",.012,high)
 
 
+def sculpt_bucket_seat(name,x,high=False):
+    """Soft upholstered 3D cushions and bolsters, not stacked rigid cuboids."""
+    width_steps=16 if high else 9
+    length_steps=16 if high else 9
+    verts=[];faces=[]
+    stride=width_steps+1
+    for j in range(length_steps+1):
+        v=j/length_steps
+        z=-.175+.60*v
+        for i in range(width_steps+1):
+            u=-1+2*i/width_steps
+            side_bolster=.047*math.exp(-((abs(u)-.78)/.17)**2)
+            y=.555+.012*v+.023*u*u+side_bolster
+            verts.append((x+.255*u,y,z))
+    for j in range(length_steps):
+        for i in range(width_steps):
+            a=j*stride+i
+            faces.append((a,a+1,a+1+stride,a+stride))
+    mesh(name+"_CushionPadded",verts,faces,"CabinLeather")
+    box(name+"_CushionFrame",(x,.505,.12),(.51,.070,.60),
+        "DarkComposite",.015,high)
+    verts=[];faces=[]
+    for j in range(length_steps+1):
+        v=j/length_steps
+        y=.654+.425*v
+        extent=.255-.030*v
+        for i in range(width_steps+1):
+            u=-1+2*i/width_steps
+            # Two raised side bolsters and lumbar contour. This is a sculpted
+            # front-facing surface; rear structure stays separate.
+            bolster=.064*math.exp(-((abs(u)-.84)/.18)**2)
+            lumbar=.028*math.sin(math.pi*v)
+            z=.392+.096*v-.045*lumbar/.028 - bolster
+            verts.append((x+extent*u,y,z))
+    for j in range(length_steps):
+        for i in range(width_steps):
+            a=j*stride+i
+            faces.append((a,a+1,a+1+stride,a+stride))
+    mesh(name+"_BackrestSculpted",verts,faces,"CabinLeather")
+    box(name+"_BackrestFrame",(x,.863,.517),(.465,.415,.095),
+        "DarkComposite",.027,high)
+    box(name+"_Headrest",(x,1.092,.520),(.305,.128,.14),
+        "CabinLeather",.042,high)
+    # One copper seat-belt buckle, visible in roof-down views.
+    box(name+"_HarnessCatch",(x-.235,.626,.284),(.029,.058,.033),
+        "VesperCopper",.006,high)
+
+
+def laminated_windscreen(corners,thickness=.010):
+    """A sided glazing volume that can be reliably inspected in a 360 view."""
+    verts=list(corners)+[(x,y,z+thickness) for x,y,z in corners]
+    faces=[(0,1,2,3),(7,6,5,4)]
+    for i in range(4):
+        j=(i+1)%4
+        faces.append((i,j,j+4,i+4))
+    return mesh("WindscreenLaminated",verts,faces,"Glazing",smooth=False)
+
+
 def build_geometry(col,high,socket_prefix=''):
     global ACTIVE_COLLECTION
     ACTIVE_COLLECTION=col
@@ -369,12 +427,7 @@ def build_geometry(col,high,socket_prefix=''):
     box("ConsoleCopperSwitch",(0,.73,-.15),(.09,.024,.22),"VesperCopper",.015,high)
     for side,name in ((-1,"L"),(1,"R")):
         x=side*.397
-        box("SeatCushion"+name,(x,.570,.13),(.53,.155,.61),"CabinLeather",.075,high)
-        back=box("SeatBack"+name,(x,.824,.43),(.54,.52,.18),
-                 "CabinLeather",.082,high)
-        back.rotation_euler.x=-.11
-        box("SeatHeadrest"+name,(x,1.045,.505),(.31,.16,.13),
-            "CabinLeather",.050,high)
+        sculpt_bucket_seat("Seat"+name,x,high)
         beam("RollHoopUp"+name,(x-.165,.94,.74),(x-.132,1.205,.72),
              .027,"SatinAlloy",high)
         beam("RollHoopCrown"+name,(x-.132,1.205,.72),(x+.132,1.205,.72),
@@ -384,7 +437,7 @@ def build_geometry(col,high,socket_prefix=''):
     # Windshield is a real four-corner transparent pane with separately authored frame.
     corners=[(-.719,.954,-.823),(.719,.954,-.823),
              (.630,1.310,-.512),(-.630,1.310,-.512)]
-    mesh("WindscreenPane",corners,[(0,1,2),(0,2,3)],"Glazing",smooth=False)
+    laminated_windscreen(corners)
     for i,j in [(0,3),(3,2),(2,1),(1,0)]:
         beam("WindshieldFrame"+str(i),corners[i],corners[j],.022,
              "SatinAlloy",high)
@@ -453,7 +506,8 @@ def build(output_dir:Path,preview=True):
     bpy.ops.object.select_all(action="SELECT")
     bpy.ops.object.delete(use_global=False)
     global MATERIALS
-    MATERIALS={name:material(name,*args) for name,args in PALETTE.items()}
+    MATERIALS={name:material(name,*args,alpha=.22 if name=="Glazing" else 1.0)
+               for name,args in PALETTE.items()}
     high=collection("MASTER__DETAIL__NONSHIPPING")
     low0=collection("GAME__LOD0")
     low1=collection("GAME__LOD1")
