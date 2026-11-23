@@ -1,0 +1,45 @@
+name: Vehicle Forge asset validation
+on:
+  pull_request:
+    paths:
+      - 'tools/vehicles/**'
+      - 'tests/test_vehicle_asset_gate.py'
+      - '.github/workflows/vehicle-asset-forge.yml'
+  workflow_dispatch:
+
+jobs:
+  validate-python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest discover -s tests -p 'test_vehicle_asset_gate.py' -v
+      - run: python -m compileall -q tools/vehicles
+
+  blender-candidate:
+    runs-on: ubuntu-latest
+    needs: validate-python
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Blender for offline DCC verification
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y blender
+      - name: Build original editable master and low-poly candidate
+        run: |
+          blender --background --python tools/vehicles/author_r9_optic_blender.py -- --output-dir out/r9-optic
+      - name: Validate exported GLB, topology and sockets
+        run: |
+          python3 tools/vehicles/validate_gltf.py out/r9-optic/r9_optic_game.glb \
+            --max-triangles 5000 \
+            --require-node SocketHeadlampMount \
+            --require-node SocketHeadlampBeam \
+            --require-node SocketIndicator \
+            --manifest out/r9-optic/source.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cinder-r9-optical-module-review
+          path: out/r9-optic/
+          retention-days: 14
