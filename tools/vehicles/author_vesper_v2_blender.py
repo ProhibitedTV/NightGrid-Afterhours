@@ -136,7 +136,9 @@ def box(name, loc, dims, mat, bevel=0.0, high=False):
     bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
     if bevel:
         modifier=obj.modifiers.new("Engineered edge radii","BEVEL")
-        modifier.width=bevel
+        # A bevel larger than thin-panel thickness creates subpixel sliver
+        # triangles and malformed glTF. Bound radii by the narrowest dimension.
+        modifier.width=min(bevel, min(dims)*0.16)
         modifier.segments=4 if high else 2
         if hasattr(modifier,"affect"):
             modifier.affect="EDGES"
