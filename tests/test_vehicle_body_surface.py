@@ -97,6 +97,15 @@ class TestVehicleBodySurface(unittest.TestCase):
             self.assertGreater(result["faces"],10)
             self.assertGreater(result["vertices"],10)
 
+    def test_wheel_liner_outer_rim_follows_flank(self):
+        for axle in AXLES:
+            for side in (-1,1):
+                liner=wheel_liner(axle,side,48)
+                for x,y,z in liner.positions[::2]:
+                    width,_=width_shoulder(z)
+                    self.assertAlmostEqual(x,side*width*.945,places=7)
+                    self.assertAlmostEqual(y,arch_lower_boundary(z),places=7)
+
     def test_tire_is_closed_and_not_a_thin_torus(self):
         t=tire_cross_section(AXLES[0],-.805,32)
         # Every edge of an indexed tire surface belongs to exactly two faces.
