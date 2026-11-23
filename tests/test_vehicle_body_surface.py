@@ -85,6 +85,36 @@ class TestVehicleBodySurface(unittest.TestCase):
             self.assertAlmostEqual(surface.positions[-25][0],-w,places=6)
             self.assertAlmostEqual(surface.positions[-1][0],w,places=6)
 
+    @staticmethod
+    def _face_normal(shell, face):
+        a,b,c=[shell.positions[idx] for idx in face[:3]]
+        u=[b[i]-a[i] for i in range(3)]
+        v=[c[i]-a[i] for i in range(3)]
+        return (u[1]*v[2]-u[2]*v[1],
+                u[2]*v[0]-u[0]*v[2],
+                u[0]*v[1]-u[1]*v[0])
+
+    def test_major_exterior_surface_winding_faces_out(self):
+        # Godot single-sided PBR shading requires a bonnet facing +Y, front
+        # bumper -Z, and rear bumper +Z. Imported two-sided mesh would hide it.
+        bonnet=top_panel(-2.18,-.78,16,36)
+        self.assertGreater(self._face_normal(bonnet,bonnet.faces[8])[1],0)
+        front=fascia(True,24,8)
+        rear=fascia(False,24,8)
+        self.assertLess(self._face_normal(front,front.faces[30])[2],0)
+        self.assertGreater(self._face_normal(rear,rear.faces[30])[2],0)
+
+    def test_shoulders_have_no_self_folding_width(self):
+        for side in (-1,1):
+            mesh=side_panel(-2.18,-.78,side,32,12)
+            for i in range(33):
+                columns=mesh.positions[i*13:(i+1)*13]
+                scaled=[x*side for x,_,_ in columns]
+                self.assertTrue(all(b>a for a,b in zip(scaled,scaled[1:])),
+                                "shoulder reverses near the upper body crease")
+            outward=self._face_normal(mesh,mesh.faces[20])
+            self.assertGreater(outward[0]*side,0)
+
     def test_invalid_external_station_rejected(self):
         with self.assertRaisesRegex(ValueError,"station"):
             width_shoulder(3.0)
