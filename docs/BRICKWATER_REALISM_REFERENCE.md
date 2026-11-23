@@ -12,7 +12,7 @@ This pass keeps the existing walk-in Night Shift Repairs, Jade Laundry, route, p
 
 The one opaque concrete shader retains its original photographic color, roughness and normal sources, and adds joints, irregular catchments and low-amplitude ripple normals. For the two neon signs, a view-dependent ray reaches their modeled emitter planes and samples masks made from the same tube paths. The wet film uses that source contribution only where water can reflect it and while the sign is lit. The existing screenshot and runtime SSR settings still control scene-wide screen-space reflections.
 
-The implementation adds neither a general reflection pass nor another render camera. The source-only sign approximation does not trace moving occluders. Far-street storefront detail, greater architectural depth above and beyond the alley, and believable activity at its mouth remain the largest visible gaps. [Sign asset source and hashes](../assets/models/nightgrid/brickwater_alley/NEON_SOURCE.json) · [Original authoring script](../tools/author_brickwater_neon.py) · [Existing CC0 source catalog](BRICKWATER_CC0_INTAKE.md).
+The source-only sign approximation uses the existing pavement shader and does not trace moving occluders. From a shallow angle, the inherited sky reflection still gives some pools a pale fill. Far-street storefront detail, greater architectural depth above and beyond the alley, and activity at its mouth remain the largest visible gaps. [Sign asset source and hashes](../assets/models/nightgrid/brickwater_alley/NEON_SOURCE.json) · [Original authoring script](../tools/author_brickwater_neon.py) · [Existing CC0 source catalog](BRICKWATER_CC0_INTAKE.md).
 
 ## Matched Windows scenes
 
@@ -34,6 +34,10 @@ Both walking passes on the art revision covered 44.59 m with Living Streets enab
 | Repeat walk | 10.61 | 13.64 | 14.55 | 16.67 | 0 | 0 | 5.53 |
 
 The fixed night view recorded 8.29 ms wall-clock p99 across 180 samples. The first walk still had transient outliers. The original revision lost focus during both walks, so its raw timings are retained for diagnosis and excluded from the performance comparison. [Capture metadata](playtest/brickwater-realism/native-metadata.json) · [F8 and renderer traces](playtest/brickwater-realism/windows-walking-traces.zip).
+
+## Build verification
+
+All 74 Godot regression scripts passed from a clean archive of `d4ed0ba`, including the Brickwater alley, enterable shop and occupied collision streaming. The 90-frame headless boot and Windows release export passed. The exported EXE started under Forward+/Vulkan on the RTX 3060, and the Brickwater alley regression passed against the exported PCK. The original sign meshes, binary data and emitter masks match all six source hashes after normalizing the glTF text to LF.
 
 To repeat, set `NIGHTGRID_ALLEY_CAPTURE_DIR` to a fresh absolute directory and set `NIGHTGRID_SOURCE_REVISION` to the revision in use.
 

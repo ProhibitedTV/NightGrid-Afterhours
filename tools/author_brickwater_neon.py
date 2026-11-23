@@ -137,7 +137,13 @@ def main():
         "source": "tools/author_brickwater_neon.py",
         "license": "Original modeled signage and lettering. Shared steel photographs are Poly Haven CC0.",
         "photo_source": "https://polyhaven.com/a/blue_metal_plate",
-        "sha256": {file.name: hashlib.sha256(file.read_bytes()).hexdigest() for file in files},
+        "gltf_hash_format": "UTF-8 with LF line endings",
+        "sha256": {
+            file.name: hashlib.sha256(
+                file.read_text(encoding="utf-8").encode("utf-8") if file.suffix == ".gltf" else file.read_bytes()
+            ).hexdigest()
+            for file in files
+        },
     }
     (OUT / "NEON_SOURCE.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
 
