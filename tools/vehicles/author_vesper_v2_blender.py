@@ -277,7 +277,7 @@ def tire_and_brake(name,sign,axle,high=False):
                  .006,"TireRubber")
 
 
-def build_geometry(col,high):
+def build_geometry(col,high,socket_prefix=''):
     global ACTIVE_COLLECTION
     ACTIVE_COLLECTION=col
     span=60 if high else 25
@@ -347,7 +347,7 @@ def build_geometry(col,high):
         for z,label in zip(AXLES,("F","R")):
             tire_and_brake("Wheel"+label+name,sign,z,high)
     for name,location in SOCKETS.items():
-        socket(name,location)
+        socket(socket_prefix+name,location)
 
 
 def cameras_and_preview(preview_col):
@@ -402,11 +402,11 @@ def build(output_dir:Path,preview=True):
     high=collection("MASTER__DETAIL__NONSHIPPING")
     low0=collection("GAME__LOD0")
     low1=collection("GAME__LOD1")
-    build_geometry(high,True)
+    build_geometry(high,True,'MASTER_')
     build_geometry(low0,False)
     # LOD1 begins with the same semantic parts and reduces complexity through
     # a decimation modifier for mesh-only components (do not modify socket empties).
-    build_geometry(low1,False)
+    build_geometry(low1,False,'LOD1_')
     # Authoring geometry and sockets use NightGrid (+Y up, -Z forward);
     # Blender uses native +Z up. Rotate +90deg about X BEFORE saving/export.
     # The Blender glTF exporter converts this native basis to glTF +Y up,
@@ -432,6 +432,11 @@ def build(output_dir:Path,preview=True):
             export_format="GLB",use_selection=True,export_apply=True,
             export_materials="EXPORT")
     export(low0,"vesper_v2_lod0.glb")
+    # Blender enforces globally unique object names. Export each independent
+    # LOD with the *same exact Godot socket contract*, never suffixed .001.
+    for socket_name in SOCKETS:
+        low0.objects["" + socket_name].name="LOD0_"+socket_name
+        low1.objects["LOD1_"+socket_name].name=socket_name
     export(low1,"vesper_v2_lod1.glb")
     if preview:
         preview_col=collection("OFFLINE_PREVIEW_ONLY")
