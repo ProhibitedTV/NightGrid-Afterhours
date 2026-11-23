@@ -42,3 +42,22 @@ Generated files: vesper_v2_master.blend, vesper_v2_lod0.glb, vesper_v2_lod1.glb,
 4. Next: real high-to-low bake/UV atlas under #231, then native screenshots, collision/door motion/roof clearance and performance evaluation under #232/#233.
 
 Current first goal is modest and honest: **Can Vehicle Forge create a complete, original, editable car body and detailed component set that looks coherent from 360 degrees?**
+## Automotive body surfacing refinement — 2026-11-23
+
+The first full vehicle was an engineering blockout (11,118 triangles LOD0, 9,231 LOD1). The subsequent authored sculpt pass tackles visible prototype defects rather than trying to purchase a human model:
+
+- **Unified source geometry:** `tools/vehicles/vehicle_body_surface.py` defines original C1 Hermite body stations (width + shoulder elevation) shared by front bonnet, rear tonneau, flank panels and both fascia caps. A finite-difference tangent check tests across station boundaries; this is a **C1 numeric design check, not certified Class-A/G2**.
+- **One-piece full-width hood/deck:** replaced independent half patches with matching-edge sheet geometry, camber, subtle stamped creases and tonneau bulges which taper to zero at side seams.
+- **Wheel cutouts:** smooth rising lip boundary with realistic tire crown clearance, black inner-arch geometry and distinctly modeled sidewall/tread/bead tires rather than an exposed primitive torus.
+- **Manufactured fascia:** full-width curved shell follows the same body shoulder and central camber. The original giant crash-cover boxes have been retired, front inlet and rear ventilation geometry is inset, and shared-silhouette seam tests prevent the black full-width gap originally visible beneath the hood.
+- **Headlamp engineering:** fitted oval rubber seal, reflective dish, curved polycarbonate lens, internal projector elements and narrow perimeter daytime-running guide; rear lamp is mounted against the tail fascia. These remain artistic geometry only; light projectors are not gameplay-integrated.
+- **Cockpit:** soft upholstered bucket cushion/backrest surface meshes, seat-belt catch, frame, laminated transparent windscreen instead of a single opaque plane; retained seat/hinge/roof socket contracts.
+- **Verification:** `tests/test_vehicle_body_surface.py` checks C1 station jumps, body-to-fender caps, front/rear fascia continuity, tire closure, wheel clearance, all finite/nondegenerate geometry and invalid station inputs. Existing strict GLB validator and headless Blender pipeline remain mandatory.
+
+The first surfacing + detailed optics build **passed** [Actions run 45280774518](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/runs/45280774518), and the subsequent seat/glazing pass passed [Actions run 45280956174](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/runs/45280956174). The newest seam-alignment and expanded test changes are undergoing revalidation; do not infer their success from earlier build results.
+
+### Remaining quality blockers
+The current generated car remains an **early sculpt study**, not an AAA production vehicle. In particular it still lacks: individually authored inner headlamp optics and true clearcoat/normal/roughness texture sets, deliberate lower-LOD retopology and high→low baked maps, precise sealed door thickness and window lift mechanisms, functioning convertible linkage, exposed chassis/cabin mechanical design, real in-Godot materials and lighting, and native city driving/traffic frame-time evidence. Maintain the distinction between Blender preview imagery and Godot gameplay screenshots.
+
+### Artistic next review
+Compare the original four-view shot (Nov 23), the first body-surface candidate and latest corrected source at identical Workbench camera angles. **Approve based on actual highlight flow and panel fit, not polygon count.** Only after acceptance proceed to UV/baking/material review and isolated native Godot scene (#231–#233). Avoid fetching external car model packs or equating polished lighting with accurate geometry.
