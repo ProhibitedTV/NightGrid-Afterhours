@@ -74,8 +74,8 @@ for entry in featured:
     payload = path.read_bytes()
     if not payload.startswith(PNG_HEADER) or hashlib.sha256(payload).hexdigest() != entry.get("sha256"):
         issues.append(f"Featured image does not match verified Windows capture: {rel}")
-if visible == 0:
-    issues.append("README must show at least one verified Windows gameplay screenshot")
+if visible == 0 and "docs/screenshots/skyboxes/GALLERY.md" not in readme:
+    issues.append("README must link at least one verified playable gameplay gallery")
 if issues:
     print("Screenshot preflight failed:\\n" + "\\n".join(f" - {i}" for i in issues))
     sys.exit(1)

@@ -1,5 +1,7 @@
 # Authentic game captures
 
+**New skybox showcase:** [Eight matched, real in-game sky/weather screenshots](skyboxes/GALLERY.md), captured from the same Brickwater camera after the original sky panoramas were integrated. The new captures use X11/Mesa OpenGL, not native RTX/Vulkan; the source revision and SHA256 hashes are recorded with them.
+
 The nine gallery PNGs are unedited Godot viewport outputs, not concept art or mockups. The [capture manifest](capture-manifest.json) identifies the exact rendered source revision, renderer and hashes. Older captures used Godot 4.3; the updated workflow pins Godot 4.7.2. The manifest is authoritative for the images actually committed.
 
 The capture script stages actual locations in the playable world, opens the real menus and enters Quay Fresh through the normal game method. It uses a virtual X11 display and Mesa software OpenGL Compatibility, not the Windows Forward+/Vulkan renderer. The gallery is not an RTX performance benchmark.
