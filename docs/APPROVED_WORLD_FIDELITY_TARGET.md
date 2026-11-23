@@ -10,6 +10,8 @@
 
 Original art and original fictional city. Contemporary open-world production values are a **fidelity benchmark**, not permission to reuse the identity, assets, names, UI or locations from GTA VI or any other game.
 
+The November 22 Brickwater night reference gives the service alley its own [location-specific visual target and native comparison](BRICKWATER_REALISM_REFERENCE.md).
+
 The user expressly rejected the earlier appearance of detached block-like buildings, rectangle characters, strangely proportioned vehicles, excessive procedural sameness and a cartoonish city. **Do not treat small decorative primitive additions or a passing Godot headless test as progress toward this art goal.** A cinematic reference image is *not* an in-engine achievement and is never to be shown as game footage.
 
 ### What makes the approved image compelling
