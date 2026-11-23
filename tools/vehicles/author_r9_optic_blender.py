@@ -16,6 +16,10 @@ import math
 from pathlib import Path
 import sys
 
+# Blender's --python invocation does not guarantee the recipe directory in sys.path.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from bezier_surface import tessellate
+
 try:
     import bpy
 except ImportError:
@@ -212,10 +216,19 @@ def build(output_dir: Path) -> dict:
       'lens':_material('R9OpticalPolycarbonate',(.22,.27,.32),.03,.09,.24),
       'reflector':_material('R9ReflectorMetal',(.56,.61,.68),.89,.12),
       'guide':_material('R9OriginalGuide',(0.65,.75,.9),.0,.22,1,(.35,.70,1.0)),
+      'study_paint':_material('R9OriginalPaintControlStudy',(.38,.019,.045),.62,.27),
     }
     high=_collection('MASTER__HIGH_POLY__NOT_EXPORTED')
     low=_collection('GAME__LOW_POLY')
     _build_lod(high,True,mats)
+    # Non-shipping bonnet/fender sculpt study: smooth cubic control cage, not a
+    # substitute for creator-approved full-size R9 panel fit or UV bake.
+    cage=tuple(tuple((-.38 + .76*i/3,
+                      .14 + .028*(1-(2*i/3-1)**2) - .025*j/3,
+                      .08 + .33*j/3) for j in range(4)) for i in range(4))
+    sculpt=tessellate(cage,12,18)
+    _mesh('High_BonnetSurfaceControlStudy',sculpt.positions,sculpt.triangles,
+          mats['study_paint'],high)
     _build_lod(low,False,mats)
     output_dir.mkdir(parents=True,exist_ok=True)
     source=output_dir/'r9_optic_master.blend'
@@ -236,6 +249,7 @@ def build(output_dir: Path) -> dict:
         'unit':'metre','up':'+Y','forward':'-Z',
         'blender':bpy.app.version_string,
         'sockets':list(SOCKETS),
+        'master_only_studies':['High_BonnetSurfaceControlStudy'],
         'files':{},
     }
     for file in (source,exported):
