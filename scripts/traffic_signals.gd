@@ -11,15 +11,16 @@ const LANE_OFFSET = 3.25
 const ARM_Y = 6.9
 const HEAD_Y = 6.28
 const StreamProfile = preload("res://scripts/streaming_profile.gd")
+const COLORS = ["RED", "YELLOW", "GREEN"]
 var elapsed := 0.0
-var _heads: Array[Dictionary] = []
+var _active_lens_groups: Dictionary = {}
+var _render_tiles: Dictionary = {}
+var _phase_states: Dictionary = {}
 var _visual_tick := 0.0
 var _lamps: Dictionary = {}
 var _steel := StandardMaterial3D.new()
 var _casing := BoxMesh.new()
 var _lens := CylinderMesh.new()
-var _mounts := MultiMesh.new()
-var _mount_transforms: Array[Transform3D] = []
 
 func _ready() -> void:
 	_steel.albedo_color = Color("566773")
@@ -47,18 +48,7 @@ func _ready() -> void:
 				continue
 			for side in [-1.0, 1.0]:
 				_make_mast(ix, iz, side)
-	var tube := BoxMesh.new()
-	_mounts.transform_format = MultiMesh.TRANSFORM_3D
-	_mounts.mesh = tube
-	_mounts.instance_count = _mount_transforms.size()
-	for index in range(_mount_transforms.size()):
-		_mounts.set_instance_transform(index, _mount_transforms[index])
-	_mount_transforms.clear()
-	var supports := MultiMeshInstance3D.new()
-	supports.name = "SignalMastsAndArms"
-	supports.multimesh = _mounts
-	supports.material_override = _steel
-	add_child(supports)
+	_install_signal_visuals()
 	_refresh()
 
 func _process(delta: float) -> void:
@@ -118,21 +108,25 @@ func _make_mast(ix: int, iz: int, side: float) -> void:
 	mast.name = "SignalMast_%d_%d_%d" % [ix, iz, int(side)]
 	mast.position = at
 	add_child(mast)
+	var tile := Vector2i(floori(float(ix + 4) / 3.0), floori(float(iz + 4) / 3.0))
+	if not _render_tiles.has(tile):
+		_render_tiles[tile] = {"supports": [], "casings": [], "lenses": {}}
+	var batch: Dictionary = _render_tiles[tile]
 	var ns := junction + Vector3(-side * LANE_OFFSET, HEAD_Y, side * MAST_OFFSET)
 	var ew := junction + Vector3(side * MAST_OFFSET, HEAD_Y, side * LANE_OFFSET)
 	var top := at + Vector3.UP * ARM_Y
 	for center in [ns, ew]:
 		var arm_end := Vector3(center.x, ARM_Y, center.z)
 		var span: Vector3 = (top - arm_end).abs()
-		_install_mast_member(mast, (top + arm_end) * 0.5, span + Vector3(0.16, 0.21, 0.16))
-		_install_mast_member(mast, arm_end - Vector3.UP * 0.09, Vector3(0.12, 0.28, 0.12))
-	_install_mast_member(mast, at + Vector3.UP * 0.25, Vector3(0.44, 0.22, 0.44))
-	_install_mast_member(mast, at + Vector3.UP * 3.51, Vector3(0.27, ARM_Y - 0.12, 0.27))
-	_make_head(mast, ix, iz, "NS", ns - at, Vector3(0.0, 0.0, -side))
-	_make_head(mast, ix, iz, "EW", ew - at, Vector3(-side, 0.0, 0.0))
+		_install_mast_member(mast, batch["supports"], (top + arm_end) * 0.5, span + Vector3(0.16, 0.21, 0.16))
+		_install_mast_member(mast, batch["supports"], arm_end - Vector3.UP * 0.09, Vector3(0.12, 0.28, 0.12))
+	_install_mast_member(mast, batch["supports"], at + Vector3.UP * 0.25, Vector3(0.44, 0.22, 0.44))
+	_install_mast_member(mast, batch["supports"], at + Vector3.UP * 3.51, Vector3(0.27, ARM_Y - 0.12, 0.27))
+	_make_head(mast, batch, ix + iz, "NS", ns - at, Vector3(0.0, 0.0, -side))
+	_make_head(mast, batch, ix + iz, "EW", ew - at, Vector3(-side, 0.0, 0.0))
 
-func _install_mast_member(mast: StaticBody3D, at: Vector3, dimensions: Vector3) -> void:
-	_mount_transforms.append(Transform3D(Basis.from_scale(dimensions), at))
+func _install_mast_member(mast: StaticBody3D, transforms: Array, at: Vector3, dimensions: Vector3) -> void:
+	transforms.append(Transform3D(Basis.from_scale(dimensions), at))
 	_mast_collider(mast, at - mast.position, dimensions)
 
 func _mast_collider(mast: StaticBody3D, local_at: Vector3, dimensions: Vector3, turn: float = 0.0) -> void:
@@ -144,35 +138,65 @@ func _mast_collider(mast: StaticBody3D, local_at: Vector3, dimensions: Vector3, 
 	collider.shape = shape
 	mast.add_child(collider)
 
-func _make_head(mast: StaticBody3D, ix: int, iz: int, axis: String,
+func _make_head(mast: StaticBody3D, batch: Dictionary, offset_key: int, axis: String,
 		at: Vector3, facing: Vector3) -> void:
 	var node := Node3D.new()
 	node.name = axis
 	node.position = at
 	node.rotation.y = atan2(facing.x, facing.z)
 	mast.add_child(node)
-	var casing := MeshInstance3D.new()
-	casing.mesh = _casing
-	casing.material_override = _lamps["OFF"]
-	node.add_child(casing)
+	var pose := mast.transform * node.transform
+	batch["casings"].append(pose)
 	_mast_collider(mast, at, _casing.size, node.rotation.y)
-	var bulbs := {}
-	for color_name in ["RED", "YELLOW", "GREEN"]:
-		var bulb := MeshInstance3D.new()
-		bulb.mesh = _lens
-		bulb.rotation.x = PI * 0.5
-		bulb.position = Vector3(0.0, {"RED": 0.31, "YELLOW": 0.0, "GREEN": -0.31}[color_name], 0.16)
-		bulb.material_override = _lamps["OFF"]
-		node.add_child(bulb)
-		bulbs[color_name] = bulb
-	_heads.append({"ix": ix, "iz": iz, "axis": axis, "bulbs": bulbs, "state": ""})
+	var phase_key := Vector2i(offset_key, 0 if axis == "NS" else 1)
+	if not batch["lenses"].has(phase_key):
+		batch["lenses"][phase_key] = [[], [], []]
+	var lens_rotation := Basis(Vector3.RIGHT, PI * 0.5)
+	for index in range(COLORS.size()):
+		batch["lenses"][phase_key][index].append(
+			pose * Transform3D(lens_rotation, Vector3(0.0, 0.31 * (1 - index), 0.16)))
+
+func _install_signal_visuals() -> void:
+	var tube := BoxMesh.new()
+	for tile in _render_tiles:
+		var batch: Dictionary = _render_tiles[tile]
+		var sector := Node3D.new()
+		sector.name = "SignalVisualTile_%d_%d" % [tile.x, tile.y]
+		add_child(sector)
+		_instance_batch(sector, tube, batch["supports"], _steel)
+		_instance_batch(sector, _casing, batch["casings"], _lamps["OFF"])
+		for phase_key in batch["lenses"]:
+			if not _active_lens_groups.has(phase_key):
+				_active_lens_groups[phase_key] = [[], [], []]
+			for index in range(COLORS.size()):
+				var bulbs := _instance_batch(sector, _lens, batch["lenses"][phase_key][index], _lamps["OFF"])
+				_active_lens_groups[phase_key][index].append(bulbs)
+	_render_tiles.clear()
+
+func _instance_batch(parent: Node3D, mesh: Mesh, transforms: Array, material: Material) -> MultiMeshInstance3D:
+	var multimesh := MultiMesh.new()
+	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.mesh = mesh
+	multimesh.instance_count = transforms.size()
+	for index in range(transforms.size()):
+		multimesh.set_instance_transform(index, transforms[index])
+	var batch := MultiMeshInstance3D.new()
+	batch.multimesh = multimesh
+	batch.material_override = material
+	parent.add_child(batch)
+	return batch
 
 func _refresh() -> void:
-	for head in _heads:
-		var state := phase_at(int(head["ix"]), int(head["iz"]), str(head["axis"]))
-		if state == head["state"]:
+	for key: Vector2i in _active_lens_groups:
+		var state := phase_at(key.x, 0, "NS" if key.y == 0 else "EW")
+		var previous: String = _phase_states.get(key, "")
+		if state == previous:
 			continue
-		head["state"] = state
-		var bulbs: Dictionary = head["bulbs"]
-		for color_name in bulbs:
-			(bulbs[color_name] as MeshInstance3D).material_override = _lamps[color_name if color_name == state else "OFF"]
+		_phase_states[key] = state
+		for index in range(COLORS.size()):
+			var color: String = COLORS[index]
+			if color != state and color != previous:
+				continue
+			var material: Material = _lamps[color if color == state else "OFF"]
+			for batch: MultiMeshInstance3D in _active_lens_groups[key][index]:
+				batch.material_override = material

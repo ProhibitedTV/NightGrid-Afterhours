@@ -90,17 +90,23 @@ func sample_route(path: Array[Vector3], fraction: float) -> Dictionary:
 
 func headway_speed_cap(candidate: CharacterBody3D, heading: Vector3, cap: float) -> float:
 	# Approximate following distance using a longitudinal gap on the same lane.
+	var origin := candidate.global_position
+	var desired_gap := 10.0 if candidate.get("buses") else 7.0
 	for other in fleet:
 		if other == candidate or not is_instance_valid(other):
 			continue
-		var gap := other.global_position - candidate.global_position
-		gap.y = 0.0
-		var forward_distance := gap.dot(heading)
+		var at := other.global_position
+		var dx := at.x - origin.x
+		var dz := at.z - origin.z
+		if absf(dx) > 26.0 or absf(dz) > 26.0:
+			continue
+		var forward_distance := dx * heading.x + dz * heading.z
 		if forward_distance < 0.0 or forward_distance >= 23.0:
 			continue
-		var lateral := (gap - heading * forward_distance).length()
-		if lateral < 2.7:
-			cap = minf(cap, maxf(0.0, (forward_distance - (10.0 if candidate.get("buses") else 7.0)) * 1.25))
+		if absf(dx * heading.z - dz * heading.x) < 2.7:
+			cap = minf(cap, maxf(0.0, (forward_distance - desired_gap) * 1.25))
+			if cap == 0.0:
+				break
 	return cap
 
 func closure_eligibility(a: Vector2i, b: Vector2i, other_actors: Array[Vector3]) -> String:
