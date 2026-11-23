@@ -7,6 +7,10 @@ on:
       - ".github/workflows/vesper-v2-study.yml"
   workflow_dispatch:
 
+concurrency:
+  group: vesper-precision-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-original-car:
     runs-on: ubuntu-latest
