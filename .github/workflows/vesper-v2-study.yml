@@ -56,6 +56,11 @@ jobs:
           path = pathlib.Path("out/vesper-v2")
           spec = json.loads((path/"source.json").read_text())
           assert spec["seat_count"] == 2 and spec["roof"] == "stowed_prototype_only"
+          sheets=spec["manufactured_sheet_panels"]
+          assert len(sheets)==3
+          for label,record in sheets.items():
+              assert record["closed_sheet_panel_count"] >= 10, label
+              assert record["minimum_sheet_thickness_mm"] >= 4.0, label
           for fname in ["vesper_v2_master.blend", "vesper_v2_lod0.glb", "vesper_v2_lod1.glb"]:
               assert (path/fname).is_file() and (path/fname).stat().st_size > 1024, fname
           audit=json.loads((path/"geometry_audit.json").read_text())
