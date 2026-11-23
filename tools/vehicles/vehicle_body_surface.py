@@ -96,7 +96,7 @@ def side_panel(z0,z1,sign,along_segments=40,across_segments=9) -> Shell:
         w,h=width_shoulder(z); lower=arch_lower_boundary(z)
         for j in range(stride):
             t=j/across_segments
-            verts.append((sign*w*(.945+.055*sin(pi*t)),
+            verts.append((sign*w*(.945+.055*t+.032*sin(pi*t)),
                           lower+(h-lower)*t,z))
     for i in range(along_segments):
         for j in range(across_segments):
@@ -113,7 +113,7 @@ def fascia(front:bool,along=36,vertical=12) -> Shell:
         t=j/vertical; y=ROCKER_Y+(top-ROCKER_Y)*t
         for i in range(stride):
             u=-1+2*i/along
-            x=u*w*(.947+.053*sin(pi*t))
+            x=u*w*(.947+.053*t)
             # The nose/top cap must meet the bonnet's actual center camber,
             # not a flat station shoulder; otherwise a visible black slot
             # remains below the hood. Blend in only near the upper seam.
