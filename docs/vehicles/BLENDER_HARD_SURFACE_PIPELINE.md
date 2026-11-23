@@ -9,6 +9,8 @@ Car coachwork needs controlled manufactured highlight flow and precision geometr
 - **MASTER__HIGH_POLY__NOT_EXPORTED:** editable higher-resolution enclosure, gasket, lens, reflector and light-guide, with non-destructive bevel modifiers and adjustable contour control points.
 - **GAME__LOW_POLY:** reduced geometry, stable semantic socket names, material groups and provisional UVs. Only this collection is exported as GLB.
 
+A separate master-only bonnet/fender study is generated from the cubic Bézier control-cage library in tools/vehicles/bezier_surface.py. It computes analytical normals and checks C0/C1 seam continuity, then tessellates a smooth original panel into editable Blender geometry. The study **is not exported as game geometry** and has not been fitted to the real Cinder body.
+
 This pilot **does not** yet perform high-to-low normal-map baking, final vehicle fitment, or Godot gameplay integration. Full high-poly surfacing, retopology, UV bake and vehicle-specific materials remain in #231 and #222.
 
 ## Generate a review candidate
@@ -19,7 +21,7 @@ Requires Blender with the glTF exporter and Python 3.11+.
 
     python3 tools/vehicles/validate_gltf.py out/r9-optic/r9_optic_game.glb --require-node SocketHeadlampMount --require-node SocketHeadlampBeam --require-node SocketIndicator --max-triangles 5000 --manifest out/r9-optic/source.json
 
-    python3 -m unittest discover -s tests -p 'test_vehicle_asset_gate.py' -v
+    python3 -m unittest discover -s tests -p 'test_vehicle*.py' -v
 
 Outputs: r9_optic_master.blend, r9_optic_game.glb, source.json with the Blender version and SHA-256 checksums. Generated binaries are CI review artifacts, not automatically shipped by the game. All geometry is original, local metres, +Y up, −Z forward. Optical light guides are visible meshes; no extra runtime spotlight is spawned.
 
