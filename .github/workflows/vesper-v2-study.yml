@@ -23,13 +23,13 @@ jobs:
       - name: Install Blender with Python dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y blender python3-numpy
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri xvfb
       - name: Produce original Vesper high-detail master, GLBs, and workbench previews
         run: |
           blender --background --python-exit-code 1 --python-expr "import numpy; print('Numpy', numpy.__version__)"
           blender --background --python-exit-code 1 \
             --python tools/vehicles/author_vesper_v2_blender.py -- \
-            --output-dir out/vesper-v2
+            --output-dir out/vesper-v2 --skip-preview
       - name: Validate both game meshes and original source hashes
         run: |
           for lod in 0 1; do
@@ -53,11 +53,28 @@ jobs:
           path = pathlib.Path("out/vesper-v2")
           spec = json.loads((path/"source.json").read_text())
           assert spec["seat_count"] == 2 and spec["roof"] == "stowed_prototype_only"
-          for fname in ["vesper_v2_master.blend", "vesper_v2_lod0.glb", "vesper_v2_lod1.glb",
-                        "front_three_quarter.png", "rear_three_quarter.png",
-                        "profile.png", "open_cockpit.png"]:
+          for fname in ["vesper_v2_master.blend", "vesper_v2_lod0.glb", "vesper_v2_lod1.glb"]:
               assert (path/fname).is_file() and (path/fname).stat().st_size > 1024, fname
           print("Source, exports and all offline preview frames verified")
+          PY
+      - name: Render offline 360-degree source views with Mesa software OpenGL
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          MESA_LOADER_DRIVER_OVERRIDE: llvmpipe
+        run: |
+          xvfb-run -a blender --background --python-exit-code 1 \
+            --python tools/vehicles/render_vesper_v2_blender.py -- \
+            --input out/vesper-v2/vesper_v2_master.blend \
+            --output-dir out/vesper-v2
+          python3 - <<'PY'
+          import json, pathlib, hashlib
+          path=pathlib.Path("out/vesper-v2")
+          manifest=json.loads((path/"source.json").read_text())
+          for name in ["front_three_quarter.png","rear_three_quarter.png","profile.png","open_cockpit.png"]:
+              data=(path/name).read_bytes()
+              assert len(data)>1024, name
+              assert hashlib.sha256(data).hexdigest()==manifest["files"][name]["sha256"], name
+          print("Four offline Blender review images and their SHA hashes verified")
           PY
       - name: Upload reviewable model and evidence
         if: always()
