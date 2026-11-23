@@ -66,6 +66,15 @@ class TestVehicleBodySurface(unittest.TestCase):
         ys=[v[1] for v in t.positions]
         self.assertGreater(max(ys)-min(ys),.70)
 
+    def test_fascia_top_is_continuous_with_hood_and_tonneau(self):
+        for front in (True, False):
+            surface=fascia(front,24,8)
+            for p in surface.positions[-25:]:
+                x,y,z=p
+                width,_=width_shoulder(z)
+                expected=body_surface_point(z,x/width)[1]
+                self.assertAlmostEqual(y,expected,places=6)
+
     def test_invalid_external_station_rejected(self):
         with self.assertRaisesRegex(ValueError,"station"):
             width_shoulder(3.0)
