@@ -25,6 +25,8 @@ var _detour_rejoin := -1
 var _detour_hold := false
 const HANDOFF_TOLERANCE = 0.55
 const DETOUR_MAX_POINTS = 81
+static var _wheel_sets: Dictionary = {}
+static var _body_shapes: Dictionary = {}
 
 func setup(path: Array[Vector3], first_index: int, position_at: Vector3, bus: bool, identifier: String, tint: Color, signal_controller: Node, owner_fleet: Node) -> void:
 	buses = bus
@@ -229,48 +231,51 @@ func apply_snapshot(data: Dictionary) -> void:
 	laps = maxi(0, int(data.get("laps", 0)))
 
 func _build_body() -> void:
-	var shape := BoxShape3D.new()
-	shape.size = Vector3(2.7, 2.85, 8.3) if buses else Vector3(2.25, 1.55, 4.55)
+	if not _body_shapes.has(buses):
+		var shape := BoxShape3D.new()
+		shape.size = Vector3(2.7, 2.85, 8.3) if buses else Vector3(2.25, 1.55, 4.55)
+		_body_shapes[buses] = shape
 	var hitbox := CollisionShape3D.new()
-	hitbox.shape = shape
+	hitbox.shape = _body_shapes[buses]
 	add_child(hitbox)
-	if buses:
-		var coach := BusCoachwork.build(paint)
-		coach.name = "CityBusCoachwork"
-		add_child(coach)
-		for side in [-1.0,1.0]:
-			for axle in [-2.55,2.55]:
-				var at := Vector3(side*1.18,-1.30,axle)
-				_wheel(at,0.44)
-		return
-	var car := CarCoachwork.build(paint)
-	car.name = "CivilianCarCoachwork"
-	add_child(car)
-	for side in [-1.0,1.0]:
-		for axle in CarCoachwork.AXLES:
-			_wheel(Vector3(side*0.94,CarCoachwork.AXLE_Y,axle),CarCoachwork.TIRE_RADIUS)
+	var coach := BusCoachwork.build(paint) if buses else CarCoachwork.build(paint)
+	coach.name = "CityBusCoachwork" if buses else "CivilianCarCoachwork"
+	add_child(coach)
+	if not _wheel_sets.has(buses):
+		var radius := 0.44 if buses else CarCoachwork.TIRE_RADIUS
+		_wheel_sets[buses] = [
+			_wheel_batch(radius, 0.28, 14),
+			_wheel_batch(radius * 0.47, 0.295, 12),
+		]
+	var tires := MultiMeshInstance3D.new()
+	tires.name = "Tires"
+	tires.multimesh = _wheel_sets[buses][0]
+	tires.material_override = Materials.surface("ASPHALT", Color("171a20"))
+	add_child(tires)
+	var hubs := MultiMeshInstance3D.new()
+	hubs.name = "Hubs"
+	hubs.multimesh = _wheel_sets[buses][1]
+	hubs.material_override = Materials.surface("METAL", Color("89939c"))
+	add_child(hubs)
 
-func _wheel(at: Vector3, radius: float) -> void:
-	var tire := MeshInstance3D.new()
+func _wheel_batch(radius: float, thickness: float, segments: int) -> MultiMesh:
 	var mesh := CylinderMesh.new()
 	mesh.top_radius = radius
 	mesh.bottom_radius = radius
-	mesh.height = 0.28
-	mesh.radial_segments = 14
-	tire.mesh = mesh
-	tire.position = at
-	tire.rotation.z = PI * 0.5
-	tire.material_override = Materials.surface("ASPHALT", Color("171a20"))
-	add_child(tire)
-	var hub := MeshInstance3D.new()
-	var cap := CylinderMesh.new()
-	cap.top_radius = radius * 0.47
-	cap.bottom_radius = radius * 0.47
-	cap.height = 0.295
-	cap.radial_segments = 12
-	hub.mesh = cap
-	hub.position = at
-	hub.rotation.z = PI * 0.5
-	hub.material_override = Materials.surface("METAL", Color("89939c"))
-	add_child(hub)
+	mesh.height = thickness
+	mesh.radial_segments = segments
+	var batch := MultiMesh.new()
+	batch.transform_format = MultiMesh.TRANSFORM_3D
+	batch.mesh = mesh
+	batch.instance_count = 4
+	var axes := Basis(Vector3.BACK, PI * 0.5)
+	var x := 1.18 if buses else 0.94
+	var y := BusCoachwork.AXLE_Y if buses else CarCoachwork.AXLE_Y
+	var axles: Array = BusCoachwork.AXLES if buses else CarCoachwork.AXLES
+	var index := 0
+	for side in [-1.0, 1.0]:
+		for axle in axles:
+			batch.set_instance_transform(index, Transform3D(axes, Vector3(side * x, y, axle)))
+			index += 1
+	return batch
 

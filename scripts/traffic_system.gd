@@ -11,6 +11,9 @@ var buses: Array[CharacterBody3D] = []
 var _rng := RandomNumberGenerator.new()
 var _stops: Array[Vector3] = []
 var _ambient_pool: AmbientPool
+var _headway_frame := -1
+var _headway_fleet: Array[CharacterBody3D] = []
+var _headway_positions := PackedVector3Array()
 
 func initialize(world_seed: int, controller: Node, pooled := false) -> void:
 	signals = controller
@@ -117,10 +120,25 @@ func headway_speed_cap(candidate: CharacterBody3D, heading: Vector3, cap: float)
 	# Approximate following distance using a longitudinal gap on the same lane.
 	var origin := candidate.global_position
 	var desired_gap := 10.0 if candidate.get("buses") else 7.0
-	for other in fleet:
+	var tick := Engine.get_physics_frames()
+	if _headway_frame != tick:
+		_headway_frame = tick
+		_headway_fleet.clear()
+		_headway_positions.clear()
+		for vehicle in fleet:
+			if is_instance_valid(vehicle):
+				_headway_fleet.append(vehicle)
+				_headway_positions.append(vehicle.global_position)
+	for index in range(_headway_positions.size()):
+		var at := _headway_positions[index]
+		# The two-metre margin exceeds a civilian's motion in one fixed tick.
+		# Read the live body for the actual cap so iteration order is preserved.
+		if absf(at.x - origin.x) > 26.0 or absf(at.z - origin.z) > 26.0:
+			continue
+		var other := _headway_fleet[index]
 		if other == candidate or not is_instance_valid(other):
 			continue
-		var at := other.global_position
+		at = other.global_position
 		var dx := at.x - origin.x
 		var dz := at.z - origin.z
 		if absf(dx) > 26.0 or absf(dz) > 26.0:
@@ -171,6 +189,7 @@ func snapshot() -> Dictionary:
 	return state
 
 func restore(data: Dictionary) -> void:
+	_headway_frame = -1
 	if _ambient_pool != null:
 		_ambient_pool.restore(data)
 	var by_id := {}
