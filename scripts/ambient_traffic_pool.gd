@@ -73,6 +73,8 @@ func tick(delta: float, at: Vector3, speed: float, camera: Camera3D, city: Node3
 	for id in plan["recycle"]:
 		var car: Vehicle = _live[id]
 		if car.can_recycle() and model.capture_live(id, car.global_position, car.next_index):
+			if Profile.enabled:
+				_record_transition("ambient_traffic_recycle", id, car.global_position, at, camera)
 			_release(id, car, registry)
 			_retired += 1
 	for entry in plan["activate"]:
@@ -83,8 +85,18 @@ func tick(delta: float, at: Vector3, speed: float, camera: Camera3D, city: Node3
 		_live[entry["id"]] = car
 		registry.append(car)
 		_admitted += 1
+		if Profile.enabled:
+			_record_transition("ambient_traffic_admit", entry["id"], car.global_position, at, camera)
 	_peak = maxi(_peak, _live.size())
 	Profile.accumulate(started, "ambient_traffic_leases")
+
+func _record_transition(kind: String, id: String, position: Vector3, actor: Vector3, camera: Camera3D) -> void:
+	var started := Profile.begin()
+	Profile.end(started, kind, {
+		"id":id, "position":[position.x, position.y, position.z],
+		"actor_distance": actor.distance_to(position), "camera_distance": camera.global_position.distance_to(position),
+		"in_expanded_frustum": not Safety.outside_expanded_view(camera, position, Safety.VEHICLE_RADIUS),
+	})
 
 func safe_speed_cap(at: Vector3, heading: Vector3, cap: float) -> float:
 	if not is_instance_valid(_city):

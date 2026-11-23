@@ -272,10 +272,13 @@ func _wheel_batch(radius: float, thickness: float, segments: int) -> MultiMesh:
 	var x := 1.18 if buses else 0.94
 	var y := BusCoachwork.AXLE_Y if buses else CarCoachwork.AXLE_Y
 	var axles: Array = BusCoachwork.AXLES if buses else CarCoachwork.AXLES
-	var index := 0
+	var wheel_transforms: Array[Transform3D] = []
 	for side in [-1.0, 1.0]:
 		for axle in axles:
-			batch.set_instance_transform(index, Transform3D(axes, Vector3(side * x, y, axle)))
-			index += 1
+			wheel_transforms.append(Transform3D(axes, Vector3(side * x, y, axle)))
+	for index in range(wheel_transforms.size()):
+		batch.set_instance_transform(index, wheel_transforms[index])
+	# Godot's headless renderer cannot read back MultiMesh transforms.
+	batch.set_meta("wheel_transforms", wheel_transforms)
 	return batch
 
