@@ -237,11 +237,23 @@ func _ready() -> void:
 		_set_mission_target(PICKUPS[0], false)
 	else:
 		_apply_snapshot(restore)
+		if current_transit == null:
+			_resume_restored_actor_after_collision_sync(current_car if current_car != null else player)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	if DisplayServer.get_name() != "headless" and not bool(session.get("boot_menu_shown")):
 		session.set("boot_menu_shown", true)
 		game_menu.call("open_title")
 	_log_playtest("world_ready", {"restored": not restore.is_empty()})
+
+func _resume_restored_actor_after_collision_sync(actor: CharacterBody3D) -> void:
+	# A newly rebuilt world's traffic colliders can still be at their initial
+	# physics-server transforms on the first tick. Skip that movement step so
+	# kinematic recovery cannot push a restored actor away from the saved point.
+	actor.set_physics_process(false)
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	if is_instance_valid(actor):
+		actor.set_physics_process(true)
 
 func _exit_tree() -> void:
 	playtest_logger.end_session()
