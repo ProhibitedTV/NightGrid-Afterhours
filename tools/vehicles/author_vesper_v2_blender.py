@@ -52,8 +52,8 @@ SOCKETS = {
     "RoofPivotR": (0.66, 0.95, 0.69),
     "HeadlampL": (-0.63, 0.83, -1.91),
     "HeadlampR": (0.63, 0.83, -1.91),
-    "TaillampL": (-0.65, 0.80, 2.12),
-    "TaillampR": (0.65, 0.80, 2.12),
+    "TaillampL": (-0.58, 0.69, 2.22),
+    "TaillampR": (0.58, 0.69, 2.22),
     "AudioMotor": (0.0, 0.44, 1.27),
 }
 PALETTE = {
@@ -247,11 +247,16 @@ def lamp(name,x,z,y,mat,high=False,rear=False):
     if rear:
         # Rear units are housed inside the convex tail fascia rather than
         # suspended off the old squared-off crash-cover slab.
-        box(name+"_TailPocket",(x,.762,2.246),(.407,.095,.034),
-            "DarkComposite",.018,high)
-        box(name+"_RedLens",(x,.772,2.267),(.345,.045,.018),mat,.009,high)
-        box(name+"_LightGuide",(x,.783,2.280),(.274,.010,.008),
-            mat,.004,high)
+        # A measured narrow horizontal module fits within the .75m rear
+        # shoulder (the old .407m lamps overhung both outer quarters).
+        box(name+"_TailPocket",(x,.690,2.225),(.298,.067,.021),
+            "DarkComposite",.010,high)
+        box(name+"_RedLens",(x,.693,2.239),(.258,.040,.012),
+            mat,.005,high)
+        box(name+"_LightGuide",(x,.697,2.249),(.224,.009,.007),
+            mat,.002,high)
+        box(name+"_Indicator",(x+(1 if x>0 else -1)*.113,.685,2.247),
+            (.022,.021,.007),"VesperCopper",.003,high)
         return
     _oval_lamp_band(name+"_RubberSeal",x,z,1.0,.86,.007,.010,
                     "DarkComposite",high)
@@ -397,8 +402,19 @@ def build_geometry(col,high,socket_prefix=''):
         "DarkComposite",.012,high)
     box("FrontInletCopperLip",(0,.503,-2.235),(1.00,.010,.018),
         "VesperCopper",.004,high)
-    box("RearVent",(0,.397,2.258),(1.07,.096,.018),
-        "DarkComposite",.011,high)
+    # Inset rear valance follows the authored rear-bumper skin; do not use
+    # a floating rectangular grille pasted over an otherwise blank tail.
+    valance_faces=rear.faces[:(58 if high else 28)*(6 if high else 3)]
+    mesh("RearLowerValance",
+         [(x,y,z+.006) for x,y,z in rear.positions],
+         valance_faces,"DarkComposite")
+    box("RearPlateRecess",(0,.617,2.220),(.312,.115,.019),
+        "DarkComposite",.010,high)
+    box("RearPlateFrame",(0,.617,2.236),(.332,.136,.012),
+        "VesperCopper",.003,high)
+    for index,offset in enumerate((-.44,-.25,.25,.44)):
+        box("RearDiffuserFin"+str(index),(offset,.340,2.232),
+            (.013,.108,.096),"DarkComposite",.005,high)
     box("Underbody",(0,.33,0),(1.55,.14,3.92),
         "DarkComposite",.035,high)
     for side,label in ((-1,"L"),(1,"R")):
@@ -416,7 +432,7 @@ def build_geometry(col,high,socket_prefix=''):
         box("FrontLowerBlade"+name,(side*.62,.334,-2.166),(.245,.024,.125),
             "DarkComposite",.006,high)
         lamp("HeadLamp"+name,side*.622,-1.93,.83,"LightWhite",high)
-        lamp("TailLamp"+name,side*.63,2.13,.786,"LightRed",high,rear=True)
+        lamp("TailLamp"+name,side*.58,2.13,.69,"LightRed",high,rear=True)
     # Cabin: actually open above its side rails, not a painted roof.
     box("CabinTub",(0,.465,-.04),(1.46,.11,1.41),"DarkComposite",.065,high)
     box("CabinBackBulkhead",(0,.72,.67),(1.46,.52,.065),"DarkComposite",.040,high)
