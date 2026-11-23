@@ -194,7 +194,9 @@ def wheel_liner(axle,sign,segments=32) -> Shell:
         y=arch_lower_boundary(z)
         w,_=width_shoulder(z)
         for d in (0.,.078):
-            verts.append((sign*(w*.98-d),y+.003,z))
+            # Outer arch-liner edge must share the identical surface anchor
+            # as the exterior lower flank at this z, not hover ~30mm away.
+            verts.append((sign*(w*.945-d),y,z))
     for i in range(segments):
         a=2*i;faces.append((a,a+1,a+3,a+2))
     return Shell(tuple(verts),tuple(faces))
