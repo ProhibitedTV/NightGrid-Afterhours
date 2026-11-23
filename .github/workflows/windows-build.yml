@@ -68,6 +68,7 @@ jobs:
           cp assets/models/nightgrid/courier/SOURCE.md dist/COURIER-ASSET-CREDITS.md
           cp assets/audio/nightgrid_fm/README.md dist/NIGHTGRID-FM-CREDITS.md
           cp assets/audio/morrow_bay/SOURCE.md dist/MORROW-BAY-AUDIO-CREDITS.md
+          cp docs/PLAYTEST_MAIN_ACCEPTANCE.md dist/PLAYTEST-GUIDE.md
       - name: Verify candidate archive contents and SHA-256 manifest
         shell: bash
         run: |
@@ -77,7 +78,7 @@ jobs:
             cd dist
             sha256sum NightGrid-Afterhours.exe NightGrid-Afterhours.pck \
               BUILD-INFO.txt COURIER-ASSET-CREDITS.md NIGHTGRID-FM-CREDITS.md \
-              MORROW-BAY-AUDIO-CREDITS.md > SHA256SUMS.txt
+              MORROW-BAY-AUDIO-CREDITS.md PLAYTEST-GUIDE.md > SHA256SUMS.txt
             sha256sum --check SHA256SUMS.txt
           )
           grep -Fx "Source commit: $SOURCE_SHA" dist/BUILD-INFO.txt
@@ -107,7 +108,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $required = @('NightGrid-Afterhours.exe', 'NightGrid-Afterhours.pck', 'BUILD-INFO.txt', 'SHA256SUMS.txt',
-            'COURIER-ASSET-CREDITS.md', 'NIGHTGRID-FM-CREDITS.md', 'MORROW-BAY-AUDIO-CREDITS.md')
+            'COURIER-ASSET-CREDITS.md', 'NIGHTGRID-FM-CREDITS.md', 'MORROW-BAY-AUDIO-CREDITS.md', 'PLAYTEST-GUIDE.md')
           foreach ($name in $required) {
             if (-not (Test-Path -LiteralPath (Join-Path 'dist' $name) -PathType Leaf)) {
               throw "Missing Windows artifact file: $name"
@@ -129,7 +130,7 @@ jobs:
             $actual = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
             if ($actual -ne $expected) { throw "SHA-256 mismatch: $name" }
           }
-          Write-Output "WINDOWS_ARTIFACT_VERIFY PASS: exact source commit, seven required files, six SHA256 matches"
+          Write-Output "WINDOWS_ARTIFACT_VERIFY PASS: exact source commit, eight required files, seven SHA256 matches"
       - name: Launch the exported Windows game in headless startup smoke
         shell: pwsh
         run: |
