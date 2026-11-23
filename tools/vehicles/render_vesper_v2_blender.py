@@ -34,7 +34,14 @@ def main():
     bpy.data.collections["MASTER__DETAIL__NONSHIPPING"].hide_render=False
     preview=collection("OFFLINE_PREVIEW_ONLY")
     camera=cameras_and_preview(preview)
+    # Two identical camera passes: material colors and untextured neutral clay.
+    # Clay removes paint/color distractions and exposes sculpting, silhouette,
+    # normal winding and split-panel highlight defects more directly.
     render_views(camera,output_dir)
+    shading=bpy.context.scene.display.shading
+    shading.color_type="SINGLE"
+    shading.single_color=(0.65,0.67,0.69)
+    render_views(camera,output_dir,prefix="clay_")
     path=output_dir/"source.json"
     manifest=json.loads(path.read_text(encoding="utf-8"))
     for img in sorted(output_dir.glob("*.png")):
