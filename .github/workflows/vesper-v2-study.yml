@@ -83,12 +83,15 @@ jobs:
           path=pathlib.Path("out/vesper-v2")
           manifest=json.loads((path/"source.json").read_text())
           for name in ["front_three_quarter.png","rear_three_quarter.png","profile.png","open_cockpit.png",
+                       "front_optic_macro.png","front_wheel_macro.png","fender_shoulder_macro.png",
                        "clay_front_three_quarter.png","clay_rear_three_quarter.png",
-                       "clay_profile.png","clay_open_cockpit.png"]:
+                       "clay_profile.png","clay_open_cockpit.png",
+                       "clay_front_optic_macro.png","clay_front_wheel_macro.png",
+                       "clay_fender_shoulder_macro.png"]:
               data=(path/name).read_bytes()
               assert len(data)>1024, name
               assert hashlib.sha256(data).hexdigest()==manifest["files"][name]["sha256"], name
-          print("Eight matched-pose material and clay Blender review images verified")
+          print("Fourteen full-car and macro material/clay Blender review images verified")
           PY
       - name: Inspect body highlights with Blender Cycles zebra reflections
         env:
