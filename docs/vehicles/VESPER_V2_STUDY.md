@@ -87,3 +87,30 @@ The comparison utility validates the input PNG SHA-256 hashes and writes matched
 - [Actions 45282462122](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/runs/45282462122) successfully verified the C2/profile and exterior normals candidate through Blender and GLB checks.
 - Later wheel clearance, clay passes, metric reports, rear integration and updated review tooling need their own successful latest-run evidence. Do not reuse an old green check to claim new commits are validated.
 - This is a draft model with original geometry. Never represent Blender Workbench previews as actual in-game screenshots.
+
+## Precision-body iteration — reflected zebra, normal continuity and real panel shells
+
+The new Vesper iteration is deliberately **not** simply subdividing the first car. It treats the hood/fender join, wheel arch and physical panel construction as model-authorship problems that are visible in neutral-clay and reflected-stripe views.
+
+### Precision surfacing
+
+- Longitudinal designer control stations remain C2 natural cubic splines. A new `side_surface_point` builds a deliberate subtle flare and an upper return so the fender's tangent points into the top panel. This fixes the previous shape where aligned vertex coordinates nevertheless made an abrupt, unrealistic shoulder highlight.
+- `shoulder_normal_alignment(z, sign)` measures the 3D normal angle across the hood/fender edge at sampled positions; the source audit rejects >1.0 degree. This is a G1-inspired **numeric** seam test, not an industrial Class-A or G2 certification.
+- Wheel opening follows an exact circular tire-radius offset while the tire occupies that part of the arch, then a matched-tangent cubic return to the rocker. The previous arc had an infinite slope at its outer endpoint. Both junctions are tested and sampled for clearance.
+- Fender flare is subtle and localized above the wheels rather than indiscriminately inflating the whole car. Its mathematical return can be evaluated separately on each wheel side.
+- Full fenders, doors, hood/deck and front/rear fascia now use Blender SOLIDIFY modifiers to give manufactured sheet thickness and editable source. The authoring script rejects a master or LOD layer that has fewer than ten body-panel shells or thinner than the specified 4 mm minimum. These are illustrative prototype values, not assertions about real car manufacturing specifications.
+
+### Human-facing visual diagnostics
+
+- `render_vesper_v2_blender.py` produces four identical material-color and four neutral-clay Workbench views.
+- `render_vesper_zebra_blender.py` adds two Cycles CPU **reflection-vector zebra** studies at matching 3/4 cameras. Black/white reflected bands visually expose mesh pinches, shading discontinuities and inconsistent normals; only original painted-body materials are replaced. These are **offline Blender diagnostics, not real Godot captures**, and cannot by themselves certify production styling.
+- `audit_vesper_geometry.py` now includes the maximum upper-fender normal angle and maximum rocker-arch tangent jump alongside previous station continuity and minimum tire clearance. CI validates the values, not arbitrary file size.
+- Source comparison tool requires valid signed-off image hashes; final quality still requires an artist reviewing and iterating on the actual editable control cages, followed by native Godot gameplay.
+
+### Deferred issues for a truly finished convertible
+
+Fully engineered individual panel junctions, car-class-specific geometry detail, true retopology plus baked normal/roughness/AO maps, specific window/door weather seals, functioning multi-bow folding roof, underside/suspension/rims, calibrated HDR/clearcoat lighting and player/traffic physics remain incomplete. The new pass is primarily improving **geometry construction and quality gates**. A green CI check means reproducible files and measurable geometry properties, *not* "human-level" or "AAA" art.
+
+### Current regeneration status
+
+These corrections are committed on draft #238 and are being built by the dedicated Vesper GitHub Actions workflow. Validate the source SHA of every resulting `.blend`/`.glb`/clay/zebra image before comparing to the previous successful verified build. The latest complete rendered artifact, not this text, determines whether the visual change is acceptable.
