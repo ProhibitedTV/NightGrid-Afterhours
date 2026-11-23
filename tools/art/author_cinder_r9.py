@@ -438,7 +438,7 @@ def exhaust(surfaces, x, y, z):
 
 
 def deck_opening(surfaces, body, sign, a, b, low, high, kind):
-    cols = sorted(sign*u for u in DECK_COLS if low <= sign*u <= high)
+    cols = [u for u in DECK_COLS if low <= sign*u <= high]
     # Use the same z rows as the top skin, keeping the entire lip welded visually.
     steps = [z for z in sampled_stations(body) if a <= z <= b]
     band_depth = -.034 if kind == 'head' else -.079

@@ -14,6 +14,7 @@ func _verify() -> void:
 	var world := (load("res://scenes/main.tscn") as PackedScene).instantiate() as Node3D
 	root.add_child(world)
 	await process_frame
+	world.get_node("GameMenus").call("hide_for_game")
 	var fleet: Array = world.get("cars")
 	if fleet.size() != 12:
 		_fail("Fleet indices changed")
@@ -33,12 +34,23 @@ func _verify() -> void:
 	var shell := hero.get_node("Coachwork")
 	var front := shell.get_node("FrontClip") as MeshInstance3D
 	var materials: Array[String] = []
+	var covered_left := false
+	var covered_right := false
 	for i in front.mesh.get_surface_count():
-		materials.append(front.mesh.surface_get_material(i).resource_name)
+		var label := front.mesh.surface_get_material(i).resource_name
+		materials.append(label)
+		if label == "OpticCover":
+			var vertices: PackedVector3Array = front.mesh.surface_get_arrays(i)[Mesh.ARRAY_VERTEX]
+			for vertex in vertices:
+				covered_left = covered_left or (vertex.x < -.45 and vertex.z < -2.21)
+				covered_right = covered_right or (vertex.x > .45 and vertex.z < -2.21)
 	for name in ["Paint", "CarbonComposite", "MachinedAlloy", "OpticCover"]:
 		if name not in materials:
 			_fail("Missing authored front surface " + name)
 			return
+	if not covered_left or not covered_right:
+		_fail("Headlamp cover geometry must remain on both front corners")
+		return
 	for i in 5:
 		await physics_frame
 	player.global_position = car.to_global(Vector3(-1.56, .16, -.41))
