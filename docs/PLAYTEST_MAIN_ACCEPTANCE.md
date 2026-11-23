@@ -10,7 +10,7 @@ Open the [Windows playtest workflow](https://github.com/ProhibitedTV/NightGrid-A
 
 Extract **everything** into one folder; `NightGrid-Afterhours.exe` and `NightGrid-Afterhours.pck` must remain together. The Windows bundle also contains this guide, `BUILD-INFO.txt`, `SHA256SUMS.txt`, and the asset/music attribution. An older bundle may omit this guide but still has the executable, PCK, build info and checksum manifest.
 
-**Identify the build:** open `BUILD-INFO.txt`. Verify `Channel: development`, the full 40-character **Source commit**, and Godot 4.7.2. Compare the Source commit to the Actions run's commit. Do **not** confuse the version constant `0.1.0-beta.7` with an actual beta.7 release: the source revision + development channel identifies this candidate.
+**Identify the build** by the full 40-character source commit, development channel and Godot version in `BUILD-INFO.txt`. Compare the source commit to the Actions run or the review candidate's provenance. The versioned Beta.8 RC1 bundle also carries this information and its changelog. [Beta.8 RC1 review notes](BETA8_RC1.md).
 
 **Verify payload integrity** (PowerShell opened inside the extracted folder):
 
@@ -39,7 +39,7 @@ This checks **files inside** the extracted bundle. GitHub Actions has independen
 .\NightGrid-Afterhours.exe -- --living-streets
 ```
 
-The `--` separator passes `--living-streets` to the game, not to the Godot engine. Compare the *same* seed/route/time with crowds off and on. The crowd source assets have known non-fatal import diagnostics tracked in [#191](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/191); do not automatically approve clothing/material fidelity.
+The `--` separator passes `--living-streets` to the game. Compare the same seed, route and clock with crowds off and on. The Beta.8 candidate changes how the four original civilian GLBs embed their texture maps. Check clothing and normal-map detail in both lighting conditions. [Import tracker #191](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/191).
 
 ## 3. First 15–25 minutes: acceptance route
 

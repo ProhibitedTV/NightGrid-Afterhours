@@ -1,7 +1,7 @@
 extends SceneTree
 
-const START := Vector3(0.0, 0.870156, 2.56)
-const SEED := 1241220418
+const START = Vector3(0.0, 0.870156, 2.56)
+const SEED = 1241220418
 
 func _initialize() -> void:
 	create_timer(25.0, true, false, true).timeout.connect(func() -> void: quit(1))
