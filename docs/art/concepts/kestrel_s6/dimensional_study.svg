@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1260 820" role="img" aria-labelledby="title desc">
+  <title id="title">Kestrel S6 production package revision A</title>
+  <desc id="desc">Original creator-review drawings showing an athletic fastback side profile, front three-quarter and front and rear elevations with major dimensions.</desc>
+  <defs>
+    <linearGradient id="paint" x2="0" y2="1">
+      <stop stop-color="#a74351"/><stop offset=".52" stop-color="#631c2d"/><stop offset="1" stop-color="#38131f"/>
+    </linearGradient>
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M20 0H0V20" fill="none" stroke="#23313c" stroke-width=".6"/>
+    </pattern>
+    <marker id="arrow" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto-start-reverse">
+      <path d="M0 0l7 3.5L0 7" fill="none" stroke="#83b8c5" stroke-width="1"/>
+    </marker>
+    <style>
+      text{font:15px system-ui,sans-serif;fill:#c3d4dd}
+      .title{font-size:34px;font-weight:700;fill:#edf2f6}.label{font-size:16px;font-weight:650;letter-spacing:1px}
+      .note{font-size:13px;fill:#95b4c1}.paint{fill:url(#paint);stroke:#e1a3a7;stroke-width:1.3}
+      .glass{fill:#21323d;stroke:#92b4c8;stroke-width:1.2}.seam{fill:none;stroke:#cf8794;stroke-width:1.3}
+      .dark{fill:#131b23;stroke:#526472;stroke-width:1}.lamp{fill:none;stroke:#cff6ff;stroke-width:2.7}
+      .tail{fill:none;stroke:#f57683;stroke-width:2.8}.dim{fill:none;stroke:#83b8c5;stroke-width:1}
+      .tire{fill:#10161e;stroke:#586b7b;stroke-width:1.4}.rim{fill:#293946;stroke:#8b9eaa}
+    </style>
+  </defs>
+  <rect width="1260" height="820" fill="#121a24"/>
+  <text class="title" x="48" y="63">KESTREL S6</text>
+  <text x="48" y="90">Sports fastback · production package · revision A</text>
+  <text class="note" x="925" y="73">DESIGN STUDY · CREATOR REVIEW</text>
+  <rect x="41" y="117" width="1178" height="632" rx="10" fill="#16222d" stroke="#324650"/>
+  <rect x="41" y="117" width="1178" height="632" rx="10" fill="url(#grid)"/>
+  <g transform="translate(93 189)">
+    <text class="label" x="0" y="-19">SIDE ELEVATION</text>
+    <path class="paint" d="M0 127L10 101Q41 80 92 76L160 65Q220 19 271 16L337 18Q391 28 431 60L489 77Q531 82 555 102L564 124 545 145 518 149A52 52 0 1 0 415 150H153A52 52 0 1 0 49 149L15 146Z"/>
+    <path class="glass" d="M173 65Q229 26 273 24L333 25Q380 32 419 60L370 69Z"/>
+    <path class="seam" d="M272 26v42M365 33l14 34M173 65l-5 62 14 14h157l19-14 12-58M27 96l126-9 23-20M403 80l77 1 39 14"/>
+    <path class="dark" d="M17 134l24 1 5 8-29 1zM153 139l259-1-2 9H155zM521 137h31l-14 10h-17z"/>
+    <path class="lamp" d="M11 105l42-13"/><path class="tail" d="M519 91l34 13"/>
+    <g><circle class="tire" cx="104" cy="142" r="49"/><circle class="rim" cx="104" cy="142" r="32"/><circle class="dark" cx="104" cy="142" r="22"/><circle class="rim" cx="104" cy="142" r="9"/>
+      <circle class="tire" cx="460.4" cy="142" r="49"/><circle class="rim" cx="460.4" cy="142" r="32"/><circle class="dark" cx="460.4" cy="142" r="22"/><circle class="rim" cx="460.4" cy="142" r="9"/></g>
+    <path class="dim" d="M0 173v75m104-55v21m356-21v21m104-41v75M0 191h564"/>
+    <path class="dim" d="M104 205h356M0 238h564" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+    <text x="232" y="201">2.97 m wheelbase</text><text x="246" y="234">4.70 m</text>
+    <path class="dim" d="M584 16v175" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+    <text x="593" y="101">1.46 m</text>
+    <text class="note" x="0" y="269">Draft roofline. Driver and rear headroom remain review items.</text>
+  </g>
+  <g transform="translate(755 174)">
+    <text class="label" x="0" y="-4">FRONT THREE-QUARTER</text>
+    <path class="paint" d="M-5 193q17-39 74-57l65-19 56-53q44-30 100-21l44 12 39 50 29 49-6 49-26 16-16-5q-12-61-62-26l-11 36-49 29-175 5-54-29z"/>
+    <path class="glass" d="M134 117l59-48q47-29 101-19l34 10-72 65z"/>
+    <path class="glass" d="M270 123l62-57 30 39-12 20z"/>
+    <path class="seam" d="M51 167l29-23 103-22m-5 73 28-42 55-27m19 70 21-61 48-9 16 32m-39-69-5 38"/>
+    <path class="dark" d="M36 214l158-14 37 15-21 27-155 6zM7 201l31-14 3 21-25 18zM235 203l46-28-8 32-37 23z"/>
+    <path class="lamp" d="M24 188l24-26m-18 19 18-20m161 24 43-36m-35 37 42-33"/>
+    <path class="seam" d="M47 247l169-7 42-24"/>
+    <ellipse class="tire" cx="318" cy="208" rx="25" ry="41" transform="rotate(27 318 208)"/>
+    <ellipse class="rim" cx="318" cy="208" rx="17" ry="30" transform="rotate(27 318 208)"/>
+    <text class="note" x="5" y="280">Bonnet folds align with the outer lamp and brake intake.</text>
+  </g>
+  <g transform="translate(139 521)">
+    <text class="label" x="0" y="-18">FRONT ELEVATION</text>
+    <path class="paint" d="M0 114l9-43 29-21 27-37Q95 0 146 1h27q53-1 83 12l27 36 30 22 8 43-15 31H15z"/>
+    <path class="glass" d="M49 49l26-31Q104 8 148 9h25q44-1 73 9l25 31z"/>
+    <path class="seam" d="M35 70l26-17 43 16 112 1 41-17 28 17"/>
+    <path class="dark" d="M22 98l40 3-12 31H23zM75 103h171l-14 32H89zM260 102l40-4-2 34h-27z"/>
+    <path class="lamp" d="M19 87l27-15m-17 18 25-15m213 0 25 15m-18-18 28 15"/>
+    <path class="dim" d="M0 154v37m321-37v37M0 180h321" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+    <text class="note" x="99" y="175">2.35 m max body</text>
+  </g>
+  <g transform="translate(764 521)">
+    <text class="label" x="0" y="-18">REAR ELEVATION</text>
+    <path class="paint" d="M0 114l9-42 25-16 31-37Q97 0 146 1h26q51-1 83 18l31 37 26 16 9 42-15 31H15z"/>
+    <path class="glass" d="M46 53l30-29Q103 9 149 9h23q46 0 74 15l29 29z"/>
+    <path class="seam" d="M44 56l52 14h137l45-14M97 70l-7 28h142l1-28"/>
+    <path class="tail" d="M13 79l49 5 38 2h119l39-2 50-5"/>
+    <path class="dark" d="M58 109h206l-17 34H74z"/>
+    <path class="seam" d="M116 118v21m31-21v21m30-21v21m31-21v21"/>
+    <text class="note" x="24" y="175">Hatch seal, parcel bulkhead and closed diffuser.</text>
+  </g>
+  <text class="note" x="48" y="788">Original NightGrid design linework · dimensions in metres · rear and roof shapes are proposed · not a gameplay capture</text>
+</svg>

@@ -26,6 +26,8 @@ jobs:
         run: python tools/check_cc0_aircon.py
       - name: Audit original Crane & Gear production glTF, source hashes and photo-PBR derivatives
         run: python tools/check_crane_gear_gltf.py
+      - name: Validate Kestrel fascia geometry, sockets, LODs and provenance
+        run: python tools/check_kestrel_fascia.py
       - name: Verify original CC0 Hidden Alley source models and photo-derived road wear maps
         run: python tools/check_exchange_photo_street_kit.py
       - name: Audit source-authored Central Exchange concrete curbstones, steel drain glTF, and CC0 material hashes
