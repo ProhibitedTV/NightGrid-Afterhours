@@ -61,3 +61,29 @@ The current generated car remains an **early sculpt study**, not an AAA producti
 
 ### Artistic next review
 Compare the original four-view shot (Nov 23), the first body-surface candidate and latest corrected source at identical Workbench camera angles. **Approve based on actual highlight flow and panel fit, not polygon count.** Only after acceptance proceed to UV/baking/material review and isolated native Godot scene (#231–#233). Avoid fetching external car model packs or equating polished lighting with accurate geometry.
+
+
+## Surface development cycle — visual comparison and source-level QA
+
+We now have a repeatable **inspect → adjust → regenerate → validate → compare** workflow for the same original car.
+
+**Inspect:** Use exactly matched real Blender Workbench camera poses in material colors and neutral clay. Both are offline Blender previews, never Godot screenshots. The initial full car study exported ~11,118 LOD0 triangles; the successful C2/normals candidate exported ~18,196. Higher polygon count is not by itself artistic certification.
+
+**Adjust:** `vehicle_body_surface.py` contains original C2 cubic width/shoulder design stations, shared bonnet/fender/tonneau/bumper boundaries, correct exterior face normals, circular tire-clearance arches, matching wheel-liner anchors and enclosed tires. These are authored mechanical geometry *proxies*, not a replacement for a human sculptor.
+
+**Regenerate:** Blender writes editable .blend, LOD0/LOD1 GLBs, semantic sockets and SHA-256 manifest. The CI job also outputs `geometry_audit.json` measuring curvature and seam continuity, outward normals and minimum wheel clearance; numeric checks are not full Class-A/G2 surface approval.
+
+**Compare:** Download two run artifacts with their original `source.json` files and authentic Workbench PNGs. Install Pillow and run:
+
+    python -m pip install Pillow
+    python tools/vehicles/compare_vesper_reviews.py --baseline /path/to/old --candidate /path/to/new --output /path/to/vesper-comparison.png
+
+The comparison utility validates the input PNG SHA-256 hashes and writes matched-pose images plus a JSON provenance record. Its contact sheet supports human review; it is NOT an automated AAA score.
+
+**Remaining gaps:** True manufacturable body-part thickness and interior mechanism fit, independent high-poly detail and retopology, optimized atlas UVs and true baked PBR, animated convertible mechanism, transparent glazing reflection, native Godot driving screenshots and RTX 3060 frame-time verification.
+
+### Verification record
+
+- [Actions 45282462122](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/runs/45282462122) successfully verified the C2/profile and exterior normals candidate through Blender and GLB checks.
+- Later wheel clearance, clay passes, metric reports, rear integration and updated review tooling need their own successful latest-run evidence. Do not reuse an old green check to claim new commits are validated.
+- This is a draft model with original geometry. Never represent Blender Workbench previews as actual in-game screenshots.
