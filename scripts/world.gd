@@ -525,6 +525,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		day_night.call("advance_hour", 1.0)
 	elif event.is_action_pressed("pause_clock"):
 		day_night.call("toggle_pause")
+	elif event.is_action_pressed("sky_weather_cycle"):
+		var state: String = str(day_night.call("cycle_weather"))
+		_log_playtest("sky_weather_preview", {"weather": state, "sky": str(day_night.call("active_sky_preset"))})
+		_notify("Original sky preview: " + state + " (F2 cycles clear/cloudy/overcast/rain/storm)")
 	elif event.is_action_pressed("toggle_fps"):
 		performance_overlay = not performance_overlay
 		performance_label.visible = performance_overlay
@@ -597,6 +601,8 @@ func _capture_playtest_frame() -> void:
 		"motion_context": motion,
 		"graphic_settings": game_menu.call("get_settings"),
 		"render_profile": str(day_night.call("get_render_profile")),
+		"sky_weather": str(day_night.call("get_weather")),
+		"sky_preset": str(day_night.call("active_sky_preset")),
 		"frame_interval_metrics": frame_time_recorder.get_frame_metrics(),
 		"streaming": city_details.call("get_streaming_stats"),
 		"render_batch_stats": city_details.call("get_render_batch_stats"),

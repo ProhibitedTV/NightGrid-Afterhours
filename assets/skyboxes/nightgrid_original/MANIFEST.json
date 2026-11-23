@@ -1,0 +1,40 @@
+{
+  "content_kind": "original-ai-sky-art-converted-for-godot",
+  "rendering": "1536x768 WebP; 2:1 equirectangular candidate, not true HDRI/360 capture",
+  "notes": "Converted from 1774x887 original generated coastal scenic artwork. Edges feathered; horizon relocated; muted underhemisphere. Requires full-yaw and in-game visual quality QA.",
+  "art_license": "Original AI-generated images made for this game's creator, not third-party stock",
+  "presets": {
+    "clear_day": {
+      "path": "res://assets/skyboxes/nightgrid_original/clear_day.webp",
+      "git_blob_sha": "f8111279f2993e0aa1ab4b81359641d72d096b7a"
+    },
+    "dawn_clear": {
+      "path": "res://assets/skyboxes/nightgrid_original/dawn_clear.webp",
+      "git_blob_sha": "5d4fdb872b967324becc3e9364bc8df7006156de"
+    },
+    "afternoon_clouds": {
+      "path": "res://assets/skyboxes/nightgrid_original/afternoon_clouds.webp",
+      "git_blob_sha": "b208181e4887cd46fe5ac371685bd3dac7899f65"
+    },
+    "evening_clear": {
+      "path": "res://assets/skyboxes/nightgrid_original/evening_clear.webp",
+      "git_blob_sha": "1454ba0dd21d5a5ffd56ad069c92800b9e02df0e"
+    },
+    "dawn_overcast": {
+      "path": "res://assets/skyboxes/nightgrid_original/dawn_overcast.webp",
+      "git_blob_sha": "1005adb0780b6cb05798170c515cb5cdd679e551"
+    },
+    "overcast_day": {
+      "path": "res://assets/skyboxes/nightgrid_original/overcast_day.webp",
+      "git_blob_sha": "d5e86d23ffd8b6c6b4e51b490236adaed292c584"
+    },
+    "storm_day": {
+      "path": "res://assets/skyboxes/nightgrid_original/storm_day.webp",
+      "git_blob_sha": "51f0669fa97ccba853006dde27b5fea1f75a0648"
+    },
+    "moonlit_night": {
+      "path": "res://assets/skyboxes/nightgrid_original/moonlit_night.webp",
+      "git_blob_sha": "3b342ffa33a96a9177746bc1987ddf404caa46c6"
+    }
+  }
+}
