@@ -76,10 +76,11 @@ class TestVehicleBodySurface(unittest.TestCase):
     def test_arch_returns_continuously_to_lower_rocker(self):
         for axle in AXLES:
             for sign in (-1,1):
-                boundary=axle+sign*ARCH_RADIUS
-                self.assertLess(abs(arch_lower_boundary(boundary-0.000001)-
-                                    arch_lower_boundary(boundary+0.000001)),.002)
-                far=axle+sign*(ARCH_RADIUS+.061)
+                for joint in (ARCH_CIRCLE_END,ARCH_ROCKER_END):
+                    boundary=axle+sign*joint
+                    self.assertLess(abs(arch_lower_boundary(boundary-0.000001)-
+                                        arch_lower_boundary(boundary+0.000001)),.002)
+                far=axle+sign*(ARCH_ROCKER_END+.001)
                 self.assertAlmostEqual(arch_lower_boundary(far),.260,places=6)
 
     def test_all_manufactured_parts_have_valid_faces(self):
