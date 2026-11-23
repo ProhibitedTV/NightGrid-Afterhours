@@ -67,9 +67,10 @@ def body_surface_point(z,across):
     camber=.064*(1-t*t)**2
     # Stamped crease and twin tonneau bubbles; both fade into adjacent skins.
     bonnet=_smoothstep((z+2.18)/.22)*(1-_smoothstep((z+1.02)/.25))
-    crease=.012*exp(-((abs(t)-.73)/.10)**2)*bonnet
+    edge_fade=(1-t*t)**2
+    crease=.012*exp(-((abs(t)-.73)/.10)**2)*bonnet*edge_fade
     rear=_smoothstep((z-.73)/.24)*(1-_smoothstep((z-1.62)/.34))
-    bubbles=.025*(exp(-((t-.42)/.22)**2)+exp(-((t+.42)/.22)**2))*rear
+    bubbles=.025*(exp(-((t-.42)/.22)**2)+exp(-((t+.42)/.22)**2))*rear*edge_fade
     return (w*t,h+camber+crease+bubbles,z)
 
 def top_panel(z0,z1,across_segments=24,long_segments=40) -> Shell:
