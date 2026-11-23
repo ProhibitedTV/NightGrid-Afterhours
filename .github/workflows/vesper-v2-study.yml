@@ -82,6 +82,25 @@ jobs:
               assert hashlib.sha256(data).hexdigest()==manifest["files"][name]["sha256"], name
           print("Eight matched-pose material and clay Blender review images verified")
           PY
+      - name: Inspect body highlights with Blender Cycles zebra reflections
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          MESA_LOADER_DRIVER_OVERRIDE: llvmpipe
+        run: |
+          xvfb-run -a blender --background --python-exit-code 1 \
+            --python tools/vehicles/render_vesper_zebra_blender.py -- \
+            --input out/vesper-v2/vesper_v2_master.blend \
+            --output-dir out/vesper-v2
+          python3 - <<'PY'
+          import hashlib, json, pathlib
+          root=pathlib.Path("out/vesper-v2")
+          manifest=json.loads((root/"source.json").read_text())
+          for file in ("zebra_front_three_quarter.png","zebra_rear_three_quarter.png"):
+              raw=(root/file).read_bytes()
+              assert len(raw)>1024
+              assert hashlib.sha256(raw).hexdigest()==manifest["files"][file]["sha256"]
+          print("Reflected stripe image provenance and hashes verified")
+          PY
       - name: Upload reviewable model and evidence
         if: always()
         uses: actions/upload-artifact@v4
