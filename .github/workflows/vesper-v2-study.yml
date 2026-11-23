@@ -20,6 +20,9 @@ jobs:
         run: |
           python -m unittest discover -s tests -p 'test_vehicle*.py' -v
           python -m compileall -q tools/vehicles
+      - name: Record independent automotive body-quality metrics
+        run: |
+          python tools/vehicles/audit_vesper_geometry.py --output out/vesper-v2/geometry_audit.json
       - name: Install Blender with Python dependencies
         run: |
           sudo apt-get update -qq
@@ -53,7 +56,8 @@ jobs:
           path = pathlib.Path("out/vesper-v2")
           spec = json.loads((path/"source.json").read_text())
           assert spec["seat_count"] == 2 and spec["roof"] == "stowed_prototype_only"
-          for fname in ["vesper_v2_master.blend", "vesper_v2_lod0.glb", "vesper_v2_lod1.glb"]:
+          for fname in ["vesper_v2_master.blend", "vesper_v2_lod0.glb", "vesper_v2_lod1.glb",
+                        "geometry_audit.json"]:
               assert (path/fname).is_file() and (path/fname).stat().st_size > 1024, fname
           print("Source, exports and all offline preview frames verified")
           PY
@@ -70,11 +74,13 @@ jobs:
           import json, pathlib, hashlib
           path=pathlib.Path("out/vesper-v2")
           manifest=json.loads((path/"source.json").read_text())
-          for name in ["front_three_quarter.png","rear_three_quarter.png","profile.png","open_cockpit.png"]:
+          for name in ["front_three_quarter.png","rear_three_quarter.png","profile.png","open_cockpit.png",
+                       "clay_front_three_quarter.png","clay_rear_three_quarter.png",
+                       "clay_profile.png","clay_open_cockpit.png"]:
               data=(path/name).read_bytes()
               assert len(data)>1024, name
               assert hashlib.sha256(data).hexdigest()==manifest["files"][name]["sha256"], name
-          print("Four offline Blender review images and their SHA hashes verified")
+          print("Eight matched-pose material and clay Blender review images verified")
           PY
       - name: Upload reviewable model and evidence
         if: always()
