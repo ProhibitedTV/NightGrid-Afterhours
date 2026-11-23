@@ -1,40 +1,40 @@
 {
   "content_kind": "original-ai-sky-art-converted-for-godot",
   "rendering": "1536x768 WebP; 2:1 equirectangular candidate, not true HDRI/360 capture",
-  "notes": "Converted from 1774x887 original generated coastal scenic artwork. Edges feathered; horizon relocated; muted underhemisphere. Requires full-yaw and in-game visual quality QA.",
+  "notes": "Converted scenic panorama pilot: panorama seam feathering averaged both x-boundaries; horizon mapped near equator; muted lower hemisphere. Not full 360 photographic HDRI and requires manual seam/lighting approval.",
   "art_license": "Original AI-generated images made for this game's creator, not third-party stock",
   "presets": {
     "clear_day": {
       "path": "res://assets/skyboxes/nightgrid_original/clear_day.webp",
-      "git_blob_sha": "f8111279f2993e0aa1ab4b81359641d72d096b7a"
+      "git_blob_sha": "d8d940ed23ecb1a0cafba8de9b78f4db69d192f4"
     },
     "dawn_clear": {
       "path": "res://assets/skyboxes/nightgrid_original/dawn_clear.webp",
-      "git_blob_sha": "5d4fdb872b967324becc3e9364bc8df7006156de"
+      "git_blob_sha": "f44e268a95f0f75965b4250eee6f90cbe9225328"
     },
     "afternoon_clouds": {
       "path": "res://assets/skyboxes/nightgrid_original/afternoon_clouds.webp",
-      "git_blob_sha": "b208181e4887cd46fe5ac371685bd3dac7899f65"
+      "git_blob_sha": "4e7f9f4b3a8babaa8650a37c8b6f2245a7e113a3"
     },
     "evening_clear": {
       "path": "res://assets/skyboxes/nightgrid_original/evening_clear.webp",
-      "git_blob_sha": "1454ba0dd21d5a5ffd56ad069c92800b9e02df0e"
+      "git_blob_sha": "1b064bb3134458843924d2944f49ebaf935185e8"
     },
     "dawn_overcast": {
       "path": "res://assets/skyboxes/nightgrid_original/dawn_overcast.webp",
-      "git_blob_sha": "1005adb0780b6cb05798170c515cb5cdd679e551"
+      "git_blob_sha": "274754eaf1eab8e9fe1d47ebc29e76732c63b4d2"
     },
     "overcast_day": {
       "path": "res://assets/skyboxes/nightgrid_original/overcast_day.webp",
-      "git_blob_sha": "d5e86d23ffd8b6c6b4e51b490236adaed292c584"
+      "git_blob_sha": "21116678617f581b5b9ca56b85f11bc134dfcec0"
     },
     "storm_day": {
       "path": "res://assets/skyboxes/nightgrid_original/storm_day.webp",
-      "git_blob_sha": "51f0669fa97ccba853006dde27b5fea1f75a0648"
+      "git_blob_sha": "f7d4c7c7f2db47a7460b886e21688346984ecf81"
     },
     "moonlit_night": {
       "path": "res://assets/skyboxes/nightgrid_original/moonlit_night.webp",
-      "git_blob_sha": "3b342ffa33a96a9177746bc1987ddf404caa46c6"
+      "git_blob_sha": "e2a74ae95bf7d652b1798d989f757ecdbd25e7c3"
     }
   }
 }
