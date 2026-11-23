@@ -59,10 +59,27 @@ class TestVehicleBodySurface(unittest.TestCase):
                 self.assertAlmostEqual(y,expected[1],places=6)
 
     def test_arch_clearance_and_rockers(self):
-        for z in AXLES:
-            self.assertGreater(arch_lower_boundary(z),
-                               WHEEL_Y+TIRE_RADIUS+.040)
+        min_clearance=1.
+        for axle in AXLES:
+            for i in range(1001):
+                offset=-TIRE_RADIUS+2*TIRE_RADIUS*i/1000
+                z=axle+offset
+                upper_tire=WHEEL_Y+math.sqrt(max(0.,TIRE_RADIUS**2-offset**2))
+                clearance=arch_lower_boundary(z)-upper_tire
+                min_clearance=min(min_clearance,clearance)
+                self.assertGreaterEqual(clearance,.045,
+                                        f"wheel clips body at {z:.3f}m")
+        self.assertGreater(min_clearance,.04)
         self.assertLess(arch_lower_boundary(0.0),.30)
+
+    def test_arch_returns_continuously_to_lower_rocker(self):
+        for axle in AXLES:
+            for sign in (-1,1):
+                boundary=axle+sign*ARCH_RADIUS
+                self.assertLess(abs(arch_lower_boundary(boundary-0.000001)-
+                                    arch_lower_boundary(boundary+0.000001)),.002)
+                far=axle+sign*(ARCH_RADIUS+.061)
+                self.assertAlmostEqual(arch_lower_boundary(far),.260,places=6)
 
     def test_all_manufactured_parts_have_valid_faces(self):
         parts=[
