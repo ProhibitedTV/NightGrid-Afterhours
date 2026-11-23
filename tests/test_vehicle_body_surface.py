@@ -30,6 +30,13 @@ class TestVehicleBodySurface(unittest.TestCase):
                 x,y,_=body_surface_point(z,sign)
                 self.assertAlmostEqual(x,sign*w,places=6)
                 self.assertAlmostEqual(y,h,places=6)
+        for sign in (-1,1):
+            shape=side_panel(-2.18,-.78,sign,30,9)
+            for i in range(31):
+                x,y,z=shape.positions[i*10+9]
+                expected=body_surface_point(z,sign)
+                self.assertAlmostEqual(x,expected[0],places=6)
+                self.assertAlmostEqual(y,expected[1],places=6)
 
     def test_arch_clearance_and_rockers(self):
         for z in AXLES:
@@ -74,6 +81,9 @@ class TestVehicleBodySurface(unittest.TestCase):
                 width,_=width_shoulder(z)
                 expected=body_surface_point(z,x/width)[1]
                 self.assertAlmostEqual(y,expected,places=6)
+            w,_=width_shoulder(surface.positions[-1][2])
+            self.assertAlmostEqual(surface.positions[-25][0],-w,places=6)
+            self.assertAlmostEqual(surface.positions[-1][0],w,places=6)
 
     def test_invalid_external_station_rejected(self):
         with self.assertRaisesRegex(ValueError,"station"):
