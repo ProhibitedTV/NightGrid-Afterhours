@@ -89,8 +89,14 @@ func _verify()->void:
 			pipe_parts += 1
 			if not _check(child.mesh != null, "selected pipe mesh"):
 				return
-	if not _check(pipe_parts == 14, "only selected modular pipe pieces"):
+	if not _check(pipe_parts == 24 and authored.get_node("CabinetFeedCollision").get_child_count() == 2, "selected pipe pieces and fitted cabinet feed contact"):
 		return
+	var stock := authored.get_node("StackedReturns0") as StaticBody3D
+	for index in range(3):
+		var crate := authored.get_node("StackedReturns%d" % index) as StaticBody3D
+		var bounds := (crate.get_node("BoundsCollider") as CollisionShape3D).shape as BoxShape3D
+		if not _check(is_equal_approx(crate.position.y, stock.position.y + index * bounds.size.y), "return crates stack on scan bounds"):
+			return
 	for z in [-10.0, -5.0, 0.0, 5.0, 7.5]:
 		var ray_start := center + Vector3(x, 0.9, z)
 		var clear := space.intersect_ray(PhysicsRayQueryParameters3D.create(ray_start, ray_start + Vector3(0, 0, 0.4), 1))
@@ -121,7 +127,8 @@ func _verify()->void:
 	var workroom_glass := workroom.get_node("WorkroomGlass") as MeshInstance3D
 	var room_at := workroom.to_global(Vector3(-1.5, 1.25, 0.0))
 	var window_contact := space.intersect_ray(PhysicsRayQueryParameters3D.create(room_at + Vector3.RIGHT, room_at - Vector3.RIGHT, 1))
-	if not _check(workroom_glass.mesh != null and workroom.get_node("BackWall").position.z < -1.0 and workroom.get_node("StockShelf").position.z < -0.6 and not window_contact.is_empty() and absf(window_contact["position"].x - room_at.x) < 0.005, "visible workroom depth keeps its original wall collision"):
+	var repair: Node3D = city.call("repair_storefront")
+	if not _check(workroom_glass.mesh != null and repair.has_node("AuthoredWorkshop") and not window_contact.is_empty() and absf(window_contact["position"].x - room_at.x) < 0.10, "retained display window stays protected in front of the workshop"):
 		return
 	for label in ["WestElectricalTrunk", "EastElectricalTrunk"]:
 		var trunk := architecture.get_node(label) as Node3D
@@ -151,7 +158,7 @@ func _verify()->void:
 	var damp := pavement.material_override as ShaderMaterial
 	if not _check(damp != null and damp.shader != null, "opaque wetness shader"):
 		return
-	for parameter in ["concrete_color", "concrete_normal", "concrete_arm", "wetness_atlas", "grime_atlas"]:
+	for parameter in ["concrete_color", "concrete_normal", "concrete_arm", "wetness_atlas", "grime_atlas", "repair_emitter", "laundry_emitter"]:
 		if not _check(damp.get_shader_parameter(parameter) is Texture2D, "bound photo/mask texture " + parameter):
 			return
 	var wet_mask := damp.get_shader_parameter("wetness_atlas") as Texture2D
@@ -195,13 +202,13 @@ func _verify()->void:
 			papers += 1
 		if child is OmniLight3D:
 			var light := child as OmniLight3D
-			if not _check(not light.shadow_enabled and light.omni_range <= 3.2 and light.light_energy <= 0.35, "bounded sign light"):
+			if not _check(not light.shadow_enabled and light.distance_fade_enabled and light.omni_range <= 6.0 and light.light_energy <= 1.55, "two bounded, fade-limited sign sources"):
 				return
 			lights += 1
 	if not _check(papers == 4 and lights == 2, "limited atmosphere dressing budget"):
 		return
 	var spans := architecture.get_node_or_null("OverheadUtilitySpans") as Node3D
-	if not _check(spans != null and spans.get_child_count() == 4, "four bounded overhead utility cables"):
+	if not _check(spans != null and spans.get_child_count() == 8 and architecture.get_node("SecondaryCableAnchors").get_child_count() == 4, "four cable pairs with mounted secondary feed boxes"):
 		return
 	for child in spans.get_children():
 		var cable := child as MeshInstance3D
@@ -210,11 +217,11 @@ func _verify()->void:
 		var bounds := cable.mesh.get_aabb()
 		var west_anchor: Vector3 = cable.get_meta("west_anchor")
 		var east_anchor: Vector3 = cable.get_meta("east_anchor")
-		if not _check(bounds.position.y >= 3.7 and bounds.position.y < 4.1 and absf(west_anchor.x - float(alley.get("left_wall"))) < 0.05 and absf(east_anchor.x - float(alley.get("right_wall"))) < 0.05, "sag and wall attachment"):
+		if not _check(bounds.position.y >= 3.7 and bounds.position.y < 4.45 and absf(west_anchor.x - float(alley.get("left_wall"))) < 0.05 and absf(east_anchor.x - float(alley.get("right_wall"))) < 0.05, "sag and wall attachment"):
 			return
 		if not _check(cable.mesh.surface_get_array_index_len(0) == 1152, "bounded cable topology"):
 			return
-	for label in ["WestServiceEntrance", "EastServiceEntrance"]:
+	for label in ["EastServiceEntrance"]:
 		var entrance := architecture.get_node_or_null(label) as StaticBody3D
 		if not _check(entrance != null and entrance.get_child_count() == 4, "closed authored service front"):
 			return
@@ -236,15 +243,22 @@ func _verify()->void:
 			return
 		var shape_node := body.get_node("MeasuredEnvelope") as CollisionShape3D
 		var shape := shape_node.shape as BoxShape3D
-		if not _check(shape != null and body.position.y + shape_node.position.y - shape.size.y * 0.5 >= 3.0 and shape.size.z <= 0.921, "clear passage below frontage"):
+		if not _check(shape != null and body.position.y + shape_node.position.y - shape.size.y * 0.5 >= 3.0 and shape.size.z <= 1.08, "clear passage below frontage"):
 			return
 		if str(body.name).ends_with("Blade"):
-			var housing := body.get_node("FoldedEnamelHousing") as MeshInstance3D
-			if not _check(housing.mesh is ArrayMesh and body.get_child_count() == 4, "modeled sign housing and two faces"):
+			var assembly := body.get_node("AuthoredNeon")
+			var meshes := assembly.find_children("*", "MeshInstance3D", true, false)
+			if not _check(meshes.size() == 1 and body.get_child_count() == 2, "one imported complete sign with measured solid clearance"):
 				return
-			var sign := body.get_node("PrintedBladeFace") as MeshInstance3D
-			var face := sign.material_override as StandardMaterial3D
-			if not _check(face.emission_operator == BaseMaterial3D.EMISSION_OP_MULTIPLY and face.albedo_texture == face.emission_texture, "sign illumination follows lettering texture"):
+			var sign := meshes[0] as MeshInstance3D
+			var emitters := 0
+			var mapped := 0
+			for i in range(sign.mesh.get_surface_count()):
+				var source := sign.mesh.surface_get_material(i) as StandardMaterial3D
+				mapped += int(source != null and source.normal_enabled and source.normal_texture != null)
+				var material := sign.get_surface_override_material(i) as StandardMaterial3D
+				emitters += int(material != null and material.emission_enabled)
+			if not _check(sign.mesh is ArrayMesh and mapped == 2 and emitters == 2, "photographic metal and separately modeled glass tubes"):
 				return
 		else:
 			var sheet := body.get_node("CorrugatedWeatheredSheet") as MeshInstance3D

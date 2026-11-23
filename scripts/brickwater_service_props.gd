@@ -31,7 +31,11 @@ func _ready() -> void:
 	_ground("RefuseBagB", BAG, left_wall + 0.38, 7.35, -0.64)
 	_ground("ReturnCrate", CRATE, right_wall - 0.29, -5.15, -0.25)
 	_ground("ReturnCarton", BOX, right_wall - 0.37, -4.45, 0.25)
-	_fixture("WestServiceLamp", left_wall + 0.012, -3.5, PI * 0.5)
+	var crate_height := _selected(CRATE).get_aabb().size.y
+	for row in range(3):
+		_ground("StackedReturns%d" % row, CRATE, right_wall - 0.34, -7.85, -0.07, row * crate_height)
+	_ground("SealedReturnsCarton", BOX, right_wall - 0.34, -8.45, 0.14)
+	_fixture("WestServiceLamp", left_wall + 0.012, -6.68, PI * 0.5)
 	_fixture("EastServiceLamp", right_wall - 0.012, 4.0, -PI * 0.5)
 	# Replacement for the two procedural risers and shared horizontal run.
 	for z in [-7.0, 1.0]:
@@ -41,6 +45,30 @@ func _ready() -> void:
 			_part("PipeWallSupport", PIPES, "pipe_support_metal", Vector3(right_wall - 0.008, y, z), Vector3(0, -PI * 0.5, 0))
 	for i in range(4):
 		_part("ServiceMain", PIPES, "pipe_200cm_metal", Vector3(right_wall - 0.105, 3.65, -7.0 + 2.0 * i), Vector3(PI * 0.5, 0, 0))
+	_service_feeds()
+
+func _service_feeds() -> void:
+	# Two narrow supplies beside the existing meter cabinet. The horizontal
+	# sleeves continue into masonry, and collars keep the shafts off the wall.
+	var body := StaticBody3D.new()
+	body.name = "CabinetFeedCollision"
+	add_child(body)
+	for z in [-10.50, -10.70]:
+		var pipe_x := right_wall - 0.104
+		_part("CabinetFeedLower", PIPES, "pipe_200cm_metal", Vector3(pipe_x, floor_y, z), Vector3.ZERO)
+		_part("CabinetFeedUpper", PIPES, "pipe_100cm_metal", Vector3(pipe_x, floor_y + 2.0, z), Vector3.ZERO)
+		for y in [0.84, 2.48]:
+			_part("CabinetFeedClip", PIPES, "pipe_support_metal", Vector3(right_wall - 0.006, y, z), Vector3(0, -PI * 0.5, 0))
+		var sleeve := _part("CabinetFeedWallSleeve", PIPES, "pipe_100cm_metal",
+			Vector3(pipe_x, floor_y + 3.0, z), Vector3(0, 0, -PI * 0.5))
+		sleeve.scale.y = 0.19
+		var shape := CylinderShape3D.new()
+		shape.radius = 0.05
+		shape.height = 3.0
+		var collider := CollisionShape3D.new()
+		collider.position = Vector3(pipe_x, floor_y + 1.5, z)
+		collider.shape = shape
+		body.add_child(collider)
 
 func _gather(node: Node, out: Array[MeshInstance3D]) -> void:
 	if node is MeshInstance3D:
@@ -77,7 +105,7 @@ func _part(label: String, source: PackedScene, component: String, at: Vector3, e
 	add_child(view, true)
 	return view
 
-func _ground(label: String, source: PackedScene, x: float, z: float, yaw: float) -> void:
+func _ground(label: String, source: PackedScene, x: float, z: float, yaw: float, rise: float = 0.0) -> void:
 	var mesh := _selected(source)
 	if mesh == null:
 		return
@@ -85,7 +113,7 @@ func _ground(label: String, source: PackedScene, x: float, z: float, yaw: float)
 	var center := bounds.get_center()
 	var body := StaticBody3D.new()
 	body.name = label
-	body.position = Vector3(x, floor_y, z)
+	body.position = Vector3(x, floor_y + rise, z)
 	body.rotation.y = yaw
 	add_child(body)
 	var view := MeshInstance3D.new()

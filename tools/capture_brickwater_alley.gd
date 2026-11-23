@@ -11,6 +11,8 @@ var walk_records: Array[Dictionary] = []
 var profile_pass := ""
 var profile_frames: Array[Dictionary] = []
 var previous_draw_us := 0
+var _traffic_reset: Dictionary = {}
+var _signal_reset := 0.0
 
 func _initialize() -> void:
 	call_deferred("_capture")
@@ -49,6 +51,10 @@ func _capture() -> void:
 	started = StreamProfile.begin()
 	root.add_child(world)
 	StreamProfile.end(started, "main_scene_activation")
+	var live_traffic := "--live-traffic" in OS.get_cmdline_user_args()
+	if live_traffic:
+		_traffic_reset = world.get("traffic").call("snapshot")
+		_signal_reset = float(world.get("signal_controller").get("elapsed"))
 	await process_frame
 	camera = world.get("camera")
 	var hud := world.get_node_or_null("HUD") as CanvasLayer
@@ -60,6 +66,7 @@ func _capture() -> void:
 	if measure_native:
 		Engine.max_fps = 0
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+		DisplayServer.window_move_to_foreground()
 	hud.visible = false
 	var player := world.get("player") as CharacterBody3D
 	var clock: Node = world.get("day_night")
@@ -88,7 +95,8 @@ func _capture() -> void:
 		clock.call("set_hour", 21.5 if "--drive-night" in arguments else 12.0)
 		# Keep the real roadway and vehicle/collision controllers. Disable the
 		# ambient traffic process only for this reproducible lane-clear fixture.
-		(world.get("traffic") as Node).process_mode = Node.PROCESS_MODE_DISABLED
+		if not live_traffic:
+			(world.get("traffic") as Node).process_mode = Node.PROCESS_MODE_DISABLED
 		for pass_name in ["first", "repeat"]:
 			if not await _drive(city, player, pass_name):
 				return
@@ -104,7 +112,10 @@ func _capture() -> void:
 			"revision": OS.get_environment("NIGHTGRID_SOURCE_REVISION"),
 			"adapter": RenderingServer.get_video_adapter_name(), "driver": RenderingServer.get_current_rendering_driver_name()}))
 		profile.close()
-	if "--trace-only" in OS.get_cmdline_user_args():
+	if "--trace-only" in arguments:
+		if "--drive-evidence" in arguments:
+			if not await _snapshot_drive():
+				return
 		quit(0)
 		return
 	world.set_process(false)
@@ -158,6 +169,21 @@ func _capture() -> void:
 		if measure_native and name.begins_with("01-"):
 			var timing: Dictionary = await _measure_frames()
 			records[records.size() - 1]["stationary_frame_timing"] = timing
+	if "--reference-view" in arguments:
+		clock.call("set_hour", 22.10)
+		var courier := origin + Vector3(0.24, 1.091, -8.0)
+		player.global_position = courier
+		player.rotation.y = 0.0
+		player.show()
+		var at := origin + Vector3(0.12, 1.96, -10.8)
+		var look := origin + Vector3(0.40, 2.29, 1.5)
+		camera.global_position = at
+		camera.look_at(look, Vector3.UP)
+		camera.fov = 65.0
+		for frame in range(20):
+			await RenderingServer.frame_post_draw
+		if not _save("10-courier-alley-reference.png", 22.10, at, look):
+			return
 	var manifest := FileAccess.open(output.path_join("camera-manifest.json"), FileAccess.WRITE)
 	if manifest == null:
 		_fail("Cannot write manifest")
@@ -224,6 +250,9 @@ func _drive(city: Node3D, player: CharacterBody3D, label: String) -> bool:
 		return false
 	world.set("yaw", 0.0)
 	world.call("_snap_camera")
+	if not _traffic_reset.is_empty():
+		world.get("traffic").call("restore", _traffic_reset)
+		world.get("signal_controller").set("elapsed", _signal_reset)
 	for frame in range(4):
 		await physics_frame
 	var initial: Dictionary = city.call("get_streaming_stats")
@@ -231,15 +260,24 @@ func _drive(city: Node3D, player: CharacterBody3D, label: String) -> bool:
 	recorder.call("begin_capture", int(initial["loads"]), int(initial["stage_steps"]), int(initial["total_build_usec"]))
 	profile_pass = "drive-" + label
 	Input.action_press("drive_accelerate")
+	var road_speed := "--road-speed" in OS.get_cmdline_user_args()
+	var accelerating := true
 	var peak_kph := 0
 	var districts: Array[String] = []
-	var deadline := Time.get_ticks_msec() + 20000
+	var deadline := Time.get_ticks_msec() + (36000 if road_speed else 23000)
 	while car.global_position.z > -24.0 and Time.get_ticks_msec() < deadline:
 		await process_frame
 		var z := car.global_position.z
 		# Rotate through a full turn across the same 45 m on both revisions.
 		world.set("yaw", TAU * clampf((155.0 - z) / 45.0, 0.0, 1.0))
-		peak_kph = maxi(peak_kph, int(car.call("speed_kph")))
+		var speed := int(car.call("speed_kph"))
+		peak_kph = maxi(peak_kph, speed)
+		if road_speed and accelerating and speed >= 51:
+			Input.action_release("drive_accelerate")
+			accelerating = false
+		elif road_speed and not accelerating and speed <= 46:
+			Input.action_press("drive_accelerate")
+			accelerating = true
 		var district: String = city.call("get_district_at", car.global_position)
 		if district not in districts:
 			districts.append(district)
@@ -252,14 +290,39 @@ func _drive(city: Node3D, player: CharacterBody3D, label: String) -> bool:
 		return false
 	walk_records.append({"file": filename, "frames": recorder.call("captured_frames"),
 		"distance_z_m": start.z - car.global_position.z, "reached_end": car.global_position.z <= -24.0,
-		"peak_kph": peak_kph, "districts": districts, "condition": car.get("condition")})
-	if car.global_position.z > -24.0 or peak_kph < 125 or districts.size() < 3:
+		"peak_kph": peak_kph, "districts": districts, "condition": car.get("condition"),
+		"traffic":world.get("traffic").call("get_counts"),
+		"pedestrians":world.get("pedestrians").call("stats") if is_instance_valid(world.get("pedestrians")) else {}})
+	if car.global_position.z > -24.0 or peak_kph < (46 if road_speed else 125) or districts.size() < 3:
 		_fail("Drive did not qualify: " + str(walk_records.back()))
 		return false
 	return true
 
+func _snapshot_drive() -> bool:
+	# Use the same native chase camera after the timed route, with no F8
+	# readback work in the measured interval.
+	var car := world.get("current_car") as CharacterBody3D
+	car.set_physics_process(false)
+	car.global_position = Vector3(3.35, 0.65, 134.0)
+	car.rotation = Vector3.ZERO
+	world.set("yaw", 0.0)
+	world.set("pitch", 0.23)
+	world.get("city_details").call("set_focus", car.global_position)
+	var signals: Node = world.get("signal_controller")
+	signals.set_process(false)
+	signals.set("elapsed", 12.0)
+	signals.call("_refresh")
+	world.call("_snap_camera")
+	world.set_process(false)
+	for frame in range(16):
+		await RenderingServer.frame_post_draw
+	var at := camera.global_position
+	var hour: float = world.get("day_night").get("hour")
+	return _save("southworks-driver-view.png", hour, at, at - camera.global_basis.z * 20.0)
+
 func _profile_frame() -> void:
 	var now := Time.get_ticks_usec()
+	var traced := StreamProfile.take_frame_totals()
 	if not profile_pass.is_empty() and previous_draw_us > 0 and profile_frames.size() < StreamProfile.MAX_EVENTS:
 		var viewport := root.get_viewport_rid()
 		profile_frames.append({
@@ -270,6 +333,10 @@ func _profile_frame() -> void:
 			"render_cpu_ms": RenderingServer.viewport_get_measured_render_time_cpu(viewport),
 			"render_gpu_ms": RenderingServer.viewport_get_measured_render_time_gpu(viewport),
 			"physics_process_ms": Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
+			"process_ms": Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0,
+			"physics_collision_pairs": Performance.get_monitor(Performance.PHYSICS_3D_COLLISION_PAIRS),
+			"render_draw_calls": Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
+			"layers_usec": traced,
 			"texture_bytes": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TEXTURE_MEM_USED),
 			"mesh_pipelines": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_MESH),
 			"surface_pipelines": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_SURFACE),

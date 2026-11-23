@@ -1,0 +1,40 @@
+{
+	"01-day-front": {
+		"camera": "(-85.4, 1.68, 84.0)",
+		"fov": 69.0,
+		"hour": 12.0,
+		"look": "(-89.5, 1.63, 86.15)",
+		"sha256": "698f7e788378b4c9ff18ea6257d745984cbba278b227ffbbd606601e7bbb3a55"
+	},
+	"02-night-front": {
+		"camera": "(-85.4, 1.68, 84.0)",
+		"fov": 69.0,
+		"hour": 22.1,
+		"look": "(-89.5, 1.63, 86.15)",
+		"sha256": "c9ee5b4a9cf791ab1689dedd114656bce7fbf98c217ca90695e200fccf34f97e"
+	},
+	"03-display": {
+		"camera": "(-87.1, 1.52, 80.4)",
+		"fov": 57.0,
+		"hour": 22.1,
+		"look": "(-89.6, 1.46, 81.15)",
+		"sha256": "3fb80206be892034374a8dbf729a922f29830a50582b3e77924ef999a27b8fe9"
+	},
+	"04-alley-approach": {
+		"camera": "(-86.8, 1.32, 75.1)",
+		"fov": 69.0,
+		"hour": 19.15,
+		"look": "(-89.05, 1.6, 89.2)",
+		"sha256": "2569069c48903968c16d9ef3c20683e086e5fb13124ddc4a8fb7a02c3efac1a7"
+	},
+	"adapter": "NVIDIA GeForce RTX 3060",
+	"approach_end": "(-88.72993, 1.09043, 87.9)",
+	"driver": "vulkan",
+	"renderer": "forward_plus",
+	"revision": "d35962347bb1229608aed0148549ff535434fcc4",
+	"seed": 834726,
+	"size": [
+		1920,
+		1080
+	]
+}

@@ -1,0 +1,38 @@
+{
+  "before/matched-approach-f8.csv": {
+    "frames": 97,
+    "median": 18.519,
+    "p95": 21.255,
+    "p99": 23.886,
+    "maximum": 23.886,
+    "over_16_67": 83,
+    "over_33_3": 0
+  },
+  "after/matched-approach-f8.csv": {
+    "frames": 96,
+    "median": 18.489,
+    "p95": 23.378,
+    "p99": 26.944,
+    "maximum": 26.944,
+    "over_16_67": 67,
+    "over_33_3": 0
+  },
+  "after/keyboard-enter-f8.csv": {
+    "frames": 117,
+    "median": 18.056,
+    "p95": 18.333,
+    "p99": 18.333,
+    "maximum": 21.828,
+    "over_16_67": 72,
+    "over_33_3": 0
+  },
+  "after/controller-enter-f8.csv": {
+    "frames": 233,
+    "median": 9.722,
+    "p95": 18.056,
+    "p99": 25.326,
+    "maximum": 44.146,
+    "over_16_67": 13,
+    "over_33_3": 1
+  }
+}

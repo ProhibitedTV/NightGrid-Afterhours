@@ -8,10 +8,28 @@ uniform sampler2D concrete_normal : hint_normal, filter_linear_mipmap_anisotropi
 uniform sampler2D concrete_arm : filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D wetness_atlas : filter_linear_mipmap, repeat_disable;
 uniform sampler2D grime_atlas : source_color, filter_linear_mipmap, repeat_disable;
+uniform sampler2D repair_emitter : filter_linear_mipmap, repeat_disable;
+uniform sampler2D laundry_emitter : filter_linear_mipmap, repeat_disable;
+instance uniform vec3 repair_plane;
+instance uniform vec3 laundry_plane;
+instance uniform float neon_night = 0.0;
 varying vec2 local_metres;
 
 void vertex() {
 	local_metres = VERTEX.xz;
+}
+
+float emitter_on_reflected_ray(sampler2D emitter, vec3 sign_center, vec3 ray, float direction) {
+	float travel = (sign_center.z + 0.071 * direction - local_metres.y) / ray.z;
+	vec2 hit = vec2(local_metres.x, 0.0) + ray.xy * travel;
+	vec2 uv = vec2(0.5 + (hit.x - sign_center.x) * direction / 0.88,
+		0.5 - (hit.y - sign_center.y) / 1.10);
+	if (travel <= 0.0 || travel >= 19.0 || any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) {
+		return 0.0;
+	}
+	// Low-resolution silhouette of the installed glass tubes, broadened
+	// by the shallow film. The receiver follows the true mirror ray.
+	return textureLod(emitter, uv, 2.25).r;
 }
 
 void fragment() {
@@ -25,19 +43,38 @@ void fragment() {
 	// Aggregate displaces the waterline and leaves rough islands inside
 	// the authored catchments. Keep dry and wet roughness continuous.
 	mask += (packed.g - 0.55) * 0.21 + (concrete.r - 0.34) * 0.09;
-	float damp = smoothstep(0.06, 0.60, mask);
-	float standing_water = smoothstep(0.61, 0.94, mask);
+	float damp = smoothstep(0.10, 0.68, mask);
+	float standing_water = smoothstep(0.56, 0.91, mask);
+	// Settlement joints cross the actual cast-in-place slab. Photographic
+	// aggregate roughens their edges, and the fine groove disappears under water.
+	float cross_joint = abs(fract((local_metres.y + sin(local_metres.x * 1.7) * 0.036) / 2.54 + 0.30) - 0.5) * 2.54;
+	float aa = max(fwidth(cross_joint), 0.002);
+	float joint = (1.0 - smoothstep(0.012 - aa, 0.012 + aa, cross_joint)) * (1.0 - standing_water * 0.85);
 	// Preserve the photographic grain and broad roughness variation.
 	// Wet surface darkens; only pooled cores approach mirror-like roughness.
 	vec3 stained = mix(concrete, grime.rgb, grime.a * 0.58);
-	ALBEDO = stained * mix(vec3(0.64, 0.62, 0.59), vec3(0.35, 0.37, 0.36), damp);
-	ROUGHNESS = mix(clamp(packed.g * 0.90, 0.45, 0.94), 0.38, damp);
-	ROUGHNESS = mix(ROUGHNESS, 0.16, standing_water);
+	ALBEDO = stained * mix(vec3(0.62, 0.60, 0.57), vec3(0.27, 0.29, 0.29), damp) * (1.0 - joint * 0.49);
+	ROUGHNESS = mix(clamp(packed.g * 0.90, 0.45, 0.94), 0.31, damp);
+	ROUGHNESS = mix(ROUGHNESS, 0.077 + 0.031 * packed.g, standing_water);
 	METALLIC = 0.0;
 	SPECULAR = 0.5;
-	NORMAL_MAP = texture(concrete_normal, tiled).rgb;
-	NORMAL_MAP_DEPTH = mix(0.72, 0.09, standing_water);
+	vec3 stone_normal = texture(concrete_normal, tiled).rgb;
+	vec2 ripple = vec2(sin(dot(local_metres, vec2(19.0, 13.0))), sin(dot(local_metres, vec2(-8.0, 27.0))));
+	NORMAL_MAP = mix(stone_normal, vec3(0.5 + ripple * 0.017, 1.0), standing_water);
+	NORMAL_MAP_DEPTH = mix(0.76, 0.78, standing_water);
 	AO = packed.r;
-	CLEARCOAT = mix(0.05, 0.42, damp) + 0.27 * standing_water;
-	CLEARCOAT_ROUGHNESS = mix(0.50, 0.12, standing_water);
+	CLEARCOAT = mix(0.05, 0.33, damp) + 0.42 * standing_water;
+	CLEARCOAT_ROUGHNESS = mix(0.50, 0.10, standing_water);
+	if (standing_water > 0.015 && neon_night > 0.001) {
+		vec3 eye = normalize((INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz);
+		vec3 film_normal = normalize(vec3(ripple.x * 0.021, 1.0, ripple.y * 0.021));
+		vec3 ray = reflect(-eye, film_normal);
+		if (abs(ray.z) > 0.012) {
+			float magenta = emitter_on_reflected_ray(repair_emitter, repair_plane, ray, sign(eye.z));
+			float cyan = emitter_on_reflected_ray(laundry_emitter, laundry_plane, ray, sign(eye.z));
+			float fresnel = 0.05 + 0.95 * pow(1.0 - clamp(dot(eye, film_normal), 0.0, 1.0), 5.0);
+			EMISSION = (vec3(1.0, 0.055, 0.19) * magenta + vec3(0.025, 0.62, 1.0) * cyan)
+				* (3.5 * standing_water * fresnel * neon_night);
+		}
+	}
 }

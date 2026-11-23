@@ -1,0 +1,48 @@
+{
+  "license": "Original NightGrid Afterhours geometry and arrangement. Shared Poly Haven maps are CC0.",
+  "poly_haven_license": "https://polyhaven.com/license",
+  "shared_texture_sources": [
+    "https://polyhaven.com/a/brick_wall_001",
+    "https://polyhaven.com/a/blue_metal_plate",
+    "https://polyhaven.com/a/concrete_floor_01",
+    "https://polyhaven.com/a/modular_urban_apartments_facade"
+  ],
+  "generator": "author_brickwater_repair.py",
+  "models": [
+    {
+      "name": "workshop",
+      "triangles": 8744,
+      "materials": 10,
+      "textures": [
+        "../central_exchange_storefront/textures/masonry_base_1k.jpg",
+        "../central_exchange_storefront/textures/masonry_arm_1k.png",
+        "../central_exchange_storefront/textures/masonry_normal_1k.jpg",
+        "../central_exchange_storefront/textures/concrete_base_1k.jpg",
+        "../central_exchange_storefront/textures/concrete_arm_1k.png",
+        "../central_exchange_storefront/textures/concrete_normal_1k.jpg",
+        "../../polyhaven/modular_urban_apartments_facade/textures/modular_urban_apartments_facade_plaster_diff_1k.jpg",
+        "../../polyhaven/modular_urban_apartments_facade/textures/modular_urban_apartments_facade_plaster_arm_1k.jpg",
+        "../../polyhaven/modular_urban_apartments_facade/textures/modular_urban_apartments_facade_plaster_nor_gl_1k.jpg",
+        "../central_exchange_storefront/textures/steel_base_1k.jpg",
+        "../central_exchange_storefront/textures/steel_arm_1k.png",
+        "../central_exchange_storefront/textures/steel_normal_1k.jpg"
+      ]
+    },
+    {
+      "name": "hinged_leaf",
+      "triangles": 500,
+      "materials": 4,
+      "textures": [
+        "../central_exchange_storefront/textures/steel_base_1k.jpg",
+        "../central_exchange_storefront/textures/steel_arm_1k.png",
+        "../central_exchange_storefront/textures/steel_normal_1k.jpg"
+      ]
+    }
+  ],
+  "files": {
+    "hinged_leaf.bin": "87653b710f46d57f0af285b4c3cce27cb35b95e0c61fe31440dafc20abeed1dd",
+    "hinged_leaf.gltf": "2e0517d20f2f26d49b80da95ca4c53f21da760eded33155f419dcad858f63351",
+    "workshop.bin": "d2e810e045df01a388b753e3f649fb624e72b33f3cd9e4c9b229f32a59dda6f0",
+    "workshop.gltf": "14255ba727299da743733cc3139305e0402a7df061528cc569cb3167698395a0"
+  }
+}

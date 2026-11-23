@@ -1,28 +1,34 @@
 extends Node3D
 ## Original sheet-metal geometry and double-sided illuminated blade signs.
-const WEST_ART = preload("res://assets/models/nightgrid/brickwater_alley/night_shift_repairs.svg")
-const EAST_ART = preload("res://assets/models/nightgrid/brickwater_alley/jade_laundry.svg")
+const WEST_BLADE = preload("res://assets/models/nightgrid/brickwater_alley/repair_neon_blade.gltf")
+const EAST_BLADE = preload("res://assets/models/nightgrid/brickwater_alley/laundry_neon_blade.gltf")
+# Footprint and practical-light anchors shared with the staged alley.
+const BLADE_HEIGHT = 3.82
+const REPAIR_Z = -2.95
+const LAUNDRY_Z = 2.80
 const METAL_COLOR = preload("res://assets/pbr/polyhaven/blue_metal_plate_diffuse_2k.jpg")
 const METAL_NORMAL = preload("res://assets/pbr/polyhaven/blue_metal_plate_nor_gl_2k.png")
 const METAL_ROUGH = preload("res://assets/pbr/polyhaven/blue_metal_plate_rough_2k.png")
 var left_wall: float
 var right_wall: float
 static var _metal: StandardMaterial3D
-static var _faces: Dictionary = {}
+static var _neon_materials: Dictionary = {}
+static var _neon_power: Dictionary = {}
 static var _night := 0.0
 
 static func set_night_factor(value: float) -> void:
 	_night = smoothstep(0.3, 0.85, value)
-	for material: StandardMaterial3D in _faces.values():
-		material.emission_energy_multiplier = 0.58 * _night
+	for key in _neon_materials:
+		var material: StandardMaterial3D = _neon_materials[key]
+		material.emission_energy_multiplier = float(_neon_power[key]) * _night
 
 func configure(left: float, right: float) -> void:
 	left_wall = left
 	right_wall = right
 
 func _ready() -> void:
-	_blade("RepairBlade", left_wall, -1.6, PI * 0.5, WEST_ART)
-	_blade("LaundryBlade", right_wall, 2.8, -PI * 0.5, EAST_ART)
+	_blade("RepairBlade", left_wall, REPAIR_Z, PI * 0.5, WEST_BLADE)
+	_blade("LaundryBlade", right_wall, LAUNDRY_Z, -PI * 0.5, EAST_BLADE)
 	_canopy("RepairRainShelter", left_wall, 0.9, PI * 0.5)
 	_canopy("LaundryRainShelter", right_wall, 5.35, -PI * 0.5)
 
@@ -77,41 +83,26 @@ func _finish(tool: SurfaceTool) -> ArrayMesh:
 	tool.generate_tangents()
 	return tool.commit()
 
-func _blade(label: String, wall: float, z: float, yaw: float, art: Texture2D) -> void:
-	var body := _body(label, wall, 3.54, z, yaw)
-	# Locally +Z points into alley; octagonal profile in YZ forms the
-	# rounded corners of the enamel sign housing. Rear reaches masonry.
-	var outline := [Vector2(-0.18,0.06), Vector2(-0.22,0.10), Vector2(-0.22,0.88),
-		Vector2(-0.18,0.92), Vector2(0.18,0.92), Vector2(0.22,0.88),
-		Vector2(0.22,0.10), Vector2(0.18,0.06)]
-	var tool := SurfaceTool.new()
-	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for i in range(outline.size()):
-		var a: Vector2 = outline[i]
-		var b: Vector2 = outline[(i+1)%outline.size()]
-		_quad(tool, Vector3(-0.055,a.x,a.y), Vector3(0.055,a.x,a.y), Vector3(0.055,b.x,b.y), Vector3(-0.055,b.x,b.y))
-	# Mounting strap spans the wall-to-housing gap.
-	for y in [-0.14,0.14]:
-		_quad(tool, Vector3(-0.045,y-0.035,0.0), Vector3(0.045,y-0.035,0.0), Vector3(0.045,y+0.035,0.13), Vector3(-0.045,y+0.035,0.13))
-	_view(body, "FoldedEnamelHousing", _finish(tool), _steel())
-	if not _faces.has(art):
-		var material := StandardMaterial3D.new()
-		material.albedo_texture = art
-		material.emission_enabled = true
-		material.emission_operator = BaseMaterial3D.EMISSION_OP_MULTIPLY
-		material.emission_texture = art
-		material.emission = Color.WHITE
-		material.emission_energy_multiplier = 0.58 * _night
-		material.roughness = 0.55
-		_faces[art] = material
-	var face_mat: StandardMaterial3D = _faces[art]
-	for side in [-1.0,1.0]:
-		var quad := QuadMesh.new()
-		quad.size = Vector2(0.80,0.37)
-		var face := _view(body,"PrintedBladeFace",quad,face_mat)
-		face.position = Vector3(float(side)*0.056,0,0.49)
-		face.rotation.y = float(side)*PI*0.5
-	_collider(body, Vector3(0,0,0.46), Vector3(0.112,0.44,0.92))
+func _blade(label: String, wall: float, z: float, yaw: float, source: PackedScene) -> void:
+	var body := _body(label, wall, BLADE_HEIGHT, z, yaw)
+	var assembly := source.instantiate() as Node3D
+	assembly.name = "AuthoredNeon"
+	body.add_child(assembly)
+	for view: MeshInstance3D in assembly.find_children("*", "MeshInstance3D", true, false):
+		var bounds := view.mesh.get_aabb()
+		_collider(body, bounds.get_center(), bounds.size)
+		for surface in range(view.mesh.get_surface_count()):
+			var original := view.mesh.surface_get_material(surface) as StandardMaterial3D
+			if original == null or not original.emission_enabled:
+				continue
+			var key := source.resource_path + "#" + str(surface)
+			if not _neon_materials.has(key):
+				var material := original.duplicate() as StandardMaterial3D
+				var power := 2.85 if source == WEST_BLADE else 2.2
+				material.emission_energy_multiplier = power * _night
+				_neon_materials[key] = material
+				_neon_power[key] = power
+			view.set_surface_override_material(surface, _neon_materials[key])
 
 func _canopy(label: String, wall: float, z: float, yaw: float) -> void:
 	var body := _body(label, wall, 3.40, z, yaw)

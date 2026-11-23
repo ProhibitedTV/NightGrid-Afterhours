@@ -123,7 +123,7 @@ static func _end_panel(st:SurfaceTool,e:float,x0:float,x1:float,y0:float,y1:floa
 	_quad(st,Vector3(x0,y0,e*2.198),Vector3(x1,y0,e*2.198),
 		Vector3(x1,y1,e*2.198),Vector3(x0,y1,e*2.198),Vector3(0,0,e))
 
-static func build(tint:Color)->MeshInstance3D:
+static func mesh_for(tint: Color) -> ArrayMesh:
 	var key:=tint.to_html(false)
 	if not _cache.has(key):
 		var materials: Array[StandardMaterial3D]=[_mat(tint,0.32,0.24),_mat(Color("20252a"),0.82,0.0),
@@ -147,7 +147,10 @@ static func build(tint:Color)->MeshInstance3D:
 		for tool in st:
 			tool.commit(mesh)
 		_cache[key]=mesh
+	return _cache[key]
+
+static func build(tint:Color)->MeshInstance3D:
 	var model:=MeshInstance3D.new()
-	model.mesh=_cache[key]
+	model.mesh=mesh_for(tint)
 	model.set_meta("wheel_wells",4)
 	return model

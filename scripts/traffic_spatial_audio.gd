@@ -23,6 +23,7 @@ var _effects_volume := 0.75
 var _refresh_clock := 0.0
 var _voices: Array[AudioStreamPlayer3D] = []
 var _owners: Array[Node3D] = []
+var _owner_ids: Array[String] = []
 var _retiring: Array[bool] = []
 var _reassignments := 0
 
@@ -75,6 +76,7 @@ func _ready() -> void:
 		add_child(voice)
 		_voices.append(voice)
 		_owners.append(null)
+		_owner_ids.append("")
 		_retiring.append(false)
 
 func set_traffic(root: Node3D) -> void:
@@ -123,8 +125,9 @@ func _refresh_sources() -> void:
 	# Keep an already audible source while it remains within the closest
 	# seven moving vehicles. Hysteresis avoids panning/sample resets each
 	# time two cars pass at the same intersection.
-	for owner in _owners:
-		if not is_instance_valid(owner):
+	for slot in range(_owners.size()):
+		var owner := _owners[slot]
+		if not _same_vehicle(slot):
 			continue
 		for rank in range(mini(candidates.size(), VOICE_LIMIT + 2)):
 			if candidates[rank]["vehicle"] == owner and float(candidates[rank]["distance"]) <= KEEP_DISTANCE:
@@ -142,13 +145,14 @@ func _refresh_sources() -> void:
 			target.append(actor)
 	# Reassign an emitter only after its outgoing motor has faded.
 	for i in range(_owners.size()):
-		_retiring[i] = not is_instance_valid(_owners[i]) or not target.has(_owners[i])
+		_retiring[i] = not _same_vehicle(i) or not target.has(_owners[i])
 	for owner in target:
 		if _owners.has(owner):
 			continue
 		for i in range(_owners.size()):
 			if not is_instance_valid(_owners[i]) and not _voices[i].playing:
 				_owners[i] = owner
+				_owner_ids[i] = str(owner.get("vehicle_id"))
 				_retiring[i] = false
 				var bus: bool = bool(owner.get("buses"))
 				var voice: AudioStreamPlayer3D = _voices[i]
@@ -159,6 +163,10 @@ func _refresh_sources() -> void:
 				_reassignments += 1
 				break
 
+func _same_vehicle(slot: int) -> bool:
+	var owner := _owners[slot]
+	return is_instance_valid(owner) and str(owner.get("vehicle_id")) == _owner_ids[slot]
+
 func _process(delta: float) -> void:
 	_refresh_clock += delta
 	if _refresh_clock >= REFRESH_SECONDS:
@@ -167,11 +175,12 @@ func _process(delta: float) -> void:
 	for index in range(_owners.size()):
 		var source: Node3D = _owners[index]
 		var voice: AudioStreamPlayer3D = _voices[index]
-		if _retiring[index] or not is_instance_valid(source):
+		if _retiring[index] or not _same_vehicle(index):
 			voice.volume_db = move_toward(voice.volume_db, -80.0, delta * 94.0)
 			if voice.volume_db < -72.0:
 				voice.stop()
 				_owners[index] = null
+				_owner_ids[index] = ""
 			continue
 		voice.global_position = source.global_position + Vector3(0.0, 0.55, 0.0)
 		var speed := absf(float(source.get("speed")))

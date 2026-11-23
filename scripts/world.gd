@@ -49,6 +49,7 @@ const NightGridFMScript = preload("res://scripts/nightgrid_fm.gd")
 const WorldAudioScript = preload("res://scripts/world_audio.gd")
 const AudioMix = preload("res://scripts/audio_mix.gd")
 const FrameTimeRecorder = preload("res://scripts/frame_time_recorder.gd")
+const BrickwaterRepair = preload("res://scripts/brickwater_storefront.gd")
 const StreamProfile = preload("res://scripts/streaming_profile.gd")
 const PlaytestEvidence = preload("res://scripts/playtest_evidence.gd")
 const PlaytestLogger = preload("res://scripts/playtest_logger.gd")
@@ -162,6 +163,8 @@ var venue_talk_button: Button
 var venue_close_button: Button
 var mara_dialogue_line := ""
 var venue_selected_id := ""
+var _repair_panel := false
+var _pooled_traffic_enabled := false
 var venue_job_active := ""
 var venue_job_completed: Array[String] = []
 var _venue_clock_tick := 0.0
@@ -609,6 +612,10 @@ func _process(delta: float) -> void:
 	playtest_logger.sample_frame(delta, stream_snapshot, actor.global_position,
 		"car" if current_car != null else ("transit_" + transit_kind.to_lower() if current_transit != null else "on_foot"))
 	var indoors: bool = interiors.call("is_inside")
+	var repair := _repair_storefront()
+	var in_workshop := repair != null and repair.contains(actor.global_position)
+	if repair != null:
+		repair.set_listener(actor.global_position, in_workshop)
 	_update_police_radio(delta)
 	var interior_id := str(interiors.call("active_site_id")) if indoors else ""
 	var interior_kind := ""
@@ -617,13 +624,14 @@ func _process(delta: float) -> void:
 	if is_instance_valid(nightgrid_fm):
 		nightgrid_fm.call("update_listener", actor.global_position, current_car != null, interior_id, interior_kind, current_transit != null)
 	if is_instance_valid(world_audio):
-		world_audio.call("set_room_kind", interior_kind)
+		world_audio.call("set_room_kind", "WORKSHOP" if in_workshop else interior_kind)
+		world_audio.call("set_doorway_leak", repair.doorway_leak(actor.global_position) if in_workshop else 0.0)
 		var street_position: Vector3 = interiors.get("exterior_position") if indoors else actor.global_position
 		var district: String = city_details.call("get_district_at", street_position)
 		var foot_speed := Vector2(player.velocity.x, player.velocity.z).length()
 		world_audio.call("update_context", actor.global_position, player.global_position,
 			current_car == null and current_transit == null, player.is_on_floor(),
-			indoors, district, float(day_night.get("hour")), foot_speed, player.velocity.y)
+			indoors or in_workshop, district, float(day_night.get("hour")), foot_speed, player.velocity.y)
 		if is_instance_valid(current_car):
 			world_audio.call("set_transport", "CAR", float(current_car.get("speed")), Input.is_action_pressed("drive_brake"))
 		elif transit_kind == "TRAIN":
@@ -662,14 +670,20 @@ func _process(delta: float) -> void:
 		venue_system.call("set_hour", float(day_night.get("hour")))
 		civic_services.call("set_hour", float(day_night.get("hour")))
 	if venue_panel.visible:
-		var menu_position: Vector3 = interiors.call("get_counter_point") if indoors else (
-			civic_services.call("position_for", civic_selected_id) if not civic_selected_id.is_empty() else
-			venue_system.call("venue_position", venue_selected_id))
+		var menu_position: Vector3
+		if _repair_panel:
+			menu_position = repair.counter_position() if repair != null else Vector3.INF
+		elif indoors:
+			menu_position = interiors.call("get_counter_point")
+		else:
+			menu_position = civic_services.call("position_for", civic_selected_id) if not civic_selected_id.is_empty() else venue_system.call("venue_position", venue_selected_id)
 		if current_car != null or current_transit != null or menu_position.distance_to(player.global_position) > 7.0:
 			_close_venue()
 	if current_car == null and current_transit == null:
 		player.set("camera_yaw", yaw)
+	var camera_started := StreamProfile.begin()
 	_update_camera(delta, false)
+	StreamProfile.accumulate(camera_started, "world_camera")
 	_hud_update_clock += delta
 	if _hud_update_clock >= 0.1:
 		_hud_update_clock = 0.0
@@ -686,8 +700,18 @@ func _physics_process(delta: float) -> void:
 		_leave_transit(landing, "M-Line platform. Board a stopped train." if upstairs else "Back at street level.")
 	var actor := _actor()
 	var indoors: bool = interiors.call("is_inside")
+	if _pooled_traffic_enabled:
+		var vehicle_speed: float = (actor as CharacterBody3D).velocity.length() if actor is CharacterBody3D else 0.0
+		var repair := _repair_storefront()
+		var storefront_inside := repair != null and repair.contains(actor.global_position)
+		traffic.call("tick_pooled", delta, actor.global_position, vehicle_speed, camera,
+			city_details, indoors or storefront_inside or current_transit != null,
+			cars + officers + routine_patrols, road_restrictions)
+	var started := StreamProfile.begin()
 	if is_instance_valid(pedestrians):
 		_update_pedestrians(delta, actor, indoors)
+	StreamProfile.accumulate(started, "world_pedestrians")
+	started = StreamProfile.begin()
 	_update_combat(delta)
 	if not indoors and current_transit == null and actor.global_position.distance_to(mission_position) < 5.3:
 		_advance_mission()
@@ -697,6 +721,7 @@ func _physics_process(delta: float) -> void:
 	_update_wanted(delta)
 	_update_ambient_civic(delta)
 	_update_civic_patrols(delta)
+	StreamProfile.accumulate(started, "world_civic_combat_and_wanted")
 	if not indoors and wanted.police_seen:
 		for officer in officers:
 			if is_instance_valid(officer) and float(officer.get("condition")) > 18.0 and officer.global_position.distance_to(actor.global_position) < 3.8:
@@ -1395,7 +1420,8 @@ func _build_transport() -> void:
 	traffic = TrafficSystemScript.new()
 	traffic.name = "SurfaceTraffic"
 	add_child(traffic)
-	traffic.call("initialize", rng.seed, signal_controller)
+	_pooled_traffic_enabled = _pooled_traffic_enabled or "--pooled-traffic" in OS.get_cmdline_user_args()
+	traffic.call("initialize", rng.seed, signal_controller, _pooled_traffic_enabled)
 	rail = RailSystemScript.new()
 	rail.name = "MorrowLine"
 	add_child(rail)
@@ -1545,6 +1571,9 @@ func _capture_snapshot() -> Dictionary:
 		var tuning: Dictionary = nightgrid_fm.call("snapshot")
 		if not tuning.is_empty():
 			state["nightgrid_radio"] = tuning
+	var repair := _repair_storefront()
+	if repair != null and (repair.contains(saved_at) or repair.door_reachable(saved_at)):
+		state["night_shift_door_open"] = repair.door.is_requested_open() or repair.overlaps_threshold(saved_at)
 	return state
 
 func _apply_snapshot(data: Dictionary) -> void:
@@ -1658,6 +1687,9 @@ func _apply_snapshot(data: Dictionary) -> void:
 			city_details.call("set_focus", interiors.get("exterior_position"))
 	if not interiors.call("is_inside"):
 		city_details.call("set_focus", player.global_position)
+		var repair := _repair_storefront()
+		if repair != null and (repair.contains(player.global_position) or repair.door_reachable(player.global_position)):
+			repair.door.restore_open(data.get("night_shift_door_open", false) == true or repair.overlaps_threshold(player.global_position))
 	_set_mission_target(DROPOFFS[deliveries % DROPOFFS.size()] if carrying else PICKUPS[deliveries % PICKUPS.size()], carrying)
 	_snap_camera()
 	_log_playtest("save_restored", {"seed": int(session.get("world_seed"))})
@@ -1682,6 +1714,18 @@ func _toggle_interior() -> void:
 	if current_car != null or current_transit != null:
 		_notify("Exit your vehicle before entering a building.")
 		return
+	var repair := _repair_storefront()
+	if repair != null:
+		if repair.door_reachable(player.global_position):
+			if repair.door.request_toggle():
+				player.call("play_visual_action", &"interact")
+				world_audio.call("play_event", "DOOR", repair.door.global_position)
+			else:
+				_notify("Night Shift Repairs is preparing the entrance.")
+			return
+		if repair.contains(player.global_position):
+			_notify("Return to the front door to open or close it.")
+			return
 	var venue: Dictionary = venue_system.call("nearest_venue", player.global_position)
 	var civic: Dictionary = civic_services.call("nearest_site", player.global_position)
 	if venue.is_empty() and civic.is_empty():
@@ -1745,6 +1789,16 @@ func _toggle_interaction() -> void:
 	if current_car != null or current_transit != null:
 		_notify("Get out of the vehicle before interacting with neighborhood businesses.")
 		return
+	var repair := _repair_storefront()
+	if repair != null and repair.contains(player.global_position):
+		if repair.counter_reachable(player.global_position):
+			_repair_panel = true
+			player.call("play_visual_action", &"interact")
+			_show_venue_dialogue()
+			_update_venue_panel()
+		else:
+			_notify("Approach the service counter.")
+		return
 	var shop: Dictionary = venue_system.call("nearest_venue", player.global_position)
 	var service: Dictionary = civic_services.call("nearest_site", player.global_position)
 	if not service.is_empty():
@@ -1802,6 +1856,26 @@ func _civic_service_text(site: Dictionary) -> String:
 			return "Read today's shipping workboard (free)"
 	return "Visit"
 
+func _repair_storefront() -> BrickwaterRepair:
+	return city_details.call("repair_storefront") as BrickwaterRepair
+
+func _repair_nearby_vehicle(price: int) -> void:
+	var selected_car: CharacterBody3D
+	var nearest := 18.0
+	for car in cars:
+		var distance := car.global_position.distance_to(player.global_position)
+		if distance < nearest and float(car.get("condition")) < 99.9:
+			selected_car = car
+			nearest = distance
+	if selected_car == null:
+		_notify("Park a damaged vehicle near the shop.")
+	elif cash < price:
+		_notify("Not enough cash to repair this vehicle.")
+	else:
+		cash -= price
+		selected_car.call("repair")
+		_notify("Vehicle repaired. Roadworthiness restored.")
+
 func _update_civic_panel() -> void:
 	if civic_selected_id.is_empty() or venue_label == null:
 		return
@@ -1853,7 +1927,6 @@ func _civic_action(option: int) -> void:
 	if option == 1:
 		var price := int(site["price"])
 		var purchase := true
-		var selected_car: CharacterBody3D
 		match kind:
 			"GROCERY":
 				if ration_packs > 97:
@@ -1868,15 +1941,8 @@ func _civic_action(option: int) -> void:
 					_notify("No citations are currently outstanding.")
 					return
 			"GARAGE":
-				var nearest := 18.0
-				for car in cars:
-					var distance := car.global_position.distance_to(player.global_position)
-					if distance < nearest and float(car.get("condition")) < 99.9:
-						selected_car = car
-						nearest = distance
-				if selected_car == null:
-					_notify("Park a damaged vehicle near the garage counter.")
-					return
+				_repair_nearby_vehicle(price)
+				return
 			"LIBRARY", "UTILITY":
 				purchase = false
 			"WAREHOUSE":
@@ -1900,9 +1966,6 @@ func _civic_action(option: int) -> void:
 			"CIVIC":
 				heat = maxf(0.0, heat - 1.75)
 				_notify("Municipal citation settled. Police heat reduced.")
-			"GARAGE":
-				selected_car.call("repair")
-				_notify("Vehicle repaired. Roadworthiness restored.")
 			"LIBRARY", "UTILITY":
 				if not civic_intel.has(civic_selected_id):
 					civic_intel.append(civic_selected_id)
@@ -1978,15 +2041,25 @@ func _close_venue() -> void:
 	if venue_talk_button != null:
 		venue_talk_button.visible = false
 	venue_selected_id = ""
+	_repair_panel = false
 	civic_selected_id = ""
 	if venue_panel != null:
 		venue_panel.visible = false
+	if venue_job_button != null:
+		venue_job_button.show()
 	if is_instance_valid(player):
 		player.set("input_blocked", false)
 	if game_menu == null or not game_menu.call("is_open"):
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _update_venue_panel() -> void:
+	if _repair_panel:
+		venue_label.text = "NIGHT SHIFT REPAIRS\nLeave the vehicle outside and bring the keys to the counter.\n[1 / A] Repair parked vehicle  $%d\n[G / B] Close   |   CASH $%d" % [BrickwaterRepair.PRICE, cash]
+		venue_service_button.text = "1 / A  •  REPAIR"
+		venue_service_button.disabled = false
+		venue_job_button.hide()
+		venue_talk_button.hide()
+		return
 	if not civic_selected_id.is_empty():
 		_update_civic_panel()
 		return
@@ -2044,6 +2117,12 @@ func _mara_context() -> Dictionary:
 	}
 
 func _venue_action(option: int) -> void:
+	if _repair_panel:
+		var repair := _repair_storefront()
+		if option == 1 and repair != null and repair.counter_reachable(player.global_position):
+			_repair_nearby_vehicle(BrickwaterRepair.PRICE)
+			_update_venue_panel()
+		return
 	if not civic_selected_id.is_empty():
 		_civic_action(option)
 		return
@@ -2388,6 +2467,7 @@ func _update_hud() -> void:
 	var interact_key := "X" if gamepad_active else "G"
 	var enter_key := "LB" if gamepad_active else "H"
 	var utility := "Start Pause  •  View Map" if gamepad_active else "Esc Pause  •  M Map  •  Tab Journal"
+	var repair := _repair_storefront()
 	if current_car != null:
 		prompts.append("RT/LT Drive  •  B Brake  •  Y Exit" if gamepad_active else "W/S Drive  •  Space Brake  •  E Exit")
 		if is_instance_valid(nightgrid_fm):
@@ -2395,6 +2475,12 @@ func _update_hud() -> void:
 			prompts.append("%s   |   %s" % [str(nightgrid_fm.call("get_now_playing")), radio_keys])
 	elif current_transit != null:
 		prompts.append("RB Leave at next stop" if gamepad_active else "F Leave at next stop")
+	elif repair != null and repair.door_reachable(player.global_position):
+		prompts.append("%s %s door  •  NIGHT SHIFT REPAIRS" % [enter_key, "Close" if repair.door.is_requested_open() else "Open"])
+		if repair.door.movement_blocked:
+			prompts.append("Step clear of the door swing")
+	elif repair != null and repair.contains(player.global_position):
+		prompts.append("%s Service counter" % interact_key if repair.counter_reachable(player.global_position) else "NIGHT SHIFT REPAIRS")
 	elif interiors.call("is_inside"):
 		var site_id := str(interiors.call("active_site_id"))
 		var room_site: Dictionary = civic_services.call("site_by_id", site_id) if str(interiors.call("active_site_group")) == "CIVIC" else venue_system.call("venue_by_id", site_id)

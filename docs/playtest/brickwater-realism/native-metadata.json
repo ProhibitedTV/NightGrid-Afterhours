@@ -1,0 +1,1382 @@
+{
+  "before": {
+    "frames": {
+      "adapter": "NVIDIA GeForce RTX 3060",
+      "adapter_api": "1.4.357",
+      "block": [
+        -2,
+        1
+      ],
+      "driver": "vulkan",
+      "engine": "4.7.2-stable (official)",
+      "origin": [
+        -87.0,
+        0.0,
+        87.0
+      ],
+      "render_video_memory_bytes": 1280602768,
+      "renderer": "forward_plus",
+      "revision": "0fc7daadd21abefd8de46e943d52981ab42964be",
+      "settings": {
+        "ambient_occlusion": true,
+        "fog": true,
+        "glow": true,
+        "physics_hz": 60,
+        "ssr": true,
+        "vsync": 0
+      },
+      "shots": [
+        {
+          "camera": [
+            -86.8000030517578,
+            1.75,
+            76.4000015258789
+          ],
+          "file": "01-alley-night-north.png",
+          "fov": 70.0,
+          "hour": 22.1,
+          "look": [
+            -86.6500015258789,
+            2.59999990463257,
+            93.5
+          ],
+          "resolution": [
+            1920,
+            1080
+          ],
+          "sha256": "41e78c050d3ff356e7cd48c09da0171cec4ca5a8e3eec33b3e87e1b93d54932e",
+          "stationary_frame_timing": {
+            "max_ms": 8.429,
+            "mean_ms": 6.65566666666667,
+            "p50_ms": 6.6,
+            "p95_ms": 8.032,
+            "p99_ms": 8.326,
+            "samples": 180,
+            "target_ms": 16.6666666666667,
+            "vsync_mode": 0
+          }
+        },
+        {
+          "camera": [
+            -86.8000030517578,
+            1.75,
+            76.4000015258789
+          ],
+          "file": "02-alley-daylight-matched.png",
+          "fov": 70.0,
+          "hour": 12.0,
+          "look": [
+            -86.6500015258789,
+            2.59999990463257,
+            93.5
+          ],
+          "resolution": [
+            1920,
+            1080
+          ],
+          "sha256": "69341747ef022cbb763b73424489edb63e1eab81f21709560dc2cdd749e34524"
+        },
+        {
+          "camera": [
+            -86.8000030517578,
+            1.75,
+            94.1999969482422
+          ],
+          "file": "03-alley-night-south.png",
+          "fov": 70.0,
+          "hour": 22.1,
+          "look": [
+            -87.0,
+            2.59999990463257,
+            78.0
+          ],
+          "resolution": [
+            1920,
+            1080
+          ],
+          "sha256": "afe3443ce9cbdf9a37d266193e7f19dbd118eb6e34bfa0ed2a9ed94b681df59a"
+        },
+        {
+          "camera": [
+            -87.25,
+            0.850000023841858,
+            86.9000015258789
+          ],
+          "file": "04-wet-ground-and-drain.png",
+          "fov": 70.0,
+          "hour": 22.1,
+          "look": [
+            -84.2699966430664,
+            0.209999993443489,
+            83.9000015258789
+          ],
+          "resolution": [
+            1920,
+            1080
+          ],
+          "sha256": "8b90b1ddf4ed9508dd6fbb037dd9420d1b437d1708db49a053b430b2b417be0b"
+        },
+        {
+          "camera": [
+            -84.5999984741211,
+            1.79999995231628,
+            81.5
+          ],
+          "file": "05-graffiti-and-service-front.png",
+          "fov": 70.0,
+          "hour": 22.1,
+          "look": [
+            -89.4899978637695,
+            2.15000009536743,
+            83.4000015258789
+          ],
+          "resolution": [
+            1920,
+            1080
+          ],
+          "sha256": "50102f380db67cbe6d242e0a7882a8d603ac1554018640fd19010b843a8da60c"
+        },
+        {
+          "camera": [
+            -86.8000030517578,
+            1.85000002384186,
+            83.1999969482422
+          ],
+          "file": "06-overhead-infrastructure.png",
+          "fov": 70.0,
+          "hour": 22.1,
+          "look": [
+            -86.8000030517578,
+            5.40000009536743,
+            90.0
+          ],
+          "resolution": [
+            1920,
+            1080
+          ],
+          "sha256": "e83cfd4ee207171d48efc859dc5f198dc81e8593be6262f070daaafc71b28d68"
+        },
+        {
+          "camera": [
+            -86.8000030517578,
+            1.32000005245209,
+            74.6999969482422
+          ],
+          "file": "07-driving-height-approach.png",
+          "fov": 70.0,
+          "hour": 22.1,
+          "look": [
+            -86.8000030517578,
+            1.70000004768372,
+            94.0
+          ],
+          "resolution": [
+            1920,
+            1080
+          ],
+          "sha256": "76ee737035fb08bb331ee7c16af7100703f8965497f7346c3bbbbc3136fdc94b"
+        },
+        {
+          "camera": [
+            -84.4499969482422,
+            1.70000004768372,
+            80.3000030517578
+          ],
+          "file": "08-workroom-detail.png",
+          "fov": 70.0,
+          "hour": 22.1,
+          "look": [
+            -89.629997253418,
+            1.54999995231628,
+            81.3499984741211
+          ],
+          "resolution": [
+            1920,
+            1080
+          ],
+          "sha256": "38b7d30e9656014107b86a5a4aed6d7d4d15056eb5d67501cf318bf61af7cfc4"
+        },
+        {
+          "camera": [
+            -86.8000030517578,
+            1.75,
+            76.4000015258789
+          ],
+          "file": "09-alley-dusk.png",
+          "fov": 70.0,
+          "hour": 19.15,
+          "look": [
+            -86.6500015258789,
+            2.59999990463257,
+            93.5
+          ],
+          "resolution": [
+            1920,
+            1080
+          ],
+          "sha256": "cf6671cf3e3dfc22ab613f7c2e9cc1e94be9dc96caa7be41bd19b9b714ee6790"
+        },
+        {
+          "camera": [
+            -86.879997253418,
+            1.96000003814697,
+            76.1999969482422
+          ],
+          "file": "10-courier-alley-reference.png",
+          "fov": 65.0,
+          "hour": 22.1,
+          "look": [
+            -86.5999984741211,
+            2.28999996185303,
+            88.5
+          ],
+          "resolution": [
+            1920,
+            1080
+          ],
+          "sha256": "de9e531277dc0929b42944816f84a6cc9a654a9fa1311f9ea994886633713c50"
+        }
+      ],
+      "timing_note": "Viewport frame intervals, including CPU and GPU work. Walk traces use the same recorder as F8.",
+      "walk_traces": [
+        {
+          "distance_z_m": 44.5911026000977,
+          "file": "walk-first.csv",
+          "frames": 684,
+          "reached_end": true
+        },
+        {
+          "distance_z_m": 44.5911026000977,
+          "file": "walk-repeat.csv",
+          "frames": 639,
+          "reached_end": true
+        }
+      ]
+    },
+    "walk": {
+      "adapter": "NVIDIA GeForce RTX 3060",
+      "arguments": [
+        "--measure",
+        "--profile",
+        "--walk",
+        "--settled",
+        "--living-streets",
+        "--reference-view"
+      ],
+      "driver": "vulkan",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "revision": "0fc7daadd21abefd8de46e943d52981ab42964be",
+      "seed": 834726,
+      "settings": {
+        "ambient_occlusion": true,
+        "fog": true,
+        "glow": true,
+        "physics_hz": 60,
+        "ssr": true,
+        "vsync": 0
+      },
+      "directory": "before",
+      "startup_spans": [
+        {
+          "category": "main_scene_resource_load",
+          "detail": null,
+          "duration_us": 5500450,
+          "frame": 0,
+          "start_us": 1704836
+        },
+        {
+          "category": "main_scene_instantiation",
+          "detail": null,
+          "duration_us": 133,
+          "frame": 0,
+          "start_us": 7205301
+        },
+        {
+          "category": "main_scene_activation",
+          "detail": null,
+          "duration_us": 3652920,
+          "frame": 0,
+          "start_us": 7205436
+        }
+      ],
+      "runs": [
+        {
+          "distance_z_m": 44.5911026000977,
+          "file": "walk-first.csv",
+          "frames": 684,
+          "reached_end": true,
+          "game_frame": {
+            "frames": 684,
+            "median_ms": 8.333,
+            "p95_ms": 12.963,
+            "p99_ms": 15.023,
+            "max_ms": 28.208,
+            "over_16_67": 3,
+            "over_33_3": 0,
+            "mean_fps": 112.49,
+            "lowest_1pct_fps": 54.82
+          },
+          "draw_interval": {
+            "frames": 684,
+            "median_ms": 9.148,
+            "p95_ms": 13.718,
+            "p99_ms": 16.307,
+            "max_ms": 41.022,
+            "over_16_67": 4,
+            "over_33_3": 1,
+            "mean_fps": 112.53,
+            "lowest_1pct_fps": 47.49
+          },
+          "loaded_chunks": 13,
+          "peak_stage_ms": 7.865,
+          "material_bakes": [],
+          "slowest_spans": [
+            {
+              "category": "chunk_stage",
+              "detail": {
+                "block": [
+                  -4,
+                  -1
+                ],
+                "landmark": "",
+                "phase": 1
+              },
+              "duration_us": 7865,
+              "frame": 94,
+              "start_us": 13024894
+            },
+            {
+              "category": "chunk_stage",
+              "detail": {
+                "block": [
+                  -4,
+                  -1
+                ],
+                "landmark": "",
+                "phase": 2
+              },
+              "duration_us": 3613,
+              "frame": 95,
+              "start_us": 13041305
+            },
+            {
+              "category": "chunk_stage",
+              "detail": {
+                "block": [
+                  -2,
+                  3
+                ],
+                "landmark": "",
+                "phase": 0
+              },
+              "duration_us": 1287,
+              "frame": 154,
+              "start_us": 13620233
+            },
+            {
+              "category": "chunk_stage",
+              "detail": {
+                "block": [
+                  -1,
+                  3
+                ],
+                "landmark": "",
+                "phase": 3
+              },
+              "duration_us": 1261,
+              "frame": 167,
+              "start_us": 13768489
+            },
+            {
+              "category": "chunk_stage",
+              "detail": {
+                "block": [
+                  -4,
+                  3
+                ],
+                "landmark": "",
+                "phase": 3
+              },
+              "duration_us": 1171,
+              "frame": 127,
+              "start_us": 13375292
+            }
+          ],
+          "max_viewport_cpu_ms": 8.432,
+          "max_viewport_gpu_ms": 6.375,
+          "viewport_render_cpu": {
+            "frames": 684,
+            "median_ms": 3.399,
+            "p95_ms": 5.414,
+            "p99_ms": 5.842,
+            "max_ms": 8.432,
+            "over_16_67": 0,
+            "over_33_3": 0,
+            "mean_fps": 278.8,
+            "lowest_1pct_fps": 158.16
+          },
+          "viewport_render_gpu": {
+            "frames": 684,
+            "median_ms": 4.214,
+            "p95_ms": 5.811,
+            "p99_ms": 6.211,
+            "max_ms": 6.375,
+            "over_16_67": 0,
+            "over_33_3": 0,
+            "mean_fps": 236.14,
+            "lowest_1pct_fps": 159.27
+          },
+          "median_draw_calls": 2638.0,
+          "measured_cpu_layers": {
+            "signal_visual_refresh": {
+              "frames": 684,
+              "median_ms": 0.0,
+              "p95_ms": 0.0,
+              "p99_ms": 0.644,
+              "max_ms": 0.728,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 41329.31,
+              "lowest_1pct_fps": 1459.25
+            },
+            "traffic_control_including_headway": {
+              "frames": 684,
+              "median_ms": 0.338,
+              "p95_ms": 0.545,
+              "p99_ms": 0.592,
+              "max_ms": 0.718,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 4893.82,
+              "lowest_1pct_fps": 1545.94
+            },
+            "traffic_headway": {
+              "frames": 684,
+              "median_ms": 0.16,
+              "p95_ms": 0.252,
+              "p99_ms": 0.285,
+              "max_ms": 0.398,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 10311.61,
+              "lowest_1pct_fps": 3044.8
+            },
+            "traffic_move_and_slide": {
+              "frames": 684,
+              "median_ms": 0.17,
+              "p95_ms": 0.28,
+              "p99_ms": 0.303,
+              "max_ms": 0.36,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 9308.28,
+              "lowest_1pct_fps": 3072.87
+            },
+            "world_camera": {
+              "frames": 684,
+              "median_ms": 0.073,
+              "p95_ms": 0.106,
+              "p99_ms": 0.154,
+              "max_ms": 0.294,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 13092.91,
+              "lowest_1pct_fps": 5105.76
+            },
+            "world_civic_combat_and_wanted": {
+              "frames": 684,
+              "median_ms": 0.052,
+              "p95_ms": 0.072,
+              "p99_ms": 0.084,
+              "max_ms": 0.133,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 31404.96,
+              "lowest_1pct_fps": 10401.19
+            },
+            "world_pedestrians": {
+              "frames": 684,
+              "median_ms": 0.402,
+              "p95_ms": 1.539,
+              "p99_ms": 2.503,
+              "max_ms": 3.896,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 2359.02,
+              "lowest_1pct_fps": 352.79
+            }
+          },
+          "draw_pipeline_delta": 0,
+          "unfocused_draws": 684
+        },
+        {
+          "distance_z_m": 44.5911026000977,
+          "file": "walk-repeat.csv",
+          "frames": 639,
+          "reached_end": true,
+          "game_frame": {
+            "frames": 639,
+            "median_ms": 9.259,
+            "p95_ms": 12.485,
+            "p99_ms": 14.91,
+            "max_ms": 16.722,
+            "over_16_67": 1,
+            "over_33_3": 0,
+            "mean_fps": 105.03,
+            "lowest_1pct_fps": 64.5
+          },
+          "draw_interval": {
+            "frames": 639,
+            "median_ms": 9.907,
+            "p95_ms": 14.416,
+            "p99_ms": 16.472,
+            "max_ms": 18.452,
+            "over_16_67": 5,
+            "over_33_3": 0,
+            "mean_fps": 105.3,
+            "lowest_1pct_fps": 58.0
+          },
+          "loaded_chunks": 0,
+          "peak_stage_ms": 0.0,
+          "material_bakes": [],
+          "slowest_spans": [
+            {
+              "category": "street_light_focus",
+              "detail": null,
+              "duration_us": 12,
+              "frame": 1146,
+              "start_us": 22892750
+            },
+            {
+              "category": "street_light_focus",
+              "detail": null,
+              "duration_us": 10,
+              "frame": 1240,
+              "start_us": 23630729
+            },
+            {
+              "category": "street_light_focus",
+              "detail": null,
+              "duration_us": 9,
+              "frame": 1379,
+              "start_us": 24868169
+            },
+            {
+              "category": "street_light_focus",
+              "detail": null,
+              "duration_us": 8,
+              "frame": 1319,
+              "start_us": 24358492
+            },
+            {
+              "category": "street_light_focus",
+              "detail": null,
+              "duration_us": 8,
+              "frame": 1330,
+              "start_us": 24456894
+            }
+          ],
+          "max_viewport_cpu_ms": 7.126,
+          "max_viewport_gpu_ms": 6.532,
+          "viewport_render_cpu": {
+            "frames": 639,
+            "median_ms": 3.67,
+            "p95_ms": 5.716,
+            "p99_ms": 6.211,
+            "max_ms": 7.126,
+            "over_16_67": 0,
+            "over_33_3": 0,
+            "mean_fps": 265.26,
+            "lowest_1pct_fps": 152.85
+          },
+          "viewport_render_gpu": {
+            "frames": 639,
+            "median_ms": 4.358,
+            "p95_ms": 5.859,
+            "p99_ms": 6.2,
+            "max_ms": 6.532,
+            "over_16_67": 0,
+            "over_33_3": 0,
+            "mean_fps": 233.36,
+            "lowest_1pct_fps": 158.1
+          },
+          "median_draw_calls": 2664.0,
+          "measured_cpu_layers": {
+            "signal_visual_refresh": {
+              "frames": 639,
+              "median_ms": 0.0,
+              "p95_ms": 0.0,
+              "p99_ms": 0.741,
+              "max_ms": 0.977,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 34944.77,
+              "lowest_1pct_fps": 1233.7
+            },
+            "traffic_control_including_headway": {
+              "frames": 639,
+              "median_ms": 0.406,
+              "p95_ms": 0.687,
+              "p99_ms": 0.746,
+              "max_ms": 0.989,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 3808.15,
+              "lowest_1pct_fps": 1218.03
+            },
+            "traffic_headway": {
+              "frames": 639,
+              "median_ms": 0.182,
+              "p95_ms": 0.31,
+              "p99_ms": 0.328,
+              "max_ms": 0.681,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 8419.53,
+              "lowest_1pct_fps": 2435.63
+            },
+            "traffic_move_and_slide": {
+              "frames": 639,
+              "median_ms": 0.235,
+              "p95_ms": 0.408,
+              "p99_ms": 0.42,
+              "max_ms": 0.453,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 6613.81,
+              "lowest_1pct_fps": 2325.58
+            },
+            "world_camera": {
+              "frames": 639,
+              "median_ms": 0.072,
+              "p95_ms": 0.098,
+              "p99_ms": 0.127,
+              "max_ms": 0.185,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 13550.48,
+              "lowest_1pct_fps": 6641.37
+            },
+            "world_civic_combat_and_wanted": {
+              "frames": 639,
+              "median_ms": 0.053,
+              "p95_ms": 0.073,
+              "p99_ms": 0.082,
+              "max_ms": 0.099,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 29211.43,
+              "lowest_1pct_fps": 10785.82
+            },
+            "world_pedestrians": {
+              "frames": 639,
+              "median_ms": 0.379,
+              "p95_ms": 1.51,
+              "p99_ms": 2.608,
+              "max_ms": 3.888,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 2350.34,
+              "lowest_1pct_fps": 347.71
+            }
+          },
+          "draw_pipeline_delta": 0,
+          "unfocused_draws": 639
+        }
+      ]
+    }
+  },
+  "after": {
+    "frames": {
+      "adapter": "NVIDIA GeForce RTX 3060",
+      "adapter_api": "1.4.357",
+      "block": [
+        -2,
+        1
+      ],
+      "driver": "vulkan",
+      "engine": "4.7.2-stable (official)",
+      "origin": [
+        -87.0,
+        0.0,
+        87.0
+      ],
+      "render_video_memory_bytes": 1279119232,
+      "renderer": "forward_plus",
+      "revision": "d4ed0ba6aa241a07322b88225403ff01dba0a22e",
+      "settings": {
+        "ambient_occlusion": true,
+        "fog": true,
+        "glow": true,
+        "physics_hz": 60,
+        "ssr": true,
+        "vsync": 0
+      },
+      "shots": [
+        {
+          "camera": [
+            -86.8000030517578,
+            1.75,
+            76.4000015258789
+          ],
+          "file": "01-alley-night-north.png",
+          "fov": 70.0,
+          "hour": 22.1,
+          "look": [
+            -86.6500015258789,
+            2.59999990463257,
+            93.5
+          ],
+          "resolution": [
+            1920,
+            1080
+          ],
+          "sha256": "cec7af3e669d4cdb19eed5a93b16d48f20d23a9e9575701cbc8de717992d774b",
+          "stationary_frame_timing": {
+            "max_ms": 8.857,
+            "mean_ms": 6.68585,
+            "p50_ms": 6.497,
+            "p95_ms": 8.025,
+            "p99_ms": 8.287,
+            "samples": 180,
+            "target_ms": 16.6666666666667,
+            "vsync_mode": 0
+          }
+        },
+        {
+          "camera": [
+            -86.8000030517578,
+            1.75,
+            76.4000015258789
+          ],
+          "file": "02-alley-daylight-matched.png",
+          "fov": 70.0,
+          "hour": 12.0,
+          "look": [
+            -86.6500015258789,
+            2.59999990463257,
+            93.5
+          ],
+          "resolution": [
+            1920,
+            1080
+          ],
+          "sha256": "e495649ca417d0f73b2f3de49f632ca046e7c51a5fe2a8f81a1cc6db21b92567"
+        },
+        {
+          "camera": [
+            -86.8000030517578,
+            1.75,
+            94.1999969482422
+          ],
+          "file": "03-alley-night-south.png",
+          "fov": 70.0,
+          "hour": 22.1,
+          "look": [
+            -87.0,
+            2.59999990463257,
+            78.0
+          ],
+          "resolution": [
+            1920,
+            1080
+          ],
+          "sha256": "2a7014aa757d1918ce18b67aa37bb555eab0913f7550d19f5a1ce1b92dd28371"
+        },
+        {
+          "camera": [
+            -87.25,
+            0.850000023841858,
+            86.9000015258789
+          ],
+          "file": "04-wet-ground-and-drain.png",
+          "fov": 70.0,
+          "hour": 22.1,
+          "look": [
+            -84.2699966430664,
+            0.209999993443489,
+            83.9000015258789
+          ],
+          "resolution": [
+            1920,
+            1080
+          ],
+          "sha256": "4cf690b2b5d9ae6777e958b4cdd54e82ad0a98fafabe1daf477e2b00951a798e"
+        },
+        {
+          "camera": [
+            -84.5999984741211,
+            1.79999995231628,
+            81.5
+          ],
+          "file": "05-graffiti-and-service-front.png",
+          "fov": 70.0,
+          "hour": 22.1,
+          "look": [
+            -89.4899978637695,
+            2.15000009536743,
+            83.4000015258789
+          ],
+          "resolution": [
+            1920,
+            1080
+          ],
+          "sha256": "c2b8d892d3227d2ac620c79e0e857577d459a07f2610666bbf31c07bb77ad925"
+        },
+        {
+          "camera": [
+            -86.8000030517578,
+            1.85000002384186,
+            83.1999969482422
+          ],
+          "file": "06-overhead-infrastructure.png",
+          "fov": 70.0,
+          "hour": 22.1,
+          "look": [
+            -86.8000030517578,
+            5.40000009536743,
+            90.0
+          ],
+          "resolution": [
+            1920,
+            1080
+          ],
+          "sha256": "a3b56e6cd270c3edd51455eef293f101fcea60118eb53d7f658b9e60f1c853bc"
+        },
+        {
+          "camera": [
+            -86.8000030517578,
+            1.32000005245209,
+            74.6999969482422
+          ],
+          "file": "07-driving-height-approach.png",
+          "fov": 70.0,
+          "hour": 22.1,
+          "look": [
+            -86.8000030517578,
+            1.70000004768372,
+            94.0
+          ],
+          "resolution": [
+            1920,
+            1080
+          ],
+          "sha256": "ef07c39c004eafeb29d9a06d60a7d2b2560fd0c8dd8c1a14bedb0de11762b609"
+        },
+        {
+          "camera": [
+            -84.4499969482422,
+            1.70000004768372,
+            80.3000030517578
+          ],
+          "file": "08-workroom-detail.png",
+          "fov": 70.0,
+          "hour": 22.1,
+          "look": [
+            -89.629997253418,
+            1.54999995231628,
+            81.3499984741211
+          ],
+          "resolution": [
+            1920,
+            1080
+          ],
+          "sha256": "97514e04e12b2ba0dbac3c3c510f300efd93ee70d7c16a9606ef912b0a386033"
+        },
+        {
+          "camera": [
+            -86.8000030517578,
+            1.75,
+            76.4000015258789
+          ],
+          "file": "09-alley-dusk.png",
+          "fov": 70.0,
+          "hour": 19.15,
+          "look": [
+            -86.6500015258789,
+            2.59999990463257,
+            93.5
+          ],
+          "resolution": [
+            1920,
+            1080
+          ],
+          "sha256": "96500c11fafbb25b3a96207c27f706e0b2539cbb47c8dc874769b349a5f1c448"
+        },
+        {
+          "camera": [
+            -86.879997253418,
+            1.96000003814697,
+            76.1999969482422
+          ],
+          "file": "10-courier-alley-reference.png",
+          "fov": 65.0,
+          "hour": 22.1,
+          "look": [
+            -86.5999984741211,
+            2.28999996185303,
+            88.5
+          ],
+          "resolution": [
+            1920,
+            1080
+          ],
+          "sha256": "065b3c6feec25cf8771e9c7d129001bf59447cc8f8b6ff7a7c52a154f13336dd"
+        }
+      ],
+      "timing_note": "Viewport frame intervals, including CPU and GPU work. Walk traces use the same recorder as F8.",
+      "walk_traces": [
+        {
+          "distance_z_m": 44.5911026000977,
+          "file": "walk-first.csv",
+          "frames": 622,
+          "reached_end": true
+        },
+        {
+          "distance_z_m": 44.5911026000977,
+          "file": "walk-repeat.csv",
+          "frames": 582,
+          "reached_end": true
+        }
+      ]
+    },
+    "walk": {
+      "adapter": "NVIDIA GeForce RTX 3060",
+      "arguments": [
+        "--measure",
+        "--profile",
+        "--walk",
+        "--settled",
+        "--living-streets",
+        "--reference-view"
+      ],
+      "driver": "vulkan",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "revision": "d4ed0ba6aa241a07322b88225403ff01dba0a22e",
+      "seed": 834726,
+      "settings": {
+        "ambient_occlusion": true,
+        "fog": true,
+        "glow": true,
+        "physics_hz": 60,
+        "ssr": true,
+        "vsync": 0
+      },
+      "directory": "after",
+      "startup_spans": [
+        {
+          "category": "main_scene_resource_load",
+          "detail": null,
+          "duration_us": 5316161,
+          "frame": 0,
+          "start_us": 1744831
+        },
+        {
+          "category": "main_scene_instantiation",
+          "detail": null,
+          "duration_us": 129,
+          "frame": 0,
+          "start_us": 7061006
+        },
+        {
+          "category": "main_scene_activation",
+          "detail": null,
+          "duration_us": 3524022,
+          "frame": 0,
+          "start_us": 7061138
+        }
+      ],
+      "runs": [
+        {
+          "distance_z_m": 44.5911026000977,
+          "file": "walk-first.csv",
+          "frames": 622,
+          "reached_end": true,
+          "game_frame": {
+            "frames": 622,
+            "median_ms": 9.245,
+            "p95_ms": 13.962,
+            "p99_ms": 15.464,
+            "max_ms": 122.202,
+            "over_16_67": 4,
+            "over_33_3": 3,
+            "mean_fps": 101.7,
+            "lowest_1pct_fps": 25.8
+          },
+          "draw_interval": {
+            "frames": 622,
+            "median_ms": 9.66,
+            "p95_ms": 14.915,
+            "p99_ms": 16.944,
+            "max_ms": 42.75,
+            "over_16_67": 9,
+            "over_33_3": 1,
+            "mean_fps": 103.7,
+            "lowest_1pct_fps": 43.27
+          },
+          "loaded_chunks": 13,
+          "peak_stage_ms": 7.733,
+          "material_bakes": [],
+          "slowest_spans": [
+            {
+              "category": "chunk_stage",
+              "detail": {
+                "block": [
+                  -4,
+                  -1
+                ],
+                "landmark": "",
+                "phase": 1
+              },
+              "duration_us": 7733,
+              "frame": 92,
+              "start_us": 13854089
+            },
+            {
+              "category": "chunk_stage",
+              "detail": {
+                "block": [
+                  -4,
+                  -1
+                ],
+                "landmark": "",
+                "phase": 2
+              },
+              "duration_us": 3717,
+              "frame": 93,
+              "start_us": 13874917
+            },
+            {
+              "category": "chunk_stage",
+              "detail": {
+                "block": [
+                  -4,
+                  3
+                ],
+                "landmark": "",
+                "phase": 3
+              },
+              "duration_us": 1314,
+              "frame": 125,
+              "start_us": 14223491
+            },
+            {
+              "category": "chunk_stage",
+              "detail": {
+                "block": [
+                  -2,
+                  3
+                ],
+                "landmark": "",
+                "phase": 3
+              },
+              "duration_us": 1240,
+              "frame": 155,
+              "start_us": 14544359
+            },
+            {
+              "category": "chunk_stage",
+              "detail": {
+                "block": [
+                  -4,
+                  1
+                ],
+                "landmark": "",
+                "phase": 1
+              },
+              "duration_us": 1218,
+              "frame": 101,
+              "start_us": 13965408
+            }
+          ],
+          "max_viewport_cpu_ms": 762.063,
+          "max_viewport_gpu_ms": 10.234,
+          "viewport_render_cpu": {
+            "frames": 622,
+            "median_ms": 3.724,
+            "p95_ms": 5.713,
+            "p99_ms": 6.051,
+            "max_ms": 762.063,
+            "over_16_67": 1,
+            "over_33_3": 1,
+            "mean_fps": 195.23,
+            "lowest_1pct_fps": 8.72
+          },
+          "viewport_render_gpu": {
+            "frames": 622,
+            "median_ms": 4.13,
+            "p95_ms": 5.906,
+            "p99_ms": 8.946,
+            "max_ms": 10.234,
+            "over_16_67": 0,
+            "over_33_3": 0,
+            "mean_fps": 235.63,
+            "lowest_1pct_fps": 105.78
+          },
+          "median_draw_calls": 2623.5,
+          "measured_cpu_layers": {
+            "signal_visual_refresh": {
+              "frames": 622,
+              "median_ms": 0.0,
+              "p95_ms": 0.0,
+              "p99_ms": 0.734,
+              "max_ms": 0.959,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 33663.47,
+              "lowest_1pct_fps": 1195.56
+            },
+            "traffic_control_including_headway": {
+              "frames": 622,
+              "median_ms": 0.341,
+              "p95_ms": 0.588,
+              "p99_ms": 0.734,
+              "max_ms": 2.93,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 4109.16,
+              "lowest_1pct_fps": 822.18
+            },
+            "traffic_headway": {
+              "frames": 622,
+              "median_ms": 0.162,
+              "p95_ms": 0.283,
+              "p99_ms": 0.325,
+              "max_ms": 1.404,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 8679.27,
+              "lowest_1pct_fps": 1705.65
+            },
+            "traffic_move_and_slide": {
+              "frames": 622,
+              "median_ms": 0.169,
+              "p95_ms": 0.318,
+              "p99_ms": 0.412,
+              "max_ms": 1.484,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 7761.61,
+              "lowest_1pct_fps": 1563.2
+            },
+            "world_camera": {
+              "frames": 622,
+              "median_ms": 0.073,
+              "p95_ms": 0.101,
+              "p99_ms": 0.135,
+              "max_ms": 0.194,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 13111.85,
+              "lowest_1pct_fps": 6216.7
+            },
+            "world_civic_combat_and_wanted": {
+              "frames": 622,
+              "median_ms": 0.052,
+              "p95_ms": 0.074,
+              "p99_ms": 0.105,
+              "max_ms": 0.465,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 28024.33,
+              "lowest_1pct_fps": 5376.34
+            },
+            "world_pedestrians": {
+              "frames": 622,
+              "median_ms": 0.428,
+              "p95_ms": 1.678,
+              "p99_ms": 3.723,
+              "max_ms": 6.719,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 1996.01,
+              "lowest_1pct_fps": 224.93
+            }
+          },
+          "draw_pipeline_delta": 0,
+          "unfocused_draws": 0
+        },
+        {
+          "distance_z_m": 44.5911026000977,
+          "file": "walk-repeat.csv",
+          "frames": 582,
+          "reached_end": true,
+          "game_frame": {
+            "frames": 582,
+            "median_ms": 10.606,
+            "p95_ms": 13.636,
+            "p99_ms": 14.551,
+            "max_ms": 16.667,
+            "over_16_67": 0,
+            "over_33_3": 0,
+            "mean_fps": 95.6,
+            "lowest_1pct_fps": 65.13
+          },
+          "draw_interval": {
+            "frames": 582,
+            "median_ms": 10.918,
+            "p95_ms": 15.727,
+            "p99_ms": 16.946,
+            "max_ms": 18.924,
+            "over_16_67": 7,
+            "over_33_3": 0,
+            "mean_fps": 95.67,
+            "lowest_1pct_fps": 56.21
+          },
+          "loaded_chunks": 0,
+          "peak_stage_ms": 0.0,
+          "material_bakes": [],
+          "slowest_spans": [
+            {
+              "category": "street_light_focus",
+              "detail": null,
+              "duration_us": 7,
+              "frame": 1097,
+              "start_us": 24066343
+            },
+            {
+              "category": "street_light_focus",
+              "detail": null,
+              "duration_us": 6,
+              "frame": 707,
+              "start_us": 19730085
+            },
+            {
+              "category": "street_light_focus",
+              "detail": null,
+              "duration_us": 6,
+              "frame": 723,
+              "start_us": 19945653
+            },
+            {
+              "category": "street_light_focus",
+              "detail": null,
+              "duration_us": 6,
+              "frame": 747,
+              "start_us": 20275346
+            },
+            {
+              "category": "street_light_focus",
+              "detail": null,
+              "duration_us": 6,
+              "frame": 791,
+              "start_us": 20799215
+            }
+          ],
+          "max_viewport_cpu_ms": 7.188,
+          "max_viewport_gpu_ms": 6.437,
+          "viewport_render_cpu": {
+            "frames": 582,
+            "median_ms": 4.019,
+            "p95_ms": 6.183,
+            "p99_ms": 6.628,
+            "max_ms": 7.188,
+            "over_16_67": 0,
+            "over_33_3": 0,
+            "mean_fps": 241.6,
+            "lowest_1pct_fps": 145.41
+          },
+          "viewport_render_gpu": {
+            "frames": 582,
+            "median_ms": 4.094,
+            "p95_ms": 5.528,
+            "p99_ms": 6.119,
+            "max_ms": 6.437,
+            "over_16_67": 0,
+            "over_33_3": 0,
+            "mean_fps": 243.01,
+            "lowest_1pct_fps": 160.71
+          },
+          "median_draw_calls": 2671.5,
+          "measured_cpu_layers": {
+            "signal_visual_refresh": {
+              "frames": 582,
+              "median_ms": 0.0,
+              "p95_ms": 0.491,
+              "p99_ms": 0.741,
+              "max_ms": 0.939,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 30295.14,
+              "lowest_1pct_fps": 1242.49
+            },
+            "traffic_control_including_headway": {
+              "frames": 582,
+              "median_ms": 0.409,
+              "p95_ms": 0.689,
+              "p99_ms": 0.705,
+              "max_ms": 0.874,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 3315.35,
+              "lowest_1pct_fps": 1333.63
+            },
+            "traffic_headway": {
+              "frames": 582,
+              "median_ms": 0.184,
+              "p95_ms": 0.313,
+              "p99_ms": 0.32,
+              "max_ms": 0.434,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 7327.85,
+              "lowest_1pct_fps": 2901.35
+            },
+            "traffic_move_and_slide": {
+              "frames": 582,
+              "median_ms": 0.236,
+              "p95_ms": 0.408,
+              "p99_ms": 0.421,
+              "max_ms": 0.484,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 5712.77,
+              "lowest_1pct_fps": 2262.44
+            },
+            "world_camera": {
+              "frames": 582,
+              "median_ms": 0.074,
+              "p95_ms": 0.099,
+              "p99_ms": 0.142,
+              "max_ms": 0.197,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 12937.93,
+              "lowest_1pct_fps": 6160.16
+            },
+            "world_civic_combat_and_wanted": {
+              "frames": 582,
+              "median_ms": 0.053,
+              "p95_ms": 0.074,
+              "p99_ms": 0.083,
+              "max_ms": 0.088,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 26349.15,
+              "lowest_1pct_fps": 11673.15
+            },
+            "world_pedestrians": {
+              "frames": 582,
+              "median_ms": 0.402,
+              "p95_ms": 1.894,
+              "p99_ms": 2.565,
+              "max_ms": 3.675,
+              "over_16_67": 0,
+              "over_33_3": 0,
+              "mean_fps": 2037.89,
+              "lowest_1pct_fps": 313.87
+            }
+          },
+          "draw_pipeline_delta": 0,
+          "unfocused_draws": 0
+        }
+      ]
+    }
+  }
+}
