@@ -18,8 +18,8 @@
     "DoorL0": 1508,
     "DoorR0": 1508,
     "Wheel": 4956,
-    "BrakeCaliperL": 292,
-    "BrakeCaliperR": 292
+    "BrakeCaliperL": 772,
+    "BrakeCaliperR": 772
   },
   "sockets": {
     "KeyLeft": [
@@ -51,8 +51,8 @@
   "sha256": {
     "cinder_r9.gltf": "ee1f109cd5ac3472278bace6f84db1adfbf85605d83d59f26c8e076db78bd041",
     "cinder_r9.bin": "da48c2611da69106758b0ab213f68327da19b08cd4fd7d44d5198a4b0a57de26",
-    "wheel.gltf": "08108e33a621744d5a1a6ef9d023537a44095686fce469688848004b4443f917",
-    "wheel.bin": "2d278de6e1d01ad7c637c69421eb9fbb4a123f071e3a5e7b188564d97ce93d2e",
+    "wheel.gltf": "abe3f55781acef304cbf6eea07d49d8245ef6f3313f07085c5697e3c31e3fde7",
+    "wheel.bin": "e00dfcdff0a96bfb43d23d0ea12dd257b892ca51a5a555d82b42c0b2dc92d4c1",
     "carbon_twill.png": "89c8a41f36faef711f93d6df0996be5bbd845ef65f7ea398de116ad11adc32f5",
     "rain_beads.png": "37106685c200a5b8b4d59c7aca10ec9c523dbd3cce8166a7a0896fbc26a290e8"
   }
