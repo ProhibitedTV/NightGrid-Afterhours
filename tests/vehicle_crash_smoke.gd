@@ -76,7 +76,7 @@ func _verify() -> void:
 	if not check(fx_count > 0 and fx_count <= 18, "real collision releases bounded rigid fragments"):
 		return
 	for fragment in get_nodes_in_group("vehicle_crash_debris"):
-		if not check(fragment is RigidBody3D and fragment.collision_layer == 0 and fragment.collision_mask == 1 and fragment.get_node_or_null("Timer") is Timer, "fragments are temporary nonblocking rigid bodies"):
+		if not check(fragment is RigidBody3D and fragment.collision_layer == 0 and fragment.collision_mask == 1 and fragment.get_node_or_null("FragmentLifetime") is Timer, "fragments are temporary nonblocking rigid bodies"):
 			return
 	var damaged_mesh: Mesh = front.mesh
 	car.call("restore_damage", [zones.x, zones.y, zones.z, zones.w])

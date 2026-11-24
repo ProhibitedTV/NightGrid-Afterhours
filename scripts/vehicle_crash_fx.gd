@@ -116,6 +116,7 @@ static func burst(car: CharacterBody3D, at: Vector3, incoming: Vector3, closing:
 		body.linear_velocity = outward * minf(closing * .15, 5.0) + Vector3.UP * (1.6 + index * .65) + car.global_basis.x * (float(index) - 1.0) * 2.0
 		body.angular_velocity = Vector3(2.2 + index, -3.0 + index, 4.0)
 		var timer := Timer.new()
+		timer.name = "FragmentLifetime"
 		timer.one_shot = true
 		timer.wait_time = DEBRIS_LIFETIME
 		body.add_child(timer)
