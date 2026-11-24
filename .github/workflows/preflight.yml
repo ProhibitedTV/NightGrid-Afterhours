@@ -105,6 +105,13 @@ jobs:
           timeout 75s godot --headless --path . --script res://tests/vending_smoke.gd 2>&1 | tee /tmp/nightgrid-vending.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-vending.log; then exit 1; fi
           grep -q "VENDING_SMOKE PASS:" /tmp/nightgrid-vending.log
+      - name: Validate weighted locomotion, direction-independent acceleration and stride transitions
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/locomotion_smoke.gd 2>&1 | tee /tmp/nightgrid-locomotion.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-locomotion.log; then exit 1; fi
+          grep -q "LOCOMOTION_SMOKE PASS:" /tmp/nightgrid-locomotion.log
       - name: Verify the baked city textures match the original generator byte for byte
         run: godot --headless --path . --script res://tools/bake_city_material_maps.gd -- --verify
       - name: Validate deterministic road routes, intersection turns and off-road access

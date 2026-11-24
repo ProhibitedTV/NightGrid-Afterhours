@@ -1,0 +1,9 @@
+# Reactive courier animation roadmap
+
+Phase 1: fixed-tick direction-independent vector acceleration, explicit braking/reversal and air control, frame-rate-independent exponential facing, filtered gait speed, threshold hysteresis, smoothed playback rate and normalized phase-preserving loop crossfades. No gameplay top speed, stamina, save schema, physics frequency or collision shape change. Existing weighted rig/actions retained. The normalized phase is an approximation until motion clip foot-contact timing has been measured; it is not foot locking or motion matching.
+
+Next phases: annotate actual foot contact and displacement, calibrate gait speed against physical velocity (retain gameplay responsiveness), add start/stop/pivot clips, implement post-animation slope/curb foot and pelvis adjustment with bounded probes, contextual hand IK, jump-height landings, fatigue, obstacle traversal and NPC LOD. Motion matching only after expanding and tagging motion data. Keep deterministic physics and native camera/controller/vehicle tests; no new permanent per-NPC processes.
+
+Acceptance: actual rig playback, direction-independent acceleration, no instant reversal, bounded stop, stride continuity, no threshold thrashing, retained combat/vehicle/traversal/consumable regressions. Native 60 FPS and foot-sliding measurement remain outstanding. First-pass crossfades are not a full AnimationTree/motion-matching solution. Existing speeds deliberately retained pending native balance review.
+
+References: Godot AnimationTree and AnimationPlayer documentation; Ubisoft GDC 2016 Motion Matching and the Road to Next-Gen Animation; Ubisoft predictive foot IK presentation. No proprietary Rockstar code or assets.

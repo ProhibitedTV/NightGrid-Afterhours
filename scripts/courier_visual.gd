@@ -3,6 +3,8 @@ extends Node3D
 const Model = preload("res://assets/models/nightgrid/courier/morrow_courier.glb")
 const Materials = preload("res://scripts/material_library.gd")
 const ProductArt = preload("res://scripts/consumable_prop.gd")
+const Locomotion = preload("res://scripts/locomotion_policy.gd")
+const GAIT_LOOPS = [&"walk",&"run",&"walk_back",&"strafe_left",&"strafe_right",&"aim_walk",&"aim_run",&"aim_left",&"aim_right"]
 const FOOT_OFFSET = -0.95
 const DRIVER_SEAT = Vector3(-0.52, -0.23, -0.43)
 const LOOPS = [&"idle", &"walk", &"run", &"walk_back", &"strafe_left", &"strafe_right",
@@ -18,6 +20,10 @@ var _aiming := false
 var _seat := false
 var _grounded := true
 var _horizontal := Vector3.ZERO
+var _gait_speed := 0.0
+var _gait_running := false
+var _gait_rate := 1.0
+var _moving_gait := false
 var _sprinting := false
 var _reverse_playback := false
 var _entry_ground_y := 0.0
@@ -141,10 +147,11 @@ func set_weapon_pose(id: String, aiming: bool) -> void:
 	_choose_pose()
 
 func update_motion(local_velocity: Vector3, on_floor: bool, jumped: bool,
-		landed: bool, sprinting: bool) -> void:
+		landed: bool, sprinting: bool, delta: float = 1.0/60.0) -> void:
 	if _seat:
 		return
 	_horizontal = Vector3(local_velocity.x, 0.0, local_velocity.z)
+	_gait_speed = lerpf(_gait_speed,_horizontal.length(),1.0-exp(-18.0*delta))
 	_grounded = on_floor
 	_sprinting = sprinting
 	if jumped:
@@ -183,6 +190,7 @@ func sit_in_vehicle(car: Node3D, play_entry: bool, ground_y: float) -> void:
 	_seat = true
 	_clear_product()
 	_horizontal = Vector3.ZERO
+	_reset_gait()
 	# The combat controller holsters while driving. Forget the last on-foot
 	# pose so re-equipping that item on exit always restores the held prop.
 	_equipment = "holstered"
@@ -209,6 +217,7 @@ func return_to_player(player: Node3D) -> void:
 	rotation = Vector3(0.0, facing, 0.0)
 	_seat = false
 	_clear_product()
+	_reset_gait()
 	_grounded = true
 	_action = &""
 	_play(&"idle", 0.0)
@@ -225,6 +234,12 @@ func _finish_action(clip: StringName) -> void:
 		set_physics_process(false)
 	_choose_pose()
 
+func _reset_gait() -> void:
+	_gait_speed = 0.0
+	_gait_running = false
+	_gait_rate = 1.0
+	_moving_gait = false
+
 func _choose_pose() -> void:
 	if _action != &"":
 		return
@@ -234,14 +249,18 @@ func _choose_pose() -> void:
 	if not _grounded:
 		_play(&"jump_air", 0.10)
 		return
-	var speed := _horizontal.length()
-	if speed < 0.28:
+	var speed := _gait_speed
+	_moving_gait = speed > (.22 if _moving_gait else .38)
+	if not _moving_gait:
+		_gait_running = false
+		_gait_rate = 1.0
 		var stance := &"idle"
 		if _equipment != "holstered":
 			stance = &"aim" if _aiming else &"weapon_idle"
 		_play(stance, 0.18)
 		return
-	var running := speed > 3.3
+	_gait_running = Locomotion.run_gait(speed,_gait_running)
+	var running := _gait_running
 	var clip := &"run" if running else &"walk"
 	var natural_speed := 4.1 if running else 1.75
 	var playback_direction := 1.0
@@ -261,16 +280,26 @@ func _choose_pose() -> void:
 	elif _horizontal.z < -0.45:
 		clip = &"walk_back"
 		natural_speed = 1.75
-	_play(clip, 0.15, playback_direction * clampf(speed / natural_speed, 0.6, 1.85 if _sprinting else 1.65))
+	var target_rate := clampf(speed/natural_speed,.6,1.85 if _sprinting else 1.65)
+	_gait_rate = lerpf(_gait_rate,target_rate,.22)
+	_play(clip,.20,playback_direction*_gait_rate)
 
 func _play(clip: StringName, blend: float, rate: float = 1.0) -> void:
 	var backward := rate < 0.0
 	animations.speed_scale = absf(rate)
 	if current_pose == clip and backward == _reverse_playback:
 		return
+	var preserve_phase := current_pose in GAIT_LOOPS and clip in GAIT_LOOPS
+	var phase := Locomotion.loop_phase(animations.current_animation_position,animations.current_animation_length) if preserve_phase else 0.0
+	if preserve_phase and _reverse_playback != backward:
+		phase = 1.0-phase
 	current_pose = clip
 	_reverse_playback = backward
 	animations.play(clip, blend, -1.0 if backward else 1.0, backward)
+	if preserve_phase:
+		# Approximate normalized cycle continuity until foot contact annotations
+		# exist. Preserve the outgoing crossfade rather than restarting each gait.
+		animations.seek(phase*animations.get_animation(clip).length,false)
 
 func _build_equipment_display() -> void:
 	var hand := BoneAttachment3D.new()
