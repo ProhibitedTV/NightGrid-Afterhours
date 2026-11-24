@@ -59,6 +59,8 @@ var _doors: Array[Dictionary] = []
 var _wheel_phase := 0.0
 var _drivetrain := Drivetrain.new()
 var _cluster: Node3D
+var _cabin_light: OmniLight3D
+var _cabin_glow := 0.0
 var _steering_wheel: Node3D
 var _cockpit_angle := 0.0
 var _velocity := 0.0
@@ -99,16 +101,17 @@ func _ready() -> void:
 	_cluster = Cluster.new()
 	_cluster.name = "LiveInstrumentCluster"
 	# Center-stack panel just aft of the authored dashboard ellipsoid.
-	# Do not overlap the imported (currently static) steering wheel.
+	# Do not overlap the independently articulated steering wheel.
 	_cluster.position = Vector3(.12, .705, -.849)
 	_shell.add_child(_cluster)
+	_build_cabin_light()
 	_drivetrain.mount(self)
 	apply_damage(Vector4.ZERO)
 
 func _create_materials() -> void:
 	_shared["Graphite"] = _finish_material(Color("252830"), 0.80)
-	_shared["Seat"] = _finish_material(Color("353c46"), 0.82)
-	_shared["DoorCard"] = _finish_material(Color("252a2d"), 0.78)
+	_shared["Seat"] = _upholstery(Color("353c46"), .84, 0.20, 80.0)
+	_shared["DoorCard"] = _upholstery(Color("252a2d"), .73, 0.12, 54.0)
 	_shared["Tire"] = _finish_material(Color("181a1d"), 0.86)
 	var alloy := _finish_material(Color("989ca3"), 0.31, 0.82)
 	alloy.normal_enabled = true
@@ -136,7 +139,9 @@ func _create_materials() -> void:
 	# The real headlights and projector bulbs still own their light states.
 	_shared["HeadlampReflectorHousing"] = _finish_material(Color("43545e"), 0.31, 0.67)
 	_shared["HeadlampPerimeterSeal"] = _finish_material(Color("131719"), 0.86, 0.0)
-	_shared["Instrument"] = _lamp(Color("81c3c8"), 0.57)
+	# The molded instrument bezel remains a physical dark housing; only
+	# the separate digital cluster lights up when the ignition is active.
+	_shared["Instrument"] = _finish_material(Color("28363b"), .48)
 	_shared["Headlamp"] = _lamp(Color("cbdff4"), 1.62)
 	_shared["HeadIdle"] = _finish_material(Color("757e8e"), 0.36, 0.30)
 	_shared["ProjectorOn"] = _lamp(Color("eef4ff"), 3.18)
@@ -149,6 +154,52 @@ func _create_materials() -> void:
 	_shared["BrokenLamp"] = _finish_material(Color("191c21"), 0.72)
 	_shared["SillOn"] = _lamp(SILL_CYAN, 1.55)
 	_shared["SillOff"] = _finish_material(Color("1e434a"), 0.42)
+
+func _upholstery(tint: Color, roughness: float, strength: float, repeats: float) -> StandardMaterial3D:
+	# Original periodic micro-grain, sampled through the authored UVs.
+	# Shared once per material; no per-frame generation or external assets.
+	var normal_map := Image.create(64, 64, false, Image.FORMAT_RGB8)
+	for y in 64:
+		for x in 64:
+			var u := TAU * float(x) / 64.0
+			var w := TAU * float(y) / 64.0
+			var nx := .16 * cos(5.0 * u + sin(3.0 * w)) + .10 * sin(11.0 * u - 7.0 * w)
+			var ny := .16 * cos(6.0 * w + sin(4.0 * u)) + .10 * cos(7.0 * u + 9.0 * w)
+			var n := Vector3(nx, ny, 1.0).normalized()
+			normal_map.set_pixel(x, y, Color(n.x * .5 + .5, n.y * .5 + .5, n.z * .5 + .5))
+	normal_map.generate_mipmaps()
+	var material := _finish_material(tint, roughness)
+	material.normal_enabled = true
+	material.normal_texture = ImageTexture.create_from_image(normal_map)
+	material.normal_scale = strength
+	material.uv1_scale = Vector3(repeats, repeats, 1.0)
+	return material
+
+func _build_cabin_light() -> void:
+	_cabin_light = OmniLight3D.new()
+	_cabin_light.name = "CabinCourtesyLight"
+	_cabin_light.position = Vector3(0.0, 1.08, -.14)
+	_cabin_light.light_color = Color("b6c9db")
+	_cabin_light.omni_range = .70
+	_cabin_light.omni_attenuation = 2.4
+	_cabin_light.shadow_enabled = false
+	_cabin_light.light_specular = .18
+	_cabin_light.light_energy = 0.0
+	_cabin_light.hide()
+	_shell.add_child(_cabin_light)
+
+func _update_cabin_light(occupied: bool, delta: float) -> void:
+	var door_open := 0.0
+	for door in _doors:
+		door_open = maxf(door_open, float(door["motion"]))
+	# A courtesy lamp brightens during entry/exit. A dimmer interior fill
+	# while driving avoids illuminating the surrounding street.
+	var target := .32 * smoothstep(.02, .35, door_open)
+	if occupied and _night:
+		target = maxf(target, .08)
+	_cabin_glow = move_toward(_cabin_glow, target, maxf(delta, 0.0) * .75)
+	_cabin_light.light_energy = _cabin_glow
+	_cabin_light.visible = _cabin_glow > .001
 
 func _finish_material(tint: Color, roughness: float, metallic: float = 0.0) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
@@ -307,6 +358,7 @@ func update_motion(speed: float, steer: float, braking: bool, occupied: bool,
 	_occupied = occupied
 	_braking = braking
 	_move_doors(delta, absf(speed) > 2.5)
+	_update_cabin_light(occupied, delta)
 	_drivetrain.update(speed, steer, braking, occupied, throttle, wetness, delta)
 	_cluster.call("update_display", occupied, _night, speed, _drivetrain.engine_rpm(), _drivetrain.drive_gear(), braking, delta)
 
@@ -330,6 +382,9 @@ func reset_body_pose() -> void:
 
 func reset_instrument_cluster() -> void:
 	_cluster.call("reset_display")
+	_cabin_glow = 0.0
+	_cabin_light.light_energy = 0.0
+	_cabin_light.hide()
 	_cockpit_angle = 0.0
 	if is_instance_valid(_steering_wheel):
 		_steering_wheel.quaternion = Quaternion.IDENTITY

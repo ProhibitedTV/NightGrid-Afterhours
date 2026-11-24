@@ -389,5 +389,43 @@ func _verify() -> void:
 	if cluster.call("get_display_state")["active"]:
 		_fail("Instrument display survived reset")
 		return
+	var courtesy := rig.get_node_or_null("Coachwork/CabinCourtesyLight") as OmniLight3D
+	if courtesy == null or courtesy.shadow_enabled or courtesy.omni_range > .71:
+		_fail("Cabin light missing or violates the bounded light budget")
+		return
+	rig.call("close_doors_immediate")
+	rig.call("set_lighting_hour", 12.0)
+	rig.call("update_motion", 0.0, 0.0, false, true, 0.0, 0.0, .5)
+	if courtesy.visible:
+		_fail("Closed daytime cabin should not need an extra lamp")
+		return
+	rig.call("set_lighting_hour", 21.5)
+	rig.call("update_motion", 0.0, 0.0, false, true, 0.0, 0.0, .5)
+	if not courtesy.visible or absf(courtesy.light_energy - .08) > .001:
+		_fail("Occupied night cabin did not use dim fill")
+		return
+	var doors: Array = rig.get("_doors")
+	doors[0]["target"] = 1.0
+	rig.call("update_motion", 0.0, 0.0, false, false, 0.0, 0.0, .75)
+	if courtesy.light_energy < .30:
+		_fail("Opening the door failed to brighten the courtesy lamp")
+		return
+	rig.call("close_doors_immediate")
+	rig.call("update_motion", 0.0, 0.0, false, false, 0.0, 0.0, .75)
+	if courtesy.visible:
+		_fail("Parked closed cabin left its lamp on")
+		return
+	var interior := rig.get_node("Coachwork/Cabin") as MeshInstance3D
+	var material_count := 0
+	for i in interior.mesh.get_surface_count():
+		if interior.mesh.surface_get_material(i).resource_name in ["Seat", "DoorCard"]:
+			var material := interior.get_surface_override_material(i) as StandardMaterial3D
+			if material == null or not material.normal_enabled or material.normal_texture == null:
+				_fail("Interior lost authored micro-grain material")
+				return
+			material_count += 1
+	if material_count == 0:
+		_fail("No upholstered cabin surfaces found")
+		return
 	print("CINDER_R9_SMOKE PASS")
 	quit()
