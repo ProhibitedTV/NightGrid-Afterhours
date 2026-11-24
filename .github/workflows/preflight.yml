@@ -91,6 +91,13 @@ jobs:
           set -o pipefail
           godot --headless --path . --import --quit 2>&1 | tee /tmp/nightgrid-import.log
           if grep -Eq 'SCRIPT ERROR:|p_image->is_compressed\(\)|Cannot generate mipmaps from compressed image formats' /tmp/nightgrid-import.log; then exit 1; fi
+      - name: Verify seamless physical building entry, collision and save
+        timeout-minutes: 3
+        run: |
+          set -o pipefail
+          timeout 150s godot --headless --path . --script res://tests/walk_in_lot_smoke.gd 2>&1 | tee /tmp/nightgrid-walk-in.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-walk-in.log; then exit 1; fi
+          grep -q "WALK_IN_LOT PASS:" /tmp/nightgrid-walk-in.log
       - name: Verify the baked city textures match the original generator byte for byte
         run: godot --headless --path . --script res://tools/bake_city_material_maps.gd -- --verify
       - name: Validate deterministic road routes, intersection turns and off-road access
@@ -371,8 +378,6 @@ jobs:
         run: godot --headless --path . --script res://tests/expansion_smoke.gd
       - name: Validate on-demand district geometry and fully enterable interior rooms
         run: godot --headless --path . --script res://tests/streaming_interiors_smoke.gd
-      - name: Verify seamless physical building entry, collision and save
-        run: godot --headless --path . --script res://tests/walk_in_lot_smoke.gd
       - name: Validate predictive traversal streaming without multi-block frame spikes
         run: godot --headless --path . --script res://tests/predictive_streaming_smoke.gd
       - name: Validate staged parcel shells, deterministic completion and partial-load cancellation

@@ -749,13 +749,12 @@ func nearby_walk_in(at: Vector3) -> Node3D:
 
 func update_walk_in_light(at: Vector3) -> void:
 	var next := nearby_walk_in(at)
-	if next == _lit_walk_in:
-		return
-	if is_instance_valid(_lit_walk_in):
-		_lit_walk_in.call("set_local_light",false)
-	_lit_walk_in = next
+	if next != _lit_walk_in:
+		if is_instance_valid(_lit_walk_in):
+			_lit_walk_in.call("set_local_light",false)
+		_lit_walk_in = next
 	if is_instance_valid(next):
-		next.call("set_local_light",true)
+		next.call("set_local_light",true,at)
 
 func repair_storefront() -> Node3D:
 	var block := BrickwaterAlley.PILOT_BLOCK

@@ -148,7 +148,7 @@ func doorway_reachable(at: Vector3) -> bool:
 	var p := to_local(at)
 	return absf(p.x)<2.0 and absf(p.z)<2.0 and p.y>=-.2 and p.y<2.8
 
-func set_local_light(enabled: bool) -> void:
+func set_local_light(enabled: bool, at: Vector3 = Vector3.INF) -> void:
 	if enabled and not is_instance_valid(_lamp):
 		_lamp = OmniLight3D.new()
 		_lamp.name = "NearInteriorLight"
@@ -160,6 +160,19 @@ func set_local_light(enabled: bool) -> void:
 		add_child(_lamp)
 	if is_instance_valid(_lamp):
 		_lamp.visible = enabled
+		if enabled and at.is_finite():
+			# Reuse the same light on the occupied level. No additional
+			# active lights are allocated when the player climbs the ramp.
+			var p := to_local(at)
+			var level := ROOM_HEIGHT if p.y >= ROOM_HEIGHT+.5 else 0.0
+			_lamp.position = Vector3(0,level+ROOM_HEIGHT-.45,8.0 if level > 0.0 else 6.3)
+
+func restore_safe_threshold(at: Vector3) -> void:
+	var p := to_local(at)
+	# An ordinary save stores the real player coordinates. If a save is
+	# restored in the door plane, never reconstruct a closed leaf over it.
+	if is_instance_valid(door) and absf(p.x) < DOOR_WIDTH*.5+.45 and absf(p.z-.16) < .65 and p.y < DOOR_HEIGHT+.3:
+		door.call("restore_open",true)
 
 func contains(at: Vector3) -> bool:
 	var p := to_local(at)

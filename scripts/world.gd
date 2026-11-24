@@ -1818,6 +1818,10 @@ func _apply_snapshot(data: Dictionary) -> void:
 			city_details.call("set_focus", interiors.get("exterior_position"))
 	if not interiors.call("is_inside"):
 		city_details.call("set_focus", player.global_position)
+		var walk_in: Node3D = city_details.call("nearby_walk_in",player.global_position)
+		if is_instance_valid(walk_in) and current_car == null and current_transit == null:
+			walk_in.call("restore_safe_threshold",player.global_position)
+			city_details.call("update_walk_in_light",player.global_position)
 		var repair := _repair_storefront()
 		if repair != null and (repair.contains(player.global_position) or repair.door_reachable(player.global_position)):
 			repair.door.restore_open(data.get("night_shift_door_open", false) == true or repair.overlaps_threshold(player.global_position))

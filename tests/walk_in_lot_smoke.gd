@@ -86,6 +86,16 @@ func _verify() -> void:
 		await physics_frame
 	if not check(lot.call("room_at",player.global_position)=="upper_floor" and absf(lot.to_local(player.global_position).x)<1.0,"upper landing opens onto second storey"):
 		return
+	var upper_at := player.global_position
+	city.call("set_focus",upper_at)
+	city.call("update_walk_in_light",upper_at)
+	var light := lot.get_node("NearInteriorLight") as OmniLight3D
+	if not check(light.position.y>Lot.ROOM_HEIGHT,"same light follows player to upper level"):
+		return
+	var upper_save: Dictionary = world.call("_capture_snapshot")
+	world.call("_apply_snapshot",upper_save)
+	if not check(player.global_position.distance_to(upper_at)<.1 and lot.call("room_at",player.global_position)=="upper_floor","upper level save restores exact physical elevation"):
+		return
 	for i in 49:
 		player.velocity = Vector3(-4,-1,0)
 		player.move_and_slide()
@@ -97,6 +107,9 @@ func _verify() -> void:
 		if lot.to_local(player.global_position).z<Lot.SIDE_PASSAGE_CENTER+.12:
 			break
 	if not check(lot.to_local(player.global_position).y<1.5,"continuous descent returns to ground floor"):
+		return
+	city.call("update_walk_in_light",player.global_position)
+	if not check(light.position.y<Lot.ROOM_HEIGHT,"light returns to ground level"):
 		return
 	for i in 39:
 		player.velocity = Vector3(5,0,0)
@@ -134,6 +147,14 @@ func _verify() -> void:
 		player.move_and_slide()
 		await physics_frame
 	if not check(lot.to_local(player.global_position).z < -.4,"real player exits through the same physical opening"):
+		return
+	# Saved on the threshold with a closed transient door: restore the
+	# exact position and ensure the regenerated leaf cannot trap the player.
+	door.call("restore_open",false)
+	player.global_position = lot.to_global(Vector3(0,1.15,.16))
+	var threshold_save: Dictionary = world.call("_capture_snapshot")
+	world.call("_apply_snapshot",threshold_save)
+	if not check(float(door.call("openness"))>.95,"threshold restore leaves safe passage"):
 		return
 	print("WALK_IN_LOT PASS: physical doors, multiple rooms, upper floor ascent/descent, bounded walls, streamed finish, world-coordinate restore and exit")
 	quit(0)
