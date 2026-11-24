@@ -70,6 +70,21 @@ func _verify() -> void:
 	if projector == null or projector.mesh.get_aabb().size.x < 1.1 or projector.mesh.get_aabb().size.y < .035:
 		_fail("Both headlamp assemblies need three-dimensional projector optics")
 		return
+	# Calipers must be distinct from the spinning wheel visuals but share
+	# the knuckle's steering movement. This is a real in-game parenting check,
+	# not simply an offline artifact test.
+	var rotating_wheels: Array = hero.get("_wheels")
+	var calipers: Array = hero.get("_brake_calipers")
+	if rotating_wheels.size() != 4 or calipers.size() != 4:
+		_fail("Cinder needs four spinning wheels and four independent brake calipers")
+		return
+	for index in 4:
+		var wheel := rotating_wheels[index] as MeshInstance3D
+		var caliper := calipers[index] as MeshInstance3D
+		if wheel == null or caliper == null or caliper.get_parent() != wheel.get_parent() \
+				or caliper.mesh == wheel.mesh or caliper.mesh.get_surface_count() == 0:
+			_fail("Brake hardware must share steering knuckles but not wheel-spin meshes")
+			return
 	for i in 5:
 		await physics_frame
 	player.global_position = car.to_global(Vector3(-1.56, .16, -.41))
@@ -101,6 +116,12 @@ func _verify() -> void:
 		return
 	hero.call("set_lighting_hour", 21.5)
 	hero.call("update_motion", 12.0, .5, true, true, .7, .75, .15)
+	for index in 4:
+		var rotating := rotating_wheels[index] as MeshInstance3D
+		var fixed_brake := calipers[index] as MeshInstance3D
+		if absf(rotating.rotation.x) < .05 or absf(fixed_brake.rotation.x) > .001:
+			_fail("Fixed brake caliper incorrectly spins along with wheel rotation")
+			return
 	var head := shell.get_node("KeyLeftBeam") as SpotLight3D
 	var tail := shell.get_node("RearBeam") as SpotLight3D
 	var sill := shell.get_node("SillLightLeftBounce") as OmniLight3D
