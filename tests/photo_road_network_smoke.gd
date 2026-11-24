@@ -63,6 +63,23 @@ func _verify()->void:
 	clock.set("paused", true)
 	var sidewalk := Maps.surface("PHOTO_SIDEWALK", Color("b2b0ac"))
 	var curb := Maps.surface("PHOTO_CURB", Color("bfc0bd"))
+	var puddles := world.get_node_or_null("WetStreets")
+	if not _check(puddles != null and puddles.get_child_count() == 1 and puddles.call("patch_count") == 16, "sixteen authored puddles use one visual batch"):
+		return
+	var puddle_batch := puddles.get_node("WeatherPuddleBatch") as MeshInstance3D
+	if not _check(puddle_batch != null and not puddle_batch.visible and puddle_batch.mesh is ArrayMesh, "clear weather hides puddle batch"):
+		return
+	var puddle_arrays: Array = puddle_batch.mesh.surface_get_arrays(0)
+	var puddle_verts: PackedVector3Array = puddle_arrays[Mesh.ARRAY_VERTEX]
+	var puddle_uv: PackedVector2Array = puddle_arrays[Mesh.ARRAY_TEX_UV]
+	if not _check(puddle_verts.size() == 16 * 20 * 3 and puddle_uv.size() == puddle_verts.size(), "bounded original shoreline geometry"):
+		return
+	for k in range(0, puddle_verts.size(), 3):
+		if not _check((puddle_verts[k+1]-puddle_verts[k]).cross(puddle_verts[k+2]-puddle_verts[k]).dot(Vector3.UP) < 0.0, "correct puddle winding"):
+			return
+	for k in puddle_verts.size():
+		if not _check(is_equal_approx(puddle_verts[k].y, Road.Y + .006) and puddle_uv[k].is_equal_approx(Vector2(puddle_verts[k].x,puddle_verts[k].z)/Road.TILE_METRES), "puddles align to asphalt photo"):
+			return
 	var old_tint := a.albedo_color
 	var old_rough := a.roughness
 	var old_sidewalk := sidewalk.roughness
@@ -70,6 +87,8 @@ func _verify()->void:
 	var old_mesh := dry.mesh
 	clock.call("set_weather", "storm")
 	clock.call("_process", 3.0)
+	if not _check(puddle_batch.visible, "storm activates pooled water batch"):
+		return
 	if not _check(a.albedo_color.r < old_tint.r and a.roughness < old_rough and b.roughness < a.roughness and sidewalk.roughness < old_sidewalk and curb.roughness < old_curb, "shared city weather reaches all ground families"):
 		return
 	var new_sidewalk := Maps.surface("PHOTO_SIDEWALK", Color("b1b2b3"))
@@ -77,6 +96,8 @@ func _verify()->void:
 		return
 	clock.call("set_weather", "clear")
 	clock.call("_process", 20.0)
+	if not _check(not puddle_batch.visible, "drying hides puddles"):
+		return
 	if not _check(a.albedo_color.is_equal_approx(old_tint) and is_equal_approx(a.roughness, old_rough) and is_equal_approx(sidewalk.roughness, old_sidewalk) and is_equal_approx(curb.roughness, old_curb) and is_equal_approx(new_sidewalk.roughness,1.0), "drying restores baseline across city"):
 		return
 	print("PHOTO_ROAD_NETWORK_SMOKE PASS: exact nonoverlapping street union, two drawables, photo PBR, UV scale, clockwise front faces and tangent basis")
