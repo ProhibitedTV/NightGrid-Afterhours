@@ -161,6 +161,9 @@ func _verify()->void:
 	for parameter in ["concrete_color", "concrete_normal", "concrete_arm", "wetness_atlas", "grime_atlas", "repair_emitter", "laundry_emitter"]:
 		if not _check(damp.get_shader_parameter(parameter) is Texture2D, "bound photo/mask texture " + parameter):
 			return
+	var source := damp.shader.code
+	if not _check(source.contains("global uniform float cinder_surface_film") and source.contains("float wet_mask") and source.contains("fwidth(local_metres)"), "weather film linked to pooled pavement and antialiased ripple"):
+		return
 	var wet_mask := damp.get_shader_parameter("wetness_atlas") as Texture2D
 	var pixels := wet_mask.get_image()
 	if pixels.is_compressed():
