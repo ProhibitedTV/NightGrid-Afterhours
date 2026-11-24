@@ -7,3 +7,5 @@ Visual acceptance: F2 clear/rain/storm/clear at Central Exchange, Vesper Market,
 Next rollout: replace static puddle patches with bounded weather-aware ground treatments; share district masonry/metal/photo art standards; pool motivated practicals and local atmosphere by district; test district coverage and frame pacing, not just a hero shot.
 
 The superseded Central Exchange-only roadway pilot is retired. The shared road union covers the same center and approaches, below the junction markings; the existing junction regression now asserts exact coverage without duplication and stable save/restore. Historical documentation and the tagged RC2 remain intact.
+
+The 16 legacy always-wet polygon objects are replaced by one weather-gated mesh, sharing the photographic asphalt maps and UV scale. Shrinking local pool masks dry inward and remain under road markings. This removes 15 mesh instances and their redundant mesh allocations, while preserving the original authored locations. No new lighting or transparent reflection layer. Native review is still required to confirm shoreline matching and actual frame cost.
