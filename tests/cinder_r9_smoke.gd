@@ -350,5 +350,27 @@ func _verify() -> void:
 	if patch.visible:
 		_fail("Transient contact occlusion survived reset")
 		return
+	var cluster := rig.get_node("Coachwork/LiveInstrumentCluster")
+	rig.call("update_motion", 20.0, 0.0, false, true, .8, 0.0, .2)
+	var display: Dictionary = cluster.call("get_display_state")
+	if not display["active"] or display["speed"] != "072" or int(display["gear"]) < 1 \
+			or float(display["rpm_fraction"]) <= 0.0:
+		_fail("Live cluster did not use current vehicle speed and drivetrain telemetry")
+		return
+	rig.call("set_lighting_hour", 21.5)
+	rig.call("update_motion", -4.0, 0.0, true, true, -.5, 0.0, .2)
+	display = cluster.call("get_display_state")
+	if display["speed"] != "014" or display["gear"] != "R" or not display["night"] or not display["braking"]:
+		_fail("Reverse, brake or night cluster state failed")
+		return
+	rig.call("update_motion", 0.0, 0.0, false, false, 0.0, 0.0, .01)
+	if cluster.call("get_display_state")["active"]:
+		_fail("Parked instrument cluster did not switch off")
+		return
+	rig.call("update_motion", 8.0, 0.0, false, true, .5, 0.0, .2)
+	rig.call("reset_instrument_cluster")
+	if cluster.call("get_display_state")["active"]:
+		_fail("Instrument display survived reset")
+		return
 	print("CINDER_R9_SMOKE PASS")
 	quit()

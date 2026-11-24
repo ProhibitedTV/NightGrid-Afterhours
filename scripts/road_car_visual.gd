@@ -3,6 +3,7 @@ extends Node3D
 
 const Cars = preload("res://scripts/road_car_catalog.gd")
 const Drivetrain = preload("res://scripts/road_car_audio.gd")
+const Cluster = preload("res://scripts/cinder_instrument_cluster.gd")
 const Paint = preload("res://shaders/vehicle_paint.gdshader")
 const Glazing = preload("res://shaders/vehicle_glazing.gdshader")
 const RAIN_BEADS = preload("res://assets/models/nightgrid/road_cars/rain_beads.png")
@@ -57,6 +58,7 @@ var _sill_lights: Array[OmniLight3D] = []
 var _doors: Array[Dictionary] = []
 var _wheel_phase := 0.0
 var _drivetrain := Drivetrain.new()
+var _cluster: Node3D
 var _velocity := 0.0
 var _braking := false
 var _occupied := false
@@ -91,6 +93,12 @@ func _ready() -> void:
 	_sill = _shell.get_node("SillLenses")
 	_build_wheels()
 	_build_lights()
+	_cluster = Cluster.new()
+	_cluster.name = "LiveInstrumentCluster"
+	# Center-stack panel just aft of the authored dashboard ellipsoid.
+	# Do not overlap the imported (currently static) steering wheel.
+	_cluster.position = Vector3(.12, .705, -.849)
+	_shell.add_child(_cluster)
 	_drivetrain.mount(self)
 	apply_damage(Vector4.ZERO)
 
@@ -296,6 +304,7 @@ func update_motion(speed: float, steer: float, braking: bool, occupied: bool,
 	_braking = braking
 	_move_doors(delta, absf(speed) > 2.5)
 	_drivetrain.update(speed, steer, braking, occupied, throttle, wetness, delta)
+	_cluster.call("update_display", occupied, _night, speed, _drivetrain.engine_rpm(), _drivetrain.drive_gear(), braking, delta)
 
 ## Small, damped cosmetic pitch and roll. The limits keep the coachwork
 ## close to its authored arch clearance; this is not physical suspension.
@@ -314,6 +323,9 @@ func _update_body_pose(loads: Vector2, delta: float) -> void:
 
 func reset_body_pose() -> void:
 	_shell.rotation = Vector3.ZERO
+
+func reset_instrument_cluster() -> void:
+	_cluster.call("reset_display")
 
 ## Road-height visual sampling only. The character controller still owns
 ## collision and vertical movement; four rays only for the occupied car.

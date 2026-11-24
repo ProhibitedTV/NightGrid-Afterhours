@@ -92,6 +92,13 @@ func _mix_engine(speed: float, reversing: bool, occupied: bool, delta: float, sm
 	_mix(_engine[2], level + 2.0 + _db(high) if occupied else SILENT, _rpm / 4830.0, delta, smoothing)
 
 
+## Read-only dashboard telemetry; shares the actual engine-audio state.
+func engine_rpm() -> float:
+	return _rpm
+
+func drive_gear() -> int:
+	return _gear + 1
+
 func _db(amplitude: float) -> float:
 	return linear_to_db(maxf(0.0001, amplitude))
 
