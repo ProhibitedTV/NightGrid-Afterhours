@@ -247,9 +247,12 @@ func _steering_targets(input: float) -> Vector2:
 
 
 func update_motion(speed: float, steer: float, braking: bool, occupied: bool,
-		throttle: float, wetness: float, delta: float) -> void:
-	if absf(speed) > 0.01:
-		_wheel_phase = fposmod(_wheel_phase + speed * delta / float(_spec["tire"]), TAU)
+		throttle: float, wetness: float, delta: float, rolling_distance: float = NAN) -> void:
+	# Real gameplay supplies measured longitudinal travel; isolated art fixtures
+	# can still advance the rig using synthetic speed and elapsed time.
+	var travel := rolling_distance if is_finite(rolling_distance) else speed * maxf(delta, 0.0)
+	if absf(travel) > 0.000001:
+		_wheel_phase = fposmod(_wheel_phase + travel / float(_spec["tire"]), TAU)
 		for wheel in _wheels:
 			wheel.rotation.x = -_wheel_phase
 	# Steer the non-spinning knuckle and its fixed caliper as a unit.
