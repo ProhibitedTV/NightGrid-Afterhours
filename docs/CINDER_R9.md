@@ -80,3 +80,15 @@ The wheel-arch source improvement has been followed by **physically distinct, no
 ### Not yet a finished in-game art signoff
 
 The updated model is on stacked draft PR #239, not merged into `main`. Full Godot game smoke and Windows build evidence must be checked against the newest asset commit. The current simplified caliper shell is a manufacturability/animation improvement, not a fully detailed high-poly brake system or guaranteed real-time close-up quality. Native daylight/night wheel captures, steering suspension sweep, occlusion and performance checks remain.
+
+## Opposed-jaw brake fit — non-intersecting rotor channel
+
+The first stationary calipers were separate from spinning wheel meshes but still occupied the physical space swept by the titanium rotor. This refinement fixes the actual mechanical design instead of adding cosmetic complexity.
+
+- The generated cast caliper now has independent outer and inner jaw shells, two inset graphite friction-pad regions and a joined radial bridge *outside* the rotor diameter. These are original Python-authored geometry, not third-party meshes.
+- The rotor's modeled axial envelope is 15–41 mm from the wheel's local centerline on the viewed side. The caliper bodies and pads leave that channel empty through the 205 mm disc track; friction-pad faces are at approximately 12 mm and 47 mm, maintaining nominal 3 mm and 6 mm side clearances respectively. The connecting casting bridge begins beyond 214 mm radius.
+- The authored outer housing and inner pad are fully formed radial/axial surface shells with real thickness rather than one-sided rectangular decals. Static brake hardware is still attached as a sibling to the spinning rim beneath its shared steering pivot.
+- Source tests in `tests/test_cinder_brake_hardware.py` now read actual exported GLTF triangle indices to verify a connecting brake bridge above the rotor's swept radius, no stationary geometry in its axial path, friction pads on both sides and mirrored mounting geometry.
+- Verified source regeneration and all three Cinder-specific Python checks: [GitHub Actions run 45303399438](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/runs/45303399438). Generated `wheel.gltf` contains `BrakeCaliperL` and `BrakeCaliperR` at **772 triangles each**, previously 292 triangles each. The spinning wheel is still 4,956 triangles. Source checksums and models are committed to the draft PR.
+
+**Remaining:** human visual inspection of day/night native Godot wheel closeups, brake fade/temperature materials and realistic caliper fasteners, measured steering and suspension range without body collisions, texture baking, and production FPS. Numerically empty rotor space does not prove actual driven-car visual realism. Source geometry checks were green; check latest Godot/Windows workflows separately before merge.
