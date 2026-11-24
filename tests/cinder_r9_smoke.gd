@@ -128,10 +128,39 @@ func _verify() -> void:
 	var state: Dictionary = hero.call("get_motion_state")
 	if not head.visible or not tail.visible or not sill.visible or int(state["live_beams"]) != 2 \
 			or (-head.basis.z).dot(Vector3.FORWARD) < .9 or (-tail.basis.z).dot(Vector3.BACK) < .9 \
-			or tail.light_color.r <= tail.light_color.g or float(state["steering"]) < .1 \
+			or tail.light_color.r <= tail.light_color.g or float(state["steering"]) > -.1 \
 			or not (projector.material_override as StandardMaterial3D).emission_enabled:
 		_fail("Projected night lamps, brake throw or wheel steering did not engage")
 		return
+	# The car's positive drive input turns local +X (its world yaw moves
+	# negative). Both front wheels must point that way, and the inside wheel
+	# must steer farther than the outside wheel.
+	var left_knuckle := (rotating_wheels[0] as Node3D).get_parent() as Node3D
+	var right_knuckle := (rotating_wheels[1] as Node3D).get_parent() as Node3D
+	hero.call("update_motion", 10.0, .78, false, true, .2, 0.0, .4)
+	if not (right_knuckle.rotation.y < left_knuckle.rotation.y
+			and left_knuckle.rotation.y < -.1
+			and absf((calipers[0] as MeshInstance3D).rotation.x) < .001):
+		_fail("Right-turn Ackermann wheel angles or fixed-caliper behavior is wrong")
+		return
+	var previous_right := right_knuckle.rotation.y
+	hero.call("update_motion", 10.0, -.78, false, true, .2, 0.0, .016)
+	if absf(right_knuckle.rotation.y - previous_right) > .026:
+		_fail("Cinder wheel steering snapped rather than moving smoothly")
+		return
+	hero.call("update_motion", 10.0, -.78, false, true, .2, 0.0, .4)
+	if not (left_knuckle.rotation.y > right_knuckle.rotation.y
+			and right_knuckle.rotation.y > .1):
+		_fail("Left-turn Ackermann inside/outside wheel angles are wrong")
+		return
+	hero.call("update_motion", 0.0, 0.0, false, false, 0.0, 0.0, .4)
+	if absf(left_knuckle.rotation.y) > .001 or absf(right_knuckle.rotation.y) > .001:
+		_fail("Front steering did not re-center after leaving Cinder")
+		return
+	for index in 4:
+		if absf((calipers[index] as MeshInstance3D).rotation.x) > .001:
+			_fail("Caliper rotated with spinning wheel after steering sweep")
+			return
 	hero.call("update_motion", -2.0, 0.0, false, true, -.5, .75, .1)
 	if tail.light_color.g < .7:
 		_fail("Reverse light failed to switch to its warm white beam")
