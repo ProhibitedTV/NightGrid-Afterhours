@@ -63,10 +63,13 @@ const UNLOAD_RADIUS = 3
 const PREFETCH_SECONDS = 1.25
 const STREAM_STAGES_PER_FRAME = 1
 const STREAM_BATCHES_PER_STAGE = 6
+# queue_free tears down scene nodes and server RIDs at frame end. Never
+# schedule a whole obsolete district in a single traversal frame.
+const STREAM_EVICTIONS_PER_FRAME = 1
 ## Optional live sidewalk agents can hold at most twelve fully loaded parcels.
 const MAX_PEDESTRIAN_RESERVATIONS = 12
 var _pedestrian_reservations: Dictionary = {}
-var _reservation_prune_due := false
+var _prune_due := false
 var _loaded: Dictionary = {}
 var _brickwater_night := 0.0
 var _staging: Dictionary = {}
@@ -134,6 +137,7 @@ func get_streaming_stats() -> Dictionary:
 		"radius": STREAM_RADIUS, "unload_radius": UNLOAD_RADIUS,
 		"pending_blocks": _pending.size(), "staging_blocks": _staging.size(),
 		"pedestrian_reservations": _pedestrian_reservations.size(),
+		"prune_due": _prune_due,
 		"stage_steps": _stream_steps, "total_build_usec": _total_build_usec,
 		"queue_replans": _queue_replans,
 		"last_build_usec": _last_stream_build_usec,
@@ -236,7 +240,7 @@ func reserve_pedestrian_parcel(id: String, start: Vector3, end: Vector3) -> bool
 func release_pedestrian_parcel(id: String) -> bool:
 	if not _pedestrian_reservations.erase(id):
 		return false
-	_reservation_prune_due = true
+	_prune_due = true
 	return true
 
 func _count_loaded_buildings() -> int:
@@ -310,15 +314,16 @@ func request_focus(at: Vector3, velocity: Vector3 = Vector3.ZERO) -> void:
 	_pending = _required_blocks(current, forecast)
 	_discard_unrequested_stages()
 	_queue_replans += 1
-	if _pending.is_empty():
-		_prune_distant(current, forecast)
+	# Defer eviction to an idle streaming frame; never tear down on the
+	# focus producer's callback or alongside the last construction stage.
+	_prune_due = true
 
 func _process(_delta: float) -> void:
-	if not _initialized or _stream_locked:
+	if not _initialized or _stream_locked or _requested_cell == Vector2i(999, 999):
 		return
 	if _pending.is_empty():
-		if _reservation_prune_due:
-			_prune_distant(_requested_cell,_prefetch_cell)
+		if _prune_due:
+			_prune_distant(_requested_cell, _prefetch_cell, STREAM_EVICTIONS_PER_FRAME)
 		return
 	# One bounded build stage per rendered frame. A parcel collider is
 	# present before either high-detail building frontage is authored.
@@ -326,11 +331,11 @@ func _process(_delta: float) -> void:
 	if _run_build_stage(block):
 		_pending.pop_front()
 	if _pending.is_empty():
-		_prune_distant(_requested_cell, _prefetch_cell)
+		_prune_due = true
 
-func _prune_distant(focus: Vector2i, forecast: Vector2i) -> void:
+func _prune_distant(focus: Vector2i, forecast: Vector2i, max_evictions: int = -1) -> void:
 	var profile_started := StreamProfile.begin()
-	_reservation_prune_due = false
+	_prune_due = false
 	var pinned := {}
 	for cell in _pedestrian_reservations.values():
 		pinned[cell] = true
@@ -341,13 +346,18 @@ func _prune_distant(focus: Vector2i, forecast: Vector2i) -> void:
 		var forecast_distance := maxi(absi(block.x - forecast.x), absi(block.y - forecast.y))
 		if focus_distance > UNLOAD_RADIUS and forecast_distance > UNLOAD_RADIUS and not pinned.has(block):
 			obsolete.append(block)
-	for block in obsolete:
+	# Recompute against the latest focus and leases every time. A reversal
+	# or new reservation can therefore rescue a block before deletion.
+	var count := obsolete.size() if max_evictions < 0 else mini(max_evictions, obsolete.size())
+	_prune_due = count < obsolete.size()
+	for index in range(count):
+		var block: Vector2i = obsolete[index]
 		var node: Node3D = _loaded[block]
 		_loaded.erase(block)
 		node.queue_free()
 		_unloads += 1
-	if StreamProfile.enabled and not obsolete.is_empty():
-		StreamProfile.end(profile_started, "queue_chunk_evictions", obsolete.size())
+	if StreamProfile.enabled and count > 0:
+		StreamProfile.end(profile_started, "queue_chunk_evictions", count)
 
 func set_focus(at: Vector3) -> void:
 	# Teleport, save restore and explicit tests need an immediately solid ring.
@@ -355,7 +365,7 @@ func set_focus(at: Vector3) -> void:
 	if not _initialized or _stream_locked:
 		return
 	var cell := _grid_cell(at)
-	if cell == _current_block and _pending.is_empty():
+	if cell == _current_block and cell == _requested_cell and cell == _prefetch_cell and _pending.is_empty() and not _prune_due:
 		return
 	_current_block = cell
 	_requested_cell = cell
