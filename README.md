@@ -26,7 +26,7 @@ Want to see more than the skies? [Browse the Brickwater, vehicle and transit gam
 
 **[Windows download](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases)** · **[Latest development builds](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/workflows/windows-build.yml)** · **[Feedback and ideas](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues)**
 
-The tagged public release is **Beta.7**; these screenshots and original skies are from newer development work. For the latest game, download a successful `main` build, extract the full ZIP, and keep the `.exe` alongside its `.pck`. [Playtest instructions](docs/PLAYTEST_MAIN_ACCEPTANCE.md).
+The latest published candidate at this writing is **[Beta.8 RC3](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases/tag/v0.1.0-beta.8-rc.3)**. The [releases page](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) lists newer candidates when published. The development branch now also includes a circular navigation radar, with a separate interactive atlas. For the newest development build, download a successful `main` build. Extract the full ZIP and keep the `.exe` alongside its `.pck`. [Playtest instructions](docs/PLAYTEST_MAIN_ACCEPTANCE.md).
 
 **Help shape Afterhours.** If something looks exciting, unfinished or out of place, we'd like to hear about it. We welcome player feedback, screenshot comparisons, bug reports and ideas for life in Morrow Bay.
 
