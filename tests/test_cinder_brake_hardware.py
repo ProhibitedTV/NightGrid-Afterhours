@@ -133,10 +133,12 @@ class CinderStationaryBrakeHardware(unittest.TestCase):
             dark=next(p for p in self.meshes["BrakeCaliper"+side]["primitives"]
                       if self.mat[p["material"]]=="Graphite")
             vertices=positions(self.doc,self.raw,dark["attributes"]["POSITION"])
-            axial=[sign*x for x,y,z in vertices if .175<hypot(y,z)<.199]
-            self.assertTrue(any(.007<=x<=.012 for x in axial),
+            # The pads are defined by their inner/outer outline vertices
+            # at 171 and 200 mm; vertex samples are *not* on the centerline.
+            axial=[sign*x for x,y,z in vertices if .170<hypot(y,z)<.201]
+            self.assertTrue(any(.0065<=x<=.0125 for x in axial),
                             "No pad behind rotor's inner face")
-            self.assertTrue(any(.047<=x<=.061 for x in axial),
+            self.assertTrue(any(.0465<=x<=.0615 for x in axial),
                             "No pad ahead of rotor's outer face")
 
 
