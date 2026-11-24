@@ -37,7 +37,6 @@ const Materials = preload("res://scripts/material_library.gd")
 const NightLightingScript = preload("res://scripts/night_lighting.gd")
 const WetStreetsScript = preload("res://scripts/wet_streets.gd")
 const HeroIntersectionScript = preload("res://scripts/central_exchange_hero.gd")
-const CentralRoadScanScript = preload("res://scripts/central_exchange_road_surface.gd")
 const PhotoRoadNetwork = preload("res://scripts/photo_road_network.gd")
 const TrafficSignalsScript = preload("res://scripts/traffic_signals.gd")
 const TrafficSystemScript = preload("res://scripts/traffic_system.gd")
@@ -138,7 +137,6 @@ var day_night: Node
 var street_lights: Node3D
 var wet_streets: Node3D
 var hero_intersection: Node3D
-var central_roadway: Node3D
 var signal_controller: Node3D
 var traffic: Node3D
 var rail: Node3D
@@ -1444,17 +1442,11 @@ func _build_world_systems() -> void:
 	hero_intersection = HeroIntersectionScript.new()
 	hero_intersection.name = "CentralExchangeHero"
 	add_child(hero_intersection)
-	# Two photo-scanned material-sorted road meshes at the protected hero junction.
-	# Flat visual-only geometry; traffic, original crossing paint and saves stay put.
-	central_roadway = CentralRoadScanScript.new()
-	central_roadway.name = "CentralExchangeScannedRoadway"
-	add_child(central_roadway)
 	day_night = DayNightScript.new()
 	day_night.name = "DayNight"
 	add_child(day_night)
 	day_night.call("configure", world_environment, sun_light, city_details, street_lights, hero_intersection)
 	day_night.call("register_surface_receiver", get_node("PhotoRoadNetwork"))
-	day_night.call("register_surface_receiver", central_roadway)
 	venue_system = VenueSystemScript.new()
 	venue_system.name = "SocialVenues"
 	add_child(venue_system)
