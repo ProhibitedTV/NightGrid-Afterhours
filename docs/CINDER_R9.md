@@ -50,3 +50,19 @@ PR #239 adds **actual finite-thickness headlight polycarbonate**, instead of a s
 - Generated `cinder_r9.gltf`, `cinder_r9.bin` and `source.json` were regenerated and committed by the scoped GitHub Actions workflow after its geometry checks passed in [run 45300743564](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/runs/45300743564).
 
 This is a **focused optics fidelity milestone**, not proof of cinematic or AAA finished visuals. It still requires a real in-game daylight and nighttime close-up check using the documented native capture fixture, particularly to assess transparency sorting and specular reflections. Do not confuse that required visual review with automated geometry validation.
+
+## Original wheel arch / rocker sculpt pass
+
+Continuing [Cinder wheel/fender issue #225](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/225), the authored Cinder now generates a proper circular tire envelope rather than a fractional-power arch that changed tangent abruptly at its rocker endpoints. The generator matches the sampled upper tire arc with a 36 mm radial design gap, then returns through a cubic Hermite section to the lower body at ±0.520 m around each wheel. This keeps the original wheelbase, physical tire radius and save/parking identifiers unchanged. This is a source **geometric design clearance**; dynamic suspension and steering clearance must still be evaluated separately.
+
+- `ARCH_CIRCLE_JOIN = .340` m: analytic circular portion near tire
+- `ARCH_CLEARANCE_RADIUS = .394` m and tire radius `.358` m: 36 mm nominal offset
+- `ARCH_WIDTH = .520` m: complete sculpted lip including tangent-matched sill return
+- `tests/test_cinder_arch_fit.py`: five independent tests sample both axle tire arcs at 1,001 points; verify C1 tangent joins, monotonic rocker return, lip endpoints, and clearance geometry
+- The regenerated front/rear cover, inner wheel tub and wheel-lip meshes all use the same source curve, rather than visually disconnected approximations. The wheel arch test and the original paired-optics checks both passed in [Actions run 45301460762](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/runs/45301460762), which regenerated the game glTF/bin on the isolated draft branch.
+
+### Native game art review fixture
+
+`tools/capture_cinder_r9.gd` now contains 11 fixed poses instead of eight. The added `headlight-night-detail` aligns with the daylight lens close-up; `wheel-arch-day-detail` and `wheel-arch-night-detail` share the same front-left wheel camera to compare geometry under consistent camera orientation. These are **capture definitions**, not fabricated images. Run the existing native Godot 4.7.2 Windows Forward+ capture procedure documented earlier to produce true PNG evidence. Review shading on the arch, seal contact, brake/tire fit and alpha-sorting under both lighting conditions before considering any finished-art signoff.
+
+The pass remains stacked on Cinder PR #220. A successful Python geometry gate is not evidence of human-quality automobile sculpting, dynamic no-clipping behavior, or RTX 3060 real-game frame timing.
