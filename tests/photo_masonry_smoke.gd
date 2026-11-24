@@ -37,21 +37,48 @@ func _verify()->void:
 					continue
 				var visual:MeshInstance3D = null
 				var collision:CollisionShape3D = null
-				for part in node.get_children():
-					if part is MeshInstance3D:
-						visual=part
-					elif part is CollisionShape3D:
-						collision=part
-				if collision == null or not collision.shape is BoxShape3D or (collision.shape as BoxShape3D).size != expected_size:
-					continue
-				if block == Vector2i(-2, 1):
-					if not _check(visual == null, "Brickwater retains its collider without the opaque parcel mesh"):
+				# Ordinary walk-in lots replace the opaque full-volume box with
+				# matched, disjoint wall sections. Verify the actual exterior
+				# geometry still covers the original footprint and height, and
+				# every visible exterior section keeps the photo material.
+				if node.name == StringName("WalkInLot_%d" % i):
+					var envelope := AABB()
+					var exterior_count := 0
+					var expected := Masonry.surface(Color(str(lot["wall"])))
+					for part in node.get_children():
+						if not part is MeshInstance3D or part.material_override != expected:
+							continue
+						var section := part as MeshInstance3D
+						var bounds: AABB = section.transform * section.get_aabb()
+						envelope = bounds if exterior_count == 0 else envelope.merge(bounds)
+						var matched := false
+						for shape in node.get_children():
+							if shape is CollisionShape3D and shape.shape is BoxShape3D:
+								if shape.position.is_equal_approx(section.position) and (shape.shape as BoxShape3D).size.is_equal_approx(bounds.size):
+									matched = true
+									break
+						if not _check(matched,"every photographic exterior section has matching physical geometry"):
+							return
+						visual = section
+						exterior_count += 1
+					if not _check(exterior_count >= 7 and envelope.size.is_equal_approx(expected_size) and envelope.position.is_equal_approx(Vector3(-expected_size.x*.5,0,0)),"hollow exterior retains original bounds"):
 						return
-					visual = chunk.get_node("BrickwaterEnvelope_%d/StreetMasonry" % i) as MeshInstance3D
-					if not _check(visual.mesh is QuadMesh and (visual.mesh as QuadMesh).size == Vector2(expected_size.x, expected_size.y), "closed authored parcel has original width and height"):
-						return
-				elif visual == null or not visual.mesh is BoxMesh or (visual.mesh as BoxMesh).size != expected_size:
-					continue
+				else:
+					for part in node.get_children():
+						if part is MeshInstance3D:
+							visual=part
+						elif part is CollisionShape3D:
+							collision=part
+					if collision == null or not collision.shape is BoxShape3D or (collision.shape as BoxShape3D).size != expected_size:
+						continue
+					if block == Vector2i(-2, 1):
+						if not _check(visual == null, "Brickwater retains its collider without the opaque parcel mesh"):
+							return
+						visual = chunk.get_node("BrickwaterEnvelope_%d/StreetMasonry" % i) as MeshInstance3D
+						if not _check(visual.mesh is QuadMesh and (visual.mesh as QuadMesh).size == Vector2(expected_size.x, expected_size.y), "closed authored parcel has original width and height"):
+							return
+					elif visual == null or not visual.mesh is BoxMesh or (visual.mesh as BoxMesh).size != expected_size:
+						continue
 				var material := visual.material_override as StandardMaterial3D
 				var expected := Masonry.surface(Color(str(lot["wall"])))
 				if not _check(material==expected and material.normal_enabled and material.metallic==0.0 and material.uv1_world_triplanar and material.uv1_scale.is_equal_approx(Vector3.ONE/Masonry.TILE_METRES),"actual shell photo material/cache"):
@@ -90,5 +117,5 @@ func _verify()->void:
 	clock.call("_process", 20.0)
 	if not _check(reference.albedo_color.is_equal_approx(dry_tint) and is_equal_approx(reference.roughness, 1.0) and is_equal_approx(reference.normal_scale, .75) and late.albedo_color.is_equal_approx(Color.WHITE.lerp(late_tint,.38)), "drying restores original facade palette"):
 		return
-	print("PHOTO_MASONRY_SMOKE PASS: ",mapped," brick parcels use shared photo PBR and exact original colliders")
+	print("PHOTO_MASONRY_SMOKE PASS: ",mapped," brick parcels preserve photo PBR, original exterior bounds and matched physical surfaces")
 	quit(0)

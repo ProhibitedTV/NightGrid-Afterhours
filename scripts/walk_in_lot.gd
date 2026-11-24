@@ -1,5 +1,5 @@
 extends StaticBody3D
-## A ground-floor room at its actual street coordinates. The surrounding
+## Two accessible levels at their actual street coordinates. The surrounding
 ## solid volume stays intact; no teleports, sub-worlds or loading overlays.
 ## Collision and matching shell meshes arrive in the existing stage zero.
 const Materials = preload("res://scripts/material_library.gd")
@@ -136,7 +136,7 @@ func dress(district: String, accent: Color, variant: int) -> void:
 			var tall := industrial and posmod(variant,2)==0
 			_section("Furnishing",Vector3(x,1.0 if tall else .52,z),Vector3(1.65,2.0 if tall else 1.04,1.45 if office else 1.9),counter)
 			_visual("Worktop",Vector3(x,2.04 if tall else 1.07,z),Vector3(1.72,.10,2.0),_mat(accent.darkened(.52)))
-	# Two low-cost luminous fixtures; no extra shadow-casting lights per lot.
+	# Low-cost luminous fixtures; a single local light follows the player.
 	for z in [2.3,6.1,10.7,14.5]:
 		_visual("CeilingFixture",Vector3(0,ROOM_HEIGHT-.13,z),Vector3(3.0,.12,.42),_mat(Color("d8dad2"),true))
 
