@@ -580,16 +580,43 @@ def deck_opening(surfaces, body, sign, a, b, low, high, kind):
         return on_deck(body,u,z,-.0115)
 
     def bonded_perimeter_seal():
-        # Continuous coverage along all four sides of the glazed opening.
-        # Section-to-section tube caps are hidden under the seal's next ring.
-        for outer in (cols[0],cols[-1]):
-            for start,end in zip(steps,steps[1:]):
-                tube(surfaces[HEAD_SEAL],seal_point(outer,start),
-                     seal_point(outer,end),.0019,10)
-        for at_z in (steps[0],steps[-1]):
-            for left,right in zip(cols,cols[1:]):
-                tube(surfaces[HEAD_SEAL],seal_point(left,at_z),
-                     seal_point(right,at_z),.0019,10)
+        """Sweep one closed, octagonal rubber profile around each lamp.
+
+        Each seal is one watertight continuous shell rather than dozens of
+        isolated capped tubes. No duplicate internal caps, reduced triangles,
+        and no visible joints along the molded elastomer loop.
+        """
+        outline = (
+            [seal_point(u,steps[0]) for u in cols]
+            + [seal_point(cols[-1],z) for z in steps[1:]]
+            + [seal_point(u,steps[-1]) for u in reversed(cols[:-1])]
+            + [seal_point(cols[0],z) for z in reversed(steps[1:-1])]
+        )
+        segments=8
+        rings=[]
+        for index,point in enumerate(outline):
+            before=outline[(index-1)%len(outline)]
+            after=outline[(index+1)%len(outline)]
+            tangent=normalize(tuple(b-a for a,b in zip(before,after)))
+            across=normalize(cross(tangent,(0.,1.,0.)))
+            upward=normalize(cross(across,tangent))
+            rings.append([
+                tuple(p + .0019*cos(i*2*pi/segments)*axis
+                          + .00145*sin(i*2*pi/segments)*n
+                      for p,axis,n in zip(point,across,upward))
+                for i in range(segments)
+            ])
+        for index,ring in enumerate(rings):
+            following=(index+1)%len(rings)
+            for i in range(segments):
+                j=(i+1)%segments
+                desired=tuple(
+                    ring[i][axis]+rings[following][i][axis]
+                    - outline[index][axis]-outline[following][axis]
+                    for axis in range(3)
+                )
+                quad(surfaces[HEAD_SEAL],ring[i],rings[following][i],
+                     rings[following][j],ring[j],desired)
 
     def retaining_fasteners():
         # Flush torx-like anchors on the inner bracket, located beneath
