@@ -279,8 +279,41 @@ func _verify() -> void:
 	if settled.length() > .0001:
 		_fail("Inactive suspension did not settle")
 		return
-	rig.sample_suspension(fixture.get_rid(), true, .5)
+	# Use the same actual physical fixture for wet-contact emission tests.
+	# The raised pad is outside visual reach; only the lower reachable pad
+	# (wheel 3) is allowed to spray.
+	rig.sample_suspension(fixture.get_rid(), true, .5, 12.0, .8)
+	var spray: Array = rig.get("_spray")
+	if spray.size() != 4 or (spray[0] as CPUParticles3D).emitting \
+			or (spray[1] as CPUParticles3D).emitting or (spray[2] as CPUParticles3D).emitting \
+			or not (spray[3] as CPUParticles3D).emitting:
+		_fail("Wet road spray must be limited to reachable wheel contact")
+		return
+	var plume := spray[3] as CPUParticles3D
+	if plume.direction.z <= 0.0 or plume.local_coords or plume.amount != 24:
+		_fail("Forward spray direction, world-space trail or particle budget is wrong")
+		return
+	rig.sample_suspension(fixture.get_rid(), true, .5, -12.0, .8)
+	if not plume.emitting or plume.direction.z >= 0.0:
+		_fail("Reverse spray did not switch to the opposite trail direction")
+		return
+	rig.sample_suspension(fixture.get_rid(), true, .5, 12.0, .0)
+	if plume.emitting:
+		_fail("Dry road emitted tire spray")
+		return
+	rig.sample_suspension(fixture.get_rid(), true, .5, 0.0, .8)
+	if plume.emitting:
+		_fail("Stationary tire emitted spray")
+		return
+	rig.sample_suspension(fixture.get_rid(), false, .5, 12.0, .8)
+	if plume.emitting:
+		_fail("Airborne tire emitted spray")
+		return
+	rig.sample_suspension(fixture.get_rid(), true, .5, 12.0, .8)
 	rig.reset_suspension()
+	if plume.emitting:
+		_fail("Snapshot/reset left tire spray emitting")
+		return
 	if rig.get_motion_state()["suspension_offsets"] != Vector4.ZERO:
 		_fail("Transient suspension did not reset")
 		return
