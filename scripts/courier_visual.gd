@@ -309,14 +309,14 @@ func _play(clip: StringName, blend: float, rate: float = 1.0) -> void:
 		return
 	var preserve_phase := current_pose in GAIT_LOOPS and clip in GAIT_LOOPS
 	var phase := Locomotion.loop_phase(animations.current_animation_position,animations.current_animation_length) if preserve_phase else 0.0
-	if preserve_phase and _reverse_playback != backward:
-		phase = 1.0-phase
+	if preserve_phase:
+		# Phase is actual authored clip time, independent of playback direction.
+		phase = Locomotion.contact_phase(current_pose,clip,phase)
 	current_pose = clip
 	_reverse_playback = backward
 	animations.play(clip, blend, -1.0 if backward else 1.0, backward)
 	if preserve_phase:
-		# Approximate normalized cycle continuity until foot contact annotations
-		# exist. Preserve the outgoing crossfade rather than restarting each gait.
+		# Align measured left/right contacts while retaining the outgoing fade.
 		animations.seek(phase*animations.get_animation(clip).length,false)
 
 func _build_equipment_display() -> void:

@@ -19,3 +19,32 @@ static func run_gait(speed: float, was_running: bool) -> bool:
 
 static func loop_phase(position: float,length: float) -> float:
 	return fposmod(position,maxf(length,.001))/maxf(length,.001)
+
+# Measured from the committed courier GLB: 64 samples per gait cycle.
+# Vector2(left ankle contact, right ankle contact). These are approximate
+# minimum-height/low-vertical-speed anchors, not manually authored events.
+const CONTACT_PHASES = {
+	&"walk":Vector2(.890625,.203125),
+	&"aim_walk":Vector2(.890625,.203125),
+	&"run":Vector2(.75,.25),
+	&"aim_run":Vector2(.75,.25),
+	&"walk_back":Vector2(.125,.796875),
+	&"strafe_left":Vector2(.015625,.1875),
+	&"aim_left":Vector2(.015625,.1875),
+	&"strafe_right":Vector2(.1875,.015625),
+	&"aim_right":Vector2(.1875,.015625)
+}
+
+static func contact_phase(source: StringName,destination: StringName,phase: float) -> float:
+	if source==destination or not CONTACT_PHASES.has(source) or not CONTACT_PHASES.has(destination):
+		return fposmod(phase,1.0)
+	var a: Vector2 = CONTACT_PHASES[source]
+	var b: Vector2 = CONTACT_PHASES[destination]
+	# Map both intervals around the circular cycle, preserving the identity
+	# of each planted foot and progress toward the next contact.
+	var progress := fposmod(phase-a.x,1.0)
+	var source_arc := fposmod(a.y-a.x,1.0)
+	var target_arc := fposmod(b.y-b.x,1.0)
+	if progress<=source_arc:
+		return fposmod(b.x+progress/maxf(source_arc,.001)*target_arc,1.0)
+	return fposmod(b.y+(progress-source_arc)/maxf(1.0-source_arc,.001)*(1.0-target_arc),1.0)

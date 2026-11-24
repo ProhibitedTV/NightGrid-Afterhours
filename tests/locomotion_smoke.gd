@@ -32,6 +32,10 @@ func _verify() -> void:
 		return
 	if not check(Motion.run_gait(3.3,true) and not Motion.run_gait(3.3,false),"gait hysteresis avoids threshold flicker"):
 		return
+	if not check(absf(Motion.contact_phase(&"walk",&"run",.890625)-.75)<.001 and absf(Motion.contact_phase(&"walk",&"run",.203125)-.25)<.001,"both measured contacts map to the same foot"):
+		return
+	if not check(absf(Motion.contact_phase(&"aim_walk",&"aim_walk",.62)-.62)<.001,"same clip reverse retains its pose"):
+		return
 	var world := (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	root.add_child(world)
 	await process_frame
@@ -48,7 +52,7 @@ func _verify() -> void:
 	anim.seek(anim.current_animation_length*.62,true)
 	visual.call("_play",&"run",.2,1.0)
 	var phase := Motion.loop_phase(anim.current_animation_position,anim.get_animation(&"run").length)
-	if not check(absf(phase-.62)<.08,"walk/run transition preserves normalized stride phase"):
+	if not check(absf(phase-Motion.contact_phase(&"walk",&"run",.62))<.035,"actual rig transition uses measured contact phase"):
 		return
 	for i in 35:
 		visual.call("update_motion",Vector3.ZERO,true,false,false,false,dt)

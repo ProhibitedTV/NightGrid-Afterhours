@@ -130,10 +130,36 @@ func _verify() -> void:
 			var z := center.z - float(plan.PUBLIC_FACADE_SETBACK) + float(profile["depth"]) / 2.0
 			var y := float(profile["height"]) / 2.0 + 0.15
 			var grounded := false
-			for child in chunk.get_children():
-				if child is StaticBody3D and child.position.distance_to(Vector3(x, y, z)) < 0.02:
-					grounded = true
-					break
+			var walk_in := chunk.get_node_or_null("WalkInLot_%d" % index) as StaticBody3D
+			if walk_in != null:
+				# Walk-in parcels originate at the storefront, not the center
+				# of the former solid box. Verify the actual collision envelope.
+				var front := center.z-float(plan.PUBLIC_FACADE_SETBACK)
+				var min_x := INF
+				var max_x := -INF
+				var min_z := INF
+				var max_z := -INF
+				var front_walls := 0
+				for part in walk_in.get_children():
+					if not part is CollisionShape3D or not part.shape is BoxShape3D:
+						continue
+					var at: Vector3 = walk_in.to_global(part.position)
+					var half: Vector3 = part.shape.size*.5
+					if absf(at.z-half.z-front)<.02:
+						front_walls += 1
+					if part.name.begins_with("SideMass") or part.name.begins_with("RearMass"):
+						min_x = minf(min_x,at.x-half.x)
+						max_x = maxf(max_x,at.x+half.x)
+						min_z = minf(min_z,at.z-half.z)
+						max_z = maxf(max_z,at.z+half.z)
+				grounded = front_walls>=2 and absf(walk_in.position.x-x)<.02 and absf(walk_in.position.z-front)<.02 \
+					and absf(min_x-(x-float(profile["width"])*.5))<.02 and absf(max_x-(x+float(profile["width"])*.5))<.02 \
+					and absf(min_z-front)<.02 and absf(max_z-(front+float(profile["depth"])))<.02
+			else:
+				for child in chunk.get_children():
+					if child is StaticBody3D and child.position.distance_to(Vector3(x, y, z)) < 0.02:
+						grounded = true
+						break
 			if not grounded:
 				_fail("Building collision is detached from storefront plane: " + str(cell) + " index " + str(index))
 				return
