@@ -195,6 +195,18 @@ func _verify()->void:
 	var drain := alley.get_node("FlushDrainCover") as MeshInstance3D
 	if not _check(Vector2(steam.position.x, steam.position.z).distance_to(Vector2(drain.position.x, drain.position.z)) < 0.01, "steam is anchored to drain"):
 		return
+	var vent := atmosphere.get_node_or_null("WarmServiceVent") as Node3D
+	if not _check(vent != null and vent.get_child_count() == 13, "mounted warm service vent with six physical louvers"):
+		return
+	var vent_lamp := vent.get_node("VentPractical") as OmniLight3D
+	if not _check(absf(vent.position.x - float(alley.get("right_wall"))) < .05 and absf(vent.position.z - drain.position.z) < .01 and not vent_lamp.shadow_enabled and vent_lamp.omni_range <= 2.0, "local bounded vent practical anchored by drain"):
+		return
+	atmosphere.call("set_night_factor", 1.0)
+	if not _check(vent_lamp.visible and is_equal_approx(vent_lamp.light_energy, .58) and steam.color_ramp.get_color(1).r > .8, "warm night steam and practical"):
+		return
+	atmosphere.call("set_night_factor", 0.0)
+	if not _check(not vent_lamp.visible and is_zero_approx(vent_lamp.light_energy) and steam.color_ramp.get_color(1).r < .4, "daytime vent extinguishes and steam returns neutral"):
+		return
 	var papers := 0
 	var lights := 0
 	for child in atmosphere.get_children():
