@@ -30,6 +30,31 @@ class CinderWheelArches(unittest.TestCase):
                     clearance, .0355, f"wheel clips arch at {axle+offset:.4f} m")
         self.assertAlmostEqual(minimum, ARCH_CLEARANCE_RADIUS-R9.radius, places=4)
 
+    def test_swept_tire_clearance_at_full_ackermann_lock(self):
+        # Both front wheel angles can reach approximately +/-0.413 radians
+        # (inner wheel). Check a conservative 0.42 radian against the entire
+        # actual tire top circumference AND its outermost sidewalls, not only
+        # a cross-section with steering centered. This does not simulate
+        # suspension travel, camber, body width, or driving collision shapes.
+        required = .040
+        tire_sidewall = .143 * .92  # authoring profile, imported axial scale
+        worst = 1.0
+        for axle in R9.axles:
+            for angle in (-.42, 0.0, .42):
+                for x in (-tire_sidewall, tire_sidewall):
+                    for i in range(2501):
+                        phi = math.pi*i/2500
+                        upper = ARCH_TIRE_CENTER_Y + R9.radius*math.cos(phi)
+                        z_local = R9.radius*math.sin(phi)
+                        z_at_lock = (-x*math.sin(angle)
+                                     + z_local*math.cos(angle))
+                        gap = arch_minimum(R9, axle+z_at_lock)-upper
+                        worst = min(worst, gap)
+                        self.assertGreaterEqual(
+                            gap, required,
+                            f"steered tire meets arch at {angle:.3f} rad")
+        self.assertGreater(worst, .040)
+
     def test_c1_arch_and_rocker_tangents(self):
         for axle in R9.axles:
             for side in (-1, 1):

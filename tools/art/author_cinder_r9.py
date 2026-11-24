@@ -24,7 +24,7 @@ SIDE_ROWS = (0., .09, .22, .35, .49, .66, .81, .93, 1.)
 # then returns smoothly to the rocker. Width includes the rocker transition.
 ARCH_WIDTH = .520
 ARCH_CIRCLE_JOIN = .340
-ARCH_CLEARANCE_RADIUS = .394  # tyre radius .358 + 36 mm radial clearance
+ARCH_CLEARANCE_RADIUS = .415  # .358m tyre + 57 mm axial-straight clearance; >=40mm under steering sweep
 ARCH_TIRE_CENTER_Y = .358
 
 
@@ -114,7 +114,7 @@ def interpolate(rows, z):
 
 
 def arch_minimum(body, z):
-    """C1 wheel opening with 36 mm radial clearance and smooth sill return.
+    """C1 wheel opening with 57 mm straight-ahead gap, protecting full steering lock.
 
     The old fractional-power semiellipse became tangent-discontinuous at
     +/-ARCH_WIDTH. That generated a pinched lower fender and open-ended inner
