@@ -98,8 +98,15 @@ func _review() -> void:
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	DisplayServer.window_move_to_foreground()
 	RenderingServer.viewport_set_measure_render_time(root.get_viewport_rid(), true)
+	# CI captures use real Godot Forward+ rendering on Mesa's CPU Vulkan
+	# implementation. Do not label its frame times as RTX/GPU performance.
+	var software_ci := OS.get_environment("NIGHTGRID_CINDER_R9_CI_CAPTURE") == "1"
+	var ci_views := ["front-day", "headlight-night-detail", "wheel-steer-right-day-detail",
+		"wheel-steer-left-day-detail"]
 	var records: Array[Dictionary] = []
 	for view in VIEWS:
+		if software_ci and not ci_views.has(str(view[0])):
+			continue
 		hero.call("close_doors_immediate")
 		clock.call("set_hour", view[1])
 		clock.call("set_weather", "overcast")
@@ -135,14 +142,19 @@ func _review() -> void:
 				quit(1)
 				return
 			hero.call("update_motion", 0.0, 0.0, false, false, 0.0, 0.0, .75)
-		await create_timer(.9).timeout
-		await _frames(30)
+		await create_timer(.06 if software_ci else .9).timeout
+		await _frames(3 if software_ci else 30)
 		var path := output.path_join(str(view[0]) + ".png")
 		if root.get_texture().get_image().save_png(path) != OK:
 			quit(1)
 			return
-		await _frames(20)
-		var measurement := await _sample()
+		var measurement: Dictionary
+		if software_ci:
+			measurement = {"measurement_mode": "not_measured_mesa_software_vulkan",
+				"performance_comparable_to_native_gpu": false}
+		else:
+			await _frames(20)
+			measurement = await _sample()
 		measurement.merge({"file": path.get_file(), "sha256": FileAccess.get_sha256(path), "hour": view[1],
 			"camera": str(camera.global_position), "look": str(target), "fov": camera.fov,
 			"occupied": view[4], "brake": brake_on, "reverse": reverse_on,
@@ -158,7 +170,9 @@ func _review() -> void:
 		"renderer": RenderingServer.get_current_rendering_method(), "driver": RenderingServer.get_current_rendering_driver_name(),
 		"adapter": RenderingServer.get_video_adapter_name(), "resolution": [root.size.x, root.size.y],
 		"settings": {"ssr": true, "ssao": true, "glow": true, "fog": true, "vsync": false},
-		"mark": str(MARK), "captures": records}, "\t"))
+		"mark": str(MARK), "captures": records,
+		"capture_mode": "ci_mesa_software_vulkan" if software_ci else "native_gpu_forward_plus",
+		"performance_comparable_to_native_gpu": not software_ci}, "\t"))
 	log.close()
 	print("CINDER_R9_CAPTURE PASS")
 	quit()
