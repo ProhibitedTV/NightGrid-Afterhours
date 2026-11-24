@@ -1,0 +1,78 @@
+name: Capture actual Cinder cockpit
+on:
+  push:
+    branches: [review/cinder-cockpit-capture-20261124]
+    paths:
+      - tools/capture_cinder_cockpit.gd
+      - .github/workflows/capture-cinder-cockpit.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  capture:
+    if: github.ref == 'refs/heads/review/cinder-cockpit-capture-20261124'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Prepare Vulkan software framebuffer
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb mesa-vulkan-drivers libvulkan1 libgl1-mesa-dri libgl1 libx11-6 libxext6 libxrandr2 espeak-ng
+          python3 tools/generate_mbpd_radio.py
+          godot --version
+      - name: Import actual project
+        run: |
+          set -o pipefail
+          godot --headless --path . --import --quit 2>&1 | tee /tmp/cockpit-import.log
+          if grep -q 'SCRIPT ERROR:' /tmp/cockpit-import.log; then exit 1; fi
+      - name: Render three real gameplay cockpit frames
+        run: |
+          set -euo pipefail
+          export NIGHTGRID_COCKPIT_DIR="$RUNNER_TEMP/cinder-cockpit"
+          export NIGHTGRID_SOURCE_REVISION="$GITHUB_SHA"
+          export VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json
+          export LIBGL_ALWAYS_SOFTWARE=1
+          xvfb-run -a -s "-screen 0 960x540x24" godot --path . --display-driver x11 --rendering-driver vulkan --rendering-method forward_plus --resolution 960x540 --script res://tools/capture_cinder_cockpit.gd 2>&1 | tee /tmp/cockpit-capture.log
+          if grep -q 'SCRIPT ERROR:' /tmp/cockpit-capture.log; then exit 1; fi
+          grep -q 'COCKPIT_CAPTURE PASS: 3' /tmp/cockpit-capture.log
+          python3 - <<'PY'
+          import os,json,hashlib,struct
+          from pathlib import Path
+          folder=Path(os.environ["NIGHTGRID_COCKPIT_DIR"])
+          m=json.loads((folder/"manifest.json").read_text())
+          assert m["source_revision"]==os.environ["GITHUB_SHA"]
+          assert m["renderer"]=="forward_plus"
+          assert [s["file"] for s in m["shots"]]==["01-cockpit-day.png","02-cockpit-night.png","03-cockpit-rain.png"]
+          hashes=set()
+          for s in m["shots"]:
+              raw=(folder/s["file"]).read_bytes()
+              assert raw[:8]==b"\x89PNG\r\n\x1a\n" and len(raw)>16000
+              assert struct.unpack(">II",raw[16:24])==(960,540)
+              digest=hashlib.sha256(raw).hexdigest()
+              assert digest==s["sha256"] and digest not in hashes
+              hashes.add(digest)
+          print("COCKPIT_FRAMEBUFFER_VERIFY PASS")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cinder-real-cockpit-review
+          path: ${{ runner.temp }}/cinder-cockpit/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Publish verified frames on review branch only
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p docs/screenshots/cinder-cockpit
+          cp "$RUNNER_TEMP/cinder-cockpit/"* docs/screenshots/cinder-cockpit/
+          git add docs/screenshots/cinder-cockpit/
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "docs(cinder): capture three actual cockpit gameplay frames"
+          git push origin "HEAD:refs/heads/review/cinder-cockpit-capture-20261124"
