@@ -51,6 +51,9 @@ var _rng := RandomNumberGenerator.new()
 var _detail_unit_mesh := BoxMesh.new()
 var _batches: Dictionary = {}
 var _palette: Dictionary = {}
+var _emissive_materials: Array[StandardMaterial3D] = []
+var _emissive_brightness := 0.0
+var _emissive_updates := 0
 var _statistics := {"buildings": 0, "storefronts": 0, "street_props": 0, "batched_details": 0, "districts": 8, "landmarks": 0, "authored_lots": 0, "variant_lots": 0}
 var _initialized := false
 var world_seed: int = 834726
@@ -530,9 +533,10 @@ func set_night_factor(value: float) -> void:
 			alley.set_night_factor(value)
 	# Static shared emissive materials change with the time controller.
 	var brightness := 2.35 * smoothstep(0.42, 0.78, clampf(value, 0.0, 1.0))
-	for key in _palette:
-		if str(key).ends_with("_glow"):
-			var material: StandardMaterial3D = _palette[key]
+	if brightness != _emissive_brightness:
+		_emissive_brightness = brightness
+		_emissive_updates += 1
+		for material in _emissive_materials:
 			material.emission_energy_multiplier = brightness
 
 func _material(color: Color, emissive: bool = false, surface_kind: String = "") -> StandardMaterial3D:
@@ -552,7 +556,10 @@ func _material(color: Color, emissive: bool = false, surface_kind: String = "") 
 		if emissive:
 			material.emission_enabled = true
 			material.emission = color
-			material.emission_energy_multiplier = 1.65
+			# Newly streamed shop signs/window lights inherit the current clock
+			# immediately, rather than flashing on until the next 5Hz tick.
+			material.emission_energy_multiplier = _emissive_brightness
+			_emissive_materials.append(material)
 	_palette[key] = material
 	return material
 
@@ -768,7 +775,7 @@ func _build_block_street(ix: int, iz: int) -> void:
 		_detail(center + Vector3(0.0, 0.155, 3.0), Vector3(3.8, 0.035, 25.0), Color("353e48"))
 		for mark in range(4):
 			_detail(center + Vector3(0.0, 0.175, -6.0 + float(mark) * 6.0), Vector3(3.4, 0.02, 0.10), Color("62686e"))
-	_furniture(center, district, Vector2i(ix, iz) != BrickwaterAlley.PILOT_BLOCK)
+	_furniture(center, district)
 	_statistics["street_props"] += 1
 
 
@@ -1130,7 +1137,7 @@ func _label(value: String, at: Vector3, color: Color, point_size: int = 48) -> v
 	sign.double_sided = true
 	(_active_chunk if _active_chunk != null else self).add_child(sign)
 
-func _furniture(center: Vector3, district: String, legacy_alley_patches: bool = true) -> void:
+func _furniture(center: Vector3, district: String) -> void:
 	var color: Color = ACCENT[district]
 	# Furnishing faces the road, stays on the sidewalks, not in traffic lanes.
 	for side in [-1.0, 1.0]:
@@ -1165,13 +1172,8 @@ func _furniture(center: Vector3, district: String, legacy_alley_patches: bool = 
 	else:
 		_vending(center + Vector3(-3.4, 0.0, -18.2), color)
 		_bench(center + Vector3(5.4, 0.0, -18.2))
-	# Repeated elements in all four districts: alley grime and street repair.
-	for patch in range(3):
-		var x := center.x + _rng.randf_range(-1.25, 1.25)
-		var z := center.z + _rng.randf_range(-9.0, 12.0)
-		var size := Vector3(_rng.randf_range(0.7, 2.0), 0.025, _rng.randf_range(0.8, 2.1))
-		if legacy_alley_patches:
-			_detail(Vector3(x, 0.195, z), size, Color("1c2736"))
+	# Retire the raised rectangular grime blocks. Ground art belongs in the
+	# shared photographic materials, not floating solid-looking cuboids.
 
 func _bin(at: Vector3, physical: bool = false) -> void:
 	# Solid-looking waist-high street furniture must have an accurately
