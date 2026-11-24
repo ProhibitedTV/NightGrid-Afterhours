@@ -11,7 +11,7 @@ import zlib
 from hashlib import sha256
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from author_kestrel_fascia import Surface, write_model
+from author_cinder_gltf import Surface, write_model
 
 
 ROOT = Path(__file__).resolve().parents[2]
