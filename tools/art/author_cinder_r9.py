@@ -19,7 +19,12 @@ OUT = ROOT / 'assets/models/nightgrid/road_cars'
 PAINT, DARK, ALLOY, GLASS, SEAT, LEATHER, HEAD, TAIL, REVERSE, BELT, TYRE, CARBON, TITANIUM, OPTIC, UNDER = range(15)
 SEAM, GRILLE, PROJECTOR, FORGED, REFLECTOR = range(15, 20)
 SIDE_ROWS = (0., .09, .22, .35, .49, .66, .81, .93, 1.)
-ARCH_WIDTH = .428
+# The visible wheel-arch lip follows a circular tire clearance envelope,
+# then returns smoothly to the rocker. Width includes the rocker transition.
+ARCH_WIDTH = .520
+ARCH_CIRCLE_JOIN = .340
+ARCH_CLEARANCE_RADIUS = .394  # tyre radius .358 + 36 mm radial clearance
+ARCH_TIRE_CENTER_Y = .358
 
 
 @dataclass
@@ -108,9 +113,26 @@ def interpolate(rows, z):
 
 
 def arch_minimum(body, z):
-    distance = min(abs(z-wheel) for wheel in body.axles)
-    section = sqrt(max(0., 1.-(distance/ARCH_WIDTH)**2))
-    return body.sill + (.752-body.sill)*section**.79
+    """C1 wheel opening with 36 mm radial clearance and smooth sill return.
+
+    The old fractional-power semiellipse became tangent-discontinuous at
+    +/-ARCH_WIDTH. That generated a pinched lower fender and open-ended inner
+    arch lip in oblique/reflection views. The close wheel arc is a true
+    circular offset; a cubic Hermite return matches its tangent to the sill.
+    """
+    distance = min(abs(z-axle) for axle in body.axles)
+    if distance <= ARCH_CIRCLE_JOIN:
+        return ARCH_TIRE_CENTER_Y + sqrt(ARCH_CLEARANCE_RADIUS**2-distance**2)
+    if distance >= ARCH_WIDTH:
+        return body.sill
+    span = ARCH_WIDTH-ARCH_CIRCLE_JOIN
+    t = (distance-ARCH_CIRCLE_JOIN)/span
+    center = sqrt(ARCH_CLEARANCE_RADIUS**2-ARCH_CIRCLE_JOIN**2)
+    first = ARCH_TIRE_CENTER_Y+center
+    tangent = -ARCH_CIRCLE_JOIN/center
+    return ((2*t**3-3*t*t+1)*first
+            +(t**3-2*t*t+t)*span*tangent
+            +(-2*t**3+3*t*t)*body.sill)
 
 
 def belt(body, z):
