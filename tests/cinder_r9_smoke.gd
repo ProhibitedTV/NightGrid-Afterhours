@@ -317,5 +317,38 @@ func _verify() -> void:
 	if rig.get_motion_state()["suspension_offsets"] != Vector4.ZERO:
 		_fail("Transient suspension did not reset")
 		return
+	# The two-pad road fixture must never produce a bridging shadow.
+	if rig.get_node_or_null("RoadContactOcclusion") != null:
+		_fail("Unsupported tire footprint produced contact occlusion")
+		return
+	# Test the same projection function on level and sloped road contacts.
+	var origin := fixture.global_position + Vector3(0, -.825, 0)
+	var contacts := PackedVector3Array([origin + Vector3(-.858, 0, -1.43),
+		origin + Vector3(.858, .02, -1.43),
+		origin + Vector3(-.858, .03, 1.44),
+		origin + Vector3(.858, .05, 1.44)])
+	rig.call("_update_contact_shadow", contacts)
+	var patch := rig.get_node_or_null("RoadContactOcclusion") as MeshInstance3D
+	if patch == null or not patch.visible or patch.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+		_fail("Supported road footprint did not produce a non-shadow-casting patch")
+		return
+	var center := (contacts[0] + contacts[1] + contacts[2] + contacts[3]) * .25
+	if absf(patch.global_position.distance_to(center) - .012) > .001:
+		_fail("Contact occlusion did not hug the actual road plane")
+		return
+	contacts[3] += Vector3.UP * .15
+	rig.call("_update_contact_shadow", contacts)
+	if patch.visible:
+		_fail("Noncoplanar curb contacts must not produce a bridging shadow")
+		return
+	contacts[3] = Vector3.INF
+	rig.call("_update_contact_shadow", contacts)
+	if patch.visible:
+		_fail("Missing road contact must not produce a shadow")
+		return
+	rig.reset_suspension()
+	if patch.visible:
+		_fail("Transient contact occlusion survived reset")
+		return
 	print("CINDER_R9_SMOKE PASS")
 	quit()
