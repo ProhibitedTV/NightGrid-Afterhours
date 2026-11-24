@@ -5,6 +5,7 @@ const Materials = preload("res://scripts/material_library.gd")
 const ProductArt = preload("res://scripts/consumable_prop.gd")
 const Locomotion = preload("res://scripts/locomotion_policy.gd")
 const TerrainFeet = preload("res://scripts/courier_terrain_feet.gd")
+const Posture = preload("res://scripts/courier_posture.gd")
 const GAIT_LOOPS = [&"walk",&"run",&"walk_back",&"strafe_left",&"strafe_right",&"aim_walk",&"aim_run",&"aim_left",&"aim_right"]
 const FOOT_OFFSET = -0.95
 const DRIVER_SEAT = Vector3(-0.52, -0.23, -0.43)
@@ -33,6 +34,7 @@ var _weapon_display: Node3D
 var _held_product: Node3D
 var _product_hand: BoneAttachment3D
 var _terrain_feet: SkeletonModifier3D
+var _posture: SkeletonModifier3D
 const FOOD_ACTIONS = [&"purchase_item",&"drink_item",&"eat_item"]
 
 func _ready() -> void:
@@ -57,6 +59,11 @@ func _ready() -> void:
 	_terrain_feet.active = false
 	skeleton.add_child(_terrain_feet)
 	_terrain_feet.call("configure")
+	_posture = Posture.new()
+	_posture.name = "ReactivePosture"
+	_posture.active = false
+	skeleton.add_child(_posture)
+	_posture.call("configure")
 	_play(&"idle", 0.0)
 	set_physics_process(false)
 
@@ -178,9 +185,15 @@ func sample_terrain(body: CharacterBody3D,delta: float) -> void:
 	if is_instance_valid(_terrain_feet):
 		_terrain_feet.call("sample_ground",body,delta,_grounded and not _seat and _action==&"" and _gait_speed<3.5 and not _aiming)
 
+func update_posture(world_velocity: Vector3,yaw_rate: float,delta: float) -> void:
+	if is_instance_valid(_posture):
+		_posture.call("update_posture",global_basis.inverse()*world_velocity,yaw_rate,delta,_grounded and not _seat and _action==&"" and _equipment=="holstered")
+
 func reset_terrain() -> void:
 	if is_instance_valid(_terrain_feet):
 		_terrain_feet.call("reset")
+	if is_instance_valid(_posture):
+		_posture.call("reset")
 
 func play_action(clip: StringName) -> void:
 	if _seat or (clip == &"interact" and (_horizontal.length_squared() > 0.8 or not _grounded)):
@@ -188,6 +201,8 @@ func play_action(clip: StringName) -> void:
 	if clip not in FOOD_ACTIONS:
 		_clear_product()
 	_action = clip
+	if is_instance_valid(_posture):
+		_posture.call("reset")
 	if current_pose == clip:
 		animations.seek(0.0)
 	var rate := 1.85 if clip == &"jump_start" else 1.0
