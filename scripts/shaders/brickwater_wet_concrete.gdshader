@@ -3,6 +3,9 @@ render_mode diffuse_burley, specular_schlick_ggx;
 
 // One opaque surface. No transparent puddle planes, screen-texture reads,
 // additional reflection cameras or altered physics.
+// Shared weather film also drives the Cinder's paint and glass. Local
+// authored drainage retains damp depressions even after a clear spell.
+global uniform float cinder_surface_film;
 uniform sampler2D concrete_color : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D concrete_normal : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D concrete_arm : filter_linear_mipmap_anisotropic, repeat_enable;
@@ -43,8 +46,13 @@ void fragment() {
 	// Aggregate displaces the waterline and leaves rough islands inside
 	// the authored catchments. Keep dry and wet roughness continuous.
 	mask += (packed.g - 0.55) * 0.21 + (concrete.r - 0.34) * 0.09;
-	float damp = smoothstep(0.10, 0.68, mask);
-	float standing_water = smoothstep(0.56, 0.91, mask);
+	float film = clamp(cinder_surface_film, 0.0, 1.0);
+	// Rain first wets porous aggregate, then expands the existing low spots.
+	// A dry island cannot become an unbroken mirror even during a storm.
+	float drainage = smoothstep(0.20, 0.82, mask);
+	float wet_mask = mask * mix(0.68, 1.0, film) + film * (0.15 + 0.19 * drainage);
+	float damp = smoothstep(0.10, 0.68, wet_mask);
+	float standing_water = smoothstep(0.56, 0.91, wet_mask);
 	// Settlement joints cross the actual cast-in-place slab. Photographic
 	// aggregate roughens their edges, and the fine groove disappears under water.
 	float cross_joint = abs(fract((local_metres.y + sin(local_metres.x * 1.7) * 0.036) / 2.54 + 0.30) - 0.5) * 2.54;
@@ -55,11 +63,16 @@ void fragment() {
 	vec3 stained = mix(concrete, grime.rgb, grime.a * 0.58);
 	ALBEDO = stained * mix(vec3(0.62, 0.60, 0.57), vec3(0.27, 0.29, 0.29), damp) * (1.0 - joint * 0.49);
 	ROUGHNESS = mix(clamp(packed.g * 0.90, 0.45, 0.94), 0.31, damp);
-	ROUGHNESS = mix(ROUGHNESS, 0.077 + 0.031 * packed.g, standing_water);
+	ROUGHNESS = mix(ROUGHNESS, mix(0.115, 0.065, film) + 0.031 * packed.g, standing_water);
 	METALLIC = 0.0;
 	SPECULAR = 0.5;
 	vec3 stone_normal = texture(concrete_normal, tiled).rgb;
-	vec2 ripple = vec2(sin(dot(local_metres, vec2(19.0, 13.0))), sin(dot(local_metres, vec2(-8.0, 27.0))));
+	// Keep ripples coherent in ground space, with no added textures or
+	// render passes. Band-limit detail before it turns into distant shimmer.
+	float detail = 1.0 - smoothstep(0.025, 0.11, length(fwidth(local_metres)));
+	vec2 ripple = vec2(sin(dot(local_metres, vec2(19.0, 13.0))),
+		sin(dot(local_metres, vec2(-8.0, 27.0))));
+	ripple *= detail * mix(0.55, 1.0, film);
 	NORMAL_MAP = mix(stone_normal, vec3(0.5 + ripple * 0.017, 1.0), standing_water);
 	NORMAL_MAP_DEPTH = mix(0.76, 0.78, standing_water);
 	AO = packed.r;
@@ -74,7 +87,7 @@ void fragment() {
 			float cyan = emitter_on_reflected_ray(laundry_emitter, laundry_plane, ray, sign(eye.z));
 			float fresnel = 0.05 + 0.95 * pow(1.0 - clamp(dot(eye, film_normal), 0.0, 1.0), 5.0);
 			EMISSION = (vec3(1.0, 0.055, 0.19) * magenta + vec3(0.025, 0.62, 1.0) * cyan)
-				* (3.5 * standing_water * fresnel * neon_night);
+				* (mix(2.1, 3.5, film) * standing_water * fresnel * neon_night);
 		}
 	}
 }
