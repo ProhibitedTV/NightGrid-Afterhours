@@ -40,7 +40,11 @@ func _verify() -> void:
 			break
 	if not check(machine!=null,"real streamed vending machine exists"):
 		return
-	if not check(machine.get_child_count()==5 and machine.get_node("AnimatedMarquee").material_override is ShaderMaterial,"one collider, three material batches and animated original signage"):
+	if not check(machine.get_child_count()==6 and machine.get_node("AnimatedMarquee").material_override is ShaderMaterial,"one collider, three material batches and animated original signage"):
+		return
+	if not check(machine.get_node("BrandSidePanels").multimesh.instance_count==2 and machine.get_node("BrandSidePanels").material_override.albedo_texture != null,"both original side advertisements are instanced"):
+		return
+	if not check(Catalog.PRODUCT_ICONS.size()==Catalog.ITEMS.size(),"all gameplay products have original packaging textures"):
 		return
 	if not check(not machine.is_processing() or not machine.has_method("_process"),"no per-machine animation callback"):
 		return
@@ -52,6 +56,8 @@ func _verify() -> void:
 	player.call("restore_stamina",30.0)
 	world.call("_toggle_interaction")
 	if not check(world.get("venue_panel").visible and world.get("_vending_machine")==machine,"open machine from actual front"):
+		return
+	if not check(world.get("venue_service_button").icon==Catalog.PRODUCT_ICONS["water"],"real shop uses original product packaging"):
 		return
 	world.call("_venue_action",1)
 	if not check(int(world.get("cash"))==97 and int(world.get("consumable_inventory").get("water",0))==1,"atomic water purchase"):

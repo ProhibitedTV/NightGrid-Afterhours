@@ -2205,6 +2205,9 @@ func _close_venue() -> void:
 	venue_selected_id = ""
 	_repair_panel = false
 	_vending_machine = null
+	for button in [venue_service_button,venue_job_button,venue_talk_button]:
+		if is_instance_valid(button):
+			button.icon = null
 	civic_selected_id = ""
 	if venue_panel != null:
 		venue_panel.visible = false
@@ -2224,6 +2227,8 @@ func _update_venue_panel() -> void:
 			var item: Dictionary = Consumables.ITEMS[items[i]]
 			body += "%d. %s  $%d  +%d HP / +%d ST\n" % [i+1,item["name"],item["price"],item["health"],item["stamina"]]
 			buttons[i].show()
+			buttons[i].icon = Consumables.PRODUCT_ICONS[items[i]]
+			buttons[i].add_theme_constant_override("icon_max_width",36)
 			buttons[i].disabled = cash < int(item["price"]) or Consumables.count(consumable_inventory) >= Consumables.MAX_ITEMS
 			buttons[i].text = "%d  •  BUY $%d" % [i+1,item["price"]]
 		venue_label.text = body+"[G / B] Close  •  R / D-pad down: use best snack"

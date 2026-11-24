@@ -7,6 +7,13 @@ const ITEMS = {
 	"protein":{"name":"DOCK BAR","price":7,"health":15.0,"stamina":20.0},
 	"sandwich":{"name":"METRO SANDWICH","price":12,"health":30.0,"stamina":0.0}
 }
+const PRODUCT_ICONS = {
+	"water":preload("res://assets/vending/products/water.svg"),
+	"soda":preload("res://assets/vending/products/soda.svg"),
+	"energy":preload("res://assets/vending/products/energy.svg"),
+	"protein":preload("res://assets/vending/products/protein.svg"),
+	"sandwich":preload("res://assets/vending/products/sandwich.svg")
+}
 const MAX_ITEMS = 12
 const ASSORTMENTS = [["water","energy","sandwich"],["water","soda","protein"]]
 static func assortment(variant: int) -> Array:
