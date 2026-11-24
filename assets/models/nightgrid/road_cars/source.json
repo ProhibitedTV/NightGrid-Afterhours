@@ -7,14 +7,14 @@
   "up": "+Y",
   "forward": "-Z",
   "triangles": {
-    "HeadLenses": 56,
+    "HeadLenses": 64,
     "HeadProjectors": 400,
     "TailLenses": 56,
     "ReverseLenses": 8,
     "SillLenses": 96,
-    "Cabin": 6994,
-    "FrontClip": 12030,
-    "RearClip": 8416,
+    "Cabin": 6938,
+    "FrontClip": 12070,
+    "RearClip": 8276,
     "DoorL0": 1508,
     "DoorR0": 1508,
     "Wheel": 4956
@@ -47,8 +47,8 @@
     ]
   },
   "sha256": {
-    "cinder_r9.gltf": "4be680d1019ec4cbc9fb4e46f923fc0078b1f5759b1c313ddc72f57e5f1dd429",
-    "cinder_r9.bin": "cb990e39b7fb61e2fff3ebdd134022de4befa360e13ccd8784d1392cdcebd4da",
+    "cinder_r9.gltf": "35c2276c67243cb63775297a04dc7e1d6ebed61b448fcb405e4c3fb5633550ee",
+    "cinder_r9.bin": "da48c2611da69106758b0ab213f68327da19b08cd4fd7d44d5198a4b0a57de26",
     "wheel.gltf": "29817a780615748ebea4f25a188cd0390aeeeb30c78667950766fdcd8b445ec5",
     "wheel.bin": "4d18356263ff1bb453c18544107f994744d73c4d8c0260fd00dc1709b5005322",
     "carbon_twill.png": "89c8a41f36faef711f93d6df0996be5bbd845ef65f7ea398de116ad11adc32f5",
