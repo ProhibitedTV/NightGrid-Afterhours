@@ -3,6 +3,21 @@ extends RefCounted
 const WorldPlan = preload("res://scripts/world_plan.gd")
 const LIMIT = WorldPlan.GRID_RADIUS * WorldPlan.BLOCK_SIZE
 const COLOR = Color("c9a8ff")
+const CLOSURE_COLOR = Color("ff997b")
+
+static func closure_segment(record: Dictionary) -> PackedVector2Array:
+	# Registry endpoints are intersection indices, not world metres.
+	if not record.get("a") is Vector2i or not record.get("b") is Vector2i:
+		return PackedVector2Array()
+	var a: Vector2i = record["a"]
+	var b: Vector2i = record["b"]
+	if absi(a.x-b.x)+absi(a.y-b.y) != 1:
+		return PackedVector2Array()
+	var start := Vector2(a) * WorldPlan.BLOCK_SIZE
+	var end := Vector2(b) * WorldPlan.BLOCK_SIZE
+	if not valid(start) or not valid(end):
+		return PackedVector2Array()
+	return PackedVector2Array([start,end])
 const SNAP_RADIUS = 10.0
 
 static func valid(point: Vector2) -> bool:

@@ -108,6 +108,12 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/civic_waypoint_smoke.gd 2>&1 | tee /tmp/nightgrid-civic-waypoint.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-civic-waypoint.log; then exit 1; fi
+      - name: Verify circular local radar clipping and actual HUD anchors
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/hud_radar_smoke.gd 2>&1 | tee /tmp/nightgrid-radar.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-radar.log; then exit 1; fi
       - name: Validate main menus, saved settings and controller action contexts
         timeout-minutes: 2
         run: |

@@ -1,0 +1,85 @@
+name: Circular radar framebuffer QA
+on:
+  push:
+    branches: [ui/circular-lower-left-radar, integration/circular-radar-current-main]
+    paths:
+      - 'scripts/hud_radar.gd'
+      - 'scripts/world.gd'
+      - 'tools/capture_hud_radar.gd'
+      - '.github/workflows/capture-hud-radar.yml'
+permissions:
+  contents: read
+concurrency:
+  group: circular-radar-qa-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  capture:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - resolution: 1280x720
+          - resolution: 1920x1080
+          - resolution: 1920x810
+    steps:
+      - uses: actions/checkout@v4
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Set up rendering and original audio
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libgl1 libx11-6 libxext6 libxrandr2 mesa-utils espeak-ng
+          python3 tools/generate_mbpd_radio.py
+      - name: Import actual game
+        run: |
+          set -o pipefail
+          godot --headless --path . --import --quit 2>&1 | tee /tmp/radar-import.log
+          if grep -q 'SCRIPT ERROR:' /tmp/radar-import.log; then exit 1; fi
+      - name: Render genuine HUD frames
+        timeout-minutes: 6
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          MESA_GL_VERSION_OVERRIDE: '3.3'
+          RADAR_CAPTURE_OUT: ${{ runner.temp }}/radar
+          RESOLUTION: ${{ matrix.resolution }}
+        run: |
+          set -euo pipefail
+          timeout --kill-after=15s 300s xvfb-run -a -s "-screen 0 ${RESOLUTION}x24" godot --path . --display-driver x11 --rendering-driver opengl3 --rendering-method gl_compatibility --resolution "$RESOLUTION" --script res://tools/capture_hud_radar.gd 2>&1 | tee /tmp/radar-capture.log
+          if grep -q 'SCRIPT ERROR:' /tmp/radar-capture.log; then exit 1; fi
+          grep -q 'RADAR_CAPTURE PASS:' /tmp/radar-capture.log
+          python3 - <<'PY'
+          import hashlib, json, os, struct
+          from pathlib import Path
+          folder = Path(os.environ["RADAR_CAPTURE_OUT"])
+          expected = {"01-on-foot.png", "02-driving.png", "03-interactive-atlas.png"}
+          assert {p.name for p in folder.glob("*.png")} == expected
+          dimensions = tuple(map(int, os.environ["RESOLUTION"].split("x")))
+          entries = {}
+          for p in sorted(folder.glob("*.png")):
+              raw = p.read_bytes()
+              assert raw.startswith(b"\x89PNG\r\n\x1a\n") and len(raw) > 16000
+              assert struct.unpack(">II", raw[16:24]) == dimensions, p
+              entries[p.name] = {"sha256": hashlib.sha256(raw).hexdigest(), "bytes": len(raw)}
+          assert len({x["sha256"] for x in entries.values()}) == 3
+          (folder / "manifest.json").write_text(json.dumps({"source_revision": os.environ["GITHUB_SHA"], "renderer": "Godot 4.7.2 Mesa software OpenGL (not native Vulkan)", "resolution": os.environ["RESOLUTION"], "images": entries}, indent=2) + "\n")
+          PY
+      - name: Preserve capture diagnostics even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: radar-diagnostics-${{ matrix.resolution }}
+          path: |
+            /tmp/radar-import.log
+            /tmp/radar-capture.log
+          if-no-files-found: warn
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: radar-real-hud-${{ matrix.resolution }}
+          path: ${{ runner.temp }}/radar
+          if-no-files-found: error
+          retention-days: 14

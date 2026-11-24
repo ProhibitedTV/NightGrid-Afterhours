@@ -15,7 +15,7 @@ const CarScript = preload("res://scripts/car.gd")
 const KestrelVisual = preload("res://scripts/kestrel_s6_visual.gd")
 const RoadCars = preload("res://scripts/road_car_catalog.gd")
 const RoadCarVisual = preload("res://scripts/road_car_visual.gd")
-const MinimapScript = preload("res://scripts/minimap.gd")
+const RadarScript = preload("res://scripts/hud_radar.gd")
 const Ui = preload("res://scripts/ui_style.gd")
 const Nav = preload("res://scripts/navigation_waypoint.gd")
 const StreetRoute = preload("res://scripts/street_route.gd")
@@ -2383,7 +2383,7 @@ func _build_hud() -> void:
 	var ui := CanvasLayer.new()
 	ui.name = "HUD"
 	add_child(ui)
-	# Small, anchored hierarchy: status and objective left, map right,
+	# Small, anchored hierarchy: status and objective top left, circular radar bottom left,
 	# transient notices at top center, context-only inputs at bottom center.
 	var backing := PanelContainer.new()
 	backing.name = "PlayerStatus"
@@ -2439,25 +2439,28 @@ func _build_hud() -> void:
 	_reticle.hide()
 	minimap = Control.new()
 	minimap.name = "Minimap"
-	minimap.set_script(MinimapScript)
-	minimap.anchor_left = 1.0
-	minimap.anchor_right = 1.0
-	minimap.offset_left = -264.0
-	minimap.offset_right = -24.0
-	minimap.offset_top = 24.0
-	minimap.offset_bottom = 264.0
+	minimap.set_script(RadarScript)
+	minimap.anchor_left = 0.0
+	minimap.anchor_right = 0.0
+	minimap.anchor_top = 1.0
+	minimap.anchor_bottom = 1.0
+	minimap.offset_left = 24.0
+	minimap.offset_right = 264.0
+	minimap.offset_top = -264.0
+	minimap.offset_bottom = -24.0
 	minimap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	minimap.set("world_node", self)
 	ui.add_child(minimap)
 	performance_label = Label.new()
 	performance_label.name = "PerformanceOverlay"
 	performance_label.visible = false
-	performance_label.anchor_top = 1.0
-	performance_label.anchor_bottom = 1.0
-	performance_label.offset_left = 18.0
-	performance_label.offset_right = 1160.0
-	performance_label.offset_top = -68.0
-	performance_label.offset_bottom = -18.0
+	performance_label.anchor_left = 0.5
+	performance_label.anchor_right = 1.0
+	performance_label.offset_left = 0.0
+	performance_label.offset_right = -24.0
+	performance_label.offset_top = 116.0
+	performance_label.offset_bottom = 166.0
+	performance_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	performance_label.add_theme_font_size_override("font_size", 15)
 	performance_label.add_theme_color_override("font_color", Color("b5eae4"))
 	ui.add_child(performance_label)
@@ -2474,6 +2477,7 @@ func _build_hud() -> void:
 	venue_panel.add_theme_stylebox_override("panel", Ui.card(0.97, 20))
 	venue_panel.visible = false
 	ui.add_child(venue_panel)
+	venue_panel.visibility_changed.connect(func() -> void: minimap.visible = not venue_panel.visible)
 	venue_label = Label.new()
 	venue_label.add_theme_font_size_override("font_size", 20)
 	venue_label.add_theme_color_override("font_color", Color("eadcc9"))
@@ -2858,12 +2862,19 @@ func get_map_state() -> Dictionary:
 	var actor := _actor()
 	var map_actor: Vector3 = interiors.get("exterior_position") if interiors.call("is_inside") else actor.global_position
 	var quest: Vector3 = _venue_job_target()
+	var heading: Vector3 = -actor.global_basis.z
+	if actor == player:
+		var visual: Node3D = player.get("visual")
+		if is_instance_valid(visual):
+			heading = visual.global_basis.z
 	return {
 		"player": Vector2(map_actor.x, map_actor.z),
+		"player_heading": Vector2(heading.x, heading.z),
 		"mission": Vector2(mission_position.x, mission_position.z),
 		"waypoint_active": navigation_waypoint != null,
 		"waypoint": Vector2.ZERO if navigation_waypoint == null else navigation_waypoint,
 		"street_route": _navigation_route(Vector2(map_actor.x, map_actor.z)),
+		"road_restrictions": road_restrictions.catalog(),
 		"officers": car_positions,
 		"routine_patrols": patrol_positions,
 		"police_stations": dispatch.catalog(),
