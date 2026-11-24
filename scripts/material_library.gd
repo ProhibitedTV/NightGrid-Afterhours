@@ -7,6 +7,9 @@ static var _maps: Dictionary = {}
 static var _normals: Dictionary = {}
 static var _roughness_maps: Dictionary = {}
 static var _surfaces: Dictionary = {}
+const Weather = preload("res://scripts/city_surface_weather.gd")
+static var _photo_ground: Dictionary = {}
+static var _ground_film := 0.0
 const PHOTO_CONCRETE_ROOT = "res:" + "//assets/models/nightgrid/central_exchange_curb/textures/concrete_"
 
 static func surface(kind: String, tint: Color) -> StandardMaterial3D:
@@ -68,8 +71,21 @@ static func _photo_concrete(kind: String,tint: Color,key: String) -> StandardMat
 	material.uv1_world_triplanar = true
 	material.uv1_scale = Vector3(0.5,0.5,0.5)
 	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	material.clearcoat_enabled = true
+	material.clearcoat = 0.0
+	material.clearcoat_roughness = .22
+	_photo_ground[key] = {"material": material, "tint": tint, "drainage": .42 if kind == "PHOTO_SIDEWALK" else .32}
+	Weather.apply(material, _ground_film, tint, 1.0, .72, _photo_ground[key]["drainage"])
 	_surfaces[key] = material
 	return material
+
+static func set_surface_film(film: float) -> void:
+	var value := clampf(film, 0.0, 1.0)
+	if is_equal_approx(value, _ground_film):
+		return
+	_ground_film = value
+	for entry in _photo_ground.values():
+		Weather.apply(entry["material"], value, entry["tint"], 1.0, .72, entry["drainage"])
 
 static func _ensure_maps(kind: String) -> void:
 	if _maps.has(kind):
