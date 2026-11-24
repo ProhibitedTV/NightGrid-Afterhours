@@ -283,7 +283,12 @@ def ellipsoid(mesh, at, size, tint=(1, 1, 1, 1), rings=7, segments=14):
     mesh.face(previous, (0, 1, 0), tint)
 
 
-def compartment(body, surfaces):
+def steering_pivot(body):
+    front = body.glass[0]
+    return (-.45, belt(body, front)[1]-.04, front+.43)
+
+
+def compartment(body, surfaces, steering=None):
     dark, seat, leather, alloy = [surfaces[index] for index in (DARK, SEAT, LEATHER, ALLOY)]
     front, rear = body.glass
     floor = body.sill + .10
@@ -295,14 +300,16 @@ def compartment(body, surfaces):
     ellipsoid(dark, (0, base-.115, front+.04), (.81, .145, .235))
     ellipsoid(leather, (0, body.seat[0]-.08, .10), (.132, .159, .775))
     ellipsoid(surfaces[BELT], (-.44, base-.055, front+.212), (.202, .046, .044))
-    wheel_center = (-.45, base-.04, front+.43)
+    wheel_center = steering_pivot(body)
+    rim_material = leather if steering is None else steering[LEATHER]
+    spoke_material = alloy if steering is None else steering[ALLOY]
     rim = [(wheel_center[0]+.171*cos(i*2*pi/18), wheel_center[1]+.171*sin(i*2*pi/18),
             wheel_center[2]+.032*sin(i*2*pi/18)) for i in range(18)]
     for index in range(18):
-        tube(leather, rim[index], rim[(index+1) % 18], .019, 6)
+        tube(rim_material, rim[index], rim[(index+1) % 18], .019, 6)
     tube(alloy, wheel_center, (wheel_center[0], wheel_center[1], front+.1), .050, 9)
     for index in [0, 6, 11]:
-        tube(alloy, wheel_center, rim[index], .019, 6)
+        tube(spoke_material, wheel_center, rim[index], .019, 6)
     cushion,where = body.seat
     for x in [-.465, .465]:
         ellipsoid(seat, (x, cushion-.013, where-.05), (.263, .071, .307))
@@ -778,7 +785,7 @@ def sampled_stations(body):
     return sorted(dimensions | {round(z,6) for z in boundaries})
 
 
-def body_art(body):
+def body_art(body, steering=None):
     chassis, front, rear = ([Mesh() for _ in MATERIALS] for _ in range(3))
     hood, tail = body.glass
     limit = body.length*.5
@@ -842,7 +849,7 @@ def body_art(body):
             tube(chassis[UNDER],(x,.157,start+.035),(x,.157,end-.035),.010,7)
     cap(body, front, -1, -limit)
     cap(body, rear, 1, limit)
-    compartment(body, chassis)
+    compartment(body, chassis, steering)
 
     roof_left, roof_right = body.roof_band
     arcs = [mix(roof_left, roof_right, index/16.0) for index in range(17)]
@@ -1114,7 +1121,8 @@ def bake_carbon(path):
 def main():
     OUT.mkdir(parents=True,exist_ok=True)
     bake_carbon(OUT/'carbon_twill.png')
-    cabin, front, rear = body_art(R9)
+    steering = [Mesh() for _ in MATERIALS]
+    cabin, front, rear = body_art(R9, steering)
     meshes, pivots = {}, {}
     for name, owner, channel in (('HeadLenses',front,HEAD),('HeadProjectors',front,PROJECTOR),('TailLenses',rear,TAIL),
                                  ('ReverseLenses',rear,REVERSE),('SillLenses',cabin,UNDER)):
@@ -1123,6 +1131,8 @@ def main():
         meshes[name] = surfaces_from(part)
     for name, part in (('Cabin',cabin), ('FrontClip',front), ('RearClip',rear)):
         meshes[name] = surfaces_from(part)
+    pivots['SteeringWheel'] = steering_pivot(R9)
+    meshes['SteeringWheel'] = surfaces_from(steering, pivots['SteeringWheel'])
     for side, name in ((-1,'DoorL0'),(1,'DoorR0')):
         a,b = R9.doors
         part = [Mesh() for _ in MATERIALS]

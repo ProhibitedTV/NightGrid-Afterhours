@@ -1,0 +1,35 @@
+name: Regenerate articulated Cinder steering asset
+on:
+  push:
+    branches: [feat/cinder-articulated-steering-20261124]
+    paths:
+      - tools/art/author_cinder_r9.py
+      - .github/workflows/regenerate-cinder-steering.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  regenerate:
+    if: github.ref == 'refs/heads/feat/cinder-articulated-steering-20261124'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Regenerate and validate the exact authored assets
+        run: |
+          set -euo pipefail
+          python tools/art/author_cinder_r9.py
+          python -m unittest discover -s tests -p 'test_cinder_*.py' -v
+          git diff --exit-code -- assets/models/nightgrid/road_cars/wheel.gltf assets/models/nightgrid/road_cars/wheel.bin
+      - name: Publish generated asset on this branch only
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/models/nightgrid/road_cars/cinder_r9.gltf assets/models/nightgrid/road_cars/cinder_r9.bin assets/models/nightgrid/road_cars/source.json assets/models/nightgrid/road_cars/carbon_twill.png
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "art(cinder): regenerate independently articulated steering rim"
+          git push origin "HEAD:refs/heads/feat/cinder-articulated-steering-20261124"

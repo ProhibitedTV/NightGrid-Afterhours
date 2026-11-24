@@ -350,6 +350,23 @@ func _verify() -> void:
 	if patch.visible:
 		_fail("Transient contact occlusion survived reset")
 		return
+	var steering_wheel := rig.get_node_or_null("Coachwork/SteeringWheel") as MeshInstance3D
+	if steering_wheel == null or steering_wheel.mesh.get_surface_count() < 2:
+		_fail("Generated independent cockpit wheel missing")
+		return
+	var wheel_pivot := steering_wheel.position
+	rig.call("update_motion", 12.0, .8, false, true, .5, 0.0, .4)
+	if float(rig.get("_cockpit_angle")) > -2.0 or steering_wheel.quaternion.is_equal_approx(Quaternion.IDENTITY) or steering_wheel.position != wheel_pivot:
+		_fail("Cockpit rim did not rotate around its authored pivot")
+		return
+	rig.call("update_motion", 12.0, -.8, false, true, .5, 0.0, .6)
+	if float(rig.get("_cockpit_angle")) < 2.0:
+		_fail("Cockpit steering did not reverse with the road knuckles")
+		return
+	rig.call("reset_instrument_cluster")
+	if not steering_wheel.quaternion.is_equal_approx(Quaternion.IDENTITY):
+		_fail("Cockpit rim did not reset")
+		return
 	var cluster := rig.get_node("Coachwork/LiveInstrumentCluster")
 	rig.call("update_motion", 20.0, 0.0, false, true, .8, 0.0, .2)
 	var display: Dictionary = cluster.call("get_display_state")

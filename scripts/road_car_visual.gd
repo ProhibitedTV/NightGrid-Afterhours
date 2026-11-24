@@ -59,6 +59,8 @@ var _doors: Array[Dictionary] = []
 var _wheel_phase := 0.0
 var _drivetrain := Drivetrain.new()
 var _cluster: Node3D
+var _steering_wheel: Node3D
+var _cockpit_angle := 0.0
 var _velocity := 0.0
 var _braking := false
 var _occupied := false
@@ -91,6 +93,7 @@ func _ready() -> void:
 	_tail = _shell.get_node("TailLenses")
 	_reverse = _shell.get_node("ReverseLenses")
 	_sill = _shell.get_node("SillLenses")
+	_steering_wheel = _shell.get_node_or_null("SteeringWheel") as Node3D
 	_build_wheels()
 	_build_lights()
 	_cluster = Cluster.new()
@@ -296,6 +299,7 @@ func update_motion(speed: float, steer: float, braking: bool, occupied: bool,
 		var wanted: float = targets.x if index == 0 else targets.y
 		var knuckle := _steering[index]
 		knuckle.rotation.y = move_toward(knuckle.rotation.y, wanted, maxf(delta, 0.0) * 1.55)
+	_update_cockpit_steering(delta)
 	if occupied or _occupied:
 		if braking != _braking or (speed < -0.35) != (_velocity < -0.35) or occupied != _occupied:
 			_update_lights(occupied, braking, speed < -0.35)
@@ -326,6 +330,18 @@ func reset_body_pose() -> void:
 
 func reset_instrument_cluster() -> void:
 	_cluster.call("reset_display")
+	_cockpit_angle = 0.0
+	if is_instance_valid(_steering_wheel):
+		_steering_wheel.quaternion = Quaternion.IDENTITY
+
+func _update_cockpit_steering(delta: float) -> void:
+	# Actual smoothed front knuckles drive the rim via a 13:1 visual ratio.
+	# Axis is perpendicular to the authored tilted wheel plane (32 mm rise
+	# over 171 mm radius); the stationary column stays in Cabin.
+	var target := clampf((_steering[0].rotation.y + _steering[1].rotation.y) * .5 * 13.0, -TAU, TAU)
+	_cockpit_angle = move_toward(_cockpit_angle, target, maxf(delta, 0.0) * 18.0)
+	if is_instance_valid(_steering_wheel):
+		_steering_wheel.quaternion = Quaternion(Vector3(0, -.032, .171).normalized(), _cockpit_angle)
 
 ## Road-height visual sampling only. The character controller still owns
 ## collision and vertical movement; four rays only for the occupied car.
