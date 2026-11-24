@@ -1,0 +1,101 @@
+name: Render current Cinder R9 in actual Brickwater Alley
+
+on:
+  push:
+    branches: [art/cinder-r9-brickwater-showcase]
+    paths:
+      - tools/capture_cinder_brickwater_alley.gd
+      - .github/workflows/cinder-brickwater-gallery.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cinder-brickwater-hero-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render-cinder-in-real-game-alley:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 23
+    steps:
+      - uses: actions/checkout@v4
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Install real Forward+ software Vulkan X11 renderer
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb mesa-vulkan-drivers libvulkan1 libgl1-mesa-dri espeak-ng
+          mkdir -p "$RUNNER_TEMP/xdg-runtime"
+          chmod 700 "$RUNNER_TEMP/xdg-runtime"
+      - name: Import the original city and car assets
+        run: |
+          python3 tools/generate_mbpd_radio.py
+          set -o pipefail
+          godot --headless --path . --import --quit 2>&1 | tee "$RUNNER_TEMP/import.log"
+          if grep -Eq 'SCRIPT ERROR:|Parse Error:' "$RUNNER_TEMP/import.log"; then
+            exit 1
+          fi
+      - name: Capture actual game alley at night, day and quarter-angle with Cinder R9
+        env:
+          NIGHTGRID_CINDER_ALLEY_DIR: "${{ runner.temp }}/cinder-brickwater-${{ github.run_id }}"
+          NIGHTGRID_SOURCE_REVISION: "${{ github.sha }}"
+        run: |
+          set -euo pipefail
+          export VK_ICD_FILENAMES="$(find /usr/share/vulkan/icd.d -name '*lvp*.json' | head -n 1)"
+          test -n "$VK_ICD_FILENAMES"
+          export XDG_RUNTIME_DIR="$RUNNER_TEMP/xdg-runtime"
+          timeout 850s xvfb-run -a -s '-screen 0 1280x720x24' \
+            godot --path . --rendering-driver vulkan --rendering-method forward_plus \
+            --resolution 1280x720 --script res://tools/capture_cinder_brickwater_alley.gd \
+            2>&1 | tee "$RUNNER_TEMP/brickwater-cinder.log"
+          grep -q 'CINDER_BRICKWATER_CAPTURE PASS: 3' "$RUNNER_TEMP/brickwater-cinder.log"
+      - name: Verify real uncomposited nonblank screenshots and captured model identity
+        env:
+          NIGHTGRID_CINDER_ALLEY_DIR: "${{ runner.temp }}/cinder-brickwater-${{ github.run_id }}"
+          NIGHTGRID_SOURCE_REVISION: "${{ github.sha }}"
+        run: |
+          python -m pip install --quiet Pillow
+          python - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          from PIL import Image,ImageStat
+          root=Path(os.environ["NIGHTGRID_CINDER_ALLEY_DIR"])
+          manifest=json.loads((root/"manifest.json").read_text())
+          assert manifest["source_revision"]==os.environ["NIGHTGRID_SOURCE_REVISION"]
+          assert manifest["renderer"]=="forward_plus"
+          assert manifest["staged_not_gameplay_driving"]
+          assert not manifest["performance_comparable_to_native_gpu"]
+          expected={"01-cinder-brickwater-neon-night.png",
+                    "02-cinder-brickwater-daylight.png",
+                    "03-cinder-brickwater-front-quarter-night.png"}
+          shots=manifest["shots"]
+          assert {s["file"] for s in shots}==expected
+          unique=set()
+          for shot in shots:
+              assert shot["vehicle"]=="nightgrid.cinder_r9"
+              assert "Brickwater Service Alley" in shot["location"]
+              path=root/shot["file"]
+              assert path.is_file() and path.stat().st_size>16000,path
+              signature=hashlib.sha256(path.read_bytes()).hexdigest()
+              assert signature==shot["sha256"]
+              unique.add(signature)
+              with Image.open(path) as img:
+                  assert img.size==(1280,720)
+                  contrast=ImageStat.Stat(img.convert("L")).stddev[0]
+                  assert contrast>4.0,(path,contrast)
+          assert len(unique)==3
+          print("CINDER_BRICKWATER_GALLERY PASS: original in-game alley and Cinder, three distinct frames")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cinder-r9-in-original-brickwater-alley
+          path: |
+            ${{ runner.temp }}/cinder-brickwater-${{ github.run_id }}/
+            ${{ runner.temp }}/brickwater-cinder.log
+          if-no-files-found: warn
+          retention-days: 30
