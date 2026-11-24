@@ -14,6 +14,8 @@ const VIEWS = [
 	["headlight-night-detail", 21.5, Vector3(-.95, .53, -3.45), Vector3(-.64, -.19, -2.), true, false, false],
 	["wheel-arch-day-detail", 13.4, Vector3(-2.13, -.17, -1.98), Vector3(-.92, -.43, -1.43), false, false, false],
 	["wheel-arch-night-detail", 21.5, Vector3(-2.13, -.17, -1.98), Vector3(-.92, -.43, -1.43), true, false, false],
+	["wheel-steer-right-day-detail", 13.4, Vector3(-2.13, -.17, -1.98), Vector3(-.92, -.43, -1.43), false, false, false, .80],
+	["wheel-steer-left-day-detail", 13.4, Vector3(-2.13, -.17, -1.98), Vector3(-.92, -.43, -1.43), false, false, false, -.80],
 ]
 
 func _initialize() -> void:
@@ -111,7 +113,13 @@ func _review() -> void:
 		var reverse_on: bool = view[6]
 		hero.call("set_lighting_hour", view[1])
 		RenderingServer.global_shader_parameter_set(&"cinder_surface_film", 0.0 if view[1] < 18.0 else 0.87)
-		hero.call("update_motion", -2.0 if reverse_on else 0.0, 0.0, brake_on, view[4], 0.0, 0.87, 0.0)
+		# Capture fixed-pose wheel-lock evidence using the actual game rig,
+		# not Blender or a repositioned wheel mockup. Previous views default to
+		# neutral steering; the two added closeups share one camera exactly.
+		var steering_input: float = float(view[7]) if view.size() > 7 else 0.0
+		var inspect_steering: bool = bool(view[4]) or absf(steering_input) > .001
+		hero.call("update_motion", -2.0 if reverse_on else 0.0, steering_input,
+				brake_on, inspect_steering, 0.0, 0.87, .45)
 		if view[0] == "side-day-door":
 			if not car.call("toggle_near_door", car.to_global(Vector3(-1.6, .05, -.4)), player.get_rid()):
 				push_error("Jade Wash driver's door could not open at the capture mark")
@@ -128,7 +136,10 @@ func _review() -> void:
 		var measurement := await _sample()
 		measurement.merge({"file": path.get_file(), "sha256": FileAccess.get_sha256(path), "hour": view[1],
 			"camera": str(camera.global_position), "look": str(target), "fov": camera.fov,
-			"occupied": view[4], "brake": brake_on, "reverse": reverse_on})
+			"occupied": view[4], "brake": brake_on, "reverse": reverse_on,
+			"visual_steering_input": steering_input,
+			"front_left_steer_radians": float(hero.call("get_motion_state")["steering"]),
+			"capture_type": "native Godot Forward+ gameplay camera; wheel-closeup not Blender"})
 		records.append(measurement)
 		print("CINDER_R9_FRAME ", path.get_file())
 	var log := FileAccess.open(output.path_join("manifest.json"), FileAccess.WRITE)
