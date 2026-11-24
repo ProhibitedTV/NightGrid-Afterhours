@@ -319,7 +319,7 @@ func request_focus(at: Vector3, velocity: Vector3 = Vector3.ZERO) -> void:
 	_prune_due = true
 
 func _process(_delta: float) -> void:
-	if not _initialized or _stream_locked:
+	if not _initialized or _stream_locked or _requested_cell == Vector2i(999, 999):
 		return
 	if _pending.is_empty():
 		if _prune_due:
@@ -365,7 +365,7 @@ func set_focus(at: Vector3) -> void:
 	if not _initialized or _stream_locked:
 		return
 	var cell := _grid_cell(at)
-	if cell == _current_block and _pending.is_empty() and not _prune_due:
+	if cell == _current_block and cell == _requested_cell and cell == _prefetch_cell and _pending.is_empty() and not _prune_due:
 		return
 	_current_block = cell
 	_requested_cell = cell
