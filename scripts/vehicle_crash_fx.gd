@@ -37,7 +37,7 @@ static func _make_smoke() -> void:
 	_smoke_fade.offsets = PackedFloat32Array([0.0, .18, .65, 1.0])
 	_smoke_fade.colors = PackedColorArray([Color(.30,.30,.31,0), Color(.30,.30,.31,.72), Color(.42,.42,.44,.38), Color(.50,.50,.52,0)])
 
-static func sync_smoke(car: Node3D, condition: float, zones: Vector4) -> void:
+static func sync_smoke(car: Node3D, condition: float, zones: Vector4, mount: Vector3 = Vector3.INF) -> void:
 	if not car.is_inside_tree():
 		return
 	var emitter := car.get_node_or_null("CrashSmoke") as CPUParticles3D
@@ -68,7 +68,7 @@ static func sync_smoke(car: Node3D, condition: float, zones: Vector4) -> void:
 		emitter.mesh = _smoke_mesh
 		emitter.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		emitter.visibility_range_end = 44.0
-		emitter.position = Vector3(0, .28 if str(car.get("model_id")).is_empty() else -.12, -1.55)
+		emitter.position = mount if mount.is_finite() else Vector3(0, .28 if str(car.get("model_id")).is_empty() else -.12, -1.55)
 		car.add_child(emitter)
 		emitter.add_to_group(SMOKE_GROUP)
 		emitter.emitting = true

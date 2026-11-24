@@ -131,5 +131,38 @@ func _verify() -> void:
 		return
 	if not check(sedan_front.mesh == front_source and sedan_rear.mesh == rear_source, "Kestrel exact geometry restored"):
 		return
-	print("VEHICLE_CRASH_SMOKE PASS: real solid contact, Cinder and Kestrel crumple, isolated mesh, persisted damage, broken lamps, repair and disabled wreck")
+	var traffic: Array = world.get("traffic").get("fleet")
+	var npc: CharacterBody3D
+	var bus: CharacterBody3D
+	for actor in traffic:
+		if actor.get("buses") and bus == null:
+			bus = actor
+		elif not actor.get("buses") and npc == null:
+			npc = actor
+	if not check(npc != null and bus != null, "real traffic fleet"):
+		return
+	for actor in [npc, bus]:
+		actor.set_physics_process(false)
+		var coach := actor.get_node("CityBusCoachwork" if actor.get("buses") else "CivilianCarCoachwork") as MeshInstance3D
+		var source: Mesh = coach.mesh
+		var wheels: MultiMesh = actor.get_node("Tires").multimesh
+		var initial: Dictionary = actor.call("snapshot")
+		actor.call("receive_vehicle_impact", actor.to_global(Vector3(0, 0, -4.0 if actor.get("buses") else -2.2)), actor.global_basis.z, 45.0, 1740.0)
+		if not check(coach.mesh != source and actor.get_node("Tires").multimesh == wheels and float(actor.get("_crash_hold")) > 0.0 and not actor.call("can_recycle"), "traffic crash deforms real coachwork, retains shared wheels and pauses route"):
+			return
+		var damaged: Dictionary = actor.call("snapshot")
+		if not check(damaged.has("crash"), "fixed traffic saves crash damage"):
+			return
+		actor.call("apply_snapshot", initial)
+		if not check(coach.mesh == source and not actor.call("snapshot").has("crash"), "legacy traffic save clears damage"):
+			return
+		actor.call("apply_snapshot", damaged)
+		if not check(coach.mesh != source and actor.call("snapshot")["crash"] == damaged["crash"], "traffic crash save restores mesh and stop timer"):
+			return
+		actor.call("apply_snapshot", initial)
+	npc.call("receive_vehicle_impact", npc.to_global(Vector3(0,0,-2.2)), npc.global_basis.z, 40.0, 1740.0)
+	npc.call("park_ambient")
+	if not check(npc.get("_crash_zones") == Vector2.ZERO and npc.get_node_or_null("CrashSmoke") == null and npc.get("vehicle_id") == "", "pool retirement clears prior identity damage and smoke"):
+		return
+	print("VEHICLE_CRASH_SMOKE PASS: player and traffic crumple, crash aftermath, isolated mesh, saves, repair and pool reset")
 	quit(0)
