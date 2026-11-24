@@ -8,6 +8,9 @@ const ITEMS = {
 	"sandwich":{"name":"METRO SANDWICH","price":12,"health":30.0,"stamina":0.0}
 }
 const MAX_ITEMS = 12
+const ASSORTMENTS = [["water","energy","sandwich"],["water","soda","protein"]]
+static func assortment(variant: int) -> Array:
+	return ASSORTMENTS[posmod(variant,ASSORTMENTS.size())].duplicate()
 static func count(inventory: Dictionary) -> int:
 	var total := 0
 	for id in ITEMS:

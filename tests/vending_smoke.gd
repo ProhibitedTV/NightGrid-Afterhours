@@ -40,6 +40,12 @@ func _verify() -> void:
 			break
 	if not check(machine!=null,"real streamed vending machine exists"):
 		return
+	if not check(machine.get_child_count()==5 and machine.get_node("AnimatedMarquee").material_override is ShaderMaterial,"one collider, three material batches and animated original signage"):
+		return
+	if not check(not machine.is_processing() or not machine.has_method("_process"),"no per-machine animation callback"):
+		return
+	if not check(machine.get_meta("items")==Catalog.assortment(int(machine.get("variant"))),"display stock and gameplay share deterministic variant"):
+		return
 	player.global_position = machine.to_global(Vector3(0,1.15,-1.5))
 	world.set("cash",100)
 	world.set("health",50.0)
