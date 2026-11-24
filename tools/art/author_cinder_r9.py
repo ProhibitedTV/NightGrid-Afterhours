@@ -915,8 +915,8 @@ def build_brake_caliper(side):
     shell(.008,-.012,jaw_inner,jaw_outer,CALIPER)
     # The disc spans 15–41 mm; both dark friction pad faces leave >=3 mm of
     # axial rotor clearance. Pads are not artificial floating black polygons.
-    shell(.057,.048,.171,.200,DARK)
-    shell(.011,.007,.171,.200,DARK)
+    shell(.061,.047,.171,.200,DARK)
+    shell(.012,.007,.171,.200,DARK)
     # Fixed radial bridge occupies only the outer rim past the disc (205 mm).
     # It connects upper jaws while preserving a through-slot for disc rotation.
     shell(.061,.008,bridge_inner,jaw_outer,CALIPER)
