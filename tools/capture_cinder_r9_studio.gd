@@ -14,7 +14,7 @@ const VIEWS = [
 ]
 
 func _initialize() -> void:
-    create_timer(420.0, true, false, true).timeout.connect(func() -> void: quit(1))
+    create_timer(170.0, true, false, true).timeout.connect(func() -> void: quit(1))
     call_deferred("_capture")
 
 func _fail(message: String) -> void:
@@ -45,7 +45,8 @@ func _capture() -> void:
     environment.ambient_light_color = Color("8792a3")
     environment.ambient_light_energy = 0.85
     environment.reflected_light_source = Environment.REFLECTION_SOURCE_BG
-    environment.tone_mapper = Environment.TONE_MAPPER_AGX
+    # Godot owns the current Forward+ tone mapping; Environment has no
+    # 'tone_mapper' property. Using it aborted the first studio run.
     world_environment.environment = environment
     stage.add_child(world_environment)
 
