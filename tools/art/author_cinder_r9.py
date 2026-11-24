@@ -846,57 +846,87 @@ def build_wheel():
     return parts
 
 
-def build_brake_caliper(side):
-    """Stationary floating-style brake caliper, a separate glTF mesh.
+# Caliper slot clearance is intentionally modeled: a real disc cannot occupy
+# the same space as the casting. Axial dimensions below use local wheel X.
+# Spinning disc sits approximately 0.015–0.041 m on the viewed wheel side.
+BRAKE_ROTOR_AXIAL_MIN = .015
+BRAKE_ROTOR_AXIAL_MAX = .041
+BRAKE_CALIPER_SLOT_LO = .012
+BRAKE_CALIPER_SLOT_HI = .047
+BRAKE_CALIPER_BRIDGE_RADIUS = .214
 
-    The disc and spoke/rim elements belong to the spinning Wheel node. The
-    caliper belongs to the non-spinning steering knuckle so the braking system
-    cannot rotate around the axle when the car accelerates. It is deliberately
-    placed between the paired wheel spokes (36 degrees from the upper spoke).
+
+def build_brake_caliper(side):
+    """Original opposed-jaw four-wheel caliper with a rotor-clearance slot.
+
+    The old radial solid casting intersected the rotating titanium rotor.
+    Two separate curved jaws now occupy axial positions on either side of the
+    rotor, connected only by a radial outer bridge beyond the 205 mm disc.
+    Dark friction pads are inset into the slot, without penetrating the disc.
+    Mount the completed mesh alongside the spinning wheel on its non-spinning
+    steering knuckle; never parent the caliper to the spinning wheel.
     """
     if side not in (-1, 1):
         raise ValueError("caliper side must be -1 or +1")
     parts = [Mesh() for _ in MATERIALS]
-    count = 12
+    segments = 14
     angle = pi / 5.0
-    half_sector = .24
-    inner_radius, outer_radius = .168, .226
-    # Both axial layers sit behind the front faces of the forged spokes, and
-    # inside the machined rim's inner radius.
-    def at(axial, radius, position):
-        t = angle - half_sector + 2.0*half_sector*position/count
-        return (side*axial, radius*cos(t), radius*sin(t))
+    half_sector = .235
+    jaw_inner, jaw_outer = .168, .226
+    bridge_inner = BRAKE_CALIPER_BRIDGE_RADIUS
 
-    for i in range(count):
-        j = i+1
-        front_in, front_out = at(.103, inner_radius, i), at(.103, outer_radius, i)
-        next_in, next_out = at(.103, inner_radius, j), at(.103, outer_radius, j)
-        rear_in, rear_out = at(.029, inner_radius, i), at(.029, outer_radius, i)
-        rear_next_in, rear_next_out = at(.029, inner_radius, j), at(.029, outer_radius, j)
-        quad(parts[CALIPER], front_in, front_out, next_out, next_in,
-             (side, 0, 0))
-        quad(parts[CALIPER], rear_in, rear_next_in, rear_next_out, rear_out,
-             (-side, 0, 0))
-        mid = angle-half_sector + half_sector*(i+j)/count
-        radial = (0, cos(mid), sin(mid))
-        quad(parts[CALIPER], front_out, rear_out, rear_next_out, next_out, radial)
-        quad(parts[CALIPER], front_in, next_in, rear_next_in, rear_in,
-             (0,-radial[1],-radial[2]))
-    for position, facing in ((0, -1), (count, 1)):
-        quad(parts[CALIPER], at(.029,inner_radius,position),
-             at(.103,inner_radius,position),
-             at(.103,outer_radius,position),
-             at(.029,outer_radius,position),
-             (0, facing*sin(angle), -facing*cos(angle)))
-    # Two original metallic retention bolts help the fixed caliper read as a
-    # functional assembly through the moving rim instead of a colored plaque.
-    for offset in (-.135, .135):
-        t = angle+offset
+    def at(axial, radius, position):
+        theta = angle-half_sector+2.0*half_sector*position/segments
+        return side*axial, radius*cos(theta), radius*sin(theta)
+
+    def shell(axial_outer, axial_inner, lower, upper, material):
+        """Closed circumferential curved plate with axial wall thickness."""
+        for i in range(segments):
+            j = i+1
+            # Both top and bottom faces of the casting, never an infinitely
+            # thin decal pressed over the spinning brake rotor.
+            quad(parts[material],
+                 at(axial_outer,lower,i),at(axial_outer,upper,i),
+                 at(axial_outer,upper,j),at(axial_outer,lower,j),
+                 (side,0,0))
+            quad(parts[material],
+                 at(axial_inner,lower,j),at(axial_inner,upper,j),
+                 at(axial_inner,upper,i),at(axial_inner,lower,i),
+                 (-side,0,0))
+            mid=angle-half_sector+(i+.5)*2*half_sector/segments
+            radial=(0,cos(mid),sin(mid))
+            quad(parts[material],
+                 at(axial_outer,upper,i),at(axial_inner,upper,i),
+                 at(axial_inner,upper,j),at(axial_outer,upper,j),radial)
+            quad(parts[material],
+                 at(axial_outer,lower,j),at(axial_inner,lower,j),
+                 at(axial_inner,lower,i),at(axial_outer,lower,i),
+                 (0,-radial[1],-radial[2]))
+        for pos in (0,segments):
+            theta=angle-half_sector+pos*2*half_sector/segments
+            desired=(0,-sin(theta),cos(theta)) if pos==0 else (0,sin(theta),-cos(theta))
+            quad(parts[material],
+                 at(axial_outer,lower,pos),at(axial_inner,lower,pos),
+                 at(axial_inner,upper,pos),at(axial_outer,upper,pos),
+                 desired)
+
+    # Two caliper casting halves with the rotational disc free between them.
+    shell(.103,.061,jaw_inner,jaw_outer,CALIPER)
+    shell(.008,-.012,jaw_inner,jaw_outer,CALIPER)
+    # The disc spans 15–41 mm; both dark friction pad faces leave >=3 mm of
+    # axial rotor clearance. Pads are not artificial floating black polygons.
+    shell(.057,.048,.171,.200,DARK)
+    shell(.011,.007,.171,.200,DARK)
+    # Fixed radial bridge occupies only the outer rim past the disc (205 mm).
+    # It connects upper jaws while preserving a through-slot for disc rotation.
+    shell(.061,.008,bridge_inner,jaw_outer,CALIPER)
+
+    for offset in (-.132,.132):
+        theta=angle+offset
         ellipsoid(parts[ALLOY],
-                  (side*.111,.194*cos(t),.194*sin(t)),
+                  (side*.111,.194*cos(theta),.194*sin(theta)),
                   (.006,.008,.008),rings=4,segments=10)
     return parts
-
 
 MATERIALS = [
     {"name": name, "pbrMetallicRoughness": {"baseColorFactor": [*rgb, 1.],
