@@ -34,7 +34,7 @@ func _verify() -> void:
 	var car: CharacterBody3D = fleet[2]
 	var player: CharacterBody3D = world.get("player")
 	var hero := car.get_node("RoadCarVisual") as Node3D
-	var shell := hero.get_node("Coachwork")
+	var shell := hero.get_node("Coachwork") as Node3D
 	var front := shell.get_node("FrontClip") as MeshInstance3D
 	var materials: Array[String] = []
 	var covered_left := false
