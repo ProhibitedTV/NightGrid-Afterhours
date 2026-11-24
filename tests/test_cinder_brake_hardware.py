@@ -27,6 +27,17 @@ def positions(doc: dict, buffer: bytes, accessor_id: int):
     return [struct.unpack_from("<3f", buffer, offset + index*stride)
             for index in range(accessor["count"])]
 
+def indices(doc: dict, buffer: bytes, accessor_id: int):
+    accessor = doc["accessors"][accessor_id]
+    assert accessor["componentType"] == 5125 and accessor["type"] == "SCALAR"
+    view = doc["bufferViews"][accessor["bufferView"]]
+    offset = view.get("byteOffset", 0) + accessor.get("byteOffset", 0)
+    stride = view.get("byteStride", 4)
+    assert stride >= 4
+    assert offset + (accessor["count"]-1)*stride + 4 <= len(buffer)
+    return [struct.unpack_from("<I", buffer, offset + i*stride)[0]
+            for i in range(accessor["count"])]
+
 
 class CinderStationaryBrakeHardware(unittest.TestCase):
     @classmethod
@@ -97,8 +108,25 @@ class CinderStationaryBrakeHardware(unittest.TestCase):
                             "Missing inner caliper half")
             self.assertTrue(any(x>.06 for x,_ in jaws),
                             "Missing outer caliper half")
-            self.assertTrue(any(.02<x<.045 for x,_ in bridge),
-                            "Missing radial bridge outside the disc track")
+            # The bridge is made of triangles connecting the two axial
+            # casting halves; individual vertices lie on the two end faces.
+            # Its triangle centroids must cross the open channel only at
+            # radii beyond the spinning 205 mm brake disc.
+            connected=False
+            for primitive in mesh["primitives"]:
+                if self.mat[primitive["material"]] != "BrakeCaliper":
+                    continue
+                vertex=positions(self.doc,self.raw,
+                                 primitive["attributes"]["POSITION"])
+                index=indices(self.doc,self.raw,primitive["indices"])
+                for j in range(0,len(index),3):
+                    coords=[vertex[k] for k in index[j:j+3]]
+                    axial=sum(sign*p[0] for p in coords)/3
+                    radius=hypot(sum(p[1] for p in coords)/3,
+                                 sum(p[2] for p in coords)/3)
+                    if .02<axial<.045 and radius>=.213:
+                        connected=True
+            self.assertTrue(connected, "Missing radial bridge across the caliper jaws")
 
     def test_friction_pads_face_both_rotor_sides(self):
         for side,sign in (("L",-1),("R",1)):
