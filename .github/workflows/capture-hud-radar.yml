@@ -40,7 +40,7 @@ jobs:
           godot --headless --path . --import --quit 2>&1 | tee /tmp/radar-import.log
           if grep -q 'SCRIPT ERROR:' /tmp/radar-import.log; then exit 1; fi
       - name: Render genuine HUD frames
-        timeout-minutes: 6
+        timeout-minutes: 9
         env:
           LIBGL_ALWAYS_SOFTWARE: '1'
           MESA_GL_VERSION_OVERRIDE: '3.3'
@@ -48,7 +48,7 @@ jobs:
           RESOLUTION: ${{ matrix.resolution }}
         run: |
           set -euo pipefail
-          timeout --kill-after=15s 300s xvfb-run -a -s "-screen 0 ${RESOLUTION}x24" godot --path . --display-driver x11 --rendering-driver opengl3 --rendering-method gl_compatibility --resolution "$RESOLUTION" --script res://tools/capture_hud_radar.gd 2>&1 | tee /tmp/radar-capture.log
+          timeout --kill-after=15s 480s xvfb-run -a -s "-screen 0 ${RESOLUTION}x24" godot --path . --display-driver x11 --audio-driver Dummy --rendering-driver opengl3 --rendering-method gl_compatibility --resolution "$RESOLUTION" --script res://tools/capture_hud_radar.gd 2>&1 | tee /tmp/radar-capture.log
           if grep -q 'SCRIPT ERROR:' /tmp/radar-capture.log; then exit 1; fi
           grep -q 'RADAR_CAPTURE PASS:' /tmp/radar-capture.log
           python3 - <<'PY'

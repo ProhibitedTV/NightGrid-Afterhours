@@ -10,10 +10,17 @@ func _initialize() -> void:
 
 func fail(reason: String) -> void:
 	push_error("RADAR_CAPTURE: " + reason)
+	RenderingServer.render_loop_enabled = true
 	quit(1)
 
 func _run() -> void:
-	create_timer(150.0, true, false, true).timeout.connect(func() -> void: fail("Capture watchdog elapsed"))
+	if DisplayServer.get_name() == "headless":
+		fail("Real graphical renderer required")
+		return
+	# Software CI must not continuously render a full city while staging.
+	# Explicit synchronous draws below still render the real root viewport.
+	RenderingServer.render_loop_enabled = false
+	create_timer(240.0, true, false, true).timeout.connect(func() -> void: fail("Capture watchdog elapsed"))
 	print("RADAR_STAGE initializing scene")
 	output = OS.get_environment("RADAR_CAPTURE_OUT")
 	if output.is_empty():
@@ -27,6 +34,8 @@ func _run() -> void:
 	hud = game.get_node("HUD")
 	var menu: Node = game.get_node("GameMenus")
 	menu.call("hide_for_game")
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	camera.make_current()
 	# Freeze simulation during staged real-scene shots; rendering and the
 	# always-processing menu continue. This prevents software CI from doing
 	# unbounded world simulation between deliberately captured frames.
@@ -80,6 +89,7 @@ func _run() -> void:
 	if not await _capture("03-interactive-atlas.png",false):
 		return
 	print("RADAR_CAPTURE PASS: three real framebuffer views ", root.get_texture().get_size())
+	RenderingServer.render_loop_enabled = true
 	quit(0)
 
 func _stage(at: Vector3, position: Vector3, look: Vector3) -> void:
@@ -92,12 +102,16 @@ func _stage(at: Vector3, position: Vector3, look: Vector3) -> void:
 	radar.queue_redraw()
 
 func _capture(filename: String, check_hud: bool = true) -> bool:
-	# Wait for actual rendered frames, not merely SceneTree updates.
+	# A paused software-rendered window can stall waiting for frame_post_draw.
+	# Flush deferred UI/layout updates, explicitly draw and synchronize twice.
+	# Never fall back to a mock or fabricated image.
 	print("RADAR_STAGE settling ", filename)
 	for i in range(2):
 		await process_frame
-		await RenderingServer.frame_post_draw
-		print("RADAR_STAGE rendered ", filename, " frame ", i+1)
+		print("RADAR_STAGE force_draw begin ", filename, " frame ", i+1)
+		RenderingServer.force_draw(true, 0.0)
+		RenderingServer.force_sync()
+		print("RADAR_STAGE force_draw complete ", filename, " frame ", i+1)
 	if check_hud:
 		var radar: Control = hud.get_node("Minimap")
 		var bounds := radar.get_global_rect()
