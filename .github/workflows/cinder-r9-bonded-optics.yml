@@ -8,6 +8,7 @@ on:
       - scripts/road_car_visual.gd
       - tests/test_cinder_bonded_optics.py
       - tests/test_cinder_headlamp_housing.py
+      - tests/test_cinder_perimeter_seal.py
       - tests/test_cinder_arch_fit.py
       - tests/test_cinder_brake_hardware.py
       - tests/test_cinder_tire_tread.py
@@ -35,6 +36,8 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_cinder_bonded_optics.py' -v
       - name: Check manufactured reflector housing behind both bonded headlight lenses
         run: python -m unittest discover -s tests -p 'test_cinder_headlamp_housing.py' -v
+      - name: Check complete molded headlamp glass perimeter seal and recessed fasteners
+        run: python -m unittest discover -s tests -p 'test_cinder_perimeter_seal.py' -v
       - name: Check wheel-arch tire clearance and C1 rocker fit
         run: python -m unittest discover -s tests -p 'test_cinder_arch_fit.py' -v
       - name: Verify independent static brake hardware and wheel provenance
