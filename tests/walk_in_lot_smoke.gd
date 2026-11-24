@@ -44,6 +44,26 @@ func _verify() -> void:
 		await physics_frame
 	if not check(lot.call("contains",player.global_position) and player.global_position.z>entry.z+4.0,"real player walks through stage-zero opening"):
 		return
+	# Walk the center corridor to a side room and return using the actual
+	# doorway. The test never sets a new player position for this traversal.
+	for i in 25:
+		player.velocity = Vector3(0,0,5)
+		player.move_and_slide()
+		await physics_frame
+	if not check(absf(lot.to_local(player.global_position).z-Lot.SIDE_PASSAGE_CENTER)<.55,"aligned with internal passage"):
+		return
+	for i in 40:
+		player.velocity = Vector3(5,0,0)
+		player.move_and_slide()
+		await physics_frame
+	if not check(lot.call("room_at",player.global_position)=="east_room","walked continuously into a second room"):
+		return
+	for i in 40:
+		player.velocity = Vector3(-5,0,0)
+		player.move_and_slide()
+		await physics_frame
+	if not check(lot.call("room_at",player.global_position)=="corridor","returned through internal passage"):
+		return
 	for i in 100:
 		player.velocity = Vector3(0,0,5)
 		player.move_and_slide()
@@ -69,11 +89,11 @@ func _verify() -> void:
 	lot = city.get("_loaded")[block].get_node("WalkInLot_0") as StaticBody3D
 	door = lot.get("door")
 	door.call("restore_open",true)
-	for i in 150:
+	for i in 190:
 		player.velocity = Vector3(0,0,-5)
 		player.move_and_slide()
 		await physics_frame
 	if not check(lot.to_local(player.global_position).z < -.4,"real player exits through the same physical opening"):
 		return
-	print("WALK_IN_LOT PASS: collision-first entry, bounded walls, streamed finish, world-coordinate restore and exit")
+	print("WALK_IN_LOT PASS: physical doors, multiple rooms, bounded walls, streamed finish, world-coordinate restore and exit")
 	quit(0)

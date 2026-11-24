@@ -8,7 +8,11 @@ const Door = preload("res://scripts/storefront_door.gd")
 const DOOR_WIDTH = 2.8
 const DOOR_HEIGHT = 3.05
 const ROOM_WIDTH = 9.6
-const ROOM_DEPTH = 8.6
+const ROOM_DEPTH = 12.6
+const HALL_HALF = 1.75
+const PARTITION_START = 4.6
+const SIDE_PASSAGE_CENTER = 8.1
+const SIDE_PASSAGE_WIDTH = 1.9
 const ROOM_HEIGHT = 4.1
 var _width: float
 var _depth: float
@@ -66,6 +70,21 @@ func configure(width: float, height: float, depth: float, wall: Color, kind: Str
 		_visual("InteriorWall",Vector3(side*(half-.018),ROOM_HEIGHT*.5,ROOM_DEPTH*.5),Vector3(.025,ROOM_HEIGHT,ROOM_DEPTH),inside)
 	_visual("InteriorBack",Vector3(0,ROOM_HEIGHT*.5,ROOM_DEPTH-.018),Vector3(ROOM_WIDTH,ROOM_HEIGHT,.025),inside)
 	_visual("Ceiling",Vector3(0,ROOM_HEIGHT-.018,ROOM_DEPTH*.5),Vector3(ROOM_WIDTH,.025,ROOM_DEPTH),_mat(Color("b1a9a1")))
+	# Two actual side rooms open off a central corridor, each with a framed
+	# 1.9 m passage. All partitions are registered in stage zero so later
+	# decoration can never create a new wall inside an occupied player.
+	var divider := _mat(Color("858581"))
+	var first_end := SIDE_PASSAGE_CENTER - SIDE_PASSAGE_WIDTH*.5
+	var second_start := SIDE_PASSAGE_CENTER + SIDE_PASSAGE_WIDTH*.5
+	for side in [-1.0,1.0]:
+		var x: float = side * HALL_HALF
+		_section("RoomDivider",Vector3(x,ROOM_HEIGHT*.5,(PARTITION_START+first_end)*.5),Vector3(.18,ROOM_HEIGHT,first_end-PARTITION_START),divider)
+		_section("RoomDivider",Vector3(x,ROOM_HEIGHT*.5,(second_start+ROOM_DEPTH)*.5),Vector3(.18,ROOM_HEIGHT,ROOM_DEPTH-second_start),divider)
+		_section("RoomLintel",Vector3(x,(DOOR_HEIGHT+ROOM_HEIGHT)*.5,SIDE_PASSAGE_CENTER),Vector3(.18,ROOM_HEIGHT-DOOR_HEIGHT,SIDE_PASSAGE_WIDTH),divider)
+		# Front walls make these real rooms rather than simple bays; the
+		# central corridor stays clear from the street to the rear wall.
+		var side_width := half-HALL_HALF-.09
+		_section("RoomFront",Vector3(side*(HALL_HALF+.09+side_width*.5),ROOM_HEIGHT*.5,PARTITION_START),Vector3(side_width,ROOM_HEIGHT,.18),divider)
 
 func dress(district: String, accent: Color, variant: int) -> void:
 	if _dressed:
@@ -78,12 +97,12 @@ func dress(district: String, accent: Color, variant: int) -> void:
 	# selection is stable and does not consume the city's exterior RNG.
 	for side in [-1.0,1.0]:
 		var x: float = side * 3.55
-		for z in [2.8,6.0]:
+		for z in [2.8,6.2,11.0]:
 			var tall := industrial and posmod(variant,2)==0
 			_section("Furnishing",Vector3(x,1.0 if tall else .52,z),Vector3(1.65,2.0 if tall else 1.04,1.45 if office else 1.9),counter)
 			_visual("Worktop",Vector3(x,2.04 if tall else 1.07,z),Vector3(1.72,.10,2.0),_mat(accent.darkened(.52)))
 	# Two low-cost luminous fixtures; no extra shadow-casting lights per lot.
-	for z in [2.3,6.1]:
+	for z in [2.3,6.1,10.7]:
 		_visual("CeilingFixture",Vector3(0,ROOM_HEIGHT-.13,z),Vector3(3.0,.12,.42),_mat(Color("d8dad2"),true))
 
 func doorway_reachable(at: Vector3) -> bool:
@@ -94,8 +113,8 @@ func set_local_light(enabled: bool) -> void:
 	if enabled and not is_instance_valid(_lamp):
 		_lamp = OmniLight3D.new()
 		_lamp.name = "NearInteriorLight"
-		_lamp.position = Vector3(0,ROOM_HEIGHT-.45,4.3)
-		_lamp.omni_range = 9.0
+		_lamp.position = Vector3(0,ROOM_HEIGHT-.45,6.3)
+		_lamp.omni_range = 12.0
 		_lamp.light_energy = .9
 		_lamp.light_color = Color("f6dfbf")
 		_lamp.shadow_enabled = false
@@ -106,6 +125,16 @@ func set_local_light(enabled: bool) -> void:
 func contains(at: Vector3) -> bool:
 	var p := to_local(at)
 	return absf(p.x)<ROOM_WIDTH*.5 and p.z>0.27 and p.z<ROOM_DEPTH and p.y>=-.1 and p.y<ROOM_HEIGHT
+
+func room_at(at: Vector3) -> String:
+	if not contains(at):
+		return ""
+	var p := to_local(at)
+	if p.z < PARTITION_START:
+		return "lobby"
+	if absf(p.x) <= HALL_HALF:
+		return "corridor"
+	return "west_room" if p.x < 0.0 else "east_room"
 
 func _mat(tint: Color, glow: bool = false) -> StandardMaterial3D:
 	var key := tint.to_html(false)+str(glow)
