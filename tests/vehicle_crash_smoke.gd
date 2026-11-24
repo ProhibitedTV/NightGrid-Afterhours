@@ -87,5 +87,34 @@ func _verify() -> void:
 	Input.action_release("drive_accelerate")
 	if not check(is_zero_approx(float(car.get("speed"))), "wreck cannot accelerate"):
 		return
-	print("VEHICLE_CRASH_SMOKE PASS: real solid contact, localized crumple, isolated mesh, repair and disabled wreck")
+	var sedan: CharacterBody3D = fleet[0]
+	var peer: CharacterBody3D = fleet[1]
+	sedan.set_physics_process(false)
+	peer.set_physics_process(false)
+	var sedan_rig := sedan.get_node("KestrelS6HeroVisual")
+	var sedan_front := sedan_rig.get_node("KestrelMonocoque") as MeshInstance3D
+	var sedan_rear := sedan_rig.get_node("RearAssembly/RearHatchSolid") as MeshInstance3D
+	var front_source := sedan_front.mesh
+	var rear_source := sedan_rear.mesh
+	sedan.call("receive_vehicle_impact", sedan.to_global(Vector3(0, 0, -2.3)), sedan.global_basis.z, 40.0, 1740.0)
+	var sedan_zones: Vector4 = sedan.get("damage_zones")
+	if not check(sedan_zones.x > 0.0 and sedan_front.mesh != front_source and sedan_rear.mesh == rear_source and peer.get_node("KestrelS6HeroVisual/KestrelMonocoque").mesh == front_source, "Kestrel receives collision damage without mutating fleet"):
+		return
+	sedan.call("restore_damage", [0.85, 0.92, 0.0, 0.0])
+	if not check(sedan_rear.mesh != rear_source, "Kestrel rear mesh deforms"):
+		return
+	sedan_rig.call("update_motion", 5.0, 0.0, true, true, false, 0.1)
+	if not check(sedan_rig.call("get_motion_state")["live_beams"] == 0, "broken front lights stay off while driving"):
+		return
+	var snapshot: Dictionary = world.call("_capture_snapshot")
+	if not check(snapshot["cars"][0].has("damage") and not snapshot["cars"][1].has("damage"), "optional damage preserves pristine v1 sedan record"):
+		return
+	sedan.call("repair")
+	world.call("_apply_snapshot", snapshot)
+	if not check(sedan_front.mesh != front_source and sedan_rear.mesh != rear_source and is_equal_approx((sedan.get("damage_zones") as Vector4).y, 0.92), "Kestrel damage round-trips through actual world save"):
+		return
+	sedan.call("repair")
+	if not check(sedan_front.mesh == front_source and sedan_rear.mesh == rear_source, "Kestrel exact geometry restored"):
+		return
+	print("VEHICLE_CRASH_SMOKE PASS: real solid contact, Cinder and Kestrel crumple, isolated mesh, persisted damage, broken lamps, repair and disabled wreck")
 	quit(0)

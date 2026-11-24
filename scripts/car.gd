@@ -239,8 +239,7 @@ func _resolve_contacts(incoming: Vector3) -> bool:
 			var crush := 1.0 if specification.is_empty() else sqrt(1740.0 / float(specification["mass"]))
 			var damage_limit := 20.0 if specification.is_empty() else 25.0
 			take_arcade_damage(clampf((hard_closing - 4.0) * 0.62 * crush, 1.0, damage_limit))
-			if not model_id.is_empty():
-				_record_body_impact(impact_at, hard_closing)
+			_record_body_impact(impact_at, hard_closing)
 			_impact_cooldown = 0.65
 			_play_impact(_hard_impact_sound, hard_closing, 30.0)
 			if impacted_vehicle != null and impacted_vehicle.has_method("receive_vehicle_impact"):
@@ -259,19 +258,20 @@ func take_arcade_damage(amount: float) -> void:
 	condition = maxf(18.0, condition - maxf(amount, 0.0))
 
 func _record_body_impact(point: Vector3, closing: float) -> void:
-	var bounds: Vector3 = specification["body"]
+	var bounds: Vector3 = specification.get("body", Vector3(2.35, 1.65, 4.7))
 	var fore_aft := absf(point.z) / (bounds.z * 0.5)
 	var crosswise := absf(point.x) / (bounds.x * 0.5)
 	var zone := 0 if point.z < 0.0 else 1
 	if crosswise > fore_aft + 0.17:
 		zone = 2 if point.x < 0.0 else 3
 	damage_zones[zone] = minf(1.0, damage_zones[zone] + clampf((closing - 4.0) / 33.0, 0.04, 0.95))
-	hero_visual.call("apply_damage", damage_zones)
+	if is_instance_valid(hero_visual):
+		hero_visual.call("apply_damage", damage_zones)
 
 func receive_vehicle_impact(world_contact: Vector3, direction: Vector3, closing: float, striking_mass: float) -> void:
-	if model_id.is_empty() or closing < 6.0 or _impact_cooldown > 0.0:
+	if closing < 6.0 or _impact_cooldown > 0.0 or not is_finite(closing) or not is_finite(striking_mass) or striking_mass <= 0.0 or not direction.is_finite() or not world_contact.is_finite():
 		return
-	var mass_share := striking_mass / (float(specification["mass"]) + striking_mass)
+	var mass_share := striking_mass / (float(specification.get("mass", 1740.0)) + striking_mass)
 	var push := clampf(direction.dot(-global_basis.z) * closing * mass_share * 0.52, -6.0, 9.0)
 	speed += push
 	var severity := closing * lerpf(0.44, 1.0, mass_share)
@@ -286,8 +286,9 @@ func restore_damage(saved: Variant) -> void:
 			var channel: Variant = saved[index]
 			if (channel is float or channel is int) and is_finite(float(channel)):
 				damage_zones[index] = clampf(float(channel), 0.0, 1.0)
-	if not model_id.is_empty():
+	if is_instance_valid(hero_visual):
 		hero_visual.call("apply_damage", damage_zones)
+	if not model_id.is_empty():
 		hero_visual.call("close_doors_immediate")
 		hero_visual.call("reset_body_pose")
 		hero_visual.call("reset_suspension")
