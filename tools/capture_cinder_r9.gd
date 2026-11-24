@@ -11,6 +11,9 @@ const VIEWS = [
 	["side-day-door", 13.4, Vector3(-2.10, 1.18, -3.20), Vector3(0, .01, .02), false, false, false],
 	["rear-day", 13.4, Vector3(1.30, .92, 5.42), Vector3(0, -.18, 1.01), false, false, false],
 	["headlight-detail", 13.4, Vector3(-.95, .53, -3.45), Vector3(-.64, -.19, -2.), false, false, false],
+	["headlight-night-detail", 21.5, Vector3(-.95, .53, -3.45), Vector3(-.64, -.19, -2.), true, false, false],
+	["wheel-arch-day-detail", 13.4, Vector3(-2.13, -.17, -1.98), Vector3(-.92, -.43, -1.43), false, false, false],
+	["wheel-arch-night-detail", 21.5, Vector3(-2.13, -.17, -1.98), Vector3(-.92, -.43, -1.43), true, false, false],
 ]
 
 func _initialize() -> void:
@@ -103,7 +106,7 @@ func _review() -> void:
 		camera.global_position = marker * view[2]
 		var target: Vector3 = marker * view[3]
 		camera.look_at(target, Vector3.UP)
-		camera.fov = 38.0 if view[0] == "headlight-detail" else 49.0
+		camera.fov = 38.0 if str(view[0]).ends_with("detail") else 49.0
 		var brake_on: bool = view[5]
 		var reverse_on: bool = view[6]
 		hero.call("set_lighting_hour", view[1])
