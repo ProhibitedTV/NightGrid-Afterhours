@@ -99,6 +99,24 @@ func _verify() -> void:
 	if world.get("current_car") != car or player.get_node_or_null("Visual") != null:
 		_fail("Failed to enter the actual Cinder and mount the courier")
 		return
+	# Exercise the actual input-independent camera toggle on the occupied R9.
+	world.call("_toggle_cinder_view")
+	var cam := world.get("camera") as Camera3D
+	if not world.get("_cinder_cockpit") or not is_equal_approx(cam.fov, 78.0) or not is_equal_approx(cam.near, .035):
+		_fail("Cinder cockpit camera did not switch projection")
+		return
+	if cam.global_position.distance_to(shell.to_global(Vector3(.08, 1.12, .12))) > .001:
+		_fail("Cockpit camera did not follow authored cabin transform")
+		return
+	world.call("_adjust_cockpit_look", Vector2(10, -10))
+	var look: Vector2 = world.get("_cockpit_look")
+	if not look.is_equal_approx(Vector2(.60, -.22)):
+		_fail("Cockpit look escaped its bounds")
+		return
+	world.call("_toggle_cinder_view")
+	if world.get("_cinder_cockpit") or not is_equal_approx(cam.fov, 68.0) or not is_equal_approx(cam.near, .08):
+		_fail("Chase camera was not restored")
+		return
 	var initial := car.global_position
 	var heading := -car.global_basis.z
 	var starting_phase := float(hero.call("get_motion_state")["wheel_rotation"])

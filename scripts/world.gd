@@ -96,6 +96,9 @@ var _sight_clock := 0.0
 var _wanted_label: Label
 var _pending_theft: Variant = null
 var camera: Camera3D
+var _cinder_cockpit := false
+var _cockpit_look := Vector2.ZERO
+var _cockpit_camera_active := false
 var marker: Node3D
 var marker_light: OmniLight3D
 var hud_label: Label
@@ -451,8 +454,11 @@ func _input(event: InputEvent) -> void:
 	if game_menu != null and game_menu.call("is_open"):
 		return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		yaw -= event.relative.x * mouse_sensitivity
-		pitch = clampf(pitch + event.relative.y * mouse_sensitivity * (-1.0 if invert_look_y else 1.0) * 0.625, 0.20, 0.85)
+		if _cinder_cockpit and _can_use_cinder_view():
+			_adjust_cockpit_look(Vector2(-event.relative.x, event.relative.y * (-1.0 if invert_look_y else 1.0) * .625) * mouse_sensitivity)
+		else:
+			yaw -= event.relative.x * mouse_sensitivity
+			pitch = clampf(pitch + event.relative.y * mouse_sensitivity * (-1.0 if invert_look_y else 1.0) * 0.625, 0.20, 0.85)
 	if event is InputEventMouseButton and event.pressed and Input.mouse_mode == Input.MOUSE_MODE_VISIBLE and not venue_panel.visible:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -501,6 +507,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_close_venue()
 	elif event.is_action_pressed("weapon_wheel") and _can_use_weapon():
 		_open_equipment_wheel()
+	elif event.is_action_pressed("vehicle_view") and _can_use_cinder_view():
+		_toggle_cinder_view()
 	elif event.is_action_pressed("weapon_cycle") and _can_use_weapon():
 		weapons.cycle()
 		_fire_held = true
@@ -669,8 +677,11 @@ func _process(delta: float) -> void:
 	if not venue_panel.visible:
 		# Right stick or mouse may orbit the camera on foot, in vehicles or in transit.
 		var right_look: Vector2 = GameInput.look_vector()
-		yaw -= right_look.x * stick_sensitivity * delta
-		pitch = clampf(pitch + right_look.y * stick_sensitivity * delta * (-1.0 if invert_look_y else 1.0), 0.20, 0.85)
+		if _cinder_cockpit and _can_use_cinder_view():
+			_adjust_cockpit_look(Vector2(-right_look.x, right_look.y * (-1.0 if invert_look_y else 1.0)) * stick_sensitivity * delta)
+		else:
+			yaw -= right_look.x * stick_sensitivity * delta
+			pitch = clampf(pitch + right_look.y * stick_sensitivity * delta * (-1.0 if invert_look_y else 1.0), 0.20, 0.85)
 	_focus_update_clock += delta
 	if _focus_update_clock >= 0.1:
 		_focus_update_clock = 0.0
@@ -845,9 +856,44 @@ func _camera_clearance(focus: Vector3, target: Vector3) -> Vector3:
 	var hit: Vector3 = obstruction["position"]
 	return focus + motion.normalized() * maxf(0.0, focus.distance_to(hit) - 0.30)
 
+func _can_use_cinder_view() -> bool:
+	return is_instance_valid(current_car) and current_car.get("model_id") == RoadCars.R9
+
+func _adjust_cockpit_look(amount: Vector2) -> void:
+	_cockpit_look.x = clampf(_cockpit_look.x + amount.x, -.60, .60)
+	_cockpit_look.y = clampf(_cockpit_look.y + amount.y, -.22, .28)
+
+func _toggle_cinder_view() -> void:
+	if not _can_use_cinder_view():
+		return
+	_cinder_cockpit = not _cinder_cockpit
+	_cockpit_look = Vector2.ZERO
+	# Switch modes without sweeping the chase camera through the car.
+	_snap_camera()
+	_notify("Cinder cockpit view." if _cinder_cockpit else "Chase camera.")
+
 func _update_camera(delta: float, teleport: bool = false) -> void:
 	if camera == null or not is_instance_valid(player):
 		return
+	if _cinder_cockpit and _can_use_cinder_view():
+		var coach := current_car.get_node("RoadCarVisual/Coachwork") as Node3D
+		# Center-cabin viewpoint is clear of the seated driver mesh. This
+		# is an interior perspective rather than an exact driver-eye rig.
+		camera.global_position = coach.to_global(Vector3(.08, 1.12, .12))
+		var view_basis := Basis.from_euler(Vector3(-.14 - _cockpit_look.y, _cockpit_look.x, 0.0))
+		camera.global_basis = coach.global_basis.orthonormalized() * view_basis
+		camera.fov = 78.0
+		camera.near = .035
+		_cockpit_camera_active = true
+		return
+	if _cockpit_camera_active:
+		camera.fov = 68.0
+		camera.near = .08
+		_cockpit_camera_active = false
+		teleport = true
+	if not _can_use_cinder_view():
+		_cinder_cockpit = false
+		_cockpit_look = Vector2.ZERO
 	var focus := _camera_focus()
 	if weapon_aiming and _can_use_weapon():
 		var shoulder := player.global_position + Vector3.UP * 0.65
@@ -902,6 +948,8 @@ func _toggle_car() -> void:
 			world_audio.call("play_event", "DOOR", current_car.global_position)
 		current_car.set("occupied", false)
 		current_car = null
+		_cinder_cockpit = false
+		_snap_camera()
 		_log_playtest("vehicle_exit", {"exit_x": exit_position.x, "exit_z": exit_position.z})
 		_notify("Back on foot. Find your next pickup.")
 		return
@@ -1659,6 +1707,8 @@ func _capture_snapshot() -> Dictionary:
 	return state
 
 func _apply_snapshot(data: Dictionary) -> void:
+	_cinder_cockpit = false
+	_cockpit_look = Vector2.ZERO
 	# Geometry is already reconstructed from the saved immutable seed.
 	if is_instance_valid(nightgrid_fm):
 		nightgrid_fm.call("restore", data.get("nightgrid_radio", {}))
