@@ -120,6 +120,15 @@ func _review() -> void:
 		var inspect_steering: bool = bool(view[4]) or absf(steering_input) > .001
 		hero.call("update_motion", -2.0 if reverse_on else 0.0, steering_input,
 				brake_on, inspect_steering, 0.0, 0.87, .45)
+		var steering_state: Dictionary = hero.call("get_motion_state")
+		if absf(steering_input) > .001:
+			var left_angle := float(steering_state["steering_left"])
+			var right_angle := float(steering_state["steering_right"])
+			if (steering_input > 0.0 and not (right_angle < left_angle and left_angle < 0.0)) \
+					or (steering_input < 0.0 and not (left_angle > right_angle and right_angle > 0.0)):
+				push_error("Ackermann visual steering did not match the requested turn")
+				quit(1)
+				return
 		if view[0] == "side-day-door":
 			if not car.call("toggle_near_door", car.to_global(Vector3(-1.6, .05, -.4)), player.get_rid()):
 				push_error("Jade Wash driver's door could not open at the capture mark")
@@ -138,7 +147,8 @@ func _review() -> void:
 			"camera": str(camera.global_position), "look": str(target), "fov": camera.fov,
 			"occupied": view[4], "brake": brake_on, "reverse": reverse_on,
 			"visual_steering_input": steering_input,
-			"front_left_steer_radians": float(hero.call("get_motion_state")["steering"]),
+			"front_left_steer_radians": float(steering_state["steering_left"]),
+			"front_right_steer_radians": float(steering_state["steering_right"]),
 			"capture_type": "native Godot Forward+ gameplay camera; wheel-closeup not Blender"})
 		records.append(measurement)
 		print("CINDER_R9_FRAME ", path.get_file())
