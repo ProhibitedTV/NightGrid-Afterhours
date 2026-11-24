@@ -26,6 +26,8 @@ jobs:
         run: python tools/check_cc0_aircon.py
       - name: Audit original Crane & Gear production glTF, source hashes and photo-PBR derivatives
         run: python tools/check_crane_gear_gltf.py
+      - name: Validate Cinder R9 original glass, brakes, body fit, tire tread and sealed headlamps
+        run: python -m unittest discover -s tests -p 'test_cinder_*.py' -v
       - name: Verify original CC0 Hidden Alley source models and photo-derived road wear maps
         run: python tools/check_exchange_photo_street_kit.py
       - name: Audit source-authored Central Exchange concrete curbstones, steel drain glTF, and CC0 material hashes
@@ -204,6 +206,8 @@ jobs:
         run: godot --headless --path . --script res://tests/legacy_save_boot_smoke.gd
       - name: Validate Kestrel S6 hero body, dynamic lights and save stability
         run: godot --headless --path . --script res://tests/hero_vehicle_smoke.gd
+      - name: Validate playable Cinder R9 steering, doors, brake assembly, lights and saves
+        run: godot --headless --path . --script res://tests/cinder_r9_smoke.gd
       - name: Audit closed Kestrel rear hatch manifold, trunk bulkhead and police variant
         run: godot --headless --path . --script res://tests/kestrel_rear_closure_smoke.gd
       - name: Validate Central Exchange junction architecture and signal-safe lighting
