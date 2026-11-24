@@ -24,6 +24,9 @@ var _height: float
 var _dressed := false
 var door: AnimatableBody3D
 var _lamp: OmniLight3D
+var _pending_visuals: Dictionary = {}
+var _interior_batches := 0
+var _interior_instances := 0
 static var _unit := BoxMesh.new()
 static var _shapes: Dictionary = {}
 static var _materials: Dictionary = {}
@@ -90,6 +93,7 @@ func configure(width: float, height: float, depth: float, wall: Color, kind: Str
 		# central corridor stays clear from the street to the rear wall.
 		var side_width := half-HALL_HALF-.09
 		_section("RoomFront",Vector3(side*(HALL_HALF+.09+side_width*.5),ROOM_HEIGHT*.5,PARTITION_START),Vector3(side_width,ROOM_HEIGHT,.18),divider)
+	_flush_interior_visuals()
 
 func _build_upper_level(inside: Material) -> void:
 	# Clear the entire ramp shaft at stage zero. All walking surfaces and
@@ -143,6 +147,7 @@ func dress(district: String, accent: Color, variant: int) -> void:
 	for z in [2.8,6.2,10.0,13.0]:
 		_visual("UpperFixture",Vector3(0,UPPER_HEIGHT-.13,z),Vector3(3.0,.12,.42),_mat(Color("d8dad2"),true))
 		_section("UpperWorkstation",Vector3(3.55,ROOM_HEIGHT+.52,z),Vector3(1.65,1.04,1.45),counter)
+	_flush_interior_visuals()
 
 func doorway_reachable(at: Vector3) -> bool:
 	var p := to_local(at)
@@ -218,7 +223,46 @@ func _section(label: String, at: Vector3, size: Vector3, material: Material, ang
 	add_child(collision,true)
 	_visual(label,at,size,material,angle)
 
+func get_interior_batch_stats() -> Dictionary:
+	return {"batches":_interior_batches,"instances":_interior_instances}
+
+func _flush_interior_visuals() -> void:
+	# Local-space per-material batches are owned by this streamed lot.
+	# Keep the real collision shapes, moving door, and exterior meshes
+	# independent. Splitting floors keeps culling reasonably granular.
+	for key in _pending_visuals:
+		var bucket: Dictionary = _pending_visuals[key]
+		var transforms: Array = bucket["transforms"]
+		var batch := MultiMesh.new()
+		batch.transform_format = MultiMesh.TRANSFORM_3D
+		batch.mesh = _unit
+		batch.instance_count = transforms.size()
+		for i in transforms.size():
+			batch.set_instance_transform(i,transforms[i])
+		var view := MultiMeshInstance3D.new()
+		view.name = "InteriorBatch"
+		view.multimesh = batch
+		view.material_override = bucket["material"]
+		view.visibility_range_end = 45.0
+		view.visibility_range_end_margin = 5.0
+		view.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(view,true)
+		_interior_batches += 1
+		_interior_instances += transforms.size()
+	_pending_visuals.clear()
+
 func _visual(label: String, at: Vector3, size: Vector3, material: Material, angle: float = 0.0) -> void:
+	# The exterior shell is always rendered, including roof and masonry.
+	# Keep structural interior surfaces visible nearby; only decorative
+	# fixtures/furnishings are range culled. Floors/walls remain individual
+	# meshes to preserve correct shadows and doorway visibility.
+	if label in ["Furnishing","Worktop","CeilingFixture","UpperFixture","UpperWorkstation"]:
+		var key := "%d:%d" % [material.get_instance_id(),int(at.y >= ROOM_HEIGHT)]
+		if not _pending_visuals.has(key):
+			_pending_visuals[key] = {"material":material,"transforms":[]}
+		var transform := Transform3D(Basis(Vector3.RIGHT,angle).scaled_local(size),at)
+		_pending_visuals[key]["transforms"].append(transform)
+		return
 	var view := MeshInstance3D.new()
 	view.name = label
 	view.mesh = _unit

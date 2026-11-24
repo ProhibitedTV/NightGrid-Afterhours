@@ -126,6 +126,17 @@ func _verify() -> void:
 	city.call("set_focus",entry)
 	if not check(city.get("_loaded")[block] == chunk and lot.call("contains",player.global_position),"decorative completion preserves occupied shell"):
 		return
+	var batch_stats: Dictionary = lot.call("get_interior_batch_stats")
+	if not check(int(batch_stats["instances"])>=16 and int(batch_stats["batches"])<int(batch_stats["instances"]),"furnishing and fixture batches reduce decorative draw instances"):
+		return
+	var observed := 0
+	for child in lot.get_children():
+		if child is MultiMeshInstance3D:
+			observed += child.multimesh.instance_count
+			if not check(child.visibility_range_end == 45.0,"interior detail visibility budget"):
+				return
+	if not check(observed==int(batch_stats["instances"]),"real multimesh instance accounting"):
+		return
 	city.call("update_walk_in_light",player.global_position)
 	if not check(lot.get_node_or_null("NearInteriorLight") != null and lot.get_node("NearInteriorLight").visible,"nearby room receives budgeted light"):
 		return
