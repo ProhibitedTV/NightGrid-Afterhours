@@ -10,7 +10,7 @@ func check(ok: bool,label: String) -> bool:
 func _verify() -> void:
 	var dt := 1.0/60.0
 	var step := Motion.step_velocity(Vector3(0,3,0),Vector3(7.5,0,7.5).normalized()*7.5,true,dt)
-	if not check(is_equal_approx(Vector2(step.x,step.z).length(),Motion.ACCELERATION*dt) and step.y==3.0,"vector acceleration is independent of direction and preserves gravity"):
+	if not check(is_equal_approx(step.x,Motion.ACCELERATION*dt) and is_equal_approx(step.z,Motion.ACCELERATION*dt) and step.y==3.0,"legacy component acceleration and gravity retained"):
 		return
 	var current := Vector3.ZERO
 	for i in 60:
@@ -53,5 +53,5 @@ func _verify() -> void:
 		visual.call("update_motion",Vector3.ZERO,true,false,false,false,dt)
 	if not check(visual.get("current_pose")==&"idle","filtered stop returns to idle"):
 		return
-	print("LOCOMOTION_SMOKE PASS: vector acceleration, braking, reversal, facing, hysteresis and stride phase")
+	print("LOCOMOTION_SMOKE PASS: legacy acceleration, braking, reversal, facing, hysteresis and stride phase")
 	quit(0)

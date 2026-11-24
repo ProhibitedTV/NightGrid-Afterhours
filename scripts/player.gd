@@ -72,6 +72,8 @@ func _physics_process(delta: float) -> void:
 	var allowance := tick_stamina(delta,Input.is_action_pressed("sprint"),move_direction.length_squared()>.01,was_grounded and Input.is_action_just_pressed("jump"))
 	var sprinting := allowance.x == 1
 	var speed := RUN_SPEED if sprinting else WALK_SPEED
+	# Keep the verified physical controller contract; visual smoothing must
+	# not change the displacement of a timed traversal or rail approach.
 	velocity = Locomotion.step_velocity(velocity,move_direction*speed,was_grounded,delta)
 	var jumped := allowance.y == 1
 	if was_grounded:

@@ -45,6 +45,14 @@ func _measure() -> void:
 	player.stop()
 	character.queue_free()
 	await process_frame
+	var json := JSON.stringify(profile,"\t")
+	var output := FileAccess.open("user://courier_gait_profile.json",FileAccess.WRITE)
+	if output == null:
+		push_error("GAIT_ANALYSIS: cannot write evidence")
+		quit(1)
+		return
+	output.store_string(json)
+	output.close()
 	print("GAIT_ANALYSIS_JSON ",JSON.stringify(profile))
 	print("GAIT_ANALYSIS PASS: sampled ",profile.size()," weighted gait loops, ",SAMPLES," poses each")
 	quit(0)
