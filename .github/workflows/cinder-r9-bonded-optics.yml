@@ -7,6 +7,7 @@ on:
       - tools/art/author_cinder_r9.py
       - scripts/road_car_visual.gd
       - tests/test_cinder_bonded_optics.py
+      - tests/test_cinder_headlamp_housing.py
       - tests/test_cinder_arch_fit.py
       - tests/test_cinder_brake_hardware.py
       - tests/test_cinder_tire_tread.py
@@ -32,6 +33,8 @@ jobs:
         run: python tools/art/author_cinder_r9.py
       - name: Check optical lens geometry, normals and generated hashes
         run: python -m unittest discover -s tests -p 'test_cinder_bonded_optics.py' -v
+      - name: Check manufactured reflector housing behind both bonded headlight lenses
+        run: python -m unittest discover -s tests -p 'test_cinder_headlamp_housing.py' -v
       - name: Check wheel-arch tire clearance and C1 rocker fit
         run: python -m unittest discover -s tests -p 'test_cinder_arch_fit.py' -v
       - name: Verify independent static brake hardware and wheel provenance
