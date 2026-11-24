@@ -1,0 +1,93 @@
+name: Show current Cinder in original Brickwater alley slice
+
+on:
+  push:
+    branches: [art/cinder-r9-brickwater-lightweight-gallery]
+    paths:
+      - tools/capture_cinder_brickwater_slice.gd
+      - .github/workflows/cinder-brickwater-slice.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cinder-brickwater-lightweight-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Install Mesa Forward+ Vulkan renderer and import real art
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb mesa-vulkan-drivers libvulkan1 libgl1-mesa-dri espeak-ng
+          mkdir -p "$RUNNER_TEMP/xdg-runtime"
+          chmod 700 "$RUNNER_TEMP/xdg-runtime"
+          python3 tools/generate_mbpd_radio.py
+          set -o pipefail
+          godot --headless --path . --import --quit 2>&1 | tee "$RUNNER_TEMP/import.log"
+          if grep -Eq 'SCRIPT ERROR:|Parse Error:' "$RUNNER_TEMP/import.log"; then
+            exit 1
+          fi
+      - name: Render the actual Cinder visual inside authored Brickwater asset scene
+        env:
+          NIGHTGRID_CINDER_ALLEY_DIR: "${{ runner.temp }}/cinder-brickwater-slice-${{ github.run_id }}"
+          NIGHTGRID_SOURCE_REVISION: "${{ github.sha }}"
+        run: |
+          set -euo pipefail
+          export VK_ICD_FILENAMES="$(find /usr/share/vulkan/icd.d -name '*lvp*.json' | head -n 1)"
+          test -n "$VK_ICD_FILENAMES"
+          export XDG_RUNTIME_DIR="$RUNNER_TEMP/xdg-runtime"
+          timeout 600s xvfb-run -a -s '-screen 0 1280x720x24' \
+            godot --path . --rendering-driver vulkan --rendering-method forward_plus \
+            --resolution 1280x720 --script res://tools/capture_cinder_brickwater_slice.gd \
+            2>&1 | tee "$RUNNER_TEMP/cinder-brickwater-slice.log"
+          grep -q 'CINDER_BRICKWATER_SLICE PASS' "$RUNNER_TEMP/cinder-brickwater-slice.log"
+      - name: Validate actual image payloads, shader renderer and source commit
+        env:
+          NIGHTGRID_CINDER_ALLEY_DIR: "${{ runner.temp }}/cinder-brickwater-slice-${{ github.run_id }}"
+          NIGHTGRID_SOURCE_REVISION: "${{ github.sha }}"
+        run: |
+          python -m pip install --quiet Pillow
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image,ImageStat
+          import os,json,hashlib
+          base=Path(os.environ["NIGHTGRID_CINDER_ALLEY_DIR"])
+          doc=json.loads((base/"manifest.json").read_text())
+          assert doc["source_revision"]==os.environ["NIGHTGRID_SOURCE_REVISION"]
+          assert doc["renderer"]=="forward_plus"
+          assert doc["not_live_city_driving"] and not doc["performance_comparable_to_native_gpu"]
+          shots=doc["images"]
+          assert len(shots)==3
+          ids=set()
+          for shot in shots:
+              assert shot["vehicle"]=="nightgrid.cinder_r9"
+              file=base/shot["file"]
+              assert file.stat().st_size>16000
+              digest=hashlib.sha256(file.read_bytes()).hexdigest()
+              assert digest==shot["sha256"]
+              ids.add(digest)
+              with Image.open(file) as img:
+                  assert img.size==(1280,720)
+                  assert ImageStat.Stat(img.convert("L")).stddev[0]>4
+          assert len(ids)==3
+          print("CINDER BRICKWATER AUTHORED SLICE IMAGE VERIFY PASS")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cinder-r9-brickwater-alley-authored-scene
+          path: |
+            ${{ runner.temp }}/cinder-brickwater-slice-${{ github.run_id }}/
+            ${{ runner.temp }}/cinder-brickwater-slice.log
+          if-no-files-found: warn
+          retention-days: 30
