@@ -19,7 +19,8 @@ const VIEWS = [
 ]
 
 func _initialize() -> void:
-	create_timer(150.0, true, false, true).timeout.connect(func() -> void: quit(1))
+	var budget_seconds := 600.0 if OS.get_environment("NIGHTGRID_CINDER_R9_CI_CAPTURE") == "1" else 150.0
+	create_timer(budget_seconds, true, false, true).timeout.connect(func() -> void: quit(1))
 	call_deferred("_review")
 
 func _frames(count: int) -> void:
