@@ -27,6 +27,7 @@ var _gait_running := false
 var _gait_rate := 1.0
 var _moving_gait := false
 var _sprinting := false
+var _pivot_cooldown := 0.0
 var _reverse_playback := false
 var _entry_ground_y := 0.0
 var _driver_seat := DRIVER_SEAT
@@ -162,23 +163,31 @@ func set_weapon_pose(id: String, aiming: bool) -> void:
 	_choose_pose()
 
 func update_motion(local_velocity: Vector3, on_floor: bool, jumped: bool,
-		landed: bool, sprinting: bool, delta: float = 1.0/60.0) -> void:
+		landed: bool, sprinting: bool, delta: float = 1.0/60.0, impact_speed: float = 9.0, yaw_rate: float = 0.0) -> void:
 	if _seat:
 		return
 	_horizontal = Vector3(local_velocity.x, 0.0, local_velocity.z)
 	_gait_speed = lerpf(_gait_speed,_horizontal.length(),1.0-exp(-18.0*delta))
 	_grounded = on_floor
 	_sprinting = sprinting
+	_pivot_cooldown = maxf(0.0,_pivot_cooldown-delta)
 	if jumped:
 		play_action(&"jump_start")
 	elif landed and current_pose in [&"jump_start", &"jump_air"]:
-		play_action(&"jump_land")
+		play_action(&"jump_land",Locomotion.landing_rate(impact_speed))
 	elif not on_floor and _action not in [&"jump_start", &"alight_car"]:
 		_clear_product()
 		_action = &""
 	elif _horizontal.length_squared() > 1.2 and (_action in [&"interact", &"stand_up", &"alight_car"] or _action in FOOD_ACTIONS):
 		_clear_product()
 		_action = &""
+	elif _action in [&"turn_left",&"turn_right"] and (_horizontal.length()>1.65 or _equipment!="holstered"):
+		_action = &""
+	if _grounded and not landed and not jumped and _action==&"" and _equipment=="holstered" and _pivot_cooldown<=0.0:
+		var pivot := Locomotion.pivot_clip(_horizontal.length(),yaw_rate)
+		if pivot!=&"":
+			_pivot_cooldown = .45
+			play_action(pivot,1.3)
 	_choose_pose()
 
 func sample_terrain(body: CharacterBody3D,delta: float) -> void:
@@ -195,7 +204,7 @@ func reset_terrain() -> void:
 	if is_instance_valid(_posture):
 		_posture.call("reset")
 
-func play_action(clip: StringName) -> void:
+func play_action(clip: StringName, rate_override: float = 0.0) -> void:
 	if _seat or (clip == &"interact" and (_horizontal.length_squared() > 0.8 or not _grounded)):
 		return
 	if clip not in FOOD_ACTIONS:
@@ -205,7 +214,7 @@ func play_action(clip: StringName) -> void:
 		_posture.call("reset")
 	if current_pose == clip:
 		animations.seek(0.0)
-	var rate := 1.85 if clip == &"jump_start" else 1.0
+	var rate := rate_override if rate_override>0.0 else (1.85 if clip == &"jump_start" else 1.0)
 	_play(clip, 0.08, rate)
 	if clip == &"alight_car":
 		# The original gameplay exit chooses a safe curb-side placement. Use
@@ -269,6 +278,7 @@ func _finish_action(clip: StringName) -> void:
 
 func _reset_gait() -> void:
 	_gait_speed = 0.0
+	_pivot_cooldown = 0.0
 	_gait_running = false
 	_gait_rate = 1.0
 	_moving_gait = false

@@ -90,12 +90,13 @@ func _physics_process(delta: float) -> void:
 		visual.rotation.y = Locomotion.step_yaw(visual.rotation.y,camera_yaw+PI,true,delta)
 	elif visual != null and move_direction.length_squared() > 0.01:
 		visual.rotation.y = Locomotion.step_yaw(visual.rotation.y,visual_yaw_for_motion(move_direction),false,delta)
+	var impact_speed := maxf(0.0,-velocity.y)
 	move_and_slide()
 	if visual != null and visual.has_method("update_motion"):
 		var local_velocity := visual.global_basis.inverse() * get_real_velocity()
-		visual.call("update_motion", local_velocity, is_on_floor(), jumped, not was_grounded and is_on_floor(), sprinting,delta)
-		visual.call("sample_terrain",self,delta)
 		var turn_rate := angle_difference(previous_yaw,visual.rotation.y)/maxf(delta,.001)
+		visual.call("update_motion", local_velocity, is_on_floor(), jumped, not was_grounded and is_on_floor(), sprinting,delta,impact_speed,turn_rate)
+		visual.call("sample_terrain",self,delta)
 		visual.call("update_posture",get_real_velocity(),turn_rate,delta)
 
 func show_vehicle_rider(vehicle: Node3D, offer_entry: bool) -> void:

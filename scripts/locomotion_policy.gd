@@ -48,3 +48,14 @@ static func contact_phase(source: StringName,destination: StringName,phase: floa
 	if progress<=source_arc:
 		return fposmod(b.x+progress/maxf(source_arc,.001)*target_arc,1.0)
 	return fposmod(b.y+(progress-source_arc)/maxf(1.0-source_arc,.001)*(1.0-target_arc),1.0)
+
+# Reuse the authored landing clip, varying recovery duration by measured
+# impact velocity. Normal jump speed stays on the previously tested timing.
+static func landing_rate(impact: float) -> float:
+	return lerpf(1.45,.78,smoothstep(3.0,15.0,impact))
+
+static func pivot_clip(speed: float,yaw_rate: float) -> StringName:
+	if speed>1.35 or absf(yaw_rate)<3.5:
+		return &""
+	# Positive yaw rotates the +Z-forward courier toward +X (its left).
+	return &"turn_left" if yaw_rate>0.0 else &"turn_right"

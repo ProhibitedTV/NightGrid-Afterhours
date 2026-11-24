@@ -140,6 +140,13 @@ jobs:
           timeout 75s godot --headless --path . --script res://tests/courier_posture_smoke.gd 2>&1 | tee /tmp/nightgrid-posture.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-posture.log; then exit 1; fi
           grep -q "POSTURE_SMOKE PASS:" /tmp/nightgrid-posture.log
+      - name: Validate interruptible authored pivots and impact-sensitive landing
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/courier_transition_smoke.gd 2>&1 | tee /tmp/nightgrid-transition.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-transition.log; then exit 1; fi
+          grep -q "TRANSITION_SMOKE PASS:" /tmp/nightgrid-transition.log
       - name: Verify the baked city textures match the original generator byte for byte
         run: godot --headless --path . --script res://tools/bake_city_material_maps.gd -- --verify
       - name: Validate deterministic road routes, intersection turns and off-road access
