@@ -688,6 +688,7 @@ func _process(delta: float) -> void:
 			if actor is CharacterBody3D:
 				traversal_velocity = (actor as CharacterBody3D).velocity
 			city_details.call("request_focus", actor.global_position, traversal_velocity)
+		city_details.call("update_walk_in_light", actor.global_position if not indoors and current_car == null and current_transit == null else Vector3.INF)
 		var started := StreamProfile.begin()
 		street_lights.call("set_focus", interiors.get("exterior_position") if indoors else actor.global_position)
 		StreamProfile.end(started, "street_light_focus")
@@ -1858,6 +1859,23 @@ func _toggle_interior() -> void:
 			return
 	var venue: Dictionary = venue_system.call("nearest_venue", player.global_position)
 	var civic: Dictionary = civic_services.call("nearest_site", player.global_position)
+	var physical_lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+	# Existing named shops keep H at their exact old public anchor. Their
+	# service migration is separate from the generic building conversion.
+	var legacy_anchor := false
+	if not venue.is_empty():
+		legacy_anchor = player.global_position.distance_to(venue_system.call("venue_position",str(venue["id"]))) < .3
+	if not civic.is_empty():
+		legacy_anchor = legacy_anchor or player.global_position.distance_to(civic_services.call("position_for",str(civic["id"]))) < .3
+	if physical_lot != null and not legacy_anchor:
+		if physical_lot.call("doorway_reachable",player.global_position):
+			var leaf: AnimatableBody3D = physical_lot.get("door")
+			if leaf.call("request_toggle"):
+				player.call("play_visual_action",&"interact")
+				world_audio.call("play_event","DOOR",leaf.global_position)
+		else:
+			_notify("Return to the front door to open or close it.")
+		return
 	if venue.is_empty() and civic.is_empty():
 		_notify("Approach a marked storefront and press H to enter.")
 		return
@@ -2640,6 +2658,10 @@ func _update_hud() -> void:
 		if not nearby_service.is_empty():
 			var availability := "OPEN" if civic_services.call("is_open", str(nearby_service["id"])) else "CLOSED"
 			prompts.append("%s  %s (%s)   •   %s Enter" % [interact_key, str(nearby_service["name"]), availability, enter_key])
+		var physical_lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+		if physical_lot != null and physical_lot.call("doorway_reachable",player.global_position):
+			var leaf: AnimatableBody3D = physical_lot.get("door")
+			prompts.append("%s %s building door" % [enter_key,"Close" if leaf.call("is_requested_open") else "Open"])
 		if prompts.is_empty():
 			prompts.append("Y Vehicle  •  RB Transit  •  X Interact" if gamepad_active else "E Vehicle  •  F Transit  •  G Interact")
 	if _can_use_weapon():
