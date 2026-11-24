@@ -1000,6 +1000,9 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 			lot.name = "WalkInLot_%d" % which
 			lot.position = Vector3(center.x, .15, front)
 			lot.configure(width, height, depth, wall, surface_kind)
+			# Furniture has physical collision and must exist before the lot is
+			# walkable. Never create new obstacles inside an occupied room.
+			lot.call("dress",district,ACCENT[district],abs(ix * 11 + iz * 17 + which * 3))
 			if ix == 0 and iz == -3 and which == 1:
 				lot.call("bind_physical_venue","helix_espresso")
 			(_active_chunk if _active_chunk != null else self).add_child(lot)
@@ -1151,7 +1154,8 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 			_detail(Vector3(center.x + side * (WalkInLot.DOOR_WIDTH * .5 + .08), 1.64, front - .20), Vector3(.16, 3.08, .19), Color("647e8d"))
 		_detail(Vector3(center.x, 3.20, front - .20), Vector3(WalkInLot.DOOR_WIDTH + .3, .23, .19), sign_color)
 		var lot := _active_chunk.get_node("WalkInLot_%d" % which)
-		lot.call("dress", district, sign_color, abs(ix * 11 + iz * 17 + which * 3))
+		# Interior furniture and its collision were already built in stage zero.
+		assert(lot.has_method("get_interior_batch_stats"))
 	else:
 		_detail(Vector3(center.x, 2.0, front - 0.12), Vector3(width * 0.84, 2.75, 0.14), Color("182637"))
 		_detail(Vector3(center.x, 2.0, front - 0.22), Vector3(2.10, 2.55, 0.08), Color("647e8d"), false, "GLASS")

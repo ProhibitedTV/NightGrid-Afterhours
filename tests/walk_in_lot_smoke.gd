@@ -19,6 +19,9 @@ func _verify() -> void:
 	city.call("_run_build_stage",block)
 	var chunk: Node3D = city.get("_staging")[block]["node"]
 	var lot := chunk.get_node("WalkInLot_0") as StaticBody3D
+	var early_colliders := lot.find_children("*","CollisionShape3D",true,false).size()
+	if not check(early_colliders>=20,"all interior furniture collision is prepared in stage zero"):
+		return
 	var entry := lot.to_global(Vector3(0,1.15,-1.5))
 	player.global_position = entry
 	player.velocity = Vector3.ZERO
@@ -125,6 +128,8 @@ func _verify() -> void:
 		return
 	city.call("set_focus",entry)
 	if not check(city.get("_loaded")[block] == chunk and lot.call("contains",player.global_position),"decorative completion preserves occupied shell"):
+		return
+	if not check(lot.find_children("*","CollisionShape3D",true,false).size()==early_colliders,"later stages cannot add occupied room obstacles"):
 		return
 	var batch_stats: Dictionary = lot.call("get_interior_batch_stats")
 	if not check(int(batch_stats["instances"])>=16 and int(batch_stats["batches"])<int(batch_stats["instances"]),"furnishing and fixture batches reduce decorative draw instances"):
