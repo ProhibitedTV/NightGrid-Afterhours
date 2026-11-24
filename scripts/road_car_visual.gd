@@ -645,6 +645,7 @@ func apply_damage(zones: Vector4) -> void:
 	_body_sections[1].rotation.x = zones.y * 0.039
 	_body_sections[0].set_instance_shader_parameter("impact", zones.x)
 	_body_sections[1].set_instance_shader_parameter("impact", zones.y)
+	_body_sections[2].set_instance_shader_parameter("impact", maxf(maxf(zones.x, zones.y), maxf(zones.z, zones.w) * .8))
 	for door in _doors:
 		var panel: MeshInstance3D = door["part"]
 		var wear := zones.z if float(door["side"]) < 0.0 else zones.w

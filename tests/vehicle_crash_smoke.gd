@@ -72,6 +72,12 @@ func _verify() -> void:
 				return
 	if not check(moved > 0, "crash changes actual vertex positions"):
 		return
+	var sparks := get_nodes_in_group("vehicle_crash_sparks")
+	if not check(sparks.size() > 0 and sparks.size() <= 4 and sparks[0] is CPUParticles3D and sparks[0].one_shot and sparks[0].amount == 18, "bounded one-shot collision sparks"):
+		return
+	var cabin := rig.get_node("Cabin") as MeshInstance3D
+	if not check(float(cabin.get_instance_shader_parameter("impact")) > .5, "glass receives crash severity"):
+		return
 	var fx_count := get_nodes_in_group("vehicle_crash_debris").size()
 	if not check(fx_count > 0 and fx_count <= 18, "real collision releases bounded rigid fragments"):
 		return
@@ -85,7 +91,7 @@ func _verify() -> void:
 	car.call("repair")
 	if not check(front.mesh == original and rear.mesh == original_rear and car.get("damage_zones") == Vector4.ZERO and float(car.get("condition")) == 100.0, "repair restores exact original geometry"):
 		return
-	if not check(get_nodes_in_group("vehicle_crash_debris").is_empty(), "repair clears transient fragments"):
+	if not check(get_nodes_in_group("vehicle_crash_debris").is_empty() and get_nodes_in_group("vehicle_crash_sparks").is_empty() and is_zero_approx(float(cabin.get_instance_shader_parameter("impact"))), "repair clears debris sparks and glazing damage"):
 		return
 	car.call("take_arcade_damage", 1000.0)
 	var smoke := car.get_node_or_null("CrashSmoke") as CPUParticles3D

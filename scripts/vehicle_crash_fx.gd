@@ -174,6 +174,55 @@ static func detach_panel(car: CharacterBody3D, part: MeshInstance3D, closing: fl
 	timer.timeout.connect(body.queue_free)
 	timer.start()
 
+static func _sparks(car: CharacterBody3D, at: Vector3, incoming: Vector3, closing: float) -> void:
+	if closing < 16.0 or car.get_tree().get_nodes_in_group(SPARK_GROUP).size() >= MAX_SPARK_BURSTS:
+		return
+	if _spark_mesh == null:
+		_spark_mesh = BoxMesh.new()
+		_spark_mesh.size = Vector3(.012, .012, .075)
+		var material := StandardMaterial3D.new()
+		material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		material.vertex_color_use_as_albedo = true
+		material.albedo_color = Color.WHITE
+		material.emission_enabled = true
+		material.emission = Color(1.0, .32, .04)
+		material.emission_energy_multiplier = 1.8
+		_spark_mesh.material = material
+		_spark_fade = Gradient.new()
+		_spark_fade.colors = PackedColorArray([Color(1,.91,.53), Color(1,.19,.025)])
+	var burst := CPUParticles3D.new()
+	burst.name = "CrashSparks"
+	burst.emitting = false
+	burst.one_shot = true
+	burst.amount = 18
+	burst.lifetime = .48
+	burst.explosiveness = 1.0
+	burst.direction = Vector3.BACK
+	burst.spread = 68.0
+	burst.gravity = Vector3(0,-9.8,0)
+	burst.initial_velocity_min = 2.5
+	burst.initial_velocity_max = minf(9.0, closing * .24)
+	burst.scale_amount_min = .6
+	burst.scale_amount_max = 1.3
+	burst.color_ramp = _spark_fade
+	burst.mesh = _spark_mesh
+	burst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	burst.visibility_range_end = 38.0
+	car.get_parent().add_child(burst)
+	burst.add_to_group(SPARK_GROUP)
+	burst.set_meta("crash_owner", car.get_instance_id())
+	burst.global_position = at + Vector3.UP * .09
+	var outward := -incoming.normalized()
+	if outward.length_squared() > .1 and absf(outward.dot(Vector3.UP)) < .95:
+		burst.global_basis = Basis.looking_at(-outward, Vector3.UP)
+	var timer := Timer.new()
+	timer.one_shot = true
+	timer.wait_time = .65
+	burst.add_child(timer)
+	timer.timeout.connect(burst.queue_free)
+	timer.start()
+	burst.emitting = true
+
 static func clear_debris(car: Node3D) -> void:
 	if not car.is_inside_tree():
 		return
@@ -181,3 +230,7 @@ static func clear_debris(car: Node3D) -> void:
 		if body.get_meta("crash_owner", -1) == car.get_instance_id():
 			body.remove_from_group(DEBRIS_GROUP)
 			body.queue_free()
+	for burst in car.get_tree().get_nodes_in_group(SPARK_GROUP):
+		if burst.get_meta("crash_owner", -1) == car.get_instance_id():
+			burst.remove_from_group(SPARK_GROUP)
+			burst.queue_free()
