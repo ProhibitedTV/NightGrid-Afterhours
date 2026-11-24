@@ -14,6 +14,7 @@ const BrickwaterRepair = preload("res://scripts/brickwater_storefront.gd")
 const BrickwaterSigns = preload("res://scripts/brickwater_business_frontage.gd")
 const StreamProfile = preload("res://scripts/streaming_profile.gd")
 const MarketCarton = preload("res://scripts/market_carton.gd")
+const WalkInLot = preload("res://scripts/walk_in_lot.gd")
 ## Seeded city dressing. Static shell collisions + batched decorative geometry.
 ## The four neighborhoods deliberately share road geometry but not street character.
 
@@ -968,7 +969,13 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 				volume.add_child(collision)
 			(_active_chunk if _active_chunk != null else self).add_child(volume)
 		else:
-			_solid(shell_at, shell_size, wall, "PHOTO_BRICK" if surface_kind == "BRICK" else surface_kind)
+			# Physical ground-floor room: collision and visible shell are ready
+			# in the first streaming stage, before decorative façade batches.
+			var lot := WalkInLot.new()
+			lot.name = "WalkInLot_%d" % which
+			lot.position = Vector3(center.x, .15, front)
+			lot.configure(width, height, depth, wall, surface_kind)
+			(_active_chunk if _active_chunk != null else self).add_child(lot)
 	if shell_only:
 		return
 	if brickwater_exposure:
@@ -1014,8 +1021,13 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 		_statistics["storefronts"] += 1
 		return
 
-	# Foundation plinth, cast shadow line, parapet, mechanical penthouse.
-	_detail(Vector3(center.x, 0.47, front - 0.15), Vector3(width + 0.20, 0.80, 0.22), Color("313743"))
+	# Split the street-level plinth at the walk-through opening.
+	if not authored_exposure:
+		var panel_width := (width + .20 - WalkInLot.DOOR_WIDTH) * .5
+		for side in [-1.0, 1.0]:
+			_detail(Vector3(center.x + side * (WalkInLot.DOOR_WIDTH + panel_width) * .5, .47, front - .15), Vector3(panel_width, .80, .22), Color("313743"))
+	else:
+		_detail(Vector3(center.x, 0.47, front - 0.15), Vector3(width + 0.20, 0.80, 0.22), Color("313743"))
 	_detail(Vector3(center.x, height + 0.30, center.z), Vector3(width + 0.72, 0.54, depth + 0.72), Color("1b2634"))
 	_detail(Vector3(center.x, height + 1.26, center.z + 1.4), Vector3(width * 0.34, 1.65, depth * 0.31), Color("36404b"))
 	for vent in range(3):
@@ -1103,11 +1115,20 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 		windows.position = Vector3(center.x,0.0,front)
 		_active_chunk.add_child(windows)
 
-	# Street-level retail facade. Entry is visual-only until interiors exist.
+	# Street-level fascia must not cover the new physical passage.
 	var sign_color: Color = ACCENT[district]
-	_detail(Vector3(center.x, 2.0, front - 0.12), Vector3(width * 0.84, 2.75, 0.14), Color("182637"))
-	_detail(Vector3(center.x, 2.0, front - 0.22), Vector3(2.10, 2.55, 0.08), Color("647e8d"), false, "GLASS")
-	_detail(Vector3(center.x + 1.0, 2.0, front - 0.24), Vector3(0.07, 2.55, 0.12), Color("121b28"))
+	if not authored_exposure:
+		var fascia_width := (width * .84 - WalkInLot.DOOR_WIDTH) * .5
+		for side in [-1.0, 1.0]:
+			_detail(Vector3(center.x + side * (WalkInLot.DOOR_WIDTH + fascia_width) * .5, 2.0, front - .12), Vector3(fascia_width, 2.75, .14), Color("182637"))
+			_detail(Vector3(center.x + side * (WalkInLot.DOOR_WIDTH * .5 + .08), 1.64, front - .20), Vector3(.16, 3.08, .19), Color("647e8d"))
+		_detail(Vector3(center.x, 3.20, front - .20), Vector3(WalkInLot.DOOR_WIDTH + .3, .23, .19), sign_color)
+		var lot := _active_chunk.get_node("WalkInLot_%d" % which)
+		lot.call("dress", district, sign_color, abs(ix * 11 + iz * 17 + which * 3))
+	else:
+		_detail(Vector3(center.x, 2.0, front - 0.12), Vector3(width * 0.84, 2.75, 0.14), Color("182637"))
+		_detail(Vector3(center.x, 2.0, front - 0.22), Vector3(2.10, 2.55, 0.08), Color("647e8d"), false, "GLASS")
+		_detail(Vector3(center.x + 1.0, 2.0, front - 0.24), Vector3(0.07, 2.55, 0.12), Color("121b28"))
 	_detail(Vector3(center.x, 4.0, front - 0.24), Vector3(width * 0.86, 0.75, 0.22), Color("1b2636"))
 	_detail(Vector3(center.x, 4.45, front - 0.27), Vector3(width * 0.88, 0.12, 0.19), sign_color, true)
 	_detail(Vector3(center.x, 3.70, front - 0.27), Vector3(width * 0.88, 0.11, 0.19), sign_color, true)

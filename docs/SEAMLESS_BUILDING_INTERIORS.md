@@ -1,0 +1,7 @@
+# Seamless building interiors — initial city rollout
+
+Goal: enter every actual building without loading screens, world swaps, or teleports. The ordinary lot implementation uses the existing staged sector streamer: stage zero builds a physical hollow ground-floor room at the real street address, and later stages furnish it while preserving the same collider. Players enter by walking; save positions remain ordinary world coordinates. No per-lot dynamic lights or extra active physics bodies. Original street footprint, height and saved city manifest stay intact.
+
+Scope: non-bespoke ordinary lots across all eight districts. Existing specialty West Docks, Central Exchange and Brickwater façades retain their existing collision/art contracts. Existing named venue and civic services still use their old interior system (H) until each is migrated. Landmarks and upper floors are not yet enterable. The first room layouts are modest reusable furnished spaces, not finished unique buildings. Next: migrate authored façades, real named business services, interior lighting proximity budget, multiple rooms and floors, and native traversal profiling. Keep every transition at real coordinates.
+
+Test: tests/walk_in_lot_smoke.gd walks the real player into a stage-zero shell, checks the rear wall, finishes the streamed lot while occupied, saves/restores coordinates and walks out. Existing staged streaming and legacy interior suites remain enabled. Native visual/performance acceptance pending.

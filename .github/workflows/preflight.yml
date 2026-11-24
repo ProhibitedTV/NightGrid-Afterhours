@@ -371,6 +371,8 @@ jobs:
         run: godot --headless --path . --script res://tests/expansion_smoke.gd
       - name: Validate on-demand district geometry and fully enterable interior rooms
         run: godot --headless --path . --script res://tests/streaming_interiors_smoke.gd
+      - name: Verify seamless physical building entry, collision and save
+        run: godot --headless --path . --script res://tests/walk_in_lot_smoke.gd
       - name: Validate predictive traversal streaming without multi-block frame spikes
         run: godot --headless --path . --script res://tests/predictive_streaming_smoke.gd
       - name: Validate staged parcel shells, deterministic completion and partial-load cancellation
