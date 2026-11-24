@@ -1299,11 +1299,35 @@ func _crates(at: Vector3, physical: bool = false) -> void:
 		_detail(at + Vector3(ix * 1.2, 0.52 + iy * 1.02, -0.55), Vector3(0.76, 0.13, 0.07), Color("dac4a4"))
 	_statistics["street_props"] += 1
 
+const VendingMachine = preload("res://scripts/vending_machine.gd")
+
 func _vending(at: Vector3, accent: Color) -> void:
-	_detail(at + Vector3.UP * 1.20, Vector3(1.6, 2.4, 1.0), Color("283543"))
-	_detail(at + Vector3(0.0, 1.50, -0.54), Vector3(1.3, 1.35, 0.07), accent, true)
-	_detail(at + Vector3(0.45, 0.45, -0.58), Vector3(0.3, 0.3, 0.10), Color("d8e8ea"), true)
+	var machine := VendingMachine.new()
+	machine.name = "VendingMachine"
+	machine.position = at
+	var cell := _grid_cell(at)
+	machine.configure(posmod(cell.x+cell.y,2),accent)
+	var props := _active_chunk.get_node_or_null("VendingProps")
+	if props == null:
+		props = Node3D.new()
+		props.name = "VendingProps"
+		_active_chunk.add_child(props)
+	props.add_child(machine)
 	_statistics["street_props"] += 1
+
+func nearby_vending(at: Vector3) -> Node3D:
+	if not at.is_finite():
+		return null
+	var cell := _grid_cell(at)
+	var chunk: Node3D = _loaded.get(cell)
+	if chunk == null and _staging.has(cell):
+		chunk = _staging[cell]["node"]
+	if not is_instance_valid(chunk):
+		return null
+	var machine := chunk.get_node_or_null("VendingProps/VendingMachine") as Node3D
+	if machine == null:
+		return null
+	return machine if machine.call("reachable",at) else null
 
 func _bench(at: Vector3) -> void:
 	_detail(at + Vector3.UP * 0.65, Vector3(3.1, 0.17, 0.72), Color("866e5a"))

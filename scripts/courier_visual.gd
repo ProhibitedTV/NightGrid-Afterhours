@@ -2,6 +2,7 @@ extends Node3D
 ## Presentation only. The character controller still owns the capsule and motion.
 const Model = preload("res://assets/models/nightgrid/courier/morrow_courier.glb")
 const Materials = preload("res://scripts/material_library.gd")
+const ProductArt = preload("res://scripts/consumable_prop.gd")
 const FOOT_OFFSET = -0.95
 const DRIVER_SEAT = Vector3(-0.52, -0.23, -0.43)
 const LOOPS = [&"idle", &"walk", &"run", &"walk_back", &"strafe_left", &"strafe_right",
@@ -22,6 +23,9 @@ var _reverse_playback := false
 var _entry_ground_y := 0.0
 var _driver_seat := DRIVER_SEAT
 var _weapon_display: Node3D
+var _held_product: Node3D
+var _product_hand: BoneAttachment3D
+const FOOD_ACTIONS = [&"purchase_item",&"drink_item",&"eat_item"]
 
 func _ready() -> void:
 	var courier := Model.instantiate()
@@ -33,10 +37,12 @@ func _ready() -> void:
 	if _courier_library == null:
 		_courier_library = animations.get_animation_library(&"").duplicate(true) as AnimationLibrary
 		_prepare_library()
+		_prepare_product_clips()
 	animations.remove_animation_library(&"")
 	animations.add_animation_library(&"", _courier_library)
 	animations.animation_finished.connect(_finish_action)
 	_build_equipment_display()
+	_product_hand = skeleton.get_node("RightHandEquipment")
 	_play(&"idle", 0.0)
 	set_physics_process(false)
 
@@ -53,12 +59,81 @@ func _prepare_library() -> void:
 			var at: Vector3 = alight.track_get_key_value(track, key)
 			alight.track_set_key_value(track, key, Vector3(at.x - end.x, at.y, at.z))
 
+func _prepare_product_clips() -> void:
+	# Purchase uses the existing weighted reach animation. Consumption
+	# adds authored wrist-to-mouth poses to a full weighted idle clip.
+	var purchase := _courier_library.get_animation(&"interact").duplicate(true) as Animation
+	_courier_library.add_animation(&"purchase_item",purchase)
+	for clip in [&"drink_item",&"eat_item"]:
+		var motion := _courier_library.get_animation(&"idle").duplicate(true) as Animation
+		motion.loop_mode = Animation.LOOP_NONE
+		motion.length = 1.65 if clip == &"drink_item" else 1.40
+		var upper := skeleton.find_bone("RightArm")
+		var fore := skeleton.find_bone("RightForeArm")
+		var wrist := skeleton.find_bone("RightHand")
+		var head := skeleton.find_bone("Head")
+		if mini(mini(upper,fore),mini(wrist,head)) >= 0:
+			var shoulder := skeleton.get_bone_global_rest(upper)
+			var elbow := skeleton.get_bone_global_rest(fore)
+			var hand := skeleton.get_bone_global_rest(wrist)
+			var mouth := skeleton.get_bone_global_rest(head).origin+Vector3(0,-.10,.12)
+			var target := mouth+Vector3(.045,-.045,.055) if clip==&"drink_item" else mouth+Vector3(.035,-.025,.045)
+			var reach := target-shoulder.origin
+			var a := shoulder.origin.distance_to(elbow.origin)
+			var b := elbow.origin.distance_to(hand.origin)
+			var length := clampf(reach.length(),absf(a-b)+.001,a+b-.001)
+			var axis := reach.normalized()
+			var bend := (Vector3.RIGHT+Vector3.DOWN*.7)
+			bend = (bend-axis*bend.dot(axis)).normalized()
+			var along := (a*a-b*b+length*length)/(2.0*length)
+			var joint := shoulder.origin+axis*along+bend*sqrt(maxf(0.0,a*a-along*along))
+			var final := shoulder.origin+axis*length
+			var arm_basis := Basis(Quaternion((elbow.origin-shoulder.origin).normalized(),(joint-shoulder.origin).normalized()))*shoulder.basis
+			var fore_basis := Basis(Quaternion((hand.origin-elbow.origin).normalized(),(final-joint).normalized()))*elbow.basis
+			var parent_basis := skeleton.get_bone_global_rest(skeleton.get_bone_parent(upper)).basis
+			_key_product_bone(motion,"RightArm",(parent_basis.inverse()*arm_basis).get_rotation_quaternion())
+			_key_product_bone(motion,"RightForeArm",(arm_basis.inverse()*fore_basis).get_rotation_quaternion())
+			_key_product_bone(motion,"RightHand",(fore_basis.inverse()*hand.basis).get_rotation_quaternion())
+		_courier_library.add_animation(clip,motion)
+
+func _key_product_bone(motion: Animation,bone: String,pose: Quaternion) -> void:
+	for track in motion.get_track_count():
+		if motion.track_get_type(track)!=Animation.TYPE_ROTATION_3D or str(motion.track_get_path(track).get_subname(0))!=bone:
+			continue
+		var rest: Quaternion = motion.track_get_key_value(track,0)
+		while motion.track_get_key_count(track)>0:
+			motion.track_remove_key(track,0)
+		motion.rotation_track_insert_key(track,0.0,rest)
+		motion.rotation_track_insert_key(track,.38,pose)
+		motion.rotation_track_insert_key(track,motion.length-.38,pose)
+		motion.rotation_track_insert_key(track,motion.length,rest)
+		return
+
+func play_product_action(id: String,purchase: bool) -> void:
+	if _seat or not _grounded:
+		return
+	_clear_product()
+	_held_product = ProductArt.build(id)
+	_product_hand.add_child(_held_product)
+	_held_product.position = Vector3(0,.065,.035)
+	_held_product.rotation = Vector3(0,0,PI*.5)
+	_weapon_display.hide()
+	play_action(&"purchase_item" if purchase else (&"drink_item" if ProductArt.is_drink(id) else &"eat_item"))
+
+func _clear_product() -> void:
+	if is_instance_valid(_held_product):
+		_held_product.hide()
+		_held_product.queue_free()
+	_held_product = null
+	if is_instance_valid(_weapon_display):
+		_weapon_display.visible = _equipment!="holstered" and not _seat
+
 func set_weapon_pose(id: String, aiming: bool) -> void:
 	if _equipment == id and _aiming == aiming:
 		return
 	_equipment = id
 	_aiming = aiming
-	_weapon_display.visible = id != "holstered" and not _seat
+	_weapon_display.visible = id != "holstered" and not _seat and not is_instance_valid(_held_product)
 	_weapon_display.get_node("Pulse").visible = id == "pulse"
 	_weapon_display.get_node("Arc").visible = id == "arc"
 	if id == "holstered" and _action in [&"fire", &"reload"]:
@@ -77,14 +152,18 @@ func update_motion(local_velocity: Vector3, on_floor: bool, jumped: bool,
 	elif landed and current_pose in [&"jump_start", &"jump_air"]:
 		play_action(&"jump_land")
 	elif not on_floor and _action not in [&"jump_start", &"alight_car"]:
+		_clear_product()
 		_action = &""
-	elif _horizontal.length_squared() > 1.2 and _action in [&"interact", &"stand_up", &"alight_car"]:
+	elif _horizontal.length_squared() > 1.2 and (_action in [&"interact", &"stand_up", &"alight_car"] or _action in FOOD_ACTIONS):
+		_clear_product()
 		_action = &""
 	_choose_pose()
 
 func play_action(clip: StringName) -> void:
 	if _seat or (clip == &"interact" and (_horizontal.length_squared() > 0.8 or not _grounded)):
 		return
+	if clip not in FOOD_ACTIONS:
+		_clear_product()
 	_action = clip
 	if current_pose == clip:
 		animations.seek(0.0)
@@ -102,6 +181,7 @@ func sit_in_vehicle(car: Node3D, play_entry: bool, ground_y: float) -> void:
 	position = _driver_seat
 	rotation = Vector3(0.0, PI, 0.0)
 	_seat = true
+	_clear_product()
 	_horizontal = Vector3.ZERO
 	# The combat controller holsters while driving. Forget the last on-foot
 	# pose so re-equipping that item on exit always restores the held prop.
@@ -128,6 +208,7 @@ func return_to_player(player: Node3D) -> void:
 	position = Vector3.UP * FOOT_OFFSET
 	rotation = Vector3(0.0, facing, 0.0)
 	_seat = false
+	_clear_product()
 	_grounded = true
 	_action = &""
 	_play(&"idle", 0.0)
@@ -136,6 +217,8 @@ func return_to_player(player: Node3D) -> void:
 func _finish_action(clip: StringName) -> void:
 	if clip != _action:
 		return
+	if clip in FOOD_ACTIONS:
+		_clear_product()
 	_action = &""
 	if _seat:
 		position = _driver_seat

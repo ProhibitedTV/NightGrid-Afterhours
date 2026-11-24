@@ -157,7 +157,11 @@ var civic_selected_id := ""
 var civic_job_active := ""
 var civic_job_completed: Array[String] = []
 var civic_intel: Array[String] = []
+const Consumables = preload("res://scripts/consumables.gd")
 var ration_packs := 0
+var consumable_inventory: Dictionary = {}
+var _vending_machine: Node3D
+var hud_stamina: ProgressBar
 var venue_panel: PanelContainer
 var venue_label: Label
 var venue_service_button: Button
@@ -710,7 +714,9 @@ func _process(delta: float) -> void:
 		civic_services.call("set_hour", float(day_night.get("hour")))
 	if venue_panel.visible:
 		var menu_position: Vector3
-		if _repair_panel:
+		if is_instance_valid(_vending_machine):
+			menu_position = _vending_machine.global_position if city_details.call("nearby_vending",player.global_position) == _vending_machine else Vector3.INF
+		elif _repair_panel:
 			menu_position = repair.counter_position() if repair != null else Vector3.INF
 		elif indoors:
 			menu_position = interiors.call("get_counter_point")
@@ -1325,6 +1331,7 @@ func _respawn() -> void:
 	player.global_position = PLAYER_START
 	player.velocity = Vector3.ZERO
 	health = 100.0
+	player.call("restore_stamina",100.0)
 	heat = 0.0
 	wanted.reset()
 	_pending_theft = null
@@ -1694,6 +1701,7 @@ func _capture_snapshot() -> Dictionary:
 		"venue_job_active": venue_job_active, "venue_job_completed": venue_job_completed.duplicate(),
 		"civic_job_active": civic_job_active, "civic_job_completed": civic_job_completed.duplicate(),
 		"civic_intel": civic_intel.duplicate(), "ration_packs": ration_packs,
+		"consumables": consumable_inventory.duplicate(), "stamina": player.get("stamina"),
 		"interior": interiors.call("snapshot"),
 		"navigation_waypoint": [] if navigation_waypoint == null else [navigation_waypoint.x, navigation_waypoint.y],
 		"weapons": weapons.snapshot(),
@@ -1793,6 +1801,8 @@ func _apply_snapshot(data: Dictionary) -> void:
 			if not venue_system.call("job_by_id", valid_id).is_empty() and not venue_job_completed.has(valid_id):
 				venue_job_completed.append(valid_id)
 	ration_packs = clampi(int(data.get("ration_packs", 0)), 0, 99)
+	consumable_inventory = Consumables.restore(data.get("consumables",{}))
+	player.call("restore_stamina",data.get("stamina",100.0))
 	civic_job_active = str(data.get("civic_job_active", ""))
 	if civic_services.call("order_by_id", civic_job_active).is_empty():
 		civic_job_active = ""
@@ -1974,6 +1984,12 @@ func _toggle_interaction() -> void:
 		else:
 			_notify("Walk to the indoor service counter.")
 		return
+	var machine: Node3D = city_details.call("nearby_vending",player.global_position)
+	if is_instance_valid(machine):
+		_vending_machine = machine
+		_show_venue_dialogue()
+		_update_venue_panel()
+		return
 	var shop: Dictionary = venue_system.call("nearest_venue", player.global_position)
 	var service: Dictionary = civic_services.call("nearest_site", player.global_position)
 	if str(shop.get("id","")) == "helix_espresso":
@@ -2008,6 +2024,18 @@ func _toggle_civic() -> void:
 	_update_civic_panel()
 
 func _consume_ration() -> void:
+	if current_car == null and current_transit == null:
+		var id := Consumables.best_item(consumable_inventory,health,float(player.get("stamina")))
+		if not id.is_empty():
+			var item: Dictionary = Consumables.ITEMS[id]
+			consumable_inventory[id] -= 1
+			if int(consumable_inventory[id]) == 0:
+				consumable_inventory.erase(id)
+			health = minf(100.0,health+float(item["health"]))
+			player.call("add_stamina",float(item["stamina"]))
+			player.get_node("Visual").call("play_product_action",id,false)
+			_notify("Consumed %s. Health %d / stamina %d." % [item["name"],ceili(health),ceili(float(player.get("stamina")))])
+			return
 	if current_car != null or current_transit != null:
 		_notify("Use a ration pack when safely on foot.")
 	elif ration_packs <= 0:
@@ -2228,6 +2256,10 @@ func _close_venue() -> void:
 		venue_talk_button.visible = false
 	venue_selected_id = ""
 	_repair_panel = false
+	_vending_machine = null
+	for button in [venue_service_button,venue_job_button,venue_talk_button]:
+		if is_instance_valid(button):
+			button.icon = null
 	civic_selected_id = ""
 	if venue_panel != null:
 		venue_panel.visible = false
@@ -2239,6 +2271,20 @@ func _close_venue() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _update_venue_panel() -> void:
+	if is_instance_valid(_vending_machine):
+		var items: Array = _vending_machine.get_meta("items",[])
+		var body := "NIGHTGRID / 24H  •  VENDING\nCASH $%d  |  PACK %d/%d\n" % [cash,Consumables.count(consumable_inventory),Consumables.MAX_ITEMS]
+		var buttons := [venue_service_button,venue_job_button,venue_talk_button]
+		for i in range(3):
+			var item: Dictionary = Consumables.ITEMS[items[i]]
+			body += "%d. %s  $%d  +%d HP / +%d ST\n" % [i+1,item["name"],item["price"],item["health"],item["stamina"]]
+			buttons[i].show()
+			buttons[i].icon = Consumables.PRODUCT_ICONS[items[i]]
+			buttons[i].add_theme_constant_override("icon_max_width",36)
+			buttons[i].disabled = cash < int(item["price"]) or Consumables.count(consumable_inventory) >= Consumables.MAX_ITEMS
+			buttons[i].text = "%d  •  BUY $%d" % [i+1,item["price"]]
+		venue_label.text = body+"[G / B] Close  •  R / D-pad down: use best snack"
+		return
 	if _repair_panel:
 		venue_label.text = "NIGHT SHIFT REPAIRS\nLeave the vehicle outside and bring the keys to the counter.\n[1 / A] Repair parked vehicle  $%d\n[G / B] Close   |   CASH $%d" % [BrickwaterRepair.PRICE, cash]
 		venue_service_button.text = "1 / A  •  REPAIR"
@@ -2303,6 +2349,27 @@ func _mara_context() -> Dictionary:
 	}
 
 func _venue_action(option: int) -> void:
+	if is_instance_valid(_vending_machine):
+		if not venue_panel.visible or city_details.call("nearby_vending",player.global_position) != _vending_machine or current_car != null or current_transit != null:
+			_close_venue()
+			return
+		var items: Array = _vending_machine.get_meta("items",[])
+		if option < 1 or option > items.size():
+			return
+		var id: String = items[option-1]
+		var item: Dictionary = Consumables.ITEMS[id]
+		if cash < int(item["price"]) or Consumables.count(consumable_inventory) >= Consumables.MAX_ITEMS:
+			_notify("Not enough cash or inventory is full.")
+			return
+		cash -= int(item["price"])
+		consumable_inventory[id] = int(consumable_inventory.get(id,0))+1
+		var facing := _vending_machine.global_position-player.global_position
+		player.get_node("Visual").rotation.y = atan2(facing.x,facing.z)
+		player.get_node("Visual").call("play_product_action",id,true)
+		_vending_machine.call("dispense_feedback")
+		_notify("Dispensed %s. R / D-pad down to consume." % item["name"])
+		_update_venue_panel()
+		return
 	if _repair_panel:
 		var repair := _repair_storefront()
 		if option == 1 and repair != null and repair.counter_reachable(player.global_position):
@@ -2336,7 +2403,8 @@ func _venue_action(option: int) -> void:
 		var service: Dictionary = venue_system.call("service_effect", str(venue["kind"]))
 		var healing := float(service.get("heal", 0.0))
 		var cover := float(service.get("heat", 0.0))
-		if healing > 0.0 and health >= 99.9:
+		var energy := 40.0 if str(venue["kind"]) == "CAFE" else (20.0 if str(venue["kind"]) == "STALL" else 0.0)
+		if healing > 0.0 and health >= 99.9 and (energy <= 0.0 or float(player.get("stamina")) >= 99.9):
 			_notify("You're already feeling rested. Save your cash.")
 			return
 		if cover > 0.0 and heat < 0.01:
@@ -2347,6 +2415,9 @@ func _venue_action(option: int) -> void:
 			return
 		cash -= price
 		health = minf(100.0, health + healing)
+		player.call("add_stamina",energy)
+		if energy>0.0:
+			player.get_node("Visual").call("play_product_action","energy" if str(venue["kind"])=="CAFE" else "sandwich",false)
 		heat = maxf(0.0, heat - cover)
 		if venue_selected_id == "lantern_cup" and interiors.call("is_inside"):
 			interiors.call("mara_purchase_reaction")
@@ -2460,6 +2531,15 @@ func _build_hud() -> void:
 	hud_health.add_theme_stylebox_override("background", Ui.button_style(Color("29363e"), Color("29363e")))
 	hud_health.add_theme_stylebox_override("fill", Ui.button_style(Ui.ACCENT, Ui.ACCENT))
 	stack.add_child(hud_health)
+	hud_stamina = ProgressBar.new()
+	hud_stamina.name = "StaminaBar"
+	hud_stamina.max_value = 100.0
+	hud_stamina.show_percentage = false
+	hud_stamina.custom_minimum_size.y = 5
+	hud_stamina.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud_stamina.add_theme_stylebox_override("background",Ui.button_style(Color("29363e"),Color("29363e")))
+	hud_stamina.add_theme_stylebox_override("fill",Ui.button_style(Color("e1b96a"),Color("e1b96a")))
+	stack.add_child(hud_stamina)
 	var rule := HSeparator.new()
 	stack.add_child(rule)
 	_hud_text(stack, "ObjectiveHeading", 15, Ui.MUTED).text = "CURRENT OBJECTIVE"
@@ -2641,6 +2721,8 @@ func _update_hud() -> void:
 	hud_location.text = "%s   /   %s" % [local_name, clock]
 	hud_label.text = "$%d    HEALTH %d    HEAT %s\n%s  •  %d deliveries  •  %d supplies" % [cash, ceili(health), wanted_text, vehicle_text, deliveries, ration_packs]
 	hud_health.value = health
+	hud_stamina.value = float(player.get("stamina"))
+	hud_label.text += "\nSTAMINA %d  •  %d snacks" % [ceili(float(player.get("stamina"))),Consumables.count(consumable_inventory)]
 	hud_objective.text = "%s  /  %dm" % [mission, distance]
 	hud_objective.modulate = Ui.ACCENT if carrying else Ui.AMBER
 	hud_navigation.visible = navigation_waypoint != null
@@ -2697,6 +2779,8 @@ func _update_hud() -> void:
 		if physical_lot != null and physical_lot.call("doorway_reachable",player.global_position):
 			var leaf: AnimatableBody3D = physical_lot.get("door")
 			prompts.append("%s %s building door" % [enter_key,"Close" if leaf.call("is_requested_open") else "Open"])
+		if is_instance_valid(city_details.call("nearby_vending",player.global_position)):
+			prompts.append("%s  Vending machine" % interact_key)
 		if prompts.is_empty():
 			prompts.append("Y Vehicle  •  RB Transit  •  X Interact" if gamepad_active else "E Vehicle  •  F Transit  •  G Interact")
 	if _can_use_weapon():

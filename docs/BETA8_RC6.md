@@ -10,7 +10,13 @@ Windows development prerelease; RC5 Destruction Update remains available unchang
 - Helix Espresso is the first migrated named business: enter its actual door, walk to the left lobby counter, and press G to use its original coffee service and business hours.
 - All RC5 vehicle destruction, RC4 radar, and earlier world content are retained.
 
+- Interactive NightGrid vending machines with original animated signage, product packaging, district color variants and five buyable food/drink items.
+- Sprint/jump stamina, recovery, portable consumables and a stamina HUD; use G/X to buy and R/D-pad down to consume. Existing food venues restore stamina too.
+- Skinned purchase, eating and drinking actions with shared handheld product props; no permanent per-machine animation callbacks.
+
 ## Limits and playtest objectives
 Not all buildings or floors are enterable yet. Bespoke façades and landmarks still require conversion, and other named businesses retain their legacy remote-room behavior. The two accessible levels use ramps, not finished staircases/elevators; interior art is an initial reusable layout, not final unique design. Ordinary door states are transient. Target native frame pacing, camera clearance, door interaction, interior lighting, service access and save/restore on actual hardware. No verified native FPS target or claim that the entire city has been converted.
 
 Publication requires the exact current main revision to pass project preflight, actual Windows EXE/PCK startup, and SHA256 verification. See [implementation details](SEAMLESS_BUILDING_INTERIORS.md).
+
+Vending art and held-product animations are an initial pass. Native pose placement, audio and FPS need playtest; not every district has a machine yet.
