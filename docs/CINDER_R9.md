@@ -66,3 +66,17 @@ Continuing [Cinder wheel/fender issue #225](https://github.com/ProhibitedTV/Nigh
 `tools/capture_cinder_r9.gd` now contains 11 fixed poses instead of eight. The added `headlight-night-detail` aligns with the daylight lens close-up; `wheel-arch-day-detail` and `wheel-arch-night-detail` share the same front-left wheel camera to compare geometry under consistent camera orientation. These are **capture definitions**, not fabricated images. Run the existing native Godot 4.7.2 Windows Forward+ capture procedure documented earlier to produce true PNG evidence. Review shading on the arch, seal contact, brake/tire fit and alpha-sorting under both lighting conditions before considering any finished-art signoff.
 
 The pass remains stacked on Cinder PR #220. A successful Python geometry gate is not evidence of human-quality automobile sculpting, dynamic no-clipping behavior, or RTX 3060 real-game frame timing.
+
+## Independent stationary calipers
+
+The wheel-arch source improvement has been followed by **physically distinct, non-rotating original brake calipers**. Cinder's shared Cinder wheel-model file now contains the original `Wheel` rotating mesh plus two authored static brake assemblies `BrakeCaliperL` and `BrakeCaliperR`; the driving scene selects the correct left/right caliper for each wheel.
+
+- Authoring: `build_brake_caliper(side)` generates cast-looking, symmetric brake caliper shells, pad-facing regions and metallic retention hardware with fit inside the existing forged rim. The car's wheels, steering, original paint and save-slot assignments are unchanged.
+- Runtime: `scripts/road_car_visual.gd` mounts caliper mesh instances directly beneath each steering knuckle, **not** beneath the rotating `Wheel` MeshInstance3D. Thus front calipers steer with the wheel knuckle while all four brake assemblies remain stationary around their axle when the rim spins.
+- Source QA: `tests/test_cinder_brake_hardware.py` verifies distinct wheel/caliper GLTF node names, mirrored left/right geometry, clearance within the rim, material assignment, normal triangle count and source manifest hashes. `tests/cinder_r9_smoke.gd` now checks live steering-parent attachments and verifies that wheel rotation never rotates the fixed caliper.
+- Asset publishing: the Cinder regeneration workflow now commits **both `wheel.gltf` and `wheel.bin`**, in addition to body glTF/bin and source manifest. It previously committed a new manifest without its new wheel data. This is a critical reproducibility and playable-asset fix.
+- Verified: [Cinder regeneration run 45302412080](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/runs/45302412080) passed the original optics tests, tire clearance, new caliper geometry/provenance tests and regenerated asset commit. Exported `wheel.gltf` now contains Wheel + BrakeCaliperL + BrakeCaliperR with 4,956 / 292 / 292 triangles.
+
+### Not yet a finished in-game art signoff
+
+The updated model is on stacked draft PR #239, not merged into `main`. Full Godot game smoke and Windows build evidence must be checked against the newest asset commit. The current simplified caliper shell is a manufacturability/animation improvement, not a fully detailed high-poly brake system or guaranteed real-time close-up quality. Native daylight/night wheel captures, steering suspension sweep, occlusion and performance checks remain.
