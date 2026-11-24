@@ -7,6 +7,10 @@ const DEBRIS_GROUP = &"vehicle_crash_debris"
 const MAX_SMOKE = 6
 const MAX_DEBRIS = 18
 const DEBRIS_LIFETIME = 7.0
+const SPARK_GROUP = &"vehicle_crash_sparks"
+const MAX_SPARK_BURSTS = 4
+static var _spark_mesh: BoxMesh
+static var _spark_fade: Gradient
 static var _smoke_mesh: QuadMesh
 static var _smoke_fade: Gradient
 static var _shard_mesh: BoxMesh
@@ -76,6 +80,7 @@ static func sync_smoke(car: Node3D, condition: float, zones: Vector4, mount: Vec
 static func burst(car: CharacterBody3D, at: Vector3, incoming: Vector3, closing: float) -> void:
 	if closing < 16.0 or not car.is_inside_tree() or not at.is_finite() or not incoming.is_finite():
 		return
+	_sparks(car, at, incoming, closing)
 	var tree := car.get_tree()
 	var room := MAX_DEBRIS - tree.get_nodes_in_group(DEBRIS_GROUP).size()
 	if room <= 0:
