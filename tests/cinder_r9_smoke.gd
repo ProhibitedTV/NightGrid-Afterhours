@@ -129,7 +129,8 @@ func _verify() -> void:
 	var chassis_pose := car.global_transform
 	hero.call("reset_body_pose")
 	hero.call("update_motion", 12.0, 0.0, false, true, .7, 0.0, .25, 0.0, Vector2(100.0, 100.0))
-	if shell.rotation.x < .01 or shell.rotation.x > .0181 or shell.rotation.z < .01 or shell.rotation.z > .0221:
+	if shell.rotation.x < .004 or shell.rotation.z < .004 \
+			or absf(shell.rotation.x) * 1.94 + absf(shell.rotation.z) * 1.06 > .0181:
 		_fail("Acceleration and right turn must lift the nose and load the left side within bounds")
 		return
 	for i in 4:
@@ -140,7 +141,7 @@ func _verify() -> void:
 		_fail("Cosmetic body loads altered the physics chassis")
 		return
 	hero.call("update_motion", 12.0, 0.0, true, true, 0.0, 0.0, .5, 0.0, Vector2(-100.0, -100.0))
-	if shell.rotation.x > -.01 or shell.rotation.z > -.01:
+	if shell.rotation.x > -.004 or shell.rotation.z > -.004:
 		_fail("Braking and left turn must reverse the body load")
 		return
 	hero.call("update_motion", 0.0, 0.0, false, false, 0.0, 0.0, 1.0, 0.0, Vector2(100.0, 100.0))
@@ -236,6 +237,52 @@ func _verify() -> void:
 	world.call("_apply_snapshot", saved)
 	if car.get("damage_zones") != Vector4.ZERO:
 		_fail("Original v1 record should load with undamaged panels")
+		return
+	# Exercise the actual road-ray sampler in a separate physical fixture,
+	# above city geometry. Static pads under two opposite tires provide
+	# known heights; the other two tires have no nearby support.
+	var fixture := CharacterBody3D.new()
+	fixture.position = Vector3(0, 200, 0)
+	var rig := preload("res://scripts/road_car_visual.gd").new()
+	rig.configure(Color("9c2338"))
+	fixture.add_child(rig)
+	root.add_child(fixture)
+	var datum := rig.get("_knuckles") as Array
+	for item in [[0, .07], [3, -.07]]:
+		var knuckle := datum[int(item[0])] as Node3D
+		var pad := StaticBody3D.new()
+		var pad_shape := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = Vector3(.4, .1, .4)
+		pad_shape.shape = box
+		pad.add_child(pad_shape)
+		pad.position = fixture.to_global(Vector3(knuckle.position.x, -.825 + float(item[1]) - .05, knuckle.position.z))
+		root.add_child(pad)
+	for i in 3:
+		await physics_frame
+	rig.sample_suspension(fixture.get_rid(), true, .5)
+	var offsets: Vector4 = rig.get_motion_state()["suspension_offsets"]
+	if offsets.x < .009 or offsets.x > .0101 or absf(offsets.y) > .0001 \
+			or absf(offsets.z) > .0001 or offsets.w > -.044 or offsets.w < -.0451:
+		_fail("Independent road contact, bump clamp, droop clamp or missing support is wrong")
+		return
+	var rig_wheels: Array = rig.get("_wheels")
+	var rig_brakes: Array = rig.get("_brake_calipers")
+	for i in 4:
+		var wheel := rig_wheels[i] as Node3D
+		var brake := rig_brakes[i] as Node3D
+		if absf(wheel.global_position.y - brake.global_position.y) > .0001:
+			_fail("Suspension separated the brake caliper from its wheel")
+			return
+	rig.sample_suspension(fixture.get_rid(), false, .75)
+	var settled: Vector4 = rig.get_motion_state()["suspension_offsets"]
+	if settled.length() > .0001:
+		_fail("Inactive suspension did not settle")
+		return
+	rig.sample_suspension(fixture.get_rid(), true, .5)
+	rig.reset_suspension()
+	if rig.get_motion_state()["suspension_offsets"] != Vector4.ZERO:
+		_fail("Transient suspension did not reset")
 		return
 	print("CINDER_R9_SMOKE PASS")
 	quit()
