@@ -20,6 +20,7 @@ PAINT, DARK, ALLOY, GLASS, SEAT, LEATHER, HEAD, TAIL, REVERSE, BELT, TYRE, CARBO
 SEAM, GRILLE, PROJECTOR, FORGED, REFLECTOR = range(15, 20)
 CALIPER = 20
 HEAD_HOUSING = 21
+HEAD_SEAL = 22
 SIDE_ROWS = (0., .09, .22, .35, .49, .66, .81, .93, 1.)
 # The visible wheel-arch lip follows a circular tire clearance envelope,
 # then returns smoothly to the rocker. Width includes the rocker transition.
@@ -572,6 +573,36 @@ def deck_opening(surfaces, body, sign, a, b, low, high, kind):
         x,y,depth = cover_point(u,z)
         return x,y-cover_thickness,depth
 
+    def seal_point(u,z):
+        # A molded EPDM perimeter seal sits *behind* the bonded cover, with
+        # 1.9mm rubber radius and a nominal 2mm air separation from its
+        # inner polycarbonate face. Its path follows the original lens edge.
+        return on_deck(body,u,z,-.0115)
+
+    def bonded_perimeter_seal():
+        # Continuous coverage along all four sides of the glazed opening.
+        # Section-to-section tube caps are hidden under the seal's next ring.
+        for outer in (cols[0],cols[-1]):
+            for start,end in zip(steps,steps[1:]):
+                tube(surfaces[HEAD_SEAL],seal_point(outer,start),
+                     seal_point(outer,end),.0019,10)
+        for at_z in (steps[0],steps[-1]):
+            for left,right in zip(cols,cols[1:]):
+                tube(surfaces[HEAD_SEAL],seal_point(left,at_z),
+                     seal_point(right,at_z),.0019,10)
+
+    def retaining_fasteners():
+        # Flush torx-like anchors on the inner bracket, located beneath
+        # the cover rather than floating above the bonded clear glazing.
+        for at_z in (a+.094,b-.094):
+            for edge, direction in ((cols[0],1),(cols[-1],-1)):
+                lateral=edge+direction*.018
+                x,y,z=on_deck(body,lateral,at_z,-.018)
+                ellipsoid(surfaces[ALLOY],(x,y,z),
+                          (.005,.0029,.007),rings=4,segments=10)
+                ellipsoid(surfaces[DARK],(x,y+.0028,z),
+                          (.0024,.0006,.0035),rings=3,segments=10)
+
     def bonded_cover_cell(u,v,start,end):
         # Upper and lower skins with deliberately opposing normals. A small
         # perimeter skirt creates an actual visible lens edge in close-ups.
@@ -612,6 +643,8 @@ def deck_opening(surfaces, body, sign, a, b, low, high, kind):
             quad(surfaces[CARBON], on_deck(body,u,z), on_deck(body,v,z),
                  on_deck(body,v,z+direction*.012,band_depth),on_deck(body,u,z+direction*.012,band_depth),(0,1,0))
     if kind == 'head':
+        bonded_perimeter_seal()
+        retaining_fasteners()
         # Two separately turned optic modules sit inside each bonded cover.
         for lateral,z,radius in ((.699,a+.125,.043),(.770,a+.244,.032)):
             projector(surfaces,on_deck(body,sign*lateral,z,-.063),radius)
@@ -991,6 +1024,7 @@ MATERIALS = [
         ('MarkerReflector',(.36,.071,.025),.11,.32),
         ('BrakeCaliper',(.55,.145,.075),.34,.32),
         ('HeadlampReflectorHousing',(.19,.245,.28),.67,.30),
+        ('HeadlampPerimeterSeal',(.022,.025,.026),.00,.87),
     )
 ]
 MATERIALS[PAINT]['extensions'] = {'KHR_materials_clearcoat': {'clearcoatFactor': .78, 'clearcoatRoughnessFactor': .12}}
