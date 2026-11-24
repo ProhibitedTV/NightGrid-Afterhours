@@ -3,6 +3,8 @@ const Materials = preload("res://scripts/material_library.gd")
 const BusCoachwork = preload("res://scripts/bus_coachwork.gd")
 const CarCoachwork = preload("res://scripts/civilian_car_coachwork.gd")
 const StreamProfile = preload("res://scripts/streaming_profile.gd")
+const Crumple = preload("res://scripts/vehicle_crumple.gd")
+const CrashFX = preload("res://scripts/vehicle_crash_fx.gd")
 ## Lightweight NPC street vehicle. Follows lane centerlines, obeys stop bars,
 ## slows for vehicles ahead and dwells at marked bus stops.
 var route: Array[Vector3] = []
@@ -27,6 +29,12 @@ const HANDOFF_TOLERANCE = 0.55
 const DETOUR_MAX_POINTS = 81
 static var _wheel_sets: Dictionary = {}
 static var _body_shapes: Dictionary = {}
+var _crash_zones := Vector2.ZERO
+var _crash_condition := 100.0
+var _crash_hold := 0.0
+var _crash_cooldown := 0.0
+var _coach: MeshInstance3D
+var _pristine_coach: ArrayMesh
 
 func setup(path: Array[Vector3], first_index: int, position_at: Vector3, bus: bool, identifier: String, tint: Color, signal_controller: Node, owner_fleet: Node) -> void:
 	buses = bus
@@ -59,7 +67,8 @@ func lease_ambient(path: Array[Vector3], entry: Dictionary) -> void:
 	last_served = -1
 	laps = 0
 	_leased = true
-	($CivilianCarCoachwork as MeshInstance3D).mesh = CarCoachwork.mesh_for(paint)
+	_pristine_coach = CarCoachwork.mesh_for(paint)
+	_reset_crash()
 	collision_layer = 1
 	collision_mask = 1
 	reset_physics_interpolation()
@@ -67,6 +76,7 @@ func lease_ambient(path: Array[Vector3], entry: Dictionary) -> void:
 	set_physics_process(true)
 
 func park_ambient() -> void:
+	_reset_crash()
 	set_physics_process(false)
 	collision_layer = 0
 	collision_mask = 0
@@ -77,7 +87,7 @@ func park_ambient() -> void:
 	_leased = false
 
 func can_recycle() -> bool:
-	return not _detour_hold and not finite_detour_active()
+	return _crash_hold <= 0.0 and not _detour_hold and not finite_detour_active()
 
 func _on_loop_leg(at: Vector3, index: int) -> bool:
 	if route.size()<2 or index<0 or index>=route.size():
@@ -129,6 +139,12 @@ func _reset_detour() -> void:
 	_detour_rejoin = -1
 
 func _physics_process(delta: float) -> void:
+	_crash_cooldown = maxf(0.0, _crash_cooldown - delta)
+	if _crash_hold > 0.0:
+		_crash_hold = maxf(0.0, _crash_hold - delta)
+		speed = 0.0
+		velocity = Vector3.ZERO
+		return
 	if route.is_empty() or signals == null or fleet == null:
 		return
 	if dwell_remaining > 0.0:
@@ -165,7 +181,7 @@ func _physics_process(delta: float) -> void:
 	var direction := toward.normalized()
 	if direction.length_squared() < 0.001:
 		return
-	var cap := cruise_speed
+	var cap := cruise_speed * lerpf(.35, 1.0, _crash_condition / 100.0)
 	cap = float(signals.call("approach_speed_cap", global_position, direction, cap))
 	if _leased:
 		cap = float(fleet.call("pooled_speed_cap", global_position, direction, cap))
@@ -197,8 +213,66 @@ func _physics_process(delta: float) -> void:
 	velocity = direction * speed
 	StreamProfile.accumulate(driving_started, "traffic_control_including_headway")
 	var collision_started := StreamProfile.begin()
+	var incoming := velocity
 	move_and_slide()
 	StreamProfile.accumulate(collision_started, "traffic_move_and_slide")
+	if _crash_cooldown <= 0.0:
+		_resolve_crash(incoming)
+
+func _resolve_crash(incoming: Vector3) -> void:
+	var strongest := 9.0
+	var at := Vector3.ZERO
+	var normal := Vector3.ZERO
+	var other: Node
+	for i in get_slide_collision_count():
+		var contact := get_slide_collision(i)
+		var n := contact.get_normal()
+		if absf(n.y) >= .5:
+			continue
+		n = Vector3(n.x, 0, n.z).normalized()
+		var closing := -(incoming - contact.get_collider_velocity()).dot(n)
+		if closing > strongest:
+			strongest = closing
+			at = contact.get_position()
+			normal = n
+			other = contact.get_collider() as Node
+	if normal != Vector3.ZERO:
+		receive_vehicle_impact(at, normal, strongest, 1740.0)
+		if is_instance_valid(other) and other.has_method("receive_vehicle_impact"):
+			other.call("receive_vehicle_impact", at, -normal, strongest, 9500.0 if buses else 1500.0)
+
+func receive_vehicle_impact(world_contact: Vector3, direction: Vector3, closing: float, striking_mass: float) -> void:
+	if _crash_cooldown > 0.0 or closing < 6.0 or not is_finite(closing) or not is_finite(striking_mass) or striking_mass <= 0.0 or not world_contact.is_finite() or not direction.is_finite():
+		return
+	var mass := 9500.0 if buses else 1500.0
+	var severity := closing * lerpf(.5, 1.0, striking_mass / (mass + striking_mass))
+	var local := to_local(world_contact)
+	var end := 0 if local.z <= 0.0 else 1
+	_crash_zones[end] = minf(1.0, _crash_zones[end] + clampf((severity - 4.0) / 26.0, .03, .95))
+	_crash_condition = maxf(0.0, _crash_condition - clampf((severity - 3.0) * 1.8, 1.0, 60.0))
+	_crash_cooldown = .65
+	# Stop after a serious hit, then limp along the existing certified route.
+	# Never indefinitely strand bus passengers or jam the fixed traffic fleet.
+	_crash_hold = maxf(_crash_hold, clampf(severity * .27, 1.0, 7.0))
+	speed = 0.0
+	velocity = Vector3.ZERO
+	_update_crash_visual()
+	CrashFX.burst(self, world_contact, -direction, severity)
+
+func _update_crash_visual() -> void:
+	if is_instance_valid(_coach) and _pristine_coach != null:
+		var offset := 1.8 if buses else 0.0
+		var mesh := Crumple.build(_pristine_coach, -1.0, _crash_zones.x, offset)
+		_coach.mesh = Crumple.build(mesh, 1.0, _crash_zones.y, offset)
+	CrashFX.sync_smoke(self, _crash_condition, Vector4(_crash_zones.x, _crash_zones.y, 0, 0), Vector3(0, -.5 if buses else .12, -3.65 if buses else -1.55))
+
+func _reset_crash() -> void:
+	_crash_zones = Vector2.ZERO
+	_crash_condition = 100.0
+	_crash_hold = 0.0
+	_crash_cooldown = 0.0
+	CrashFX.clear_debris(self)
+	_update_crash_visual()
 
 func is_boardable() -> bool:
 	return buses and dwell_remaining > 0.05
@@ -207,10 +281,14 @@ func alight_position() -> Vector3:
 	return global_position + global_transform.basis.x * 6.5 + Vector3(0.0, -0.4, 0.0)
 
 func snapshot() -> Dictionary:
-	return {"id": vehicle_id, "position": [global_position.x, global_position.y, global_position.z],
+	var state := {"id": vehicle_id, "position": [global_position.x, global_position.y, global_position.z],
 		"yaw": rotation.y, "next_index": next_index, "speed": speed,
 		"dwell": dwell_remaining, "last_served": last_served, "laps": laps,
 		"detour_interrupted": finite_detour_active() or _detour_hold}
+	# Ambient leases are intentionally transient; fixed traffic can round-trip.
+	if not _leased and _crash_zones != Vector2.ZERO:
+		state["crash"] = [_crash_zones.x, _crash_zones.y, _crash_condition, _crash_hold]
+	return state
 
 func apply_snapshot(data: Dictionary) -> void:
 	if str(data.get("id", "")) != vehicle_id:
@@ -229,6 +307,16 @@ func apply_snapshot(data: Dictionary) -> void:
 	dwell_remaining = clampf(float(data.get("dwell", 0.0)), 0.0, 8.0)
 	last_served = clampi(int(data.get("last_served", -1)), -1, stop_points.size() - 1)
 	laps = maxi(0, int(data.get("laps", 0)))
+	_reset_crash()
+	var saved: Variant = data.get("crash", [])
+	if not _leased and saved is Array and saved.size() == 4:
+		for value in saved:
+			if not (value is float or value is int) or not is_finite(float(value)):
+				return
+		_crash_zones = Vector2(clampf(float(saved[0]), 0.0, 1.0), clampf(float(saved[1]), 0.0, 1.0))
+		_crash_condition = clampf(float(saved[2]), 0.0, 100.0)
+		_crash_hold = clampf(float(saved[3]), 0.0, 7.0)
+		_update_crash_visual()
 
 func _build_body() -> void:
 	if not _body_shapes.has(buses):
@@ -241,6 +329,8 @@ func _build_body() -> void:
 	var coach := BusCoachwork.build(paint) if buses else CarCoachwork.build(paint)
 	coach.name = "CityBusCoachwork" if buses else "CivilianCarCoachwork"
 	add_child(coach)
+	_coach = coach as MeshInstance3D
+	_pristine_coach = _coach.mesh as ArrayMesh
 	if not _wheel_sets.has(buses):
 		var radius := 0.44 if buses else CarCoachwork.TIRE_RADIUS
 		_wheel_sets[buses] = [

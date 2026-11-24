@@ -2,6 +2,7 @@ extends Node3D
 ## Articulated visual rig. The existing car owns motion and collision.
 
 const Cars = preload("res://scripts/road_car_catalog.gd")
+const Crumple = preload("res://scripts/vehicle_crumple.gd")
 const Drivetrain = preload("res://scripts/road_car_audio.gd")
 const Cluster = preload("res://scripts/cinder_instrument_cluster.gd")
 const Paint = preload("res://shaders/vehicle_paint.gdshader")
@@ -67,6 +68,8 @@ var _velocity := 0.0
 var _braking := false
 var _occupied := false
 var _damage := Vector4.ZERO
+var _crash_sources: Dictionary = {}
+var _crash_applied := Vector2(-1.0, -1.0)
 
 func configure(paint_color: Color) -> void:
 	_color = paint_color
@@ -95,6 +98,8 @@ func _ready() -> void:
 	_tail = _shell.get_node("TailLenses")
 	_reverse = _shell.get_node("ReverseLenses")
 	_sill = _shell.get_node("SillLenses")
+	for part in [_body_sections[0], _body_sections[1], _head, _projectors, _tail, _reverse]:
+		_crash_sources[part] = part.mesh
 	_steering_wheel = _shell.get_node_or_null("SteeringWheel") as Node3D
 	_build_wheels()
 	_build_lights()
@@ -594,8 +599,36 @@ func _update_lights(occupied: bool, braking: bool, reverse: bool) -> void:
 	for index in _sill_lights.size():
 		_sill_lights[index].visible = night_running and _damage[index + 2] < 0.84
 
+func detaching_parts(previous: Vector4, zones: Vector4) -> Array[MeshInstance3D]:
+	var parts: Array[MeshInstance3D] = []
+	for door in _doors:
+		var side := 2 if float(door["side"]) < 0.0 else 3
+		if previous[side] < .93 and zones[side] >= .93:
+			parts.append(door["part"])
+	return parts
+
 func apply_damage(zones: Vector4) -> void:
 	_damage = zones
+	# Keep damaged wheel camber subtle: retain the authored arch clearance.
+	for index in _knuckles.size():
+		var side := -1.0 if index % 2 == 0 else 1.0
+		var wear := zones.z if side < 0.0 else zones.w
+		_knuckles[index].rotation.z = side * smoothstep(.45, 1.0, wear) * .024
+	# Separate mutable meshes only for damaged ends. Restore the original
+	# shared asset when repaired; never edit an imported resource in place.
+	for end in 2:
+		if is_equal_approx(_crash_applied[end], zones[end]):
+			continue
+		_crash_applied[end] = zones[end]
+		var parts := [_body_sections[0], _head, _projectors] if end == 0 else [_body_sections[1], _tail, _reverse]
+		for part in parts:
+			var source: ArrayMesh = _crash_sources[part]
+			var overrides: Array[Material] = []
+			for surface in source.get_surface_count():
+				overrides.append(part.get_surface_override_material(surface))
+			part.mesh = Crumple.build(source, -1.0 if end == 0 else 1.0, zones[end])
+			for surface in overrides.size():
+				part.set_surface_override_material(surface, overrides[surface])
 	var front := Vector3(0, -0.095, 0.175) * zones.x
 	var rear := Vector3(0, -0.071, -0.143) * zones.y
 	_body_sections[0].position = front
@@ -612,11 +645,18 @@ func apply_damage(zones: Vector4) -> void:
 	_body_sections[1].rotation.x = zones.y * 0.039
 	_body_sections[0].set_instance_shader_parameter("impact", zones.x)
 	_body_sections[1].set_instance_shader_parameter("impact", zones.y)
+	_body_sections[2].set_instance_shader_parameter("impact", maxf(maxf(zones.x, zones.y), maxf(zones.z, zones.w) * .8))
 	for door in _doors:
 		var panel: MeshInstance3D = door["part"]
 		var wear := zones.z if float(door["side"]) < 0.0 else zones.w
 		panel.set_instance_shader_parameter("impact", wear)
 		panel.scale.x = 1.0 - wear * 0.21
+		panel.visible = wear < .93
+		if not panel.visible:
+			door["motion"] = 0.0
+			door["target"] = 0.0
+			door["hold"] = -1.0
+			panel.rotation = Vector3.ZERO
 	_update_lights(_occupied, _braking, _velocity < -0.35)
 
 func _angle(door: Dictionary, value: float) -> Vector3:
@@ -628,7 +668,7 @@ func _door_index(point: Vector3, front_only: bool) -> int:
 	var selected := -1
 	for i in _doors.size():
 		var panel: MeshInstance3D = _doors[i]["part"]
-		if front_only and not panel.name.ends_with("0"):
+		if not panel.visible or (front_only and not panel.name.ends_with("0")):
 			continue
 		var center := panel.global_position + _shell.global_basis.z * float(_doors[i]["reach"]) * 0.50
 		var distance := point.distance_squared_to(center)
@@ -691,6 +731,8 @@ func close_doors_immediate() -> void:
 
 func _move_doors(delta: float, moving: bool) -> void:
 	for door in _doors:
+		if not (door["part"] as MeshInstance3D).visible:
+			continue
 		if moving:
 			door["target"] = 0.0
 			door["hold"] = -1.0

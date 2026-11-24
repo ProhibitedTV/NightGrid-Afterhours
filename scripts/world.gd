@@ -1657,7 +1657,9 @@ func _capture_snapshot() -> Dictionary:
 			"yaw": car.rotation.y, "claimed": car.has_meta("claimed"),
 			"condition": car.get("condition")
 		}
-		if car.get("model_id") == RoadCars.R9:
+		# Preserve pristine legacy sedan records; damaged sedans now use the
+		# same optional four-channel field as Cinder. Old saves still load.
+		if car.get("model_id") == RoadCars.R9 or car.get("damage_zones") != Vector4.ZERO:
 			var zones: Vector4 = car.get("damage_zones")
 			saved["damage"] = [zones.x, zones.y, zones.z, zones.w]
 		stored_cars.append(saved)
@@ -1745,8 +1747,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 			c.global_position = Vector3(float(pos[0]), float(pos[1]), float(pos[2]))
 		c.rotation.y = float(info.get("yaw", c.rotation.y))
 		c.set("condition", clampf(float(info.get("condition", 100.0)), 18.0, 100.0))
-		if c.get("model_id") == RoadCars.R9:
-			c.call("restore_damage", info.get("damage", []))
+		c.call("restore_damage", info.get("damage", []))
 		if bool(info.get("claimed", false)):
 			c.set_meta("claimed", true)
 	var selected := int(data.get("occupied_car", -1))

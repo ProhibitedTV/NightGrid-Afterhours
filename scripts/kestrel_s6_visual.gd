@@ -1,5 +1,6 @@
 extends Node3D
 const AudioMix = preload("res://scripts/audio_mix.gd")
+const Crumple = preload("res://scripts/vehicle_crumple.gd")
 ## KESTREL S6 — an original player-drivable, four-seat EV hero body.
 ## Authored rear coachwork shares one imported mesh set across the fleet.
 ## The parent CharacterBody3D owns all real movement, collision and saves.
@@ -34,6 +35,11 @@ var _wheel_angle := 0.0
 var _brake_active := false
 var _reversing := false
 var _speed := 0.0
+var _damage := Vector4.ZERO
+var _crash_front: Dictionary = {}
+var _crash_rear: Dictionary = {}
+var _crash_mounts: Dictionary = {}
+var _crash_lenses: Dictionary = {}
 static var _front_shell: ArrayMesh
 static var _brake_material: StandardMaterial3D
 static var _reverse_material: StandardMaterial3D
@@ -60,6 +66,66 @@ func _ready() -> void:
 	_build_sound()
 	if _police:
 		_build_police_equipment()
+	_cache_crash_parts()
+
+func _cache_crash_parts() -> void:
+	var shell := get_node("KestrelMonocoque") as MeshInstance3D
+	_crash_front[shell] = shell.mesh
+	var rear := get_node("RearAssembly")
+	for label in ["RearHatchSolid", "HatchFrame", "RearLowerTrim", "LampHousingL", "LampHousingR", "BrakeLensL", "BrakeLensR", "ReverseLensL", "ReverseLensR"]:
+		var part := rear.get_node(label) as MeshInstance3D
+		_crash_rear[part] = part.mesh
+	# Direct front hardware uses local mount coordinates, not new collision.
+	for child in get_children():
+		if child is MeshInstance3D and child.position.z < -1.80:
+			_crash_mounts[child] = child.position
+			var mat := child.material_override as StandardMaterial3D
+			if mat != null and mat.emission_enabled:
+				_crash_lenses[child] = mat
+	for beam in _beams:
+		_crash_mounts[beam] = beam.position
+
+func _deform_end(parts: Dictionary, end_sign: float, amount: float) -> void:
+	for part in parts:
+		var source: ArrayMesh = parts[part]
+		var overrides: Array[Material] = []
+		for index in source.get_surface_count():
+			overrides.append(part.get_surface_override_material(index))
+		part.mesh = Crumple.build(source, end_sign, amount)
+		for index in overrides.size():
+			part.set_surface_override_material(index, overrides[index])
+
+func detaching_parts(previous: Vector4, zones: Vector4) -> Array[MeshInstance3D]:
+	var parts: Array[MeshInstance3D] = []
+	if previous.x < .90 and zones.x >= .90:
+		parts.append(get_node("FrontSplitter") as MeshInstance3D)
+	return parts
+
+func apply_damage(zones: Vector4) -> void:
+	if not is_equal_approx(zones.x, _damage.x):
+		_deform_end(_crash_front, -1.0, zones.x)
+		for part in _crash_mounts:
+			var at: Vector3 = _crash_mounts[part]
+			part.position = at + Crumple.vertex_delta(at, -1.0, zones.x)
+		for lens in _crash_lenses:
+			lens.material_override = _mat("RUBBER", Color("26272a")) if zones.x > 0.71 else _crash_lenses[lens]
+	if not is_equal_approx(zones.y, _damage.y):
+		_deform_end(_crash_rear, 1.0, zones.y)
+	_damage = zones
+	get_node("FrontSplitter").visible = zones.x < .90
+	for label in ["SteeringLeft", "RearLeft", "SteeringRight", "RearRight"]:
+		var hub := get_node(label) as Node3D
+		var left: bool = label.ends_with("Left")
+		var wear := zones.z if left else zones.w
+		hub.rotation.z = (-1.0 if left else 1.0) * smoothstep(.45, 1.0, wear) * .035
+	if zones.x > 0.71:
+		for beam in _beams:
+			beam.hide()
+	# Refresh lamp state immediately after repair or restore.
+	for lens in _brake_lenses:
+		lens.material_override = _mat("RUBBER", Color("26272a")) if zones.y > 0.75 else (_brake_material if _brake_active else null)
+	for lens in _reverse_lenses:
+		lens.material_override = _mat("RUBBER", Color("26272a")) if zones.y > 0.75 else (_reverse_material if _reversing else null)
 
 func update_motion(speed: float, steer: float, braking: bool,
 		occupied: bool, police: bool, delta: float) -> void:
@@ -76,16 +142,16 @@ func update_motion(speed: float, steer: float, braking: bool,
 	if braking != _brake_active:
 		_brake_active = braking
 		for lens in _brake_lenses:
-			lens.material_override = _brake_material if braking else null
+			lens.material_override = _mat("RUBBER", Color("26272a")) if _damage.y > 0.75 else (_brake_material if braking else null)
 	var reversing := speed < -0.4
 	if reversing != _reversing:
 		_reversing = reversing
 		for lens in _reverse_lenses:
-			lens.material_override = _reverse_material if reversing else null
+			lens.material_override = _mat("RUBBER", Color("26272a")) if _damage.y > 0.75 else (_reverse_material if reversing else null)
 	for beam in _beams:
 		# Keep unshadowed headlamps bounded to occupied and pursuing cars,
 		# not the whole parked fleet.
-		beam.visible = occupied or police
+		beam.visible = (occupied or police) and _damage.x <= 0.71
 	if _police:
 		_signal_clock = fposmod(_signal_clock + delta * 3.8, 2.0)
 		var blue_on := _signal_clock < 1.0
