@@ -2,6 +2,7 @@ extends Node3D
 ## Articulated visual rig. The existing car owns motion and collision.
 
 const Cars = preload("res://scripts/road_car_catalog.gd")
+const Crumple = preload("res://scripts/vehicle_crumple.gd")
 const Drivetrain = preload("res://scripts/road_car_audio.gd")
 const Cluster = preload("res://scripts/cinder_instrument_cluster.gd")
 const Paint = preload("res://shaders/vehicle_paint.gdshader")
@@ -67,6 +68,8 @@ var _velocity := 0.0
 var _braking := false
 var _occupied := false
 var _damage := Vector4.ZERO
+var _crash_sources: Dictionary = {}
+var _crash_applied := Vector2(-1.0, -1.0)
 
 func configure(paint_color: Color) -> void:
 	_color = paint_color
@@ -95,6 +98,8 @@ func _ready() -> void:
 	_tail = _shell.get_node("TailLenses")
 	_reverse = _shell.get_node("ReverseLenses")
 	_sill = _shell.get_node("SillLenses")
+	for part in [_body_sections[0], _body_sections[1], _head, _projectors, _tail, _reverse]:
+		_crash_sources[part] = part.mesh
 	_steering_wheel = _shell.get_node_or_null("SteeringWheel") as Node3D
 	_build_wheels()
 	_build_lights()
@@ -596,6 +601,16 @@ func _update_lights(occupied: bool, braking: bool, reverse: bool) -> void:
 
 func apply_damage(zones: Vector4) -> void:
 	_damage = zones
+	# Separate mutable meshes only for damaged ends. Restore the original
+	# shared asset when repaired; never edit an imported resource in place.
+	for end in 2:
+		if is_equal_approx(_crash_applied[end], zones[end]):
+			continue
+		_crash_applied[end] = zones[end]
+		var parts := [_body_sections[0], _head, _projectors] if end == 0 else [_body_sections[1], _tail, _reverse]
+		for part in parts:
+			var source: ArrayMesh = _crash_sources[part]
+			part.mesh = Crumple.build(source, -1.0 if end == 0 else 1.0, zones[end])
 	var front := Vector3(0, -0.095, 0.175) * zones.x
 	var rear := Vector3(0, -0.071, -0.143) * zones.y
 	_body_sections[0].position = front

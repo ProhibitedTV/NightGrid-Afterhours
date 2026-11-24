@@ -220,6 +220,12 @@ jobs:
         run: godot --headless --path . --script res://tests/hero_vehicle_smoke.gd
       - name: Validate playable Cinder R9 steering, doors, brake assembly, lights and saves
         run: godot --headless --path . --script res://tests/cinder_r9_smoke.gd
+      - name: Verify actual vehicle impact, bounded coachwork crumple, repair and disabled wreck
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 90s godot --headless --path . --script res://tests/vehicle_crash_smoke.gd 2>&1 | tee /tmp/nightgrid-crash.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-crash.log; then exit 1; fi
       - name: Audit closed Kestrel rear hatch manifold, trunk bulkhead and police variant
         run: godot --headless --path . --script res://tests/kestrel_rear_closure_smoke.gd
       - name: Validate Central Exchange junction architecture and signal-safe lighting

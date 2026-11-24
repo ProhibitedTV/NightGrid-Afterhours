@@ -113,6 +113,11 @@ func _physics_process(delta: float) -> void:
 		var target_speed: float = PoliceDrive.safe_speed(responding and police_priority, toward.length(), turn_error, clear, signal_cap, police_night)
 		braking = speed > target_speed + 0.1
 		speed = move_toward(speed, target_speed, (BRAKE if braking else 8.0) * delta)
+	elif occupied and condition <= 18.0:
+		# A wreck stays physical, can coast to a stop and be exited/repaired,
+		# but no power or reverse drive is available.
+		speed = move_toward(speed, 0.0, BRAKE * delta)
+		braking = true
 	elif occupied:
 		throttle = Input.get_action_strength("drive_accelerate") - Input.get_action_strength("drive_reverse")
 		var steering := Input.get_axis("move_left", "move_right")
