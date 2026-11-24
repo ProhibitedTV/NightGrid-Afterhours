@@ -1,0 +1,5 @@
+# Shared practical light refresh consolidation
+
+The existing day/night controller supplies a 0.20-second practical-light notification even when time is paused. Remove the extra 0.45-second independent light timer. At unchanged horizontal focus, retain the deterministic sorted fixture selection; update energy only when twilight actually changes. Daylight short-circuits repeated disabled-state updates. Horizontal motion recomputes selection exactly as before, preserving portal priority, district colors, placement, ranges and eight reusable shadowless lights. Expose selection_refreshes in the existing diagnostic stats for native frame-time review.
+
+Regression tests preserve exact fixture anchors, daytime-off behavior, portal allocation and streaming. The new check verifies no additional selection work for twelve repeated night ticks or a vertical-only move, and one rebuild for a district move. No claimed FPS gain until native measurements.

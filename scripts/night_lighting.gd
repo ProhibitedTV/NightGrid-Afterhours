@@ -23,7 +23,13 @@ var _fixtures: Array[Dictionary] = []
 var _pool: Array[OmniLight3D] = []
 var _focus := Vector3.ZERO
 var _night := 0.0
-var _tick := 0.0
+# The day/night clock already refreshes us every 0.20s. Selection depends
+# only on horizontal focus; dusk energy changes need no fixture re-sort.
+var _selected_focus := Vector2.INF
+var _selected_poles: Array[Dictionary] = []
+var _selected_retail: Array[Dictionary] = []
+var _selection_refreshes := 0
+var _last_applied_night := -1.0
 var _active_street := 0
 var _active_shop := 0
 var _active_portals := 0
@@ -140,14 +146,9 @@ func get_practical_light_stats() -> Dictionary:
 		"active_storefronts": _active_shop,
 		"active_walk_in_portals": _active_portals,
 		"active": active_light_count(),
-		"shadow_casting": 0
+		"shadow_casting": 0,
+		"selection_refreshes": _selection_refreshes
 	}
-
-func _process(delta: float) -> void:
-	_tick += delta
-	if _tick >= 0.45:
-		_tick = 0.0
-		_refresh()
 
 func _nearby(kind: String) -> Array[Dictionary]:
 	var candidates: Array[Dictionary] = []
@@ -171,14 +172,55 @@ func _nearby(kind: String) -> Array[Dictionary]:
 func _refresh() -> void:
 	if _pool.is_empty():
 		return
-	_active_street = 0
-	_active_shop = 0
-	_active_portals = 0
+	var horizontal := Vector2(_focus.x, _focus.z)
 	if _night < 0.01:
+		if _last_applied_night >= 0.0 and _last_applied_night < .01:
+			return
+		_active_street = 0
+		_active_shop = 0
+		_active_portals = 0
 		for lamp in _pool:
 			lamp.visible = false
 			lamp.light_energy = 0.0
+		_last_applied_night = _night
 		return
+	var moved := horizontal != _selected_focus
+	if moved:
+		_rebuild_selection(horizontal)
+	if not moved and _night == _last_applied_night:
+		return
+	_last_applied_night = _night
+	_active_street = 0
+	_active_shop = 0
+	_active_portals = 0
+	for i in range(MAX_LOCAL_LIGHTS):
+		var use_pole := i < STREET_SLOTS
+		var selection := _selected_poles if use_pole else _selected_retail
+		var index := i if use_pole else i - STREET_SLOTS
+		var lamp := _pool[i]
+		var enabled := index < selection.size()
+		lamp.visible = enabled
+		if enabled:
+			var fixture: Dictionary = selection[index]
+			var in_portal := str(fixture["kind"]) == "portal"
+			if moved:
+				lamp.position = fixture["position"]
+				lamp.light_color = fixture["color"]
+				lamp.omni_range = 18.0 if use_pole else (PORTAL_RANGE if in_portal else 11.5)
+			lamp.light_energy = (1.8 if use_pole else (
+				PORTAL_ENERGY if in_portal else 1.2)) * _night
+			if use_pole:
+				_active_street += 1
+			elif in_portal:
+				_active_portals += 1
+			else:
+				_active_shop += 1
+		else:
+			lamp.light_energy = 0.0
+
+func _rebuild_selection(horizontal: Vector2) -> void:
+	_selected_focus = horizontal
+	_selection_refreshes += 1
 	# Dedicated allocation gives streetlights and shops both a real pool:
 	# neither can displace every instance of the other in a dense district.
 	var poles := _nearby("street")
@@ -199,26 +241,5 @@ func _refresh() -> void:
 		if retail_targets.size() >= MAX_LOCAL_LIGHTS - STREET_SLOTS:
 			break
 		retail_targets.append(entry)
-	for i in range(MAX_LOCAL_LIGHTS):
-		var use_pole := i < STREET_SLOTS
-		var selection := poles if use_pole else retail_targets
-		var index := i if use_pole else i - STREET_SLOTS
-		var lamp := _pool[i]
-		var enabled := index < selection.size()
-		lamp.visible = enabled
-		if enabled:
-			var fixture: Dictionary = selection[index]
-			var in_portal := str(fixture["kind"]) == "portal"
-			lamp.position = fixture["position"]
-			lamp.light_color = fixture["color"]
-			lamp.omni_range = 18.0 if use_pole else (PORTAL_RANGE if in_portal else 11.5)
-			lamp.light_energy = (1.8 if use_pole else (
-				PORTAL_ENERGY if in_portal else 1.2)) * _night
-			if use_pole:
-				_active_street += 1
-			elif in_portal:
-				_active_portals += 1
-			else:
-				_active_shop += 1
-		else:
-			lamp.light_energy = 0.0
+	_selected_poles = poles
+	_selected_retail = retail_targets

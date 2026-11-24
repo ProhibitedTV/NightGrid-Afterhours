@@ -1447,6 +1447,7 @@ func _build_world_systems() -> void:
 	add_child(day_night)
 	day_night.call("configure", world_environment, sun_light, city_details, street_lights, hero_intersection)
 	day_night.call("register_surface_receiver", get_node("PhotoRoadNetwork"))
+	day_night.call("register_surface_receiver", wet_streets)
 	venue_system = VenueSystemScript.new()
 	venue_system.name = "SocialVenues"
 	add_child(venue_system)
