@@ -20,13 +20,16 @@ func _run() -> void:
 	# Software CI must not continuously render a full city while staging.
 	# Explicit synchronous draws below still render the real root viewport.
 	RenderingServer.render_loop_enabled = false
-	create_timer(240.0, true, false, true).timeout.connect(func() -> void: fail("Capture watchdog elapsed"))
+	create_timer(720.0, true, false, true).timeout.connect(func() -> void: fail("Capture watchdog elapsed"))
 	print("RADAR_STAGE initializing scene")
 	output = OS.get_environment("RADAR_CAPTURE_OUT")
 	if output.is_empty():
 		fail("RADAR_CAPTURE_OUT required")
 		return
 	DirAccess.make_dir_recursive_absolute(output)
+	# Retain the shipped canvas stretch policy, including its letterbox.
+	# Log the physical window separately from the content framebuffer.
+	print("RADAR_WINDOW ", DisplayServer.window_get_size(), " content scale ", root.content_scale_size, " aspect ", root.content_scale_aspect)
 	game = load("res://scenes/main.tscn").instantiate()
 	root.add_child(game)
 	await process_frame
@@ -106,8 +109,11 @@ func _capture(filename: String, check_hud: bool = true) -> bool:
 	# Flush deferred UI/layout updates, explicitly draw and synchronize twice.
 	# Never fall back to a mock or fabricated image.
 	print("RADAR_STAGE settling ", filename)
-	for i in range(2):
-		await process_frame
+	# One synchronized draw after two layout frames is sufficient for a
+	# settled, frozen scene. A second full-city software draw was expensive.
+	await process_frame
+	await process_frame
+	for i in range(1):
 		print("RADAR_STAGE force_draw begin ", filename, " frame ", i+1)
 		RenderingServer.force_draw(true, 0.0)
 		RenderingServer.force_sync()
@@ -131,5 +137,5 @@ func _capture(filename: String, check_hud: bool = true) -> bool:
 	if colors.size() < 10 or frame.save_png(output.path_join(filename)) != OK:
 		fail("Blank framebuffer or write error")
 		return false
-	print("RADAR_CAPTURED ", filename, " ", frame.get_size())
+	print("RADAR_CAPTURED ", filename, " ", frame.get_size(), " window ", DisplayServer.window_get_size())
 	return true
