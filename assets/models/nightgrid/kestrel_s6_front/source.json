@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "id": "nightgrid.kestrel_s6.front_bumper",
+  "status": "creator_review",
+  "units": "metres",
+  "up": "+Y",
+  "forward": "-Z",
+  "pivot": [
+    0,
+    0,
+    0
+  ],
+  "author": "NightGrid Afterhours",
+  "source": "tools/author_kestrel_fascia.py",
+  "license": "Original NightGrid project artwork. No separate public license declared.",
+  "concept": "docs/art/concepts/kestrel_s6/jade_wash_approved_direction.png",
+  "concept_sha256": "cfb3ca8338a7b34aff3bafe41cefbf7348e295cd3421cdc0c0ae7071e07da119",
+  "files": {
+    "fascia_lod0.gltf": "d83c1314daa3a8018d7894838497b9151617679d5d6260e7d24ceb6177303036",
+    "fascia_lod0.bin": "a569dc780c0bc305b8d70be474408ed071a9c2b926cf07a8ed1f4b54474c855e",
+    "fascia_lod1.gltf": "194a6b8020a36e82a39538380c6667252b975825d8deaa097767b77b630d33f3",
+    "fascia_lod1.bin": "09095aeee390ebf72b979cd76f001eef2917f0e03c083daef1e7f88b661fd429",
+    "crimson_micro_normal.png": "6c2574f47ddd4da887d2cbe24ca70c11a8256eef9479cae84131498f10545a5f"
+  },
+  "lods": [
+    {
+      "file": "fascia_lod0.gltf",
+      "triangles": {
+        "BumperCover": 2256,
+        "DuctReturns": 376,
+        "GrilleAndCore": 268
+      }
+    },
+    {
+      "file": "fascia_lod1.gltf",
+      "triangles": {
+        "BumperCover": 848,
+        "DuctReturns": 168,
+        "GrilleAndCore": 134
+      }
+    }
+  ],
+  "semantic_sockets": {
+    "Mount_L": [
+      -0.93,
+      0.158,
+      -2.177
+    ],
+    "Mount_R": [
+      0.93,
+      0.158,
+      -2.177
+    ],
+    "Tray_L": [
+      -0.65,
+      -0.369,
+      -2.182
+    ],
+    "Tray_R": [
+      0.65,
+      -0.369,
+      -2.182
+    ],
+    "CoolingCore": [
+      0,
+      -0.062,
+      -2.12
+    ],
+    "TowEye": [
+      0.59,
+      -0.12,
+      -2.24
+    ],
+    "PlateCarrier": [
+      0,
+      0.081,
+      -2.346
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+[gd_resource type="StandardMaterial3D" load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/models/nightgrid/kestrel_s6_front/crimson_micro_normal.png" id="1_normal"]
+
+[resource]
+resource_name = "Kestrel S6 Deep Crimson Basecoat"
+albedo_color = Color(0.566, 0.112, 0.176, 1)
+metallic = 0.58
+metallic_specular = 0.5
+roughness = 0.205
+normal_enabled = true
+normal_scale = 0.10
+normal_texture = ExtResource("1_normal")
+clearcoat_enabled = true
+clearcoat = 1.0
+clearcoat_roughness = 0.115
