@@ -171,8 +171,11 @@ func _build_wheels() -> void:
 	for axle in 2:
 		for side in [-1.0, 1.0]:
 			var steering := Node3D.new()
-			steering.position = Vector3(float(_spec["track"]) * side, tyre, axles[axle])
-			_shell.add_child(steering)
+			# Wheel and fixed-caliper assemblies remain on unsprung chassis
+			# datums while the coachwork moves independently above them.
+			steering.name = "WheelKnuckle%d%s" % [axle, "L" if side < 0.0 else "R"]
+			steering.position = Vector3(float(_spec["track"]) * side, GROUND + tyre, axles[axle])
+			add_child(steering)
 			var detail := MeshInstance3D.new()
 			detail.mesh = _wheel_mesh
 			detail.scale = Vector3(.92, tyre / WHEEL_MODEL_RADIUS, tyre / WHEEL_MODEL_RADIUS)
@@ -247,7 +250,9 @@ func _steering_targets(input: float) -> Vector2:
 
 
 func update_motion(speed: float, steer: float, braking: bool, occupied: bool,
-		throttle: float, wetness: float, delta: float, rolling_distance: float = NAN) -> void:
+		throttle: float, wetness: float, delta: float, rolling_distance: float = NAN,
+		loads: Vector2 = Vector2.ZERO) -> void:
+	_update_body_pose(loads if occupied else Vector2.ZERO, delta)
 	# Real gameplay supplies measured longitudinal travel; isolated art fixtures
 	# can still advance the rig using synthetic speed and elapsed time.
 	var travel := rolling_distance if is_finite(rolling_distance) else speed * maxf(delta, 0.0)
@@ -271,6 +276,19 @@ func update_motion(speed: float, steer: float, braking: bool, occupied: bool,
 	_braking = braking
 	_move_doors(delta, absf(speed) > 2.5)
 	_drivetrain.update(speed, steer, braking, occupied, throttle, wetness, delta)
+
+## Small, damped cosmetic pitch and roll. The limits keep the coachwork
+## close to its authored arch clearance; this is not physical suspension.
+func _update_body_pose(loads: Vector2, delta: float) -> void:
+	var target := Vector3.ZERO
+	if loads.is_finite():
+		target.x = clampf(loads.x * .002, -.018, .018)
+		target.z = clampf(loads.y * .0025, -.022, .022)
+	var blend := 1.0 - exp(-8.0 * maxf(delta, 0.0))
+	_shell.rotation = _shell.rotation.lerp(target, blend)
+
+func reset_body_pose() -> void:
+	_shell.rotation = Vector3.ZERO
 
 func set_lighting_hour(hour: float) -> void:
 	var night := hour >= 18.75 or hour < 6.4
@@ -334,7 +352,7 @@ func _door_index(point: Vector3, front_only: bool) -> int:
 		var panel: MeshInstance3D = _doors[i]["part"]
 		if front_only and not panel.name.ends_with("0"):
 			continue
-		var center := panel.global_position + global_basis.z * float(_doors[i]["reach"]) * 0.50
+		var center := panel.global_position + _shell.global_basis.z * float(_doors[i]["reach"]) * 0.50
 		var distance := point.distance_squared_to(center)
 		if distance < nearest:
 			nearest = distance
@@ -357,7 +375,7 @@ func _can_swing(door: Dictionary, ignore: RID) -> bool:
 	var reach := float(door["reach"])
 	var height := panel.mesh.get_aabb().end.y * 0.72
 	for fraction in [0.28, 0.59, 0.91]:
-		var pose := global_basis * Basis.from_euler(_angle(door, fraction))
+		var pose := _shell.global_basis * Basis.from_euler(_angle(door, fraction))
 		for length in [0.53, 0.91]:
 			var tip := panel.global_position + pose * Vector3(0, height, length * reach)
 			query.transform = Transform3D(Basis.IDENTITY, tip)
@@ -409,7 +427,7 @@ func _move_doors(delta: float, moving: bool) -> void:
 			var panel: MeshInstance3D = door["part"]
 			panel.rotation = _angle(door, smoothstep(0.0, 1.0, next))
 			if (motion == 0.0 and next > 0.0) or (next == 0.0 and motion > 0.0):
-				var latch_point := _shell.position + panel.position + Vector3(0, 0, float(door["reach"]) * .8)
+				var latch_point := to_local(panel.to_global(Vector3(0, 0, float(door["reach"]) * .8)))
 				_drivetrain.door_moved(latch_point, next > motion)
 
 func get_motion_state() -> Dictionary:

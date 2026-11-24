@@ -78,6 +78,8 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_impact_cooldown = maxf(0.0, _impact_cooldown - delta)
+	var speed_before := speed
+	var yaw_before := rotation.y
 	var visual_steer := 0.0
 	var throttle := 0.0
 	var braking := false
@@ -146,7 +148,14 @@ func _physics_process(delta: float) -> void:
 		if specification.is_empty():
 			hero_visual.call("update_motion", speed, visual_steer, braking, occupied, warning, delta)
 		else:
-			hero_visual.call("update_motion", speed, visual_steer, braking, occupied, throttle, road_wetness, delta, rolling_distance)
+			# Cosmetic loads only: use measured travel and heading change; never
+			# tilt the CharacterBody3D or alter its collider/steering policy.
+			var loads := Vector2.ZERO
+			if occupied and is_on_floor() and delta > 0.0:
+				var measured_speed := rolling_distance / delta
+				loads.x = (measured_speed - speed_before) / delta
+				loads.y = -angle_difference(yaw_before, rotation.y) / delta * measured_speed
+			hero_visual.call("update_motion", speed, visual_steer, braking, occupied, throttle, road_wetness, delta, rolling_distance, loads)
 
 func _drive_legacy(throttle: float, steering: float, delta: float) -> void:
 	if throttle > 0.0:
@@ -273,6 +282,7 @@ func restore_damage(saved: Variant) -> void:
 	if not model_id.is_empty():
 		hero_visual.call("apply_damage", damage_zones)
 		hero_visual.call("close_doors_immediate")
+		hero_visual.call("reset_body_pose")
 
 func repair() -> void:
 	condition = 100.0
