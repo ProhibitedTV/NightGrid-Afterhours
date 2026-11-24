@@ -4,6 +4,7 @@ const Model = preload("res://assets/models/nightgrid/courier/morrow_courier.glb"
 const Materials = preload("res://scripts/material_library.gd")
 const ProductArt = preload("res://scripts/consumable_prop.gd")
 const Locomotion = preload("res://scripts/locomotion_policy.gd")
+const TerrainFeet = preload("res://scripts/courier_terrain_feet.gd")
 const GAIT_LOOPS = [&"walk",&"run",&"walk_back",&"strafe_left",&"strafe_right",&"aim_walk",&"aim_run",&"aim_left",&"aim_right"]
 const FOOT_OFFSET = -0.95
 const DRIVER_SEAT = Vector3(-0.52, -0.23, -0.43)
@@ -31,6 +32,7 @@ var _driver_seat := DRIVER_SEAT
 var _weapon_display: Node3D
 var _held_product: Node3D
 var _product_hand: BoneAttachment3D
+var _terrain_feet: SkeletonModifier3D
 const FOOD_ACTIONS = [&"purchase_item",&"drink_item",&"eat_item"]
 
 func _ready() -> void:
@@ -49,6 +51,12 @@ func _ready() -> void:
 	animations.animation_finished.connect(_finish_action)
 	_build_equipment_display()
 	_product_hand = skeleton.get_node("RightHandEquipment")
+	skeleton.modifier_callback_mode_process = Skeleton3D.MODIFIER_CALLBACK_MODE_PROCESS_PHYSICS
+	_terrain_feet = TerrainFeet.new()
+	_terrain_feet.name = "TerrainFeet"
+	_terrain_feet.active = false
+	skeleton.add_child(_terrain_feet)
+	_terrain_feet.call("configure")
 	_play(&"idle", 0.0)
 	set_physics_process(false)
 
@@ -166,6 +174,14 @@ func update_motion(local_velocity: Vector3, on_floor: bool, jumped: bool,
 		_action = &""
 	_choose_pose()
 
+func sample_terrain(body: CharacterBody3D,delta: float) -> void:
+	if is_instance_valid(_terrain_feet):
+		_terrain_feet.call("sample_ground",body,delta,_grounded and not _seat and _action==&"" and _gait_speed<3.5 and not _aiming)
+
+func reset_terrain() -> void:
+	if is_instance_valid(_terrain_feet):
+		_terrain_feet.call("reset")
+
 func play_action(clip: StringName) -> void:
 	if _seat or (clip == &"interact" and (_horizontal.length_squared() > 0.8 or not _grounded)):
 		return
@@ -188,6 +204,7 @@ func sit_in_vehicle(car: Node3D, play_entry: bool, ground_y: float) -> void:
 	position = _driver_seat
 	rotation = Vector3(0.0, PI, 0.0)
 	_seat = true
+	reset_terrain()
 	_clear_product()
 	_horizontal = Vector3.ZERO
 	_reset_gait()
@@ -216,6 +233,7 @@ func return_to_player(player: Node3D) -> void:
 	position = Vector3.UP * FOOT_OFFSET
 	rotation = Vector3(0.0, facing, 0.0)
 	_seat = false
+	reset_terrain()
 	_clear_product()
 	_reset_gait()
 	_grounded = true

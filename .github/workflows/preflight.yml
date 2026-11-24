@@ -126,6 +126,13 @@ jobs:
           name: courier-gait-profile
           path: /tmp/nightgrid-gait-profile.json
           if-no-files-found: error
+      - name: Validate bounded player terrain foot correction
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/terrain_feet_smoke.gd 2>&1 | tee /tmp/nightgrid-terrain-feet.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-terrain-feet.log; then exit 1; fi
+          grep -q "TERRAIN_FEET PASS:" /tmp/nightgrid-terrain-feet.log
       - name: Verify the baked city textures match the original generator byte for byte
         run: godot --headless --path . --script res://tools/bake_city_material_maps.gd -- --verify
       - name: Validate deterministic road routes, intersection turns and off-road access

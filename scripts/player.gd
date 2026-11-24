@@ -62,6 +62,8 @@ func tick_stamina(delta: float, wants_sprint: bool, moving: bool, wants_jump: bo
 
 func _physics_process(delta: float) -> void:
 	if driving or input_blocked:
+		if is_instance_valid(visual):
+			visual.call("reset_terrain")
 		velocity = Vector3.ZERO
 		if driving:
 			tick_stamina(delta,false,false,false)
@@ -91,6 +93,7 @@ func _physics_process(delta: float) -> void:
 	if visual != null and visual.has_method("update_motion"):
 		var local_velocity := visual.global_basis.inverse() * get_real_velocity()
 		visual.call("update_motion", local_velocity, is_on_floor(), jumped, not was_grounded and is_on_floor(), sprinting,delta)
+		visual.call("sample_terrain",self,delta)
 
 func show_vehicle_rider(vehicle: Node3D, offer_entry: bool) -> void:
 	if visual == null or not visual.has_method("sit_in_vehicle"):
