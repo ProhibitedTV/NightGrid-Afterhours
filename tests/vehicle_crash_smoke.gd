@@ -72,6 +72,12 @@ func _verify() -> void:
 				return
 	if not check(moved > 0, "crash changes actual vertex positions"):
 		return
+	var fx_count := get_nodes_in_group("vehicle_crash_debris").size()
+	if not check(fx_count > 0 and fx_count <= 18, "real collision releases bounded rigid fragments"):
+		return
+	for fragment in get_nodes_in_group("vehicle_crash_debris"):
+		if not check(fragment is RigidBody3D and fragment.collision_layer == 0 and fragment.collision_mask == 1 and fragment.get_node_or_null("Timer") is Timer, "fragments are temporary nonblocking rigid bodies"):
+			return
 	var damaged_mesh: Mesh = front.mesh
 	car.call("restore_damage", [zones.x, zones.y, zones.z, zones.w])
 	if not check(front.mesh == damaged_mesh, "unchanged damage avoids rebuild"):
@@ -79,7 +85,12 @@ func _verify() -> void:
 	car.call("repair")
 	if not check(front.mesh == original and rear.mesh == original_rear and car.get("damage_zones") == Vector4.ZERO and float(car.get("condition")) == 100.0, "repair restores exact original geometry"):
 		return
+	if not check(get_nodes_in_group("vehicle_crash_debris").is_empty(), "repair clears transient fragments"):
+		return
 	car.call("take_arcade_damage", 1000.0)
+	var smoke := car.get_node_or_null("CrashSmoke") as CPUParticles3D
+	if not check(smoke != null and smoke.emitting and smoke.amount == 22 and smoke.visibility_range_end <= 44.0, "wreck produces bounded smoke"):
+		return
 	car.set("occupied", true)
 	car.set("speed", 0.0)
 	Input.action_press("drive_accelerate")
@@ -100,7 +111,9 @@ func _verify() -> void:
 	var sedan_zones: Vector4 = sedan.get("damage_zones")
 	if not check(sedan_zones.x > 0.0 and sedan_front.mesh != front_source and sedan_rear.mesh == rear_source and peer.get_node("KestrelS6HeroVisual/KestrelMonocoque").mesh == front_source, "Kestrel receives collision damage without mutating fleet"):
 		return
-	sedan.call("restore_damage", [0.85, 0.92, 0.0, 0.0])
+	sedan.call("restore_damage", [0.85, 0.92, 0.95, 0.0])
+	if not check(absf(sedan_rig.get_node("SteeringLeft").rotation.z) > .01 and is_zero_approx(sedan_rig.get_node("SteeringRight").rotation.z), "side damage changes only struck-side camber"):
+		return
 	if not check(sedan_rear.mesh != rear_source, "Kestrel rear mesh deforms"):
 		return
 	sedan_rig.call("update_motion", 5.0, 0.0, true, true, false, 0.1)
@@ -114,6 +127,8 @@ func _verify() -> void:
 	if not check(sedan_front.mesh != front_source and sedan_rear.mesh != rear_source and is_equal_approx((sedan.get("damage_zones") as Vector4).y, 0.92), "Kestrel damage round-trips through actual world save"):
 		return
 	sedan.call("repair")
+	if not check(sedan.get_node_or_null("CrashSmoke") == null and is_zero_approx(sedan_rig.get_node("SteeringLeft").rotation.z), "repair clears smoke and wheel damage"):
+		return
 	if not check(sedan_front.mesh == front_source and sedan_rear.mesh == rear_source, "Kestrel exact geometry restored"):
 		return
 	print("VEHICLE_CRASH_SMOKE PASS: real solid contact, Cinder and Kestrel crumple, isolated mesh, persisted damage, broken lamps, repair and disabled wreck")

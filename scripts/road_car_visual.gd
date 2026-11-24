@@ -601,6 +601,11 @@ func _update_lights(occupied: bool, braking: bool, reverse: bool) -> void:
 
 func apply_damage(zones: Vector4) -> void:
 	_damage = zones
+	# Keep damaged wheel camber subtle: retain the authored arch clearance.
+	for index in _knuckles.size():
+		var side := -1.0 if index % 2 == 0 else 1.0
+		var wear := zones.z if side < 0.0 else zones.w
+		_knuckles[index].rotation.z = side * smoothstep(.45, 1.0, wear) * .024
 	# Separate mutable meshes only for damaged ends. Restore the original
 	# shared asset when repaired; never edit an imported resource in place.
 	for end in 2:

@@ -106,6 +106,11 @@ func apply_damage(zones: Vector4) -> void:
 	if not is_equal_approx(zones.y, _damage.y):
 		_deform_end(_crash_rear, 1.0, zones.y)
 	_damage = zones
+	for label in ["SteeringLeft", "RearLeft", "SteeringRight", "RearRight"]:
+		var hub := get_node(label) as Node3D
+		var left: bool = label.ends_with("Left")
+		var wear := zones.z if left else zones.w
+		hub.rotation.z = (-1.0 if left else 1.0) * smoothstep(.45, 1.0, wear) * .035
 	if zones.x > 0.71:
 		for beam in _beams:
 			beam.hide()

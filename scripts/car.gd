@@ -4,6 +4,7 @@ const PoliceDrive = preload("res://scripts/police_drive.gd")
 const Foley = preload("res://scripts/city_foley.gd")
 const Mix = preload("res://scripts/audio_mix.gd")
 const RoadCars = preload("res://scripts/road_car_catalog.gd")
+const CrashFX = preload("res://scripts/vehicle_crash_fx.gd")
 
 const MAX_SPEED = 36.0
 const MAX_REVERSE = 14.0
@@ -174,7 +175,8 @@ func _drive_legacy(throttle: float, steering: float, delta: float) -> void:
 	if Input.is_action_pressed("drive_brake"):
 		speed = move_toward(speed, 0.0, BRAKE * 2.0 * delta)
 	if absf(speed) > 0.5:
-		rotation.y -= steering * TURN_RATE * clampf(absf(speed) / 14.0, 0.15, 1.0) * signf(speed) * delta
+		var pull := clampf(damage_zones.z - damage_zones.w, -0.65, 0.65) * 0.13
+		rotation.y -= (steering + pull) * TURN_RATE * clampf(absf(speed) / 14.0, 0.15, 1.0) * signf(speed) * delta
 
 func _drive_road_car(throttle: float, steer: float, delta: float) -> void:
 	var top := float(specification["top"])
@@ -240,6 +242,7 @@ func _resolve_contacts(incoming: Vector3) -> bool:
 			var damage_limit := 20.0 if specification.is_empty() else 25.0
 			take_arcade_damage(clampf((hard_closing - 4.0) * 0.62 * crush, 1.0, damage_limit))
 			_record_body_impact(impact_at, hard_closing)
+			CrashFX.burst(self, to_global(impact_at), incoming, hard_closing)
 			_impact_cooldown = 0.65
 			_play_impact(_hard_impact_sound, hard_closing, 30.0)
 			if impacted_vehicle != null and impacted_vehicle.has_method("receive_vehicle_impact"):
@@ -255,7 +258,10 @@ func _play_impact(stream: AudioStreamWAV, closing_speed: float, full_scale: floa
 	_impact_audio.play()
 
 func take_arcade_damage(amount: float) -> void:
+	if not is_finite(amount):
+		return
 	condition = maxf(18.0, condition - maxf(amount, 0.0))
+	CrashFX.sync_smoke(self, condition, damage_zones)
 
 func _record_body_impact(point: Vector3, closing: float) -> void:
 	var bounds: Vector3 = specification.get("body", Vector3(2.35, 1.65, 4.7))
@@ -267,6 +273,7 @@ func _record_body_impact(point: Vector3, closing: float) -> void:
 	damage_zones[zone] = minf(1.0, damage_zones[zone] + clampf((closing - 4.0) / 33.0, 0.04, 0.95))
 	if is_instance_valid(hero_visual):
 		hero_visual.call("apply_damage", damage_zones)
+	CrashFX.sync_smoke(self, condition, damage_zones)
 
 func receive_vehicle_impact(world_contact: Vector3, direction: Vector3, closing: float, striking_mass: float) -> void:
 	if closing < 6.0 or _impact_cooldown > 0.0 or not is_finite(closing) or not is_finite(striking_mass) or striking_mass <= 0.0 or not direction.is_finite() or not world_contact.is_finite():
@@ -277,9 +284,12 @@ func receive_vehicle_impact(world_contact: Vector3, direction: Vector3, closing:
 	var severity := closing * lerpf(0.44, 1.0, mass_share)
 	take_arcade_damage(clampf((severity - 4.0) * 0.62, 1.0, 20.0))
 	_record_body_impact(to_local(world_contact), severity)
+	CrashFX.burst(self, world_contact, -direction, severity)
 	_impact_cooldown = 0.65
 
 func restore_damage(saved: Variant) -> void:
+	CrashFX.clear_debris(self)
+	_impact_cooldown = 0.0
 	damage_zones = Vector4.ZERO
 	if saved is Array and saved.size() == 4:
 		for index in 4:
@@ -293,6 +303,7 @@ func restore_damage(saved: Variant) -> void:
 		hero_visual.call("reset_body_pose")
 		hero_visual.call("reset_suspension")
 		hero_visual.call("reset_instrument_cluster")
+	CrashFX.sync_smoke(self, condition, damage_zones)
 
 func repair() -> void:
 	condition = 100.0
