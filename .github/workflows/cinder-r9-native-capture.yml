@@ -1,10 +1,10 @@
-name: Cinder R9 authentic Godot Forward+ review frames
+name: Cinder R9 in-engine isolated Forward+ vehicle studio
 
 on:
   push:
     branches: [art/cinder-r9-bonded-optics]
     paths:
-      - tools/capture_cinder_r9.gd
+      - tools/capture_cinder_r9_studio.gd
       - .github/workflows/cinder-r9-native-capture.yml
   workflow_dispatch:
 
@@ -39,7 +39,7 @@ jobs:
           if grep -Eq 'SCRIPT ERROR:|Parse Error:' "$RUNNER_TEMP/cinder-import.log"; then
             exit 1
           fi
-      - name: Capture actual Cinder in Godot Forward+ using Mesa lavapipe
+      - name: Render original playable Cinder rig in isolated Godot Forward+ studio
         env:
           NIGHTGRID_CINDER_R9_CI_CAPTURE: "1"
           NIGHTGRID_CINDER_R9_DIR: "${{ runner.temp }}/cinder-r9-native-${{ github.run_id }}"
@@ -52,7 +52,7 @@ jobs:
           export XDG_RUNTIME_DIR="$RUNNER_TEMP/xdg-runtime"
           timeout 800s xvfb-run -a -s '-screen 0 1280x720x24' \
             godot --path . --rendering-driver vulkan --rendering-method forward_plus \
-              --resolution 1280x720 --script res://tools/capture_cinder_r9.gd \
+              --resolution 1280x720 --script res://tools/capture_cinder_r9_studio.gd \
               2>&1 | tee "$RUNNER_TEMP/cinder-capture.log"
           grep -q 'CINDER_R9_CAPTURE PASS' "$RUNNER_TEMP/cinder-capture.log"
       - name: Verify unique original nonblank PNGs, SHA-256 and steering angles
