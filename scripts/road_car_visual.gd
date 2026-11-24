@@ -16,6 +16,8 @@ const REVERSE_WHITE = Color("ffdcb8")
 const SILL_CYAN = Color("16d9f4")
 static var _shared: Dictionary = {}
 static var _wheel_mesh: ArrayMesh
+static var _brake_left_mesh: ArrayMesh
+static var _brake_right_mesh: ArrayMesh
 
 var _night := true
 var _color: Color
@@ -28,6 +30,7 @@ var _tail: MeshInstance3D
 var _reverse: MeshInstance3D
 var _sill: MeshInstance3D
 var _wheels: Array[Node3D] = []
+var _brake_calipers: Array[MeshInstance3D] = []
 var _steering: Array[Node3D] = []
 var _beams: Array[SpotLight3D] = []
 var _tail_throw: SpotLight3D
@@ -82,6 +85,7 @@ func _create_materials() -> void:
 	alloy.normal_texture = STEEL_NORMAL
 	alloy.normal_scale = 0.27
 	_shared["MachinedAlloy"] = alloy
+	_shared["BrakeCaliper"] = _finish_material(Color("bb4230"), 0.32, 0.34)
 	var glass := ShaderMaterial.new()
 	glass.shader = Glazing
 	glass.set_shader_parameter("rain_beads", RAIN_BEADS)
@@ -155,6 +159,8 @@ func _build_wheels() -> void:
 	if _wheel_mesh == null:
 		var source := Wheel.instantiate()
 		_wheel_mesh = (source.get_node("Wheel") as MeshInstance3D).mesh as ArrayMesh
+		_brake_left_mesh = (source.get_node("BrakeCaliperL") as MeshInstance3D).mesh as ArrayMesh
+		_brake_right_mesh = (source.get_node("BrakeCaliperR") as MeshInstance3D).mesh as ArrayMesh
 		source.free()
 	var axles: Vector2 = _spec["axles"]
 	var tyre := float(_spec["tire"])
@@ -168,6 +174,15 @@ func _build_wheels() -> void:
 			detail.scale = Vector3(.92, tyre / WHEEL_MODEL_RADIUS, tyre / WHEEL_MODEL_RADIUS)
 			_finish(detail)
 			steering.add_child(detail)
+			# Calipers share the steering knuckle's orientation but never inherit
+			# tire spin. A spinning caliper would make braking look physically wrong.
+			var caliper := MeshInstance3D.new()
+			caliper.name = "FixedBrakeCaliper"
+			caliper.mesh = _brake_left_mesh if side < 0.0 else _brake_right_mesh
+			caliper.scale = detail.scale
+			_finish(caliper)
+			steering.add_child(caliper)
+			_brake_calipers.append(caliper)
 			_wheels.append(detail)
 			if axle == 0:
 				_steering.append(steering)
