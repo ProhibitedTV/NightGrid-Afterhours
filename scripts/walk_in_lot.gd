@@ -51,7 +51,7 @@ func dress(district: String, accent: Color, variant: int) -> void:
 	# Protected central route from street to the back of the room. Layout
 	# selection is stable and does not consume the city's exterior RNG.
 	for side in [-1.0,1.0]:
-		var x := side * 3.55
+		var x: float = side * 3.55
 		for z in [2.8,6.0]:
 			var tall := industrial and posmod(variant,2)==0
 			_section("Furnishing",Vector3(x,1.0 if tall else .52,z),Vector3(1.65,2.0 if tall else 1.04,1.45 if office else 1.9),counter)
