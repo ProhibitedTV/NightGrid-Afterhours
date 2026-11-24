@@ -222,15 +222,41 @@ func _build_lights() -> void:
 		_shell.add_child(lamp)
 		_sill_lights.append(lamp)
 
+func _steering_targets(input: float) -> Vector2:
+	# The car controller turns yaw NEGATIVE for positive input (rightwards in
+	# local +X while travelling -Z). The previous visual rotated both front
+	# wheels positively, making them visibly point against the actual turn.
+	# Ackermann geometry requires the inside front wheel to turn more.
+	var control := clampf(input, -1.0, 1.0)
+	var mean_angle := absf(control) * 0.37
+	if mean_angle <= 0.00001:
+		return Vector2.ZERO
+	var axles: Vector2 = _spec["axles"]
+	var wheelbase := absf(axles.y - axles.x)
+	var half_track := float(_spec["track"])
+	var turn_radius := wheelbase / tan(mean_angle)
+	var inside := atan(wheelbase / maxf(turn_radius - half_track, 0.25))
+	var outside := atan(wheelbase / (turn_radius + half_track))
+	# Order is front-left (-X), front-right (+X). Positive road input turns
+	# towards +X; the right tire is inside that turn.
+	return Vector2(-outside, -inside) if control > 0.0 else Vector2(inside, outside)
+
+
 func update_motion(speed: float, steer: float, braking: bool, occupied: bool,
 		throttle: float, wetness: float, delta: float) -> void:
 	if absf(speed) > 0.01:
 		_wheel_phase = fposmod(_wheel_phase + speed * delta / float(_spec["tire"]), TAU)
 		for wheel in _wheels:
 			wheel.rotation.x = -_wheel_phase
+	# Steer the non-spinning knuckle and its fixed caliper as a unit.
+	# Slew rate is bounded so the rims never teleport between lock positions;
+	# unoccupied cars return their wheels to straight ahead.
+	var targets := _steering_targets(steer if occupied else 0.0)
+	for index in _steering.size():
+		var wanted: float = targets.x if index == 0 else targets.y
+		var knuckle := _steering[index]
+		knuckle.rotation.y = move_toward(knuckle.rotation.y, wanted, maxf(delta, 0.0) * 1.55)
 	if occupied or _occupied:
-		for knuckle in _steering:
-			knuckle.rotation.y = clampf(steer * 0.37, -0.37, 0.37)
 		if braking != _braking or (speed < -0.35) != (_velocity < -0.35) or occupied != _occupied:
 			_update_lights(occupied, braking, speed < -0.35)
 	_velocity = speed
