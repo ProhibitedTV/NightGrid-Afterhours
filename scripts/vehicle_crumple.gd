@@ -19,6 +19,8 @@ static func build(source: ArrayMesh, end_sign: float, damage: float) -> ArrayMes
 		var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL] if arrays[Mesh.ARRAY_NORMAL] != null else PackedVector3Array()
 		for j in vertices.size():
 			var p := vertices[j]
+			if p.z * end_sign <= 1.799:
+				continue
 			vertices[j] = p + vertex_delta(p, end_sign, damage)
 			# Approximate the inverse-transpose normal transform using local
 			# Jacobian columns of the same smooth displacement field.

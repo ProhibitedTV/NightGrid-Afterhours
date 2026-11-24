@@ -22,6 +22,9 @@ func _verify() -> void:
 	var front := rig.get_node("FrontClip") as MeshInstance3D
 	var rear := rig.get_node("RearClip") as MeshInstance3D
 	var original: ArrayMesh = front.mesh
+	var finishes: Array[Material] = []
+	for i in original.get_surface_count():
+		finishes.append(front.get_surface_override_material(i))
 	var original_rear: Mesh = rear.mesh
 	var sibling := other.get_node("RoadCarVisual/Coachwork/FrontClip") as MeshInstance3D
 	if not check(sibling.mesh == original, "original shared mesh"):
@@ -54,6 +57,8 @@ func _verify() -> void:
 		return
 	var moved := 0
 	for i in original.get_surface_count():
+		if not check(front.get_surface_override_material(i) == finishes[i], "preserved per-car finish"):
+			return
 		var a: Array = original.surface_get_arrays(i)
 		var b: Array = front.mesh.surface_get_arrays(i)
 		var av: PackedVector3Array = a[Mesh.ARRAY_VERTEX]

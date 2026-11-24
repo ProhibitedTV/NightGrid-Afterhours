@@ -610,7 +610,12 @@ func apply_damage(zones: Vector4) -> void:
 		var parts := [_body_sections[0], _head, _projectors] if end == 0 else [_body_sections[1], _tail, _reverse]
 		for part in parts:
 			var source: ArrayMesh = _crash_sources[part]
+			var overrides: Array[Material] = []
+			for surface in source.get_surface_count():
+				overrides.append(part.get_surface_override_material(surface))
 			part.mesh = Crumple.build(source, -1.0 if end == 0 else 1.0, zones[end])
+			for surface in overrides.size():
+				part.set_surface_override_material(surface, overrides[surface])
 	var front := Vector3(0, -0.095, 0.175) * zones.x
 	var rear := Vector3(0, -0.071, -0.143) * zones.y
 	_body_sections[0].position = front
