@@ -7,6 +7,13 @@ const JUMP_SPEED = 9.0
 const ACCEL = 24.0
 const GRAVITY = 24.0
 
+const STAMINA_MAX = 100.0
+const SPRINT_DRAIN = 14.0
+const STAMINA_REGEN = 18.0
+const JUMP_COST = 12.0
+var stamina := STAMINA_MAX
+var _stamina_delay := 0.0
+var _exhausted := false
 var camera_yaw := 0.0
 var driving := false:
 	set(value):
@@ -27,18 +34,47 @@ func _ready() -> void:
 static func visual_yaw_for_motion(motion: Vector3) -> float:
 	return atan2(motion.x, motion.z)
 
+func restore_stamina(value: Variant) -> void:
+	stamina = clampf(float(value),0.0,STAMINA_MAX) if (value is int or value is float) and is_finite(float(value)) else STAMINA_MAX
+	_exhausted = stamina <= 0.0
+	_stamina_delay = 0.0
+
+func add_stamina(amount: float) -> void:
+	stamina = clampf(stamina+amount,0.0,STAMINA_MAX)
+	if stamina >= 20.0:
+		_exhausted = false
+
+func tick_stamina(delta: float, wants_sprint: bool, moving: bool, wants_jump: bool) -> Vector2i:
+	# Return actual sprint/jump permission. Exhaustion hysteresis avoids
+	# rapidly alternating run/walk when sprint remains held at zero.
+	var sprint := wants_sprint and moving and not _exhausted and stamina > 0.0
+	var jump := wants_jump and stamina >= JUMP_COST
+	if sprint or jump:
+		stamina = maxf(0.0,stamina-(SPRINT_DRAIN*delta if sprint else 0.0)-(JUMP_COST if jump else 0.0))
+		_stamina_delay = .8
+		if stamina <= 0.0:
+			_exhausted = true
+	else:
+		_stamina_delay = maxf(0.0,_stamina_delay-delta)
+		if _stamina_delay <= 0.0:
+			add_stamina(STAMINA_REGEN*delta)
+	return Vector2i(int(sprint),int(jump))
+
 func _physics_process(delta: float) -> void:
 	if driving or input_blocked:
 		velocity = Vector3.ZERO
+		if driving:
+			tick_stamina(delta,false,false,false)
 		return
 	var axes := Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
 	var move_direction := Vector3(axes.x, 0.0, axes.y).rotated(Vector3.UP, camera_yaw)
-	var sprinting := Input.is_action_pressed("sprint")
+	var was_grounded := is_on_floor()
+	var allowance := tick_stamina(delta,Input.is_action_pressed("sprint"),move_direction.length_squared()>.01,was_grounded and Input.is_action_just_pressed("jump"))
+	var sprinting := allowance.x == 1
 	var speed := RUN_SPEED if sprinting else WALK_SPEED
 	velocity.x = move_toward(velocity.x, move_direction.x * speed, ACCEL * delta)
 	velocity.z = move_toward(velocity.z, move_direction.z * speed, ACCEL * delta)
-	var was_grounded := is_on_floor()
-	var jumped := was_grounded and Input.is_action_just_pressed("jump")
+	var jumped := allowance.y == 1
 	if was_grounded:
 		if jumped:
 			velocity.y = JUMP_SPEED

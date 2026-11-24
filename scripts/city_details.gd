@@ -1248,10 +1248,56 @@ func _crates(at: Vector3, physical: bool = false) -> void:
 	_statistics["street_props"] += 1
 
 func _vending(at: Vector3, accent: Color) -> void:
-	_detail(at + Vector3.UP * 1.20, Vector3(1.6, 2.4, 1.0), Color("283543"))
-	_detail(at + Vector3(0.0, 1.50, -0.54), Vector3(1.3, 1.35, 0.07), accent, true)
-	_detail(at + Vector3(0.45, 0.45, -0.58), Vector3(0.3, 0.3, 0.10), Color("d8e8ea"), true)
+	var machine := StaticBody3D.new()
+	machine.name = "VendingMachine"
+	machine.position = at
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(1.6,2.4,1.0)
+	shape.shape = box
+	shape.position.y = 1.2
+	machine.add_child(shape)
+	_dumpster_surface(machine,Vector3(0,1.2,0),box.size,Color("283543"))
+	_dumpster_surface(machine,Vector3(-.2,1.55,-.53),Vector3(1.02,1.35,.07),Color("142632"))
+	_dumpster_surface(machine,Vector3(.57,1.46,-.55),Vector3(.24,.42,.08),accent)
+	_dumpster_surface(machine,Vector3(0,.42,-.54),Vector3(1.1,.28,.09),Color("111b24"))
+	for row in range(3):
+		for col in range(3):
+			_dumpster_surface(machine,Vector3(-.53+col*.32,1.09+row*.39,-.59),Vector3(.19,.26,.065),[Color("77bcc8"),accent,Color("e2be77")][col])
+	var label := Label3D.new()
+	label.text = "NIGHTGRID / 24H"
+	label.font_size = 32
+	label.pixel_size = .004
+	label.position = Vector3(0,2.18,-.58)
+	label.rotation.y = PI
+	label.modulate = accent
+	machine.add_child(label)
+	var cell := _grid_cell(at)
+	machine.set_meta("items",["water","energy","sandwich"] if posmod(cell.x+cell.y,2)==0 else ["water","soda","protein"])
+	var props := _active_chunk.get_node_or_null("VendingProps")
+	if props == null:
+		props = Node3D.new()
+		props.name = "VendingProps"
+		_active_chunk.add_child(props)
+	props.add_child(machine)
 	_statistics["street_props"] += 1
+
+func nearby_vending(at: Vector3) -> Node3D:
+	if not at.is_finite():
+		return null
+	var cell := _grid_cell(at)
+	var chunk: Node3D = _loaded.get(cell)
+	if chunk == null and _staging.has(cell):
+		chunk = _staging[cell]["node"]
+	if not is_instance_valid(chunk):
+		return null
+	var machine := chunk.get_node_or_null("VendingProps/VendingMachine") as Node3D
+	if machine == null:
+		return null
+	var local := machine.to_local(at)
+	if absf(local.x) <= 1.3 and local.z >= -2.3 and local.z <= -.45 and local.y >= .2 and local.y <= 2.5:
+		return machine
+	return null
 
 func _bench(at: Vector3) -> void:
 	_detail(at + Vector3.UP * 0.65, Vector3(3.1, 0.17, 0.72), Color("866e5a"))
