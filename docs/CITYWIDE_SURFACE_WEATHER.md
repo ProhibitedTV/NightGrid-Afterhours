@@ -7,3 +7,5 @@ Visual acceptance: F2 clear/rain/storm/clear at Central Exchange, Vesper Market,
 Next rollout: replace static puddle patches with bounded weather-aware ground treatments; share district masonry/metal/photo art standards; pool motivated practicals and local atmosphere by district; test district coverage and frame pacing, not just a hero shot.
 
 The superseded Central Exchange-only roadway pilot is retired. The shared road union covers the same center and approaches, below the junction markings; the existing junction regression now asserts exact coverage without duplication and stable save/restore. Historical documentation and the tagged RC2 remain intact.
+
+Porous brick facade materials also share the existing weather clock. They darken moderately and remain matte with retained photographic normal relief, no clearcoat or pooling. Existing and newly streamed cached masonry respond identically; dry weather restores the authored tint. This covers ordinary photo-brick parcels and the Brickwater photo-brick envelopes, not every bespoke hero facade. Native visual inspection remains required.
