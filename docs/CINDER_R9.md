@@ -102,3 +102,12 @@ The source geometry envelope needed a matching revision: at maximum inner front 
 The existing Godot Cinder smoke test now checks correct steering direction, inner-wheel-angle greater than outer, bounded slewing, parked centering and fixed caliper rotation. The native Forward+ capture fixture also adds matching right- and left-lock front wheel closeups and records both front angles with each screenshot in `manifest.json`.
 
 **Limit:** This sweep is a 2D nominal-design clearance gate, not a physical suspension/steering sweep through all body polygons. Actual 3D wheel-to-body contact at full bump, fender overhang, and 1080p/60 FPS require native Godot visual/performance signoff. A source test passing does not establish a human-finished car.
+
+
+### Confirmed source generation for the full-lock refinement
+
+- [GitHub Actions Cinder regeneration #45304654632](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/runs/45304654632) passed the complete source-authored body regeneration, bonded-optics check, tire/arch clearance checks including the ±0.42 radian steering sweep, and stationary brake geometry/provenance tests.
+- The workflow committed the regenerated GLTF/binary files to the draft vehicle branch at source-artifact commit `499cb32f2728e12bb6b3c6092c06b08c82932039`. This source-generated asset is the actual game model, not a concept render.
+- At 78% right input, computed steering angles are approximately **-0.266 rad left/outside** and **-0.315 rad right/inside**. For left input the angles mirror to **+0.315 rad left/inside** and **+0.266 rad right/outside**. The smoke test checks correct direction and steering-rate/return-to-center behavior. The front steering source is not a new independent physics controller.
+- Source-envelope analysis estimates a straight-ahead top-center tire-to-arch gap of 57 mm and a minimum ~43 mm at ±0.42 radian modeled yaw. Actual steering under bump, sidewall/fender lateral fit, and tire slip in game remain **not verified**.
+- The follow-up Windows and full Godot runs need to use the latest regenerated asset SHA; a previously green run on an older checkout is not proof of the final vehicle package. No production native screenshot or performance evidence is implied.
