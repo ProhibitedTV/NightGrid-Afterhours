@@ -39,8 +39,9 @@ class OriginalCinderHeadlampCradles(unittest.TestCase):
         front=cls.meshes["FrontClip"]
         cls.housing=next(p for p in front["primitives"]
                          if p["material"]==cls.materials["HeadlampReflectorHousing"])
-        lens=cls.meshes["HeadLenses"]
-        cls.lens=next(p for p in lens["primitives"]
+        # Bonded OpticCover shell is a *FrontClip* material. Only the
+        # separately emissive HEAD LED guide lives under HeadLenses.
+        cls.lens=next(p for p in front["primitives"]
                       if p["material"]==cls.materials["OpticCover"])
         cls.housing_points=vertices(cls.doc,cls.raw,cls.housing["attributes"]["POSITION"])
         cls.lens_points=vertices(cls.doc,cls.raw,cls.lens["attributes"]["POSITION"])
