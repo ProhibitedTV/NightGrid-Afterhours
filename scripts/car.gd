@@ -286,6 +286,7 @@ func restore_damage(saved: Variant) -> void:
 		hero_visual.call("close_doors_immediate")
 		hero_visual.call("reset_body_pose")
 		hero_visual.call("reset_suspension")
+		hero_visual.call("reset_instrument_cluster")
 
 func repair() -> void:
 	condition = 100.0
