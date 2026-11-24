@@ -648,6 +648,11 @@ func _process(delta: float) -> void:
 	_update_police_radio(delta)
 	var interior_id := str(interiors.call("active_site_id")) if indoors else ""
 	var interior_kind := ""
+	var physical_room: Node3D = city_details.call("nearby_walk_in",actor.global_position) if not indoors and current_car == null and current_transit == null else null
+	var in_physical_room := is_instance_valid(physical_room) and bool(physical_room.call("contains",actor.global_position))
+	if in_physical_room:
+		interior_id = str(physical_room.get("physical_venue_id"))
+		interior_kind = str((venue_system.call("venue_by_id",interior_id) as Dictionary).get("kind",""))
 	if indoors and str(interiors.call("active_site_group")) == "VENUE":
 		interior_kind = str((venue_system.call("venue_by_id", interior_id) as Dictionary).get("kind", ""))
 	if is_instance_valid(nightgrid_fm):
@@ -660,7 +665,7 @@ func _process(delta: float) -> void:
 		var foot_speed := Vector2(player.velocity.x, player.velocity.z).length()
 		world_audio.call("update_context", actor.global_position, player.global_position,
 			current_car == null and current_transit == null, player.is_on_floor(),
-			indoors or in_workshop, district, float(day_night.get("hour")), foot_speed, player.velocity.y)
+			indoors or in_workshop or in_physical_room, district, float(day_night.get("hour")), foot_speed, player.velocity.y)
 		if is_instance_valid(current_car):
 			world_audio.call("set_transport", "CAR", float(current_car.get("speed")), Input.is_action_pressed("drive_brake"),
 				current_car.get("model_id") == RoadCars.R9)
@@ -709,6 +714,11 @@ func _process(delta: float) -> void:
 			menu_position = repair.counter_position() if repair != null else Vector3.INF
 		elif indoors:
 			menu_position = interiors.call("get_counter_point")
+		elif venue_selected_id == "helix_espresso":
+			var lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+			menu_position = lot.call("service_counter") if is_instance_valid(lot) and str(lot.get("physical_venue_id")) == venue_selected_id else Vector3.INF
+			if not is_instance_valid(lot) or not lot.call("service_reachable",player.global_position):
+				menu_position = Vector3.INF
 		else:
 			menu_position = civic_services.call("position_for", civic_selected_id) if not civic_selected_id.is_empty() else venue_system.call("venue_position", venue_selected_id)
 		if current_car != null or current_transit != null or menu_position.distance_to(player.global_position) > 7.0:
@@ -1864,6 +1874,9 @@ func _toggle_interior() -> void:
 	var venue: Dictionary = venue_system.call("nearest_venue", player.global_position)
 	var civic: Dictionary = civic_services.call("nearest_site", player.global_position)
 	var physical_lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+	# Migrated café has no remote-room entry. Approach the actual hinge.
+	if str(venue.get("id","")) == "helix_espresso":
+		venue = {}
 	# Existing named shops keep H at their exact old public anchor. Their
 	# service migration is separate from the generic building conversion.
 	var legacy_anchor := false
@@ -1951,8 +1964,21 @@ func _toggle_interaction() -> void:
 		else:
 			_notify("Approach the service counter.")
 		return
+	var physical_lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+	if is_instance_valid(physical_lot) and not str(physical_lot.get("physical_venue_id")).is_empty():
+		if physical_lot.call("service_reachable",player.global_position):
+			venue_selected_id = str(physical_lot.get("physical_venue_id"))
+			player.call("play_visual_action",&"interact")
+			_show_venue_dialogue()
+			_update_venue_panel()
+		else:
+			_notify("Walk to the indoor service counter.")
+		return
 	var shop: Dictionary = venue_system.call("nearest_venue", player.global_position)
 	var service: Dictionary = civic_services.call("nearest_site", player.global_position)
+	if str(shop.get("id","")) == "helix_espresso":
+		_notify("HELIX ESPRESSO: enter the actual building to order.")
+		return
 	if shop.is_empty() and service.is_empty():
 		for car in cars:
 			if car.global_position.distance_squared_to(player.global_position) < 12.0 \
@@ -2174,6 +2200,9 @@ func _toggle_venue() -> void:
 		_close_venue()
 		return
 	var venue: Dictionary = venue_system.call("venue_by_id", str(interiors.call("active_site_id"))) if interiors.call("is_inside") else venue_system.call("nearest_venue", player.global_position)
+	if not interiors.call("is_inside") and str(venue.get("id","")) == "helix_espresso":
+		_notify("Enter Helix Espresso and use its physical counter.")
+		return
 	if venue.is_empty():
 		_notify("Find a glowing venue frontage, then press G to visit.")
 		return
@@ -2663,6 +2692,8 @@ func _update_hud() -> void:
 			var availability := "OPEN" if civic_services.call("is_open", str(nearby_service["id"])) else "CLOSED"
 			prompts.append("%s  %s (%s)   •   %s Enter" % [interact_key, str(nearby_service["name"]), availability, enter_key])
 		var physical_lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+		if physical_lot != null and physical_lot.call("service_reachable",player.global_position):
+			prompts.append("%s Order at HELIX ESPRESSO" % interact_key)
 		if physical_lot != null and physical_lot.call("doorway_reachable",player.global_position):
 			var leaf: AnimatableBody3D = physical_lot.get("door")
 			prompts.append("%s %s building door" % [enter_key,"Close" if leaf.call("is_requested_open") else "Open"])

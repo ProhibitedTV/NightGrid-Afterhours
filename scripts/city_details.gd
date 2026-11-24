@@ -1000,6 +1000,8 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 			lot.name = "WalkInLot_%d" % which
 			lot.position = Vector3(center.x, .15, front)
 			lot.configure(width, height, depth, wall, surface_kind)
+			if ix == 0 and iz == -3 and which == 1:
+				lot.call("bind_physical_venue","helix_espresso")
 			(_active_chunk if _active_chunk != null else self).add_child(lot)
 	if shell_only:
 		return
@@ -1158,7 +1160,7 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 	_detail(Vector3(center.x, 4.45, front - 0.27), Vector3(width * 0.88, 0.12, 0.19), sign_color, true)
 	_detail(Vector3(center.x, 3.70, front - 0.27), Vector3(width * 0.88, 0.11, 0.19), sign_color, true)
 	var names: Array = SHOPS[district]
-	var label_text: String = names[abs(ix * 11 + iz * 17 + which * 3) % names.size()]
+	var label_text: String = "HELIX ESPRESSO" if ix == 0 and iz == -3 and which == 1 else names[abs(ix * 11 + iz * 17 + which * 3) % names.size()]
 	_label(label_text, Vector3(center.x, 4.08, front - 0.42), sign_color, 54)
 	_statistics["storefronts"] += 1
 	for awning in range(4):

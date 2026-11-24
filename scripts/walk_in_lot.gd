@@ -22,6 +22,7 @@ var _width: float
 var _depth: float
 var _height: float
 var _dressed := false
+var physical_venue_id := ""
 var door: AnimatableBody3D
 var _lamp: OmniLight3D
 var _pending_visuals: Dictionary = {}
@@ -148,6 +149,26 @@ func dress(district: String, accent: Color, variant: int) -> void:
 		_visual("UpperFixture",Vector3(0,UPPER_HEIGHT-.13,z),Vector3(3.0,.12,.42),_mat(Color("d8dad2"),true))
 		_section("UpperWorkstation",Vector3(3.55,ROOM_HEIGHT+.52,z),Vector3(1.65,1.04,1.45),counter)
 	_flush_interior_visuals()
+
+func bind_physical_venue(id: String) -> void:
+	physical_venue_id = id
+	# Existing lobby furniture supplies the actual service counter on the
+	# left. A permanent label identifies the interaction from the entrance.
+	var label := Label3D.new()
+	label.name = "PhysicalServiceCounter"
+	label.text = "HELIX ESPRESSO / ORDER HERE"
+	label.font_size = 34
+	label.pixel_size = .006
+	label.position = Vector3(-3.55,2.3,2.8)
+	label.rotation.y = PI
+	label.modulate = Color("85cad0")
+	add_child(label)
+
+func service_counter() -> Vector3:
+	return to_global(Vector3(-2.35,1.15,2.8))
+
+func service_reachable(at: Vector3) -> bool:
+	return not physical_venue_id.is_empty() and contains(at) and at.distance_to(service_counter()) <= 1.65
 
 func doorway_reachable(at: Vector3) -> bool:
 	var p := to_local(at)
