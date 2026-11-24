@@ -11,6 +11,11 @@ const Wheel = preload("res://assets/models/nightgrid/road_cars/wheel.gltf")
 const STEEL_NORMAL = preload("res://assets/models/nightgrid/central_exchange_curb/textures/steel_normal_1k.jpg")
 const WHEEL_MODEL_RADIUS = 0.359
 const GROUND = -0.825
+# The authored tire/arch gap is only ~35.5 mm at neutral. Reserve most
+# of it for combined body attitude and tolerance, not exaggerated travel.
+const BUMP_LIMIT = .010
+const DROOP_LIMIT = .045
+const BODY_VERTICAL_BUDGET = .018
 const TAIL_RED = Color("ff2635")
 const REVERSE_WHITE = Color("ffdcb8")
 const SILL_CYAN = Color("16d9f4")
@@ -32,6 +37,8 @@ var _sill: MeshInstance3D
 var _wheels: Array[Node3D] = []
 var _brake_calipers: Array[MeshInstance3D] = []
 var _steering: Array[Node3D] = []
+var _knuckles: Array[Node3D] = []
+var _wheel_offsets := Vector4.ZERO
 var _beams: Array[SpotLight3D] = []
 var _tail_throw: SpotLight3D
 var _sill_lights: Array[OmniLight3D] = []
@@ -176,6 +183,7 @@ func _build_wheels() -> void:
 			steering.name = "WheelKnuckle%d%s" % [axle, "L" if side < 0.0 else "R"]
 			steering.position = Vector3(float(_spec["track"]) * side, GROUND + tyre, axles[axle])
 			add_child(steering)
+			_knuckles.append(steering)
 			var detail := MeshInstance3D.new()
 			detail.mesh = _wheel_mesh
 			detail.scale = Vector3(.92, tyre / WHEEL_MODEL_RADIUS, tyre / WHEEL_MODEL_RADIUS)
@@ -284,11 +292,46 @@ func _update_body_pose(loads: Vector2, delta: float) -> void:
 	if loads.is_finite():
 		target.x = clampf(loads.x * .002, -.018, .018)
 		target.z = clampf(loads.y * .0025, -.022, .022)
+		# Conservative vertical envelope including tire radius and sidewall,
+		# rather than checking pitch and roll limits in isolation.
+		var envelope := absf(target.x) * 1.94 + absf(target.z) * 1.06
+		if envelope > BODY_VERTICAL_BUDGET:
+			target *= BODY_VERTICAL_BUDGET / envelope
 	var blend := 1.0 - exp(-8.0 * maxf(delta, 0.0))
 	_shell.rotation = _shell.rotation.lerp(target, blend)
 
 func reset_body_pose() -> void:
 	_shell.rotation = Vector3.ZERO
+
+## Road-height visual sampling only. The character controller still owns
+## collision and vertical movement; four rays only for the occupied car.
+func sample_suspension(car_rid: RID, grounded: bool, delta: float) -> void:
+	var space := get_world_3d().direct_space_state
+	var exclusions: Array[RID] = [car_rid]
+	var blend := 1.0 - exp(-15.0 * maxf(delta, 0.0))
+	var tyre := float(_spec["tire"])
+	for index in _knuckles.size():
+		var knuckle := _knuckles[index]
+		var desired := 0.0
+		if grounded:
+			# Probe from the original tire datum, not the animated wheel; this
+			# prevents feedback oscillation and never raises the collision hull.
+			var foot := to_global(Vector3(knuckle.position.x, GROUND, knuckle.position.z))
+			var query := PhysicsRayQueryParameters3D.create(foot + Vector3.UP * .16,
+				foot - Vector3.UP * .12, 1, exclusions)
+			var hit := space.intersect_ray(query)
+			if not hit.is_empty() and hit["collider"] is StaticBody3D:
+				var normal: Vector3 = hit["normal"]
+				if normal.y >= .70:
+					var contact: Vector3 = hit["position"]
+					desired = clampf(contact.y - foot.y, -DROOP_LIMIT, BUMP_LIMIT)
+		_wheel_offsets[index] = lerpf(_wheel_offsets[index], desired, blend)
+		knuckle.position.y = GROUND + tyre + _wheel_offsets[index]
+
+func reset_suspension() -> void:
+	_wheel_offsets = Vector4.ZERO
+	for knuckle in _knuckles:
+		knuckle.position.y = GROUND + float(_spec["tire"])
 
 func set_lighting_hour(hour: float) -> void:
 	var night := hour >= 18.75 or hour < 6.4
@@ -431,7 +474,7 @@ func _move_doors(delta: float, moving: bool) -> void:
 				_drivetrain.door_moved(latch_point, next > motion)
 
 func get_motion_state() -> Dictionary:
-	return {"wheel_rotation": _wheel_phase, "steering": _steering[0].rotation.y,
+	return {"wheel_rotation": _wheel_phase, "suspension_offsets": _wheel_offsets, "steering": _steering[0].rotation.y,
 		"steering_left": _steering[0].rotation.y, "steering_right": _steering[1].rotation.y,
 		"fixed_calipers": _brake_calipers.size(), "braking": _braking,
 		"speed": _velocity, "live_beams": 2 if _beams[0].visible else 0}
