@@ -143,9 +143,10 @@ func _verify() -> void:
 	if int(rooms.call("get_metrics")["loaded_rooms"]) != 0:
 		_fail("Room leaked after leaving café")
 		return
-	player.global_position = venues.call("venue_position", "helix_espresso")
+	# Use an unmigrated café to verify isolation of the legacy room archetype.
+	player.global_position = venues.call("venue_position", "copper_cup")
 	world.call("_toggle_interior")
-	if str(rooms.call("active_site_id")) != "helix_espresso":
+	if str(rooms.call("active_site_id")) != "copper_cup":
 		_fail("Other café routes changed")
 		return
 	if not (rooms.call("get_patron_manifest") as Array).is_empty():

@@ -14,6 +14,7 @@ const BrickwaterRepair = preload("res://scripts/brickwater_storefront.gd")
 const BrickwaterSigns = preload("res://scripts/brickwater_business_frontage.gd")
 const StreamProfile = preload("res://scripts/streaming_profile.gd")
 const MarketCarton = preload("res://scripts/market_carton.gd")
+const WalkInLot = preload("res://scripts/walk_in_lot.gd")
 ## Seeded city dressing. Static shell collisions + batched decorative geometry.
 ## The four neighborhoods deliberately share road geometry but not street character.
 
@@ -77,6 +78,7 @@ var _loaded: Dictionary = {}
 var _brickwater_night := 0.0
 var _staging: Dictionary = {}
 var _active_chunk: Node3D
+var _lit_walk_in: Node3D
 var _current_block := Vector2i(999, 999)
 var _loads := 0
 var _unloads := 0
@@ -730,6 +732,30 @@ func _build_brickwater_alley(ix: int, iz: int) -> void:
 	alley.configure(-10.5+float(left["width"])*0.5,10.5-float(right["width"])*0.5)
 	_active_chunk.add_child(alley)
 
+func nearby_walk_in(at: Vector3) -> Node3D:
+	if not at.is_finite():
+		return null
+	var block := _grid_cell(at)
+	var chunk: Node3D = _loaded.get(block)
+	if chunk == null and _staging.has(block):
+		chunk = _staging[block]["node"]
+	if not is_instance_valid(chunk):
+		return null
+	for which in range(2):
+		var lot := chunk.get_node_or_null("WalkInLot_%d" % which) as Node3D
+		if lot != null and (lot.call("doorway_reachable",at) or lot.call("contains",at)):
+			return lot
+	return null
+
+func update_walk_in_light(at: Vector3) -> void:
+	var next := nearby_walk_in(at)
+	if next != _lit_walk_in:
+		if is_instance_valid(_lit_walk_in):
+			_lit_walk_in.call("set_local_light",false)
+		_lit_walk_in = next
+	if is_instance_valid(next):
+		next.call("set_local_light",true,at)
+
 func repair_storefront() -> Node3D:
 	var block := BrickwaterAlley.PILOT_BLOCK
 	var chunk: Node3D = _loaded.get(block)
@@ -968,7 +994,18 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 				volume.add_child(collision)
 			(_active_chunk if _active_chunk != null else self).add_child(volume)
 		else:
-			_solid(shell_at, shell_size, wall, "PHOTO_BRICK" if surface_kind == "BRICK" else surface_kind)
+			# Physical ground-floor room: collision and visible shell are ready
+			# in the first streaming stage, before decorative façade batches.
+			var lot := WalkInLot.new()
+			lot.name = "WalkInLot_%d" % which
+			lot.position = Vector3(center.x, .15, front)
+			lot.configure(width, height, depth, wall, surface_kind)
+			# Furniture has physical collision and must exist before the lot is
+			# walkable. Never create new obstacles inside an occupied room.
+			lot.call("dress",district,ACCENT[district],abs(ix * 11 + iz * 17 + which * 3))
+			if ix == 0 and iz == -3 and which == 1:
+				lot.call("bind_physical_venue","helix_espresso")
+			(_active_chunk if _active_chunk != null else self).add_child(lot)
 	if shell_only:
 		return
 	if brickwater_exposure:
@@ -1014,8 +1051,13 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 		_statistics["storefronts"] += 1
 		return
 
-	# Foundation plinth, cast shadow line, parapet, mechanical penthouse.
-	_detail(Vector3(center.x, 0.47, front - 0.15), Vector3(width + 0.20, 0.80, 0.22), Color("313743"))
+	# Split the street-level plinth at the walk-through opening.
+	if not authored_exposure:
+		var panel_width := (width + .20 - WalkInLot.DOOR_WIDTH) * .5
+		for side in [-1.0, 1.0]:
+			_detail(Vector3(center.x + side * (WalkInLot.DOOR_WIDTH + panel_width) * .5, .47, front - .15), Vector3(panel_width, .80, .22), Color("313743"))
+	else:
+		_detail(Vector3(center.x, 0.47, front - 0.15), Vector3(width + 0.20, 0.80, 0.22), Color("313743"))
 	_detail(Vector3(center.x, height + 0.30, center.z), Vector3(width + 0.72, 0.54, depth + 0.72), Color("1b2634"))
 	_detail(Vector3(center.x, height + 1.26, center.z + 1.4), Vector3(width * 0.34, 1.65, depth * 0.31), Color("36404b"))
 	for vent in range(3):
@@ -1103,16 +1145,26 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 		windows.position = Vector3(center.x,0.0,front)
 		_active_chunk.add_child(windows)
 
-	# Street-level retail facade. Entry is visual-only until interiors exist.
+	# Street-level fascia must not cover the new physical passage.
 	var sign_color: Color = ACCENT[district]
-	_detail(Vector3(center.x, 2.0, front - 0.12), Vector3(width * 0.84, 2.75, 0.14), Color("182637"))
-	_detail(Vector3(center.x, 2.0, front - 0.22), Vector3(2.10, 2.55, 0.08), Color("647e8d"), false, "GLASS")
-	_detail(Vector3(center.x + 1.0, 2.0, front - 0.24), Vector3(0.07, 2.55, 0.12), Color("121b28"))
+	if not authored_exposure:
+		var fascia_width := (width * .84 - WalkInLot.DOOR_WIDTH) * .5
+		for side in [-1.0, 1.0]:
+			_detail(Vector3(center.x + side * (WalkInLot.DOOR_WIDTH + fascia_width) * .5, 2.0, front - .12), Vector3(fascia_width, 2.75, .14), Color("182637"))
+			_detail(Vector3(center.x + side * (WalkInLot.DOOR_WIDTH * .5 + .08), 1.64, front - .20), Vector3(.16, 3.08, .19), Color("647e8d"))
+		_detail(Vector3(center.x, 3.20, front - .20), Vector3(WalkInLot.DOOR_WIDTH + .3, .23, .19), sign_color)
+		var lot := _active_chunk.get_node("WalkInLot_%d" % which)
+		# Interior furniture and its collision were already built in stage zero.
+		assert(lot.has_method("get_interior_batch_stats"))
+	else:
+		_detail(Vector3(center.x, 2.0, front - 0.12), Vector3(width * 0.84, 2.75, 0.14), Color("182637"))
+		_detail(Vector3(center.x, 2.0, front - 0.22), Vector3(2.10, 2.55, 0.08), Color("647e8d"), false, "GLASS")
+		_detail(Vector3(center.x + 1.0, 2.0, front - 0.24), Vector3(0.07, 2.55, 0.12), Color("121b28"))
 	_detail(Vector3(center.x, 4.0, front - 0.24), Vector3(width * 0.86, 0.75, 0.22), Color("1b2636"))
 	_detail(Vector3(center.x, 4.45, front - 0.27), Vector3(width * 0.88, 0.12, 0.19), sign_color, true)
 	_detail(Vector3(center.x, 3.70, front - 0.27), Vector3(width * 0.88, 0.11, 0.19), sign_color, true)
 	var names: Array = SHOPS[district]
-	var label_text: String = names[abs(ix * 11 + iz * 17 + which * 3) % names.size()]
+	var label_text: String = "HELIX ESPRESSO" if ix == 0 and iz == -3 and which == 1 else names[abs(ix * 11 + iz * 17 + which * 3) % names.size()]
 	_label(label_text, Vector3(center.x, 4.08, front - 0.42), sign_color, 54)
 	_statistics["storefronts"] += 1
 	for awning in range(4):
@@ -1247,11 +1299,35 @@ func _crates(at: Vector3, physical: bool = false) -> void:
 		_detail(at + Vector3(ix * 1.2, 0.52 + iy * 1.02, -0.55), Vector3(0.76, 0.13, 0.07), Color("dac4a4"))
 	_statistics["street_props"] += 1
 
+const VendingMachine = preload("res://scripts/vending_machine.gd")
+
 func _vending(at: Vector3, accent: Color) -> void:
-	_detail(at + Vector3.UP * 1.20, Vector3(1.6, 2.4, 1.0), Color("283543"))
-	_detail(at + Vector3(0.0, 1.50, -0.54), Vector3(1.3, 1.35, 0.07), accent, true)
-	_detail(at + Vector3(0.45, 0.45, -0.58), Vector3(0.3, 0.3, 0.10), Color("d8e8ea"), true)
+	var machine := VendingMachine.new()
+	machine.name = "VendingMachine"
+	machine.position = at
+	var cell := _grid_cell(at)
+	machine.configure(posmod(cell.x+cell.y,2),accent)
+	var props := _active_chunk.get_node_or_null("VendingProps")
+	if props == null:
+		props = Node3D.new()
+		props.name = "VendingProps"
+		_active_chunk.add_child(props)
+	props.add_child(machine)
 	_statistics["street_props"] += 1
+
+func nearby_vending(at: Vector3) -> Node3D:
+	if not at.is_finite():
+		return null
+	var cell := _grid_cell(at)
+	var chunk: Node3D = _loaded.get(cell)
+	if chunk == null and _staging.has(cell):
+		chunk = _staging[cell]["node"]
+	if not is_instance_valid(chunk):
+		return null
+	var machine := chunk.get_node_or_null("VendingProps/VendingMachine") as Node3D
+	if machine == null:
+		return null
+	return machine if machine.call("reachable",at) else null
 
 func _bench(at: Vector3) -> void:
 	_detail(at + Vector3.UP * 0.65, Vector3(3.1, 0.17, 0.72), Color("866e5a"))

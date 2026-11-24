@@ -135,10 +135,10 @@ func _check() -> void:
 	if int(rooms.call("get_metrics")["loaded_rooms"]) != 0:
 		_fail("Café geometry/audio was not freed when leaving")
 		return
-	# The same scene routing must keep other cafés on the generic archetype.
-	player.global_position = venues.call("venue_position", "helix_espresso")
+	# Unmigrated cafés keep the generic archetype; Helix now has a physical entrance.
+	player.global_position = venues.call("venue_position", "copper_cup")
 	world.call("_toggle_interior")
-	if str(rooms.call("active_site_id")) != "helix_espresso":
+	if str(rooms.call("active_site_id")) != "copper_cup":
 		_fail("Other cafés' fixed entrances changed")
 		return
 	if (rooms.get("_room") as Node3D).get_node_or_null("LanternCupHero") != null:

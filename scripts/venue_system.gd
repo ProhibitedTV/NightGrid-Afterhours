@@ -201,7 +201,8 @@ func _build_venue(venue: Dictionary) -> void:
 	# Pad, facade, lightbox and close-up pavement details form an authored
 	# sidewalk vignette. No new collision body obstructs pedestrian movement.
 	_box(front, Vector3(0.0, 0.19, -0.5), Vector3(8.4, 0.09, 5.3), Color("3d4350"), "PAVERS")
-	_box(front, Vector3(0.0, 2.35, 2.12), Vector3(8.5, 4.2, 0.22), Color("243146"))
+	if venue_id != "helix_espresso":
+		_box(front, Vector3(0.0, 2.35, 2.12), Vector3(8.5, 4.2, 0.22), Color("243146"))
 	_box(front, Vector3(0.0, 4.25, 1.82), Vector3(8.3, 0.95, 0.24), Color("172335"))
 	var neon := StandardMaterial3D.new()
 	neon.albedo_color = accent
@@ -222,7 +223,9 @@ func _build_venue(venue: Dictionary) -> void:
 		"STALL":
 			_build_stall(front, accent, neon)
 		"CAFE":
-			_build_cafe(front, accent, neon)
+			# Physical Helix lobby replaces the visual-only sidewalk counter.
+			if venue_id != "helix_espresso":
+				_build_cafe(front, accent, neon)
 			if venue_id == "lantern_cup":
 				_build_lantern_cup_streetfront(front, accent, neon)
 		"BAR":
