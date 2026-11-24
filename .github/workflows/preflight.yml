@@ -112,6 +112,13 @@ jobs:
           timeout 75s godot --headless --path . --script res://tests/locomotion_smoke.gd 2>&1 | tee /tmp/nightgrid-locomotion.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-locomotion.log; then exit 1; fi
           grep -q "LOCOMOTION_SMOKE PASS:" /tmp/nightgrid-locomotion.log
+      - name: Measure imported courier foot contacts and natural stride speeds
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 60s godot --headless --path . --script res://tools/analyze_courier_gaits.gd 2>&1 | tee /tmp/nightgrid-gait-analysis.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-gait-analysis.log; then exit 1; fi
+          grep -q "GAIT_ANALYSIS PASS:" /tmp/nightgrid-gait-analysis.log
       - name: Verify the baked city textures match the original generator byte for byte
         run: godot --headless --path . --script res://tools/bake_city_material_maps.gd -- --verify
       - name: Validate deterministic road routes, intersection turns and off-road access
