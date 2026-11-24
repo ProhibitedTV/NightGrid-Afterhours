@@ -50,6 +50,8 @@ jobs:
           PY
       - name: Test release gallery revision and runtime-tree gate in isolated git fixtures
         run: python tools/test_check_release_gallery.py
+      - name: Test RC2 cockpit provenance gate against stale runtime and tampered evidence
+        run: python tools/test_check_rc2_cockpit_gallery.py
       - name: Verify committed real game screenshots
         run: python tools/check_screenshots.py
       - name: Verify native Windows development gallery and original Git screenshot blobs

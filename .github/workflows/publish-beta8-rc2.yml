@@ -68,6 +68,7 @@ jobs:
           mkdir "$package"
           cp payload/* "$package/"
           cp docs/BETA8_RC2.md "$package/RELEASE-NOTES.md"
+          (cd "$package" && sha256sum RELEASE-NOTES.md >> SHA256SUMS.txt && sha256sum -c SHA256SUMS.txt)
           zip -q -r "dist/$package.zip" "$package"
           unzip -t "dist/$package.zip"
           (cd dist && sha256sum "$package.zip" > SHA256SUMS.txt && sha256sum -c SHA256SUMS.txt)
