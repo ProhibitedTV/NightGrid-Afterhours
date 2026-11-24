@@ -1,0 +1,104 @@
+name: Cinder R9 authentic Godot Forward+ review frames
+
+on:
+  push:
+    branches: [art/cinder-r9-bonded-optics]
+    paths:
+      - tools/capture_cinder_r9.gd
+      - .github/workflows/cinder-r9-native-capture.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cinder-r9-render-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  capture-software-vulkan:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Install Xvfb and Mesa CPU Vulkan
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb mesa-vulkan-drivers libvulkan1 libgl1-mesa-dri vulkan-tools espeak-ng
+          mkdir -p "$RUNNER_TEMP/xdg-runtime"
+          chmod 700 "$RUNNER_TEMP/xdg-runtime"
+      - name: Generate game audio and import the original project
+        run: |
+          python3 tools/generate_mbpd_radio.py
+          set -o pipefail
+          godot --headless --path . --import --quit 2>&1 | tee "$RUNNER_TEMP/cinder-import.log"
+          if grep -Eq 'SCRIPT ERROR:|Parse Error:' "$RUNNER_TEMP/cinder-import.log"; then
+            exit 1
+          fi
+      - name: Capture actual Cinder in Godot Forward+ using Mesa lavapipe
+        env:
+          NIGHTGRID_CINDER_R9_CI_CAPTURE: "1"
+          NIGHTGRID_CINDER_R9_DIR: "${{ runner.temp }}/cinder-r9-native-${{ github.run_id }}"
+          NIGHTGRID_SOURCE_REVISION: "${{ github.sha }}"
+        run: |
+          set -euo pipefail
+          test ! -e "$NIGHTGRID_CINDER_R9_DIR"
+          export VK_ICD_FILENAMES="$(find /usr/share/vulkan/icd.d -name '*lvp*.json' | head -n 1)"
+          test -n "$VK_ICD_FILENAMES"
+          export XDG_RUNTIME_DIR="$RUNNER_TEMP/xdg-runtime"
+          timeout 800s xvfb-run -a -s '-screen 0 1280x720x24' \
+            godot --path . --rendering-driver vulkan --rendering-method forward_plus \
+              --resolution 1280x720 --script res://tools/capture_cinder_r9.gd \
+              2>&1 | tee "$RUNNER_TEMP/cinder-capture.log"
+          grep -q 'CINDER_R9_CAPTURE PASS' "$RUNNER_TEMP/cinder-capture.log"
+      - name: Verify unique original nonblank PNGs, SHA-256 and steering angles
+        env:
+          NIGHTGRID_CINDER_R9_DIR: "${{ runner.temp }}/cinder-r9-native-${{ github.run_id }}"
+          NIGHTGRID_SOURCE_REVISION: "${{ github.sha }}"
+        run: |
+          python -m pip install --quiet Pillow
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          from PIL import Image, ImageStat
+          base=Path(os.environ["NIGHTGRID_CINDER_R9_DIR"])
+          manifest=json.loads((base/"manifest.json").read_text())
+          assert manifest["revision"]==os.environ["NIGHTGRID_SOURCE_REVISION"]
+          assert manifest["renderer"]=="forward_plus",manifest["renderer"]
+          assert manifest["capture_mode"]=="ci_mesa_software_vulkan"
+          assert not manifest["performance_comparable_to_native_gpu"]
+          expected={"front-day","headlight-night-detail",
+                    "wheel-steer-right-day-detail","wheel-steer-left-day-detail"}
+          frames=manifest["captures"]
+          assert {r["file"][:-4] for r in frames}==expected
+          hashes=set()
+          for item in frames:
+              path=base/item["file"]
+              assert path.is_file() and path.stat().st_size>5000,path
+              digest=hashlib.sha256(path.read_bytes()).hexdigest()
+              assert digest==item["sha256"],path
+              hashes.add(digest)
+              with Image.open(path) as frame:
+                  assert frame.size==(1280,720),frame.size
+                  st=ImageStat.Stat(frame.convert("L"))
+                  assert st.stddev[0]>2.5,(path,st.stddev)
+          assert len(hashes)==4,"Identical or blank captures"
+          left=next(r for r in frames if r["file"].startswith("wheel-steer-left"))
+          right=next(r for r in frames if r["file"].startswith("wheel-steer-right"))
+          assert left["front_left_steer_radians"]>left["front_right_steer_radians"]>0
+          assert right["front_right_steer_radians"]<right["front_left_steer_radians"]<0
+          print("CINDER_R9_NATIVE_CAPTURE_VERIFY PASS")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cinder-r9-godot-mesa-original-frames
+          path: |
+            ${{ runner.temp }}/cinder-r9-native-${{ github.run_id }}/
+            ${{ runner.temp }}/cinder-capture.log
+          if-no-files-found: warn
+          retention-days: 14
