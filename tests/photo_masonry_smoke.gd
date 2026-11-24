@@ -69,5 +69,26 @@ func _verify()->void:
 				return
 	if not _check(mapped>=1,"at least one actual masonry lot"):
 		return
+	var clock: Node = world.get("day_night")
+	clock.set_process(false)
+	clock.set("paused", true)
+	var dry_tint := reference.albedo_color
+	var source_normal := reference.normal_texture
+	var source_rough := reference.roughness_texture
+	var source_albedo := reference.albedo_texture
+	clock.call("set_weather", "storm")
+	clock.call("_process", 3.0)
+	if not _check(reference.albedo_color.r < dry_tint.r and is_equal_approx(reference.roughness, .76) and reference.normal_scale >= .65 and not reference.clearcoat_enabled, "rain dampens shared brick without mirror sheen"):
+		return
+	if not _check(reference.normal_texture == source_normal and reference.roughness_texture == source_rough and reference.albedo_texture == source_albedo, "weather preserves original texture resources"):
+		return
+	var late_tint := Color("a6b5c1")
+	var late := Masonry.surface(late_tint)
+	if not _check(is_equal_approx(late.roughness, .76) and late.albedo_texture == source_albedo, "newly streamed brick inherits current rain"):
+		return
+	clock.call("set_weather", "clear")
+	clock.call("_process", 20.0)
+	if not _check(reference.albedo_color.is_equal_approx(dry_tint) and is_equal_approx(reference.roughness, 1.0) and is_equal_approx(reference.normal_scale, .75) and late.albedo_color.is_equal_approx(Color.WHITE.lerp(late_tint,.38)), "drying restores original facade palette"):
+		return
 	print("PHOTO_MASONRY_SMOKE PASS: ",mapped," brick parcels use shared photo PBR and exact original colliders")
 	quit(0)

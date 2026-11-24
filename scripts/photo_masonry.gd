@@ -5,6 +5,8 @@ extends RefCounted
 const ROOT = "res:" + "//assets/pbr/polyhaven/brick_wall_001_"
 const TILE_METRES = 2.5
 static var _materials: Dictionary = {}
+static var _dry_tints: Dictionary = {}
+static var _film := 0.0
 static var _albedo: Texture2D
 static var _normal: Texture2D
 static var _rough: Texture2D
@@ -36,4 +38,22 @@ static func surface(tint: Color) -> StandardMaterial3D:
 	m.uv1_scale = Vector3.ONE / TILE_METRES
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	_materials[key] = m
+	_dry_tints[key] = m.albedo_color
+	_apply_moisture(m, _dry_tints[key])
 	return m
+
+static func set_surface_film(film: float) -> void:
+	var bounded := clampf(film, 0.0, 1.0)
+	if is_equal_approx(bounded, _film):
+		return
+	_film = bounded
+	for key in _materials:
+		_apply_moisture(_materials[key], _dry_tints[key])
+
+static func _apply_moisture(m: StandardMaterial3D, dry: Color) -> void:
+	# Porous vertical brick absorbs rainfall instead of pooling. Keep the
+	# photographed mortar/aggregate normal and roughness textures attached.
+	var damp := smoothstep(0.0, 1.0, _film)
+	m.albedo_color = dry.lerp(Color(dry.r * .70, dry.g * .73, dry.b * .76, dry.a), damp)
+	m.roughness = lerpf(1.0, .76, damp)
+	m.normal_scale = lerpf(.75, .66, damp)

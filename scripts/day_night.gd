@@ -4,6 +4,7 @@ extends Node
 
 const SkyboxLibrary = preload("res://scripts/skybox_library.gd")
 const GroundMaterials = preload("res://scripts/material_library.gd")
+const MasonryMaterials = preload("res://scripts/photo_masonry.gd")
 var _surface_receivers: Array[Node] = []
 const DAY_LENGTH_SECONDS = 1440.0
 const START_HOUR = 19.25
@@ -69,6 +70,7 @@ func configure(world_environment: WorldEnvironment, sun: DirectionalLight3D, cit
 				if SkyboxLibrary.valid_weather(candidate):
 					_sky_weather = candidate
 	GroundMaterials.set_surface_film(_surface_film)
+	MasonryMaterials.set_surface_film(_surface_film)
 	RenderingServer.global_shader_parameter_set(&"cinder_surface_film", _surface_film)
 	_environment.environment.sky = _procedural_sky
 	_environment.environment.background_mode = Environment.BG_SKY
@@ -85,6 +87,7 @@ func _process(delta: float) -> void:
 		if shader_film != _last_shader_film:
 			RenderingServer.global_shader_parameter_set(&"cinder_surface_film", shader_film)
 			GroundMaterials.set_surface_film(shader_film)
+			MasonryMaterials.set_surface_film(shader_film)
 			for receiver in _surface_receivers:
 				if is_instance_valid(receiver):
 					receiver.call("set_surface_film", shader_film)
