@@ -52,6 +52,7 @@ class CinderStationaryBrakeHardware(unittest.TestCase):
             materials = {self.mat[p["material"]] for p in mesh["primitives"]}
             self.assertIn("BrakeCaliper", materials)
             self.assertIn("MachinedAlloy", materials)
+            self.assertIn("Graphite", materials)
             triangles = sum(
                 self.doc["accessors"][p["indices"]]["count"]//3
                 for p in mesh["primitives"]
@@ -68,7 +69,48 @@ class CinderStationaryBrakeHardware(unittest.TestCase):
                 self.assertGreater(hypot(y,z), .15)
                 self.assertLess(abs(x), .13,
                                 "Caliper clips the front face of wheel spokes")
-                self.assertGreater(abs(x), .02)
+
+    def test_rotor_slot_is_genuinely_empty_below_disc_outer_radius(self):
+        # The rotating titanium disc is between 15 and 41 mm on the wheel's
+        # corresponding side. The previous 'caliper' was a solid wedge
+        # occupying the exact same physical space as the brake disc.
+        for side, sign in (("L",-1),("R",1)):
+            mesh=self.meshes["BrakeCaliper"+side]
+            jaws=[]
+            bridge=[]
+            for primitive in mesh["primitives"]:
+                material=self.mat[primitive["material"]]
+                if material not in ("BrakeCaliper","Graphite"):
+                    continue
+                for x,y,z in positions(self.doc,self.raw,
+                                      primitive["attributes"]["POSITION"]):
+                    signed_x=sign*x
+                    radius=hypot(y,z)
+                    if .170<=radius<=.204:
+                        self.assertFalse(.0145<=signed_x<=.0415,
+                            "Rotor and stationary casting occupy the same volume")
+                        jaws.append((signed_x,radius))
+                    elif radius>=.215:
+                        bridge.append((signed_x,radius))
+            self.assertGreater(len(jaws),100)
+            self.assertTrue(any(x<.01 for x,_ in jaws),
+                            "Missing inner caliper half")
+            self.assertTrue(any(x>.06 for x,_ in jaws),
+                            "Missing outer caliper half")
+            self.assertTrue(any(.02<x<.045 for x,_ in bridge),
+                            "Missing radial bridge outside the disc track")
+
+    def test_friction_pads_face_both_rotor_sides(self):
+        for side,sign in (("L",-1),("R",1)):
+            dark=next(p for p in self.meshes["BrakeCaliper"+side]["primitives"]
+                      if self.mat[p["material"]]=="Graphite")
+            vertices=positions(self.doc,self.raw,dark["attributes"]["POSITION"])
+            axial=[sign*x for x,y,z in vertices if .175<hypot(y,z)<.199]
+            self.assertTrue(any(.007<=x<=.012 for x in axial),
+                            "No pad behind rotor's inner face")
+            self.assertTrue(any(.047<=x<=.061 for x in axial),
+                            "No pad ahead of rotor's outer face")
+
 
     def test_mirrored_calipers_not_unintentional_repeated_wheels(self):
         left = self._vertices(self.meshes["BrakeCaliperL"])
