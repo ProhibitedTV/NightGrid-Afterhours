@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 from dataclasses import dataclass, field
-from math import cos, pi, sin, sqrt
+from math import cos, exp, pi, sin, sqrt
 from pathlib import Path
 import json
 import struct
@@ -19,6 +19,7 @@ OUT = ROOT / 'assets/models/nightgrid/road_cars'
 PAINT, DARK, ALLOY, GLASS, SEAT, LEATHER, HEAD, TAIL, REVERSE, BELT, TYRE, CARBON, TITANIUM, OPTIC, UNDER = range(15)
 SEAM, GRILLE, PROJECTOR, FORGED, REFLECTOR = range(15, 20)
 CALIPER = 20
+HEAD_HOUSING = 21
 SIDE_ROWS = (0., .09, .22, .35, .49, .66, .81, .93, 1.)
 # The visible wheel-arch lip follows a circular tire clearance envelope,
 # then returns smoothly to the rocker. Width includes the rocker transition.
@@ -549,6 +550,24 @@ def deck_opening(surfaces, body, sign, a, b, low, high, kind):
         crown = .011*sin(pi*blend_u)*sin(pi*blend_z)
         return on_deck(body,u,z,-.004+crown)
 
+    def stamped_housing_point(u, z):
+        """Original pressed-metal optic cradle, smoothly sculpted below lens.
+
+        Broad, shallow satin housing instead of an 115mm deep black rectangle.
+        Smooth localized mounting bowls clear the two projector reflectors;
+        both sides use the same parametric envelope and skin station rows.
+        """
+        transverse = (u-cols[0])/(cols[-1]-cols[0])
+        longitudinal = (z-a)/(b-a)
+        shoulder = sin(pi*transverse)**2 * sin(pi*longitudinal)**2
+        depth = .029 + .047*shoulder
+        for lateral, center_z in ((.699,a+.125), (.770,a+.244)):
+            du = (u-sign*lateral)/.093
+            dz = (z-center_z)/.110
+            depth += .053*exp(-du*du-dz*dz)
+        # The cradle stays well behind the 3.6mm glazed outer cover.
+        return on_deck(body,u,z,-depth)
+
     def inside_cover_point(u,z):
         x,y,depth = cover_point(u,z)
         return x,y-cover_thickness,depth
@@ -580,6 +599,13 @@ def deck_opening(surfaces, body, sign, a, b, low, high, kind):
             quad(surfaces[DARK],on_deck(body,u,start,band_depth),on_deck(body,u,end,band_depth),
                  on_deck(body,v,end,band_depth),on_deck(body,v,start,band_depth),(0,1,0))
             if kind == 'head':
+                # Molded reflective bowl backed by the original dark cavity.
+                # It is sculpted as one continuous skin across the same
+                # precise body/profile stations as the outer bonded glass.
+                quad(surfaces[HEAD_HOUSING],
+                     stamped_housing_point(u,start),stamped_housing_point(u,end),
+                     stamped_housing_point(v,end),stamped_housing_point(v,start),
+                     (0,1,0))
                 bonded_cover_cell(u,v,start,end)
     for z,direction in ((a,1),(b,-1)):
         for u,v in zip(cols,cols[1:]):
@@ -964,6 +990,7 @@ MATERIALS = [
         ('ProjectorOptic',(.28,.35,.44),.37,.13), ('ForgedAlloy',(.11,.125,.151),.81,.34),
         ('MarkerReflector',(.36,.071,.025),.11,.32),
         ('BrakeCaliper',(.55,.145,.075),.34,.32),
+        ('HeadlampReflectorHousing',(.19,.245,.28),.67,.30),
     )
 ]
 MATERIALS[PAINT]['extensions'] = {'KHR_materials_clearcoat': {'clearcoatFactor': .78, 'clearcoatRoughnessFactor': .12}}
