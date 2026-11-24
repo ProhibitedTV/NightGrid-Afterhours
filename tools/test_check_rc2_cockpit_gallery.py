@@ -53,7 +53,7 @@ class Gate(unittest.TestCase):
     def write(self,path,data):
         p=Path(path)
         p.parent.mkdir(parents=True,exist_ok=True)
-        if isinstance(data,bytes):
+        if isinstance(data,(bytes,bytearray)):
             p.write_bytes(data)
         else:
             p.write_text(data)
