@@ -18,10 +18,10 @@ func _fail(message: String) -> void:
 
 func _capture() -> void:
 	var output := OS.get_environment("NIGHTGRID_COCKPIT_DIR")
-	if DisplayServer.get_name() == "headless" or RenderingServer.get_current_rendering_method() != "forward_plus" \
+	if DisplayServer.get_name() == "headless" or RenderingServer.get_current_rendering_method() != "gl_compatibility" \
 			or not output.is_absolute_path() or DirAccess.dir_exists_absolute(output) \
 			or DirAccess.make_dir_recursive_absolute(output) != OK:
-		_fail("Requires real Forward+ framebuffer and new absolute directory")
+		_fail("Requires real Compatibility framebuffer and new absolute directory")
 		return
 	var game := (load("res://scenes/main.tscn") as PackedScene).instantiate() as Node3D
 	root.add_child(game)
@@ -34,7 +34,11 @@ func _capture() -> void:
 	player.set_physics_process(false)
 	player.hide()
 	var clock: Node = game.get("day_night")
-	clock.set_process(false)
+	clock.set("paused", true)
+	var capture_sky := clock.get("_panorama_resource") as Sky
+	if capture_sky != null:
+		capture_sky.radiance_size = Sky.RADIANCE_SIZE_32
+	print("COCKPIT_CAPTURE: game loaded; reduced capture-only sky radiance")
 	var camera: Camera3D = game.get("camera")
 	var cars: Array = game.get("cars")
 	var car: CharacterBody3D = cars[2]
@@ -51,6 +55,8 @@ func _capture() -> void:
 	car.set("occupied", true)
 	game.set("current_car", car)
 	game.call("_toggle_cinder_view")
+	camera.make_current()
+	print("COCKPIT_CAPTURE: gameplay camera active")
 	var hero: Node3D = car.get("hero_visual")
 	if hero.get_node_or_null("Coachwork/SteeringWheel") == null or hero.get_node_or_null("Coachwork/LiveInstrumentCluster") == null:
 		_fail("Missing articulated steering or instrument geometry")
@@ -73,14 +79,16 @@ func _capture() -> void:
 		if not is_equal_approx(camera.fov, 78.0) or not cluster.call("get_display_state")["active"]:
 			_fail("Actual gameplay camera or live dashboard inactive")
 			return
-		await create_timer(.1).timeout
-		for frame in 4:
+		print("COCKPIT_CAPTURE: rendering ", view[0])
+		for frame in 3:
+			await process_frame
 			await RenderingServer.frame_post_draw
 		var image := root.get_texture().get_image()
 		var path := output.path_join(view[0])
 		if image == null or image.is_empty() or image.save_png(path) != OK:
 			_fail("Unable to save real framebuffer")
 			return
+		print("COCKPIT_CAPTURE: saved ", path)
 		shots.append({"file": view[0], "sha256": FileAccess.get_sha256(path),
 			"hour": hour, "weather": view[2], "steering_input": steer,
 			"camera_position": str(camera.global_position), "camera_basis": str(camera.global_basis),
@@ -92,7 +100,7 @@ func _capture() -> void:
 	manifest.store_string(JSON.stringify({"source_revision": OS.get_environment("NIGHTGRID_SOURCE_REVISION"),
 		"engine": Engine.get_version_info()["string"], "renderer": RenderingServer.get_current_rendering_method(),
 		"adapter": RenderingServer.get_video_adapter_name(), "resolution": [root.size.x, root.size.y],
-		"capture_type": "actual gameplay scene, parked review poses; software Vulkan, not GPU benchmark",
+		"capture_type": "actual gameplay scene, parked review poses; software OpenGL Compatibility, NOT Forward+ evidence or GPU benchmark",
 		"shots": shots}, "\t"))
 	manifest.close()
 	print("COCKPIT_CAPTURE PASS: 3")
