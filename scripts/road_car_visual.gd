@@ -406,5 +406,7 @@ func _move_doors(delta: float, moving: bool) -> void:
 				_drivetrain.door_moved(latch_point, next > motion)
 
 func get_motion_state() -> Dictionary:
-	return {"wheel_rotation": _wheel_phase, "steering": _steering[0].rotation.y, "braking": _braking,
+	return {"wheel_rotation": _wheel_phase, "steering": _steering[0].rotation.y,
+		"steering_left": _steering[0].rotation.y, "steering_right": _steering[1].rotation.y,
+		"fixed_calipers": _brake_calipers.size(), "braking": _braking,
 		"speed": _velocity, "live_beams": 2 if _beams[0].visible else 0}
