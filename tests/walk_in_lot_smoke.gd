@@ -167,5 +167,44 @@ func _verify() -> void:
 	world.call("_apply_snapshot",threshold_save)
 	if not check(float(door.call("openness"))>.95,"threshold restore leaves safe passage"):
 		return
+	# A named café has been migrated into its real lot. Walk in and buy
+	# from its existing service catalog without activating remote interiors.
+	var venues: Node = world.get("venue_system")
+	var cafe_street: Vector3 = venues.call("venue_position","helix_espresso")
+	city.call("set_focus",cafe_street)
+	var cafe: Node3D = city.get("_loaded")[Vector2i(0,-3)].get_node("WalkInLot_1")
+	if not check(str(cafe.get("physical_venue_id"))=="helix_espresso","named café bound to physical lot"):
+		return
+	player.global_position = cafe.to_global(Vector3(0,1.15,-1.5))
+	player.velocity = Vector3.ZERO
+	world.call("_toggle_interaction")
+	if not check(not world.get("venue_panel").visible,"no sidewalk purchase"):
+		return
+	world.call("_toggle_interior")
+	var cafe_door: AnimatableBody3D = cafe.get("door")
+	for i in 48:
+		await physics_frame
+	if not check(float(cafe_door.call("openness"))>.95 and not world.get("interiors").call("is_inside"),"H opens actual named entrance, not remote room"):
+		return
+	for i in 52:
+		player.velocity = Vector3(0,0,5)
+		player.move_and_slide()
+		await physics_frame
+	for i in 25:
+		player.velocity = Vector3(-5,0,0)
+		player.move_and_slide()
+		await physics_frame
+	if not check(cafe.call("service_reachable",player.global_position),"walked from street to actual counter"):
+		return
+	world.set("cash",100)
+	world.set("health",50.0)
+	venues.call("set_hour",12.0)
+	world.call("_toggle_interaction")
+	if not check(str(world.get("venue_selected_id"))=="helix_espresso" and world.get("venue_panel").visible,"physical counter opens existing service UI"):
+		return
+	world.call("_venue_action",1)
+	if not check(int(world.get("cash"))==80 and is_equal_approx(float(world.get("health")),70.0),"existing purchase economics preserved"):
+		return
+	world.call("_close_venue")
 	print("WALK_IN_LOT PASS: physical doors, multiple rooms, upper floor ascent/descent, bounded walls, streamed finish, world-coordinate restore and exit")
 	quit(0)
