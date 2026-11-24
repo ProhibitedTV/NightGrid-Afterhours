@@ -13,7 +13,7 @@
     "ReverseLenses": 8,
     "SillLenses": 96,
     "Cabin": 6938,
-    "FrontClip": 12742,
+    "FrontClip": 18294,
     "RearClip": 8280,
     "DoorL0": 1508,
     "DoorR0": 1508,
@@ -49,9 +49,9 @@
     ]
   },
   "sha256": {
-    "cinder_r9.gltf": "c33478356f1f781e8546b666badbde939682b1a9c5de48d5c0fd959e760f8dc8",
-    "cinder_r9.bin": "9c8a03e27d7ebc8dbce403e4654fb9f4f9b07be831552d15b71a7e0b2b99f3f8",
-    "wheel.gltf": "782459725c66dc7f69cf0a453ef464f156dbef88ac975724f19cd4872e040242",
+    "cinder_r9.gltf": "a3cf35ec5fe4e7db93b9f71ed0e47ec7cc210a4606e336d241320b7d5439bbcd",
+    "cinder_r9.bin": "ce4766a10d6b7ea6d8eb72965e307a219bdffe681368177c05b058c5a0c521f8",
+    "wheel.gltf": "314c4a85b69926bd4ed39dcb89d8ed86b524f70a3fcda8aebbb1ae79d0bb4c01",
     "wheel.bin": "a5bc7ee2a1ccf3017600d416d8fb6d008f5ff3045d99d1fe3166618dbb253449",
     "carbon_twill.png": "89c8a41f36faef711f93d6df0996be5bbd845ef65f7ea398de116ad11adc32f5",
     "rain_beads.png": "37106685c200a5b8b4d59c7aca10ec9c523dbd3cce8166a7a0896fbc26a290e8"
