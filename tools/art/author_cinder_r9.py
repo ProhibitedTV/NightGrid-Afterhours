@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'assets/models/nightgrid/road_cars'
 PAINT, DARK, ALLOY, GLASS, SEAT, LEATHER, HEAD, TAIL, REVERSE, BELT, TYRE, CARBON, TITANIUM, OPTIC, UNDER = range(15)
 SEAM, GRILLE, PROJECTOR, FORGED, REFLECTOR = range(15, 20)
+CALIPER = 20
 SIDE_ROWS = (0., .09, .22, .35, .49, .66, .81, .93, 1.)
 # The visible wheel-arch lip follows a circular tire clearance envelope,
 # then returns smoothly to the rocker. Width includes the rocker transition.
@@ -845,6 +846,58 @@ def build_wheel():
     return parts
 
 
+def build_brake_caliper(side):
+    """Stationary floating-style brake caliper, a separate glTF mesh.
+
+    The disc and spoke/rim elements belong to the spinning Wheel node. The
+    caliper belongs to the non-spinning steering knuckle so the braking system
+    cannot rotate around the axle when the car accelerates. It is deliberately
+    placed between the paired wheel spokes (36 degrees from the upper spoke).
+    """
+    if side not in (-1, 1):
+        raise ValueError("caliper side must be -1 or +1")
+    parts = [Mesh() for _ in MATERIALS]
+    count = 12
+    angle = pi / 5.0
+    half_sector = .24
+    inner_radius, outer_radius = .168, .226
+    # Both axial layers sit behind the front faces of the forged spokes, and
+    # inside the machined rim's inner radius.
+    def at(axial, radius, position):
+        t = angle - half_sector + 2.0*half_sector*position/count
+        return (side*axial, radius*cos(t), radius*sin(t))
+
+    for i in range(count):
+        j = i+1
+        front_in, front_out = at(.103, inner_radius, i), at(.103, outer_radius, i)
+        next_in, next_out = at(.103, inner_radius, j), at(.103, outer_radius, j)
+        rear_in, rear_out = at(.029, inner_radius, i), at(.029, outer_radius, i)
+        rear_next_in, rear_next_out = at(.029, inner_radius, j), at(.029, outer_radius, j)
+        quad(parts[CALIPER], front_in, front_out, next_out, next_in,
+             (side, 0, 0))
+        quad(parts[CALIPER], rear_in, rear_next_in, rear_next_out, rear_out,
+             (-side, 0, 0))
+        mid = angle-half_sector + half_sector*(i+j)/count
+        radial = (0, cos(mid), sin(mid))
+        quad(parts[CALIPER], front_out, rear_out, rear_next_out, next_out, radial)
+        quad(parts[CALIPER], front_in, next_in, rear_next_in, rear_in,
+             (0,-radial[1],-radial[2]))
+    for position, facing in ((0, -1), (count, 1)):
+        quad(parts[CALIPER], at(.029,inner_radius,position),
+             at(.103,inner_radius,position),
+             at(.103,outer_radius,position),
+             at(.029,outer_radius,position),
+             (0, facing*sin(angle), -facing*cos(angle)))
+    # Two original metallic retention bolts help the fixed caliper read as a
+    # functional assembly through the moving rim instead of a colored plaque.
+    for offset in (-.135, .135):
+        t = angle+offset
+        ellipsoid(parts[ALLOY],
+                  (side*.111,.194*cos(t),.194*sin(t)),
+                  (.006,.008,.008),rings=4,segments=10)
+    return parts
+
+
 MATERIALS = [
     {"name": name, "pbrMetallicRoughness": {"baseColorFactor": [*rgb, 1.],
         "metallicFactor": metal, "roughnessFactor": rough}}
@@ -860,6 +913,7 @@ MATERIALS = [
         ('PanelReveal',(.049,.025,.028),.01,.55), ('Grille',(.072,.079,.084),.59,.51),
         ('ProjectorOptic',(.28,.35,.44),.37,.13), ('ForgedAlloy',(.11,.125,.151),.81,.34),
         ('MarkerReflector',(.36,.071,.025),.11,.32),
+        ('BrakeCaliper',(.55,.145,.075),.34,.32),
     )
 ]
 MATERIALS[PAINT]['extensions'] = {'KHR_materials_clearcoat': {'clearcoatFactor': .78, 'clearcoatRoughnessFactor': .12}}
@@ -940,8 +994,14 @@ def main():
         meshes[name] = surfaces_from(part,pivots[name])
     totals = write_model(OUT,'cinder_r9',meshes,MATERIALS,SOCKETS,'NightGrid Cinder R9 authoring',
                          'carbon_twill.png',pivots=pivots)
-    wheels = write_model(OUT,'wheel',{'Wheel':surfaces_from(build_wheel())},MATERIALS,{},
-                         'NightGrid Cinder R9 wheel authoring','carbon_twill.png')
+    wheels = write_model(
+        OUT,'wheel', {
+            'Wheel':surfaces_from(build_wheel()),
+            'BrakeCaliperL':surfaces_from(build_brake_caliper(-1)),
+            'BrakeCaliperR':surfaces_from(build_brake_caliper(1))
+        }, MATERIALS, {},
+        'NightGrid Cinder R9 wheel and independent stationary caliper authoring',
+        'carbon_twill.png')
     names = ('cinder_r9.gltf','cinder_r9.bin','wheel.gltf','wheel.bin','carbon_twill.png','rain_beads.png')
     manifest = {'id':'nightgrid.cinder_r9','author':'NightGrid Afterhours',
                 'license':'Original NightGrid project artwork. No separate public license declared.',
