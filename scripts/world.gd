@@ -1985,6 +1985,7 @@ func _consume_ration() -> void:
 				consumable_inventory.erase(id)
 			health = minf(100.0,health+float(item["health"]))
 			player.call("add_stamina",float(item["stamina"]))
+			player.get_node("Visual").call("play_product_action",id,false)
 			_notify("Consumed %s. Health %d / stamina %d." % [item["name"],ceili(health),ceili(float(player.get("stamina")))])
 			return
 	if current_car != null or current_transit != null:
@@ -2311,6 +2312,10 @@ func _venue_action(option: int) -> void:
 			return
 		cash -= int(item["price"])
 		consumable_inventory[id] = int(consumable_inventory.get(id,0))+1
+		var facing := _vending_machine.global_position-player.global_position
+		player.get_node("Visual").rotation.y = atan2(facing.x,facing.z)
+		player.get_node("Visual").call("play_product_action",id,true)
+		_vending_machine.call("dispense_feedback")
 		_notify("Dispensed %s. R / D-pad down to consume." % item["name"])
 		_update_venue_panel()
 		return
@@ -2360,6 +2365,8 @@ func _venue_action(option: int) -> void:
 		cash -= price
 		health = minf(100.0, health + healing)
 		player.call("add_stamina",energy)
+		if energy>0.0:
+			player.get_node("Visual").call("play_product_action","energy" if str(venue["kind"])=="CAFE" else "sandwich",false)
 		heat = maxf(0.0, heat - cover)
 		if venue_selected_id == "lantern_cup" and interiors.call("is_inside"):
 			interiors.call("mara_purchase_reaction")

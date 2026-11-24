@@ -34,17 +34,28 @@ func configure(style: int, accent: Color) -> void:
 		[Vector3(0,2.33,-.04),Vector3(1.58,.14,1.0)],
 		[Vector3(-.73,1.25,-.53),Vector3(.11,2.0,.10)],
 		[Vector3(.73,1.25,-.53),Vector3(.11,2.0,.10)],
-		[Vector3(0,.35,-.53),Vector3(1.32,.30,.10)]
+		[Vector3(0,.35,-.53),Vector3(1.32,.30,.10)],
+		[Vector3(.0,2.39,-.10),Vector3(1.35,.045,.66)],
+		[Vector3(-.73,.72,.18),Vector3(.045,.75,.55)],
+		[Vector3(.73,.72,.18),Vector3(.045,.75,.55)],
+		[Vector3(.57,1.12,-.60),Vector3(.23,.40,.045)]
 	])
 	_batch("Recesses",dark,[
 		[Vector3(0,.35,-.59),Vector3(1.08,.18,.03)],
 		[Vector3(.63,1.1,-.59),Vector3(.13,.33,.05)],
-		[Vector3(0,2.32,-.56),Vector3(1.3,.09,.04)]
+		[Vector3(0,2.32,-.56),Vector3(1.3,.09,.04)],
+		[Vector3(.0,.35,-.61),Vector3(.92,.065,.035)],
+		[Vector3(.0,.39,.49),Vector3(1.25,.29,.035)],
+		[Vector3(.0,.32,.515),Vector3(1.11,.025,.02)],
+		[Vector3(.0,.39,.515),Vector3(1.11,.025,.02)],
+		[Vector3(.0,.46,.515),Vector3(1.11,.025,.02)]
 	])
 	_batch("NeonTrim",neon,[
 		[Vector3(-.66,1.35,-.60),Vector3(.035,1.85,.03)],
 		[Vector3(.66,1.35,-.60),Vector3(.035,1.85,.03)],
-		[Vector3(0,.23,-.60),Vector3(1.10,.035,.03)]
+		[Vector3(0,.23,-.60),Vector3(1.10,.035,.03)],
+		[Vector3(.57,1.19,-.63),Vector3(.13,.09,.035)],
+		[Vector3(.57,1.05,-.63),Vector3(.12,.022,.035)]
 	])
 	var display := MeshInstance3D.new()
 	display.name = "AnimatedMarquee"
@@ -56,6 +67,13 @@ func configure(style: int, accent: Color) -> void:
 	display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(display)
 	_build_side_art()
+
+func dispense_feedback() -> void:
+	# Shader instance parameter is local to this cabinet despite shared material.
+	var display := get_node("AnimatedMarquee") as MeshInstance3D
+	display.set_instance_shader_parameter("dispense_flash",1.0)
+	var tween := create_tween()
+	tween.tween_method(func(value: float) -> void: display.set_instance_shader_parameter("dispense_flash",value),1.0,0.0,.45)
 
 func _build_side_art() -> void:
 	if _side_mesh == null:

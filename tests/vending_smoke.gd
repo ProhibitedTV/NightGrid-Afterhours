@@ -60,10 +60,19 @@ func _verify() -> void:
 	if not check(world.get("venue_service_button").icon==Catalog.PRODUCT_ICONS["water"],"real shop uses original product packaging"):
 		return
 	world.call("_venue_action",1)
+	var visual: Node3D = player.get_node("Visual")
+	var anim: AnimationPlayer = visual.get("animations")
+	if not check(anim.has_animation(&"drink_item") and anim.has_animation(&"eat_item") and anim.has_animation(&"purchase_item"),"actual skinned rig has all product action clips"):
+		return
 	if not check(int(world.get("cash"))==97 and int(world.get("consumable_inventory").get("water",0))==1,"atomic water purchase"):
 		return
 	world.call("_close_venue")
 	world.call("_consume_ration")
+	if not check(visual.get("current_pose")==&"drink_item" and is_instance_valid(visual.get("_held_product")),"consumption animates weighted character and attaches branded model"):
+		return
+	visual.call("_finish_action",&"drink_item")
+	if not check(visual.get("_held_product")==null,"action completion cleans up prop"):
+		return
 	if not check(float(player.get("stamina"))==55.0 and Catalog.count(world.get("consumable_inventory"))==0,"water restores stamina and consumes inventory"):
 		return
 	world.call("_toggle_interaction")
