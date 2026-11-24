@@ -113,10 +113,20 @@ func _verify() -> void:
 			if not anchored:
 				_fail("Enabled light floats away from all visible street/shop sources")
 				return
+	var selection_count: int = stats["selection_refreshes"]
+	# Unchanged location and night plateau must not rebuild candidate lists.
+	for repeat in 12:
+		lamps.call("set_night_factor", 1.0)
+	lamps.call("set_focus", Vector3(-29.0, 8.0, -29.0))
+	lamps.call("set_night_factor", .62)
+	var stable: Dictionary = lamps.call("get_practical_light_stats")
+	if int(stable["selection_refreshes"]) != selection_count or int(stable["active"]) != int(stats["active"]):
+		_fail("Stationary twilight or vertical focus rebuilt the light selection")
+		return
 	lamps.call("set_focus", Vector3(203.0, 0.0, 203.0))
 	lamps.call("set_night_factor", 1.0)
 	var relocated: Dictionary = lamps.call("get_practical_light_stats")
-	if int(relocated["active"]) < 2 or int(relocated["active"]) > 8:
+	if int(relocated["active"]) < 2 or int(relocated["active"]) > 8 or int(relocated["selection_refreshes"]) != selection_count + 1:
 		_fail("Lighting did not follow the real streamed district")
 		return
 	clock.call("set_hour", 12.0)
