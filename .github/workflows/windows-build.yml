@@ -3,13 +3,8 @@ on:
   pull_request:
   workflow_dispatch:
   push:
+    # The release gate requires an exact main SHA, including test-only changes.
     branches: [main]
-    paths:
-      - 'scripts/**'
-      - 'scenes/**'
-      - 'project.godot'
-      - 'export_presets.cfg'
-      - '.github/workflows/windows-build.yml'
 
 permissions:
   contents: read
