@@ -37,3 +37,16 @@ The original Cinder clips are edited from recordings released under [CC0 1.0](ht
 | Tire contact | [Car Interior, Driving on Highway by bmacphail](https://freesound.org/people/bmacphail/sounds/795866/) |
 | Tire spray | [Passing Car (Wet road) by Breviceps](https://freesound.org/people/Breviceps/sounds/462862/) |
 | Door | [Car Door open and close 3.wav by NachtmahrTV](https://freesound.org/people/NachtmahrTV/sounds/556690/) |
+
+
+## Bonded headlight cover refinement
+
+PR #239 adds **actual finite-thickness headlight polycarbonate**, instead of a single transparent face suspended over a cavity. The original Cinder visual design, two optic projectors, LED guide geometry, drivable controller, existing 12 parking indices, and save compatibility remain unchanged.
+
+- `tools/art/author_cinder_r9.py` authors an original 3.6 mm lens shell with outer/inner surfaces and perimeter walls on both front corners, generated from exactly the same body-cover coordinates as the previous single-sided version.
+- `scripts/road_car_visual.gd` adjusts runtime lens opacity for the two aligned translucent layers so the headlights do not become unnecessarily dark merely from adding a back skin.
+- `tests/test_cinder_bonded_optics.py` checks both positions, opposing normals, perimeter edge normals, paired-vertex physical thickness, optical translucency, and checksum provenance.
+- `tests/cinder_r9_smoke.gd` verifies the modeled shell inside the Godot vehicle scene while preserving the existing lighting/driving/save tests.
+- Generated `cinder_r9.gltf`, `cinder_r9.bin` and `source.json` were regenerated and committed by the scoped GitHub Actions workflow after its geometry checks passed in [run 45300743564](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/runs/45300743564).
+
+This is a **focused optics fidelity milestone**, not proof of cinematic or AAA finished visuals. It still requires a real in-game daylight and nighttime close-up check using the documented native capture fixture, particularly to assess transparency sorting and specular reflections. Do not confuse that required visual review with automated geometry validation.
