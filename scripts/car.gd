@@ -156,7 +156,8 @@ func _physics_process(delta: float) -> void:
 				loads.x = (measured_speed - speed_before) / delta
 				loads.y = -angle_difference(yaw_before, rotation.y) / delta * measured_speed
 			hero_visual.call("update_motion", speed, visual_steer, braking, occupied, throttle, road_wetness, delta, rolling_distance, loads)
-			hero_visual.call("sample_suspension", get_rid(), occupied and is_on_floor(), delta)
+			hero_visual.call("sample_suspension", get_rid(), occupied and is_on_floor(), delta,
+				rolling_distance / delta if delta > 0.0 else 0.0, road_wetness)
 
 func _drive_legacy(throttle: float, steering: float, delta: float) -> void:
 	if throttle > 0.0:

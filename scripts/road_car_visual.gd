@@ -16,6 +16,9 @@ const GROUND = -0.825
 const BUMP_LIMIT = .010
 const DROOP_LIMIT = .045
 const BODY_VERTICAL_BUDGET = .018
+const SPRAY_MIN_SPEED = 3.0
+const SPRAY_MIN_FILM = .25
+const SPRAY_PARTICLES_PER_WHEEL = 24
 const TAIL_RED = Color("ff2635")
 const REVERSE_WHITE = Color("ffdcb8")
 const SILL_CYAN = Color("16d9f4")
@@ -23,6 +26,8 @@ static var _shared: Dictionary = {}
 static var _wheel_mesh: ArrayMesh
 static var _brake_left_mesh: ArrayMesh
 static var _brake_right_mesh: ArrayMesh
+static var _spray_mesh: QuadMesh
+static var _spray_fade: Gradient
 
 var _night := true
 var _color: Color
@@ -39,6 +44,7 @@ var _brake_calipers: Array[MeshInstance3D] = []
 var _steering: Array[Node3D] = []
 var _knuckles: Array[Node3D] = []
 var _wheel_offsets := Vector4.ZERO
+var _spray: Array[CPUParticles3D] = []
 var _beams: Array[SpotLight3D] = []
 var _tail_throw: SpotLight3D
 var _sill_lights: Array[OmniLight3D] = []
@@ -305,7 +311,8 @@ func reset_body_pose() -> void:
 
 ## Road-height visual sampling only. The character controller still owns
 ## collision and vertical movement; four rays only for the occupied car.
-func sample_suspension(car_rid: RID, grounded: bool, delta: float) -> void:
+func sample_suspension(car_rid: RID, grounded: bool, delta: float,
+		road_speed: float = 0.0, wetness: float = 0.0) -> void:
 	var space := get_world_3d().direct_space_state
 	var exclusions: Array[RID] = [car_rid]
 	var blend := 1.0 - exp(-15.0 * maxf(delta, 0.0))
@@ -313,6 +320,7 @@ func sample_suspension(car_rid: RID, grounded: bool, delta: float) -> void:
 	for index in _knuckles.size():
 		var knuckle := _knuckles[index]
 		var desired := 0.0
+		var contact_point := Vector3.INF
 		if grounded:
 			# Probe from the original tire datum, not the animated wheel; this
 			# prevents feedback oscillation and never raises the collision hull.
@@ -325,11 +333,85 @@ func sample_suspension(car_rid: RID, grounded: bool, delta: float) -> void:
 				if normal.y >= .70:
 					var contact: Vector3 = hit["position"]
 					desired = clampf(contact.y - foot.y, -DROOP_LIMIT, BUMP_LIMIT)
+					# Do not spray from a ray hit well below the actual visual tire.
+					if absf(contact.y - foot.y - desired) <= .035:
+						contact_point = contact
 		_wheel_offsets[index] = lerpf(_wheel_offsets[index], desired, blend)
 		knuckle.position.y = GROUND + tyre + _wheel_offsets[index]
+		_update_tire_spray(index, contact_point, road_speed, wetness)
+
+## Soft transparent original radial mask, shared by all four emitters.
+func _make_spray_resources() -> void:
+	if _spray_mesh != null:
+		return
+	var mask := Gradient.new()
+	mask.colors = PackedColorArray([Color(1, 1, 1, .85), Color(1, 1, 1, 0)])
+	var texture := GradientTexture2D.new()
+	texture.gradient = mask
+	texture.width = 32
+	texture.height = 32
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.fill_from = Vector2(.5, .5)
+	texture.fill_to = Vector2(1, .5)
+	var material := StandardMaterial3D.new()
+	material.albedo_texture = texture
+	material.vertex_color_use_as_albedo = true
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	material.roughness = 1.0
+	_spray_mesh = QuadMesh.new()
+	_spray_mesh.size = Vector2(.28, .28)
+	_spray_mesh.material = material
+	_spray_fade = Gradient.new()
+	_spray_fade.offsets = PackedFloat32Array([0.0, .18, 1.0])
+	_spray_fade.colors = PackedColorArray([Color(.58, .65, .70, .0),
+		Color(.58, .65, .70, .30), Color(.58, .65, .70, 0)])
+
+func _ensure_spray() -> void:
+	if not _spray.is_empty():
+		return
+	_make_spray_resources()
+	for index in 4:
+		var emitter := CPUParticles3D.new()
+		emitter.name = "RoadSpray%d" % index
+		emitter.emitting = false
+		emitter.amount = SPRAY_PARTICLES_PER_WHEEL
+		emitter.lifetime = .42
+		emitter.local_coords = false
+		emitter.mesh = _spray_mesh
+		emitter.color_ramp = _spray_fade
+		emitter.spread = 24.0
+		emitter.gravity = Vector3(0, -7.0, 0)
+		emitter.scale_amount_min = .65
+		emitter.scale_amount_max = 1.4
+		add_child(emitter)
+		_spray.append(emitter)
+
+func _update_tire_spray(index: int, contact: Vector3, road_speed: float, wetness: float) -> void:
+	var active := contact.is_finite() and is_finite(road_speed) and is_finite(wetness) \
+		and absf(road_speed) >= SPRAY_MIN_SPEED and wetness >= SPRAY_MIN_FILM
+	if not active:
+		if not _spray.is_empty():
+			_spray[index].emitting = false
+		return
+	_ensure_spray()
+	var emitter := _spray[index]
+	var side := -1.0 if index % 2 == 0 else 1.0
+	var trailing := signf(road_speed)
+	emitter.position = to_local(contact) + Vector3(side * .05, .075, trailing * .12)
+	# Local +Z is behind a forward-moving Cinder. World-space particles
+	# remain behind instead of moving rigidly with the car after emission.
+	emitter.direction = Vector3(side * .22, .42, trailing).normalized()
+	var strength := smoothstep(SPRAY_MIN_SPEED, 25.0, absf(road_speed)) * clampf(wetness, 0, 1)
+	emitter.initial_velocity_min = lerpf(.7, 2.5, strength)
+	emitter.initial_velocity_max = lerpf(1.5, 5.5, strength)
+	emitter.emitting = true
 
 func reset_suspension() -> void:
 	_wheel_offsets = Vector4.ZERO
+	for emitter in _spray:
+		emitter.restart()
+		emitter.emitting = false
 	for knuckle in _knuckles:
 		knuckle.position.y = GROUND + float(_spec["tire"])
 
