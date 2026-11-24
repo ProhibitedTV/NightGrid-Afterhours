@@ -6,6 +6,7 @@ const ProductArt = preload("res://scripts/consumable_prop.gd")
 const Locomotion = preload("res://scripts/locomotion_policy.gd")
 const TerrainFeet = preload("res://scripts/courier_terrain_feet.gd")
 const Posture = preload("res://scripts/courier_posture.gd")
+const Reach = preload("res://scripts/courier_reach.gd")
 const GAIT_LOOPS = [&"walk",&"run",&"walk_back",&"strafe_left",&"strafe_right",&"aim_walk",&"aim_run",&"aim_left",&"aim_right"]
 const FOOT_OFFSET = -0.95
 const DRIVER_SEAT = Vector3(-0.52, -0.23, -0.43)
@@ -36,6 +37,7 @@ var _held_product: Node3D
 var _product_hand: BoneAttachment3D
 var _terrain_feet: SkeletonModifier3D
 var _posture: SkeletonModifier3D
+var _reach: SkeletonModifier3D
 const FOOD_ACTIONS = [&"purchase_item",&"drink_item",&"eat_item"]
 
 func _ready() -> void:
@@ -65,6 +67,11 @@ func _ready() -> void:
 	_posture.active = false
 	skeleton.add_child(_posture)
 	_posture.call("configure")
+	_reach = Reach.new()
+	_reach.name = "ContextualReach"
+	_reach.active = false
+	skeleton.add_child(_reach)
+	_reach.call("configure")
 	_play(&"idle", 0.0)
 	set_physics_process(false)
 
@@ -204,9 +211,15 @@ func reset_terrain() -> void:
 	if is_instance_valid(_posture):
 		_posture.call("reset")
 
+func reach_target(target: Node3D,anchor: Vector3,side: int) -> void:
+	if is_instance_valid(_reach) and _grounded and not _seat and _equipment=="holstered" and _action in [&"interact",&"open_door",&"purchase_item"]:
+		_reach.call("begin",target,anchor,side,animations,_action)
+
 func play_action(clip: StringName, rate_override: float = 0.0) -> void:
 	if _seat or (clip == &"interact" and (_horizontal.length_squared() > 0.8 or not _grounded)):
 		return
+	if is_instance_valid(_reach):
+		_reach.call("reset")
 	if clip not in FOOD_ACTIONS:
 		_clear_product()
 	_action = clip
@@ -228,6 +241,8 @@ func sit_in_vehicle(car: Node3D, play_entry: bool, ground_y: float) -> void:
 	position = _driver_seat
 	rotation = Vector3(0.0, PI, 0.0)
 	_seat = true
+	if is_instance_valid(_reach):
+		_reach.call("reset")
 	reset_terrain()
 	_clear_product()
 	_horizontal = Vector3.ZERO
@@ -257,6 +272,8 @@ func return_to_player(player: Node3D) -> void:
 	position = Vector3.UP * FOOT_OFFSET
 	rotation = Vector3(0.0, facing, 0.0)
 	_seat = false
+	if is_instance_valid(_reach):
+		_reach.call("reset")
 	reset_terrain()
 	_clear_product()
 	_reset_gait()
@@ -268,6 +285,8 @@ func return_to_player(player: Node3D) -> void:
 func _finish_action(clip: StringName) -> void:
 	if clip != _action:
 		return
+	if is_instance_valid(_reach):
+		_reach.call("reset")
 	if clip in FOOD_ACTIONS:
 		_clear_product()
 	_action = &""
@@ -286,6 +305,8 @@ func _reset_gait() -> void:
 func _choose_pose() -> void:
 	if _action != &"":
 		return
+	if is_instance_valid(_reach) and _reach.active:
+		_reach.call("reset")
 	if _seat:
 		_play(&"drive_car", 0.18)
 		return

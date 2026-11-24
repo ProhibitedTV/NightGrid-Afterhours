@@ -170,6 +170,10 @@ func service_counter() -> Vector3:
 func service_reachable(at: Vector3) -> bool:
 	return not physical_venue_id.is_empty() and contains(at) and at.distance_to(service_counter()) <= 1.65
 
+func door_handle_anchor() -> Vector3:
+	var handle := door.get_node("InteractionHandle") as Node3D
+	return handle.position+Vector3(0,0,-.10)
+
 func doorway_reachable(at: Vector3) -> bool:
 	var p := to_local(at)
 	return absf(p.x)<2.0 and absf(p.z)<2.0 and p.y>=-.2 and p.y<2.8

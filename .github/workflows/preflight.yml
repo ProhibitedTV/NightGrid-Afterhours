@@ -147,6 +147,13 @@ jobs:
           timeout 75s godot --headless --path . --script res://tests/courier_transition_smoke.gd 2>&1 | tee /tmp/nightgrid-transition.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-transition.log; then exit 1; fi
           grep -q "TRANSITION_SMOKE PASS:" /tmp/nightgrid-transition.log
+      - name: Validate contextual hand contact and streamed target cleanup
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/courier_reach_smoke.gd 2>&1 | tee /tmp/nightgrid-reach.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-reach.log; then exit 1; fi
+          grep -q "REACH_SMOKE PASS:" /tmp/nightgrid-reach.log
       - name: Verify the baked city textures match the original generator byte for byte
         run: godot --headless --path . --script res://tools/bake_city_material_maps.gd -- --verify
       - name: Validate deterministic road routes, intersection turns and off-road access
