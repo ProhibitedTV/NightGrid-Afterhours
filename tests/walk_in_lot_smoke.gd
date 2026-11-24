@@ -23,6 +23,21 @@ func _verify() -> void:
 	player.global_position = entry
 	player.velocity = Vector3.ZERO
 	await physics_frame
+	var door: AnimatableBody3D = lot.get("door")
+	for i in 40:
+		player.velocity = Vector3(0,0,5)
+		player.move_and_slide()
+		await physics_frame
+	if not check(not lot.call("contains",player.global_position),"closed door physically blocks entry"):
+		return
+	player.global_position = entry
+	player.velocity = Vector3.ZERO
+	if not check(door.call("request_toggle"),"real door toggle"):
+		return
+	for i in 48:
+		await physics_frame
+	if not check(float(door.call("openness"))>.95,"door opens without teleport"):
+		return
 	for i in 90:
 		player.velocity = Vector3(0,0,5)
 		player.move_and_slide()
@@ -38,6 +53,12 @@ func _verify() -> void:
 	city.call("set_focus",entry)
 	if not check(city.get("_loaded")[block] == chunk and lot.call("contains",player.global_position),"decorative completion preserves occupied shell"):
 		return
+	city.call("update_walk_in_light",player.global_position)
+	if not check(lot.get_node_or_null("NearInteriorLight") != null and lot.get_node("NearInteriorLight").visible,"nearby room receives budgeted light"):
+		return
+	city.call("update_walk_in_light",Vector3.INF)
+	if not check(not lot.get_node("NearInteriorLight").visible,"departed room light disabled"):
+		return
 	var record: Dictionary = world.call("_capture_snapshot")
 	if not check(record.get("interior",{}).is_empty(),"physical room uses ordinary world save, not remote interior"):
 		return
@@ -45,6 +66,9 @@ func _verify() -> void:
 	world.call("_apply_snapshot",record)
 	if not check(player.global_position.distance_to(inside)<.1,"physical room save preserves world coordinates"):
 		return
+	lot = city.get("_loaded")[block].get_node("WalkInLot_0") as StaticBody3D
+	door = lot.get("door")
+	door.call("restore_open",true)
 	for i in 150:
 		player.velocity = Vector3(0,0,-5)
 		player.move_and_slide()

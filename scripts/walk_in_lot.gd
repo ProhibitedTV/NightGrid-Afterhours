@@ -4,6 +4,7 @@ extends StaticBody3D
 ## Collision and matching shell meshes arrive in the existing stage zero.
 const Materials = preload("res://scripts/material_library.gd")
 const PhotoMasonry = preload("res://scripts/photo_masonry.gd")
+const Door = preload("res://scripts/storefront_door.gd")
 const DOOR_WIDTH = 2.8
 const DOOR_HEIGHT = 3.05
 const ROOM_WIDTH = 9.6
@@ -13,6 +14,8 @@ var _width: float
 var _depth: float
 var _height: float
 var _dressed := false
+var door: AnimatableBody3D
+var _lamp: OmniLight3D
 static var _unit := BoxMesh.new()
 static var _shapes: Dictionary = {}
 static var _materials: Dictionary = {}
@@ -34,6 +37,29 @@ func configure(width: float, height: float, depth: float, wall: Color, kind: Str
 		_section("FrontWall", Vector3(side * (DOOR_WIDTH*.5+jamb*.5),ROOM_HEIGHT*.5,.13), Vector3(jamb,ROOM_HEIGHT,.26), exterior)
 	_section("DoorHeader", Vector3(0,(DOOR_HEIGHT+ROOM_HEIGHT)*.5,.13), Vector3(DOOR_WIDTH,ROOM_HEIGHT-DOOR_HEIGHT,.26), exterior)
 	_section("Floor", Vector3(0,-.075,ROOM_DEPTH*.5),Vector3(ROOM_WIDTH,.15,ROOM_DEPTH),Materials.surface("CONCRETE",Color("68666a")))
+	# Inward swing from the right jamb. The existing obstruction-aware
+	# storefront hinge checks characters and rigid bodies before each step.
+	door = Door.new()
+	door.name = "EntryDoor"
+	door.position = Vector3(DOOR_WIDTH*.5-.04,0,.16)
+	add_child(door)
+	var size := Vector3(DOOR_WIDTH-.08,DOOR_HEIGHT-.10,.12)
+	var center := Vector3(-size.x*.5,size.y*.5,0)
+	door.call("configure",size,center)
+	var leaf := MeshInstance3D.new()
+	leaf.name = "DoorLeaf"
+	leaf.mesh = _unit
+	leaf.scale = size
+	leaf.position = center
+	leaf.material_override = _mat(Color("34434a"))
+	door.add_child(leaf)
+	var handle := MeshInstance3D.new()
+	handle.mesh = _unit
+	handle.scale = Vector3(.16,.42,.18)
+	handle.position = Vector3(-size.x+.26,1.13,-.08)
+	handle.material_override = _mat(Color("a5a7a3"))
+	door.add_child(handle)
+	door.set("art_ready",true)
 	# Thin interior finishes on the solid surfaces, without added colliders.
 	var inside := _mat(Color("777d80"))
 	for side in [-1.0,1.0]:
@@ -59,6 +85,23 @@ func dress(district: String, accent: Color, variant: int) -> void:
 	# Two low-cost luminous fixtures; no extra shadow-casting lights per lot.
 	for z in [2.3,6.1]:
 		_visual("CeilingFixture",Vector3(0,ROOM_HEIGHT-.13,z),Vector3(3.0,.12,.42),_mat(Color("d8dad2"),true))
+
+func doorway_reachable(at: Vector3) -> bool:
+	var p := to_local(at)
+	return absf(p.x)<2.0 and absf(p.z)<2.0 and p.y>=-.2 and p.y<2.8
+
+func set_local_light(enabled: bool) -> void:
+	if enabled and not is_instance_valid(_lamp):
+		_lamp = OmniLight3D.new()
+		_lamp.name = "NearInteriorLight"
+		_lamp.position = Vector3(0,ROOM_HEIGHT-.45,4.3)
+		_lamp.omni_range = 9.0
+		_lamp.light_energy = .9
+		_lamp.light_color = Color("f6dfbf")
+		_lamp.shadow_enabled = false
+		add_child(_lamp)
+	if is_instance_valid(_lamp):
+		_lamp.visible = enabled
 
 func contains(at: Vector3) -> bool:
 	var p := to_local(at)

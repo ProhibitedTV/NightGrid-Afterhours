@@ -78,6 +78,7 @@ var _loaded: Dictionary = {}
 var _brickwater_night := 0.0
 var _staging: Dictionary = {}
 var _active_chunk: Node3D
+var _lit_walk_in: Node3D
 var _current_block := Vector2i(999, 999)
 var _loads := 0
 var _unloads := 0
@@ -730,6 +731,31 @@ func _build_brickwater_alley(ix: int, iz: int) -> void:
 	alley.position = Vector3((float(ix)+0.5)*CELL,0.0,(float(iz)+0.5)*CELL)
 	alley.configure(-10.5+float(left["width"])*0.5,10.5-float(right["width"])*0.5)
 	_active_chunk.add_child(alley)
+
+func nearby_walk_in(at: Vector3) -> Node3D:
+	if not at.is_finite():
+		return null
+	var block := _grid_cell(at)
+	var chunk: Node3D = _loaded.get(block)
+	if chunk == null and _staging.has(block):
+		chunk = _staging[block]["node"]
+	if not is_instance_valid(chunk):
+		return null
+	for which in range(2):
+		var lot := chunk.get_node_or_null("WalkInLot_%d" % which) as Node3D
+		if lot != null and (lot.call("doorway_reachable",at) or lot.call("contains",at)):
+			return lot
+	return null
+
+func update_walk_in_light(at: Vector3) -> void:
+	var next := nearby_walk_in(at)
+	if next == _lit_walk_in:
+		return
+	if is_instance_valid(_lit_walk_in):
+		_lit_walk_in.call("set_local_light",false)
+	_lit_walk_in = next
+	if is_instance_valid(next):
+		next.call("set_local_light",true)
 
 func repair_storefront() -> Node3D:
 	var block := BrickwaterAlley.PILOT_BLOCK
