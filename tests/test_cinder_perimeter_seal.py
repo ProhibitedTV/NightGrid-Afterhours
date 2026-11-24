@@ -31,6 +31,19 @@ def vec3(doc,raw,accessor_id):
             for i in range(a["count"])]
 
 
+def indices(doc,raw,accessor_id):
+    accessor=doc["accessors"][accessor_id]
+    assert accessor["type"]=="SCALAR"
+    codes={5123:("H",2),5125:("I",4)}
+    fmt,size=codes[accessor["componentType"]]
+    view=doc["bufferViews"][accessor["bufferView"]]
+    first=view.get("byteOffset",0)+accessor.get("byteOffset",0)
+    stride=view.get("byteStride",size)
+    assert first+(accessor["count"]-1)*stride+size<=len(raw)
+    return [struct.unpack_from("<"+fmt,raw,first+i*stride)[0]
+            for i in range(accessor["count"])]
+
+
 class CinderMoldedLampSeals(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -77,6 +90,27 @@ class CinderMoldedLampSeals(unittest.TestCase):
         # A narrow physical gasket is not just a shader outline or flat card.
         self.assertGreater(len(self.points),750)
         self.assertGreater(max(x for x,y,z in self.points)-min(x for x,y,z in self.points),1.0)
+
+    def test_watertight_mesh_and_rendering_triangle_budget(self):
+        tris=indices(self.doc,self.binary,self.gasket["indices"])
+        self.assertEqual(len(tris)%3,0)
+        count=len(tris)//3
+        self.assertGreater(count,1200,"Gasket circle collapsed to flat trim")
+        self.assertLessEqual(count,2000,"Hidden segment caps regress draw cost")
+        # Imported glTF can split a shared position for UV/normal seams.
+        # Check manifold edges in world-space coordinates, not glTF IDs.
+        edges={}
+        for index in range(0,len(tris),3):
+            corners=[tuple(round(v,6) for v in self.points[tris[index+k]])
+                     for k in range(3)]
+            self.assertEqual(len(set(corners)),3,"Zero-area gasket triangle")
+            for i,j in ((0,1),(1,2),(2,0)):
+                key=tuple(sorted((corners[i],corners[j])))
+                edges[key]=edges.get(key,0)+1
+        self.assertGreater(len(edges),500)
+        bad=sum(count!=2 for count in edges.values())
+        self.assertEqual(bad,0,
+                         f"Open or nonmanifold perimeter gasket edges: {bad}")
 
     def test_gasket_stays_below_inner_polycarbonate(self):
         # Each modeled tube is centered 11.5 mm beneath the deck with a
