@@ -6,6 +6,7 @@ extends Node3D
 ## Exactly two material-sorted ArrayMesh drawables. These sit a few
 ## millimetres above existing road visuals and BELOW zebra/stop-line paint.
 ## No collisions, roadside props, road centerline, save schema or new lights.
+const Weather = preload("res://scripts/city_surface_weather.gd")
 const ROOT = "res:" + "//assets/pbr/polyhaven/bitumen_"
 const SURFACE_Y = 0.016
 const CENTER_HALF = 7.0
@@ -65,10 +66,9 @@ func _build() -> void:
 		material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 		material.cull_mode = BaseMaterial3D.CULL_BACK
 		# Motivated drain-side dampness, without mirror-finish pavement.
-		if kind == "DAMP":
-			material.clearcoat_enabled = true
-			material.clearcoat = 0.25
-			material.clearcoat_roughness = 0.22
+		material.clearcoat_enabled = true
+		material.clearcoat = 0.25 if kind == "DAMP" else 0.0
+		material.clearcoat_roughness = 0.22
 		_materials[kind] = material
 
 	var dry: Array[PackedVector3Array] = []
@@ -89,6 +89,12 @@ func _build() -> void:
 			_append_approach(dry, damp, NEAR_CROSSING, OUTER_LIMIT, false)
 	_make_surface("ScannedBitumenRunningLanes", dry, _materials["DRY"])
 	_make_surface("ScannedBitumenDampGutters", damp, _materials["DAMP"])
+
+func set_surface_film(film: float) -> void:
+	if _materials.size() != 2:
+		return
+	Weather.apply(_materials["DRY"], film, Color("92979a"), 1.0, .75, .72)
+	Weather.apply(_materials["DAMP"], film, Color("707a84"), .52, .55, 1.0, .25)
 
 func _append_approach(dry: Array[PackedVector3Array],
 		damp: Array[PackedVector3Array], lo: float, hi: float,

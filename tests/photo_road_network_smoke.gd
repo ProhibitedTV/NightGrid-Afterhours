@@ -1,5 +1,6 @@
 extends SceneTree
 const Road = preload("res://scripts/photo_road_network.gd")
+const Maps = preload("res://scripts/material_library.gd")
 func _initialize() -> void:
 	call_deferred("_verify")
 func _check(ok:bool,message:String)->bool:
@@ -57,5 +58,29 @@ func _verify()->void:
 				return
 			if not _check(is_equal_approx(vertices[i].y,Road.Y) and uv[i].is_equal_approx(Vector2(vertices[i].x,vertices[i].z)/Road.TILE_METRES),"world-aligned scale and road height"):
 				return
+	var clock: Node = world.get("day_night")
+	clock.set_process(false)
+	clock.set("paused", true)
+	var sidewalk := Maps.surface("PHOTO_SIDEWALK", Color("b2b0ac"))
+	var curb := Maps.surface("PHOTO_CURB", Color("bfc0bd"))
+	var junction: Node = world.get("central_roadway")
+	var junction_damp: StandardMaterial3D = junction.call("get_surface_material", true)
+	var old_tint := a.albedo_color
+	var old_rough := a.roughness
+	var old_junction := junction_damp.roughness
+	var old_sidewalk := sidewalk.roughness
+	var old_curb := curb.roughness
+	var old_mesh := dry.mesh
+	clock.call("set_weather", "storm")
+	clock.call("_process", 3.0)
+	if not _check(a.albedo_color.r < old_tint.r and a.roughness < old_rough and b.roughness < a.roughness and junction_damp.roughness < old_junction and sidewalk.roughness < old_sidewalk and curb.roughness < old_curb, "shared city weather reaches all ground families"):
+		return
+	var new_sidewalk := Maps.surface("PHOTO_SIDEWALK", Color("b1b2b3"))
+	if not _check(new_sidewalk.roughness < 1.0 and dry.mesh == old_mesh and dry.material_override == a, "newly cached ground inherits film without rebuilding meshes"):
+		return
+	clock.call("set_weather", "clear")
+	clock.call("_process", 20.0)
+	if not _check(a.albedo_color.is_equal_approx(old_tint) and is_equal_approx(a.roughness, old_rough) and is_equal_approx(junction_damp.roughness, old_junction) and is_equal_approx(sidewalk.roughness, old_sidewalk) and is_equal_approx(curb.roughness, old_curb) and is_equal_approx(new_sidewalk.roughness,1.0), "drying restores baseline across city"):
+		return
 	print("PHOTO_ROAD_NETWORK_SMOKE PASS: exact nonoverlapping street union, two drawables, photo PBR, UV scale, clockwise front faces and tangent basis")
 	quit(0)

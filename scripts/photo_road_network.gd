@@ -3,6 +3,8 @@ extends Node3D
 ## meshes sharing the existing licensed Poly Haven bitumen photo maps.
 ## No collisions, runtime fetches, lights, animated effects or per-frame work.
 const Plan = preload("res://scripts/world_plan.gd")
+const Weather = preload("res://scripts/city_surface_weather.gd")
+var _road_materials: Array[StandardMaterial3D] = []
 const ROOT = "res:" + "//assets/pbr/polyhaven/bitumen_"
 const HALF = 7.0
 const EDGE = 245.0
@@ -68,6 +70,10 @@ func _material(albedo:Texture2D,normal:Texture2D,rough:Texture2D,damp:bool) -> S
 	m.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_RED
 	m.roughness = 0.63 if damp else 1.0
 	m.metallic = 0.0
+	m.clearcoat_enabled = true
+	m.clearcoat = 0.0
+	m.clearcoat_roughness = .22
+	_road_materials.append(m)
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	return m
 
@@ -102,6 +108,12 @@ func _build(label:String,rects:Array[Rect2],material:StandardMaterial3D) -> void
 	instance.material_override = material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(instance)
+
+func set_surface_film(film: float) -> void:
+	if _road_materials.size() != 2:
+		return
+	Weather.apply(_road_materials[0], film, Color("91959a"), 1.0, .75, .72)
+	Weather.apply(_road_materials[1], film, Color("777f87"), .63, .55, 1.0)
 
 func rectangles() -> Array[Rect2]:
 	var all := _dry.duplicate()

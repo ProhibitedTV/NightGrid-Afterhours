@@ -3,6 +3,8 @@ extends Node
 ## A single shadow caster is retained for predictable midrange GPU performance.
 
 const SkyboxLibrary = preload("res://scripts/skybox_library.gd")
+const GroundMaterials = preload("res://scripts/material_library.gd")
+var _surface_receivers: Array[Node] = []
 const DAY_LENGTH_SECONDS = 1440.0
 const START_HOUR = 19.25
 var hour: float = START_HOUR
@@ -66,6 +68,8 @@ func configure(world_environment: WorldEnvironment, sun: DirectionalLight3D, cit
 				var candidate := arg.trim_prefix("--sky-weather=").to_lower()
 				if SkyboxLibrary.valid_weather(candidate):
 					_sky_weather = candidate
+	GroundMaterials.set_surface_film(_surface_film)
+	RenderingServer.global_shader_parameter_set(&"cinder_surface_film", _surface_film)
 	_environment.environment.sky = _procedural_sky
 	_environment.environment.background_mode = Environment.BG_SKY
 	_apply()
@@ -80,9 +84,18 @@ func _process(delta: float) -> void:
 		var shader_film := snappedf(_surface_film, 1.0 / 64.0)
 		if shader_film != _last_shader_film:
 			RenderingServer.global_shader_parameter_set(&"cinder_surface_film", shader_film)
+			GroundMaterials.set_surface_film(shader_film)
+			for receiver in _surface_receivers:
+				if is_instance_valid(receiver):
+					receiver.call("set_surface_film", shader_film)
 			_last_shader_film = shader_film
 		_update_accumulator = 0.0
 		_apply()
+
+func register_surface_receiver(receiver: Node) -> void:
+	if is_instance_valid(receiver) and receiver.has_method("set_surface_film") and not _surface_receivers.has(receiver):
+		_surface_receivers.append(receiver)
+		receiver.call("set_surface_film", snappedf(_surface_film, 1.0 / 64.0))
 
 func surface_film() -> float:
 	return _surface_film
