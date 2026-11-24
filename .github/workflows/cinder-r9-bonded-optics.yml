@@ -9,6 +9,7 @@ on:
       - tests/test_cinder_bonded_optics.py
       - tests/test_cinder_arch_fit.py
       - tests/test_cinder_brake_hardware.py
+      - tests/test_cinder_tire_tread.py
       - tests/cinder_r9_smoke.gd
       - .github/workflows/cinder-r9-bonded-optics.yml
   workflow_dispatch:
@@ -35,6 +36,8 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_cinder_arch_fit.py' -v
       - name: Verify independent static brake hardware and wheel provenance
         run: python -m unittest discover -s tests -p 'test_cinder_brake_hardware.py' -v
+      - name: Validate 96-sector tire surface, four rain channels and molded sipes
+        run: python -m unittest discover -s tests -p 'test_cinder_tire_tread.py' -v
       - name: Verify expected generated file set
         run: |
           python - <<'PY'
