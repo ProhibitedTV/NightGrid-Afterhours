@@ -102,7 +102,7 @@ func _capture() -> void:
 			or car.get_node_or_null("Coachwork/FixedBrakeCaliper") != null:
 		_fail("Expected current fully-authored Cinder visual not present")
 		return
-	var spec := car.call("get_motion_state")
+	var spec: Dictionary = car.call("get_motion_state")
 	if int(spec.get("fixed_calipers", -1)) != 4:
 		_fail("Expected four separate Cinder calipers on current rig")
 		return
