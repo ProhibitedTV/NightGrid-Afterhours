@@ -5,6 +5,9 @@ on:
     branches: [art/cinder-r9-bonded-optics]
     paths:
       - tools/capture_cinder_r9_studio.gd
+      - scripts/road_car_visual.gd
+      - assets/models/nightgrid/road_cars/cinder_r9.gltf
+      - assets/models/nightgrid/road_cars/cinder_r9.bin
       - .github/workflows/cinder-r9-native-capture.yml
   workflow_dispatch:
 
