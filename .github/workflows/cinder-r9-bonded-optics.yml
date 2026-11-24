@@ -1,4 +1,4 @@
-name: Cinder R9 bonded optics asset rebuild
+name: Cinder R9 original coachwork regeneration
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
       - tools/art/author_cinder_r9.py
       - scripts/road_car_visual.gd
       - tests/test_cinder_bonded_optics.py
+      - tests/test_cinder_arch_fit.py
       - tests/cinder_r9_smoke.gd
       - .github/workflows/cinder-r9-bonded-optics.yml
   workflow_dispatch:
@@ -29,6 +30,8 @@ jobs:
         run: python tools/art/author_cinder_r9.py
       - name: Check optical lens geometry, normals and generated hashes
         run: python -m unittest discover -s tests -p 'test_cinder_bonded_optics.py' -v
+      - name: Check wheel-arch tire clearance and C1 rocker fit
+        run: python -m unittest discover -s tests -p 'test_cinder_arch_fit.py' -v
       - name: Verify expected generated file set
         run: |
           python - <<'PY'
@@ -49,6 +52,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "Cinder game assets already match the generator"
           else
-            git commit -m "art(cinder): rebuild glTF and binary for bonded optical lens geometry"
+            git commit -m "art(cinder): rebuild game glTF after verified sculpting improvements"
             git push origin HEAD:art/cinder-r9-bonded-optics
           fi
