@@ -17,7 +17,7 @@
     "RearClip": 8280,
     "DoorL0": 1508,
     "DoorR0": 1508,
-    "Wheel": 4956,
+    "Wheel": 8892,
     "BrakeCaliperL": 772,
     "BrakeCaliperR": 772
   },
@@ -51,8 +51,8 @@
   "sha256": {
     "cinder_r9.gltf": "696eab02a1b66d3b239a90919eca21f1db86078fa443bfc8b87e6d3d685032df",
     "cinder_r9.bin": "04d6a40931d327063fccf4e984f10c08e9f6c9efe39c64129be4051783f4707a",
-    "wheel.gltf": "abe3f55781acef304cbf6eea07d49d8245ef6f3313f07085c5697e3c31e3fde7",
-    "wheel.bin": "e00dfcdff0a96bfb43d23d0ea12dd257b892ca51a5a555d82b42c0b2dc92d4c1",
+    "wheel.gltf": "9184a1cadb5ae320b73c91140ab8e765d554802bc249b4eceb058eb1a2aa1e74",
+    "wheel.bin": "a5bc7ee2a1ccf3017600d416d8fb6d008f5ff3045d99d1fe3166618dbb253449",
     "carbon_twill.png": "89c8a41f36faef711f93d6df0996be5bbd845ef65f7ea398de116ad11adc32f5",
     "rain_beads.png": "37106685c200a5b8b4d59c7aca10ec9c523dbd3cce8166a7a0896fbc26a290e8"
   }
