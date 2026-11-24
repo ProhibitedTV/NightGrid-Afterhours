@@ -515,11 +515,36 @@ def deck_opening(surfaces, body, sign, a, b, low, high, kind):
     steps = [z for z in sampled_stations(body) if a <= z <= b]
     band_depth = -.115 if kind == 'head' else -.070
 
+    # An automotive cover is a bonded polycarbonate shell, not a single
+    # infinitely thin alpha-blended plane. Maintain the exact original
+    # perimeter/curvature so the edge still meets the authored body recess.
+    cover_thickness = .0036
+
     def cover_point(u,z):
         blend_u = (u-cols[0])/(cols[-1]-cols[0])
         blend_z = (z-a)/(b-a)
         crown = .011*sin(pi*blend_u)*sin(pi*blend_z)
         return on_deck(body,u,z,-.004+crown)
+
+    def inside_cover_point(u,z):
+        x,y,depth = cover_point(u,z)
+        return x,y-cover_thickness,depth
+
+    def bonded_cover_cell(u,v,start,end):
+        # Upper and lower skins with deliberately opposing normals. A small
+        # perimeter skirt creates an actual visible lens edge in close-ups.
+        upper = [cover_point(t,z) for t,z in ((u,start),(u,end),(v,end),(v,start))]
+        lower = [inside_cover_point(t,z) for t,z in ((u,start),(u,end),(v,end),(v,start))]
+        quad(surfaces[OPTIC],*upper,(0,1,0))
+        quad(surfaces[OPTIC],*reversed(lower),(0,-1,0))
+        if u == cols[0]:
+            quad(surfaces[OPTIC],upper[0],upper[1],lower[1],lower[0],(-1,0,0))
+        if v == cols[-1]:
+            quad(surfaces[OPTIC],upper[3],lower[3],lower[2],upper[2],(1,0,0))
+        if start == steps[0]:
+            quad(surfaces[OPTIC],upper[0],lower[0],lower[3],upper[3],(0,0,-1))
+        if end == steps[-1]:
+            quad(surfaces[OPTIC],upper[1],upper[2],lower[2],lower[1],(0,0,1))
     for start,end in zip(steps,steps[1:]):
         for u,direction in ((cols[0],1),(cols[-1],-1)):
             inner = u + direction*.011
@@ -532,7 +557,7 @@ def deck_opening(surfaces, body, sign, a, b, low, high, kind):
             quad(surfaces[DARK],on_deck(body,u,start,band_depth),on_deck(body,u,end,band_depth),
                  on_deck(body,v,end,band_depth),on_deck(body,v,start,band_depth),(0,1,0))
             if kind == 'head':
-                quad(surfaces[OPTIC],cover_point(u,start),cover_point(u,end),cover_point(v,end),cover_point(v,start),(0,1,0))
+                bonded_cover_cell(u,v,start,end)
     for z,direction in ((a,1),(b,-1)):
         for u,v in zip(cols,cols[1:]):
             quad(surfaces[CARBON], on_deck(body,u,z), on_deck(body,v,z),
@@ -817,7 +842,9 @@ MATERIALS = [
 ]
 MATERIALS[PAINT]['extensions'] = {'KHR_materials_clearcoat': {'clearcoatFactor': .78, 'clearcoatRoughnessFactor': .12}}
 MATERIALS[CARBON]['pbrMetallicRoughness']['baseColorTexture'] = {'index': 0}
-for channel, alpha in ((GLASS,.60),(OPTIC,.29)):
+# Front and back of the bonded lens now each blend; a lower alpha keeps the
+# complete assembly as transmissive as the original single-sided cover.
+for channel, alpha in ((GLASS,.60),(OPTIC,.16)):
     MATERIALS[channel]['alphaMode'] = 'BLEND'
     MATERIALS[channel]['pbrMetallicRoughness']['baseColorFactor'][3] = alpha
 
