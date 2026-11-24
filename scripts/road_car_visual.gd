@@ -86,7 +86,7 @@ func _create_materials() -> void:
 	glass.shader = Glazing
 	glass.set_shader_parameter("rain_beads", RAIN_BEADS)
 	_shared["Glazing"] = glass
-	var optic := _finish_material(Color(0.24, 0.28, 0.32, 0.21), 0.105)
+	var optic := _finish_material(Color(0.24, 0.28, 0.32, 0.115), 0.105)
 	optic.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	optic.clearcoat_enabled = true
 	optic.clearcoat = 0.74
