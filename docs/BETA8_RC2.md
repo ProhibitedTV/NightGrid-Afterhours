@@ -1,6 +1,6 @@
 # Beta.8 RC2 — Cinder R9 driving and cockpit candidate
 
-Status: proposed Windows review candidate, **not yet a published release**. Beta.7 remains the public comparison build. The RC1 native measurements in [BETA8_RC1.md](BETA8_RC1.md) do not apply to this changed runtime.
+Status: Windows playtest prerelease candidate, **not final Beta.8**. Beta.7 remains the public comparison build. The RC1 native measurements in [BETA8_RC1.md](BETA8_RC1.md) do not apply to this changed runtime.
 
 ## Candidate changes
 
@@ -12,8 +12,6 @@ Status: proposed Windows review candidate, **not yet a published release**. Beta
 
 ## Release candidate gate
 
-The manual RC2 publishing workflow must be run on main only, after the exact main revision passes full Project preflight and Windows playtest build (including the actual exported EXE/PCK startup smoke). It packages that tested artifact, rather than exporting a different build. The cockpit gallery must have three real hash-verified Forward+ frames from a source whose game runtime tree matches the candidate (excluding only the build-info version stamp). The capture is a parked software-Vulkan review, not native GPU certification.
+The RC2 publishing workflow is eligible only after the exact current main revision passes both full Project preflight and Windows playtest build (including the actual exported EXE/PCK startup smoke). It packages that tested artifact rather than exporting a different build. A completion event from either workflow can publish once both are green; stale or already-published commits are skipped. Existing Beta.7 automation and its gallery gate remain unchanged.
 
-Existing Beta.7 release automation remains unchanged. The RC2 workflow is explicitly dispatched; no automatic public release is authorized by a branch push. A release candidate remains an unsigned development-channel build, not a production-quality claim.
-
-Before publication: inspect all three genuine cockpit frames, run [the Windows acceptance route](PLAYTEST_MAIN_ACCEPTANCE.md), and keep performance, controller, audio listening and save compatibility unchecked until observed. The game has not yet met the verified 1080p/60 FPS target.
+This is an unsigned development-channel **playtest prerelease**, not visual approval or a production-quality claim. In-engine cockpit screenshot review is outstanding. Final Beta.8 promotion requires the three real hash-verified Forward+ cockpit frames from a matching runtime, the separate `tools/check_rc2_cockpit_gallery.py` verification, native visual acceptance, and [the Windows acceptance route](PLAYTEST_MAIN_ACCEPTANCE.md). No final Beta.8 tag is published by the RC2 workflow. The capture is a parked software-Vulkan review, not native GPU certification. Keep performance, controller, audio listening and save compatibility unchecked until observed. The game has not yet met the verified 1080p/60 FPS target.
