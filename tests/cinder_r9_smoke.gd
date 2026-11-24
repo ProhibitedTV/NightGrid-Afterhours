@@ -34,7 +34,7 @@ func _verify() -> void:
 	var car: CharacterBody3D = fleet[2]
 	var player: CharacterBody3D = world.get("player")
 	var hero := car.get_node("RoadCarVisual") as Node3D
-	var shell := hero.get_node("Coachwork")
+	var shell := hero.get_node("Coachwork") as Node3D
 	var front := shell.get_node("FrontClip") as MeshInstance3D
 	var materials: Array[String] = []
 	var covered_left := false
@@ -122,6 +122,31 @@ func _verify() -> void:
 	if absf(float(car.get("speed"))) > .30:
 		_fail("Handbrake did not stop the Cinder")
 		return
+	# Cosmetic body loads must leave wheel centers and chassis untouched.
+	var wheel_centers: Array[Vector3] = []
+	for wheel in rotating_wheels:
+		wheel_centers.append((wheel as Node3D).global_position)
+	var chassis_pose := car.global_transform
+	hero.call("reset_body_pose")
+	hero.call("update_motion", 12.0, 0.0, false, true, .7, 0.0, .25, 0.0, Vector2(100.0, 100.0))
+	if shell.rotation.x < .01 or shell.rotation.x > .0181 or shell.rotation.z < .01 or shell.rotation.z > .0221:
+		_fail("Acceleration and right turn must lift the nose and load the left side within bounds")
+		return
+	for i in 4:
+		if (rotating_wheels[i] as Node3D).global_position.distance_to(wheel_centers[i]) > .0001:
+			_fail("Cosmetic coachwork pitch/roll moved an unsprung wheel center")
+			return
+	if not car.global_transform.is_equal_approx(chassis_pose):
+		_fail("Cosmetic body loads altered the physics chassis")
+		return
+	hero.call("update_motion", 12.0, 0.0, true, true, 0.0, 0.0, .5, 0.0, Vector2(-100.0, -100.0))
+	if shell.rotation.x > -.01 or shell.rotation.z > -.01:
+		_fail("Braking and left turn must reverse the body load")
+		return
+	hero.call("update_motion", 0.0, 0.0, false, false, 0.0, 0.0, 1.0, 0.0, Vector2(100.0, 100.0))
+	if shell.rotation.length() > .0001:
+		_fail("Parked coachwork did not settle back to neutral")
+		return
 	# A stalled car may still report drive speed: explicit zero travel must
 	# override the synthetic speed fallback, and reverse travel must unwind.
 	var phase := float(hero.call("get_motion_state")["wheel_rotation"])
@@ -199,7 +224,11 @@ func _verify() -> void:
 		_fail("Clear exit failed with the lower Cinder collider")
 		return
 	await physics_frame
+	hero.call("update_motion", 0.0, 0.0, false, true, 0.0, 0.0, .25, 0.0, Vector2(10.0, 10.0))
 	world.call("_apply_snapshot", saved)
+	if shell.rotation != Vector3.ZERO:
+		_fail("Snapshot restoration retained transient coachwork tilt")
+		return
 	if world.get("current_car") != car or not is_equal_approx((car.get("damage_zones") as Vector4).y, .44):
 		_fail("Cinder occupancy or damage did not round-trip")
 		return
