@@ -3,6 +3,7 @@ extends Node3D
 
 const Cars = preload("res://scripts/road_car_catalog.gd")
 const Drivetrain = preload("res://scripts/road_car_audio.gd")
+const Cluster = preload("res://scripts/cinder_instrument_cluster.gd")
 const Paint = preload("res://shaders/vehicle_paint.gdshader")
 const Glazing = preload("res://shaders/vehicle_glazing.gdshader")
 const RAIN_BEADS = preload("res://assets/models/nightgrid/road_cars/rain_beads.png")
@@ -16,6 +17,11 @@ const GROUND = -0.825
 const BUMP_LIMIT = .010
 const DROOP_LIMIT = .045
 const BODY_VERTICAL_BUDGET = .018
+const SPRAY_MIN_SPEED = 3.0
+const SPRAY_MIN_FILM = .25
+const SPRAY_PARTICLES_PER_WHEEL = 24
+const CONTACT_SHADOW_SHADER = preload("res://shaders/vehicle_contact_shadow.gdshader")
+const PARKED_SHADOW_INTERVAL = .25
 const TAIL_RED = Color("ff2635")
 const REVERSE_WHITE = Color("ffdcb8")
 const SILL_CYAN = Color("16d9f4")
@@ -23,6 +29,9 @@ static var _shared: Dictionary = {}
 static var _wheel_mesh: ArrayMesh
 static var _brake_left_mesh: ArrayMesh
 static var _brake_right_mesh: ArrayMesh
+static var _spray_mesh: QuadMesh
+static var _spray_fade: Gradient
+static var _contact_shadow_mesh: PlaneMesh
 
 var _night := true
 var _color: Color
@@ -39,12 +48,17 @@ var _brake_calipers: Array[MeshInstance3D] = []
 var _steering: Array[Node3D] = []
 var _knuckles: Array[Node3D] = []
 var _wheel_offsets := Vector4.ZERO
+var _spray: Array[CPUParticles3D] = []
+var _contact_shadow: MeshInstance3D
+var _shadow_timer := 0.0
+var _shadow_sample_origin := Vector3.INF
 var _beams: Array[SpotLight3D] = []
 var _tail_throw: SpotLight3D
 var _sill_lights: Array[OmniLight3D] = []
 var _doors: Array[Dictionary] = []
 var _wheel_phase := 0.0
 var _drivetrain := Drivetrain.new()
+var _cluster: Node3D
 var _velocity := 0.0
 var _braking := false
 var _occupied := false
@@ -79,6 +93,12 @@ func _ready() -> void:
 	_sill = _shell.get_node("SillLenses")
 	_build_wheels()
 	_build_lights()
+	_cluster = Cluster.new()
+	_cluster.name = "LiveInstrumentCluster"
+	# Center-stack panel just aft of the authored dashboard ellipsoid.
+	# Do not overlap the imported (currently static) steering wheel.
+	_cluster.position = Vector3(.12, .705, -.849)
+	_shell.add_child(_cluster)
 	_drivetrain.mount(self)
 	apply_damage(Vector4.ZERO)
 
@@ -284,6 +304,7 @@ func update_motion(speed: float, steer: float, braking: bool, occupied: bool,
 	_braking = braking
 	_move_doors(delta, absf(speed) > 2.5)
 	_drivetrain.update(speed, steer, braking, occupied, throttle, wetness, delta)
+	_cluster.call("update_display", occupied, _night, speed, _drivetrain.engine_rpm(), _drivetrain.drive_gear(), braking, delta)
 
 ## Small, damped cosmetic pitch and roll. The limits keep the coachwork
 ## close to its authored arch clearance; this is not physical suspension.
@@ -303,9 +324,23 @@ func _update_body_pose(loads: Vector2, delta: float) -> void:
 func reset_body_pose() -> void:
 	_shell.rotation = Vector3.ZERO
 
+func reset_instrument_cluster() -> void:
+	_cluster.call("reset_display")
+
 ## Road-height visual sampling only. The character controller still owns
 ## collision and vertical movement; four rays only for the occupied car.
-func sample_suspension(car_rid: RID, grounded: bool, delta: float) -> void:
+func sample_suspension(car_rid: RID, grounded: bool, delta: float,
+		road_speed: float = 0.0, wetness: float = 0.0, chassis_grounded: bool = false) -> void:
+	# Reuse the four suspension rays while driving. Parked cars refresh at
+	# 4 Hz, or immediately after relocation. Never keep a patch in midair.
+	_shadow_timer -= maxf(delta, 0.0)
+	var shadow_grounded := grounded or chassis_grounded
+	var probe_shadow := shadow_grounded and (grounded or _shadow_timer <= 0.0 \
+		or not _shadow_sample_origin.is_finite() or global_position.distance_to(_shadow_sample_origin) > .08)
+	if not shadow_grounded and is_instance_valid(_contact_shadow):
+		_contact_shadow.hide()
+		_shadow_timer = 0.0
+	var contacts := PackedVector3Array()
 	var space := get_world_3d().direct_space_state
 	var exclusions: Array[RID] = [car_rid]
 	var blend := 1.0 - exp(-15.0 * maxf(delta, 0.0))
@@ -313,7 +348,8 @@ func sample_suspension(car_rid: RID, grounded: bool, delta: float) -> void:
 	for index in _knuckles.size():
 		var knuckle := _knuckles[index]
 		var desired := 0.0
-		if grounded:
+		var contact_point := Vector3.INF
+		if grounded or probe_shadow:
 			# Probe from the original tire datum, not the animated wheel; this
 			# prevents feedback oscillation and never raises the collision hull.
 			var foot := to_global(Vector3(knuckle.position.x, GROUND, knuckle.position.z))
@@ -325,11 +361,139 @@ func sample_suspension(car_rid: RID, grounded: bool, delta: float) -> void:
 				if normal.y >= .70:
 					var contact: Vector3 = hit["position"]
 					desired = clampf(contact.y - foot.y, -DROOP_LIMIT, BUMP_LIMIT)
+					# Do not spray from a ray hit well below the actual visual tire.
+					if absf(contact.y - foot.y - desired) <= .035:
+						contact_point = contact
+		if probe_shadow:
+			contacts.append(contact_point)
+		if not grounded:
+			desired = 0.0
+			contact_point = Vector3.INF
 		_wheel_offsets[index] = lerpf(_wheel_offsets[index], desired, blend)
 		knuckle.position.y = GROUND + tyre + _wheel_offsets[index]
+		_update_tire_spray(index, contact_point, road_speed, wetness)
+	if probe_shadow:
+		_shadow_timer = PARKED_SHADOW_INTERVAL
+		_shadow_sample_origin = global_position
+		_update_contact_shadow(contacts)
+
+## Supplemental contact occlusion, not a replacement for real sun shadows
+## or SSAO. Require four reachable, nearly coplanar contacts to avoid
+## drawing a dark rectangle across a curb, drop-off or unsupported wheel.
+func _update_contact_shadow(contacts: PackedVector3Array) -> void:
+	if is_instance_valid(_contact_shadow):
+		_contact_shadow.hide()
+	if contacts.size() != 4:
+		return
+	for contact in contacts:
+		if not contact.is_finite():
+			return
+	var lateral := ((contacts[1] - contacts[0]) + (contacts[3] - contacts[2])) * .5
+	var longitudinal := ((contacts[2] - contacts[0]) + (contacts[3] - contacts[1])) * .5
+	if lateral.length() < 1.0 or longitudinal.length() < 2.0:
+		return
+	var normal := longitudinal.cross(lateral).normalized()
+	if normal.y < .97:
+		return
+	var center := (contacts[0] + contacts[1] + contacts[2] + contacts[3]) * .25
+	for contact in contacts:
+		if absf((contact - center).dot(normal)) > .012:
+			return
+	# Keep the patch mostly inside the footprint sampled by the rays.
+	if _contact_shadow_mesh == null:
+		_contact_shadow_mesh = PlaneMesh.new()
+		_contact_shadow_mesh.size = Vector2(1.70, 2.84)
+		var material := ShaderMaterial.new()
+		material.shader = CONTACT_SHADOW_SHADER
+		_contact_shadow_mesh.material = material
+	if not is_instance_valid(_contact_shadow):
+		_contact_shadow = MeshInstance3D.new()
+		_contact_shadow.name = "RoadContactOcclusion"
+		_contact_shadow.mesh = _contact_shadow_mesh
+		_contact_shadow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(_contact_shadow)
+	var x_axis := lateral.normalized()
+	var z_axis := x_axis.cross(normal).normalized()
+	_contact_shadow.global_transform = Transform3D(Basis(x_axis, normal, z_axis),
+		center + normal * .012)
+	_contact_shadow.show()
+
+## Soft transparent original radial mask, shared by all four emitters.
+func _make_spray_resources() -> void:
+	if _spray_mesh != null:
+		return
+	var mask := Gradient.new()
+	mask.colors = PackedColorArray([Color(1, 1, 1, .85), Color(1, 1, 1, 0)])
+	var texture := GradientTexture2D.new()
+	texture.gradient = mask
+	texture.width = 32
+	texture.height = 32
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.fill_from = Vector2(.5, .5)
+	texture.fill_to = Vector2(1, .5)
+	var material := StandardMaterial3D.new()
+	material.albedo_texture = texture
+	material.vertex_color_use_as_albedo = true
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	material.roughness = 1.0
+	_spray_mesh = QuadMesh.new()
+	_spray_mesh.size = Vector2(.28, .28)
+	_spray_mesh.material = material
+	_spray_fade = Gradient.new()
+	_spray_fade.offsets = PackedFloat32Array([0.0, .18, 1.0])
+	_spray_fade.colors = PackedColorArray([Color(.58, .65, .70, .0),
+		Color(.58, .65, .70, .30), Color(.58, .65, .70, 0)])
+
+func _ensure_spray() -> void:
+	if not _spray.is_empty():
+		return
+	_make_spray_resources()
+	for index in 4:
+		var emitter := CPUParticles3D.new()
+		emitter.name = "RoadSpray%d" % index
+		emitter.emitting = false
+		emitter.amount = SPRAY_PARTICLES_PER_WHEEL
+		emitter.lifetime = .42
+		emitter.local_coords = false
+		emitter.mesh = _spray_mesh
+		emitter.color_ramp = _spray_fade
+		emitter.spread = 24.0
+		emitter.gravity = Vector3(0, -7.0, 0)
+		emitter.scale_amount_min = .65
+		emitter.scale_amount_max = 1.4
+		add_child(emitter)
+		_spray.append(emitter)
+
+func _update_tire_spray(index: int, contact: Vector3, road_speed: float, wetness: float) -> void:
+	var active := contact.is_finite() and is_finite(road_speed) and is_finite(wetness) \
+		and absf(road_speed) >= SPRAY_MIN_SPEED and wetness >= SPRAY_MIN_FILM
+	if not active:
+		if not _spray.is_empty():
+			_spray[index].emitting = false
+		return
+	_ensure_spray()
+	var emitter := _spray[index]
+	var side := -1.0 if index % 2 == 0 else 1.0
+	var trailing := signf(road_speed)
+	emitter.position = to_local(contact) + Vector3(side * .05, .075, trailing * .12)
+	# Local +Z is behind a forward-moving Cinder. World-space particles
+	# remain behind instead of moving rigidly with the car after emission.
+	emitter.direction = Vector3(side * .22, .42, trailing).normalized()
+	var strength := smoothstep(SPRAY_MIN_SPEED, 25.0, absf(road_speed)) * clampf(wetness, 0, 1)
+	emitter.initial_velocity_min = lerpf(.7, 2.5, strength)
+	emitter.initial_velocity_max = lerpf(1.5, 5.5, strength)
+	emitter.emitting = true
 
 func reset_suspension() -> void:
 	_wheel_offsets = Vector4.ZERO
+	_shadow_timer = 0.0
+	_shadow_sample_origin = Vector3.INF
+	if is_instance_valid(_contact_shadow):
+		_contact_shadow.hide()
+	for emitter in _spray:
+		emitter.restart()
+		emitter.emitting = false
 	for knuckle in _knuckles:
 		knuckle.position.y = GROUND + float(_spec["tire"])
 

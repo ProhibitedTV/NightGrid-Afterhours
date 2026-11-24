@@ -297,10 +297,98 @@ func _verify() -> void:
 	if settled.length() > .0001:
 		_fail("Inactive suspension did not settle")
 		return
-	rig.sample_suspension(fixture.get_rid(), true, .5)
+	# Use the same actual physical fixture for wet-contact emission tests.
+	# The raised pad is outside visual reach; only the lower reachable pad
+	# (wheel 3) is allowed to spray.
+	rig.sample_suspension(fixture.get_rid(), true, .5, 12.0, .8)
+	var spray: Array = rig.get("_spray")
+	if spray.size() != 4 or (spray[0] as CPUParticles3D).emitting \
+			or (spray[1] as CPUParticles3D).emitting or (spray[2] as CPUParticles3D).emitting \
+			or not (spray[3] as CPUParticles3D).emitting:
+		_fail("Wet road spray must be limited to reachable wheel contact")
+		return
+	var plume := spray[3] as CPUParticles3D
+	if plume.direction.z <= 0.0 or plume.local_coords or plume.amount != 24:
+		_fail("Forward spray direction, world-space trail or particle budget is wrong")
+		return
+	rig.sample_suspension(fixture.get_rid(), true, .5, -12.0, .8)
+	if not plume.emitting or plume.direction.z >= 0.0:
+		_fail("Reverse spray did not switch to the opposite trail direction")
+		return
+	rig.sample_suspension(fixture.get_rid(), true, .5, 12.0, .0)
+	if plume.emitting:
+		_fail("Dry road emitted tire spray")
+		return
+	rig.sample_suspension(fixture.get_rid(), true, .5, 0.0, .8)
+	if plume.emitting:
+		_fail("Stationary tire emitted spray")
+		return
+	rig.sample_suspension(fixture.get_rid(), false, .5, 12.0, .8)
+	if plume.emitting:
+		_fail("Airborne tire emitted spray")
+		return
+	rig.sample_suspension(fixture.get_rid(), true, .5, 12.0, .8)
 	rig.reset_suspension()
+	if plume.emitting:
+		_fail("Snapshot/reset left tire spray emitting")
+		return
 	if rig.get_motion_state()["suspension_offsets"] != Vector4.ZERO:
 		_fail("Transient suspension did not reset")
+		return
+	# The two-pad road fixture must never produce a bridging shadow.
+	if rig.get_node_or_null("RoadContactOcclusion") != null:
+		_fail("Unsupported tire footprint produced contact occlusion")
+		return
+	# Test the same projection function on level and sloped road contacts.
+	var origin := fixture.global_position + Vector3(0, -.825, 0)
+	var contacts := PackedVector3Array([origin + Vector3(-.858, 0, -1.43),
+		origin + Vector3(.858, .02, -1.43),
+		origin + Vector3(-.858, .03, 1.44),
+		origin + Vector3(.858, .05, 1.44)])
+	rig.call("_update_contact_shadow", contacts)
+	var patch := rig.get_node_or_null("RoadContactOcclusion") as MeshInstance3D
+	if patch == null or not patch.visible or patch.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+		_fail("Supported road footprint did not produce a non-shadow-casting patch")
+		return
+	var center := (contacts[0] + contacts[1] + contacts[2] + contacts[3]) * .25
+	if absf(patch.global_position.distance_to(center) - .012) > .001:
+		_fail("Contact occlusion did not hug the actual road plane")
+		return
+	contacts[3] += Vector3.UP * .15
+	rig.call("_update_contact_shadow", contacts)
+	if patch.visible:
+		_fail("Noncoplanar curb contacts must not produce a bridging shadow")
+		return
+	contacts[3] = Vector3.INF
+	rig.call("_update_contact_shadow", contacts)
+	if patch.visible:
+		_fail("Missing road contact must not produce a shadow")
+		return
+	rig.reset_suspension()
+	if patch.visible:
+		_fail("Transient contact occlusion survived reset")
+		return
+	var cluster := rig.get_node("Coachwork/LiveInstrumentCluster")
+	rig.call("update_motion", 20.0, 0.0, false, true, .8, 0.0, .2)
+	var display: Dictionary = cluster.call("get_display_state")
+	if not display["active"] or display["speed"] != "072" or int(display["gear"]) < 1 \
+			or float(display["rpm_fraction"]) <= 0.0:
+		_fail("Live cluster did not use current vehicle speed and drivetrain telemetry")
+		return
+	rig.call("set_lighting_hour", 21.5)
+	rig.call("update_motion", -4.0, 0.0, true, true, -.5, 0.0, .2)
+	display = cluster.call("get_display_state")
+	if display["speed"] != "014" or display["gear"] != "R" or not display["night"] or not display["braking"]:
+		_fail("Reverse, brake or night cluster state failed")
+		return
+	rig.call("update_motion", 0.0, 0.0, false, false, 0.0, 0.0, .01)
+	if cluster.call("get_display_state")["active"]:
+		_fail("Parked instrument cluster did not switch off")
+		return
+	rig.call("update_motion", 8.0, 0.0, false, true, .5, 0.0, .2)
+	rig.call("reset_instrument_cluster")
+	if cluster.call("get_display_state")["active"]:
+		_fail("Instrument display survived reset")
 		return
 	print("CINDER_R9_SMOKE PASS")
 	quit()
