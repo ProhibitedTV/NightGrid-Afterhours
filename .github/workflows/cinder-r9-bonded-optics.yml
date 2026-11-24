@@ -1,0 +1,54 @@
+name: Cinder R9 bonded optics asset rebuild
+
+on:
+  push:
+    branches: [art/cinder-r9-bonded-optics]
+    paths:
+      - tools/art/author_cinder_r9.py
+      - scripts/road_car_visual.gd
+      - tests/test_cinder_bonded_optics.py
+      - tests/cinder_r9_smoke.gd
+      - .github/workflows/cinder-r9-bonded-optics.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate-and-check:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Regenerate original Cinder source-authored coachwork
+        run: python tools/art/author_cinder_r9.py
+      - name: Check optical lens geometry, normals and generated hashes
+        run: python -m unittest discover -s tests -p 'test_cinder_bonded_optics.py' -v
+      - name: Verify expected generated file set
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          base=Path("assets/models/nightgrid/road_cars")
+          for name in ("cinder_r9.gltf","cinder_r9.bin","source.json"):
+              item=base/name
+              assert item.is_file() and item.stat().st_size>1024, name
+          print("Generated Cinder body + manifest present")
+          PY
+      - name: Commit regenerated game meshes on isolated feature branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/models/nightgrid/road_cars/cinder_r9.gltf \
+                  assets/models/nightgrid/road_cars/cinder_r9.bin \
+                  assets/models/nightgrid/road_cars/source.json
+          if git diff --cached --quiet; then
+            echo "Cinder game assets already match the generator"
+          else
+            git commit -m "art(cinder): rebuild glTF and binary for bonded optical lens geometry"
+            git push origin HEAD:art/cinder-r9-bonded-optics
+          fi
