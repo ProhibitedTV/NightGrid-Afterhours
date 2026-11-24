@@ -64,7 +64,47 @@ func _verify() -> void:
 		await physics_frame
 	if not check(lot.call("room_at",player.global_position)=="corridor","returned through internal passage"):
 		return
-	for i in 100:
+	# At the west passage, cross to the physical ramp and climb it with
+	# the same CharacterBody3D collision and floor snap as normal gameplay.
+	for i in 39:
+		player.velocity = Vector3(-5,0,0)
+		player.move_and_slide()
+		await physics_frame
+	if not check(lot.call("room_at",player.global_position)=="west_room","west room connects to ramp"):
+		return
+	for i in 180:
+		player.velocity = Vector3(0,-1,4)
+		player.move_and_slide()
+		await physics_frame
+		if lot.to_local(player.global_position).z>Lot.RAMP_END+.65:
+			break
+	if not check(lot.to_local(player.global_position).y>Lot.ROOM_HEIGHT+.7 and lot.call("room_at",player.global_position)=="upper_floor","physical climb reaches upper landing"):
+		return
+	for i in 49:
+		player.velocity = Vector3(4,-1,0)
+		player.move_and_slide()
+		await physics_frame
+	if not check(lot.call("room_at",player.global_position)=="upper_floor" and absf(lot.to_local(player.global_position).x)<1.0,"upper landing opens onto second storey"):
+		return
+	for i in 49:
+		player.velocity = Vector3(-4,-1,0)
+		player.move_and_slide()
+		await physics_frame
+	for i in 180:
+		player.velocity = Vector3(0,-2,-4)
+		player.move_and_slide()
+		await physics_frame
+		if lot.to_local(player.global_position).z<Lot.SIDE_PASSAGE_CENTER+.12:
+			break
+	if not check(lot.to_local(player.global_position).y<1.5,"continuous descent returns to ground floor"):
+		return
+	for i in 39:
+		player.velocity = Vector3(5,0,0)
+		player.move_and_slide()
+		await physics_frame
+	if not check(lot.call("room_at",player.global_position)=="corridor","return through west passage"):
+		return
+	for i in 150:
 		player.velocity = Vector3(0,0,5)
 		player.move_and_slide()
 		await physics_frame
@@ -89,11 +129,11 @@ func _verify() -> void:
 	lot = city.get("_loaded")[block].get_node("WalkInLot_0") as StaticBody3D
 	door = lot.get("door")
 	door.call("restore_open",true)
-	for i in 190:
+	for i in 245:
 		player.velocity = Vector3(0,0,-5)
 		player.move_and_slide()
 		await physics_frame
 	if not check(lot.to_local(player.global_position).z < -.4,"real player exits through the same physical opening"):
 		return
-	print("WALK_IN_LOT PASS: physical doors, multiple rooms, bounded walls, streamed finish, world-coordinate restore and exit")
+	print("WALK_IN_LOT PASS: physical doors, multiple rooms, upper floor ascent/descent, bounded walls, streamed finish, world-coordinate restore and exit")
 	quit(0)
