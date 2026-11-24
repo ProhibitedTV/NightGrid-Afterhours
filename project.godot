@@ -32,3 +32,9 @@ common/physics_ticks_per_second=60
 # 4.6+ may default new projects to Jolt; port physics separately if desired.
 3d/physics_engine="GodotPhysics3D"
 3d/default_gravity=24.0
+
+[shader_globals]
+cinder_surface_film={
+"type": "float",
+"value": 0.0
+}

@@ -13,6 +13,8 @@ const PEDESTRIAN_MODELS = [
 ]
 const CarScript = preload("res://scripts/car.gd")
 const KestrelVisual = preload("res://scripts/kestrel_s6_visual.gd")
+const RoadCars = preload("res://scripts/road_car_catalog.gd")
+const RoadCarVisual = preload("res://scripts/road_car_visual.gd")
 const MinimapScript = preload("res://scripts/minimap.gd")
 const Ui = preload("res://scripts/ui_style.gd")
 const Nav = preload("res://scripts/navigation_waypoint.gd")
@@ -625,6 +627,9 @@ func _process(delta: float) -> void:
 	if not is_instance_valid(player):
 		return
 	var actor := _actor()
+	if current_car != null and current_car.get("model_id") == RoadCars.R9:
+		current_car.set("road_wetness", day_night.call("surface_film"))
+		current_car.get("hero_visual").call("set_lighting_hour", float(day_night.get("hour")))
 	var stream_snapshot: Dictionary = city_details.call("get_streaming_stats")
 	frame_time_recorder.sample_frame(delta, stream_snapshot, actor.global_position, current_car != null)
 	playtest_logger.sample_frame(delta, stream_snapshot, actor.global_position,
@@ -651,7 +656,8 @@ func _process(delta: float) -> void:
 			current_car == null and current_transit == null, player.is_on_floor(),
 			indoors or in_workshop, district, float(day_night.get("hour")), foot_speed, player.velocity.y)
 		if is_instance_valid(current_car):
-			world_audio.call("set_transport", "CAR", float(current_car.get("speed")), Input.is_action_pressed("drive_brake"))
+			world_audio.call("set_transport", "CAR", float(current_car.get("speed")), Input.is_action_pressed("drive_brake"),
+				current_car.get("model_id") == RoadCars.R9)
 		elif transit_kind == "TRAIN":
 			world_audio.call("set_transport", "TRAIN", float(rail.get("speed")), false)
 		elif transit_kind == "BUS" and is_instance_valid(current_transit):
@@ -878,8 +884,11 @@ func _toggle_car() -> void:
 			_log_playtest("vehicle_exit_blocked", {"reason": "speed"})
 			_notify("Slow down before exiting.")
 			return
-		var exit_position := current_car.global_position + current_car.global_transform.basis.x * 3.3
-		exit_position.y = 1.15
+		var exit_position := _clear_car_exit(current_car)
+		if not exit_position.is_finite():
+			_log_playtest("vehicle_exit_blocked", {"reason": "clearance"})
+			_notify("Both sides are blocked. Pull forward to make room.")
+			return
 		player.global_position = exit_position
 		player.velocity = Vector3.ZERO
 		player.collision_layer = 1
@@ -887,7 +896,10 @@ func _toggle_car() -> void:
 		player.visible = true
 		player.set("driving", false)
 		player.call("play_visual_action", &"alight_car")
-		world_audio.call("play_event", "DOOR", current_car.global_position)
+		if current_car.get("model_id") == RoadCars.R9:
+			current_car.call("play_access_door", exit_position, true, player.get_rid())
+		else:
+			world_audio.call("play_event", "DOOR", current_car.global_position)
 		current_car.set("occupied", false)
 		current_car = null
 		_log_playtest("vehicle_exit", {"exit_x": exit_position.x, "exit_z": exit_position.z})
@@ -906,7 +918,10 @@ func _toggle_car() -> void:
 		_notify("No vehicle nearby. Stand beside a parked car and press E.")
 		return
 	current_car = nearest
-	world_audio.call("play_event", "DOOR", nearest.global_position)
+	if nearest.get("model_id") == RoadCars.R9:
+		nearest.call("play_access_door", player.global_position, false, player.get_rid())
+	else:
+		world_audio.call("play_event", "DOOR", nearest.global_position)
 	_log_playtest("vehicle_enter", {"vehicle": nearest.name})
 	current_car.set("occupied", true)
 	player.set("driving", true)
@@ -922,6 +937,40 @@ func _toggle_car() -> void:
 		_notify("Vehicle acquired.")
 	else:
 		_notify("Drive with WASD. Space is the handbrake.")
+
+func _clear_car_exit(car: CharacterBody3D) -> Vector3:
+	var space := get_world_3d().direct_space_state
+	var excluded: Array[RID] = [player.get_rid(), car.get_rid()]
+	var capsule := (player.get_node("CollisionShape3D") as CollisionShape3D).shape as CapsuleShape3D
+	var collider := car.get_node("CollisionShape3D") as CollisionShape3D
+	var body := collider.shape as BoxShape3D
+	var threshold_y := collider.global_position.y - body.size.y * .5
+	var clearance := PhysicsShapeQueryParameters3D.new()
+	clearance.shape = capsule
+	clearance.collision_mask = 1
+	clearance.exclude = excluded
+	for side in [1.0, -1.0]:
+		var point := car.to_global(Vector3(side * (body.size.x * .5 + capsule.radius + .125), 0, -.22))
+		var floor := PhysicsRayQueryParameters3D.create(point + Vector3.UP * .80,
+			point - Vector3.UP * 1.42, 1, excluded)
+		var support := space.intersect_ray(floor)
+		if support.is_empty() or (support["normal"] as Vector3).y < .72:
+			continue
+		var ground_y := (support["position"] as Vector3).y
+		if ground_y > threshold_y + .32 or ground_y < threshold_y - .42:
+			continue
+		point.y = ground_y + capsule.height * .5 + .045
+		clearance.transform = Transform3D(Basis.IDENTITY, point)
+		if not space.intersect_shape(clearance, 1).is_empty():
+			continue
+		var sill := car.to_global(Vector3(side * .85, 0, -.22))
+		sill.y = point.y
+		clearance.transform.origin = sill
+		clearance.motion = point - sill
+		# Casts omit overlaps at the start. Check both the sill and end point.
+		if space.intersect_shape(clearance, 1).is_empty() and space.cast_motion(clearance)[0] >= 1.0:
+			return point
+	return Vector3.INF
 
 func _advance_mission() -> void:
 	if not carrying:
@@ -1374,6 +1423,7 @@ func _create_player() -> void:
 	player.set_script(PlayerScript)
 	player.position = PLAYER_START
 	var capsule := CollisionShape3D.new()
+	capsule.name = "CollisionShape3D"
 	var collision := CapsuleShape3D.new()
 	collision.radius = 0.45
 	collision.height = 1.9
@@ -1395,7 +1445,7 @@ func _create_player() -> void:
 	for kind in ["PULSE", "ARC", "RELOAD"]:
 		CombatFoley.sound(kind)
 
-func _create_car(where: Vector3, color: Color, police: bool = false) -> CharacterBody3D:
+func _create_car(where: Vector3, color: Color, police: bool = false, model_id: String = "") -> CharacterBody3D:
 	var car := CharacterBody3D.new()
 	car.name = "PoliceCruiser" if police else "StreetVehicle"
 	car.set_script(CarScript)
@@ -1404,16 +1454,24 @@ func _create_car(where: Vector3, color: Color, police: bool = false) -> Characte
 	if police:
 		car.set("police_signals", signal_controller)
 	var hitbox := CollisionShape3D.new()
+	hitbox.name = "CollisionShape3D"
 	var shape := BoxShape3D.new()
 	shape.size = Vector3(2.35, 1.65, 4.7)
 	hitbox.shape = shape
 	car.add_child(hitbox)
-	# Hero body remains a visual child of the original, save-compatible car.
-	# Physics, position, rotation, condition and player ownership do not change.
-	var hero := KestrelVisual.new()
-	hero.name = "KestrelS6HeroVisual"
-	hero.configure(color, police)
-	car.add_child(hero)
+	if model_id == RoadCars.R9:
+		car.call("configure_road_car", model_id)
+		shape.size = RoadCars.DATA[model_id]["body"]
+		hitbox.position.y = shape.size.y * .5 + RoadCarVisual.GROUND
+		var supercar := RoadCarVisual.new()
+		supercar.name = "RoadCarVisual"
+		supercar.configure(color)
+		car.add_child(supercar)
+	else:
+		var hero := KestrelVisual.new()
+		hero.name = "KestrelS6HeroVisual"
+		hero.configure(color, police)
+		car.add_child(hero)
 	add_child(car)
 	return car
 
@@ -1427,7 +1485,9 @@ func _spawn_traffic() -> void:
 		Vector3(203.0, 1.0, 237.0), Vector3(-146.0, 1.0, 237.0)
 	]
 	for i in range(parked.size()):
-		var car := _create_car(parked[i], VEHICLE_COLORS[i % VEHICLE_COLORS.size()])
+		var model_id := RoadCars.R9 if i in RoadCars.R9_PAID_PARKING_SLOTS else ""
+		var color: Color = RoadCars.R9_PAID_PARKING_SLOTS.get(i, VEHICLE_COLORS[i % VEHICLE_COLORS.size()])
+		var car := _create_car(parked[i], color, false, model_id)
 		car.rotation.y = PI if i % 2 == 1 else 0.0
 		cars.append(car)
 
@@ -1549,11 +1609,15 @@ func _new_game() -> void:
 func _capture_snapshot() -> Dictionary:
 	var stored_cars := []
 	for car in cars:
-		stored_cars.append({
+		var saved := {
 			"position": [car.global_position.x, car.global_position.y, car.global_position.z],
 			"yaw": car.rotation.y, "claimed": car.has_meta("claimed"),
 			"condition": car.get("condition")
-		})
+		}
+		if car.get("model_id") == RoadCars.R9:
+			var zones: Vector4 = car.get("damage_zones")
+			saved["damage"] = [zones.x, zones.y, zones.z, zones.w]
+		stored_cars.append(saved)
 	var aboard_id := ""
 	if transit_kind == "BUS" and current_transit != null:
 		aboard_id = str(current_transit.get("vehicle_id"))
@@ -1636,6 +1700,8 @@ func _apply_snapshot(data: Dictionary) -> void:
 			c.global_position = Vector3(float(pos[0]), float(pos[1]), float(pos[2]))
 		c.rotation.y = float(info.get("yaw", c.rotation.y))
 		c.set("condition", clampf(float(info.get("condition", 100.0)), 18.0, 100.0))
+		if c.get("model_id") == RoadCars.R9:
+			c.call("restore_damage", info.get("damage", []))
 		if bool(info.get("claimed", false)):
 			c.set_meta("claimed", true)
 	var selected := int(data.get("occupied_car", -1))
@@ -1819,6 +1885,11 @@ func _toggle_interaction() -> void:
 		return
 	var shop: Dictionary = venue_system.call("nearest_venue", player.global_position)
 	var service: Dictionary = civic_services.call("nearest_site", player.global_position)
+	if shop.is_empty() and service.is_empty():
+		for car in cars:
+			if car.global_position.distance_squared_to(player.global_position) < 12.0 \
+					and car.call("toggle_near_door", player.global_position, player.get_rid()):
+				return
 	if not service.is_empty():
 		var civic_distance: float = civic_services.call("position_for", str(service["id"])).distance_to(player.global_position)
 		var shop_distance: float = 9999.0 if shop.is_empty() else venue_system.call("venue_position", str(shop["id"])).distance_to(player.global_position)
@@ -2439,7 +2510,8 @@ func _update_hud() -> void:
 	var clock: String = day_night.call("clock_string")
 	var vehicle_text := "ON FOOT"
 	if current_car != null:
-		vehicle_text = "DRIVING • %d km/h" % int(current_car.call("speed_kph"))
+		var vehicle_label := "DRIVING" if current_car.get("model_id") == "" else str(current_car.call("display_name")).to_upper()
+		vehicle_text = "%s • %d km/h" % [vehicle_label, int(current_car.call("speed_kph"))]
 	elif current_transit != null:
 		vehicle_text = {"TRAIN": "M-LINE RIDER", "BUS": "CITY LOOP RIDER", "LIFT": "STATION LIFT"}[transit_kind]
 	var tier: int = Wanted.stars(heat)

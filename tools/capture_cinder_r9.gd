@@ -1,0 +1,179 @@
+extends SceneTree
+## Repeatable live Forward+ view of the actual Cinder R9 at Jade Wash.
+const MARK = Vector3(-86.5, .825, 83.05)
+const YAW = 0.0
+const VIEWS = [
+	["front-day", 13.4, Vector3(-2.24, .94, -5.48), Vector3(0, -.05, -.53), false, false, false],
+	["front-night-dark", 21.5, Vector3(-1.63, .63, -5.78), Vector3(0, -.15, -.64), false, false, false],
+	["front-night-live", 21.5, Vector3(-1.63, .63, -5.78), Vector3(0, -.15, -.64), true, false, false],
+	["rear-night-live", 21.5, Vector3(1.30, .43, 5.42), Vector3(0, -.27, 1.01), true, true, false],
+	["rear-night-reverse", 21.5, Vector3(1.30, .43, 5.42), Vector3(0, -.27, 1.01), true, false, true],
+	["side-day-door", 13.4, Vector3(-2.10, 1.18, -3.20), Vector3(0, .01, .02), false, false, false],
+	["rear-day", 13.4, Vector3(1.30, .92, 5.42), Vector3(0, -.18, 1.01), false, false, false],
+	["headlight-detail", 13.4, Vector3(-.95, .53, -3.45), Vector3(-.64, -.19, -2.), false, false, false],
+	["headlight-night-detail", 21.5, Vector3(-.95, .53, -3.45), Vector3(-.64, -.19, -2.), true, false, false],
+	["wheel-arch-day-detail", 13.4, Vector3(-2.13, -.17, -1.98), Vector3(-.92, -.43, -1.43), false, false, false],
+	["wheel-arch-night-detail", 21.5, Vector3(-2.13, -.17, -1.98), Vector3(-.92, -.43, -1.43), true, false, false],
+	["wheel-steer-right-day-detail", 13.4, Vector3(-2.13, -.17, -1.98), Vector3(-.92, -.43, -1.43), false, false, false, .80],
+	["wheel-steer-left-day-detail", 13.4, Vector3(-2.13, -.17, -1.98), Vector3(-.92, -.43, -1.43), false, false, false, -.80],
+]
+
+func _initialize() -> void:
+	var budget_seconds := 600.0 if OS.get_environment("NIGHTGRID_CINDER_R9_CI_CAPTURE") == "1" else 150.0
+	create_timer(budget_seconds, true, false, true).timeout.connect(func() -> void: quit(1))
+	call_deferred("_review")
+
+func _frames(count: int) -> void:
+	for step in count:
+		await RenderingServer.frame_post_draw
+
+func _percentiles(samples: Array[float]) -> Dictionary:
+	samples.sort()
+	var last := samples.size() - 1
+	return {"median": samples[roundi(last * .50)], "p95": samples[roundi(last * .95)],
+		"p99": samples[roundi(last * .99)], "max": samples[last]}
+
+func _sample() -> Dictionary:
+	var frame: Array[float] = []
+	var gpu: Array[float] = []
+	var cpu: Array[float] = []
+	var lost := 0
+	var long_frames := 0
+	var hitches := 0
+	var rid := root.get_viewport_rid()
+	var last := Time.get_ticks_usec()
+	for index in 180:
+		await RenderingServer.frame_post_draw
+		var now := Time.get_ticks_usec()
+		var spacing := (now - last) / 1000.0
+		last = now
+		frame.append(spacing)
+		gpu.append(RenderingServer.viewport_get_measured_render_time_gpu(rid))
+		cpu.append(RenderingServer.viewport_get_measured_render_time_cpu(rid))
+		lost += int(not root.has_focus())
+		long_frames += int(spacing > 16.67)
+		hitches += int(spacing > 33.3)
+	return {"ms": _percentiles(frame), "gpu_ms": _percentiles(gpu), "render_cpu_ms": _percentiles(cpu),
+		"unfocused": lost, "over_16_67": long_frames, "over_33_3": hitches, "samples": frame.size(),
+		"draw_calls": RenderingServer.viewport_get_render_info(rid, RenderingServer.VIEWPORT_RENDER_INFO_TYPE_VISIBLE,
+			RenderingServer.VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME),
+		"primitives": RenderingServer.viewport_get_render_info(rid, RenderingServer.VIEWPORT_RENDER_INFO_TYPE_VISIBLE,
+			RenderingServer.VIEWPORT_RENDER_INFO_PRIMITIVES_IN_FRAME)}
+
+func _review() -> void:
+	var output := OS.get_environment("NIGHTGRID_CINDER_R9_DIR")
+	if DisplayServer.get_name() == "headless" or RenderingServer.get_current_rendering_method() != "forward_plus" \
+			or not output.is_absolute_path() or DirAccess.dir_exists_absolute(output) \
+			or DirAccess.make_dir_recursive_absolute(output) != OK:
+		push_error("Cinder R9 capture requires Forward+ and a new absolute output folder")
+		quit(1)
+		return
+	var game := (load("res://scenes/main.tscn") as PackedScene).instantiate() as Node3D
+	root.add_child(game)
+	await process_frame
+	game.get_node("GameMenus").call("hide_for_game")
+	game.get_node("HUD").hide()
+	game.set_process(false)
+	game.set_physics_process(false)
+	var player: CharacterBody3D = game.get("player")
+	player.set_physics_process(false)
+	player.hide()
+	var clock: Node = game.get("day_night")
+	clock.set_process(false)
+	var camera: Camera3D = game.get("camera")
+	var environment: Environment = (game.get("world_environment") as WorldEnvironment).environment
+	environment.ssr_enabled = true
+	environment.ssao_enabled = true
+	environment.glow_enabled = true
+	environment.fog_enabled = true
+	var cars: Array = game.get("cars")
+	var car: CharacterBody3D = cars[2]
+	car.set_physics_process(false)
+	car.global_position = MARK
+	car.rotation.y = YAW
+	var marker := Transform3D(Basis(Vector3.UP, YAW), MARK)
+	for director in ["city_details", "street_lights", "venue_system", "civic_services"]:
+		game.get(director).call("set_focus", MARK)
+	var hero: Node3D = car.get("hero_visual")
+	Engine.max_fps = 0
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	DisplayServer.window_move_to_foreground()
+	RenderingServer.viewport_set_measure_render_time(root.get_viewport_rid(), true)
+	# CI captures use real Godot Forward+ rendering on Mesa's CPU Vulkan
+	# implementation. Do not label its frame times as RTX/GPU performance.
+	var software_ci := OS.get_environment("NIGHTGRID_CINDER_R9_CI_CAPTURE") == "1"
+	var ci_views := ["front-day", "headlight-night-detail", "wheel-steer-right-day-detail",
+		"wheel-steer-left-day-detail"]
+	var records: Array[Dictionary] = []
+	for view in VIEWS:
+		if software_ci and not ci_views.has(str(view[0])):
+			continue
+		hero.call("close_doors_immediate")
+		clock.call("set_hour", view[1])
+		clock.call("set_weather", "overcast")
+		for node in ["venue_system", "civic_services"]:
+			game.get(node).call("set_hour", view[1])
+		camera.global_position = marker * view[2]
+		var target: Vector3 = marker * view[3]
+		camera.look_at(target, Vector3.UP)
+		camera.fov = 38.0 if str(view[0]).ends_with("detail") else 49.0
+		var brake_on: bool = view[5]
+		var reverse_on: bool = view[6]
+		hero.call("set_lighting_hour", view[1])
+		RenderingServer.global_shader_parameter_set(&"cinder_surface_film", 0.0 if view[1] < 18.0 else 0.87)
+		# Capture fixed-pose wheel-lock evidence using the actual game rig,
+		# not Blender or a repositioned wheel mockup. Previous views default to
+		# neutral steering; the two added closeups share one camera exactly.
+		var steering_input: float = float(view[7]) if view.size() > 7 else 0.0
+		var inspect_steering: bool = bool(view[4]) or absf(steering_input) > .001
+		hero.call("update_motion", -2.0 if reverse_on else 0.0, steering_input,
+				brake_on, inspect_steering, 0.0, 0.87, .45)
+		var steering_state: Dictionary = hero.call("get_motion_state")
+		if absf(steering_input) > .001:
+			var left_angle := float(steering_state["steering_left"])
+			var right_angle := float(steering_state["steering_right"])
+			if (steering_input > 0.0 and not (right_angle < left_angle and left_angle < 0.0)) \
+					or (steering_input < 0.0 and not (left_angle > right_angle and right_angle > 0.0)):
+				push_error("Ackermann visual steering did not match the requested turn")
+				quit(1)
+				return
+		if view[0] == "side-day-door":
+			if not car.call("toggle_near_door", car.to_global(Vector3(-1.6, .05, -.4)), player.get_rid()):
+				push_error("Jade Wash driver's door could not open at the capture mark")
+				quit(1)
+				return
+			hero.call("update_motion", 0.0, 0.0, false, false, 0.0, 0.0, .75)
+		await create_timer(.06 if software_ci else .9).timeout
+		await _frames(3 if software_ci else 30)
+		var path := output.path_join(str(view[0]) + ".png")
+		if root.get_texture().get_image().save_png(path) != OK:
+			quit(1)
+			return
+		var measurement: Dictionary
+		if software_ci:
+			measurement = {"measurement_mode": "not_measured_mesa_software_vulkan",
+				"performance_comparable_to_native_gpu": false}
+		else:
+			await _frames(20)
+			measurement = await _sample()
+		measurement.merge({"file": path.get_file(), "sha256": FileAccess.get_sha256(path), "hour": view[1],
+			"camera": str(camera.global_position), "look": str(target), "fov": camera.fov,
+			"occupied": view[4], "brake": brake_on, "reverse": reverse_on,
+			"visual_steering_input": steering_input,
+			"front_left_steer_radians": float(steering_state["steering_left"]),
+			"front_right_steer_radians": float(steering_state["steering_right"]),
+			"capture_type": "native Godot Forward+ gameplay camera; wheel-closeup not Blender"})
+		records.append(measurement)
+		print("CINDER_R9_FRAME ", path.get_file())
+	var log := FileAccess.open(output.path_join("manifest.json"), FileAccess.WRITE)
+	log.store_string(JSON.stringify({"revision": OS.get_environment("NIGHTGRID_SOURCE_REVISION"),
+		"seed": root.get_node("GameSession").get("world_seed"), "engine": Engine.get_version_info()["string"],
+		"renderer": RenderingServer.get_current_rendering_method(), "driver": RenderingServer.get_current_rendering_driver_name(),
+		"adapter": RenderingServer.get_video_adapter_name(), "resolution": [root.size.x, root.size.y],
+		"settings": {"ssr": true, "ssao": true, "glow": true, "fog": true, "vsync": false},
+		"mark": str(MARK), "captures": records,
+		"capture_mode": "ci_mesa_software_vulkan" if software_ci else "native_gpu_forward_plus",
+		"performance_comparable_to_native_gpu": not software_ci}, "\t"))
+	log.close()
+	print("CINDER_R9_CAPTURE PASS")
+	quit()

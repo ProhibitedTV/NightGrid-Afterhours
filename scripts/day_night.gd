@@ -15,6 +15,8 @@ var _panorama_sky: PanoramaSkyMaterial
 var _panorama_resource: Sky
 var _original_skies_enabled := true
 var _sky_weather := "clear"
+var _surface_film := 0.0
+var _last_shader_film := -1.0
 var _active_sky_id := ""
 var _last_panorama_energy := -1.0
 var _sky_args_parsed := false
@@ -73,8 +75,17 @@ func _process(delta: float) -> void:
 		hour = fposmod(hour + delta * 24.0 / DAY_LENGTH_SECONDS, 24.0)
 	_update_accumulator += delta
 	if _update_accumulator >= 0.20:
+		var target := 1.0 if _sky_weather == "storm" else (0.74 if _sky_weather == "rain" else 0.0)
+		_surface_film = move_toward(_surface_film, target, _update_accumulator * (0.45 if target > _surface_film else 0.06))
+		var shader_film := snappedf(_surface_film, 1.0 / 64.0)
+		if shader_film != _last_shader_film:
+			RenderingServer.global_shader_parameter_set(&"cinder_surface_film", shader_film)
+			_last_shader_film = shader_film
 		_update_accumulator = 0.0
 		_apply()
+
+func surface_film() -> float:
+	return _surface_film
 
 func set_render_comparison(enabled: bool) -> void:
 	# Preserve the beta.3 scripting contract. Engine-upgrade A/B uses the
@@ -234,4 +245,3 @@ func _apply_atmosphere(light:float) -> void:
 	var altitude := 9.0 + 64.0 * noon
 	_sun.rotation_degrees = Vector3(-altitude, hour * 15.0 + 90.0, -4.0)
 	_refresh_original_sky()
-
