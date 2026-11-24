@@ -14,7 +14,7 @@
     "SillLenses": 96,
     "Cabin": 6938,
     "FrontClip": 12070,
-    "RearClip": 8276,
+    "RearClip": 8280,
     "DoorL0": 1508,
     "DoorR0": 1508,
     "Wheel": 4956,
@@ -49,8 +49,8 @@
     ]
   },
   "sha256": {
-    "cinder_r9.gltf": "ee1f109cd5ac3472278bace6f84db1adfbf85605d83d59f26c8e076db78bd041",
-    "cinder_r9.bin": "da48c2611da69106758b0ab213f68327da19b08cd4fd7d44d5198a4b0a57de26",
+    "cinder_r9.gltf": "696eab02a1b66d3b239a90919eca21f1db86078fa443bfc8b87e6d3d685032df",
+    "cinder_r9.bin": "04d6a40931d327063fccf4e984f10c08e9f6c9efe39c64129be4051783f4707a",
     "wheel.gltf": "abe3f55781acef304cbf6eea07d49d8245ef6f3313f07085c5697e3c31e3fde7",
     "wheel.bin": "e00dfcdff0a96bfb43d23d0ea12dd257b892ca51a5a555d82b42c0b2dc92d4c1",
     "carbon_twill.png": "89c8a41f36faef711f93d6df0996be5bbd845ef65f7ea398de116ad11adc32f5",
