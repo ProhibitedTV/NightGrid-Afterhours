@@ -39,20 +39,32 @@ func _verify() -> void:
 	var materials: Array[String] = []
 	var covered_left := false
 	var covered_right := false
+	var lens_outside := false
+	var lens_inside := false
+	var lens_edge := false
 	for i in front.mesh.get_surface_count():
 		var label := front.mesh.surface_get_material(i).resource_name
 		materials.append(label)
 		if label == "OpticCover":
-			var vertices: PackedVector3Array = front.mesh.surface_get_arrays(i)[Mesh.ARRAY_VERTEX]
+			var data: Array = front.mesh.surface_get_arrays(i)
+			var vertices: PackedVector3Array = data[Mesh.ARRAY_VERTEX]
+			var normals: PackedVector3Array = data[Mesh.ARRAY_NORMAL]
 			for vertex in vertices:
 				covered_left = covered_left or (vertex.x < -.45 and vertex.z < -2.16)
 				covered_right = covered_right or (vertex.x > .45 and vertex.z < -2.16)
+			for normal in normals:
+				lens_outside = lens_outside or normal.y > .7
+				lens_inside = lens_inside or normal.y < -.7
+				lens_edge = lens_edge or absf(normal.y) < .5
 	for name in ["Paint", "CarbonComposite", "MachinedAlloy", "OpticCover"]:
 		if name not in materials:
 			_fail("Missing authored front surface " + name)
 			return
 	if not covered_left or not covered_right:
 		_fail("Headlamp cover geometry must remain on both front corners")
+		return
+	if not lens_outside or not lens_inside or not lens_edge:
+		_fail("Cinder bonded headlamp covers must include both skins and physical edge walls")
 		return
 	var projector := shell.get_node_or_null("HeadProjectors") as MeshInstance3D
 	if projector == null or projector.mesh.get_aabb().size.x < 1.1 or projector.mesh.get_aabb().size.y < .035:
