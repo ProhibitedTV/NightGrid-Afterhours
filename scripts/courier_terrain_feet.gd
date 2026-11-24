@@ -3,12 +3,18 @@ extends SkeletonModifier3D
 ## active player tick at most; no physics queries inside modifier callback.
 const MAX_RISE = .22
 const MAX_DROP = .15
+const MAX_PELVIS_DROP = .12
+const MAX_TILT = deg_to_rad(20.0)
 const PROBE_UP = .40
 const PROBE_DOWN = .48
 const LEGS = [["LeftUpLeg","LeftLeg","LeftFoot"],["RightUpLeg","RightLeg","RightFoot"]]
 var _chains: Array[Vector3i] = []
 var _offsets := PackedFloat32Array([0.0,0.0])
 var _ankle_rest := PackedFloat32Array([0.0,0.0])
+var _normals: Array[Vector3] = [Vector3.UP,Vector3.UP]
+var _stance := PackedFloat32Array([0.0,0.0])
+var _pelvis := -1
+var _pelvis_drop := 0.0
 var _ready_rig := false
 var probe_count := 0
 var corrected_feet := 0
@@ -18,6 +24,9 @@ func configure() -> bool:
 	if rig == null:
 		return false
 	_chains.clear()
+	_pelvis = rig.find_bone("Hips")
+	if _pelvis<0:
+		return false
 	for i in LEGS.size():
 		var names: Array = LEGS[i]
 		var indices := Vector3i(rig.find_bone(names[0]),rig.find_bone(names[1]),rig.find_bone(names[2]))
@@ -32,6 +41,9 @@ func configure() -> bool:
 
 func reset() -> void:
 	_offsets.fill(0.0)
+	_stance.fill(0.0)
+	_normals = [Vector3.UP,Vector3.UP]
+	_pelvis_drop = 0.0
 	probe_count = 0
 	corrected_feet = 0
 	active = false
@@ -57,25 +69,50 @@ func sample_ground(body: CharacterBody3D,delta: float,enabled: bool) -> void:
 		var hit := space.intersect_ray(query)
 		probe_count += 1
 		var correction := 0.0
+		var normal := Vector3.UP
+		var stance := 0.0
 		if not hit.is_empty() and (hit["normal"] as Vector3).y>.72:
 			var ground: Vector3 = hit["position"]
 			# Restrict adjustment to the planted part of the mocap cycle.
-			var stance := 1.0-smoothstep(.035,.14,maxf(0.0,ankle.y-_ankle_rest[i]))
+			stance = 1.0-smoothstep(.035,.14,maxf(0.0,ankle.y-_ankle_rest[i]))
 			correction = clampf(ground.y-visual_floor,-MAX_DROP,MAX_RISE)*stance
-		_offsets[i] = lerpf(_offsets[i],correction,1.0-exp(-16.0*delta))
+			normal = hit["normal"]
+		var response := 1.0-exp(-16.0*delta)
+		_offsets[i] = lerpf(_offsets[i],correction,response)
+		_stance[i] = lerpf(_stance[i],stance,response)
+		_normals[i] = _normals[i].lerp(normal,response).normalized()
+	var desired_drop := clampf(minf(0.0,minf(_offsets[0],_offsets[1])),-MAX_PELVIS_DROP,0.0)
+	_pelvis_drop = lerpf(_pelvis_drop,desired_drop,1.0-exp(-10.0*delta))
 
 func _process_modification_with_delta(_delta: float) -> void:
 	corrected_feet = 0
 	if not _ready_rig:
 		return
 	var rig := get_skeleton()
+	if absf(_pelvis_drop)>.002:
+		var hips := rig.get_bone_global_pose(_pelvis)
+		hips.origin += rig.global_basis.inverse()*Vector3(0,_pelvis_drop,0)
+		rig.set_bone_global_pose(_pelvis,hips)
+	# Targets are relative to the original animation, not the lowered hips.
 	for i in 2:
-		if absf(_offsets[i])<.002:
+		var offset := _offsets[i]-_pelvis_drop
+		var tilt := _bounded_tilt(_normals[i],_stance[i])
+		if absf(offset)<.002 and tilt.get_angle()<.01:
 			continue
-		if _solve_leg(rig,_chains[i],_offsets[i]):
+		if _solve_leg(rig,_chains[i],offset,tilt):
 			corrected_feet += 1
 
-func _solve_leg(rig: Skeleton3D,chain: Vector3i,offset: float) -> bool:
+static func _bounded_tilt(normal: Vector3,stance: float) -> Quaternion:
+	var direction := normal.normalized()
+	if direction.y<=.72:
+		return Quaternion.IDENTITY
+	var angle := acos(clampf(Vector3.UP.dot(direction),-1.0,1.0))
+	var axis := Vector3.UP.cross(direction)
+	if axis.length_squared()<.000001:
+		return Quaternion.IDENTITY
+	return Quaternion(axis.normalized(),minf(angle,MAX_TILT)*clampf(stance,0.0,1.0))
+
+func _solve_leg(rig: Skeleton3D,chain: Vector3i,offset: float,tilt: Quaternion = Quaternion.IDENTITY) -> bool:
 	var hip := rig.get_bone_global_pose(chain.x)
 	var knee := rig.get_bone_global_pose(chain.y)
 	var ankle := rig.get_bone_global_pose(chain.z)
@@ -101,5 +138,7 @@ func _solve_leg(rig: Skeleton3D,chain: Vector3i,offset: float) -> bool:
 	var knee_basis := Basis(Quaternion((ankle.origin-knee.origin).normalized(),(end-joint).normalized()))*knee.basis
 	rig.set_bone_global_pose(chain.x,Transform3D(hip_basis,hip.origin))
 	rig.set_bone_global_pose(chain.y,Transform3D(knee_basis,joint))
-	rig.set_bone_global_pose(chain.z,Transform3D(ankle.basis,end))
+	var world_rotation := rig.global_basis.orthonormalized()
+	var ankle_basis := world_rotation.inverse()*Basis(tilt)*world_rotation*ankle.basis
+	rig.set_bone_global_pose(chain.z,Transform3D(ankle_basis,end))
 	return true

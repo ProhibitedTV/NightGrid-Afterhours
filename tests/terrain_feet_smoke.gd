@@ -31,12 +31,25 @@ func _verify() -> void:
 	var after_knee := rig.get_bone_global_pose(chain.y).origin
 	if not check(after.y>before.y+.025 and absf(after_hip.distance_to(after_knee)-lengths.x)<.005 and absf(after_knee.distance_to(after)-lengths.y)<.005,"ankle rises without changing limb lengths"):
 		return
+	var tilt: Quaternion = mod.call("_bounded_tilt",Vector3(.55,.83,0).normalized(),1.0)
+	if not check(tilt.get_angle()>0.1 and tilt.get_angle()<=deg_to_rad(20.0)+.001,"slope tilt is bounded"):
+		return
+	var swing_tilt: Quaternion = mod.call("_bounded_tilt",Vector3(.55,.83,0).normalized(),0.0)
+	if not check(swing_tilt.get_angle()<.001,"swing foot preserves authored orientation"):
+		return
+	var hips: int = mod.get("_pelvis")
+	var hip_before := rig.get_bone_global_pose(hips).origin.y
+	mod.set("_pelvis_drop",-.08)
+	mod.set("_offsets",PackedFloat32Array([-.08,0.0]))
+	mod.call("_process_modification_with_delta",1.0/60.0)
+	if not check(absf(rig.get_bone_global_pose(hips).origin.y-hip_before+.08)<.005,"pelvis follows lower planted surface"):
+		return
 	await physics_frame
 	mod.call("sample_ground",player,1.0/60.0,true)
 	if not check(int(mod.get("probe_count"))==2,"strict two-probe budget"):
 		return
 	mod.call("sample_ground",player,1.0/60.0,false)
-	if not check(not mod.active and int(mod.get("probe_count"))==0,"airborne/action/seat gate clears terrain correction"):
+	if not check(not mod.active and int(mod.get("probe_count"))==0 and is_zero_approx(float(mod.get("_pelvis_drop"))),"airborne/action/seat gate clears terrain correction"):
 		return
-	print("TERRAIN_FEET PASS: weighted leg solve, preserved lengths, two probes and state gate")
+	print("TERRAIN_FEET PASS: weighted leg solve, preserved lengths, slope tilt, pelvis drop, two probes and state gate")
 	quit(0)
