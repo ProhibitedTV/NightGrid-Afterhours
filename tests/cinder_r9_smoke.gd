@@ -100,6 +100,8 @@ func _verify() -> void:
 		_fail("Failed to enter the actual Cinder and mount the courier")
 		return
 	var initial := car.global_position
+	var heading := -car.global_basis.z
+	var starting_phase := float(hero.call("get_motion_state")["wheel_rotation"])
 	Input.action_press("drive_accelerate")
 	for i in 23:
 		await physics_frame
@@ -107,12 +109,29 @@ func _verify() -> void:
 	if float(car.get("speed")) < 2.0 or car.global_position.distance_to(initial) < .65:
 		_fail("Controller throttle did not advance the Cinder along the generated road")
 		return
+	var actual_travel := (car.global_position - initial).dot(heading)
+	var radius := float(car.get("specification")["tire"])
+	var driven_phase := float(hero.call("get_motion_state")["wheel_rotation"])
+	if absf(angle_difference(starting_phase + actual_travel / radius, driven_phase)) > .025:
+		_fail("Wheel roll did not match actual straight-line chassis displacement")
+		return
 	Input.action_press("drive_brake")
 	for i in 30:
 		await physics_frame
 	Input.action_release("drive_brake")
 	if absf(float(car.get("speed"))) > .30:
 		_fail("Handbrake did not stop the Cinder")
+		return
+	# A stalled car may still report drive speed: explicit zero travel must
+	# override the synthetic speed fallback, and reverse travel must unwind.
+	var phase := float(hero.call("get_motion_state")["wheel_rotation"])
+	hero.call("update_motion", 12.0, 0.0, false, true, .7, 0.0, .1, 0.0)
+	if absf(angle_difference(phase, float(hero.call("get_motion_state")["wheel_rotation"]))) > .00001:
+		_fail("Wheels rolled despite zero measured travel")
+		return
+	hero.call("update_motion", 0.0, 0.0, false, true, 0.0, 0.0, .1, -radius * .5)
+	if absf(angle_difference(phase - .5, float(hero.call("get_motion_state")["wheel_rotation"]))) > .00001:
+		_fail("Reverse displacement did not unwind wheel phase")
 		return
 	hero.call("set_lighting_hour", 21.5)
 	hero.call("update_motion", 12.0, .5, true, true, .7, .75, .15)

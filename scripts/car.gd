@@ -130,7 +130,11 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.y = -0.1
 	var incoming := Vector3(velocity.x, 0.0, velocity.z)
+	var before_slide := global_position
 	move_and_slide()
+	# Use this tick's real longitudinal movement for road-car wheel roll.
+	# Wall clipping, glancing contact, and momentum loss must not fake travel.
+	var rolling_distance := (global_position - before_slide).dot(forward)
 	braking = _resolve_contacts(incoming) or braking
 	var warning := is_police and condition > 18.0 and police_destination.is_finite() and police_priority
 	if is_instance_valid(_siren):
@@ -142,7 +146,7 @@ func _physics_process(delta: float) -> void:
 		if specification.is_empty():
 			hero_visual.call("update_motion", speed, visual_steer, braking, occupied, warning, delta)
 		else:
-			hero_visual.call("update_motion", speed, visual_steer, braking, occupied, throttle, road_wetness, delta)
+			hero_visual.call("update_motion", speed, visual_steer, braking, occupied, throttle, road_wetness, delta, rolling_distance)
 
 func _drive_legacy(throttle: float, steering: float, delta: float) -> void:
 	if throttle > 0.0:
