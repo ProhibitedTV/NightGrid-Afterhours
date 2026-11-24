@@ -8,6 +8,7 @@ extends SceneTree
 const R9_VISUAL = preload("res://scripts/road_car_visual.gd")
 const VIEWS = [
     ["front-day", 13.4, Vector3(-3.5, 1.38, -5.1), Vector3(0, -.14, -.30), 0.0],
+    ["headlight-day-detail", 13.4, Vector3(-1.92, .38, -3.00), Vector3(-.65, -.30, -2.15), 0.0],
     ["headlight-night-detail", 21.5, Vector3(-1.92, .38, -3.00), Vector3(-.65, -.30, -2.15), 0.0],
     ["wheel-steer-right-day-detail", 13.4, Vector3(-2.18, -.07, -2.18), Vector3(-.85, -.48, -1.43), .80],
     ["wheel-steer-left-day-detail", 13.4, Vector3(-2.18, -.07, -2.18), Vector3(-.85, -.48, -1.43), -.80],

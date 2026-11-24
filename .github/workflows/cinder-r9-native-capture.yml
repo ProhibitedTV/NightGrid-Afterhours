@@ -74,7 +74,7 @@ jobs:
           assert manifest["renderer"]=="forward_plus",manifest["renderer"]
           assert manifest["capture_mode"]=="ci_mesa_software_vulkan"
           assert not manifest["performance_comparable_to_native_gpu"]
-          expected={"front-day","headlight-night-detail",
+          expected={"front-day","headlight-day-detail","headlight-night-detail",
                     "wheel-steer-right-day-detail","wheel-steer-left-day-detail"}
           frames=manifest["captures"]
           assert {r["file"][:-4] for r in frames}==expected
@@ -89,7 +89,7 @@ jobs:
                   assert frame.size==(1280,720),frame.size
                   st=ImageStat.Stat(frame.convert("L"))
                   assert st.stddev[0]>2.5,(path,st.stddev)
-          assert len(hashes)==4,"Identical or blank captures"
+          assert len(hashes)==5,"Identical or blank captures"
           left=next(r for r in frames if r["file"].startswith("wheel-steer-left"))
           right=next(r for r in frames if r["file"].startswith("wheel-steer-right"))
           assert left["front_left_steer_radians"]>left["front_right_steer_radians"]>0
