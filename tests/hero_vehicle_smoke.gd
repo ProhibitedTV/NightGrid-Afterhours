@@ -27,16 +27,22 @@ func _check() -> void:
 		return
 	var shell := hero.get_node_or_null("KestrelMonocoque") as MeshInstance3D
 	if shell == null or not shell.mesh is ArrayMesh:
-		_fail("Missing bespoke lofted Kestrel bodywork")
+		_fail("Missing retained Kestrel front and cabin floor")
 		return
 	var vertices: PackedVector3Array = shell.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
-	if vertices.size() < 350:
-		_fail("Kestrel shell has insufficient beveled original geometry")
+	if vertices.size() < 220 or absf(shell.mesh.get_aabb().end.z - .77) > .002:
+		_fail("Front monocoque must meet the authored rear quarter at the original joint")
 		return
 	var stats: Dictionary = hero.call("get_visual_stats")
 	if int(stats.get("wheels", 0)) != 4 or int(stats.get("cabins", 0)) != 1:
 		_fail("Kestrel must have a cabin and four articulated wheel assemblies")
 		return
+	for anchor in ["SteeringLeft", "SteeringRight", "RearLeft", "RearRight"]:
+		var cap := hero.get_node(anchor + "/WheelSpin/CenterNut") as MeshInstance3D
+		var hub := cap.mesh as CylinderMesh
+		if absf(cap.position.x) + hub.height * .5 > .18:
+			_fail("Center cap protrudes beyond the wheel face")
+			return
 	if int(stats.get("transparent_glass", 0)) != 5 or int(stats.get("seats", 0)) != 4:
 		_fail("Four furnished seats and five tinted glass panels expected")
 		return

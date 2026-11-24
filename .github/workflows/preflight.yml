@@ -26,6 +26,10 @@ jobs:
         run: python tools/check_cc0_aircon.py
       - name: Audit original Crane & Gear production glTF, source hashes and photo-PBR derivatives
         run: python tools/check_crane_gear_gltf.py
+      - name: Verify Kestrel authored front fascia and rear closure geometry and provenance
+        run: |
+          python tools/check_kestrel_fascia.py
+          python tools/check_kestrel_rear.py
       - name: Validate Cinder R9 original glass, brakes, body fit, tire tread and sealed headlamps
         run: python -m unittest discover -s tests -p 'test_cinder_*.py' -v
       - name: Verify original CC0 Hidden Alley source models and photo-derived road wear maps

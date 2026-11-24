@@ -1,49 +1,33 @@
-# KESTREL S6 rear-body closure — issue #31
+# Kestrel S6 rear body and South Bus Works contact
 
-The original KESTREL S6 had a lofted monocoque plus independent
-transparent rear glass, a small rear diffuser and decorative vents.
-Even when the underlying loft formally closed at its ends, the rear
-cabin/trunk assembly lacked convincing solid deck/hatch topology and an
-inner opaque wall behind the passenger seats. From elevated rear
-camera angles the trunk could appear hollow or disconnected.
+The first #31 fix added a closed trunk to the legacy loft. Native inspection at South Bus Works showed rear headrests through the sloped glass, a gap at the window frame, and trim and lights standing away from the tail. This pass fits the authored rear in gameplay. The existing front section meets the glTF rear at body-local Z 0.77 m.
 
-## Structural repair
+- The painted shell is a closed mesh with a wrapped hatch, curved fenders, a sealed underbody and cutouts around the existing rear wheels. A separate closed opaque bulkhead finishes the cabin behind the rear bench.
+- Bonded rear glass, C-pillar rails and contoured seats fit the existing roof and doors. The rear bench has shaped cushions and two head restraints below the glass.
+- The shaped lamp housings follow the curved tail. The brake and reverse guides use the car's existing brake state and signed speed. The shared materials update on state changes. The assembly adds zero dynamic lights.
+- The rear reuses the NightGrid-authored micro-normal from the front fascia. Shared glTF meshes and Godot import LODs serve both street and police Kestrels. The near and reduced sources contain 4,131 and 1,911 triangles, including the glass, lights and rear seats.
+- The legacy hub caps now sit just proud of the wheel face. Axle, tire, steering and collision dimensions use the existing chassis package.
 
-`scripts/kestrel_s6_visual.gd` now models an intentionally closed,
-tapered rear hatch volume with four authored longitudinal cross
-sections. Each section has four perimeter corners, four connected
-walls, and front/rear caps. Surfaces are triangulated with outward
-normals and the same PBR paint as the primary Kestrel monocoque.
-The hatch is a **real manifold mesh**, not an overlay pretending to
-cover a hole.
+## South Bus Works
 
-A fixed opaque inner cargo bulkhead, parcel shelf, weather seals and
-quarter-panel webs complete the visible separation between rear seats
-and luggage compartment. The rear windscreen and existing four-seat
-interior remain intact. This is a visual-only vehicle change: physics,
-lights, speed-responsive tire rotation, motor audio, police variant
-and save snapshots are left unchanged.
+The ten documented bins, posts and cargo boxes have matching static collision. The integration test drives the production car into the actual cargo stack at (85.0, 184.5). It then places the curbside door next to the stack, blocks the other door with a parked car and verifies occupancy. After the second car clears, the courier exits on the open side and regains collision.
 
-## Automated geometry verification
+Exit checks for ground near the door threshold and sweeps the courier capsule from the sill. The right side retains priority when clear. A blocked right door allows a left-side exit. A fully blocked exit keeps the courier seated and reports the obstruction.
 
-```bash
+## Reproduce
+
+```text
+python tools/author_kestrel_rear.py
+python tools/check_kestrel_rear.py
 godot --headless --path . --import --quit
 godot --headless --path . --script res://tests/kestrel_rear_closure_smoke.gd
+godot --headless --path . --script res://tests/southworks_playtest_smoke.gd
 ```
 
-The regression parses actual rear hatch mesh vertices and normals,
-rejects degenerate triangles, requires every quantized undirected
-mesh edge to appear exactly twice, asserts outward top and rear normals,
-and checks that the opaque bulkhead is present on both civilian and
-police variants after a save/restore cycle.
+Asset hashes, original-art provenance and the axle/socket coordinates are in [the rear source manifest](../assets/models/nightgrid/kestrel_s6_rear/source.json). The checker audits closed directed edges, nondegenerate faces, UVs, wheel-well clearance, lamp mounts and rear seat bounds. The Godot regression examines the imported geometry, tests coverage across the cargo deck, exercises the lamp states and checks save restoration and the police variant.
 
-## Remaining visual QA
+For native evidence run `tools/capture_kestrel_rear.gd` against the Windows Forward+/Vulkan game pack. Set `NIGHTGRID_KESTREL_REAR_DIR` to a new absolute folder and `NIGHTGRID_SOURCE_REVISION` to the exported SHA. `NIGHTGRID_SOUTHWORKS_CAPTURE_DIR` adds two real in-game frames to the native Southworks regression.
 
-Real Windows Forward+ camera orbit (rear-left, high rear, low rear,
-sides, front, wet daylight and 21:30 lighting) remains necessary:
-headless topology checks do not prove that glass transparency, PBR,
-smoothing, deck seams, lighting and automotive proportions look
-convincing. The wider #20 automotive asset redesign still calls for
-professionally modeled and authored high-detail art rather than
-relying on box details. Keep #31 open until rear camera captures show
-the trunk is truly visually sealed.
+Creator sign-off, the complete #211 exterior, front lamps and cabin, the authored wheel assembly, weather-driven wear and fleet performance remain open.
+
+[Native comparison and driving results](playtest/kestrel-rear-and-exit/NATIVE_REVIEW.md).

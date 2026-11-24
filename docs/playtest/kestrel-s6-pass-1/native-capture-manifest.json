@@ -1,0 +1,232 @@
+{
+	"adapter": "NVIDIA GeForce RTX 3060",
+	"captures": [
+		{
+			"camera": "(-88.26, 1.79, 77.75)",
+			"component": "stock",
+			"draw_calls": 1060,
+			"file": "day-3q-stock.png",
+			"fov": 50.0,
+			"gpu_ms": {
+				"max": 5.3289999961853,
+				"median": 4.39599990844727,
+				"p95": 5.14799976348877,
+				"p99": 5.31500005722046
+			},
+			"hour": 13.4,
+			"look": "(-86.48, 1.07, 83.15)",
+			"ms": {
+				"max": 9.586,
+				"median": 5.282,
+				"p95": 8.797,
+				"p99": 9.216
+			},
+			"over_16_67": 0,
+			"over_33_3": 0,
+			"primitives": 308396,
+			"render_cpu_ms": {
+				"max": 4.36499977111816,
+				"median": 2.9539999961853,
+				"p95": 3.46199989318848,
+				"p99": 3.70300006866455
+			},
+			"samples": 180,
+			"sha256": "71c459f9a5c0875741b76bf93a2ba87553a52b0b4c1212e478d353dd8ea8fe3c",
+			"sky": "overcast_day",
+			"unfocused": 0,
+			"weather_preset": "overcast"
+		},
+		{
+			"camera": "(-88.26, 1.79, 77.75)",
+			"component": "candidate",
+			"draw_calls": 1064,
+			"file": "day-3q-candidate.png",
+			"fov": 50.0,
+			"gpu_ms": {
+				"max": 5.35900020599365,
+				"median": 4.42000007629395,
+				"p95": 5.1710000038147,
+				"p99": 5.30999994277954
+			},
+			"hour": 13.4,
+			"look": "(-86.48, 1.07, 83.15)",
+			"ms": {
+				"max": 9.236,
+				"median": 5.336,
+				"p95": 8.713,
+				"p99": 8.979
+			},
+			"over_16_67": 0,
+			"over_33_3": 0,
+			"primitives": 310136,
+			"render_cpu_ms": {
+				"max": 3.8989999294281,
+				"median": 2.96199989318848,
+				"p95": 3.42799997329712,
+				"p99": 3.58400011062622
+			},
+			"samples": 180,
+			"sha256": "17b8f6fad24a4317c227cf46fc5896b63ac5262bc0c2e4e8f53191d6de908d66",
+			"sky": "overcast_day",
+			"unfocused": 0,
+			"weather_preset": "overcast"
+		},
+		{
+			"camera": "(-88.26, 1.79, 77.75)",
+			"component": "stock",
+			"draw_calls": 1057,
+			"file": "night-3q-stock.png",
+			"fov": 50.0,
+			"gpu_ms": {
+				"max": 5.48299980163574,
+				"median": 4.54199981689453,
+				"p95": 5.35200023651123,
+				"p99": 5.44799995422363
+			},
+			"hour": 22.1,
+			"look": "(-86.48, 1.07, 83.15)",
+			"ms": {
+				"max": 11.38,
+				"median": 6.118,
+				"p95": 9.383,
+				"p99": 9.723
+			},
+			"over_16_67": 0,
+			"over_33_3": 0,
+			"primitives": 308356,
+			"render_cpu_ms": {
+				"max": 4.77299976348877,
+				"median": 3.51200008392334,
+				"p95": 4.10099983215332,
+				"p99": 4.41300010681152
+			},
+			"samples": 180,
+			"sha256": "1a968e2f806ced3e068a888cc9febde161225e2ca1ab704907589b4e678f977e",
+			"sky": "moonlit_night",
+			"unfocused": 0,
+			"weather_preset": "clear"
+		},
+		{
+			"camera": "(-88.26, 1.79, 77.75)",
+			"component": "candidate",
+			"draw_calls": 1068,
+			"file": "night-3q-candidate.png",
+			"fov": 50.0,
+			"gpu_ms": {
+				"max": 5.56300020217896,
+				"median": 4.56400012969971,
+				"p95": 5.3289999961853,
+				"p99": 5.51700019836426
+			},
+			"hour": 22.1,
+			"look": "(-86.48, 1.07, 83.15)",
+			"ms": {
+				"max": 13.453,
+				"median": 7.363,
+				"p95": 10.673,
+				"p99": 12.6
+			},
+			"over_16_67": 0,
+			"over_33_3": 0,
+			"primitives": 311718,
+			"render_cpu_ms": {
+				"max": 5.78999996185303,
+				"median": 3.58500003814697,
+				"p95": 4.55800008773804,
+				"p99": 5.69399976730347
+			},
+			"samples": 180,
+			"sha256": "ef5a0e69361e577c8ec971cda13164ddcb5be467844e51f23c42869473075b5f",
+			"sky": "moonlit_night",
+			"unfocused": 0,
+			"weather_preset": "clear"
+		},
+		{
+			"camera": "(-86.86, 1.25, 78.85)",
+			"component": "stock",
+			"draw_calls": 1045,
+			"file": "night-nose-stock.png",
+			"fov": 53.0,
+			"gpu_ms": {
+				"max": 5.03700017929077,
+				"median": 4.08300018310547,
+				"p95": 4.82200002670288,
+				"p99": 4.99100017547607
+			},
+			"hour": 22.1,
+			"look": "(-86.54, 0.98, 81.76)",
+			"ms": {
+				"max": 11.558,
+				"median": 6.323,
+				"p95": 10.201,
+				"p99": 11.171
+			},
+			"over_16_67": 0,
+			"over_33_3": 0,
+			"primitives": 284356,
+			"render_cpu_ms": {
+				"max": 4.8730001449585,
+				"median": 3.37899994850159,
+				"p95": 3.9779999256134,
+				"p99": 4.09499979019165
+			},
+			"samples": 180,
+			"sha256": "acc70ea0cb03223e20faa54dff91403518ba6187bd3d5611396862cb3359135e",
+			"sky": "moonlit_night",
+			"unfocused": 0,
+			"weather_preset": "clear"
+		},
+		{
+			"camera": "(-86.86, 1.25, 78.85)",
+			"component": "candidate",
+			"draw_calls": 1056,
+			"file": "night-nose-candidate.png",
+			"fov": 53.0,
+			"gpu_ms": {
+				"max": 5.06300020217896,
+				"median": 4.1560001373291,
+				"p95": 4.87099981307983,
+				"p99": 5.01100015640259
+			},
+			"hour": 22.1,
+			"look": "(-86.54, 0.98, 81.76)",
+			"ms": {
+				"max": 14.444,
+				"median": 7.169,
+				"p95": 10.537,
+				"p99": 11.99
+			},
+			"over_16_67": 0,
+			"over_33_3": 0,
+			"primitives": 288114,
+			"render_cpu_ms": {
+				"max": 6.67500019073486,
+				"median": 3.46900010108948,
+				"p95": 4.43200016021729,
+				"p99": 5.71799993515015
+			},
+			"samples": 180,
+			"sha256": "5795448f8670005038620c2327d0f4c797d13109d498ec0c72249e72d3058ca1",
+			"sky": "moonlit_night",
+			"unfocused": 0,
+			"weather_preset": "clear"
+		}
+	],
+	"car_position": "(-86.54, 0.84, 83.4)",
+	"driver": "vulkan",
+	"engine": "4.7.2-stable (official)",
+	"renderer": "forward_plus",
+	"resolution": [
+		1920,
+		1080
+	],
+	"revision": "8e583a788e95599e27ee1e3de199975a7dc24d92",
+	"seed": 834726,
+	"settings": {
+		"fog": true,
+		"glow": true,
+		"ssao": true,
+		"ssr": true,
+		"vsync": false
+	}
+}
