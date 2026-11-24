@@ -102,6 +102,9 @@ func _create_materials() -> void:
 	titanium.normal_scale = 0.22
 	titanium.uv1_scale = Vector3(3.5, 1.2, 1)
 	_shared["Titanium"] = titanium
+	# Satin stamped reflector tray now sits directly below the bonded lenses.
+	# The real headlights and projector bulbs still own their light states.
+	_shared["HeadlampReflectorHousing"] = _finish_material(Color("43545e"), 0.31, 0.67)
 	_shared["Instrument"] = _lamp(Color("81c3c8"), 0.57)
 	_shared["Headlamp"] = _lamp(Color("cbdff4"), 1.62)
 	_shared["HeadIdle"] = _finish_material(Color("757e8e"), 0.36, 0.30)
