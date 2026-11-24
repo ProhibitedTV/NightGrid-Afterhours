@@ -186,6 +186,33 @@ func _verify()->void:
 		var wall: float = float(alley.get("left_wall")) if west else float(alley.get("right_wall"))
 		if not _check(absf(overlay.position.x - wall) <= 0.025, "paint is wall mounted"):
 			return
+	# The original wall-art PR used a separate runtime layer. Main already
+	# installs the same art through AlleySurfacePass; test that actual layer.
+	var storytelling := surface_pass.get_node_or_null("WallStorytelling") as Node3D
+	if not _check(storytelling != null and storytelling.get_child_count() == 5 and alley.get_node_or_null("BrickwaterWallArt") == null, "exactly one storytelling layer"):
+		return
+	var art_textures: Array[Texture2D] = []
+	var shared_quad: Mesh = null
+	for child in storytelling.get_children():
+		var art := child as MeshInstance3D
+		if not _check(art != null and art.mesh is QuadMesh and art.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF, "shared shadow-free artwork geometry"):
+			return
+		if shared_quad == null:
+			shared_quad = art.mesh
+		var art_mat := art.material_override as StandardMaterial3D
+		if not _check(art.mesh == shared_quad and art_mat != null and art_mat.albedo_texture != null and not art_textures.has(art_mat.albedo_texture), "unique artwork using shared mesh"):
+			return
+		art_textures.append(art_mat.albedo_texture)
+		var west: bool = art.position.x < x
+		var inward := Vector3.RIGHT if west else Vector3.LEFT
+		var wall: float = float(alley.get("left_wall")) if west else float(alley.get("right_wall"))
+		if not _check(art.global_basis.z.normalized().dot(inward) > 0.99, "paint faces walkable lane"):
+			return
+		for local in [Vector3.ZERO, Vector3(-0.46,-0.46,0), Vector3(0.46,-0.46,0), Vector3(-0.46,0.46,0), Vector3(0.46,0.46,0)]:
+			var at: Vector3 = art.to_global(local)
+			var backing := space.intersect_ray(PhysicsRayQueryParameters3D.create(at + inward * 0.04, at - inward * 0.10, 1))
+			if not _check(not backing.is_empty() and absf(float(backing["position"].x) - alley.to_global(Vector3(wall, 0, 0)).x) < 0.025, "artwork is physically backed at center and corners: " + str(art.name)):
+				return
 	var atmosphere := alley.get_node_or_null("StreetAtmosphere") as Node3D
 	if not _check(atmosphere != null, "local atmosphere layer"):
 		return
