@@ -58,6 +58,14 @@ Use the in-game map (**M**) for district names and **Y** to freeze the clock whe
 
 **Do not perform destructive in-game tests on the only copy of an old save.** You can test controller, police heat, destructible objects, or 130 km/h streaming in a fresh world.
 
+## Cinder R9 acceptance (RC2)
+
+- Locate a parked Cinder R9, enter with E / Y, and use V / D-pad Left to switch from chase to cockpit. Use mouse / right stick to look, then toggle back. Check the windshield, dashboard readability, door openings and that the view never intersects the rider or world geometry.
+- Drive, brake, reverse and turn at low/high speed. Inspect rolling wheels, steering rim, fixed brake calipers, body weight transfer and small wheel suspension travel. Stop against a solid obstruction and confirm the wheels stop advancing with actual travel.
+- Cycle weather with F2 and freeze the clock with Y. Compare clear and rain at daylight/night, including wet-road spray, contact shadows, brake/reverse lights, dashboard and courtesy light. Stop and park: spray and cabin lights must settle and switch off.
+- Save in the Cinder; exit, restore, and verify the same car and body damage. The camera should restore to chase and transient effects should reset.
+- F8 two matched cold/warm routes at 1080p, and F10 for cockpit images. The target remains 60 FPS; report actual median, p95, p99 and hitches, not a momentary counter.
+
 ## 4. Collect objective evidence
 
 - **F3**: frame intervals/rolling p95, p99, streamed blocks and FPS.
