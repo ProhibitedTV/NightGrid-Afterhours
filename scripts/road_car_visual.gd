@@ -599,6 +599,14 @@ func _update_lights(occupied: bool, braking: bool, reverse: bool) -> void:
 	for index in _sill_lights.size():
 		_sill_lights[index].visible = night_running and _damage[index + 2] < 0.84
 
+func detaching_parts(previous: Vector4, zones: Vector4) -> Array[MeshInstance3D]:
+	var parts: Array[MeshInstance3D] = []
+	for door in _doors:
+		var side := 2 if float(door["side"]) < 0.0 else 3
+		if previous[side] < .93 and zones[side] >= .93:
+			parts.append(door["part"])
+	return parts
+
 func apply_damage(zones: Vector4) -> void:
 	_damage = zones
 	# Keep damaged wheel camber subtle: retain the authored arch clearance.
@@ -642,6 +650,12 @@ func apply_damage(zones: Vector4) -> void:
 		var wear := zones.z if float(door["side"]) < 0.0 else zones.w
 		panel.set_instance_shader_parameter("impact", wear)
 		panel.scale.x = 1.0 - wear * 0.21
+		panel.visible = wear < .93
+		if not panel.visible:
+			door["motion"] = 0.0
+			door["target"] = 0.0
+			door["hold"] = -1.0
+			panel.rotation = Vector3.ZERO
 	_update_lights(_occupied, _braking, _velocity < -0.35)
 
 func _angle(door: Dictionary, value: float) -> Vector3:
@@ -653,7 +667,7 @@ func _door_index(point: Vector3, front_only: bool) -> int:
 	var selected := -1
 	for i in _doors.size():
 		var panel: MeshInstance3D = _doors[i]["part"]
-		if front_only and not panel.name.ends_with("0"):
+		if not panel.visible or (front_only and not panel.name.ends_with("0")):
 			continue
 		var center := panel.global_position + _shell.global_basis.z * float(_doors[i]["reach"]) * 0.50
 		var distance := point.distance_squared_to(center)
@@ -716,6 +730,8 @@ func close_doors_immediate() -> void:
 
 func _move_doors(delta: float, moving: bool) -> void:
 	for door in _doors:
+		if not (door["part"] as MeshInstance3D).visible:
+			continue
 		if moving:
 			door["target"] = 0.0
 			door["hold"] = -1.0

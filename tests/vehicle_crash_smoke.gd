@@ -131,6 +131,43 @@ func _verify() -> void:
 		return
 	if not check(sedan_front.mesh == front_source and sedan_rear.mesh == rear_source, "Kestrel exact geometry restored"):
 		return
+	# A live threshold crossing detaches the actual part exactly once.
+	car.call("repair")
+	var left_door := car.get_node("RoadCarVisual/Coachwork/DoorL0") as MeshInstance3D
+	var door_source := left_door.mesh
+	car.call("_record_body_impact", Vector3(-1.0, 0, 0), 40.0)
+	if not check(not left_door.visible, "severe side impact removes struck Cinder door"):
+		return
+	var detached := 0
+	for piece in get_nodes_in_group("vehicle_crash_debris"):
+		var view := piece.get_node_or_null("OriginalPanel") as MeshInstance3D
+		if view != null and view.mesh == door_source:
+			detached += 1
+	if not check(detached == 1, "original authored door becomes rigid debris"):
+		return
+	car.call("_record_body_impact", Vector3(-1.0, 0, 0), 40.0)
+	if not check(get_nodes_in_group("vehicle_crash_debris").size() == 1, "threshold crossing cannot duplicate detached panel"):
+		return
+	car.call("restore_damage", [0, 0, 1, 0])
+	if not check(not left_door.visible and get_nodes_in_group("vehicle_crash_debris").is_empty(), "save restoration preserves missing door without debris spawn"):
+		return
+	car.call("repair")
+	if not check(left_door.visible and left_door.mesh == door_source, "repair replaces original door"):
+		return
+	var splitter := sedan_rig.get_node("FrontSplitter") as MeshInstance3D
+	var splitter_source := splitter.mesh
+	sedan.call("_record_body_impact", Vector3(0, 0, -2.3), 40.0)
+	if not check(not splitter.visible, "severe Kestrel front collision removes splitter"):
+		return
+	var found_splitter := false
+	for piece in get_nodes_in_group("vehicle_crash_debris"):
+		var view := piece.get_node_or_null("OriginalPanel") as MeshInstance3D
+		found_splitter = found_splitter or (view != null and view.mesh == splitter_source)
+	if not check(found_splitter, "actual splitter becomes rigid debris"):
+		return
+	sedan.call("repair")
+	if not check(splitter.visible and get_nodes_in_group("vehicle_crash_debris").is_empty(), "splitter repair clears debris"):
+		return
 	var traffic: Array = world.get("traffic").get("fleet")
 	var npc: CharacterBody3D
 	var bus: CharacterBody3D

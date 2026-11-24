@@ -95,6 +95,12 @@ func _deform_end(parts: Dictionary, end_sign: float, amount: float) -> void:
 		for index in overrides.size():
 			part.set_surface_override_material(index, overrides[index])
 
+func detaching_parts(previous: Vector4, zones: Vector4) -> Array[MeshInstance3D]:
+	var parts: Array[MeshInstance3D] = []
+	if previous.x < .90 and zones.x >= .90:
+		parts.append(get_node("FrontSplitter") as MeshInstance3D)
+	return parts
+
 func apply_damage(zones: Vector4) -> void:
 	if not is_equal_approx(zones.x, _damage.x):
 		_deform_end(_crash_front, -1.0, zones.x)
@@ -106,6 +112,7 @@ func apply_damage(zones: Vector4) -> void:
 	if not is_equal_approx(zones.y, _damage.y):
 		_deform_end(_crash_rear, 1.0, zones.y)
 	_damage = zones
+	get_node("FrontSplitter").visible = zones.x < .90
 	for label in ["SteeringLeft", "RearLeft", "SteeringRight", "RearRight"]:
 		var hub := get_node(label) as Node3D
 		var left: bool = label.ends_with("Left")

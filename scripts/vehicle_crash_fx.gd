@@ -123,6 +123,57 @@ static func burst(car: CharacterBody3D, at: Vector3, incoming: Vector3, closing:
 		timer.timeout.connect(body.queue_free)
 		timer.start()
 
+static func detach_panel(car: CharacterBody3D, part: MeshInstance3D, closing: float) -> void:
+	if not is_instance_valid(part) or not part.visible or part.mesh == null or not car.is_inside_tree():
+		return
+	if car.get_tree().get_nodes_in_group(DEBRIS_GROUP).size() >= MAX_DEBRIS:
+		return
+	# Use the actual authored part and its effective finish, not a substitute box.
+	# A conservative box around the mesh is enough for nonblocking debris.
+	var bounds := part.mesh.get_aabb()
+	var center := bounds.get_center()
+	var axes := part.global_basis.orthonormalized()
+	var scale := part.global_basis.get_scale().abs()
+	var body := RigidBody3D.new()
+	body.name = "DetachedVehiclePanel"
+	body.mass = 6.0
+	body.collision_layer = 0
+	body.collision_mask = 1
+	body.continuous_cd = true
+	var view := MeshInstance3D.new()
+	view.name = "OriginalPanel"
+	view.mesh = part.mesh
+	view.material_override = part.material_override
+	for i in part.mesh.get_surface_count():
+		view.set_surface_override_material(i, part.get_surface_override_material(i))
+	view.scale = scale
+	view.position = -center * scale
+	view.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	body.add_child(view)
+	var shape := BoxShape3D.new()
+	shape.size = (bounds.size * scale).max(Vector3(.035, .035, .035))
+	var hit := CollisionShape3D.new()
+	hit.shape = shape
+	body.add_child(hit)
+	car.get_parent().add_child(body)
+	body.add_to_group(DEBRIS_GROUP)
+	body.set_meta("crash_owner", car.get_instance_id())
+	body.add_collision_exception_with(car)
+	var at := part.to_global(center)
+	var outward := at - car.global_position
+	outward.y = 0.0
+	outward = outward.normalized()
+	body.global_transform = Transform3D(axes, at + outward * .12 + Vector3.UP * .08)
+	body.linear_velocity = outward * clampf(closing * .12, 1.5, 5.0) + Vector3.UP * 2.8
+	body.angular_velocity = Vector3(1.8, 2.7, -2.1)
+	var timer := Timer.new()
+	timer.name = "FragmentLifetime"
+	timer.one_shot = true
+	timer.wait_time = DEBRIS_LIFETIME
+	body.add_child(timer)
+	timer.timeout.connect(body.queue_free)
+	timer.start()
+
 static func clear_debris(car: Node3D) -> void:
 	if not car.is_inside_tree():
 		return

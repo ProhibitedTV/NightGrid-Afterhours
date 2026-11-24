@@ -270,8 +270,13 @@ func _record_body_impact(point: Vector3, closing: float) -> void:
 	var zone := 0 if point.z < 0.0 else 1
 	if crosswise > fore_aft + 0.17:
 		zone = 2 if point.x < 0.0 else 3
+	var previous := damage_zones
 	damage_zones[zone] = minf(1.0, damage_zones[zone] + clampf((closing - 4.0) / 33.0, 0.04, 0.95))
 	if is_instance_valid(hero_visual):
+		# Detachment is a live impact event; loading damage never spawns debris.
+		if hero_visual.has_method("detaching_parts"):
+			for part in hero_visual.call("detaching_parts", previous, damage_zones):
+				CrashFX.detach_panel(self, part, closing)
 		hero_visual.call("apply_damage", damage_zones)
 	CrashFX.sync_smoke(self, condition, damage_zones)
 
