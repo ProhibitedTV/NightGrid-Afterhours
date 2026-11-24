@@ -186,9 +186,10 @@ func _verify() -> void:
 	if rooms.call("get_mara_character") != null:
 		_fail("Character should not stay resident after streaming out")
 		return
-	player.global_position = venues.call("venue_position", "helix_espresso")
+	# Use an unmigrated café to verify isolation of the legacy room archetype.
+	player.global_position = venues.call("venue_position", "copper_cup")
 	world.call("_toggle_interior")
-	if rooms.call("get_mara_character") != null or str(rooms.call("active_site_id")) != "helix_espresso":
+	if rooms.call("get_mara_character") != null or str(rooms.call("active_site_id")) != "copper_cup":
 		_fail("Unique character should not leak into other businesses")
 		return
 	print("MARA_CHARACTER_SMOKE PASS: ", counts, " / dialogue, gestures, venue economy, save/load")
