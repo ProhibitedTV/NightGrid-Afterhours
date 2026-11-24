@@ -806,18 +806,38 @@ def body_art(body):
 def build_wheel():
     parts = [Mesh() for _ in MATERIALS]
 
-    def ring_mesh(mesh, profile, desired):
-        samples = 48
-        rings = [[(x,r*cos(i*2*pi/samples),r*sin(i*2*pi/samples)) for i in range(samples)] for x,r in profile]
+    def ring_mesh(mesh, profile, desired, samples=48, tyre_tread=False):
+        def position(x, radius, index):
+            theta = index*2*pi/samples
+            if tyre_tread and abs(x) < .057 and radius >= .358:
+                # Small diagonal cross-sipes, cut into (never protruding
+                # beyond) the original rolling envelope. The continuous
+                # channels below do the wet-road drainage.
+                phase = ((index / samples)*31.0 + x*14.0) % 1.0
+                if phase < .27:
+                    radius -= .00115 * (1.0 - abs(phase-.135)/.135)
+            return (x,radius*cos(theta),radius*sin(theta))
+        rings = [[position(x,r,i) for i in range(samples)] for x,r in profile]
         for a,b in zip(rings,rings[1:]):
             for i in range(samples):
                 j = (i+1)%samples
                 quad(mesh,a[i],b[i],b[j],a[j],desired(b[i]))
 
-    sidewalls = [(-.119,.274),(-.143,.298),(-.139,.329),(-.121,.349),(-.085,.358),(-.061,.359),
-                 (-.057,.356),(-.052,.359),(-.006,.359),(-.003,.355),(.003,.355),(.006,.359),
-                 (.058,.359),(.061,.356),(.066,.359),(.094,.358),(.124,.346),(.139,.324),(.143,.294),(.121,.274)]
-    ring_mesh(parts[TYRE],sidewalls, lambda p: (p[0]*2.,p[1],p[2]))
+    # Four longitudinal 2.8 mm rain channels, narrow mold shoulders and
+    # staggered angled micro-sipes. All geometry stays within the previous
+    # 359 mm rolling radius; no physics, steering or wheel-centre changes.
+    sidewalls = [
+        (-.119,.274),(-.143,.298),(-.139,.329),(-.121,.349),(-.085,.358),
+        (-.061,.359),(-.056,.359),
+        (-.049,.359),(-.046,.3562),(-.042,.3562),(-.039,.359),
+        (-.026,.359),(-.022,.3562),(-.018,.3562),(-.015,.359),
+        (.004,.359),(.009,.3562),(.013,.3562),(.016,.359),
+        (.037,.359),(.041,.3562),(.045,.3562),(.048,.359),
+        (.058,.359),(.061,.356),(.066,.359),
+        (.094,.358),(.124,.346),(.139,.324),(.143,.294),(.121,.274)
+    ]
+    ring_mesh(parts[TYRE],sidewalls, lambda p: (p[0]*2.,p[1],p[2]),
+              samples=96,tyre_tread=True)
     for side in [-1,1]:
         rim = [(side*x,r) for x,r in ((.063,.241),(.107,.247),(.130,.258),(.138,.270),(.129,.277),(.113,.275))]
         ring_mesh(parts[FORGED],rim,lambda p: (side,.18*p[1],.18*p[2]))
