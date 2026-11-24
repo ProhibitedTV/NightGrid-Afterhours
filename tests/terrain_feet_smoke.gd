@@ -48,8 +48,25 @@ func _verify() -> void:
 	mod.call("sample_ground",player,1.0/60.0,true)
 	if not check(int(mod.get("probe_count"))==2,"strict two-probe budget"):
 		return
+	# Real physics RID, isolated synthetic contact trace. No extra query.
+	var support := player.get_rid()
+	mod.call("reset")
+	mod.call("_tick_lock",0,Vector3.ZERO,1.0,support,.016)
+	for i in 4:
+		mod.call("_tick_lock",0,Vector3(.03,0,0),1.0,support,.016)
+	var lock_delta: Vector3 = mod.call("_horizontal_lock",0,Vector3(.03,0,0))
+	if not check(lock_delta.x<-.01 and absf(lock_delta.y)<.001,"planted contact resists world-space drift"):
+		return
+	mod.call("_tick_lock",0,Vector3(.20,0,0),1.0,support,.016)
+	if not check((mod.call("_horizontal_lock",0,Vector3(.20,0,0)) as Vector3).is_zero_approx(),"overreach releases lock"):
+		return
+	mod.call("_tick_lock",0,Vector3.ZERO,0.0,support,.016)
+	mod.call("_tick_lock",0,Vector3.ZERO,1.0,support,.016)
+	mod.call("_tick_lock",0,Vector3.ZERO,1.0,RID(),.016)
+	if not check((mod.get("_locks") as Array)[0].is_empty(),"lost support releases lock"):
+		return
 	mod.call("sample_ground",player,1.0/60.0,false)
 	if not check(not mod.active and int(mod.get("probe_count"))==0 and is_zero_approx(float(mod.get("_pelvis_drop"))),"airborne/action/seat gate clears terrain correction"):
 		return
-	print("TERRAIN_FEET PASS: weighted leg solve, preserved lengths, slope tilt, pelvis drop, two probes and state gate")
+	print("TERRAIN_FEET PASS: weighted leg solve, preserved lengths, slope tilt, pelvis drop, bounded foot locking, two probes and state gate")
 	quit(0)

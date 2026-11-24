@@ -17,7 +17,8 @@ func _verify() -> void:
 		current = Motion.step_velocity(current,Vector3(0,0,12.5),true,dt)
 	if not check(is_equal_approx(current.z,12.5),"existing sprint top speed retained"):
 		return
-	for i in 30:
+	# 12.5 / 24 m/s² is 0.521 s: 32 fixed ticks, not 30.
+	for i in ceili(12.5/(Motion.ACCELERATION*dt))+1:
 		current = Motion.step_velocity(current,Vector3.ZERO,true,dt)
 	if not check(current.is_zero_approx(),"bounded braking without overshoot"):
 		return

@@ -4,6 +4,10 @@ extends SkeletonModifier3D
 const MAX_RISE = .22
 const MAX_DROP = .15
 const MAX_PELVIS_DROP = .12
+const MAX_LOCK_DISTANCE = .14
+const MAX_LOCK_SECONDS = .24
+const LOCK_ENGAGE = .85
+const LOCK_RELEASE = .45
 const MAX_TILT = deg_to_rad(20.0)
 const PROBE_UP = .40
 const PROBE_DOWN = .48
@@ -15,6 +19,9 @@ var _normals: Array[Vector3] = [Vector3.UP,Vector3.UP]
 var _stance := PackedFloat32Array([0.0,0.0])
 var _pelvis := -1
 var _pelvis_drop := 0.0
+var _locks: Array[Dictionary] = [{},{}]
+var _lock_armed: Array[bool] = [true,true]
+var _lock_weights := PackedFloat32Array([0.0,0.0])
 var _ready_rig := false
 var probe_count := 0
 var corrected_feet := 0
@@ -44,6 +51,9 @@ func reset() -> void:
 	_stance.fill(0.0)
 	_normals = [Vector3.UP,Vector3.UP]
 	_pelvis_drop = 0.0
+	_locks = [{},{}]
+	_lock_armed = [true,true]
+	_lock_weights.fill(0.0)
 	probe_count = 0
 	corrected_feet = 0
 	active = false
@@ -77,12 +87,39 @@ func sample_ground(body: CharacterBody3D,delta: float,enabled: bool) -> void:
 			stance = 1.0-smoothstep(.035,.14,maxf(0.0,ankle.y-_ankle_rest[i]))
 			correction = clampf(ground.y-visual_floor,-MAX_DROP,MAX_RISE)*stance
 			normal = hit["normal"]
+		var support: RID = hit.get("rid",RID()) if stance>0.0 and hit.get("collider") is StaticBody3D and not hit.get("collider") is AnimatableBody3D else RID()
+		_tick_lock(i,point,stance,support,delta)
 		var response := 1.0-exp(-16.0*delta)
 		_offsets[i] = lerpf(_offsets[i],correction,response)
 		_stance[i] = lerpf(_stance[i],stance,response)
 		_normals[i] = _normals[i].lerp(normal,response).normalized()
 	var desired_drop := clampf(minf(0.0,minf(_offsets[0],_offsets[1])),-MAX_PELVIS_DROP,0.0)
 	_pelvis_drop = lerpf(_pelvis_drop,desired_drop,1.0-exp(-10.0*delta))
+
+func _tick_lock(i: int,point: Vector3,stance: float,support: RID,delta: float) -> void:
+	var lock: Dictionary = _locks[i]
+	if stance<LOCK_RELEASE:
+		_lock_armed[i] = true
+	if not lock.is_empty():
+		lock["age"] = float(lock["age"])+delta
+		if stance<LOCK_RELEASE or not support.is_valid() or lock["support"]!=support or float(lock["age"])>MAX_LOCK_SECONDS or _lock_delta(point,lock["anchor"]).length()>MAX_LOCK_DISTANCE:
+			_locks[i] = {}
+			_lock_weights[i] = 0.0
+			return
+	elif _lock_armed[i] and stance>=LOCK_ENGAGE and support.is_valid():
+		_locks[i] = {"anchor":point,"support":support,"age":0.0}
+		_lock_armed[i] = false
+	_lock_weights[i] = lerpf(_lock_weights[i],stance if not _locks[i].is_empty() else 0.0,1.0-exp(-25.0*delta))
+
+static func _lock_delta(point: Vector3,anchor: Vector3) -> Vector3:
+	var shift := anchor-point
+	shift.y = 0.0
+	return shift
+
+func _horizontal_lock(i: int,point: Vector3) -> Vector3:
+	if _locks[i].is_empty():
+		return Vector3.ZERO
+	return _lock_delta(point,_locks[i]["anchor"]).limit_length(MAX_LOCK_DISTANCE)*_lock_weights[i]
 
 func _process_modification_with_delta(_delta: float) -> void:
 	corrected_feet = 0
@@ -97,9 +134,11 @@ func _process_modification_with_delta(_delta: float) -> void:
 	for i in 2:
 		var offset := _offsets[i]-_pelvis_drop
 		var tilt := _bounded_tilt(_normals[i],_stance[i])
-		if absf(offset)<.002 and tilt.get_angle()<.01:
+		var foot := rig.to_global(rig.get_bone_global_pose(_chains[i].z).origin)
+		var horizontal := _horizontal_lock(i,foot)
+		if absf(offset)<.002 and tilt.get_angle()<.01 and horizontal.length_squared()<.000004:
 			continue
-		if _solve_leg(rig,_chains[i],offset,tilt):
+		if _solve_leg(rig,_chains[i],offset,tilt,horizontal):
 			corrected_feet += 1
 
 static func _bounded_tilt(normal: Vector3,stance: float) -> Quaternion:
@@ -112,11 +151,11 @@ static func _bounded_tilt(normal: Vector3,stance: float) -> Quaternion:
 		return Quaternion.IDENTITY
 	return Quaternion(axis.normalized(),minf(angle,MAX_TILT)*clampf(stance,0.0,1.0))
 
-func _solve_leg(rig: Skeleton3D,chain: Vector3i,offset: float,tilt: Quaternion = Quaternion.IDENTITY) -> bool:
+func _solve_leg(rig: Skeleton3D,chain: Vector3i,offset: float,tilt: Quaternion = Quaternion.IDENTITY,horizontal: Vector3 = Vector3.ZERO) -> bool:
 	var hip := rig.get_bone_global_pose(chain.x)
 	var knee := rig.get_bone_global_pose(chain.y)
 	var ankle := rig.get_bone_global_pose(chain.z)
-	var target := ankle.origin+rig.global_basis.inverse()*Vector3(0,offset,0)
+	var target := ankle.origin+rig.global_basis.inverse()*(Vector3(0,offset,0)+horizontal)
 	var a := hip.origin.distance_to(knee.origin)
 	var b := knee.origin.distance_to(ankle.origin)
 	var reach := target-hip.origin
