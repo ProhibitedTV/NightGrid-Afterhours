@@ -607,13 +607,13 @@ func _verify() -> void:
 			return
 	var guard_data=preload("res://scripts/synaxis_parking_dialogue.gd")
 	var guard_position:Vector3=reserved.to_global(guard_data.ANCHOR+Vector3.UP*1.15)
-	if not bool(reserved_stats["guard"]) or office.call("parking_guard_reachable",office.to_global(Vector3(0,1.15,0))):
+	if not bool(reserved_stats["guard"]) or not bool(reserved_stats["booth"]) or office.call("parking_guard_reachable",office.to_global(Vector3(0,1.15,0))):
 		_fail("Parking guard has local proximity and remains separate from lobby security")
 		return
 	player.global_position=guard_position
 	world.call("_opening_interact")
-	if not (menu.call("get_buttons") as Dictionary).has("guard_r9"):
-		_fail("Parking guard conversation offers actual selectable topics during prologue")
+	if not (menu.call("get_buttons") as Dictionary).has("guard_r9") or (menu.call("get_buttons") as Dictionary).has("guard_layoff"):
+		_fail("Parking guard offers pre-dismissal topics without premature layoff dialogue")
 		return
 	menu.call("_choice","guard_r9")
 	if menu.get("_guard_topic")!="guard_r9" or not (menu.call("get_buttons") as Dictionary).has("guard_back"):
@@ -796,11 +796,18 @@ func _verify() -> void:
 		return
 	player.global_position=guard_position
 	world.call("_toggle_interaction")
-	if not menu.get("_guard_former") or not (menu.call("get_buttons") as Dictionary).has("guard_access"):
+	if not menu.get("_guard_former") or not (menu.call("get_buttons") as Dictionary).has("guard_access") or not (menu.call("get_buttons") as Dictionary).has("guard_layoff"):
 		_fail("Permanent guard recognizes revoked badge after offboarding")
 		return
-	menu.call("_choice","guard_access")
+	menu.call("_choice","guard_layoff")
+	if menu.get("_guard_topic")!="guard_layoff" or not guard_data.reply("guard_layoff",true).contains("access-revocation"):
+		_fail("Former employee can ask about dismissal without restoring access")
+		return
 	menu.call("_choice","guard_leave")
+	world.call("_update_hud")
+	if not str(world.get("hud_prompt").text).contains("Talk to Marcus Vale"):
+		_fail("Local guard interaction has discoverable contextual prompt after prologue")
+		return
 	menu.call("open_journal",world.call("_journal_context"))
 	if not (menu.call("get_buttons") as Dictionary).has("synaxis_waypoint"):
 		_fail("Synaxis has a persistent return waypoint")

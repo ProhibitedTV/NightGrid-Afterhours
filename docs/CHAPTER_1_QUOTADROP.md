@@ -107,3 +107,6 @@ The rear HQ forecourt now has covered leadership bays and a separate four-space 
 
 ### Parking security conversation
 Marcus Vale stands in the rear reserve access aisle and wears the existing security uniform. Four authored dialogue topics (founder R9, parking privilege, robotics and access) open through normal interaction and existing keyboard/controller menu focus. Topics can be revisited or dismissed. He recognizes a former employee after the opening; no quest, access or wallet changes. Near-player animation only, permanent parcel actor. Subtitles/text only until the offline dialogue library is authored. Native interaction and scene validation pending.
+
+### Parking security station detail
+A compact collision-backed booth, translucent windows, metal frames, logbook, radio, monitor and nonfunctional camera prop dress Marcus's checkpoint without adding surveillance render passes. Post-prologue HUD displays a local talk prompt (no distant marker). A shift-history question is always available; a dismissal question is unlocked only after severance, without restoring access or altering story/wallet. Tests cover topic gating, actual interaction and HUD prompt. Native clearance and presentation remain unverified.
