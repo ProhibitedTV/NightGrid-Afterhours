@@ -27,6 +27,7 @@ const AmbientCivicLedger = preload("res://scripts/ambient_civic_ledger.gd")
 const CivicPatrolService = preload("res://scripts/civic_patrol_service.gd")
 const PoliceRadio = preload("res://scripts/police_radio.gd")
 const DialogueDirector = preload("res://scripts/dialogue_director.gd")
+const StreetSatire = preload("res://scripts/street_satire.gd")
 const EquipmentWheel = preload("res://scripts/equipment_wheel.gd")
 const Reticle = preload("res://scripts/weapon_reticle.gd")
 const CombatFoley = preload("res://scripts/city_foley.gd")
@@ -151,6 +152,7 @@ var minimap: Control
 var city_details: Node3D
 var pedestrians: Node3D
 var _pedestrian_scan := 0.0
+var _street_contact_id:=""
 var city_perimeter: Node3D
 var flora: Node3D
 var day_night: Node
@@ -277,6 +279,8 @@ func _ready() -> void:
 	dialogue_director.name = "DialogueDirector"
 	add_child(dialogue_director)
 	dialogue_director.connect("caption_changed", _show_dialogue_caption)
+	for line in StreetSatire.LINES:
+		dialogue_director.call("prewarm",str(line["id"]))
 	var restore: Dictionary = session.call("take_pending_restore")
 	if restore.is_empty():
 		_refresh_courier_target()
@@ -431,6 +435,12 @@ func _build_world_audio() -> void:
 
 func _on_menu_action(action: String) -> void:
 	match action:
+		"street_reply_0","street_reply_1":
+			if is_instance_valid(pedestrians) and not _street_contact_id.is_empty():
+				pedestrians.call("request_player_reply",_street_contact_id,0 if action=="street_reply_0" else 1)
+			_street_contact_id=""
+		"street_leave":
+			_street_contact_id=""
 		"begin_opening":
 			if not progression.has_receipt(Opening.RECEIPT):
 				_start_opening_office()
@@ -500,6 +510,9 @@ func _start_opening_office() -> void:
 		# Fail safely to the accessible dialogue rather than strand a new game.
 		game_menu.call("open_opening")
 		return
+	if is_instance_valid(dialogue_director):
+		dialogue_director.call("cancel_all")
+	_cancel_street_interactions()
 	_opening_office.call("begin_prologue")
 	player.get("visual").call("set_corporate_attire",true)
 	player.global_position = _opening_office.to_global(OpeningOffice.START)
@@ -1057,6 +1070,8 @@ func _update_pedestrians(delta: float, actor: Node3D, indoors: bool) -> void:
 	var street_mode := not indoors and current_transit == null and is_instance_valid(camera)
 	pedestrians.call("tick", delta, actor.global_position, camera, not street_mode,
 		occupied, float(day_night.get("hour")), signal_controller)
+	if is_instance_valid(dialogue_director):
+		pedestrians.call("update_street_dialogue",dialogue_director,actor.global_position+Vector3.UP*1.6,player.get_rid(),street_mode and current_car==null and weapons.equipped=="holstered",delta)
 	_pedestrian_scan += delta
 	if not street_mode or _pedestrian_scan < 0.18:
 		return
@@ -1597,6 +1612,7 @@ func _spawn_police() -> void:
 		return
 
 func _respawn() -> void:
+	_cancel_street_interactions()
 	_log_playtest("respawn", {"health": health, "reason": "fall_or_boundary_or_damage"})
 	_close_venue()
 	weapons.holster()
@@ -2017,6 +2033,7 @@ func _capture_snapshot() -> Dictionary:
 	return state
 
 func _apply_snapshot(data: Dictionary) -> void:
+	_cancel_street_interactions()
 	if is_instance_valid(dialogue_director):
 		dialogue_director.call("cancel_all")
 	if not progression.restore(data.get("cash", 0), data.get("progression", {"version": ProgressionLedger.VERSION, "receipts": []})):
@@ -2375,6 +2392,12 @@ func _toggle_interaction() -> void:
 		return
 	var shop: Dictionary = venue_system.call("nearest_venue", player.global_position)
 	var service: Dictionary = civic_services.call("nearest_site", player.global_position)
+	if shop.is_empty() and service.is_empty() and is_instance_valid(pedestrians) and weapons.equipped=="holstered":
+		var contact:Dictionary=pedestrians.call("nearby_contact")
+		if not contact.is_empty():
+			_street_contact_id=str(contact["lease_id"])
+			game_menu.call("open_street_contact",contact)
+			return
 	if str(shop.get("id","")) == "helix_espresso":
 		_notify("HELIX ESPRESSO: enter the actual building to order.")
 		return
@@ -3606,6 +3629,10 @@ func _update_hud() -> void:
 			prompts.append("%s %s building door" % [enter_key,"Close" if leaf.call("is_requested_open") else "Open"])
 		if is_instance_valid(city_details.call("nearby_vending",player.global_position)):
 			prompts.append("%s  Vending machine" % interact_key)
+		if prompts.is_empty() and is_instance_valid(pedestrians) and weapons.equipped=="holstered":
+			var contact:Dictionary=pedestrians.call("nearby_contact")
+			if not contact.is_empty():
+				prompts.append("%s  Talk to %s" % [interact_key,str(contact["name"])])
 		if prompts.is_empty():
 			prompts.append("Y Vehicle  •  RB Transit  •  X Interact" if gamepad_active else "E Vehicle  •  F Transit  •  G Interact")
 	if _can_use_weapon():
@@ -3758,7 +3785,7 @@ func _fire_weapon() -> bool:
 	var target: Vector3 = camera_hit.get("position", view_end)
 	var origin := player.global_position + Vector3.UP * 0.55
 	if is_instance_valid(pedestrians):
-		pedestrians.call("react_to_incident", origin, 22.0, ignore)
+		pedestrians.call("react_to_incident", origin, 22.0, ignore, true)
 	var direction := origin.direction_to(target)
 	var endpoint := origin + direction * minf(origin.distance_to(target) + 0.05, float(spec["reach"]))
 	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(origin, endpoint, 1, ignore))
@@ -3869,3 +3896,8 @@ func get_map_state() -> Dictionary:
 		"civic_quest_active": not civic_job_active.is_empty(),
 		"civic_quest": Vector2(_civic_job_target().x, _civic_job_target().z)
 	}
+
+func _cancel_street_interactions()->void:
+	_street_contact_id=""
+	if is_instance_valid(pedestrians) and is_instance_valid(dialogue_director):
+		pedestrians.call("cancel_street_dialogue",dialogue_director)
