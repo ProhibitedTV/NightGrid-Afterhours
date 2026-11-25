@@ -477,6 +477,13 @@ jobs:
         run: godot --headless --path . --script res://tests/occupied_collision_streaming_smoke.gd
       - name: Validate Lantern Cup cinematic café interior, unique interaction and persistent save
         run: godot --headless --path . --script res://tests/lantern_cup_hero_smoke.gd
+      - name: Validate reusable cinematic dialogue caption
+        timeout-minutes: 1
+        run: |
+          set -o pipefail
+          timeout 30s godot --headless --path . --script res://tests/dialogue_caption_smoke.gd 2>&1 | tee /tmp/nightgrid-dialogue-caption.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-dialogue-caption.log; then exit 1; fi
+          grep -q "DIALOGUE_CAPTION_SMOKE PASS:" /tmp/nightgrid-dialogue-caption.log
       - name: Validate Mara's character rig, reactive dialogue and indoor save lifecycle
         run: godot --headless --path . --script res://tests/mara_character_smoke.gd
       - name: Validate café crowd, animation, patron dialogue, economy and save restore
