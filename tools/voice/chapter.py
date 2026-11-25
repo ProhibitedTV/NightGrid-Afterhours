@@ -70,6 +70,18 @@ def validate_catalog(path, source=None):
             if row["context"] not in ("incident","urgent","traffic"):
                 raise ValueError("Unknown street event context")
             expected[ident]["source"]={"catalog":"street_satire","character":row["character"],"context":row["context"]}
+        if "exchange" in row:
+            expected[ident]["source"]={"catalog":"street_satire","character":row["character"],
+                                      "exchange":row["exchange"],"turn":row["turn"]}
+    exchanges={}
+    for row in street:
+        if "exchange" in row:
+            exchanges.setdefault(row["exchange"],[]).append(row)
+    for name,beats in exchanges.items():
+        if ([b["turn"] for b in beats]!=[0,1,2]
+                or beats[0]["character"]!=beats[2]["character"]
+                or beats[0]["character"]==beats[1]["character"]):
+            raise ValueError("Invalid alternating exchange: "+name)
     if set(expected) != set(specs):
         raise ValueError("Catalog coverage differs from spoken script")
     for ident, fields in expected.items():

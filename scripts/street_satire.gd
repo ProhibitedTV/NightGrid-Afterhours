@@ -198,6 +198,69 @@ const LINES = [
 		"character": "night_regular",
 		"text": "Somebody's trying to get to last call a little early.",
 		"context": "traffic"
+	},
+	{
+		"id": "street.robot_romantic.exchange.robot_date.1",
+		"character": "robot_romantic",
+		"text": "My girlfriend and I are thinking about moving in together.",
+		"exchange": "robot_date",
+		"turn": 0
+	},
+	{
+		"id": "street.nothing_happens.exchange.robot_date.2",
+		"character": "nothing_happens",
+		"text": "Nothing ever happens.",
+		"exchange": "robot_date",
+		"turn": 1
+	},
+	{
+		"id": "street.robot_romantic.exchange.robot_date.3",
+		"character": "robot_romantic",
+		"text": "She sent me the minimum system requirements for marriage.",
+		"exchange": "robot_date",
+		"turn": 2
+	},
+	{
+		"id": "street.street_visionary.exchange.side_hustle.1",
+		"character": "street_visionary",
+		"text": "Have you considered monetizing your commute?",
+		"exchange": "side_hustle",
+		"turn": 0
+	},
+	{
+		"id": "street.gig_grinder.exchange.side_hustle.2",
+		"character": "gig_grinder",
+		"text": "I already deliver lunch on my way to my second job.",
+		"exchange": "side_hustle",
+		"turn": 1
+	},
+	{
+		"id": "street.street_visionary.exchange.side_hustle.3",
+		"character": "street_visionary",
+		"text": "Incredible. You're an ecosystem.",
+		"exchange": "side_hustle",
+		"turn": 2
+	},
+	{
+		"id": "street.night_regular.exchange.night_subscription.1",
+		"character": "night_regular",
+		"text": "The club charges for standing still now.",
+		"exchange": "night_subscription",
+		"turn": 0
+	},
+	{
+		"id": "street.subscription_skeptic.exchange.night_subscription.2",
+		"character": "subscription_skeptic",
+		"text": "Of course. Moving around is the premium tier.",
+		"exchange": "night_subscription",
+		"turn": 1
+	},
+	{
+		"id": "street.night_regular.exchange.night_subscription.3",
+		"character": "night_regular",
+		"text": "I paid extra to leave early.",
+		"exchange": "night_subscription",
+		"turn": 2
 	}
 ]
 const CAST = ["robot_romantic","nothing_happens","gig_grinder","subscription_skeptic","street_visionary","night_regular"]
@@ -217,3 +280,23 @@ static func contextual_line(id:String,context:String) -> Dictionary:
 		if row["character"]==character and row.get("context","")==context:
 			return row.duplicate()
 	return {}
+
+## Return only a complete authored exchange for two distinct personalities.
+static func exchange_for(first:String,second:String) -> Array[Dictionary]:
+	var a:=personality(first)
+	var b:=personality(second)
+	var result:Array[Dictionary]=[]
+	if a==b:
+		return result
+	for row in LINES:
+		if not row.has("exchange") or int(row["turn"])!=0:
+			continue
+		if row["character"] not in [a,b]:
+			continue
+		var candidate:Array[Dictionary]=[]
+		for beat in LINES:
+			if beat.get("exchange","")==row["exchange"]:
+				candidate.append(beat.duplicate())
+		if candidate.size()==3 and candidate[1]["character"] in [a,b] and candidate[1]["character"]!=candidate[0]["character"]:
+			return candidate
+	return result

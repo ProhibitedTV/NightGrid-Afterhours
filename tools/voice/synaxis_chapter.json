@@ -784,6 +784,123 @@
         "character": "night_regular",
         "context": "traffic"
       }
+    },
+    {
+      "id": "street.robot_romantic.exchange.robot_date.1",
+      "character": "robot_romantic",
+      "language": "English",
+      "text": "My girlfriend and I are thinking about moving in together.",
+      "direction": "Understated conversational delivery to another pedestrian, with natural sentence timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "robot_romantic",
+        "exchange": "robot_date",
+        "turn": 0
+      }
+    },
+    {
+      "id": "street.nothing_happens.exchange.robot_date.2",
+      "character": "nothing_happens",
+      "language": "English",
+      "text": "Nothing ever happens.",
+      "direction": "Understated conversational delivery to another pedestrian, with natural sentence timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "nothing_happens",
+        "exchange": "robot_date",
+        "turn": 1
+      }
+    },
+    {
+      "id": "street.robot_romantic.exchange.robot_date.3",
+      "character": "robot_romantic",
+      "language": "English",
+      "text": "She sent me the minimum system requirements for marriage.",
+      "direction": "Understated conversational delivery to another pedestrian, with natural sentence timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "robot_romantic",
+        "exchange": "robot_date",
+        "turn": 2
+      }
+    },
+    {
+      "id": "street.street_visionary.exchange.side_hustle.1",
+      "character": "street_visionary",
+      "language": "English",
+      "text": "Have you considered monetizing your commute?",
+      "direction": "Understated conversational delivery to another pedestrian, with natural sentence timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "street_visionary",
+        "exchange": "side_hustle",
+        "turn": 0
+      }
+    },
+    {
+      "id": "street.gig_grinder.exchange.side_hustle.2",
+      "character": "gig_grinder",
+      "language": "English",
+      "text": "I already deliver lunch on my way to my second job.",
+      "direction": "Understated conversational delivery to another pedestrian, with natural sentence timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "gig_grinder",
+        "exchange": "side_hustle",
+        "turn": 1
+      }
+    },
+    {
+      "id": "street.street_visionary.exchange.side_hustle.3",
+      "character": "street_visionary",
+      "language": "English",
+      "text": "Incredible. You're an ecosystem.",
+      "direction": "Understated conversational delivery to another pedestrian, with natural sentence timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "street_visionary",
+        "exchange": "side_hustle",
+        "turn": 2
+      }
+    },
+    {
+      "id": "street.night_regular.exchange.night_subscription.1",
+      "character": "night_regular",
+      "language": "English",
+      "text": "The club charges for standing still now.",
+      "direction": "Understated conversational delivery to another pedestrian, with natural sentence timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "exchange": "night_subscription",
+        "turn": 0
+      }
+    },
+    {
+      "id": "street.subscription_skeptic.exchange.night_subscription.2",
+      "character": "subscription_skeptic",
+      "language": "English",
+      "text": "Of course. Moving around is the premium tier.",
+      "direction": "Understated conversational delivery to another pedestrian, with natural sentence timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "subscription_skeptic",
+        "exchange": "night_subscription",
+        "turn": 1
+      }
+    },
+    {
+      "id": "street.night_regular.exchange.night_subscription.3",
+      "character": "night_regular",
+      "language": "English",
+      "text": "I paid extra to leave early.",
+      "direction": "Understated conversational delivery to another pedestrian, with natural sentence timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "exchange": "night_subscription",
+        "turn": 2
+      }
     }
   ]
 }
