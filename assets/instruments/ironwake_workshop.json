@@ -1,0 +1,25 @@
+{
+  "manufacturer": "Ironwake Instrument Works",
+  "origin": "Brickwater, Morrow Bay",
+  "status": "display_only",
+  "assets": [
+    {
+      "name": "ironwake_breaker_g6",
+      "triangles": 4244,
+      "batches": 9,
+      "length": 0.9380000000000001,
+      "strings": 6,
+      "scale": 0.648,
+      "bytes": 312088
+    },
+    {
+      "name": "ironwake_dredge_b4",
+      "triangles": 3700,
+      "batches": 9,
+      "length": 1.156,
+      "strings": 4,
+      "scale": 0.864,
+      "bytes": 272812
+    }
+  ]
+}

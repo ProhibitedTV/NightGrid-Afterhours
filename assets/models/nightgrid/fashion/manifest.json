@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "source": "Original NightGrid project-authored geometry",
+  "units": "meters",
+  "assets": [
+    {
+      "file": "cap.gltf",
+      "triangles": 1356,
+      "bytes": 132888,
+      "role": "rigid Head accessory"
+    },
+    {
+      "file": "beanie.gltf",
+      "triangles": 1420,
+      "bytes": 139027,
+      "role": "rigid Head accessory"
+    },
+    {
+      "file": "bucket.gltf",
+      "triangles": 2048,
+      "bytes": 198692,
+      "role": "rigid Head accessory"
+    },
+    {
+      "file": "fedora.gltf",
+      "triangles": 1132,
+      "bytes": 110783,
+      "role": "rigid Head accessory"
+    },
+    {
+      "file": "display_jacket.gltf",
+      "triangles": 1356,
+      "bytes": 132888,
+      "role": "store display only"
+    },
+    {
+      "file": "display_cargo.gltf",
+      "triangles": 1036,
+      "bytes": 102120,
+      "role": "store display only"
+    },
+    {
+      "file": "display_tee.gltf",
+      "triangles": 748,
+      "bytes": 73934,
+      "role": "store display only"
+    },
+    {
+      "file": "display_boot.gltf",
+      "triangles": 884,
+      "bytes": 87577,
+      "role": "store display only"
+    }
+  ],
+  "native_review": "pending"
+}

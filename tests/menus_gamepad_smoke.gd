@@ -573,6 +573,102 @@ func _verify() -> void:
 	if int(engineering_people.call("stats")["animated"])!=8 or not str(engineering_deck.call("observe_worker",engineering_deck.to_global(Vector3(-5.3,1.15,5.65)))).contains("Faye"):
 		_fail("Occupied floor animates staff and provides incidental coworker conversation")
 		return
+	var trace_key:=InputEventAction.new()
+	trace_key.action=&"record_frame_trace"
+	trace_key.pressed=true
+	var recorder=world.get("frame_time_recorder")
+	world.call("_unhandled_input",trace_key)
+	if not recorder.recording:
+		_fail("Office prologue accepts the same F8 diagnostic action as street gameplay")
+		return
+	world.call("_process",.016)
+	if recorder.captured_frames()<1:
+		_fail("Office gameplay contributes render interval samples")
+		return
+	recorder.end_capture()
+	var context:Dictionary=world.call("_opening_diagnostic_context")
+	if context.get("site")!="synaxis_hq" or not context.has("floor") or not context.has("stage"):
+		_fail("Chapter evidence includes floor and stage context")
+		return
+	var walker:Node3D=engineering_people.get("_people")[7]
+	var start_walk:Vector3=walker.position
+	engineering_people.call("observe",Vector3.INF)
+	for tick in range(100):
+		engineering_people.call("_process",.1)
+	if float(engineering_people.call("stats")["walk_distance"])<.5 or walker.position.distance_to(start_walk)<.1 or walker.get("_walk_rig").size()!=2:
+		_fail("Standing coworker follows a bounded route with articulated legs")
+		return
+	engineering_people.call("observe",walker.global_position+Vector3.UP*1.15)
+	var paused_at:=walker.position
+	for tick in range(10):
+		engineering_people.call("_process",.1)
+	if walker.position.distance_to(paused_at)>.001 or bool(engineering_people.call("stats")["walking"]):
+		_fail("Walking coworker yields to a nearby visitor")
+		return
+	engineering_people.call("observe",Vector3.INF)
+	var services:Node3D=engineering_deck.get_node("OfficeServices")
+	for tick in range(850):
+		engineering_people.call("_process",.1)
+		services.call("_process",.1)
+	var npc_cycles:Dictionary=engineering_people.call("stats")
+	# A full round has a bounded stand-up, alternating speakers and cleanup.
+	var meeting_model=preload("res://scripts/synaxis_department_meeting.gd").new()
+	meeting_model.begin()
+	if meeting_model.speaker()!=6 or not meeting_model.line(1).contains("safety review"):
+		_fail("Stand-up begins with the department-specific agenda")
+		return
+	meeting_model.tick(3.1)
+	if meeting_model.speaker()!=7 or not meeting_model.line(1).contains("human override"):
+		_fail("Stand-up alternates speakers")
+		return
+	meeting_model.tick(6.0)
+	if meeting_model.active or meeting_model.completed!=1:
+		_fail("Stand-up ends without leaving a conversation active")
+		return
+	if int(npc_cycles["print_visits"])<1 or int(npc_cycles["coffee_visits"])<1:
+		_fail("Employee completes shared printer and coffee cycles")
+		return
+	for tick in range(500):
+		engineering_people.call("_process",.1)
+		services.call("_process",.1)
+	if int(engineering_people.call("stats")["meetings_completed"])<1:
+		_fail("Completed appliance round leads to a coordinated department stand-up")
+		return
+	meeting_model.begin(true)
+	if not meeting_model.line(1).contains("access notice") or meeting_model.line(1).contains("safety review"):
+		_fail("Late-shift stand-up reflects only public department notices")
+		return
+	meeting_model.reset()
+	engineering_people.call("set_story_stage",4)
+	var late_line:=str(engineering_people.call("observe",engineering_deck.to_global(Vector3(-5.3,1.15,5.65))))
+	if not late_line.contains("internal matters") or not bool(engineering_people.call("stats")["offboarding"]):
+		_fail("Employee remarks change when offboarding begins")
+		return
+	engineering_people.call("set_story_stage",-2)
+	# Reset circulation before testing player-owned cycles independently.
+	engineering_people.call("set_active",false)
+	services.call("set_active",false)
+	services.call("set_active",true)
+	var counts:Dictionary=services.call("stats")
+	var service_spec=preload("res://scripts/synaxis_office_services.gd")
+	var print_at:Vector3=services.to_global(service_spec.PRINTER_USE)
+	var coffee_at:Vector3=services.to_global(service_spec.COFFEE_USE)
+	if not services.call("interact",print_at) or not services.call("interact",print_at):
+		_fail("Office printer accepts local interaction and handles repeated input")
+		return
+	services.call("_process",3.1)
+	if int(services.call("stats")["printed"])!=int(counts["printed"])+1 or not services.call("interact",coffee_at):
+		_fail("Printer completes exactly one cycle; coffee station accepts local interaction")
+		return
+	services.call("_process",2.7)
+	if int(services.call("stats")["brewed"])!=int(counts["brewed"])+1 or bool(services.call("stats")["stream"]):
+		_fail("Coffee cycle finishes and stops the visible stream")
+		return
+	engineering_people.call("set_active",true)
+	var routine:Dictionary=engineering_people.call("stats")
+	if int(routine["board_visits"])<1 or int(routine["chat_visits"])<1 or walker.get("_clipboard")==null:
+		_fail("Department routine visits the task board and coworker with authored props")
+		return
 	var lab_stats:Dictionary=robotics_lab.call("lab_stats")
 	if int(lab_stats["prototypes"])!=2 or int(lab_stats["barriers"])!=4 or not bool(lab_stats["active"]):
 		_fail("Robotics lab has two articulated display prototypes and a closed collision bay")
@@ -863,8 +959,30 @@ func _verify() -> void:
 		_fail("Final notice must expose QuotaDrop acceptance")
 		return
 	menu.call("_choice","opening_accept")
-	world.call("_accept_opening")
 	var headquarters = preload("res://scripts/synaxis_office.gd")
+	if not office.call("exit_active") or office.call("objective_stage",5)!=6 or world.get("cash")!=before_severance:
+		_fail("Final notice starts physical property return without crediting severance")
+		return
+	world.call("_accept_opening")
+	if world.get("cash")!=before_severance:
+		_fail("Cannot bypass equipment return")
+		return
+	world.call("_opening_interact")
+	if office.call("objective_stage",5)!=7 or not office.get("_returned_kit").visible or not office.get("_personal_bag").visible:
+		_fail("Equipment return visibly deposits company property and makes personal belongings available")
+		return
+	player.global_position=office.call("point",7)
+	world.call("_opening_interact")
+	if office.call("objective_stage",5)!=8 or opening_visual.get("corporate_attire") or not bool(office.get("_gate_open")):
+		_fail("Collecting belongings restores clothing and opens the public exit")
+		return
+	world.call("_accept_opening")
+	if world.get("cash")!=before_severance:
+		_fail("Severance remains pending until the player walks outside")
+		return
+	player.global_position=office.call("point",8)
+	world.call("_accept_opening")
+	world.call("_accept_opening")
 	if world.get("_opening_office")!=null or player.global_position.distance_to(headquarters.ENTRY)>.01 or world.get("city_details").call("synaxis_headquarters")!=office:
 		_fail("Office exit retains the real headquarters and places player at public entrance")
 		return

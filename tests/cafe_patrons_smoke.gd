@@ -93,7 +93,9 @@ func _verify() -> void:
 	var contacts: Array = world.get("civic_intel")
 	var count_before := contacts.size()
 	world.call("_toggle_interaction")
-	if not str(world.get("notification")).contains("Tamsin") or not str(world.get("notification")).contains("warehouse"):
+	var subtitle: PanelContainer = world.get("ambient_caption")
+	var spoken: Dictionary = subtitle.call("content")
+	if not subtitle.visible or not str(spoken["speaker"]).contains("Tamsin") or not str(spoken["line"]).contains("warehouse"):
 		_fail("G did not surface actual customer dialog in the HUD")
 		return
 	if int(world.get("cash")) != cash_before or absf(float(world.get("health")) - 68.0) > 0.01:

@@ -256,6 +256,13 @@
       "loop": false,
       "seed": 4129,
       "prompt": "Single isolated adult shoe footstep on loose gravel, one short natural heel-to-toe contact and decay, close foley, no walking sequence, no speech or music"
+    },
+    {
+      "id": "office_coffee",
+      "duration": 3,
+      "loop": false,
+      "seed": 4017,
+      "prompt": "One short automatic office coffee machine dispensing cycle, small pump hum, gentle liquid trickle into paper cup, quiet stop, isolated close recording, no music or voices"
     }
   ]
 }

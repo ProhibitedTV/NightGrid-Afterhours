@@ -5,6 +5,9 @@ const Rage=preload("res://scripts/synaxis_keyboard_rage.gd")
 const Eggs=preload("res://scripts/synaxis_office_easter_eggs.gd")
 const Robotics=preload("res://scripts/synaxis_robotics_lab.gd")
 const FloorStaff=preload("res://scripts/synaxis_workfloor_staff.gd")
+const Services=preload("res://scripts/synaxis_office_services.gd")
+const DepartmentMeeting=preload("res://scripts/synaxis_department_meeting.gd")
+var _services:Node3D
 const GeneratedAudio=preload("res://scripts/synaxis_generated_audio.gd")
 const FLOOR_COUNT=4
 const FLOOR_HEIGHT=3.65
@@ -72,6 +75,10 @@ func _ready() -> void:
 	_noticeboard(accent)
 	_flush()
 	_office_ambience=GeneratedAudio.emitter(self,"office_air",Vector3(0,1,-1),-22.0,18.0,true)
+	_services=Services.new()
+	_services.name="OfficeServices"
+	_services.level=level
+	add_child(_services)
 	_people=FloorStaff.new()
 	_people.name="DepartmentStaff"
 	_people.level=level
@@ -95,8 +102,14 @@ func _ready() -> void:
 func get_floor_stats() -> Dictionary:
 	return {"level":level,"department":DEPARTMENTS[level-1],"desks":_desks,"chairs":_chairs,"plants":_plants,"parts":_parts,"colliders":_colliders,"batches":get_children().filter(func(n):return n is MultiMeshInstance3D).size()}
 
+func set_story_stage(stage:int) -> void:
+	if is_instance_valid(_people):
+		_people.call("set_story_stage",stage)
+
 func set_occupied(active: bool) -> void:
 	GeneratedAudio.activate(_office_ambience,active)
+	if is_instance_valid(_services):
+		_services.call("set_active",active)
 	for lamp in _lights:
 		lamp.visible=active
 	if is_instance_valid(_rage):
@@ -277,8 +290,9 @@ func _shared_area(accent: String) -> void:
 	for x in [-7.85,7.85]:
 		_part("oak",Vector3(x,.53,-.4),Vector3(.68,1.06,1.4))
 		_solid(Vector3(x,.53,-.4),Vector3(.68,1.06,1.4))
-		_part("white",Vector3(x,1.23,-.4),Vector3(.55,.36,.62))
-		_part("black",Vector3(x,1.38,-.4),Vector3(.36,.045,.42))
+		if x>0: # West appliance is owned by OfficeServices.
+			_part("white",Vector3(x,1.23,-.4),Vector3(.55,.36,.62))
+			_part("black",Vector3(x,1.38,-.4),Vector3(.36,.045,.42))
 		if level!=1 or x<0:
 			_plant(Vector3(x,0,8.8),.46)
 	# Soft seating, facing the collaboration tables but away from main paths.
@@ -328,6 +342,10 @@ func _noticeboard(accent:String) -> void:
 	_label("IN PROGRESS",Vector3(-8.12,2.25,6.8),.0016,PI/2)
 	_label("BLOCKED",Vector3(-8.12,2.25,7.62),.0016,PI/2)
 	_label("ALL HANDS / THURSDAY / ATTENDANCE REQUIRED",Vector3(-8.20,1.10,6.8),.002,PI/2)
+	_part("black",Vector3(-8.24,1.87,8.08),Vector3(.05,.72,.98))
+	_label("DAILY STAND-UP",Vector3(-8.20,2.10,8.08),.0021,PI/2)
+	_label(DepartmentMeeting.TITLES[level-1],Vector3(-8.20,1.87,8.08),.0017,PI/2)
+	_label("AFTER EQUIPMENT ROUND",Vector3(-8.20,1.65,8.08),.0014,PI/2)
 	_part("white",Vector3(-4.7,2.00,9.76),Vector3(2.65,1.0,.05))
 	_part("steel",Vector3(-4.7,1.48,9.69),Vector3(2.65,.045,.16))
 	_label("THIS WEEK: ALIGN ON THE ALIGNMENT",Vector3(-4.7,2.29,9.72),.0024,PI)

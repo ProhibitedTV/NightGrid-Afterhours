@@ -26,7 +26,7 @@ Want to see more than the skies? [Browse the Brickwater, vehicle and transit gam
 
 **[Windows download](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases)** · **[Latest development builds](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/workflows/windows-build.yml)** · **[Feedback and ideas](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues)**
 
-The latest published candidate at this writing is **[Beta.8 RC3](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases/tag/v0.1.0-beta.8-rc.3)**. The [releases page](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) lists newer candidates when published. The development branch now also includes a circular navigation radar, with a separate interactive atlas. For the newest development build, download a successful `main` build. Extract the full ZIP and keep the `.exe` alongside its `.pck`. [Playtest instructions](docs/PLAYTEST_MAIN_ACCEPTANCE.md).
+The latest published candidate at this writing is **[Beta.8 RC6](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases/tag/v0.1.0-beta.8-rc.6)**. The [releases page](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) lists newer candidates when published. RC7 is being prepared from integrated main with Chapter One: Executive Privilege and the offline audio studio. [RC7 notes and acceptance route](docs/BETA8_RC7.md). Publication requires exact-current-main preflight and Windows artifact launch verification, plus offline audio authoring checks. For the newest development build, download a successful `main` build. Extract the full ZIP and keep the `.exe` alongside its `.pck`. [Playtest instructions](docs/PLAYTEST_MAIN_ACCEPTANCE.md).
 
 **Help shape Afterhours.** If something looks exciting, unfinished or out of place, we'd like to hear about it. We welcome player feedback, screenshot comparisons, bug reports and ideas for life in Morrow Bay.
 
@@ -36,3 +36,11 @@ Made with **Godot 4.7.2**. [Developer notes](docs/DEVELOPMENT.md) · [Roadmap](h
 
 ### Environmental sound authoring
 See [Offline SFX authoring](docs/SFX_AUTHORING.md) for the optional local Stable Audio 3 pipeline and review process.
+
+### Unified audio production
+See [Anubis audio studio](docs/AUDIO_PRODUCTION_STUDIO.md) for dialogue, NPC choices, SFX and ambience. Neural processing is development-only; game assets require review.
+
+### Fashion and personal style (development)
+Six physical stores with distinct inventories, clerks, lighting, signage and NightGrid FM playlists: Threadline, Quay Standard, Vesper Line, Nocturne, Obscura and Second Signal. Open the journal's fashion directory to set a waypoint. At the counter, browse with 1/2/3 or A/X/Y, H/F or LB/RB for categories, right stick or right mouse drag to rotate and wheel/stick to zoom. Review USD or fictional BTC purchases, equip individual garments/accessories, collect original backpack art and save three personal looks. Second Signal rotates affordable stock daily. Try-ons never change ownership; closing the panel restores the committed look. Most garments are existing rig-compatible material variants. The offline fitted geometry pilot is not published to gameplay yet.
+
+See [character customization](docs/CHARACTER_CUSTOMIZATION.md) and [garment authoring](docs/THREADLINE_ASSET_AUTHORING.md). Native route, input, visual quality, and performance verification remain pending.
