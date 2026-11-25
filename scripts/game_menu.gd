@@ -16,7 +16,8 @@ const DEFAULT_SETTINGS = {
 	"stick_sensitivity": 2.6, "invert_look_y": false,
 	"ssr_enabled": true, "glow_enabled": true,
 	"ao_enabled": true, "fog_enabled": true,
-	"vsync_enabled": true, "show_fps": false
+	"vsync_enabled": true, "show_fps": false,
+	"show_control_hints": true, "show_hud_inventory": true
 }
 const HELP_SECTIONS = [
 	{"title": "ON FOOT", "keyboard": "WASD move · Mouse look · Shift sprint · Space jump",
@@ -165,7 +166,7 @@ func _normalize() -> void:
 	settings["radio_on"] = bool(settings.get("radio_on", true))
 	settings["mouse_sensitivity"] = clampf(float(settings.get("mouse_sensitivity", 0.0032)), 0.001, 0.010)
 	settings["stick_sensitivity"] = clampf(float(settings.get("stick_sensitivity", 2.6)), 0.5, 5.0)
-	for key in ["invert_look_y", "ssr_enabled", "glow_enabled", "ao_enabled", "fog_enabled", "vsync_enabled", "show_fps"]:
+	for key in ["invert_look_y", "ssr_enabled", "glow_enabled", "ao_enabled", "fog_enabled", "vsync_enabled", "show_fps", "show_control_hints", "show_hud_inventory"]:
 		settings[key] = bool(settings.get(key, DEFAULT_SETTINGS[key]))
 
 func _save_settings() -> void:
@@ -268,6 +269,11 @@ func _render() -> void:
 			_slider(col, "MOUSE LOOK", "mouse_sensitivity", 0.001, 0.010, 0.0002)
 			_slider(col, "GAMEPAD LOOK", "stick_sensitivity", 0.5, 5.0, 0.1)
 			_check(col, "INVERT LOOK Y", "invert_look_y")
+			_divider(col)
+			_label(col, "INTERFACE", 16, Ui.AMBER)
+			_check(col, "SHOW GENERAL CONTROL REMINDERS", "show_control_hints")
+			_check(col, "SHOW INVENTORY COUNTS IN HUD", "show_hud_inventory")
+			_label(col, "Nearby actions, navigation and health remain visible. All controls and inventory are available in the pause menu.", 14, Ui.MUTED)
 			_divider(col)
 			_label(col, "DISPLAY & PERFORMANCE", 16, Ui.AMBER)
 			_check(col, "SCREEN-SPACE REFLECTIONS", "ssr_enabled")
