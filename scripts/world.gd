@@ -710,7 +710,7 @@ func _phone_transit() -> Dictionary:
 func _phone_workboard() -> Array[Dictionary]:
 	var listings: Array[Dictionary] = []
 	for category in ["local","civic"]:
-		var local := category == "local"
+		var local: bool = category == "local"
 		var active: String = venue_job_active if local else civic_job_active
 		var completed: Array[String] = venue_job_completed if local else civic_job_completed
 		var service: Node = venue_system if local else civic_services

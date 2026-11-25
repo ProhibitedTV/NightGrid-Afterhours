@@ -1,14 +1,14 @@
 extends RefCounted
 ## Deterministic, bounded cabinet simulation. No world, wallet or save dependencies.
-const GAMES := {
+const GAMES = {
 	"grand_delay": {"title":"GRAND DELAY AUTO VI", "studio":"Milestone Mirage", "tagline":"A revolutionary city. Available eventually.", "instructions":"Steer into green feature drops. Avoid red paywalls.", "color":"69d8c2"},
 	"claw_compliance": {"title":"CLAW & COMPLIANCE", "studio":"Committee Interactive", "tagline":"Unleash your inner focus group.", "instructions":"Move between lanes. Strike approaching audit drones before they reach you.", "color":"efb169"}
 }
-const IDS := ["grand_delay", "claw_compliance"]
-const LANES := 3
-const END_ROW := 5
-const ROUND_STEPS := 32
-const STEP_SECONDS := 0.40
+const IDS = ["grand_delay", "claw_compliance"]
+const LANES = 3
+const END_ROW = 5
+const ROUND_STEPS = 32
+const STEP_SECONDS = 0.40
 var game_id := ""
 var lane := 1
 var score := 0
