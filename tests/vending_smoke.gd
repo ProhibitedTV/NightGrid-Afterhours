@@ -38,6 +38,18 @@ func _verify() -> void:
 		return
 	if not check(not title_copy.restore(0, {"version":1,"receipts":[],"owned_vehicles":["street:kestrel_01","street:kestrel_01"]}) and title_copy.balance == 100 and title_copy.owns_vehicle("street:kestrel_01"), "duplicate title save rejected atomically"):
 		return
+	var resale := Ledger.new()
+	resale.set_balance(3000)
+	if not check(resale.buy_vehicle("street:cinder_01") and resale.buy_vehicle("street:kestrel_01"),"paid title setup"):
+		return
+	if not check(not resale.sell_vehicle("street:kestrel_01",100.0) and not resale.sell_vehicle("street:cinder_01",NAN),"starter cannot be sold; invalid condition rejected"):
+		return
+	resale.set_balance(Ledger.MAX_CASH)
+	if not check(not resale.sell_vehicle("street:cinder_01",100.0) and resale.owns_vehicle("street:cinder_01"),"overflow leaves title intact"):
+		return
+	resale.set_balance(0)
+	if not check(resale.sell_vehicle("street:cinder_01",50.0) and resale.balance==750 and not resale.sell_vehicle("street:cinder_01",50.0),"condition payout exactly once"):
+		return
 	var world := (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	root.add_child(world)
 	await process_frame

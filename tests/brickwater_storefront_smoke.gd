@@ -137,6 +137,39 @@ func _run() -> void:
 	world.call("_apply_snapshot", owned_save)
 	if not _expect(ledger.owns_vehicle(vehicle_id) and world.get("cash") == 0 and world.get("cars").size() == 12, "title and balance restore without spawning a second car"):
 		return
+	# Exercise the same physical counter with a titled Cinder.
+	var cinder: CharacterBody3D = world.get("cars")[2]
+	var cinder_id := str(cinder.get_meta("vehicle_id"))
+	world.set("cash",2500)
+	if not _expect(ledger.buy_vehicle(cinder_id),"prepare paid Cinder title"):
+		return
+	cinder.global_position = parked_at + Vector3(2,0,0)
+	cinder.set("condition",80.0)
+	cinder.set("speed",0.0)
+	world.set("heat",0.0)
+	world.call("_update_venue_panel")
+	world.call("_venue_action",3)
+	if not _expect(world.get("_sale_quote_id")==cinder_id and world.get("_sale_quote_amount")==1200 and world.get("cash")==0,"condition-adjusted sale quote"):
+		return
+	world.call("_venue_action",1)
+	if not _expect(ledger.owns_vehicle(cinder_id) and world.get("cash")==0,"cancel retains ownership"):
+		return
+	world.call("_venue_action",3)
+	cinder.set("condition",60.0)
+	world.call("_venue_action",3)
+	if not _expect(ledger.owns_vehicle(cinder_id) and world.get("cash")==0,"changed condition invalidates quote"):
+		return
+	world.call("_venue_action",3)
+	world.call("_venue_action",3)
+	world.call("_venue_action",3)
+	if not _expect(not ledger.owns_vehicle(cinder_id) and world.get("cash")==900 and world.get("cars").size()==12,"sale credits once and transfers existing car"):
+		return
+	var sale_save: Dictionary = session.call("make_snapshot",world.call("_capture_snapshot"))
+	if not _expect(session.call("is_valid_snapshot",sale_save),"sale snapshot valid"):
+		return
+	world.call("_apply_snapshot",sale_save)
+	if not _expect(not ledger.owns_vehicle(cinder_id) and world.get("cash")==900,"sale persists"):
+		return
 	world.call("_close_venue")
 	player.global_position = shop.to_global(Vector3(-1.42, 0.95, 0))
 	player.velocity = Vector3.ZERO
