@@ -4,6 +4,9 @@ extends RefCounted
 const WINDOW_FRAMES = 240
 const MAX_CAPTURE_FRAMES = 18000
 const HITCH_MS = 1000.0 / 30.0
+const MAX_TRANSITIONS = 256
+const TRANSITION_WINDOW_FRAMES = 12
+var _vehicle_transitions: Array[Dictionary] = []
 
 var recording := false
 var capture_full := false
@@ -16,6 +19,7 @@ var _previous_total_build_usec := 0
 
 func begin_capture(loaded_count: int, build_stages: int = 0, total_build_usec: int = 0) -> void:
 	_rows.clear()
+	_vehicle_transitions.clear()
 	_elapsed = 0.0
 	_previous_loads = loaded_count
 	_previous_stages = build_stages
@@ -120,3 +124,62 @@ func export_csv(path: String = "") -> String:
 			float(row["z"]), int(row["driving"]), int(row["stages"])])
 	file.close()
 	return ProjectSettings.globalize_path(destination)
+
+# All timing is opt-in with F8. Markers are CPU wall-clock durations, not GPU
+# timings. Existing CSV format is unchanged; write a paired JSON evidence file.
+func begin_vehicle_transition(kind: String,model: String) -> int:
+	if not recording or _vehicle_transitions.size()>=MAX_TRANSITIONS:
+		return -1
+	var started := Time.get_ticks_usec()
+	_vehicle_transitions.append({"kind":kind,"model":model,"first_frame_index":_rows.size(),"start_usec":started,"last_usec":started,"stages":{},"result":"unfinished"})
+	return _vehicle_transitions.size()-1
+
+func mark_vehicle_stage(index: int,stage: String) -> void:
+	if index<0 or index>=_vehicle_transitions.size():
+		return
+	var event := _vehicle_transitions[index]
+	if event["result"]!="unfinished":
+		return
+	var now := Time.get_ticks_usec()
+	event["stages"][stage] = float(now-int(event["last_usec"]))/1000.0
+	event["last_usec"] = now
+
+func finish_vehicle_transition(index: int,result: String) -> void:
+	if index<0 or index>=_vehicle_transitions.size():
+		return
+	var event := _vehicle_transitions[index]
+	if event["result"]!="unfinished":
+		return
+	event["total_cpu_ms"] = float(Time.get_ticks_usec()-int(event["start_usec"]))/1000.0
+	event["result"] = result
+
+func vehicle_evidence() -> Array[Dictionary]:
+	var output: Array[Dictionary] = []
+	for event in _vehicle_transitions:
+		var entry: Dictionary = event.duplicate(true)
+		entry.erase("start_usec")
+		entry.erase("last_usec")
+		var start := int(entry["first_frame_index"])
+		var intervals: Array[float] = []
+		var build_ms := 0.0
+		var end := mini(start+TRANSITION_WINDOW_FRAMES,_rows.size())
+		for i in range(start,end):
+			intervals.append(float(_rows[i]["frame_ms"]))
+			build_ms += float(_rows[i]["build_ms"])
+		entry["following_frame_ms"] = intervals
+		entry["following_stream_build_ms"] = build_ms
+		entry["complete_window"] = intervals.size()==TRANSITION_WINDOW_FRAMES
+		entry["peak_frame_ms"] = intervals.max() if not intervals.is_empty() else 0.0
+		output.append(entry)
+	return output
+
+func export_vehicle_trace(csv_path: String) -> String:
+	if csv_path.is_empty() or _vehicle_transitions.is_empty():
+		return ""
+	var destination := csv_path.get_basename()+"-vehicle-transitions.json"
+	var file := FileAccess.open(destination,FileAccess.WRITE)
+	if file==null:
+		return ""
+	file.store_string(JSON.stringify({"schema_version":1,"source_csv":csv_path.get_file(),"measurement_note":"CPU wall-clock stage durations plus following render intervals (including VSync); not GPU durations. Windows shader/render work can appear in later intervals. Overlapping windows are not exclusive attribution.","transitions":vehicle_evidence()},"\t"))
+	file.close()
+	return destination

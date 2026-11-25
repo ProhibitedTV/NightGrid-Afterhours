@@ -106,9 +106,30 @@ func _verify() -> void:
 		_fail("A new capture must clear the previous driving session")
 		return
 	recorder.end_capture()
+	if int(recorder.begin_vehicle_transition("enter","R9"))!=-1:
+		_fail("Inactive trace allocated transition record")
+		return
 	if not recorder.export_csv("user://empty-trace.csv").is_empty():
 		_fail("An empty capture cannot silently overwrite a CSV")
 		return
+	recorder.begin_capture(8)
+	var transition: int = recorder.begin_vehicle_transition("enter","R9")
+	recorder.mark_vehicle_stage(transition,"rig_reparent_animation")
+	recorder.finish_vehicle_transition(transition,"ok")
+	for i in 12:
+		recorder.sample_frame(.05 if i==2 else .016,stream,Vector3.ZERO,true)
+	var blocked: int = recorder.begin_vehicle_transition("exit","R9")
+	recorder.finish_vehicle_transition(blocked,"blocked_clearance")
+	recorder.end_capture()
+	var entries: Array[Dictionary] = recorder.vehicle_evidence()
+	if entries.size()!=2 or not entries[0]["complete_window"] or absf(float(entries[0]["peak_frame_ms"])-50.0)>.001 or entries[1]["complete_window"] or entries[1]["result"]!="blocked_clearance" or not entries[0]["stages"].has("rig_reparent_animation"):
+		_fail("Transition evidence lost stage or exact following frame window")
+		return
+	var trace: String = recorder.export_vehicle_trace(recorder.export_csv(output))
+	if trace.is_empty() or not FileAccess.file_exists(trace):
+		_fail("Vehicle sidecar export missing")
+		return
+	DirAccess.remove_absolute(trace)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(output))
 	print("FRAME_TRACE_SMOKE PASS: p95/p99/1% lows, two hitches, completed chunk and staged work attribution")
 	quit(0)
