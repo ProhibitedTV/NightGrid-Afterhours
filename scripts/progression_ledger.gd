@@ -358,6 +358,46 @@ const BAND_ENCORE_PAY = 120
 const BAND_ENCORES_REQUIRED = 2
 const BAND_SHOWCASE_PAY = 480
 const BAND_SHOWCASE_RECEIPT = "music:static_room_showcase"
+const BAND_NAMES = ["Signal Rot","Layoff Choir","Dead Air Union","Rust Cathedral","No Future Lease","Static Saints"]
+const TAPE_BATCH=12
+const TAPE_COST=60
+const TAPE_PRICE=12
+const MAX_TAPE_STOCK=36
+var band_name := ""
+var tape_stock := 0
+var tape_batches := 0
+var tapes_sold := 0
+
+func can_name_band()->bool:
+	return _band_members.size()==2 and band_name.is_empty()
+
+func choose_band_name(index:int)->bool:
+	if not can_name_band() or index<0 or index>=BAND_NAMES.size():
+		return false
+	band_name=BAND_NAMES[index]
+	return true
+
+func can_press_tapes()->bool:
+	return has_receipt(BAND_DEBUT_RECEIPT) and not has_receipt(BAND_SHOWCASE_RECEIPT) and not band_name.is_empty() and tape_stock+TAPE_BATCH<=MAX_TAPE_STOCK and tape_batches<3 and balance>=TAPE_COST
+
+func press_tapes()->bool:
+	if not can_press_tapes() or not spend(TAPE_COST):
+		return false
+	tape_stock+=TAPE_BATCH
+	tape_batches+=1
+	return true
+
+func _sell_tapes(units:int)->void:
+	# Booking already settled. Skip merchandise rather than overflowing cash.
+	var count:=mini(units,tape_stock)
+	count=mini(count,(MAX_CASH-balance)/TAPE_PRICE)
+	if count>0 and credit(count*TAPE_PRICE):
+		tape_stock-=count
+		tapes_sold+=count
+
+func band_merch_summary()->String:
+	return "AFTER THE LAST SHIFT / %d tapes in stock • %d sold"%[tape_stock,tapes_sold]
+
 
 func band_encore_available()->bool:
 	return has_receipt(BAND_DEBUT_RECEIPT) and street_activity_runs("band_encore")<BAND_ENCORES_REQUIRED
@@ -368,13 +408,17 @@ func settle_band_encore(sequence:int)->bool:
 	if not _street_cred.settle_run("band_encore",sequence):
 		return false
 	balance+=BAND_ENCORE_PAY
+	_sell_tapes(4)
 	return true
 
 func band_showcase_available()->bool:
 	return has_receipt(BAND_DEBUT_RECEIPT) and street_activity_runs("band_encore")==BAND_ENCORES_REQUIRED and not has_receipt(BAND_SHOWCASE_RECEIPT)
 
 func settle_band_showcase()->bool:
-	return band_showcase_available() and credit_once(BAND_SHOWCASE_RECEIPT,BAND_SHOWCASE_PAY)
+	if not band_showcase_available() or not credit_once(BAND_SHOWCASE_RECEIPT,BAND_SHOWCASE_PAY):
+		return false
+	_sell_tapes(8)
+	return true
 
 func band_booking_summary()->String:
 	if has_receipt(BAND_SHOWCASE_RECEIPT):
@@ -414,7 +458,7 @@ func recruit_band_member(id:String)->bool:
 
 func band_summary()->String:
 	if _band_members.size()==2:
-		return "UNSIGNED TRIO / Rhea Vale: bass / Milo Static: synth\n"+("REHEARSE AT COPPER CUP / %d of %d"%[band_rehearsals,BAND_REHEARSALS_REQUIRED] if band_rehearsal_available() else band_booking_summary())
+		return (band_name.to_upper() if not band_name.is_empty() else "UNSIGNED TRIO")+" / Rhea Vale: bass / Milo Static: synth\n"+("REHEARSE AT COPPER CUP / %d of %d"%[band_rehearsals,BAND_REHEARSALS_REQUIRED] if band_rehearsal_available() else band_booking_summary())
 	if not owned_set_unlocked() or street_activity_runs("live_gig")==0:
 		return "BAND / Complete personal sampler practice and a Blue Hour opening set to meet collaborators."
 	var names:Array[String]=[]
@@ -434,7 +478,7 @@ func snapshot() -> Dictionary:
 	ids.sort()
 	var instruments:Array=_instruments.keys()
 	instruments.sort()
-	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "owned_pieces":owned_piece_ids(), "clothing_slots":clothing_slots.duplicate(), "saved_looks":_saved_looks.duplicate(true), "bitcoin_sats":bitcoin_sats, "synaxis_contact":synaxis_contact, "cal_quest":cal_quest, "street_activity_runs":_street_cred.snapshot(), "instruments":instruments, "sampler_practice":sampler_practice,"band_members":_band_members.duplicate(),"band_rehearsals":band_rehearsals}
+	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "owned_pieces":owned_piece_ids(), "clothing_slots":clothing_slots.duplicate(), "saved_looks":_saved_looks.duplicate(true), "bitcoin_sats":bitcoin_sats, "synaxis_contact":synaxis_contact, "cal_quest":cal_quest, "street_activity_runs":_street_cred.snapshot(), "instruments":instruments, "sampler_practice":sampler_practice,"band_members":_band_members.duplicate(),"band_rehearsals":band_rehearsals,"band_name":band_name,"tape_stock":tape_stock,"tape_batches":tape_batches,"tapes_sold":tapes_sold}
 
 static func valid_snapshot(value: Variant) -> bool:
 	if not value is Dictionary:
@@ -481,6 +525,18 @@ static func valid_snapshot(value: Variant) -> bool:
 		return false
 	var encores:int=int(data.get("street_activity_runs",{}).get("band_encore",0))
 	if encores>BAND_ENCORES_REQUIRED or (encores>0 and not seen.has(BAND_DEBUT_RECEIPT)) or (seen.has(BAND_SHOWCASE_RECEIPT) and (encores!=BAND_ENCORES_REQUIRED or not seen.has(BAND_DEBUT_RECEIPT))):
+		return false
+	var name:Variant=data.get("band_name","")
+	if not name is String or (name!="" and (name not in BAND_NAMES or roster_seen.size()!=2)):
+		return false
+	var batches:Variant=data.get("tape_batches",0)
+	var stock:Variant=data.get("tape_stock",0)
+	var sold:Variant=data.get("tapes_sold",0)
+	if not valid_cash(batches) or not valid_cash(stock) or not valid_cash(sold) or int(batches)>3 or int(stock)>MAX_TAPE_STOCK or int(stock)+int(sold)!=int(batches)*TAPE_BATCH:
+		return false
+	if int(batches)>0 and (name=="" or not seen.has(BAND_DEBUT_RECEIPT)):
+		return false
+	if int(sold)>4*encores+(8 if seen.has(BAND_SHOWCASE_RECEIPT) else 0):
 		return false
 	var cal:Variant=data.get("cal_quest",0)
 	if not valid_cash(cal) or int(cal)>3 or (int(cal)==3)!=seen.has(CAL_RECEIPT):
@@ -586,6 +642,10 @@ func restore(amount: Variant, data: Variant) -> bool:
 	sampler_practice=int(data.get("sampler_practice",0))
 	_band_members.assign(data.get("band_members",[]))
 	band_rehearsals=int(data.get("band_rehearsals",0))
+	band_name=data.get("band_name","")
+	tape_stock=int(data.get("tape_stock",0))
+	tape_batches=int(data.get("tape_batches",0))
+	tapes_sold=int(data.get("tapes_sold",0))
 	_purchased_outfits.clear()
 	for id in data.get("purchased_outfits",[]):
 		_purchased_outfits[id] = true

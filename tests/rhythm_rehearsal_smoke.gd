@@ -212,5 +212,26 @@ func _initialize()->void:
 	if Ledger.valid_snapshot(show_save):
 		quit(1)
 		return
+	var merch:=Ledger.new()
+	if not merch.restore(before+240,JSON.parse_string(JSON.stringify(debut_save.merged({"band_rehearsals":2},true)))) or not merch.choose_band_name(0) or merch.choose_band_name(1) or not merch.press_tapes():
+		quit(1)
+		return
+	if merch.balance!=before+180 or merch.tape_stock!=12 or merch.tapes_sold!=0:
+		quit(1)
+		return
+	if not merch.settle_band_encore(1) or merch.settle_band_encore(1) or merch.tape_stock!=8 or merch.tapes_sold!=4 or merch.balance!=before+348:
+		quit(1)
+		return
+	if not merch.settle_band_encore(2) or not merch.settle_band_showcase() or merch.tape_stock!=0 or merch.tapes_sold!=12 or merch.press_tapes():
+		quit(1)
+		return
+	var merch_save:=merch.snapshot()
+	if not band_copy.restore(merch.balance,JSON.parse_string(JSON.stringify(merch_save))) or band_copy.band_name!="Signal Rot" or band_copy.tapes_sold!=12:
+		quit(1)
+		return
+	merch_save["tapes_sold"]=99
+	if Ledger.valid_snapshot(merch_save):
+		quit(1)
+		return
 	print("RHYTHM_REHEARSAL PASS: timing, cancellation, once-only claims, sequence and atomic payout")
 	quit(0)
