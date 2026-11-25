@@ -851,6 +851,8 @@ func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 		_hint.text += "\nTake the lift down to B1. Eli can verify the authorization records."
 	if reachable(stage,at):
 		_hint.text += "\n"+("X / INTERACT" if gamepad else "G / INTERACT")
+	if terminal_reachable(at) and stage==-1:
+		_hint.text+="\n"+("X" if gamepad else "G")+" / OPEN WORKSTATION"
 	if breakroom_reachable(at) and not _breakroom_seen:
 		_hint.text += "\n" + ("X" if gamepad else "G") + " / OPTIONAL: BREAKROOM PARTY"
 	var lift:=lift_direction(at)
@@ -871,3 +873,8 @@ func interview_at(at:Vector3,stage:int) -> Dictionary:
 	elif _active_floor>=1 and _active_floor<=_workfloors.size():
 		id=str(_workfloors[_active_floor-1].call("interview_id",at))
 	return Interviews.conversation(id,stage)
+
+## Collecting the folder retains priority; the adjacent workstation is available
+## while carrying the request, before the verified IT report.
+func terminal_reachable(at:Vector3) -> bool:
+	return _prologue_active and _arrival==null and _active_floor==0 and _errand_phase==1 and at.is_finite() and at.distance_to(to_global(CUBICLE_POINT))<=1.8
