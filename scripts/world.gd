@@ -139,6 +139,12 @@ var hud_prompt: Label
 var hud_prompt_card: PanelContainer
 var hud_notice: Label
 var hud_notice_card: PanelContainer
+var hud_drive_card: PanelContainer
+var hud_drive_name: Label
+var hud_drive_speed: Label
+var hud_drive_radio: Label
+var show_control_hints := true
+var show_hud_inventory := true
 var performance_label: Label
 var performance_overlay := false
 var minimap: Control
@@ -516,6 +522,8 @@ func _journal_context() -> Dictionary:
 	}
 
 func _apply_game_settings(options: Dictionary) -> void:
+	show_control_hints = bool(options.get("show_control_hints", true))
+	show_hud_inventory = bool(options.get("show_hud_inventory", true))
 	mouse_sensitivity = clampf(float(options.get("mouse_sensitivity", 0.0032)), 0.001, 0.010)
 	stick_sensitivity = clampf(float(options.get("stick_sensitivity", 2.6)), 0.5, 5.0)
 	invert_look_y = bool(options.get("invert_look_y", false))
@@ -3177,6 +3185,19 @@ func _build_hud() -> void:
 	_weapon_label = _hud_text(_weapon_card, "WeaponAmmo", 18, Ui.TEXT)
 	_weapon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_weapon_card.hide()
+	# Driving and weapon displays share a mutually exclusive HUD slot.
+	hud_drive_card = _hud_card(ui, "DrivingCard", 1.0, 1.0, Vector4(-302, -150, -24, -24))
+	hud_drive_card.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	var drive_stack := VBoxContainer.new()
+	drive_stack.add_theme_constant_override("separation", 3)
+	drive_stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud_drive_card.add_child(drive_stack)
+	hud_drive_name = _hud_text(drive_stack, "VehicleName", 15, Ui.MUTED)
+	hud_drive_speed = _hud_text(drive_stack, "Speed", 32, Ui.TEXT)
+	hud_drive_radio = _hud_text(drive_stack, "NowPlaying", 15, Ui.ACCENT)
+	for label in [hud_drive_name, hud_drive_speed, hud_drive_radio]:
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	hud_drive_card.hide()
 	_radio_card = _hud_card(ui, "PoliceRadioCard", 1.0, 0.0, Vector4(-402, 278, -24, 362))
 	_radio_caption = _hud_text(_radio_card, "Transmission", 16, Color("a4c7ef"))
 	_radio_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -3227,7 +3248,11 @@ func _build_hud() -> void:
 	venue_panel.add_theme_stylebox_override("panel", Ui.card(0.97, 20))
 	venue_panel.visible = false
 	ui.add_child(venue_panel)
-	venue_panel.visibility_changed.connect(func() -> void: minimap.visible = not venue_panel.visible)
+	venue_panel.visibility_changed.connect(func() -> void:
+		minimap.visible = not venue_panel.visible
+		if venue_panel.visible:
+			hud_drive_card.hide()
+			hud_prompt_card.hide())
 	venue_label = Label.new()
 	venue_label.add_theme_font_size_override("font_size", 20)
 	venue_label.add_theme_color_override("font_color", Color("eadcc9"))
@@ -3308,9 +3333,15 @@ func _update_hud() -> void:
 	var local_name := district if landmark.is_empty() else "%s / %s" % [district, landmark]
 	var clock: String = day_night.call("clock_string")
 	var vehicle_text := "ON FOOT"
+	hud_drive_card.visible = current_car != null and not venue_panel.visible
 	if current_car != null:
-		var vehicle_label := "DRIVING" if current_car.get("model_id") == "" else str(current_car.call("display_name")).to_upper()
-		vehicle_text = "%s • %d km/h" % [vehicle_label, int(current_car.call("speed_kph"))]
+		vehicle_text = "DRIVING"
+		hud_drive_name.text = "VEHICLE" if current_car.get("model_id") == "" else str(current_car.call("display_name")).to_upper()
+		hud_drive_speed.text = "%d km/h" % maxi(0, roundi(absf(float(current_car.call("speed_kph")))))
+		var now_playing := str(nightgrid_fm.call("get_now_playing")) if is_instance_valid(nightgrid_fm) else ""
+		hud_drive_radio.text = now_playing
+		hud_drive_radio.visible = not now_playing.is_empty()
+		_weapon_card.hide()
 	elif current_transit != null:
 		vehicle_text = {"TRAIN": "M-LINE RIDER", "BUS": "CITY LOOP RIDER", "LIFT": "STATION LIFT"}[transit_kind]
 	var tier: int = Wanted.stars(heat)
@@ -3341,7 +3372,8 @@ func _update_hud() -> void:
 	hud_label.text = "$%d  ·  %s\nHealth %d  ·  Stamina %d" % [cash, vehicle_text, ceili(health), ceili(float(player.get("stamina")))]
 	hud_health.value = health
 	hud_stamina.value = float(player.get("stamina"))
-	hud_label.text += "\n%d deliveries  ·  %d supplies  ·  %d snacks" % [deliveries, ration_packs, Consumables.count(consumable_inventory)]
+	if show_hud_inventory:
+		hud_label.text += "\n%d deliveries  ·  %d supplies  ·  %d snacks" % [deliveries, ration_packs, Consumables.count(consumable_inventory)]
 	hud_objective.text = "%s  /  %dm" % [mission, distance]
 	if courier_mission.gig_economy and current_car == null and current_transit == null and not interiors.call("is_inside") and player.global_position.distance_to(mission_position) < CourierMission.RADIUS:
 		hud_objective.text += "  /  " + ("X" if gamepad_active else "G") + (" HAND OFF" if carrying else " COLLECT ORDER")
@@ -3367,10 +3399,9 @@ func _update_hud() -> void:
 	var utility := "Start Pause  •  View Map" if gamepad_active else "Esc Pause  •  M Map  •  Tab Journal"
 	var repair := _repair_storefront()
 	if current_car != null:
-		prompts.append("RT/LT Drive  •  B Brake  •  Y Exit" if gamepad_active else "W/S Drive  •  Space Brake  •  E Exit")
-		if is_instance_valid(nightgrid_fm):
-			var radio_keys := "D-pad → Radio  •  ↑ Next" if gamepad_active else "B Radio  •  N Next"
-			prompts.append("%s   |   %s" % [str(nightgrid_fm.call("get_now_playing")), radio_keys])
+		prompts.append(("RT/LT Drive  •  B Brake  •  Y Exit" if gamepad_active else "W/S Drive  •  Space Brake  •  E Exit") if show_control_hints else ("Y Exit vehicle" if gamepad_active else "E Exit vehicle"))
+		if is_instance_valid(nightgrid_fm) and show_control_hints:
+			prompts.append("D-pad → Radio  •  ↑ Next" if gamepad_active else "B Radio  •  N Next")
 	elif current_transit != null:
 		prompts.append("RB Leave at next stop" if gamepad_active else "F Leave at next stop")
 	elif repair != null and repair.door_reachable(player.global_position):
@@ -3412,15 +3443,16 @@ func _update_hud() -> void:
 			prompts.append("%s %s building door" % [enter_key,"Close" if leaf.call("is_requested_open") else "Open"])
 		if is_instance_valid(city_details.call("nearby_vending",player.global_position)):
 			prompts.append("%s  Vending machine" % interact_key)
-		if prompts.is_empty():
+		if prompts.is_empty() and show_control_hints:
 			prompts.append("Y Vehicle  •  RB Transit  •  X Interact" if gamepad_active else "E Vehicle  •  F Transit  •  G Interact")
-	if _can_use_weapon():
+	if _can_use_weapon() and (show_control_hints or weapons.equipped != "holstered"):
 		prompts.append("D-pad ← Cycle • R3 Equipment" if gamepad_active else "Q Cycle • C Equipment")
-	prompts.append(utility)
+	if show_control_hints:
+		prompts.append(utility)
 	hud_prompt.text = "\n".join(prompts)
-	hud_prompt_card.visible = not venue_panel.visible
+	hud_prompt_card.visible = not venue_panel.visible and not prompts.is_empty()
 	# Reflow upward for long contextual text without covering the bottom inset.
-	hud_prompt_card.offset_top = -24.0 - maxf(88.0, hud_prompt_card.get_combined_minimum_size().y)
+	hud_prompt_card.offset_top = -24.0 - maxf(40.0, hud_prompt_card.get_combined_minimum_size().y)
 	hud_prompt_card.offset_bottom = -24.0
 	if venue_panel.visible:
 		_update_venue_panel()
