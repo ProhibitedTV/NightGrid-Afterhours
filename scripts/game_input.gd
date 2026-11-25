@@ -7,7 +7,7 @@ const ACTIONS = [
 	"sprint", "jump", "drive_accelerate", "drive_reverse", "drive_brake",
 	"interact", "car_toggle", "transit_toggle", "interior_toggle",
 	"use_supply", "service_one", "service_two", "service_three", "radio_toggle", "radio_next",
-	"game_pause", "game_back", "map_open", "journal_open", "game_save", "game_load", "game_new",
+	"game_pause", "game_back", "map_open", "journal_open", "phone_open", "game_save", "game_load", "game_new",
 	"advance_clock", "pause_clock", "sky_weather_cycle", "toggle_fps", "toggle_ssr", "record_frame_trace",
 	"capture_playtest_frame", "playtest_mark", "compare_render_look", "vehicle_view",
 	"weapon_cycle", "weapon_aim", "weapon_fire", "weapon_reload", "weapon_wheel"
@@ -82,6 +82,7 @@ static func install() -> void:
 	_key("map_open", KEY_M)
 	_button("map_open", JOY_BUTTON_BACK)
 	_key("journal_open", KEY_TAB)
+	_key("phone_open", KEY_P)
 	_key("game_save", KEY_F5)
 	_key("game_new", KEY_F6)
 	_key("game_load", KEY_F9)
