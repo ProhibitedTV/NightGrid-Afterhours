@@ -273,7 +273,7 @@ func _render() -> void:
 			_label(col, "INTERFACE", 16, Ui.AMBER)
 			_check(col, "SHOW GENERAL CONTROL REMINDERS", "show_control_hints")
 			_check(col, "SHOW INVENTORY COUNTS IN HUD", "show_hud_inventory")
-			_label(col, "Nearby actions, navigation and health remain visible. All controls and inventory are available in the pause menu.", 14, Ui.MUTED)
+			_label(col, "Nearby actions, navigation and health remain visible. Review controls and status from the pause menu.", 14, Ui.MUTED)
 			_divider(col)
 			_label(col, "DISPLAY & PERFORMANCE", 16, Ui.AMBER)
 			_check(col, "SCREEN-SPACE REFLECTIONS", "ssr_enabled")
