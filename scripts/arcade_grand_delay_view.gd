@@ -50,6 +50,8 @@ func render(c, visual_lane: float, button_pulse: float) -> void:
 			label(c,"ENTER / A  REPLAY MENU",286,344,TEAL,19)
 			if c.round.cleared:
 				label(c,"S TARGET: 52s / CLEAN / 9+",510,344,GOLD,14)
+			if c.round.splits.size()==3:
+				label(c,"SPLITS  %.1f / %.1f / %.1f" % [c.round.splits[0],c.round.splits[1],c.round.splits[2]],286,365,PAPER,12)
 	_deck(c,visual_lane if c.state == "play" else 1.0,button_pulse)
 
 func _drive(c) -> void:

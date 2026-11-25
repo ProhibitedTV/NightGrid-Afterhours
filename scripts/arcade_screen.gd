@@ -7,6 +7,8 @@ const ExtraRound = preload("res://scripts/arcade_extra_round.gd")
 const SeasonRound = preload("res://scripts/arcade_season_round.gd")
 const ClassicRound = preload("res://scripts/arcade_classic_round.gd")
 const Race = preload("res://scripts/grand_delay_race.gd")
+const RaceAudio = preload("res://scripts/grand_delay_audio.gd")
+var race_audio: Node
 const DeluxeView = preload("res://scripts/arcade_grand_delay_view.gd")
 var deluxe_view := DeluxeView.new()
 var deluxe_lane := 1.0
@@ -100,6 +102,10 @@ func _start_round() -> void:
 	var id: String = Round.IDS[selection]
 	if id == "grand_delay":
 		round = Race.new()
+		if not is_instance_valid(race_audio):
+			race_audio = RaceAudio.new()
+			race_audio.name = "RaceAudio"
+			add_child(race_audio)
 	elif id == "starline_patrol" or id == "neon_rebound":
 		round = ClassicRound.new()
 	elif id == "open_world_checklist" or id == "battle_pass_hero":
@@ -117,6 +123,8 @@ func _start_round() -> void:
 	deluxe_pulse = 0.0
 	new_record = false
 	_play_cue("start")
+	if round is Race:
+		race_audio.call("start_race")
 	elapsed = 0.0
 	set_process(id != "indie_dev" and id != "day_one_dlc")
 	queue_redraw()
@@ -157,6 +165,8 @@ func _process_race(delta: float) -> void:
 			break
 		elapsed -= Race.DT
 		round.advance(throttle,brake)
+	if is_instance_valid(race_audio):
+		race_audio.call("update_race",round,delta)
 	deluxe_lane = move_toward(deluxe_lane,1.0+axis,delta*7.0)
 	deluxe_pulse = move_toward(deluxe_pulse,0.0,delta*5.0)
 	if is_instance_valid(deluxe_cabinet):
@@ -411,6 +421,8 @@ func bind_deluxe_cabinet(cabinet: Node3D) -> void:
 	deluxe_cabinet = cabinet
 
 func _reset_deluxe_controls() -> void:
+	if is_instance_valid(race_audio):
+		race_audio.call("stop_race")
 	deluxe_lane = 1.0
 	deluxe_pulse = 0.0
 	if is_instance_valid(deluxe_cabinet):

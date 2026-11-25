@@ -320,7 +320,11 @@ func _verify() -> void:
 	screen._start_round()
 	if not check(screen.state == "play" and screen.round is Race and not screen.round.finished, "screen launches dedicated race"):
 		return
+	if not check(screen.race_audio != null and screen.race_audio.engine.stream.loop_mode == AudioStreamWAV.LOOP_FORWARD and screen.race_audio.engine.stream.loop_end > 0, "race owns original looping engine sound"):
+		return
 	screen._show_selection()
+	if not check(not screen.race_audio.engine.playing and not screen.race_audio.tires.playing, "abandon stops race audio"):
+		return
 	if not check(not screen.is_processing(), "abandoned round stops ticking"):
 		return
 	screen.selection = 3
