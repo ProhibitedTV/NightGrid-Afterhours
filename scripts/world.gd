@@ -436,6 +436,11 @@ func _on_menu_action(action: String) -> void:
 			_accept_opening()
 		"save":
 			_save_game()
+		"save_waypoint":
+			var entrance := StarterHome.entry()
+			set_navigation_waypoint(Vector2(entrance.x, entrance.z))
+			game_menu.call("hide_for_game")
+			_notify("Route set to Lantern Court / save point.")
 		"load":
 			_load_game()
 		"new":
@@ -1792,15 +1797,43 @@ func _transit_sound(kind: String) -> String:
 		return "BUS_DOOR"
 	return "TRANSIT"
 
-func _save_game() -> void:
-	if bool(session.call("save_snapshot", _capture_snapshot())):
+# All player-facing save paths use this same live location/entitlement gate.
+# The free check-in is at the real hotel door, not a global pre-tenancy exemption.
+func save_availability() -> Dictionary:
+	if not is_instance_valid(player) or current_car != null or current_transit != null:
+		return {"allowed": false, "reason": "Save on foot at Lantern Court."}
+	if interiors.call("is_inside") or venue_panel.visible or (is_instance_valid(equipment_wheel) and equipment_wheel.visible):
+		return {"allowed": false, "reason": "Leave the current interaction and visit Lantern Court."}
+	var lot: Node3D = city_details.call("nearby_walk_in", player.global_position)
+	if not is_instance_valid(lot) or str(lot.get("home_id")) != StarterHome.ID:
+		return {"allowed": false, "reason": "Visit Lantern Court to save."}
+	var at_save_point: bool = lot.call("home_action", player.global_position) == "save" if progression.owns_home() else (bool(lot.call("doorway_reachable", player.global_position)) and not bool(lot.call("contains", player.global_position)))
+	if not at_save_point:
+		return {"allowed": false, "reason": "Approach your capsule's save desk." if progression.owns_home() else "Use the free check-in checkpoint at the hotel entrance."}
+	if heat > 0.01:
+		return {"allowed": false, "reason": "Lose police attention before saving."}
+	return {"allowed": true, "reason": "Capsule save desk ready." if progression.owns_home() else "Free hotel check-in checkpoint ready."}
+
+func _save_game() -> bool:
+	var availability := save_availability()
+	var message: String
+	var success := false
+	if not bool(availability["allowed"]):
+		message = str(availability["reason"])
+		_log_playtest("save_blocked", {"reason": message})
+	elif bool(session.call("save_snapshot", _capture_snapshot())):
+		success = true
+		message = "Progress saved at Lantern Court."
 		if game_menu != null:
 			game_menu.call("set_has_save", true)
 		_log_playtest("save_success", {"seed": int(session.get("world_seed"))})
-		_notify("Saved slot 1. City seed: %d" % int(session.get("world_seed")))
 	else:
 		_log_playtest("save_failed")
-		_notify("Save failed. Check user data folder or permissions.")
+		message = "Save failed. Check user data folder or permissions."
+	_notify(message)
+	if game_menu != null and game_menu.call("is_open"):
+		game_menu.call("set_save_feedback", message)
+	return success
 
 func _load_game() -> void:
 	if game_menu != null and game_menu.call("is_open"):
@@ -2160,6 +2193,9 @@ func _toggle_interaction() -> void:
 	var physical_lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
 	if is_instance_valid(physical_lot) and not str(physical_lot.get("home_id")).is_empty():
 		if not progression.owns_home():
+			if str(physical_lot.get("home_id")) == StarterHome.ID and physical_lot.call("doorway_reachable", player.global_position) and not physical_lot.call("contains", player.global_position):
+				_save_game()
+				return
 			_notify("Complete Mara’s contact mission first.")
 			return
 		match str(physical_lot.call("home_action",player.global_position)):
@@ -3440,7 +3476,12 @@ func _update_hud() -> void:
 		var physical_lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
 		if physical_lot != null and not str(physical_lot.get("home_id")).is_empty():
 			var home_action := str(physical_lot.call("home_action",player.global_position))
-			prompts.append("HOME / " + (interact_key + " " + home_action.capitalize() if progression.owns_home() and not home_action.is_empty() else ("Unit 01" if progression.owns_home() else "Locked — tenancy payment required")))
+			var at_checkin := not progression.owns_home() and bool(physical_lot.call("doorway_reachable", player.global_position)) and not bool(physical_lot.call("contains", player.global_position))
+			if at_checkin or (progression.owns_home() and home_action == "save"):
+				var save_info := save_availability()
+				prompts.append(interact_key + "  Save progress / " + ("Free hotel check-in" if at_checkin else "Capsule desk") if bool(save_info["allowed"]) else str(save_info["reason"]))
+			else:
+				prompts.append("HOME / " + (interact_key + " " + home_action.capitalize() if progression.owns_home() and not home_action.is_empty() else ("Unit 01" if progression.owns_home() else "Locked — tenancy payment required")))
 		if physical_lot != null and physical_lot.call("service_reachable",player.global_position):
 			prompts.append("%s Order at HELIX ESPRESSO" % interact_key)
 		if physical_lot != null and physical_lot.call("doorway_reachable",player.global_position):
@@ -3489,9 +3530,11 @@ func set_navigation_waypoint(point: Vector2) -> Vector2:
 	for pin in civic_services.call("get_map_pins"):
 		var p: Vector3 = civic_services.call("position_for", str(pin["id"]))
 		candidates.append(Vector2(p.x, p.z))
+	var hotel_entry := StarterHome.entry()
+	candidates.append(Vector2(hotel_entry.x, hotel_entry.z))
 	if progression.owns_home():
-		for entry in [StarterHome.entry(),StarterGarage.entry()]:
-			candidates.append(Vector2(entry.x,entry.z))
+		var garage_entry := StarterGarage.entry()
+		candidates.append(Vector2(garage_entry.x, garage_entry.z))
 	for candidate in candidates:
 		var gap := point.distance_to(candidate)
 		if gap <= distance and Nav.valid(candidate):
