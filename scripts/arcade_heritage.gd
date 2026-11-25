@@ -1,5 +1,5 @@
 extends Node3D
-## Eight original illustrated museum pieces. Names are historical tributes, not endorsements.
+## Original illustrated museum pieces. Names are historical tributes, not endorsements.
 ## Read from the clear front-wall gallery; static textures, no animated displays.
 const EXHIBITS := [
 	{"id":"pixel_pioneers", "title":"PIXEL PIONEERS", "line":"A tribute to Toru Iwatani and Shigeru Miyamoto: expressive characters, readable rules, and the joy of one more try.", "art":preload("res://assets/arcade/heritage/pixel_pioneers.svg"), "position":Vector3(-6.4,2.14,8.57), "approach":Vector3(-6.4,1.15,7.18), "rotation":PI},
@@ -9,7 +9,9 @@ const EXHIBITS := [
 	{"id":"strategy_legacy", "title":"ONE MORE TURN", "line":"For Sid Meier and strategy designers: a meaningful decision is worth more than a thousand compulsory daily tasks.", "art":preload("res://assets/arcade/heritage/strategy_legacy.svg"), "position":Vector3(4.5,2.14,8.57), "approach":Vector3(4.5,1.15,7.18), "rotation":PI},
 	{"id":"physical_media", "title":"YOU OWNED IT", "line":"Rook kept the cartridge, manual, disc and save files. Nobody can revoke the memories attached to them.", "art":preload("res://assets/arcade/heritage/physical_media.svg"), "position":Vector3(6.4,2.14,8.57), "approach":Vector3(6.4,1.15,7.18), "rotation":PI},
 	{"id":"roadmap_museum", "title":"THE ROADMAP OF THE ROADMAP", "line":"A fictional collector's roadmap: announce the teaser, delay the trailer, sell the calendar. The game is listed as optional.", "art":preload("res://assets/arcade/heritage/roadmap_museum.svg"), "position":Vector3(-7.65,2.14,6), "approach":Vector3(-6.45,1.15,6), "rotation":PI / 2.0},
-	{"id":"apology_award", "title":"THE GOLDEN APOLOGY", "line":"Fictional industry trophy for the most sincere promise to listen to feedback. The feedback is still in a queue.", "art":preload("res://assets/arcade/heritage/apology_award.svg"), "position":Vector3(7.65,2.14,6), "approach":Vector3(6.45,1.15,6), "rotation":-PI / 2.0}
+	{"id":"apology_award", "title":"THE GOLDEN APOLOGY", "line":"Fictional industry trophy for the most sincere promise to listen to feedback. The feedback is still in a queue.", "art":preload("res://assets/arcade/heritage/apology_award.svg"), "position":Vector3(7.65,2.14,6), "approach":Vector3(6.45,1.15,6), "rotation":-PI / 2.0},
+	{"id":"lan_party", "title":"BRING YOUR OWN COMPUTER", "line":"A tribute to LAN parties, split-screen nights, borrowed Ethernet cables and carrying a CRT across town just to play together.", "art":preload("res://assets/arcade/heritage/lan_party.svg"), "position":Vector3(-3.1,1.52,-4.45), "approach":Vector3(-3.1,1.15,-3.25), "rotation":0.0, "stand":true},
+	{"id":"shareware_scene", "title":"COPY THIS DISK", "line":"For shareware authors, demo-disc collectors, modders and indie developers: a good game spreads because someone wants their friend to play it.", "art":preload("res://assets/arcade/heritage/shareware_scene.svg"), "position":Vector3(3.1,1.52,-4.45), "approach":Vector3(3.1,1.15,-3.25), "rotation":0.0, "stand":true}
 ]
 const INSPECT_RADIUS := 1.05
 var _materials: Dictionary = {}
@@ -40,6 +42,9 @@ func _ready() -> void:
 		label.modulate = Color("e9c283")
 		label.position = Vector3(0,-.72,.06)
 		frame.add_child(label)
+		if data.get("stand",false):
+			_box(frame,"StandPost",Vector3(0,-.91,-.06),Vector3(.12,1.22,.12),Color("424b4c"),true)
+			_box(frame,"StandFoot",Vector3(0,-1.46,0),Vector3(.95,.12,.45),Color("424b4c"),true)
 	# Shallow wall shelves: entirely behind the marked inspection spots.
 	# Geometry is original, not a recreation of a branded console.
 	for x in [-4.5,4.5]:

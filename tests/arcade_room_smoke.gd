@@ -44,7 +44,7 @@ func _verify() -> void:
 	if not check(room.talk_regular(local) == first_line, "regular dialogue wraps"):
 		return
 	var archive := room.get_node_or_null("GameCultureArchive")
-	if not check(archive != null and archive.EXHIBITS.size() == 8, "eight archive exhibits"):
+	if not check(archive != null and archive.EXHIBITS.size() == 10, "ten archive exhibits"):
 		return
 	if not check(archive.get_node_or_null("PublisherAwards") != null and archive.get_node_or_null("CommunityAward") != null, "physical satire and community awards"):
 		return

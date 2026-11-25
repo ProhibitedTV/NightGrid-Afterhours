@@ -2244,7 +2244,6 @@ func _open_arcade_circuit() -> bool:
 	if not interiors.call("arcade_circuit_near",player.global_position):
 		return false
 	var screen := ArcadeCircuit.new()
-	screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	screen.configure(_arcade_best)
 	return _present_arcade_overlay(screen)
 
@@ -2255,6 +2254,7 @@ func _present_arcade_overlay(screen: Control) -> bool:
 	_arcade_layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(_arcade_layer)
 	_arcade_layer.add_child(screen)
+	screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	screen.connect("exit_requested", _close_arcade)
 	suspend_weapon()
 	player.set("input_blocked", true)

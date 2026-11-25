@@ -26,3 +26,5 @@ Physical satire trophies (best apology, roadmap and editions) and a separate com
 
 ## Rook's neighborhood circuit
 A playable eight-cabinet score challenge. The physical counter poster opens a read-only scorecard with eight rival-named targets, current bests, stamps, and Local Legend completion. Scores already stored in arcade_best determine progress, so no new save schema or duplicated settlement. All completed runs count, no sign-up, cash, repeatable reward, time limit, or real-world Friday restriction. Tests exercise threshold boundaries, save roundtrip and board reachability. The board shares the cabinet modal's pause ownership. Friday night tournament rules remain future work.
+
+Two freestanding zine archive displays honor LAN parties, split-screen, shareware, demo discs, and community-made maps. Original computer and disk illustrations accompany the inspectable text. Their collidable stands are outside the central counter route and cabinet approach zones. The shared modal now anchors to the full viewport after parenting to the CanvasLayer.
