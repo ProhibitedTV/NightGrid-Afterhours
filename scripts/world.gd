@@ -512,6 +512,7 @@ func _start_opening_office() -> void:
 		return
 	if is_instance_valid(dialogue_director):
 		dialogue_director.call("cancel_all")
+	_cancel_street_interactions()
 	_opening_office.call("begin_prologue")
 	player.get("visual").call("set_corporate_attire",true)
 	player.global_position = _opening_office.to_global(OpeningOffice.START)
@@ -1611,6 +1612,7 @@ func _spawn_police() -> void:
 		return
 
 func _respawn() -> void:
+	_cancel_street_interactions()
 	_log_playtest("respawn", {"health": health, "reason": "fall_or_boundary_or_damage"})
 	_close_venue()
 	weapons.holster()
@@ -2031,6 +2033,7 @@ func _capture_snapshot() -> Dictionary:
 	return state
 
 func _apply_snapshot(data: Dictionary) -> void:
+	_cancel_street_interactions()
 	if is_instance_valid(dialogue_director):
 		dialogue_director.call("cancel_all")
 	if not progression.restore(data.get("cash", 0), data.get("progression", {"version": ProgressionLedger.VERSION, "receipts": []})):
@@ -3893,3 +3896,8 @@ func get_map_state() -> Dictionary:
 		"civic_quest_active": not civic_job_active.is_empty(),
 		"civic_quest": Vector2(_civic_job_target().x, _civic_job_target().z)
 	}
+
+func _cancel_street_interactions()->void:
+	_street_contact_id=""
+	if is_instance_valid(pedestrians) and is_instance_valid(dialogue_director):
+		pedestrians.call("cancel_street_dialogue",dialogue_director)

@@ -117,6 +117,21 @@ func _verify()->void:
 	director.update_street_dialogue(speech,contact_listener,RID(),false,0.1)
 	if not _check(speech.stats()["active"]=="" and director.nearby_contact().is_empty(),"leaving cancels direct reply and cached interaction"):
 		return
+	# Cancel an enqueued but not yet started reply. No line_ended event is
+	# emitted for discarded pending entries; the controller must still release.
+	director.update_street_dialogue(speech,contact_listener,RID(),true,0.2)
+	if not _check(director.request_player_reply(first,0),"contact available after return"):
+		return
+	director.update_street_dialogue(speech,contact_listener,RID(),true,0.1)
+	if not _check(speech.has_scope("street:player"),"reply queued"):
+		return
+	speech.cancel_all()
+	director.update_street_dialogue(speech,contact_listener,RID(),true,0.1)
+	if not _check(str(director.get("_player_lease")).is_empty() and not speech.has_scope("street:player"),"discarded reply cannot hold actor"):
+		return
+	director.cancel_street_dialogue(speech)
+	if not _check(director.nearby_contact().is_empty(),"transition invalidates cached contact"):
+		return
 	director.shutdown()
 	print("STREET_EXCHANGE PASS: compatible leases, alternating turns, story interruption and context cancellation")
 	quit(0)

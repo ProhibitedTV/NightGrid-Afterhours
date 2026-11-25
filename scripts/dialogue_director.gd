@@ -200,6 +200,17 @@ func skip() -> void:
 	_finish("skipped")
 
 
+## Detect a queued/active scope even when a pending entry was evicted or
+## discarded without a line_ended signal. No caller needs private queue state.
+func has_scope(scope: String) -> bool:
+	if not _active.is_empty() and _active["scope"] == scope:
+		return true
+	for entry in _pending:
+		if entry["scope"] == scope:
+			return true
+	return false
+
+
 func cancel_scope(scope: String) -> void:
 	for i in range(_pending.size() - 1, -1, -1):
 		if _pending[i]["scope"] == scope:

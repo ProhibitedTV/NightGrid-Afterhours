@@ -561,3 +561,15 @@ func begin_player_reply(space:PhysicsDirectSpaceState3D,listener:Vector3,listene
 func release_player_reply(id:String)->void:
 	if _leases.has(id):
 		_leases[id]["social"]=0.0
+
+func bark_audible(id:String,space:PhysicsDirectSpaceState3D,listener:Vector3,listener_rid:RID)->bool:
+	if not street_bark_valid(id):
+		return false
+	var body:=_slots[int(_leases[id]["slot"])]
+	var eye:=body.global_position+Vector3.UP*1.6
+	if eye.distance_squared_to(listener)>64.0:
+		return false
+	var ignored:Array[RID]=[body.get_rid()]
+	if listener_rid.is_valid():
+		ignored.append(listener_rid)
+	return space.intersect_ray(PhysicsRayQueryParameters3D.create(eye,listener,1,ignored)).is_empty()

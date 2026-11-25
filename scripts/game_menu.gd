@@ -252,7 +252,7 @@ func _render() -> void:
 	_buttons.clear()
 	_focus_order.clear()
 	_first_focus = null
-	var staged := screen in ["breakroom","restroom","parking_guard"] or (screen=="opening" and _physical_opening and _opening_stage in [2,4])
+	var staged := screen in ["breakroom","restroom","parking_guard","street_contact"] or (screen=="opening" and _physical_opening and _opening_stage in [2,4])
 	var shade := ColorRect.new()
 	shade.name = "Scrim"
 	shade.color = Color(0.028, 0.045, 0.060, .12 if staged else .94)

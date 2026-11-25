@@ -24,6 +24,7 @@ var _failed_activation := 0
 var _pending_release := 0
 var _street_clock := 12.0
 var _street_lease := ""
+var _street_check:=0.0
 var _exchange:Dictionary={}
 var _exchange_turn:=0
 var _exchange_line:=""
@@ -245,9 +246,16 @@ func update_street_dialogue(dialogue:Node, listener:Vector3, listener_rid:RID, a
 	if not _exchange.is_empty():
 		_tick_exchange(dialogue,listener,listener_rid,allowed,delta)
 		return
-	if not _street_lease.is_empty() and (not allowed or not bool(_pool.call("street_bark_valid",_street_lease))):
-		dialogue.call("cancel_scope","street:"+_street_lease)
-		_street_lease=""
+	if not _street_lease.is_empty():
+		var scope:="street:"+_street_lease
+		_street_check-=delta
+		var invalid:=not allowed or not bool(_pool.call("street_bark_valid",_street_lease))
+		if not invalid and _street_check<=0.0:
+			_street_check=0.2
+			invalid=not bool(_pool.call("bark_audible",_street_lease,get_world_3d().direct_space_state,listener,listener_rid))
+		if invalid or not bool(dialogue.call("has_scope",scope)):
+			dialogue.call("cancel_scope",scope)
+			_street_lease=""
 	if not allowed:
 		return
 	_street_clock=maxf(0.0,_street_clock-delta)
@@ -277,6 +285,7 @@ func update_street_dialogue(dialogue:Node, listener:Vector3, listener_rid:RID, a
 	var lease_id:=str(bark["lease_id"])
 	if dialogue.call("enqueue",str(bark["id"]),str(bark["text"]),0,bark["speaker"],"street:"+lease_id):
 		_street_lease=lease_id
+		_street_check=0.0
 		_street_clock=24.0
 
 func _on_street_line_ended(line_id:String,reason:String) -> void:
@@ -319,6 +328,8 @@ func _tick_exchange(dialogue:Node,listener:Vector3,listener_rid:RID,allowed:bool
 		_end_exchange(dialogue)
 		return
 	if not _exchange_line.is_empty():
+		if not bool(dialogue.call("has_scope",EXCHANGE_SCOPE)):
+			_end_exchange(dialogue)
 		return
 	_exchange_gap=maxf(0.0,_exchange_gap-delta)
 	if _exchange_gap>0.0:
@@ -358,7 +369,7 @@ func _finish_player_reply(dialogue:Node)->void:
 
 func _update_contact(dialogue:Node,listener:Vector3,listener_rid:RID,allowed:bool,delta:float)->void:
 	var space:=get_world_3d().direct_space_state
-	if not _player_lease.is_empty() and (not allowed or _player_finished or not bool(_pool.call("street_bark_valid",_player_lease))):
+	if not _player_lease.is_empty() and (not allowed or _player_finished or not bool(dialogue.call("has_scope",PLAYER_SCOPE)) or not bool(_pool.call("street_bark_valid",_player_lease))):
 		_finish_player_reply(dialogue)
 	_contact_clock-=delta
 	if not allowed:
@@ -395,3 +406,17 @@ func _update_contact(dialogue:Node,listener:Vector3,listener_rid:RID,allowed:boo
 	_player_finished=false
 	if not bool(dialogue.call("enqueue",_player_line,str(reply["text"]),0,reply["speaker"],PLAYER_SCOPE)):
 		_finish_player_reply(dialogue)
+
+## Clear transient interactions on respawn, story transitions or save restore.
+func cancel_street_dialogue(dialogue:Node)->void:
+	if not is_instance_valid(dialogue):
+		return
+	if not _exchange.is_empty():
+		_end_exchange(dialogue)
+	if not _street_lease.is_empty():
+		dialogue.call("cancel_scope","street:"+_street_lease)
+		_street_lease=""
+	_finish_player_reply(dialogue)
+	_player_request={}
+	_contact={}
+	_contact_clock=0.0
