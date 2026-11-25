@@ -473,6 +473,12 @@ func _build_world_audio() -> void:
 		float(options.get("sfx_volume", 0.75)))
 
 func _on_menu_action(action: String) -> void:
+	if action.begins_with("phone_route_"):
+		_phone_route(action)
+		return
+	if action == "phone":
+		_open_phone(true)
+		return
 	if action.begins_with("fashion_waypoint:"):
 		var id:=action.trim_prefix("fashion_waypoint:")
 		if ClothingStore.STORES.has(id):
@@ -719,6 +725,132 @@ func _story_target() -> Vector3:
 		return mission_position
 	return venue_system.call("venue_position", "lantern_cup")
 
+func phone_available() -> bool:
+	return is_instance_valid(player) and not is_instance_valid(_opening_office) and current_car == null and current_transit == null and not is_instance_valid(_arcade_layer) and _music_session_site.is_empty() and not venue_panel.visible and not equipment_wheel.visible
+
+func _open_phone(from_pause: bool) -> void:
+	if not phone_available():
+		_notify("Use your phone on foot, outside an active conversation.")
+		return
+	if from_pause and game_menu.get("screen") != "pause":
+		return
+	game_menu.call("open_phone", _phone_context(), from_pause)
+
+func _phone_nearest(points: Array, origin: Vector2) -> Vector2:
+	var best := Vector2.INF
+	var distance := INF
+	for point in points:
+		if not point is Vector2 or not point.is_finite():
+			continue
+		var gap: float = origin.distance_to(point)
+		if gap < distance:
+			distance = gap
+			best = point
+	return best
+
+func _phone_transit() -> Dictionary:
+	var outside: Vector3 = interiors.get("exterior_position") if interiors.call("is_inside") else player.global_position
+	var origin := Vector2(outside.x, outside.z)
+	return {"origin":origin, "rail":_phone_nearest(rail.call("get_map_stations"),origin), "bus":_phone_nearest(traffic.call("get_map_stops"),origin)}
+
+# Existing authored contracts remain the authority for offers, receipts, and payouts.
+# Phone browsing only exposes a destination; acceptance happens at the counter.
+func _phone_workboard() -> Array[Dictionary]:
+	var listings: Array[Dictionary] = []
+	for category in ["local","civic"]:
+		var local: bool = category == "local"
+		var active: String = venue_job_active if local else civic_job_active
+		var completed: Array[String] = venue_job_completed if local else civic_job_completed
+		var service: Node = venue_system if local else civic_services
+		var catalog: Array = VenueSystemScript.SIDE_JOBS if local else CivicServicesScript.WORK_ORDERS
+		for job in catalog:
+			var id: String = job["id"]
+			if completed.has(id) or progression.has_receipt(("venue:" if local else "civic:")+id):
+				continue
+			if not active.is_empty() and id != active:
+				continue
+			if local and id != active and not venue_system.call("job_unlocked",job,progression.street_cred()):
+				continue
+			var site: String = job["to"] if id == active else job["from"]
+			var record: Dictionary = service.call("venue_by_id" if local else "site_by_id",site)
+			if record.is_empty():
+				continue
+			var position: Vector3 = service.call("venue_position" if local else "position_for",site)
+			if not position.is_finite():
+				continue
+			listings.append({
+				"id":category+":"+id,"category":"Private contact" if local else "Civic contract",
+				"title":job["title"],"brief":str(job.get("brief",job["title"])),"reward":job["reward"],
+				"site":record["name"],"open":service.call("is_open",site),
+				"active":id == active,"position":Vector2(position.x,position.z)
+			})
+	return listings
+
+func _phone_context() -> Dictionary:
+	var transit := _phone_transit()
+	var origin: Vector2 = transit["origin"]
+	var rail_point: Vector2 = transit["rail"]
+	var bus_point: Vector2 = transit["bus"]
+	return {
+		"clock":day_night.call("clock_string"), "gig":courier_mission.gig_economy,
+		"offboarded":progression.has_receipt(Opening.RECEIPT), "order":courier_mission.objective()["title"],
+		"carrying":carrying, "payout":courier_mission.payout(), "deliveries":deliveries,
+		"cash":cash, "bitcoin_sats":progression.bitcoin_sats, "story":story_mission.journal(),
+		"home_owned":progression.owns_home(), "home_access":progression.has_receipt(StarterHome.ACCESS_RECEIPT),
+		"deposit":StarterHome.move_in_price(), "notice":Opening.app_notice(deliveries),
+		"global_street_cred":progression.street_cred_summary(), "cred_sources":progression.street_cred_sources(),
+		"workboard":_phone_workboard(), "instrument_status":progression.instrument_summary(),
+		"music_contact":_music_contact_status(), "music_sets":progression.street_activity_runs("busking"),
+		"live_sets":progression.street_activity_runs("live_gig"), "music_unlocked":progression.has_receipt("venue:soundcheck_pass"),
+		"music_contact_available":progression.street_cred()>=100,
+		"rail_available":rail_point.is_finite(), "bus_available":bus_point.is_finite(),
+		"rail_name":"%d m away (direct)" % roundi(origin.distance_to(rail_point)) if rail_point.is_finite() else "Unavailable",
+		"bus_name":"%d m away (direct)" % roundi(origin.distance_to(bus_point)) if bus_point.is_finite() else "Unavailable"
+	}
+
+func _phone_route(action: String) -> void:
+	if not phone_available() or game_menu.get("screen") != "phone":
+		return
+	var destination := Vector2.INF
+	var app: String = game_menu.get("_phone_app")
+	if action.begins_with("phone_route_contract:") and app == "opportunities":
+		var id := action.trim_prefix("phone_route_contract:")
+		for listing in _phone_workboard():
+			if listing["id"] == id:
+				destination = listing["position"]
+				break
+	match action:
+		"phone_route_order":
+			if app == "work" and courier_mission.gig_economy:
+				destination = Vector2(mission_position.x,mission_position.z)
+		"phone_route_mara":
+			if app == "contacts":
+				var p: Vector3 = venue_system.call("venue_position","lantern_cup")
+				destination = Vector2(p.x,p.z)
+		"phone_route_home":
+			if app == "housing":
+				var p := StarterHome.entry()
+				destination = Vector2(p.x,p.z)
+		"phone_route_music_shop", "phone_route_music_gig", "phone_route_music_contact":
+			if app == "music":
+				if action == "phone_route_music_gig" and not progression.has_receipt("venue:soundcheck_pass"):
+					return
+				if action == "phone_route_music_contact" and progression.street_cred()<100:
+					return
+				var site := "copper_cup" if action == "phone_route_music_shop" else ("blue_hour" if action == "phone_route_music_gig" else "static_room")
+				var p: Vector3 = venue_system.call("venue_position",site)
+				destination = Vector2(p.x,p.z)
+		"phone_route_rail":
+			if app == "transit":
+				destination = _phone_transit()["rail"]
+		"phone_route_bus":
+			if app == "transit":
+				destination = _phone_transit()["bus"]
+	if destination.is_finite():
+		set_navigation_waypoint(destination)
+		game_menu.call("hide_for_game")
+		_notify("Phone: route set.")
+
 func _journal_context() -> Dictionary:
 	var outside: Vector3 = interiors.get("exterior_position") if interiors.call("is_inside") else _actor().global_position
 	var district: String = city_details.call("get_district_at", outside)
@@ -873,6 +1005,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		if venue_panel.visible:
 			_close_venue()
 		game_menu.call("open_map")
+	elif event.is_action_pressed("phone_open"):
+		_open_phone(false)
 	elif event.is_action_pressed("journal_open"):
 		if venue_panel.visible:
 			_close_venue()
