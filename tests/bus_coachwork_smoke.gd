@@ -44,21 +44,24 @@ func _verify()->void:
 			return
 		var collider_count:=0
 		var wheels:=0
-		var rims:=0
 		for child in bus.get_children():
 			if child is CollisionShape3D:
 				collider_count+=1
 				if not _check((child.shape as BoxShape3D).size==Vector3(2.7,2.85,8.3),"unchanged collision"):
 					return
-			if child is MeshInstance3D and child.mesh is CylinderMesh:
-				if not _check(is_equal_approx(child.position.y,-1.30),"wheel ride height aligned with route"):
+			if child is MultiMeshInstance3D and child.name in ["Tires","Hubs"]:
+				if not _check((child.name=="Tires" and child.multimesh.mesh is CylinderMesh) or (child.name=="Hubs" and child.multimesh.mesh is ArrayMesh),"batched tire and modeled rim"):
 					return
-				wheels+=1
-			if child is MeshInstance3D and str(child.name).begins_with("TrafficRim_"):
-				if not _check(child.mesh is ArrayMesh and is_equal_approx(child.position.y,-1.30),"modeled rim at axle"):
+				var authored: Array = child.multimesh.get_meta("wheel_transforms", [])
+				if not _check(authored.size() == child.multimesh.instance_count, "four recorded wheel transforms"):
 					return
-				rims+=1
-		if not _check(collider_count==1 and wheels==4 and rims==4 and bus.is_boardable(),"original wheel count and bus boarding"):
+				for i in range(child.multimesh.instance_count):
+					var pose: Transform3D = authored[i] if DisplayServer.get_name() == "headless" else child.multimesh.get_instance_transform(i)
+					var at := pose.origin
+					if not _check(is_equal_approx(at.y, -1.30) and absf(absf(at.x) - 1.18) < 0.001 and absf(absf(at.z) - 2.55) < 0.001, "wheel ride height aligned with route"):
+						return
+					wheels += 1
+		if not _check(collider_count==1 and wheels==8 and bus.is_boardable(),"original wheel count and bus boarding"):
 			return
 		meshes.append(coach.mesh)
 	if not _check(meshes[0]==meshes[1] and meshes[2]==meshes[3] and meshes[0]!=meshes[2],"shared inner/outer livery resources"):

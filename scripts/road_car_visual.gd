@@ -1,0 +1,789 @@
+extends Node3D
+## Articulated visual rig. The existing car owns motion and collision.
+
+const Cars = preload("res://scripts/road_car_catalog.gd")
+const Crumple = preload("res://scripts/vehicle_crumple.gd")
+const Drivetrain = preload("res://scripts/road_car_audio.gd")
+const Cluster = preload("res://scripts/cinder_instrument_cluster.gd")
+const Paint = preload("res://shaders/vehicle_paint.gdshader")
+const Glazing = preload("res://shaders/vehicle_glazing.gdshader")
+const RAIN_BEADS = preload("res://assets/models/nightgrid/road_cars/rain_beads.png")
+const MODEL = preload("res://assets/models/nightgrid/road_cars/cinder_r9.gltf")
+const Wheel = preload("res://assets/models/nightgrid/road_cars/wheel.gltf")
+const STEEL_NORMAL = preload("res://assets/models/nightgrid/central_exchange_curb/textures/steel_normal_1k.jpg")
+const WHEEL_MODEL_RADIUS = 0.359
+const GROUND = -0.825
+# The authored tire/arch gap is only ~35.5 mm at neutral. Reserve most
+# of it for combined body attitude and tolerance, not exaggerated travel.
+const BUMP_LIMIT = .010
+const DROOP_LIMIT = .045
+const BODY_VERTICAL_BUDGET = .018
+const SPRAY_MIN_SPEED = 3.0
+const SPRAY_MIN_FILM = .25
+const SPRAY_PARTICLES_PER_WHEEL = 24
+const CONTACT_SHADOW_SHADER = preload("res://shaders/vehicle_contact_shadow.gdshader")
+const PARKED_SHADOW_INTERVAL = .25
+const TAIL_RED = Color("ff2635")
+const REVERSE_WHITE = Color("ffdcb8")
+const SILL_CYAN = Color("16d9f4")
+static var _shared: Dictionary = {}
+static var _wheel_mesh: ArrayMesh
+static var _brake_left_mesh: ArrayMesh
+static var _brake_right_mesh: ArrayMesh
+static var _spray_mesh: QuadMesh
+static var _spray_fade: Gradient
+static var _contact_shadow_mesh: PlaneMesh
+
+var _night := true
+var _founder_display:=false
+var _founder_finishes:Dictionary={}
+var _color: Color
+var _spec: Dictionary
+var _shell: Node3D
+var _body_sections: Array[MeshInstance3D] = []
+var _head: MeshInstance3D
+var _projectors: MeshInstance3D
+var _tail: MeshInstance3D
+var _reverse: MeshInstance3D
+var _sill: MeshInstance3D
+var _wheels: Array[Node3D] = []
+var _brake_calipers: Array[MeshInstance3D] = []
+var _steering: Array[Node3D] = []
+var _knuckles: Array[Node3D] = []
+var _wheel_offsets := Vector4.ZERO
+var _spray: Array[CPUParticles3D] = []
+var _contact_shadow: MeshInstance3D
+var _shadow_timer := 0.0
+var _shadow_sample_origin := Vector3.INF
+var _beams: Array[SpotLight3D] = []
+var _tail_throw: SpotLight3D
+var _sill_lights: Array[OmniLight3D] = []
+var _doors: Array[Dictionary] = []
+var _wheel_phase := 0.0
+var _drivetrain := Drivetrain.new()
+var _cluster: Node3D
+var _cabin_light: OmniLight3D
+var _cabin_glow := 0.0
+var _steering_wheel: Node3D
+var _cockpit_angle := 0.0
+var _velocity := 0.0
+var _braking := false
+var _occupied := false
+var _damage := Vector4.ZERO
+var _crash_sources: Dictionary = {}
+var _crash_applied := Vector2(-1.0, -1.0)
+
+func configure(paint_color: Color) -> void:
+	_color = paint_color
+	_spec = Cars.DATA[Cars.R9]
+
+func configure_founder_display() -> void:
+	configure(Color("122c29"))
+	_founder_display=true
+
+func _ready() -> void:
+	if _shared.is_empty():
+		_create_materials()
+	_shell = MODEL.instantiate() as Node3D
+	_shell.name = "Coachwork"
+	_shell.position.y = GROUND
+	add_child(_shell)
+	for child in _shell.get_children():
+		var part := child as MeshInstance3D
+		if part == null:
+			continue
+		_finish(part)
+		if part.name.begins_with("Door"):
+			part.set_instance_shader_parameter("panel_origin_y", part.position.y)
+			var side := -1.0 if part.name.begins_with("DoorL") else 1.0
+			var reach := part.mesh.get_aabb().end.z
+			_doors.append({"part": part, "side": side, "reach": reach, "motion": 0.0, "target": 0.0, "hold": -1.0})
+	_body_sections = [_shell.get_node("FrontClip"), _shell.get_node("RearClip"), _shell.get_node("Cabin")]
+	_head = _shell.get_node("HeadLenses")
+	_projectors = _shell.get_node("HeadProjectors")
+	_tail = _shell.get_node("TailLenses")
+	_reverse = _shell.get_node("ReverseLenses")
+	_sill = _shell.get_node("SillLenses")
+	for part in [_body_sections[0], _body_sections[1], _head, _projectors, _tail, _reverse]:
+		_crash_sources[part] = part.mesh
+	_steering_wheel = _shell.get_node_or_null("SteeringWheel") as Node3D
+	_build_wheels()
+	if _founder_display:
+		# Static parked display: no drivetrain, live instruments, lights or physics tick.
+		set_process(false)
+		set_physics_process(false)
+		return
+	_build_lights()
+	_cluster = Cluster.new()
+	_cluster.name = "LiveInstrumentCluster"
+	# Center-stack panel just aft of the authored dashboard ellipsoid.
+	# Do not overlap the independently articulated steering wheel.
+	_cluster.position = Vector3(.12, .705, -.849)
+	_shell.add_child(_cluster)
+	_build_cabin_light()
+	_drivetrain.mount(self)
+	apply_damage(Vector4.ZERO)
+
+func _create_materials() -> void:
+	_shared["Graphite"] = _finish_material(Color("252830"), 0.80)
+	_shared["Seat"] = _upholstery(Color("353c46"), .84, 0.20, 80.0)
+	_shared["DoorCard"] = _upholstery(Color("252a2d"), .73, 0.12, 54.0)
+	_shared["Tire"] = _finish_material(Color("181a1d"), 0.86)
+	var alloy := _finish_material(Color("989ca3"), 0.31, 0.82)
+	alloy.normal_enabled = true
+	alloy.normal_texture = STEEL_NORMAL
+	alloy.normal_scale = 0.27
+	_shared["MachinedAlloy"] = alloy
+	_shared["BrakeCaliper"] = _finish_material(Color("bb4230"), 0.32, 0.34)
+	var glass := ShaderMaterial.new()
+	glass.shader = Glazing
+	glass.set_shader_parameter("rain_beads", RAIN_BEADS)
+	_shared["Glazing"] = glass
+	var optic := _finish_material(Color(0.24, 0.28, 0.32, 0.115), 0.105)
+	optic.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	optic.clearcoat_enabled = true
+	optic.clearcoat = 0.74
+	optic.clearcoat_roughness = 0.09
+	_shared["OpticCover"] = optic
+	var titanium := _finish_material(Color("817268"), 0.29, 0.88)
+	titanium.normal_enabled = true
+	titanium.normal_texture = STEEL_NORMAL
+	titanium.normal_scale = 0.22
+	titanium.uv1_scale = Vector3(3.5, 1.2, 1)
+	_shared["Titanium"] = titanium
+	# Satin stamped reflector tray now sits directly below the bonded lenses.
+	# The real headlights and projector bulbs still own their light states.
+	_shared["HeadlampReflectorHousing"] = _finish_material(Color("43545e"), 0.31, 0.67)
+	_shared["HeadlampPerimeterSeal"] = _finish_material(Color("131719"), 0.86, 0.0)
+	# The molded instrument bezel remains a physical dark housing; only
+	# the separate digital cluster lights up when the ignition is active.
+	_shared["Instrument"] = _finish_material(Color("28363b"), .48)
+	_shared["Headlamp"] = _lamp(Color("cbdff4"), 1.62)
+	_shared["HeadIdle"] = _finish_material(Color("757e8e"), 0.36, 0.30)
+	_shared["ProjectorOn"] = _lamp(Color("eef4ff"), 3.18)
+	_shared["ProjectorOptic"] = _finish_material(Color("697d96"), 0.18, 0.64)
+	_shared["Taillamp"] = _lamp(Color("b62332"), 0.41)
+	_shared["TailIdle"] = _finish_material(Color("681c2c"), 0.25)
+	_shared["Braking"] = _lamp(Color("f34744"), 2.64)
+	_shared["ReverseLamp"] = _finish_material(Color("3a444b"), 0.30)
+	_shared["Reversing"] = _lamp(Color("e6e8d4"), 1.44)
+	_shared["BrokenLamp"] = _finish_material(Color("191c21"), 0.72)
+	_shared["SillOn"] = _lamp(SILL_CYAN, 1.55)
+	_shared["SillOff"] = _finish_material(Color("1e434a"), 0.42)
+
+func _upholstery(tint: Color, roughness: float, strength: float, repeats: float) -> StandardMaterial3D:
+	# Original periodic micro-grain, sampled through the authored UVs.
+	# Shared once per material; no per-frame generation or external assets.
+	var normal_map := Image.create(64, 64, false, Image.FORMAT_RGB8)
+	for y in 64:
+		for x in 64:
+			var u := TAU * float(x) / 64.0
+			var w := TAU * float(y) / 64.0
+			var nx := .16 * cos(5.0 * u + sin(3.0 * w)) + .10 * sin(11.0 * u - 7.0 * w)
+			var ny := .16 * cos(6.0 * w + sin(4.0 * u)) + .10 * cos(7.0 * u + 9.0 * w)
+			var n := Vector3(nx, ny, 1.0).normalized()
+			normal_map.set_pixel(x, y, Color(n.x * .5 + .5, n.y * .5 + .5, n.z * .5 + .5))
+	normal_map.generate_mipmaps()
+	var material := _finish_material(tint, roughness)
+	material.normal_enabled = true
+	material.normal_texture = ImageTexture.create_from_image(normal_map)
+	material.normal_scale = strength
+	material.uv1_scale = Vector3(repeats, repeats, 1.0)
+	return material
+
+func _build_cabin_light() -> void:
+	_cabin_light = OmniLight3D.new()
+	_cabin_light.name = "CabinCourtesyLight"
+	_cabin_light.position = Vector3(0.0, 1.08, -.14)
+	_cabin_light.light_color = Color("b6c9db")
+	_cabin_light.omni_range = .70
+	_cabin_light.omni_attenuation = 2.4
+	_cabin_light.shadow_enabled = false
+	_cabin_light.light_specular = .18
+	_cabin_light.light_energy = 0.0
+	_cabin_light.hide()
+	_shell.add_child(_cabin_light)
+
+func _update_cabin_light(occupied: bool, delta: float) -> void:
+	var door_open := 0.0
+	for door in _doors:
+		door_open = maxf(door_open, float(door["motion"]))
+	# A courtesy lamp brightens during entry/exit. A dimmer interior fill
+	# while driving avoids illuminating the surrounding street.
+	var target := .32 * smoothstep(.02, .35, door_open)
+	if occupied and _night:
+		target = maxf(target, .08)
+	_cabin_glow = move_toward(_cabin_glow, target, maxf(delta, 0.0) * .75)
+	_cabin_light.light_energy = _cabin_glow
+	_cabin_light.visible = _cabin_glow > .001
+
+func _finish_material(tint: Color, roughness: float, metallic: float = 0.0) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = tint
+	material.roughness = roughness
+	material.metallic = metallic
+	return material
+
+func _lamp(tint: Color, energy: float) -> StandardMaterial3D:
+	var material := _finish_material(tint, 0.27)
+	material.emission_enabled = true
+	material.emission = tint
+	material.emission_energy_multiplier = energy
+	return material
+
+func _finish(part: MeshInstance3D) -> void:
+	var key := _color.to_html(false)
+	if not _shared.has(key):
+		var body := ShaderMaterial.new()
+		body.shader = Paint
+		body.set_shader_parameter("enamel", _color)
+		body.set_shader_parameter("rain_beads", RAIN_BEADS)
+		body.set_shader_parameter("flake_content", 0.42)
+		_shared[key] = body
+	for index in part.mesh.get_surface_count():
+		var imported := part.mesh.surface_get_material(index)
+		var label := imported.resource_name
+		if label == "CarbonComposite" and not _shared.has(label):
+			var carbon := imported.duplicate() as StandardMaterial3D
+			carbon.uv1_scale = Vector3(48, 48, 1)
+			carbon.clearcoat_enabled = true
+			carbon.clearcoat = 0.52
+			carbon.clearcoat_roughness = 0.27
+			_shared[label] = carbon
+		var material: Material = _shared.get(key if label == "Paint" else label)
+		if _founder_display and material!=null:
+			material=_founder_finish(label,material)
+		if material != null:
+			part.set_surface_override_material(index, material)
+	if part.name.ends_with("Lenses") or part.name == &"HeadProjectors":
+		part.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+func _founder_finish(label:String,original:Material) -> Material:
+	if label not in ["MachinedAlloy","BrakeCaliper","Glazing","Seat","Paint"]:
+		return original
+	if not _founder_finishes.has(label):
+		var finish:=original.duplicate() as Material
+		match label:
+			"MachinedAlloy":
+				(finish as StandardMaterial3D).albedo_color=Color("9c8356")
+			"BrakeCaliper":
+				(finish as StandardMaterial3D).albedo_color=Color("b7a06f")
+			"Seat":
+				(finish as StandardMaterial3D).albedo_color=Color("9d7251")
+			"Glazing":
+				(finish as ShaderMaterial).set_shader_parameter("privacy_tint",.20)
+			"Paint":
+				(finish as ShaderMaterial).set_shader_parameter("flake_content",.22)
+		_founder_finishes[label]=finish
+	return _founder_finishes[label]
+
+func _build_wheels() -> void:
+	if _wheel_mesh == null:
+		var source := Wheel.instantiate()
+		_wheel_mesh = (source.get_node("Wheel") as MeshInstance3D).mesh as ArrayMesh
+		_brake_left_mesh = (source.get_node("BrakeCaliperL") as MeshInstance3D).mesh as ArrayMesh
+		_brake_right_mesh = (source.get_node("BrakeCaliperR") as MeshInstance3D).mesh as ArrayMesh
+		source.free()
+	var axles: Vector2 = _spec["axles"]
+	var tyre := float(_spec["tire"])
+	for axle in 2:
+		for side in [-1.0, 1.0]:
+			var steering := Node3D.new()
+			# Wheel and fixed-caliper assemblies remain on unsprung chassis
+			# datums while the coachwork moves independently above them.
+			steering.name = "WheelKnuckle%d%s" % [axle, "L" if side < 0.0 else "R"]
+			steering.position = Vector3(float(_spec["track"]) * side, GROUND + tyre, axles[axle])
+			add_child(steering)
+			_knuckles.append(steering)
+			var detail := MeshInstance3D.new()
+			detail.mesh = _wheel_mesh
+			detail.scale = Vector3(.92, tyre / WHEEL_MODEL_RADIUS, tyre / WHEEL_MODEL_RADIUS)
+			_finish(detail)
+			steering.add_child(detail)
+			# Calipers share the steering knuckle's orientation but never inherit
+			# tire spin. A spinning caliper would make braking look physically wrong.
+			var caliper := MeshInstance3D.new()
+			caliper.name = "FixedBrakeCaliper"
+			caliper.mesh = _brake_left_mesh if side < 0.0 else _brake_right_mesh
+			caliper.scale = detail.scale
+			_finish(caliper)
+			steering.add_child(caliper)
+			_brake_calipers.append(caliper)
+			_wheels.append(detail)
+			if axle == 0:
+				_steering.append(steering)
+
+func _build_lights() -> void:
+	for socket in [&"KeyLeft", &"KeyRight"]:
+		var beam := SpotLight3D.new()
+		beam.name = str(socket) + "Beam"
+		beam.position = (_shell.get_node(NodePath(socket)) as Node3D).position
+		beam.rotation = Vector3(-.102, -signf(beam.position.x) * .051, 0)
+		beam.light_color = Color("e7eeff")
+		beam.light_energy = 3.15
+		beam.light_specular = .39
+		beam.spot_range = 32.0
+		beam.spot_angle = 35.0
+		beam.spot_attenuation = 1.60
+		beam.visible = false
+		_shell.add_child(beam)
+		_beams.append(beam)
+	_tail_throw = SpotLight3D.new()
+	_tail_throw.name = "RearBeam"
+	_tail_throw.position = (_shell.get_node("TailThrow") as Node3D).position
+	_tail_throw.rotation = Vector3(-.29, PI, 0)
+	_tail_throw.spot_range = 5.8
+	_tail_throw.spot_angle = 53.0
+	_tail_throw.spot_attenuation = 0.77
+	_tail_throw.light_specular = .46
+	_shell.add_child(_tail_throw)
+	for socket in [&"SillLightLeft", &"SillLightRight"]:
+		var lamp := OmniLight3D.new()
+		lamp.name = str(socket) + "Bounce"
+		lamp.position = (_shell.get_node(NodePath(socket)) as Node3D).position
+		lamp.light_color = SILL_CYAN
+		lamp.light_energy = 1.12
+		lamp.omni_range = 1.95
+		lamp.omni_attenuation = 1.6
+		_shell.add_child(lamp)
+		_sill_lights.append(lamp)
+
+func _steering_targets(input: float) -> Vector2:
+	# The car controller turns yaw NEGATIVE for positive input (rightwards in
+	# local +X while travelling -Z). The previous visual rotated both front
+	# wheels positively, making them visibly point against the actual turn.
+	# Ackermann geometry requires the inside front wheel to turn more.
+	var control := clampf(input, -1.0, 1.0)
+	var mean_angle := absf(control) * 0.37
+	if mean_angle <= 0.00001:
+		return Vector2.ZERO
+	var axles: Vector2 = _spec["axles"]
+	var wheelbase := absf(axles.y - axles.x)
+	var half_track := float(_spec["track"])
+	var turn_radius := wheelbase / tan(mean_angle)
+	var inside := atan(wheelbase / maxf(turn_radius - half_track, 0.25))
+	var outside := atan(wheelbase / (turn_radius + half_track))
+	# Order is front-left (-X), front-right (+X). Positive road input turns
+	# towards +X; the right tire is inside that turn.
+	return Vector2(-outside, -inside) if control > 0.0 else Vector2(inside, outside)
+
+
+func update_motion(speed: float, steer: float, braking: bool, occupied: bool,
+		throttle: float, wetness: float, delta: float, rolling_distance: float = NAN,
+		loads: Vector2 = Vector2.ZERO) -> void:
+	_update_body_pose(loads if occupied else Vector2.ZERO, delta)
+	# Real gameplay supplies measured longitudinal travel; isolated art fixtures
+	# can still advance the rig using synthetic speed and elapsed time.
+	var travel := rolling_distance if is_finite(rolling_distance) else speed * maxf(delta, 0.0)
+	if absf(travel) > 0.000001:
+		_wheel_phase = fposmod(_wheel_phase + travel / float(_spec["tire"]), TAU)
+		for wheel in _wheels:
+			wheel.rotation.x = -_wheel_phase
+	# Steer the non-spinning knuckle and its fixed caliper as a unit.
+	# Slew rate is bounded so the rims never teleport between lock positions;
+	# unoccupied cars return their wheels to straight ahead.
+	var targets := _steering_targets(steer if occupied else 0.0)
+	for index in _steering.size():
+		var wanted: float = targets.x if index == 0 else targets.y
+		var knuckle := _steering[index]
+		knuckle.rotation.y = move_toward(knuckle.rotation.y, wanted, maxf(delta, 0.0) * 1.55)
+	_update_cockpit_steering(delta)
+	if occupied or _occupied:
+		if braking != _braking or (speed < -0.35) != (_velocity < -0.35) or occupied != _occupied:
+			_update_lights(occupied, braking, speed < -0.35)
+	_velocity = speed
+	_occupied = occupied
+	_braking = braking
+	_move_doors(delta, absf(speed) > 2.5)
+	_update_cabin_light(occupied, delta)
+	_drivetrain.update(speed, steer, braking, occupied, throttle, wetness, delta)
+	_cluster.call("update_display", occupied, _night, speed, _drivetrain.engine_rpm(), _drivetrain.drive_gear(), braking, delta)
+
+## Small, damped cosmetic pitch and roll. The limits keep the coachwork
+## close to its authored arch clearance; this is not physical suspension.
+func _update_body_pose(loads: Vector2, delta: float) -> void:
+	var target := Vector3.ZERO
+	if loads.is_finite():
+		target.x = clampf(loads.x * .002, -.018, .018)
+		target.z = clampf(loads.y * .0025, -.022, .022)
+		# Conservative vertical envelope including tire radius and sidewall,
+		# rather than checking pitch and roll limits in isolation.
+		var envelope := absf(target.x) * 1.94 + absf(target.z) * 1.06
+		if envelope > BODY_VERTICAL_BUDGET:
+			target *= BODY_VERTICAL_BUDGET / envelope
+	var blend := 1.0 - exp(-8.0 * maxf(delta, 0.0))
+	_shell.rotation = _shell.rotation.lerp(target, blend)
+
+func reset_body_pose() -> void:
+	_shell.rotation = Vector3.ZERO
+
+func reset_instrument_cluster() -> void:
+	_cluster.call("reset_display")
+	_cabin_glow = 0.0
+	_cabin_light.light_energy = 0.0
+	_cabin_light.hide()
+	_cockpit_angle = 0.0
+	if is_instance_valid(_steering_wheel):
+		_steering_wheel.quaternion = Quaternion.IDENTITY
+
+func _update_cockpit_steering(delta: float) -> void:
+	# Actual smoothed front knuckles drive the rim via a 13:1 visual ratio.
+	# Axis is perpendicular to the authored tilted wheel plane (32 mm rise
+	# over 171 mm radius); the stationary column stays in Cabin.
+	var target := clampf((_steering[0].rotation.y + _steering[1].rotation.y) * .5 * 13.0, -TAU, TAU)
+	_cockpit_angle = move_toward(_cockpit_angle, target, maxf(delta, 0.0) * 18.0)
+	if is_instance_valid(_steering_wheel):
+		_steering_wheel.quaternion = Quaternion(Vector3(0, -.032, .171).normalized(), _cockpit_angle)
+
+## Road-height visual sampling only. The character controller still owns
+## collision and vertical movement; four rays only for the occupied car.
+func sample_suspension(car_rid: RID, grounded: bool, delta: float,
+		road_speed: float = 0.0, wetness: float = 0.0, chassis_grounded: bool = false) -> void:
+	# Reuse the four suspension rays while driving. Parked cars refresh at
+	# 4 Hz, or immediately after relocation. Never keep a patch in midair.
+	_shadow_timer -= maxf(delta, 0.0)
+	var shadow_grounded := grounded or chassis_grounded
+	var probe_shadow := shadow_grounded and (grounded or _shadow_timer <= 0.0 \
+		or not _shadow_sample_origin.is_finite() or global_position.distance_to(_shadow_sample_origin) > .08)
+	if not shadow_grounded and is_instance_valid(_contact_shadow):
+		_contact_shadow.hide()
+		_shadow_timer = 0.0
+	var contacts := PackedVector3Array()
+	var space := get_world_3d().direct_space_state
+	var exclusions: Array[RID] = [car_rid]
+	var blend := 1.0 - exp(-15.0 * maxf(delta, 0.0))
+	var tyre := float(_spec["tire"])
+	for index in _knuckles.size():
+		var knuckle := _knuckles[index]
+		var desired := 0.0
+		var contact_point := Vector3.INF
+		if grounded or probe_shadow:
+			# Probe from the original tire datum, not the animated wheel; this
+			# prevents feedback oscillation and never raises the collision hull.
+			var foot := to_global(Vector3(knuckle.position.x, GROUND, knuckle.position.z))
+			var query := PhysicsRayQueryParameters3D.create(foot + Vector3.UP * .16,
+				foot - Vector3.UP * .12, 1, exclusions)
+			var hit := space.intersect_ray(query)
+			if not hit.is_empty() and hit["collider"] is StaticBody3D:
+				var normal: Vector3 = hit["normal"]
+				if normal.y >= .70:
+					var contact: Vector3 = hit["position"]
+					desired = clampf(contact.y - foot.y, -DROOP_LIMIT, BUMP_LIMIT)
+					# Do not spray from a ray hit well below the actual visual tire.
+					if absf(contact.y - foot.y - desired) <= .035:
+						contact_point = contact
+		if probe_shadow:
+			contacts.append(contact_point)
+		if not grounded:
+			desired = 0.0
+			contact_point = Vector3.INF
+		_wheel_offsets[index] = lerpf(_wheel_offsets[index], desired, blend)
+		knuckle.position.y = GROUND + tyre + _wheel_offsets[index]
+		_update_tire_spray(index, contact_point, road_speed, wetness)
+	if probe_shadow:
+		_shadow_timer = PARKED_SHADOW_INTERVAL
+		_shadow_sample_origin = global_position
+		_update_contact_shadow(contacts)
+
+## Supplemental contact occlusion, not a replacement for real sun shadows
+## or SSAO. Require four reachable, nearly coplanar contacts to avoid
+## drawing a dark rectangle across a curb, drop-off or unsupported wheel.
+func _update_contact_shadow(contacts: PackedVector3Array) -> void:
+	if is_instance_valid(_contact_shadow):
+		_contact_shadow.hide()
+	if contacts.size() != 4:
+		return
+	for contact in contacts:
+		if not contact.is_finite():
+			return
+	var lateral := ((contacts[1] - contacts[0]) + (contacts[3] - contacts[2])) * .5
+	var longitudinal := ((contacts[2] - contacts[0]) + (contacts[3] - contacts[1])) * .5
+	if lateral.length() < 1.0 or longitudinal.length() < 2.0:
+		return
+	var normal := longitudinal.cross(lateral).normalized()
+	if normal.y < .97:
+		return
+	var center := (contacts[0] + contacts[1] + contacts[2] + contacts[3]) * .25
+	for contact in contacts:
+		if absf((contact - center).dot(normal)) > .012:
+			return
+	# Keep the patch mostly inside the footprint sampled by the rays.
+	if _contact_shadow_mesh == null:
+		_contact_shadow_mesh = PlaneMesh.new()
+		_contact_shadow_mesh.size = Vector2(1.70, 2.84)
+		var material := ShaderMaterial.new()
+		material.shader = CONTACT_SHADOW_SHADER
+		_contact_shadow_mesh.material = material
+	if not is_instance_valid(_contact_shadow):
+		_contact_shadow = MeshInstance3D.new()
+		_contact_shadow.name = "RoadContactOcclusion"
+		_contact_shadow.mesh = _contact_shadow_mesh
+		_contact_shadow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(_contact_shadow)
+	var x_axis := lateral.normalized()
+	var z_axis := x_axis.cross(normal).normalized()
+	_contact_shadow.global_transform = Transform3D(Basis(x_axis, normal, z_axis),
+		center + normal * .012)
+	_contact_shadow.show()
+
+## Soft transparent original radial mask, shared by all four emitters.
+func _make_spray_resources() -> void:
+	if _spray_mesh != null:
+		return
+	var mask := Gradient.new()
+	mask.colors = PackedColorArray([Color(1, 1, 1, .85), Color(1, 1, 1, 0)])
+	var texture := GradientTexture2D.new()
+	texture.gradient = mask
+	texture.width = 32
+	texture.height = 32
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.fill_from = Vector2(.5, .5)
+	texture.fill_to = Vector2(1, .5)
+	var material := StandardMaterial3D.new()
+	material.albedo_texture = texture
+	material.vertex_color_use_as_albedo = true
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	material.roughness = 1.0
+	_spray_mesh = QuadMesh.new()
+	_spray_mesh.size = Vector2(.28, .28)
+	_spray_mesh.material = material
+	_spray_fade = Gradient.new()
+	_spray_fade.offsets = PackedFloat32Array([0.0, .18, 1.0])
+	_spray_fade.colors = PackedColorArray([Color(.58, .65, .70, .0),
+		Color(.58, .65, .70, .30), Color(.58, .65, .70, 0)])
+
+func _ensure_spray() -> void:
+	if not _spray.is_empty():
+		return
+	_make_spray_resources()
+	for index in 4:
+		var emitter := CPUParticles3D.new()
+		emitter.name = "RoadSpray%d" % index
+		emitter.emitting = false
+		emitter.amount = SPRAY_PARTICLES_PER_WHEEL
+		emitter.lifetime = .42
+		emitter.local_coords = false
+		emitter.mesh = _spray_mesh
+		emitter.color_ramp = _spray_fade
+		emitter.spread = 24.0
+		emitter.gravity = Vector3(0, -7.0, 0)
+		emitter.scale_amount_min = .65
+		emitter.scale_amount_max = 1.4
+		add_child(emitter)
+		_spray.append(emitter)
+
+func _update_tire_spray(index: int, contact: Vector3, road_speed: float, wetness: float) -> void:
+	var active := contact.is_finite() and is_finite(road_speed) and is_finite(wetness) \
+		and absf(road_speed) >= SPRAY_MIN_SPEED and wetness >= SPRAY_MIN_FILM
+	if not active:
+		if not _spray.is_empty():
+			_spray[index].emitting = false
+		return
+	_ensure_spray()
+	var emitter := _spray[index]
+	var side := -1.0 if index % 2 == 0 else 1.0
+	var trailing := signf(road_speed)
+	emitter.position = to_local(contact) + Vector3(side * .05, .075, trailing * .12)
+	# Local +Z is behind a forward-moving Cinder. World-space particles
+	# remain behind instead of moving rigidly with the car after emission.
+	emitter.direction = Vector3(side * .22, .42, trailing).normalized()
+	var strength := smoothstep(SPRAY_MIN_SPEED, 25.0, absf(road_speed)) * clampf(wetness, 0, 1)
+	emitter.initial_velocity_min = lerpf(.7, 2.5, strength)
+	emitter.initial_velocity_max = lerpf(1.5, 5.5, strength)
+	emitter.emitting = true
+
+func reset_suspension() -> void:
+	_wheel_offsets = Vector4.ZERO
+	_shadow_timer = 0.0
+	_shadow_sample_origin = Vector3.INF
+	if is_instance_valid(_contact_shadow):
+		_contact_shadow.hide()
+	for emitter in _spray:
+		emitter.restart()
+		emitter.emitting = false
+	for knuckle in _knuckles:
+		knuckle.position.y = GROUND + float(_spec["tire"])
+
+func set_lighting_hour(hour: float) -> void:
+	var night := hour >= 18.75 or hour < 6.4
+	if night != _night:
+		_night = night
+		_update_lights(_occupied, _braking, _velocity < -0.35)
+
+func _update_lights(occupied: bool, braking: bool, reverse: bool) -> void:
+	var night_running := occupied and _night
+	var head_on := night_running and _damage.x <= 0.71
+	var tail_ok := _damage.y <= 0.75
+	var stop_on := occupied and braking and tail_ok
+	var reverse_on := occupied and reverse and tail_ok
+	_head.material_override = _shared["BrokenLamp" if _damage.x > 0.71 else ("Headlamp" if head_on else "HeadIdle")]
+	_projectors.material_override = _shared["BrokenLamp" if _damage.x > 0.71 else ("ProjectorOn" if head_on else "ProjectorOptic")]
+	_tail.material_override = _shared["BrokenLamp" if not tail_ok else (
+		"Braking" if stop_on else ("Taillamp" if night_running else "TailIdle"))]
+	_reverse.material_override = _shared["BrokenLamp" if not tail_ok else ("Reversing" if reverse_on else "ReverseLamp")]
+	_sill.material_override = _shared["SillOn" if night_running else "SillOff"]
+	for beam in _beams:
+		beam.visible = head_on
+	_tail_throw.visible = occupied and tail_ok and (night_running or stop_on or reverse_on)
+	_tail_throw.light_color = REVERSE_WHITE if reverse_on else TAIL_RED
+	_tail_throw.light_energy = 2.13 if reverse_on else (1.66 if stop_on else 0.42)
+	for index in _sill_lights.size():
+		_sill_lights[index].visible = night_running and _damage[index + 2] < 0.84
+
+func detaching_parts(previous: Vector4, zones: Vector4) -> Array[MeshInstance3D]:
+	var parts: Array[MeshInstance3D] = []
+	for door in _doors:
+		var side := 2 if float(door["side"]) < 0.0 else 3
+		if previous[side] < .93 and zones[side] >= .93:
+			parts.append(door["part"])
+	return parts
+
+func apply_damage(zones: Vector4) -> void:
+	_damage = zones
+	# Keep damaged wheel camber subtle: retain the authored arch clearance.
+	for index in _knuckles.size():
+		var side := -1.0 if index % 2 == 0 else 1.0
+		var wear := zones.z if side < 0.0 else zones.w
+		_knuckles[index].rotation.z = side * smoothstep(.45, 1.0, wear) * .024
+	# Separate mutable meshes only for damaged ends. Restore the original
+	# shared asset when repaired; never edit an imported resource in place.
+	for end in 2:
+		if is_equal_approx(_crash_applied[end], zones[end]):
+			continue
+		_crash_applied[end] = zones[end]
+		var parts := [_body_sections[0], _head, _projectors] if end == 0 else [_body_sections[1], _tail, _reverse]
+		for part in parts:
+			var source: ArrayMesh = _crash_sources[part]
+			var overrides: Array[Material] = []
+			for surface in source.get_surface_count():
+				overrides.append(part.get_surface_override_material(surface))
+			part.mesh = Crumple.build(source, -1.0 if end == 0 else 1.0, zones[end])
+			for surface in overrides.size():
+				part.set_surface_override_material(surface, overrides[surface])
+	var front := Vector3(0, -0.095, 0.175) * zones.x
+	var rear := Vector3(0, -0.071, -0.143) * zones.y
+	_body_sections[0].position = front
+	_body_sections[1].position = rear
+	_head.position = front
+	_projectors.position = front
+	_tail.position = rear
+	_reverse.position = rear
+	_tail_throw.position = (_shell.get_node("TailThrow") as Node3D).position + rear
+	for index in _beams.size():
+		var socket := "KeyLeft" if index == 0 else "KeyRight"
+		_beams[index].position = (_shell.get_node(socket) as Node3D).position + front
+	_body_sections[0].rotation.x = -zones.x * 0.047
+	_body_sections[1].rotation.x = zones.y * 0.039
+	_body_sections[0].set_instance_shader_parameter("impact", zones.x)
+	_body_sections[1].set_instance_shader_parameter("impact", zones.y)
+	_body_sections[2].set_instance_shader_parameter("impact", maxf(maxf(zones.x, zones.y), maxf(zones.z, zones.w) * .8))
+	for door in _doors:
+		var panel: MeshInstance3D = door["part"]
+		var wear := zones.z if float(door["side"]) < 0.0 else zones.w
+		panel.set_instance_shader_parameter("impact", wear)
+		panel.scale.x = 1.0 - wear * 0.21
+		panel.visible = wear < .93
+		if not panel.visible:
+			door["motion"] = 0.0
+			door["target"] = 0.0
+			door["hold"] = -1.0
+			panel.rotation = Vector3.ZERO
+	_update_lights(_occupied, _braking, _velocity < -0.35)
+
+func _angle(door: Dictionary, value: float) -> Vector3:
+	var outward := float(door["side"])
+	return Vector3(-1.06 * value, outward * 0.20 * value, outward * 0.025 * value)
+
+func _door_index(point: Vector3, front_only: bool) -> int:
+	var nearest := INF
+	var selected := -1
+	for i in _doors.size():
+		var panel: MeshInstance3D = _doors[i]["part"]
+		if not panel.visible or (front_only and not panel.name.ends_with("0")):
+			continue
+		var center := panel.global_position + _shell.global_basis.z * float(_doors[i]["reach"]) * 0.50
+		var distance := point.distance_squared_to(center)
+		if distance < nearest:
+			nearest = distance
+			selected = i
+	return selected
+
+func _can_swing(door: Dictionary, ignore: RID) -> bool:
+	var panel: MeshInstance3D = door["part"]
+	var space := get_world_3d().direct_space_state
+	var car := get_parent() as CollisionObject3D
+	var excluded: Array[RID] = [car.get_rid()]
+	if ignore.is_valid():
+		excluded.append(ignore)
+	var probe := SphereShape3D.new()
+	probe.radius = 0.17
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = probe
+	query.collision_mask = 1
+	query.exclude = excluded
+	var reach := float(door["reach"])
+	var height := panel.mesh.get_aabb().end.y * 0.72
+	for fraction in [0.28, 0.59, 0.91]:
+		var pose := _shell.global_basis * Basis.from_euler(_angle(door, fraction))
+		for length in [0.53, 0.91]:
+			var tip := panel.global_position + pose * Vector3(0, height, length * reach)
+			query.transform = Transform3D(Basis.IDENTITY, tip)
+			if not space.intersect_shape(query, 1).is_empty():
+				return false
+	return true
+
+func toggle_near_door(point: Vector3, ignore: RID) -> bool:
+	var index := _door_index(point, false)
+	if index < 0:
+		return false
+	var door := _doors[index]
+	var panel: MeshInstance3D = door["part"]
+	if panel.global_position.distance_to(point) > 2.65:
+		return false
+	if float(door["target"]) < 0.5 and not _can_swing(door, ignore):
+		return false
+	door["target"] = 1.0 - float(door["target"])
+	door["hold"] = -1.0
+	return true
+
+func cycle_access_door(point: Vector3, leaving: bool, ignore: RID) -> void:
+	var index := _door_index(point, true)
+	if index < 0 or not _can_swing(_doors[index], ignore):
+		return
+	_doors[index]["target"] = 1.0
+	_doors[index]["hold"] = 1.05 if leaving else 1.27
+
+func close_doors_immediate() -> void:
+	for door in _doors:
+		door["target"] = 0.0
+		door["hold"] = -1.0
+		door["motion"] = 0.0
+		(door["part"] as MeshInstance3D).rotation = Vector3.ZERO
+
+func _move_doors(delta: float, moving: bool) -> void:
+	for door in _doors:
+		if not (door["part"] as MeshInstance3D).visible:
+			continue
+		if moving:
+			door["target"] = 0.0
+			door["hold"] = -1.0
+		elif float(door["hold"]) >= 0.0:
+			door["hold"] = float(door["hold"]) - delta
+			if float(door["hold"]) <= 0.0:
+				door["target"] = 0.0
+		var motion := float(door["motion"])
+		var next := move_toward(motion, float(door["target"]), delta / (0.40 if moving else 0.62))
+		if next != motion:
+			door["motion"] = next
+			var panel: MeshInstance3D = door["part"]
+			panel.rotation = _angle(door, smoothstep(0.0, 1.0, next))
+			if (motion == 0.0 and next > 0.0) or (next == 0.0 and motion > 0.0):
+				var latch_point := to_local(panel.to_global(Vector3(0, 0, float(door["reach"]) * .8)))
+				_drivetrain.door_moved(latch_point, next > motion)
+
+func get_motion_state() -> Dictionary:
+	return {"wheel_rotation": _wheel_phase, "suspension_offsets": _wheel_offsets, "steering": _steering[0].rotation.y,
+		"steering_left": _steering[0].rotation.y, "steering_right": _steering[1].rotation.y,
+		"fixed_calipers": _brake_calipers.size(), "braking": _braking,
+		"speed": _velocity, "live_beams": 2 if _beams[0].visible else 0}

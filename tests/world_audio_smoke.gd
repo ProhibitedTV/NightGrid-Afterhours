@@ -35,6 +35,11 @@ func _verify() -> void:
 	if int(stats["environment_layers"]) != 4:
 		_fail("Expected four city atmosphere buses")
 		return
+	var bank: Dictionary = director.get("_step_bank")
+	if bank.size() != 4 or not bank.values().all(func(samples: Array) -> bool:
+		return samples.size() == 4 and samples.all(func(clip: AudioStream) -> bool: return clip.get_length() > 0.2)):
+		_fail("Expected four distinct prewarmed recordings for each pavement class")
+		return
 	director.call("set_preferences", 0.65, 0.75)
 	director.call("update_context", Vector3.ZERO, Vector3.ZERO,
 		true, true, false, "SOUTHWORKS", 22.0, 8.0)
@@ -47,6 +52,10 @@ func _verify() -> void:
 		true, true, true, "SOUTHWORKS", 22.0, 0.0)
 	if float(director.call("_target_db", "INDUSTRIAL")) >= industry_db - 10.0:
 		_fail("Interior entry should substantially attenuate the outside bed")
+		return
+	director.call("_process", 1.0)
+	if float((director.call("get_audio_stats") as Dictionary)["exterior_cutoff"]) > 1400.0:
+		_fail("The interior bus must lose outdoor high frequencies")
 		return
 	director.call("update_context", Vector3.ZERO, Vector3.ZERO,
 		true, true, false, "GLASSLINE", 13.0, 7.5)
@@ -65,11 +74,13 @@ func _verify() -> void:
 	var saved: Dictionary = menu.call("get_settings")
 	menu.call("update_setting", "ambience_volume", 0.4)
 	menu.call("update_setting", "sfx_volume", 0.2)
+	menu.call("update_setting", "dialogue_volume", 0.34)
 	if absf(float(director.get("ambience_volume")) - 0.4) > 0.001 or absf(float(director.get("sfx_volume")) - 0.2) > 0.001:
 		_fail("Audio settings are not applied to the live soundscape")
 		return
 	var config := ConfigFile.new()
-	if config.load("user://settings.cfg") != OK or absf(float(config.get_value("player", "sfx_volume", -1.0)) - 0.2) > 0.001:
+	if config.load("user://settings.cfg") != OK or absf(float(config.get_value("player", "sfx_volume", -1.0)) - 0.2) > 0.001 or (
+			absf(float(config.get_value("player", "dialogue_volume", -1.0)) - 0.34) > 0.001):
 		_fail("SFX preferences did not persist")
 		return
 	for key in saved:

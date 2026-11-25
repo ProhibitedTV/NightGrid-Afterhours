@@ -1,0 +1,60 @@
+{
+  "id": "nightgrid.cinder_r9",
+  "author": "NightGrid Afterhours",
+  "license": "Original NightGrid project artwork. No separate public license declared.",
+  "source": "tools/art/author_cinder_r9.py",
+  "units": "metres",
+  "up": "+Y",
+  "forward": "-Z",
+  "triangles": {
+    "HeadLenses": 64,
+    "HeadProjectors": 400,
+    "TailLenses": 56,
+    "ReverseLenses": 8,
+    "SillLenses": 96,
+    "Cabin": 6518,
+    "FrontClip": 15974,
+    "RearClip": 8280,
+    "SteeringWheel": 420,
+    "DoorL0": 1508,
+    "DoorR0": 1508,
+    "Wheel": 8892,
+    "BrakeCaliperL": 772,
+    "BrakeCaliperR": 772
+  },
+  "sockets": {
+    "KeyLeft": [
+      -0.644,
+      0.567,
+      -2.193
+    ],
+    "KeyRight": [
+      0.644,
+      0.567,
+      -2.193
+    ],
+    "TailThrow": [
+      0,
+      0.583,
+      2.323
+    ],
+    "SillLightLeft": [
+      -0.755,
+      0.155,
+      -0.02
+    ],
+    "SillLightRight": [
+      0.755,
+      0.155,
+      -0.02
+    ]
+  },
+  "sha256": {
+    "cinder_r9.gltf": "d2dab4067735164c846482d957568551e1c2cf79a21adc7c82e679dcc2067e49",
+    "cinder_r9.bin": "c66f799752a0b21bceacbc473137394d641dc466324c7644db0d76d3fcb2eec8",
+    "wheel.gltf": "314c4a85b69926bd4ed39dcb89d8ed86b524f70a3fcda8aebbb1ae79d0bb4c01",
+    "wheel.bin": "a5bc7ee2a1ccf3017600d416d8fb6d008f5ff3045d99d1fe3166618dbb253449",
+    "carbon_twill.png": "89c8a41f36faef711f93d6df0996be5bbd845ef65f7ea398de116ad11adc32f5",
+    "rain_beads.png": "37106685c200a5b8b4d59c7aca10ec9c523dbd3cce8166a7a0896fbc26a290e8"
+  }
+}

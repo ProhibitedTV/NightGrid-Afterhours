@@ -115,7 +115,7 @@ func _side(family: String, positive: bool, z0: float, z1: float,
 func _roof() -> void:
 	var half := building_width * 0.5
 	var d := building_depth * 0.5
-	var h := building_height + 0.12
+	var h := building_height
 	_quad("ROOF", Vector3(-half, h, -d), Vector3(-half, h, d),
 		Vector3(half, h, d), Vector3(half, h, -d))
 	# Structural fascia is part of the closed envelope, not floating strips
@@ -127,15 +127,17 @@ func _roof() -> void:
 
 func _recessed_front_window(x0: float, x1: float, bottom: float, top: float) -> void:
 	_front("GLASS", x0 + 0.10, x1 - 0.10, bottom + 0.09, top - 0.09, 0.19)
-	_front("INTERIOR", x0 + 0.10, x1 - 0.10, bottom + 0.09, top - 0.09, 0.83)
+	_front("INTERIOR", x0 - 0.08, x1 + 0.08, bottom - 0.08, top + 0.08, 0.83)
 	var plane := -building_depth * 0.5
 	var deep := plane + 0.19
-	for x in [x0, x1]:
-		_quad("REVEAL", Vector3(x, bottom, plane), Vector3(x, top, plane),
-			Vector3(x, top, deep), Vector3(x, bottom, deep))
-	for y in [bottom, top]:
-		_quad("REVEAL", Vector3(x0, y, plane), Vector3(x0, y, deep),
-			Vector3(x1, y, deep), Vector3(x1, y, plane))
+	_quad("REVEAL", Vector3(x0, bottom, plane), Vector3(x0, top, plane),
+		Vector3(x0, top, deep), Vector3(x0, bottom, deep))
+	_quad("REVEAL", Vector3(x1, bottom, deep), Vector3(x1, top, deep),
+		Vector3(x1, top, plane), Vector3(x1, bottom, plane))
+	_quad("REVEAL", Vector3(x0, bottom, plane), Vector3(x0, bottom, deep),
+		Vector3(x1, bottom, deep), Vector3(x1, bottom, plane))
+	_quad("REVEAL", Vector3(x1, top, plane), Vector3(x1, top, deep),
+		Vector3(x0, top, deep), Vector3(x0, top, plane))
 	_front("METAL", x0 + 0.09, x1 - 0.09,
 		lerpf(bottom, top, 0.56) - 0.045, lerpf(bottom, top, 0.56) + 0.045, 0.16)
 	_stats["openings"] += 1
@@ -143,7 +145,7 @@ func _recessed_front_window(x0: float, x1: float, bottom: float, top: float) -> 
 
 func _build_front() -> void:
 	var half := building_width * 0.5
-	_front("BRICK", -half, half, 0.13, 0.53)
+	_front("BRICK", -half, half, 0.0, 0.53)
 	_front("BRICK", -half, half, 3.56, GROUND)
 	# Two real shutter models cover *actual open bays*: the architectural
 	# mesh is not drawn behind their visible louvers.
@@ -153,10 +155,10 @@ func _build_front() -> void:
 		var lo := float(center) - 1.55
 		var hi := float(center) + 1.55
 		_front("BRICK", previous, lo, 0.53, 3.56)
-		_front("METAL", lo - 0.18, lo, 0.53, 3.56, -0.08)
-		_front("METAL", hi, hi + 0.18, 0.53, 3.56, -0.08)
-		_front("METAL", lo - 0.18, hi + 0.18, 3.45, 3.56, -0.10)
-		_front("INTERIOR", lo, hi, 0.53, 3.45, 0.64)
+		_front("METAL", lo - 0.12, lo + 0.19, 0.47, 3.58, -0.08)
+		_front("METAL", hi - 0.19, hi + 0.12, 0.47, 3.58, -0.08)
+		_front("METAL", lo, hi, 3.11, 3.58, -0.10)
+		_front("INTERIOR", lo - 0.10, hi + 0.10, 0.45, 3.60, 0.36)
 		_stats["service_bays"] += 1
 		previous = hi
 	_front("BRICK", previous, half, 0.53, 3.56)
@@ -170,6 +172,7 @@ func _build_front() -> void:
 		var lintel := top - 0.52
 		if lintel - bottom < 0.8:
 			_front("BRICK", -half, half, level, top)
+			level = top
 			break
 		_front("BRICK", -half, half, level, bottom)
 		_front("BRICK", -half, half, lintel, top)
@@ -182,13 +185,14 @@ func _build_front() -> void:
 			previous_bay = x1
 		_front("BRICK", previous_bay, half, bottom, lintel)
 		level += LEVEL
+	_front("BRICK", -half, half, minf(level, building_height - 0.35), building_height)
 
 func _build_sides_and_back() -> void:
 	var d := building_depth * 0.5
 	var half := building_width * 0.5
-	_back("METAL", -half, half, 0.13, building_height)
+	_back("METAL", -half, half, 0.0, building_height)
 	for positive in [false, true]:
-		_side("METAL", positive, -d, d, 0.13, GROUND)
+		_side("METAL", positive, -d, d, 0.0, GROUND)
 		var level := GROUND
 		while level < building_height - 0.50:
 			var top := minf(building_height, level + LEVEL)
@@ -206,8 +210,8 @@ func _build_sides_and_back() -> void:
 				_side("METAL", positive, previous, z0, bottom, lintel)
 				_side("GLASS", positive, z0 + 0.10, z1 - 0.10,
 					bottom + 0.10, lintel - 0.10, 0.19)
-				_side("INTERIOR", positive, z0 + 0.10, z1 - 0.10,
-					bottom + 0.10, lintel - 0.10, 0.9)
+				_side("INTERIOR", positive, z0 - 0.08, z1 + 0.08,
+					bottom - 0.08, lintel + 0.08, 0.9)
 				# Thin top/bottom/side reveals point into the recessed side.
 				_side("REVEAL", positive, z0, z1, bottom, bottom + 0.10, 0.08)
 				_side("REVEAL", positive, z0, z1, lintel - 0.10, lintel, 0.08)
@@ -229,7 +233,8 @@ func _assemble_surfaces() -> void:
 			var c: Vector3 = quad[2]
 			var d: Vector3 = quad[3]
 			var face_normal := (b - a).cross(c - a).normalized()
-			for vertex in [a, b, c, a, c, d]:
+			# Godot's front faces are clockwise when seen from outside.
+			for vertex in [a, c, b, a, d, c]:
 				# Each physical plane gets independent nondegenerate UV axes;
 				# roofs use X/Z, front/back use X/Y, sidewalls use Z/Y.
 				var projected := Vector2(vertex.x, vertex.y)
@@ -237,9 +242,9 @@ func _assemble_surfaces() -> void:
 					projected = Vector2(vertex.x, vertex.z)
 				elif absf(face_normal.x) > 0.5:
 					projected = Vector2(vertex.z, vertex.y)
+				mesh_tool.set_normal(face_normal)
 				mesh_tool.set_uv(projected * 0.35)
 				mesh_tool.add_vertex(vertex)
-		mesh_tool.generate_normals()
 		mesh_tool.generate_tangents()
 		var node := MeshInstance3D.new()
 		node.name = "MeasuredArchitecture_%s" % family

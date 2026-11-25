@@ -1,0 +1,211 @@
+extends SceneTree
+const Crumple = preload("res://scripts/vehicle_crumple.gd")
+func _initialize() -> void:
+	create_timer(60.0, true, false, true).timeout.connect(func() -> void: quit(1))
+	call_deferred("_verify")
+func check(ok: bool, label: String) -> bool:
+	if not ok:
+		push_error("VEHICLE_CRASH: " + label)
+		quit(1)
+	return ok
+func _verify() -> void:
+	var world: Node3D = load("res://scenes/main.tscn").instantiate()
+	root.add_child(world)
+	await process_frame
+	world.get_node("GameMenus").call("hide_for_game")
+	var fleet: Array = world.get("cars")
+	var car: CharacterBody3D = fleet[2]
+	var other: CharacterBody3D = fleet[6]
+	car.set_physics_process(false)
+	other.set_physics_process(false)
+	var rig := car.get_node("RoadCarVisual/Coachwork")
+	var front := rig.get_node("FrontClip") as MeshInstance3D
+	var rear := rig.get_node("RearClip") as MeshInstance3D
+	var original: ArrayMesh = front.mesh
+	var finishes: Array[Material] = []
+	for i in original.get_surface_count():
+		finishes.append(front.get_surface_override_material(i))
+	var original_rear: Mesh = rear.mesh
+	var sibling := other.get_node("RoadCarVisual/Coachwork/FrontClip") as MeshInstance3D
+	if not check(sibling.mesh == original, "original shared mesh"):
+		return
+	var collider := car.get_node("CollisionShape3D") as CollisionShape3D
+	var shape := collider.shape
+	# Real CharacterBody3D contact against a solid wall in an isolated airspace.
+	car.global_position = Vector3(0, 100, 0)
+	car.rotation = Vector3.ZERO
+	var wall := StaticBody3D.new()
+	wall.position = Vector3(0, 100, -4)
+	var wall_shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(12, 8, 1)
+	wall_shape.shape = box
+	wall.add_child(wall_shape)
+	root.add_child(wall)
+	for tick in 12:
+		await physics_frame
+		car.set("speed", 30.0)
+		car.velocity = Vector3(0, 0, -30)
+		car.move_and_slide()
+		if car.get_slide_collision_count() > 0:
+			car.call("_resolve_contacts", Vector3(0, 0, -30))
+			break
+	var zones: Vector4 = car.get("damage_zones")
+	if not check(zones.x > 0.5 and zones.y == 0.0 and float(car.get("condition")) < 100.0 and absf(float(car.get("speed"))) < 1.0, "real impact produces front damage and momentum loss"):
+		return
+	if not check(front.mesh != original and rear.mesh == original_rear and sibling.mesh == original and collider.shape == shape, "per-car deformed mesh and unchanged collision"):
+		return
+	var moved := 0
+	for i in original.get_surface_count():
+		if not check(front.get_surface_override_material(i) == finishes[i], "preserved per-car finish"):
+			return
+		var a: Array = original.surface_get_arrays(i)
+		var b: Array = front.mesh.surface_get_arrays(i)
+		var av: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+		var bv: PackedVector3Array = b[Mesh.ARRAY_VERTEX]
+		if not check(av.size() == bv.size() and a[Mesh.ARRAY_INDEX] == b[Mesh.ARRAY_INDEX] and a[Mesh.ARRAY_TEX_UV] == b[Mesh.ARRAY_TEX_UV] and original.surface_get_material(i) == front.mesh.surface_get_material(i), "preserved topology UV and material"):
+			return
+		for j in av.size():
+			if av[j].distance_to(bv[j]) > 0.0001:
+				moved += 1
+			if not check(av[j].distance_to(bv[j]) < 0.26, "bounded crush"):
+				return
+	if not check(moved > 0, "crash changes actual vertex positions"):
+		return
+	var sparks := get_nodes_in_group("vehicle_crash_sparks")
+	if not check(sparks.size() > 0 and sparks.size() <= 4 and sparks[0] is CPUParticles3D and sparks[0].one_shot and sparks[0].amount == 18, "bounded one-shot collision sparks"):
+		return
+	var cabin := rig.get_node("Cabin") as MeshInstance3D
+	if not check(float(cabin.get_instance_shader_parameter("impact")) > .5, "glass receives crash severity"):
+		return
+	var fx_count := get_nodes_in_group("vehicle_crash_debris").size()
+	if not check(fx_count > 0 and fx_count <= 18, "real collision releases bounded rigid fragments"):
+		return
+	for fragment in get_nodes_in_group("vehicle_crash_debris"):
+		if not check(fragment is RigidBody3D and fragment.collision_layer == 0 and fragment.collision_mask == 1 and fragment.get_node_or_null("FragmentLifetime") is Timer, "fragments are temporary nonblocking rigid bodies"):
+			return
+	var damaged_mesh: Mesh = front.mesh
+	car.call("restore_damage", [zones.x, zones.y, zones.z, zones.w])
+	if not check(front.mesh == damaged_mesh, "unchanged damage avoids rebuild"):
+		return
+	car.call("repair")
+	if not check(front.mesh == original and rear.mesh == original_rear and car.get("damage_zones") == Vector4.ZERO and float(car.get("condition")) == 100.0, "repair restores exact original geometry"):
+		return
+	if not check(get_nodes_in_group("vehicle_crash_debris").is_empty() and get_nodes_in_group("vehicle_crash_sparks").is_empty() and is_zero_approx(float(cabin.get_instance_shader_parameter("impact"))), "repair clears debris sparks and glazing damage"):
+		return
+	car.call("take_arcade_damage", 1000.0)
+	var smoke := car.get_node_or_null("CrashSmoke") as CPUParticles3D
+	if not check(smoke != null and smoke.emitting and smoke.amount == 22 and smoke.visibility_range_end <= 44.0, "wreck produces bounded smoke"):
+		return
+	car.set("occupied", true)
+	car.set("speed", 0.0)
+	Input.action_press("drive_accelerate")
+	car.call("_physics_process", 0.1)
+	Input.action_release("drive_accelerate")
+	if not check(is_zero_approx(float(car.get("speed"))), "wreck cannot accelerate"):
+		return
+	var sedan: CharacterBody3D = fleet[0]
+	var peer: CharacterBody3D = fleet[1]
+	sedan.set_physics_process(false)
+	peer.set_physics_process(false)
+	var sedan_rig := sedan.get_node("KestrelS6HeroVisual")
+	var sedan_front := sedan_rig.get_node("KestrelMonocoque") as MeshInstance3D
+	var sedan_rear := sedan_rig.get_node("RearAssembly/RearHatchSolid") as MeshInstance3D
+	var front_source := sedan_front.mesh
+	var rear_source := sedan_rear.mesh
+	sedan.call("receive_vehicle_impact", sedan.to_global(Vector3(0, 0, -2.3)), sedan.global_basis.z, 40.0, 1740.0)
+	var sedan_zones: Vector4 = sedan.get("damage_zones")
+	if not check(sedan_zones.x > 0.0 and sedan_front.mesh != front_source and sedan_rear.mesh == rear_source and peer.get_node("KestrelS6HeroVisual/KestrelMonocoque").mesh == front_source, "Kestrel receives collision damage without mutating fleet"):
+		return
+	sedan.call("restore_damage", [0.85, 0.92, 0.95, 0.0])
+	if not check(absf(sedan_rig.get_node("SteeringLeft").rotation.z) > .01 and is_zero_approx(sedan_rig.get_node("SteeringRight").rotation.z), "side damage changes only struck-side camber"):
+		return
+	if not check(sedan_rear.mesh != rear_source, "Kestrel rear mesh deforms"):
+		return
+	sedan_rig.call("update_motion", 5.0, 0.0, true, true, false, 0.1)
+	if not check(sedan_rig.call("get_motion_state")["live_beams"] == 0, "broken front lights stay off while driving"):
+		return
+	var snapshot: Dictionary = world.call("_capture_snapshot")
+	if not check(snapshot["cars"][0].has("damage") and not snapshot["cars"][1].has("damage"), "optional damage preserves pristine v1 sedan record"):
+		return
+	sedan.call("repair")
+	world.call("_apply_snapshot", snapshot)
+	if not check(sedan_front.mesh != front_source and sedan_rear.mesh != rear_source and is_equal_approx((sedan.get("damage_zones") as Vector4).y, 0.92), "Kestrel damage round-trips through actual world save"):
+		return
+	sedan.call("repair")
+	if not check(sedan.get_node_or_null("CrashSmoke") == null and is_zero_approx(sedan_rig.get_node("SteeringLeft").rotation.z), "repair clears smoke and wheel damage"):
+		return
+	if not check(sedan_front.mesh == front_source and sedan_rear.mesh == rear_source, "Kestrel exact geometry restored"):
+		return
+	# A live threshold crossing detaches the actual part exactly once.
+	car.call("repair")
+	var left_door := car.get_node("RoadCarVisual/Coachwork/DoorL0") as MeshInstance3D
+	var door_source := left_door.mesh
+	car.call("_record_body_impact", Vector3(-1.0, 0, 0), 40.0)
+	if not check(not left_door.visible, "severe side impact removes struck Cinder door"):
+		return
+	var detached := 0
+	for piece in get_nodes_in_group("vehicle_crash_debris"):
+		var view := piece.get_node_or_null("OriginalPanel") as MeshInstance3D
+		if view != null and view.mesh == door_source:
+			detached += 1
+	if not check(detached == 1, "original authored door becomes rigid debris"):
+		return
+	car.call("_record_body_impact", Vector3(-1.0, 0, 0), 40.0)
+	if not check(get_nodes_in_group("vehicle_crash_debris").size() == 1, "threshold crossing cannot duplicate detached panel"):
+		return
+	car.call("restore_damage", [0, 0, 1, 0])
+	if not check(not left_door.visible and get_nodes_in_group("vehicle_crash_debris").is_empty(), "save restoration preserves missing door without debris spawn"):
+		return
+	car.call("repair")
+	if not check(left_door.visible and left_door.mesh == door_source, "repair replaces original door"):
+		return
+	var splitter := sedan_rig.get_node("FrontSplitter") as MeshInstance3D
+	var splitter_source := splitter.mesh
+	sedan.call("_record_body_impact", Vector3(0, 0, -2.3), 40.0)
+	if not check(not splitter.visible, "severe Kestrel front collision removes splitter"):
+		return
+	var found_splitter := false
+	for piece in get_nodes_in_group("vehicle_crash_debris"):
+		var view := piece.get_node_or_null("OriginalPanel") as MeshInstance3D
+		found_splitter = found_splitter or (view != null and view.mesh == splitter_source)
+	if not check(found_splitter, "actual splitter becomes rigid debris"):
+		return
+	sedan.call("repair")
+	if not check(splitter.visible and get_nodes_in_group("vehicle_crash_debris").is_empty(), "splitter repair clears debris"):
+		return
+	var traffic: Array = world.get("traffic").get("fleet")
+	var npc: CharacterBody3D
+	var bus: CharacterBody3D
+	for actor in traffic:
+		if actor.get("buses") and bus == null:
+			bus = actor
+		elif not actor.get("buses") and npc == null:
+			npc = actor
+	if not check(npc != null and bus != null, "real traffic fleet"):
+		return
+	for actor in [npc, bus]:
+		actor.set_physics_process(false)
+		var coach := actor.get_node("CityBusCoachwork" if actor.get("buses") else "CivilianCarCoachwork") as MeshInstance3D
+		var source: Mesh = coach.mesh
+		var wheels: MultiMesh = actor.get_node("Tires").multimesh
+		var initial: Dictionary = actor.call("snapshot")
+		actor.call("receive_vehicle_impact", actor.to_global(Vector3(0, 0, -4.0 if actor.get("buses") else -2.2)), actor.global_basis.z, 45.0, 1740.0)
+		if not check(coach.mesh != source and actor.get_node("Tires").multimesh == wheels and float(actor.get("_crash_hold")) > 0.0 and not actor.call("can_recycle"), "traffic crash deforms real coachwork, retains shared wheels and pauses route"):
+			return
+		var damaged: Dictionary = actor.call("snapshot")
+		if not check(damaged.has("crash"), "fixed traffic saves crash damage"):
+			return
+		actor.call("apply_snapshot", initial)
+		if not check(coach.mesh == source and not actor.call("snapshot").has("crash"), "legacy traffic save clears damage"):
+			return
+		actor.call("apply_snapshot", damaged)
+		if not check(coach.mesh != source and actor.call("snapshot")["crash"] == damaged["crash"], "traffic crash save restores mesh and stop timer"):
+			return
+		actor.call("apply_snapshot", initial)
+	npc.call("receive_vehicle_impact", npc.to_global(Vector3(0,0,-2.2)), npc.global_basis.z, 40.0, 1740.0)
+	npc.call("park_ambient")
+	if not check(npc.get("_crash_zones") == Vector2.ZERO and npc.get_node_or_null("CrashSmoke") == null and npc.get("vehicle_id") == "", "pool retirement clears prior identity damage and smoke"):
+		return
+	print("VEHICLE_CRASH_SMOKE PASS: player and traffic crumple, crash aftermath, isolated mesh, saves, repair and pool reset")
+	quit(0)

@@ -1,0 +1,20 @@
+{
+  "revision": "82703566ceeb3b0852fb44d3c189abb2a7e97f1e",
+  "adapter": "NVIDIA GeForce RTX 3060",
+  "renderer": "forward_plus",
+  "driver": "vulkan",
+  "resolution": [
+    1920,
+    1080
+  ],
+  "same_item_visible_after_exit": true,
+  "observations": {
+    "aim_wrist": "(-0.053008, 1.406643, 0.570811)",
+    "boot_origin_floor_error_m": 0.00064241886138916,
+    "eye_ahead_of_head_m": 0.0948608852220031,
+    "helix_alight_position": "(121.1, 13.23268, -54.25)",
+    "horizon_chase_height_m": 4.84612846374512,
+    "north_quay_counter_stop_z": -210.549911499023,
+    "seated_head_car_local": "(-0.52, 1.085547, -0.413172)"
+  }
+}

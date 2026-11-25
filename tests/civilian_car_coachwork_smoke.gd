@@ -28,22 +28,25 @@ func _verify()->void:
 		if not _check(bounds.size.x<2.25 and bounds.size.y<1.55 and bounds.size.z<4.55,"body dimensions within original envelope"):
 			return
 		var wheels:=0
-		var rims:=0
 		var colliders:=0
 		for child in car.get_children():
 			if child is CollisionShape3D:
 				colliders+=1
 				if not _check((child.shape as BoxShape3D).size==Vector3(2.25,1.55,4.55),"unchanged collision"):
 					return
-			elif child is MeshInstance3D and child.mesh is CylinderMesh:
-				wheels+=1
-				if not _check(is_equal_approx(child.position.y,Coach.AXLE_Y) and absf(child.position.x)+0.15<1.125,"corrected axle stance"):
+			elif child is MultiMeshInstance3D and child.name in ["Tires","Hubs"]:
+				if not _check((child.name=="Tires" and child.multimesh.mesh is CylinderMesh) or (child.name=="Hubs" and child.multimesh.mesh is ArrayMesh),"batched tire and modeled rim"):
 					return
-			elif child is MeshInstance3D and str(child.name).begins_with("TrafficRim_"):
-				if not _check(child.mesh is ArrayMesh and is_equal_approx(child.position.y,Coach.AXLE_Y),"modeled rim at axle"):
+				var authored: Array = child.multimesh.get_meta("wheel_transforms", [])
+				if not _check(authored.size() == child.multimesh.instance_count, "four recorded wheel transforms"):
 					return
-				rims+=1
-		if not _check(colliders==1 and wheels==4 and rims==4 and not car.is_boardable(),"original car gameplay"):
+				for i in range(child.multimesh.instance_count):
+					var pose: Transform3D = authored[i] if DisplayServer.get_name() == "headless" else child.multimesh.get_instance_transform(i)
+					var at := pose.origin
+					wheels += 1
+					if not _check(is_equal_approx(at.y, Coach.AXLE_Y) and absf(at.x) + 0.15 < 1.125 and is_equal_approx(absf(at.z), 1.36), "corrected axle stance"):
+						return
+		if not _check(colliders==1 and wheels==8 and not car.is_boardable(),"original car gameplay"):
 			return
 		var color:String=car.paint.to_html(false)
 		if colors.has(color) and not _check(colors[color]==body.mesh,"shared paint mesh"):

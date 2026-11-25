@@ -53,5 +53,37 @@ func _check() -> void:
 			push_error("District lookup mismatch at %s" % point)
 			quit(1)
 			return
+	var clock: Node = world.get("day_night")
+	clock.set_process(false)
+	clock.call("set_hour", 12.0)
+	var late_color := Color("d4a1f3")
+	var late_emitter: StandardMaterial3D = city.call("_material", late_color, true)
+	var late_matte: StandardMaterial3D = city.call("_material", late_color, false)
+	var registered: Array = city.get("_emissive_materials")
+	if late_emitter.emission_energy_multiplier != 0.0 or not registered.has(late_emitter) or registered.has(late_matte):
+		push_error("New streamed material must immediately inherit daytime glow state")
+		quit(1)
+		return
+	clock.call("set_hour", 0.0)
+	var updates := int(city.get("_emissive_updates"))
+	if not is_equal_approx(late_emitter.emission_energy_multiplier, 2.35):
+		push_error("Registered emissive palette failed midnight transition")
+		quit(1)
+		return
+	for i in 12:
+		city.call("set_night_factor", 1.0)
+	if int(city.get("_emissive_updates")) != updates:
+		push_error("Unchanged night plateau rewrites entire city emissive palette")
+		quit(1)
+		return
+	if city.call("_material", late_color, true) != late_emitter:
+		push_error("Palette identity must remain stable")
+		quit(1)
+		return
+	var palette: Dictionary = city.get("_palette")
+	if palette.has("1c2736_matte"):
+		push_error("Legacy raised grime material still allocated")
+		quit(1)
+		return
 	print("CITY_SMOKE PASS: ", stats)
 	quit(0)

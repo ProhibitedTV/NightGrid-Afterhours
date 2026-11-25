@@ -130,3 +130,24 @@ first test only proves work partitioning and save determinism; verify Windows
 1080p cold/warm p95, p99 and driving footage before claiming the hitch is gone.
 The staged shell is visibly present before fine decorations; inspect for
 near-field pop-in, draw calls, material instantiation and shader compilation.
+
+
+## Bounded idle eviction follow-up
+
+Normal focus updates now mark eviction work due instead of freeing every obsolete
+completed block at once. Once replacement construction drains, each idle streaming
+callback queues at most one obsolete completed block for deletion, never on the
+same callback as a construction stage. Each callback recomputes distance against
+the latest current/forecast cells and live pedestrian reservations. The pending
+prune survives an unchanged focus and is visible as `prune_due` in streaming stats.
+Explicit teleport/save restore still prunes synchronously. Streaming resumes only
+after a valid focus has been supplied.
+
+This targets potential scene-tree and RenderingServer teardown bursts, not the
+unattributed Windows wall-clock stall documented in TRAFFIC_OPTIMIZATION_NATIVE.md.
+Individual block teardown, cancellation of partially built speculative blocks,
+render submission, shader/driver stalls and other systems remain possible costs.
+The predictive smoke checks the eviction cap, construction/eviction separation,
+stationary queue drain and retained occupied collision. Re-run native cold/warm
+live-traffic driving traces and inspect wall-clock and F8 percentiles before
+closing #32 or claiming a measured improvement.

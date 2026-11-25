@@ -1,5 +1,7 @@
 # Authentic game captures
 
+**New skybox showcase:** [Eight matched, real in-game sky/weather screenshots](skyboxes/GALLERY.md), captured from the same Brickwater camera after the original sky panoramas were integrated. The new captures use X11/Mesa OpenGL, not native RTX/Vulkan; the source revision and SHA256 hashes are recorded with them.
+
 The nine gallery PNGs are unedited Godot viewport outputs, not concept art or mockups. The [capture manifest](capture-manifest.json) identifies the exact rendered source revision, renderer and hashes. Older captures used Godot 4.3; the updated workflow pins Godot 4.7.2. The manifest is authoritative for the images actually committed.
 
 The capture script stages actual locations in the playable world, opens the real menus and enters Quay Fresh through the normal game method. It uses a virtual X11 display and Mesa software OpenGL Compatibility, not the Windows Forward+/Vulkan renderer. The gallery is not an RTX performance benchmark.
@@ -26,3 +28,7 @@ The two new close views use the actual four-bus/25-car fleet rather than a separ
 
 ## Verified nine-image capture
 [Capture run 44956626055](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/runs/44956626055) succeeded, rendering `1caa6bc3635538c4f101033724217c975aef892a`. All nine committed PNG byte lengths match the manifest. Visual inspection confirms the new bus and sedan bodies in the real Vesper streetscape. Remaining art limitations include angular silhouettes, simplified wheel faces, opaque windows, repeating street/facade detail, and daylight haze. This is a prototype art improvement, not photorealistic or native Windows performance acceptance. Final preflight rechecks every image hash before merging.
+
+## Native Windows development showcase (unreleased)
+
+[Browse 13 Windows Forward+/Vulkan development captures](development/GALLERY.md) from pending PRs #163, #165 and #166. The original Git screenshot blobs were copied without alteration into `docs/screenshots/development/`; [provenance.json](development/provenance.json) records the exact source commit, path and blob SHA for each image. These are not images from the currently released Beta.7. They are separate from the nine-image Linux Mesa manifest above and from the draft 33-image general gallery in PR #127. Native game/visual review and 60 FPS acceptance remain pending.

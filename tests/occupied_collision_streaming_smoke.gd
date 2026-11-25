@@ -95,5 +95,47 @@ func _verify() -> void:
 	if int(session.get("world_seed")) != seed or WorldPlan.manifest_signature(session.call("get_world_manifest")) != manifest_signature:
 		_fail("Collision-first arrival modified the saved city")
 		return
+	# A genuine loaded parcel remains present while a live pedestrian holds
+	# its reservation, even on explicit long-distance relocation.
+	# The World render tick normally requests the actual player focus. For
+	# this explicit streaming fixture, keep that producer from overriding
+	# the test relocation while CityDetails continues its own processing.
+	world.set_process(false)
+	var pinned_cell := Vector2i(0,3)
+	var start := Vector3(10,0.3,190)
+	var end := Vector3(10,0.3,210)
+	if not city.call("reserve_pedestrian_parcel","fixture",start,end):
+		_fail("Fully loaded same-parcel sidewalk reservation rejected")
+		return
+	if city.call("reserve_pedestrian_parcel","crossing",start,Vector3(65,0.3,210)):
+		_fail("A multi-parcel link was accepted by single-parcel reservation")
+		return
+	for i in range(11):
+		if not city.call("reserve_pedestrian_parcel","fixture%d" % i,start,end):
+			_fail("Reservation capacity prematurely exhausted")
+			return
+	if city.call("reserve_pedestrian_parcel","overflow",start,end):
+		_fail("Reservation cap exceeded")
+		return
+	city.call("set_focus",Vector3(29,0,-203))
+	if not pinned_cell in city.call("get_loaded_blocks"):
+		_fail("Pinned pedestrian parcel unloaded")
+		return
+	if city.call("reserve_pedestrian_parcel","fixture",Vector3(10,0.3,-210),Vector3(10,0.3,-190)):
+		_fail("Existing lease could be silently moved")
+		return
+	for i in range(11):
+		city.call("release_pedestrian_parcel","fixture%d" % i)
+	await process_frame
+	await process_frame
+	if not pinned_cell in city.call("get_loaded_blocks"):
+		_fail("Other active reservation lost its parcel")
+		return
+	city.call("release_pedestrian_parcel","fixture")
+	await process_frame
+	await process_frame
+	if pinned_cell in city.call("get_loaded_blocks"):
+		_fail("Released remote parcel not collected without focus movement")
+		return
 	print("OCCUPIED_COLLISION_STREAMING_SMOKE PASS: pre-staged crossing, landmark collision, bounded fallback, stable save")
 	quit(0)

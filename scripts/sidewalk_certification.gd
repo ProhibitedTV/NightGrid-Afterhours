@@ -49,6 +49,11 @@ static func _valid_link(entry: Dictionary) -> bool:
 	var cell := Vector2i(floori(a.x/Plan.BLOCK_SIZE),floori(a.z/Plan.BLOCK_SIZE))
 	if not Plan.is_valid_block(cell.x,cell.y) or Vector2i(floori(b.x/Plan.BLOCK_SIZE),floori(b.z/Plan.BLOCK_SIZE))!=cell:
 		return false
+	if entry.get("kind", "") == "retail_portal":
+		# Only the two explicitly modeled open portals may leave the curb strip.
+		# The sweeps and support samples below still apply to every meter.
+		return cell.y == 0 and absf(a.x - b.x) < 0.01 and absf(absf(a.x) - 18.5) < 0.01 and (
+			absf(a.z - 9.7) < 0.01 and absf(b.z - 15.45) < 0.01)
 	var center := Vector3((cell.x+0.5)*Plan.BLOCK_SIZE,a.y,(cell.y+0.5)*Plan.BLOCK_SIZE)
 	var x: Vector3 = a-center
 	var y: Vector3 = b-center
@@ -135,3 +140,33 @@ func evaluate(city: Node, space: PhysicsDirectSpaceState3D, entry: Dictionary) -
 	if not space.intersect_shape(query,1).is_empty():
 		return _finish(key,BLOCKED)
 	return _finish(key,CLEAR)
+
+## Advance at most one uncached candidate per physics tick. The caller supplies
+## currently relevant links in priority order (e.g. nearest first). A pending
+## job stays pinned while still relevant, even as the player changes ordering.
+## Cached decisions are skipped; callers use cached_clear for spawn permission.
+func advance_candidates(city: Node, space: PhysicsDirectSpaceState3D, entries: Array[Dictionary]) -> Dictionary:
+	if not _reset_epoch(city) or space==null or _last_frame==Engine.get_physics_frames():
+		return {}
+	var chosen: Dictionary = {}
+	var pending_key: String = _job.get("key","")
+	var frame := Engine.get_physics_frames()
+	# The caller supplies a bounded local candidate list, never the entire city.
+	for i in range(mini(entries.size(),MAX_CACHE)):
+		var entry: Dictionary = entries[i]
+		if not _valid_link(entry) or not _loaded(city,entry["start"]):
+			continue
+		var key := _key(entry)
+		if key==pending_key:
+			chosen = entry
+			break
+		var item: Dictionary = _cache.get(key,{})
+		if chosen.is_empty() and (item.is_empty() or int(item["until"])<frame):
+			chosen = entry
+	# If the player moved away or the route vanished, abandon that partial
+	# certificate rather than spending ticks validating an irrelevant parcel.
+	if chosen.is_empty():
+		_job.clear()
+		return {}
+	var state := evaluate(city,space,chosen)
+	return {"id":chosen["id"],"status":state}

@@ -93,7 +93,9 @@ func _verify() -> void:
 	var contacts: Array = world.get("civic_intel")
 	var count_before := contacts.size()
 	world.call("_toggle_interaction")
-	if not str(world.get("notification")).contains("Tamsin") or not str(world.get("notification")).contains("warehouse"):
+	var subtitle: PanelContainer = world.get("ambient_caption")
+	var spoken: Dictionary = subtitle.call("content")
+	if not subtitle.visible or not str(spoken["speaker"]).contains("Tamsin") or not str(spoken["line"]).contains("warehouse"):
 		_fail("G did not surface actual customer dialog in the HUD")
 		return
 	if int(world.get("cash")) != cash_before or absf(float(world.get("health")) - 68.0) > 0.01:
@@ -143,9 +145,10 @@ func _verify() -> void:
 	if int(rooms.call("get_metrics")["loaded_rooms"]) != 0:
 		_fail("Room leaked after leaving café")
 		return
-	player.global_position = venues.call("venue_position", "helix_espresso")
+	# Use an unmigrated café to verify isolation of the legacy room archetype.
+	player.global_position = venues.call("venue_position", "copper_cup")
 	world.call("_toggle_interior")
-	if str(rooms.call("active_site_id")) != "helix_espresso":
+	if str(rooms.call("active_site_id")) != "copper_cup":
 		_fail("Other café routes changed")
 		return
 	if not (rooms.call("get_patron_manifest") as Array).is_empty():

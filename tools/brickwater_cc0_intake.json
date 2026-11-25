@@ -1,0 +1,97 @@
+{
+  "license": "CC0 1.0",
+  "license_url": "https://polyhaven.com/license",
+  "status": "publisher pages verified; acquisition and native review pending",
+  "assets": [
+    {
+      "id": "modular_urban_apartments_facade",
+      "author": "James Ray Cock",
+      "issue": 144,
+      "publisher_triangles_approx": 118000,
+      "batch": "architecture",
+      "use": "Select individual window/door modules; adapt to stable parcel dimensions; weather and age clean surfaces.",
+      "source": "https://polyhaven.com/a/modular_urban_apartments_facade",
+      "resolution": "1k"
+    },
+    {
+      "id": "modular_fire_escape",
+      "author": "Juniix",
+      "issue": 144,
+      "publisher_triangles_approx": 11000,
+      "batch": "architecture",
+      "use": "Select ladder, landing and stair modules; attach to real wall/door anchors.",
+      "source": "https://polyhaven.com/a/modular_fire_escape",
+      "resolution": "1k"
+    },
+    {
+      "id": "modular_electric_cables",
+      "author": "Kuutti Siitonen",
+      "issue": 148,
+      "publisher_triangles_approx": 42000,
+      "batch": "utilities",
+      "use": "Select junctions and clips; author sagging span between actual anchors.",
+      "source": "https://polyhaven.com/a/modular_electric_cables",
+      "resolution": "1k"
+    },
+    {
+      "id": "modular_pipes",
+      "author": "Kuutti Siitonen",
+      "issue": 148,
+      "publisher_triangles_approx": 47000,
+      "batch": "utilities",
+      "use": "Use risers, elbows and clamps rather than duplicating whole kit.",
+      "source": "https://polyhaven.com/a/modular_pipes",
+      "resolution": "1k"
+    },
+    {
+      "id": "industrial_caged_sconce",
+      "author": "Ulan Cabanilla",
+      "issue": 150,
+      "publisher_triangles_approx": 27000,
+      "batch": "utilities",
+      "use": "Use housing and emissive glass; shared bounded lights only.",
+      "source": "https://polyhaven.com/a/industrial_caged_sconce",
+      "resolution": "1k"
+    },
+    {
+      "id": "trashbag",
+      "author": "Benny Weimer",
+      "issue": 147,
+      "publisher_triangles_approx": 4000,
+      "batch": "clutter",
+      "use": "Place by existing bin; classify soft/movable.",
+      "source": "https://polyhaven.com/a/trashbag",
+      "resolution": "1k"
+    },
+    {
+      "id": "cardboard_box_01",
+      "author": "Rahul Chaudhary",
+      "issue": 147,
+      "publisher_triangles_approx": 17000,
+      "batch": "clutter",
+      "use": "Select worn package; simple convex breakable proxy later.",
+      "source": "https://polyhaven.com/a/cardboard_box_01",
+      "resolution": "1k"
+    },
+    {
+      "id": "plastic_crate_01",
+      "author": "PierreB3D",
+      "issue": 147,
+      "publisher_triangles_approx": 18000,
+      "batch": "clutter",
+      "use": "Stack reusable crate variants; keep clear passage.",
+      "source": "https://polyhaven.com/a/plastic_crate_01",
+      "resolution": "1k"
+    },
+    {
+      "id": "hand_truck",
+      "author": "Mutanzom3D",
+      "issue": 147,
+      "publisher_triangles_approx": 13000,
+      "batch": "clutter",
+      "use": "Park at service doorway; bounded movable proxy.",
+      "source": "https://polyhaven.com/a/hand_truck",
+      "resolution": "1k"
+    }
+  ]
+}

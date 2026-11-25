@@ -1,8 +1,11 @@
 extends CharacterBody3D
 const Materials = preload("res://scripts/material_library.gd")
+const WheelArt = preload("res://scripts/traffic_wheel_mesh.gd")
 const BusCoachwork = preload("res://scripts/bus_coachwork.gd")
 const CarCoachwork = preload("res://scripts/civilian_car_coachwork.gd")
-const WheelArt = preload("res://scripts/traffic_wheel_mesh.gd")
+const StreamProfile = preload("res://scripts/streaming_profile.gd")
+const Crumple = preload("res://scripts/vehicle_crumple.gd")
+const CrashFX = preload("res://scripts/vehicle_crash_fx.gd")
 ## Lightweight NPC street vehicle. Follows lane centerlines, obeys stop bars,
 ## slows for vehicles ahead and dwells at marked bus stops.
 var route: Array[Vector3] = []
@@ -18,16 +21,35 @@ var dwell_remaining := 0.0
 var last_served := -1
 var laps := 0
 var paint := Color("4c90a3")
+var _leased := false
 var _detour: Array[Vector3] = []
 var _detour_cursor := 0
 var _detour_rejoin := -1
 var _detour_hold := false
-var _wheel_hubs: Array[MeshInstance3D] = []
-var _wheel_phase := 0.0
 const HANDOFF_TOLERANCE = 0.55
 const DETOUR_MAX_POINTS = 81
+static var _wheel_sets: Dictionary = {}
+var _rim_batch: MultiMesh
+var _rim_rest: Array[Transform3D] = []
+var _wheel_phase := 0.0
+static var _body_shapes: Dictionary = {}
+var _crash_zones := Vector2.ZERO
+var _crash_condition := 100.0
+var _crash_hold := 0.0
+var _crash_cooldown := 0.0
+var _coach: MeshInstance3D
+var _pristine_coach: ArrayMesh
 
 func setup(path: Array[Vector3], first_index: int, position_at: Vector3, bus: bool, identifier: String, tint: Color, signal_controller: Node, owner_fleet: Node) -> void:
+	buses = bus
+	signals = signal_controller
+	fleet = owner_fleet
+	_assign_route(path, first_index, position_at, identifier, tint)
+	cruise_speed = 8.5 if buses else 11.1
+	floor_snap_length = 0.1
+	_build_body()
+
+func _assign_route(path: Array[Vector3], first_index: int, position_at: Vector3, identifier: String, tint: Color) -> void:
 	route = path
 	next_index = first_index % path.size()
 	global_position = position_at
@@ -35,14 +57,42 @@ func setup(path: Array[Vector3], first_index: int, position_at: Vector3, bus: bo
 	initial_direction.y = 0.0
 	if initial_direction.length_squared() > 0.01:
 		rotation.y = atan2(-initial_direction.x, -initial_direction.z)
-	buses = bus
 	vehicle_id = identifier
 	paint = tint
-	signals = signal_controller
-	fleet = owner_fleet
-	cruise_speed = 8.5 if buses else 11.1
-	floor_snap_length = 0.1
-	_build_body()
+
+func lease_ambient(path: Array[Vector3], entry: Dictionary) -> void:
+	_assign_route(path, int(entry["next_index"]), entry["position"], entry["id"], Color(entry["paint"]))
+	_reset_detour()
+	_detour_hold = false
+	cruise_speed = entry["speed"]
+	speed = 0.0
+	velocity = Vector3.ZERO
+	dwell_remaining = 0.0
+	last_served = -1
+	laps = 0
+	_reset_wheel_phase()
+	_leased = true
+	_pristine_coach = CarCoachwork.mesh_for(paint)
+	_reset_crash()
+	collision_layer = 1
+	collision_mask = 1
+	reset_physics_interpolation()
+	show()
+	set_physics_process(true)
+
+func park_ambient() -> void:
+	_reset_crash()
+	set_physics_process(false)
+	collision_layer = 0
+	collision_mask = 0
+	hide()
+	speed = 0.0
+	velocity = Vector3.ZERO
+	vehicle_id = ""
+	_leased = false
+
+func can_recycle() -> bool:
+	return _crash_hold <= 0.0 and not _detour_hold and not finite_detour_active()
 
 func _on_loop_leg(at: Vector3, index: int) -> bool:
 	if route.size()<2 or index<0 or index>=route.size():
@@ -94,6 +144,12 @@ func _reset_detour() -> void:
 	_detour_rejoin = -1
 
 func _physics_process(delta: float) -> void:
+	_crash_cooldown = maxf(0.0, _crash_cooldown - delta)
+	if _crash_hold > 0.0:
+		_crash_hold = maxf(0.0, _crash_hold - delta)
+		speed = 0.0
+		velocity = Vector3.ZERO
+		return
 	if route.is_empty() or signals == null or fleet == null:
 		return
 	if dwell_remaining > 0.0:
@@ -105,6 +161,7 @@ func _physics_process(delta: float) -> void:
 		speed = 0.0
 		velocity = Vector3.ZERO
 		return
+	var driving_started := StreamProfile.begin()
 	var waypoint := _detour[_detour_cursor] if finite_detour_active() else route[next_index]
 	var toward := waypoint - global_position
 	toward.y = 0.0
@@ -129,9 +186,13 @@ func _physics_process(delta: float) -> void:
 	var direction := toward.normalized()
 	if direction.length_squared() < 0.001:
 		return
-	var cap := cruise_speed
+	var cap := cruise_speed * lerpf(.35, 1.0, _crash_condition / 100.0)
 	cap = float(signals.call("approach_speed_cap", global_position, direction, cap))
+	if _leased:
+		cap = float(fleet.call("pooled_speed_cap", global_position, direction, cap))
+	var headway_started := StreamProfile.begin()
 	cap = float(fleet.call("headway_speed_cap", self, direction, cap))
+	StreamProfile.accumulate(headway_started, "traffic_headway")
 	# Reduce turning speed at the end of each block; no abrupt full-speed cornering.
 	if toward.length() < 10.0:
 		cap = minf(cap, 3.6 + toward.length() * 0.22)
@@ -155,29 +216,70 @@ func _physics_process(delta: float) -> void:
 	speed = move_toward(speed, cap, (3.0 if speed < cap else 9.0) * delta)
 	rotation.y = lerp_angle(rotation.y, atan2(-direction.x, -direction.z), minf(delta * 5.5, 1.0))
 	velocity = direction * speed
+	StreamProfile.accumulate(driving_started, "traffic_control_including_headway")
+	var collision_started := StreamProfile.begin()
+	var incoming := velocity
 	var before := global_position
 	move_and_slide()
-	_roll_wheels(global_position-before)
+	StreamProfile.accumulate(collision_started, "traffic_move_and_slide")
+	_roll_wheels(global_position - before)
+	if _crash_cooldown <= 0.0:
+		_resolve_crash(incoming)
 
-func _roll_wheels(displacement:Vector3) -> void:
-	# Use actual post-collision movement, not intended cruise speed.
-	# Never turn by a save/load teleport or a large invalid delta.
-	displacement.y = 0.0
-	if not displacement.is_finite() or displacement.length()>2.0 or displacement.length_squared()<0.00000001:
-		return
-	var radius := 0.44 if buses else CarCoachwork.TIRE_RADIUS
-	var signed_metres := displacement.dot(-global_transform.basis.z)
-	# A sideways collision slide must not spin the axle or rewrite transforms.
-	if absf(signed_metres)<0.0001:
-		return
-	_wheel_phase = fposmod(_wheel_phase+signed_metres/radius,TAU)
-	_apply_wheel_phase()
+func _resolve_crash(incoming: Vector3) -> void:
+	var strongest := 9.0
+	var at := Vector3.ZERO
+	var normal := Vector3.ZERO
+	var other: Node
+	for i in get_slide_collision_count():
+		var contact := get_slide_collision(i)
+		var n := contact.get_normal()
+		if absf(n.y) >= .5:
+			continue
+		n = Vector3(n.x, 0, n.z).normalized()
+		var closing := -(incoming - contact.get_collider_velocity()).dot(n)
+		if closing > strongest:
+			strongest = closing
+			at = contact.get_position()
+			normal = n
+			other = contact.get_collider() as Node
+	if normal != Vector3.ZERO:
+		receive_vehicle_impact(at, normal, strongest, 1740.0)
+		if is_instance_valid(other) and other.has_method("receive_vehicle_impact"):
+			other.call("receive_vehicle_impact", at, -normal, strongest, 9500.0 if buses else 1500.0)
 
-func _apply_wheel_phase() -> void:
-	var orientation := Basis(Vector3.FORWARD,-PI*0.5)*Basis(Vector3.UP,_wheel_phase)
-	# FORWARD is -Z; the first rotation maps local Y onto -X.
-	for hub in _wheel_hubs:
-		hub.basis=orientation
+func receive_vehicle_impact(world_contact: Vector3, direction: Vector3, closing: float, striking_mass: float) -> void:
+	if _crash_cooldown > 0.0 or closing < 6.0 or not is_finite(closing) or not is_finite(striking_mass) or striking_mass <= 0.0 or not world_contact.is_finite() or not direction.is_finite():
+		return
+	var mass := 9500.0 if buses else 1500.0
+	var severity := closing * lerpf(.5, 1.0, striking_mass / (mass + striking_mass))
+	var local := to_local(world_contact)
+	var end := 0 if local.z <= 0.0 else 1
+	_crash_zones[end] = minf(1.0, _crash_zones[end] + clampf((severity - 4.0) / 26.0, .03, .95))
+	_crash_condition = maxf(0.0, _crash_condition - clampf((severity - 3.0) * 1.8, 1.0, 60.0))
+	_crash_cooldown = .65
+	# Stop after a serious hit, then limp along the existing certified route.
+	# Never indefinitely strand bus passengers or jam the fixed traffic fleet.
+	_crash_hold = maxf(_crash_hold, clampf(severity * .27, 1.0, 7.0))
+	speed = 0.0
+	velocity = Vector3.ZERO
+	_update_crash_visual()
+	CrashFX.burst(self, world_contact, -direction, severity)
+
+func _update_crash_visual() -> void:
+	if is_instance_valid(_coach) and _pristine_coach != null:
+		var offset := 1.8 if buses else 0.0
+		var mesh := Crumple.build(_pristine_coach, -1.0, _crash_zones.x, offset)
+		_coach.mesh = Crumple.build(mesh, 1.0, _crash_zones.y, offset)
+	CrashFX.sync_smoke(self, _crash_condition, Vector4(_crash_zones.x, _crash_zones.y, 0, 0), Vector3(0, -.5 if buses else .12, -3.65 if buses else -1.55))
+
+func _reset_crash() -> void:
+	_crash_zones = Vector2.ZERO
+	_crash_condition = 100.0
+	_crash_hold = 0.0
+	_crash_cooldown = 0.0
+	CrashFX.clear_debris(self)
+	_update_crash_visual()
 
 func is_boardable() -> bool:
 	return buses and dwell_remaining > 0.05
@@ -186,10 +288,14 @@ func alight_position() -> Vector3:
 	return global_position + global_transform.basis.x * 6.5 + Vector3(0.0, -0.4, 0.0)
 
 func snapshot() -> Dictionary:
-	return {"id": vehicle_id, "position": [global_position.x, global_position.y, global_position.z],
+	var state := {"id": vehicle_id, "position": [global_position.x, global_position.y, global_position.z],
 		"yaw": rotation.y, "next_index": next_index, "speed": speed,
 		"dwell": dwell_remaining, "last_served": last_served, "laps": laps,
 		"detour_interrupted": finite_detour_active() or _detour_hold}
+	# Ambient leases are intentionally transient; fixed traffic can round-trip.
+	if not _leased and _crash_zones != Vector2.ZERO:
+		state["crash"] = [_crash_zones.x, _crash_zones.y, _crash_condition, _crash_hold]
+	return state
 
 func apply_snapshot(data: Dictionary) -> void:
 	if str(data.get("id", "")) != vehicle_id:
@@ -208,44 +314,94 @@ func apply_snapshot(data: Dictionary) -> void:
 	dwell_remaining = clampf(float(data.get("dwell", 0.0)), 0.0, 8.0)
 	last_served = clampi(int(data.get("last_served", -1)), -1, stop_points.size() - 1)
 	laps = maxi(0, int(data.get("laps", 0)))
-	_wheel_phase = 0.0
-	_apply_wheel_phase()
+	_reset_wheel_phase()
+	_reset_crash()
+	var saved: Variant = data.get("crash", [])
+	if not _leased and saved is Array and saved.size() == 4:
+		for value in saved:
+			if not (value is float or value is int) or not is_finite(float(value)):
+				return
+		_crash_zones = Vector2(clampf(float(saved[0]), 0.0, 1.0), clampf(float(saved[1]), 0.0, 1.0))
+		_crash_condition = clampf(float(saved[2]), 0.0, 100.0)
+		_crash_hold = clampf(float(saved[3]), 0.0, 7.0)
+		_update_crash_visual()
 
 func _build_body() -> void:
-	var shape := BoxShape3D.new()
-	shape.size = Vector3(2.7, 2.85, 8.3) if buses else Vector3(2.25, 1.55, 4.55)
+	if not _body_shapes.has(buses):
+		var shape := BoxShape3D.new()
+		shape.size = Vector3(2.7, 2.85, 8.3) if buses else Vector3(2.25, 1.55, 4.55)
+		_body_shapes[buses] = shape
 	var hitbox := CollisionShape3D.new()
-	hitbox.shape = shape
+	hitbox.shape = _body_shapes[buses]
 	add_child(hitbox)
-	if buses:
-		var coach := BusCoachwork.build(paint)
-		coach.name = "CityBusCoachwork"
-		add_child(coach)
-		for side in [-1.0,1.0]:
-			for axle in [-2.55,2.55]:
-				var at := Vector3(side*1.18,-1.30,axle)
-				_wheel(at,0.44)
-		return
-	var car := CarCoachwork.build(paint)
-	car.name = "CivilianCarCoachwork"
-	add_child(car)
-	for side in [-1.0,1.0]:
-		for axle in CarCoachwork.AXLES:
-			_wheel(Vector3(side*0.94,CarCoachwork.AXLE_Y,axle),CarCoachwork.TIRE_RADIUS)
+	var coach := BusCoachwork.build(paint) if buses else CarCoachwork.build(paint)
+	coach.name = "CityBusCoachwork" if buses else "CivilianCarCoachwork"
+	add_child(coach)
+	_coach = coach as MeshInstance3D
+	_pristine_coach = _coach.mesh as ArrayMesh
+	if not _wheel_sets.has(buses):
+		var radius := 0.44 if buses else CarCoachwork.TIRE_RADIUS
+		_wheel_sets[buses] = [
+			_wheel_batch(WheelArt.tire(radius)),
+			WheelArt.rim(radius),
+		]
+	var tires := MultiMeshInstance3D.new()
+	tires.name = "Tires"
+	tires.multimesh = _wheel_sets[buses][0]
+	tires.material_override = Materials.surface("ASPHALT", Color("171a20"))
+	add_child(tires)
+	var hubs := MultiMeshInstance3D.new()
+	hubs.name = "Hubs"
+	# Share immutable rim geometry, not the independently animated transforms.
+	_rim_batch = _wheel_batch(_wheel_sets[buses][1])
+	_rim_rest.assign(_rim_batch.get_meta("wheel_transforms"))
+	hubs.multimesh = _rim_batch
+	hubs.material_override = Materials.surface("METAL", Color("89939c"))
+	add_child(hubs)
 
-func _wheel(at: Vector3, radius: float) -> void:
-	var tire := MeshInstance3D.new()
-	tire.name = "TrafficTire_%d" % _wheel_hubs.size()
-	tire.mesh = WheelArt.tire(radius)
-	tire.position = at
-	tire.rotation.z = PI * 0.5
-	tire.material_override = Materials.surface("ASPHALT", Color("171a20"))
-	add_child(tire)
-	var hub := MeshInstance3D.new()
-	hub.name = "TrafficRim_%d" % _wheel_hubs.size()
-	hub.mesh = WheelArt.rim(radius)
-	hub.position = at
-	hub.rotation.z = PI * 0.5
-	hub.material_override = Materials.surface("METAL", Color("89939c"))
-	add_child(hub)
-	_wheel_hubs.append(hub)
+func _wheel_batch(mesh: Mesh) -> MultiMesh:
+	var batch := MultiMesh.new()
+	batch.transform_format = MultiMesh.TRANSFORM_3D
+	batch.mesh = mesh
+	batch.instance_count = 4
+	var axes := Basis(Vector3.BACK, PI * 0.5)
+	var x := 1.18 if buses else 0.94
+	var y := BusCoachwork.AXLE_Y if buses else CarCoachwork.AXLE_Y
+	var axles: Array = BusCoachwork.AXLES if buses else CarCoachwork.AXLES
+	var wheel_transforms: Array[Transform3D] = []
+	for side in [-1.0, 1.0]:
+		for axle in axles:
+			wheel_transforms.append(Transform3D(axes, Vector3(side * x, y, axle)))
+	for index in range(wheel_transforms.size()):
+		batch.set_instance_transform(index, wheel_transforms[index])
+	# Godot's headless renderer cannot read back MultiMesh transforms.
+	batch.set_meta("wheel_transforms", wheel_transforms)
+	return batch
+
+
+func _roll_wheels(displacement: Vector3) -> void:
+	if not is_instance_valid(_rim_batch):
+		return
+	displacement.y = 0.0
+	if not displacement.is_finite() or displacement.length_squared() > 4.0:
+		return
+	var signed_metres := displacement.dot(-global_basis.z)
+	if absf(signed_metres) < 0.0001:
+		return
+	var radius := 0.44 if buses else CarCoachwork.TIRE_RADIUS
+	_wheel_phase = fposmod(_wheel_phase + signed_metres / radius, TAU)
+	_apply_wheel_phase()
+
+func _reset_wheel_phase() -> void:
+	_wheel_phase = 0.0
+	if is_instance_valid(_rim_batch):
+		_apply_wheel_phase()
+
+func _apply_wheel_phase() -> void:
+	# Local +Y maps onto world-local -X. Positive forward displacement
+	# moves the tire's bottom contact towards the rear of the vehicle.
+	var rotation_basis := Basis(Vector3.UP, _wheel_phase)
+	for i in range(_rim_rest.size()):
+		var pose := _rim_rest[i]
+		pose.basis = pose.basis * rotation_basis
+		_rim_batch.set_instance_transform(i, pose)

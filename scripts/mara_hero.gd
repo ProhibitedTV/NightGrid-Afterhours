@@ -89,6 +89,12 @@ func next_dialogue(context: Dictionary) -> Dictionary:
 		0:
 			topic_name = "THE NIGHT SHIFT"
 			message = greeting(context)
+			var tier := int(context.get("outfit_tier",0))
+			if tier >= 2 and heat < .8 and float(context.get("health",100.0)) >= 42.0:
+				topic_name = "DRESSED FOR THE CITY"
+				message = "Mara: That's a sharp Vesper look. People notice when you take pride in yourself."
+				if tier >= 3:
+					message = "Mara: That atelier finish suits you. At Afterimage Lounge, presentation gets people talking. Try asking Iris about the glass invoice."
 		1:
 			topic_name = "VESPER MARKET"
 			message = ("Mara: The patrols are watching the street tonight. Keep the storefronts between you and their cameras."

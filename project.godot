@@ -3,7 +3,7 @@ config_version=5
 
 [application]
 config/name="NIGHTGRID: AFTERHOURS"
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/studio_intro.tscn"
 # Rendering is not capped by fixed-step physics.
 run/max_fps=0
 config/features=PackedStringArray("4.7", "Forward Plus")
@@ -32,3 +32,9 @@ common/physics_ticks_per_second=60
 # 4.6+ may default new projects to Jolt; port physics separately if desired.
 3d/physics_engine="GodotPhysics3D"
 3d/default_gravity=24.0
+
+[shader_globals]
+cinder_surface_film={
+"type": "float",
+"value": 0.0
+}

@@ -1,0 +1,74 @@
+{
+  "asset": "modular_fire_escape",
+  "author": "Juniix",
+  "files": {
+    "modular_fire_escape.bin": {
+      "bytes": 515356,
+      "sha256": "5173033f47b33cbfe47fb38fb18ad99e6d78070ab7e1faf6fcc5a002afe98728",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/modular_fire_escape/modular_fire_escape.bin",
+      "source_md5": "2aec399d6248cb657cd26eaee303e778"
+    },
+    "modular_fire_escape.gltf": {
+      "bytes": 13672,
+      "sha256": "3a28e24cf2b6fc32c86f4fd378a372f9c3babfb9c2206036c6276d5bb47df2fd",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/modular_fire_escape/modular_fire_escape_1k.gltf",
+      "source_md5": "498464ece6337d8a5fad13b2c52b9a8f"
+    },
+    "textures/modular_fire_escape_01_arm_1k.jpg": {
+      "bytes": 711858,
+      "sha256": "ca4ada942209b9b880b180f0646e1bf7c86f46b7599b12ff56b4ef6ad533c44d",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modular_fire_escape/modular_fire_escape_01_arm_1k.jpg",
+      "source_md5": "db6c25c26dbbd9d1d3aa35b12cd13fe2"
+    },
+    "textures/modular_fire_escape_01_diff_1k.jpg": {
+      "bytes": 591379,
+      "sha256": "50b15363269bee95c4c4aeb54a4a4df31a3e52680877fe286259c92885c17b74",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modular_fire_escape/modular_fire_escape_01_diff_1k.jpg",
+      "source_md5": "b84d59c223b8eae20a322f45304b4096"
+    },
+    "textures/modular_fire_escape_01_nor_gl_1k.jpg": {
+      "bytes": 685951,
+      "sha256": "2db2bfc1d9d487cec32f68a846883ded440a1d10a328d81d8dcc522be45e7734",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modular_fire_escape/modular_fire_escape_01_nor_gl_1k.jpg",
+      "source_md5": "84dc137a2781b2b3e8b6287e20cd70a6"
+    },
+    "textures/modular_fire_escape_02_arm_1k.jpg": {
+      "bytes": 732941,
+      "sha256": "b4b65ebcd05e6c4502240a46eebd6535e9f83c0c65e0baaebaf25dae207c7c95",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modular_fire_escape/modular_fire_escape_02_arm_1k.jpg",
+      "source_md5": "049d55eebf33b1070d189f35e4efaabd"
+    },
+    "textures/modular_fire_escape_02_diff_1k.jpg": {
+      "bytes": 615280,
+      "sha256": "9e969f5912b61aee6a6aa6dac3d98a4be3a4c92bf3b8f71e80fedc068493aa18",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modular_fire_escape/modular_fire_escape_02_diff_1k.jpg",
+      "source_md5": "41d01ed76f372f9671d4bee951c740f7"
+    },
+    "textures/modular_fire_escape_02_nor_gl_1k.jpg": {
+      "bytes": 939689,
+      "sha256": "d9024407844f8baf514d005354ea4a729aff3659753e36cbab92fb09d0df3565",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modular_fire_escape/modular_fire_escape_02_nor_gl_1k.jpg",
+      "source_md5": "573666c02d0db273726be7d48b94d32c"
+    }
+  },
+  "license": "CC0 1.0",
+  "license_url": "https://polyhaven.com/license",
+  "materials": 3,
+  "mesh_count": 7,
+  "model": "modular_fire_escape.gltf",
+  "native_approved": false,
+  "node_names": [
+    "modular_fire_escape_railing_middle",
+    "modular_fire_escape_platform_railing",
+    "modular_fire_escape_platform_middle",
+    "modular_fire_escape_stairs",
+    "modular_fire_escape_ladder_bottom",
+    "modular_fire_escape_railing_bottom",
+    "modular_fire_escape_platform_bottom"
+  ],
+  "resolution": "1k",
+  "runtime_download_required": false,
+  "source_api": "https://api.polyhaven.com/files/modular_fire_escape",
+  "source_mesh_triangles": 11322,
+  "source_page": "https://polyhaven.com/a/modular_fire_escape"
+}

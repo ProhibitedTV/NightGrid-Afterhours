@@ -2,10 +2,20 @@ extends Node3D
 ## NIGHTGRID: AFTERHOURS — a generated 3D city with an original courier/crime loop.
 
 const PlayerScript = preload("res://scripts/player.gd")
-const HumanoidVisualScript = preload("res://scripts/humanoid_visual.gd")
+const CourierVisual = preload("res://scripts/courier_visual.gd")
+const PedestrianDirector = preload("res://scripts/pedestrian_director.gd")
+const PedestrianRoutes = preload("res://scripts/pedestrian_routes.gd")
+const PEDESTRIAN_MODELS = [
+	"res://assets/models/nightgrid/pedestrians/casual-walker.glb",
+	"res://assets/models/nightgrid/pedestrians/dog-walker.glb",
+	"res://assets/models/nightgrid/pedestrians/road-worker.glb",
+	"res://assets/models/nightgrid/pedestrians/hiker.glb",
+]
 const CarScript = preload("res://scripts/car.gd")
 const KestrelVisual = preload("res://scripts/kestrel_s6_visual.gd")
-const MinimapScript = preload("res://scripts/minimap.gd")
+const RoadCars = preload("res://scripts/road_car_catalog.gd")
+const RoadCarVisual = preload("res://scripts/road_car_visual.gd")
+const RadarScript = preload("res://scripts/hud_radar.gd")
 const Ui = preload("res://scripts/ui_style.gd")
 const Nav = preload("res://scripts/navigation_waypoint.gd")
 const StreetRoute = preload("res://scripts/street_route.gd")
@@ -16,6 +26,8 @@ const PoliceDispatch = preload("res://scripts/police_dispatch.gd")
 const AmbientCivicLedger = preload("res://scripts/ambient_civic_ledger.gd")
 const CivicPatrolService = preload("res://scripts/civic_patrol_service.gd")
 const PoliceRadio = preload("res://scripts/police_radio.gd")
+const DialogueDirector = preload("res://scripts/dialogue_director.gd")
+const StreetSatire = preload("res://scripts/street_satire.gd")
 const EquipmentWheel = preload("res://scripts/equipment_wheel.gd")
 const Reticle = preload("res://scripts/weapon_reticle.gd")
 const CombatFoley = preload("res://scripts/city_foley.gd")
@@ -27,7 +39,6 @@ const Materials = preload("res://scripts/material_library.gd")
 const NightLightingScript = preload("res://scripts/night_lighting.gd")
 const WetStreetsScript = preload("res://scripts/wet_streets.gd")
 const HeroIntersectionScript = preload("res://scripts/central_exchange_hero.gd")
-const CentralRoadScanScript = preload("res://scripts/central_exchange_road_surface.gd")
 const PhotoRoadNetwork = preload("res://scripts/photo_road_network.gd")
 const TrafficSignalsScript = preload("res://scripts/traffic_signals.gd")
 const TrafficSystemScript = preload("res://scripts/traffic_system.gd")
@@ -41,6 +52,8 @@ const NightGridFMScript = preload("res://scripts/nightgrid_fm.gd")
 const WorldAudioScript = preload("res://scripts/world_audio.gd")
 const AudioMix = preload("res://scripts/audio_mix.gd")
 const FrameTimeRecorder = preload("res://scripts/frame_time_recorder.gd")
+const BrickwaterRepair = preload("res://scripts/brickwater_storefront.gd")
+const StreamProfile = preload("res://scripts/streaming_profile.gd")
 const PlaytestEvidence = preload("res://scripts/playtest_evidence.gd")
 const PlaytestLogger = preload("res://scripts/playtest_logger.gd")
 const BuildInfo = preload("res://scripts/build_info.gd")
@@ -51,14 +64,45 @@ const VEHICLE_COLORS = [
 	Color("f04e59"), Color("40b1ff"), Color("e9bf51"),
 	Color("9b75e7"), Color("dedee0"), Color("58c99e")
 ]
-const PICKUPS = [
-	Vector3(-116.0, 0.0, 0.0), Vector3(58.0, 0.0, -116.0),
-	Vector3(116.0, 0.0, 58.0), Vector3(-58.0, 0.0, 116.0)
-]
-const DROPOFFS = [
-	Vector3(116.0, 0.0, 116.0), Vector3(-116.0, 0.0, 58.0),
-	Vector3(0.0, 0.0, -116.0), Vector3(116.0, 0.0, -58.0)
-]
+const CourierMission = preload("res://scripts/courier_mission.gd")
+const StoryMission = preload("res://scripts/story_mission.gd")
+const Opening = preload("res://scripts/opening_story.gd")
+const OpeningOffice = preload("res://scripts/synaxis_office.gd")
+var _opening_office: Node3D
+const StarterHome = preload("res://scripts/starter_home.gd")
+var _home_panel := false
+var _storage_upgrade_quote := false
+var _wardrobe_panel := false
+var _clothing_retail := false
+var _retail_id:=""
+var _retail_stock:Array=[]
+var _retail_day:=0
+var _fitting_yaw:=0.0
+var _fitting_rotation:=0.0
+var _fitting_zoom:=0.0
+var _fitting_compare:=false
+var _wardrobe_category:="ALL"
+var _look_index:=0
+var _look_save_pending:=false
+var _wardrobe_controls:HBoxContainer
+var _wardrobe_category_label:Label
+var _wardrobe_compare_button:Button
+const ClothingStore = preload("res://scripts/clothing_store.gd")
+var _wardrobe_index := 0
+var _wardrobe_quote_id := ""
+var _wardrobe_tender := "USD"
+var _exchange_panel := false
+var _tenancy_panel := false
+const Economy = preload("res://scripts/economy.gd")
+const Wardrobe = preload("res://scripts/wardrobe_catalog.gd")
+const StarterGarage = preload("res://scripts/starter_garage.gd")
+var _garage_panel := false
+# Transient quote; never serialized, never charges on selection.
+var _title_offer_id := ""
+var _title_quote_id := ""
+var _sale_offer_id := ""
+var _sale_quote_id := ""
+var _sale_quote_amount := 0
 
 var rng := RandomNumberGenerator.new()
 var player: CharacterBody3D
@@ -73,16 +117,23 @@ var civic_patrol_service = CivicPatrolService.new()
 var _civic_patrol: CharacterBody3D
 var _civic_patrol_poll := 0.0
 var police_radio: Node
+var dialogue_director: Node3D
+var _dialogue_card: PanelContainer
+var _dialogue_caption: Label
 var _radio_caption: Label
 var _radio_card: PanelContainer
 var _radio_close_tail := 0.0
 var _radio_was_wanted := false
 var _civic_radio_announced: Dictionary = {}
+var _receiver_sites: Array[Dictionary] = []
 var returning_units: Array[CharacterBody3D] = []
 var _sight_clock := 0.0
 var _wanted_label: Label
 var _pending_theft: Variant = null
 var camera: Camera3D
+var _cinder_cockpit := false
+var _cockpit_look := Vector2.ZERO
+var _cockpit_camera_active := false
 var marker: Node3D
 var marker_light: OmniLight3D
 var hud_label: Label
@@ -114,13 +165,22 @@ var performance_label: Label
 var performance_overlay := false
 var minimap: Control
 var city_details: Node3D
+var pedestrians: Node3D
+var _pedestrian_scan := 0.0
+var _street_contact_id:=""
+var _cal_pending:Dictionary={}
+var _cal_tracking:=false
+var _cal_nav_clock:=0.0
+const CAL_PICKUP="moon_noodles"
+const BUSKING_SITES=["moon_noodles","copper_cup"]
+var _music_session_site:=""
+const Instruments=preload("res://scripts/instrument_catalog.gd")
 var city_perimeter: Node3D
 var flora: Node3D
 var day_night: Node
 var street_lights: Node3D
 var wet_streets: Node3D
 var hero_intersection: Node3D
-var central_roadway: Node3D
 var signal_controller: Node3D
 var traffic: Node3D
 var rail: Node3D
@@ -128,6 +188,11 @@ var venue_system: Node3D
 var civic_services: Node3D
 var interiors: Node3D
 var game_menu: CanvasLayer
+var _arcade_layer: CanvasLayer
+var _arcade_best: Dictionary = {}
+const ArcadeScreen = preload("res://scenes/arcade_pilot.tscn")
+const ArcadeScores = preload("res://scripts/arcade_scores.gd")
+const ArcadeCircuit = preload("res://scripts/arcade_circuit_board.gd")
 var nightgrid_fm: Node
 var world_audio: Node
 var frame_time_recorder = FrameTimeRecorder.new()
@@ -141,7 +206,11 @@ var civic_selected_id := ""
 var civic_job_active := ""
 var civic_job_completed: Array[String] = []
 var civic_intel: Array[String] = []
+const Consumables = preload("res://scripts/consumables.gd")
 var ration_packs := 0
+var consumable_inventory: Dictionary = {}
+var _vending_machine: Node3D
+var hud_stamina: ProgressBar
 var venue_panel: PanelContainer
 var venue_label: Label
 var venue_service_button: Button
@@ -149,7 +218,12 @@ var venue_job_button: Button
 var venue_talk_button: Button
 var venue_close_button: Button
 var mara_dialogue_line := ""
+const DialogueCaption = preload("res://scripts/dialogue_caption.gd")
+var ambient_caption: PanelContainer
+var contact_caption: PanelContainer
 var venue_selected_id := ""
+var _repair_panel := false
+var _pooled_traffic_enabled := false
 var venue_job_active := ""
 var venue_job_completed: Array[String] = []
 var _venue_clock_tick := 0.0
@@ -158,22 +232,44 @@ var _focus_update_clock := 1.0
 var _hud_update_clock := 1.0
 var current_transit: Node3D
 var transit_kind := ""
+var _active_station_lift: Node3D
+var _rail_platform_rider := false
+var _camera_probe := PhysicsShapeQueryParameters3D.new()
 var session: Node
 var world_environment: WorldEnvironment
 var sun_light: DirectionalLight3D
 var yaw := 0.0
 var pitch := 0.42
-var cash := 0
+const ProgressionLedger = preload("res://scripts/progression_ledger.gd")
+var progression := ProgressionLedger.new()
+# Keep the existing HUD/test/gameplay cash interface; one live wallet owns it.
+var cash: int:
+	get:
+		return progression.balance
+	set(value):
+		progression.set_balance(value)
 var health := 100.0
 var heat := 0.0
-var deliveries := 0
-var carrying := false
+var courier_mission := CourierMission.new()
+var story_mission := StoryMission.new()
+# Compatibility accessors for HUD and existing save fields.
+var deliveries: int:
+	get:
+		return courier_mission.completed_runs
+var carrying: bool:
+	get:
+		return courier_mission.has_package()
 var mission_position := Vector3.ZERO
-var notification := "Welcome to the night shift. Find a car and pick up the package."
+var notification := "Morrow Bay / Find your next shift. Follow the delivery marker."
 var notification_time := 8.0
 var police_cooldown := 4.0
 
 func _ready() -> void:
+	var clearance_ball := SphereShape3D.new()
+	clearance_ball.radius = 0.30
+	_camera_probe.shape = clearance_ball
+	_camera_probe.margin = 0.02
+	_camera_probe.collision_mask = 1
 	GameInput.install()
 	AudioMix.ensure()
 	session = get_node("/root/GameSession")
@@ -199,6 +295,8 @@ func _ready() -> void:
 	_configure_ambient_civic()
 	_build_routine_patrols()
 	_create_camera()
+	if "--living-streets" in OS.get_cmdline_user_args():
+		enable_living_streets()
 	_create_marker()
 	_build_hud()
 	_build_game_menu()
@@ -207,16 +305,37 @@ func _ready() -> void:
 	police_radio = PoliceRadio.new()
 	police_radio.name = "PoliceRadio"
 	add_child(police_radio)
+	dialogue_director = DialogueDirector.new()
+	dialogue_director.name = "DialogueDirector"
+	add_child(dialogue_director)
+	dialogue_director.connect("caption_changed", _show_dialogue_caption)
+	for line in StreetSatire.LINES:
+		dialogue_director.call("prewarm",str(line["id"]))
 	var restore: Dictionary = session.call("take_pending_restore")
 	if restore.is_empty():
-		_set_mission_target(PICKUPS[0], false)
+		_refresh_courier_target()
 	else:
 		_apply_snapshot(restore)
+		if current_transit == null:
+			_resume_restored_actor_after_collision_sync(current_car if current_car != null else player)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	if DisplayServer.get_name() != "headless" and not bool(session.get("boot_menu_shown")):
+	if bool(session.get("opening_pending")) and restore.is_empty():
+		session.set("opening_pending",false)
+		_start_opening_office()
+	elif DisplayServer.get_name() != "headless" and not bool(session.get("boot_menu_shown")):
 		session.set("boot_menu_shown", true)
 		game_menu.call("open_title")
 	_log_playtest("world_ready", {"restored": not restore.is_empty()})
+
+func _resume_restored_actor_after_collision_sync(actor: CharacterBody3D) -> void:
+	# A newly rebuilt world's traffic colliders can still be at their initial
+	# physics-server transforms on the first tick. Skip that movement step so
+	# kinematic recovery cannot push a restored actor away from the saved point.
+	actor.set_physics_process(false)
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	if is_instance_valid(actor):
+		actor.set_physics_process(true)
 
 func _exit_tree() -> void:
 	playtest_logger.end_session()
@@ -237,6 +356,9 @@ func _log_playtest(name: String, details: Dictionary = {}) -> void:
 		"indoors": indoors,
 		"mode": "car" if current_car != null else ("transit_" + transit_kind.to_lower() if current_transit != null else "on_foot")
 	}
+	if is_instance_valid(_opening_office):
+		context["chapter"]=_opening_diagnostic_context()
+		context["indoors"]=_inside_opening_hq()
 	if current_car != null:
 		context["speed_kph"] = current_car.call("speed_kph")
 	if name == "manual_marker":
@@ -275,15 +397,29 @@ func _update_police_radio(delta: float) -> void:
 	_radio_was_wanted = active
 	_radio_close_tail = maxf(0.0, _radio_close_tail - delta)
 	var station: Dictionary = {}
+	var receiver := Vector3.INF
 	if bool(interiors.call("is_inside")) and str(interiors.call("active_site_group")) == "CIVIC":
 		station = civic_services.call("site_by_id", str(interiors.call("active_site_id")))
 	var in_station := station.has("station_id")
+	if in_station:
+		receiver = (interiors.call("get_counter_point") as Vector3) + Vector3(0.75, 0.3, 0.25)
+	elif not active and not bool(interiors.call("is_inside")):
+		for site in _receiver_sites:
+			var address: Vector3 = site["address"]
+			if player.global_position.distance_squared_to(address) < 12.0 * 12.0:
+				station = {"station_id": site["id"], "headquarters": site["hq"]}
+				receiver = address + Vector3.UP * 0.7
+				break
 	police_radio.call("ingest", dispatch.history)
 	police_radio.call("update_state", active, wanted.police_seen, delta)
 	var closing := _radio_close_tail > 0.0 and bool(police_radio.call("has_traffic"))
-	if in_station and not active and not closing and not bool(day_night.get("paused")):
+	var local_receiver := receiver.is_finite() and not active and not closing
+	if local_receiver and not bool(day_night.get("paused")):
 		_announce_civic_at_station(station)
-	police_radio.call("tick", delta, active or in_station or closing)
+	police_radio.call("set_receiver", receiver if local_receiver else Vector3.INF)
+	police_radio.call("tick", delta, active or local_receiver or closing)
+	if is_instance_valid(nightgrid_fm):
+		nightgrid_fm.set("dialogue_active", bool(police_radio.call("speaking")) or (is_instance_valid(dialogue_director) and bool(dialogue_director.call("speaking"))))
 	if not active and not bool(police_radio.call("has_traffic")):
 		_radio_close_tail = 0.0
 	var caption: String = police_radio.get("current")
@@ -323,13 +459,102 @@ func _build_world_audio() -> void:
 	world_audio.name = "WorldAudio"
 	world_audio.set("menu", game_menu)
 	add_child(world_audio)
+	_receiver_sites = civic_services.call("police_station_sites")
 	world_audio.call("set_traffic", traffic)
+	world_audio.call("set_pedestrians", pedestrians)
 	var options: Dictionary = game_menu.call("get_settings")
 	world_audio.call("set_preferences", float(options.get("ambience_volume", 0.65)),
 		float(options.get("sfx_volume", 0.75)))
 
 func _on_menu_action(action: String) -> void:
+	if action.begins_with("fashion_waypoint:"):
+		var id:=action.trim_prefix("fashion_waypoint:")
+		if ClothingStore.STORES.has(id):
+			var entry:=ClothingStore.entry(id)
+			set_navigation_waypoint(Vector2(entry.x,entry.z))
+			_notify("Route set to "+str(ClothingStore.STORES[id]["name"]))
+		game_menu.call("open_journal",_journal_context())
+		return
 	match action:
+		"cal_accept","cal_complete":
+			if not _street_contact_id.is_empty():
+				_cal_pending={"id":_street_contact_id,"action":action}
+			_street_contact_id=""
+		"music_desk_buy","music_desk_busk","music_desk_practice","music_desk_owned","music_desk_leave":
+			_music_desk_action(action)
+		"rhythm_claim":
+			var site:=_music_session_site
+			_music_session_site=""
+			if site=="practice:copper_cup":
+				var sequence:int=game_menu.call("consume_sampler_practice")
+				if sequence>0 and _busking_reachable("copper_cup") and progression.complete_sampler_practice(sequence):
+					_notify(progression.instrument_summary())
+				else:
+					_notify("PRACTICE / Set not recorded.")
+			elif site=="owned:copper_cup":
+				var sequence:int=game_menu.call("consume_owned_sampler_set")
+				if sequence>0 and _busking_reachable("copper_cup") and progression.settle_owned_sampler_set(sequence):
+					_notify("PERSONAL SET / +$14 • +4 STREET CRED")
+				else:
+					_notify("PERSONAL SET / Not settled.")
+			elif site in BUSKING_SITES:
+				var sequence:int=game_menu.call("consume_busking_result")
+				if sequence>0 and _busking_reachable(site) and progression.settle_busking_set(sequence):
+					_notify("BUSKING / SET COMPLETE +$8 • +4 STREET CRED")
+				else:
+					_notify("BUSKING / Set not settled.")
+			elif site=="blue_hour":
+				var sequence:int=game_menu.call("consume_blue_hour_result")
+				if sequence>0 and _blue_hour_set_reachable() and progression.settle_blue_hour_set(sequence):
+					_notify("BLUE HOUR / SET COMPLETE +$45 • +12 STREET CRED")
+				else:
+					_notify("BLUE HOUR / Set not settled.")
+		"rhythm_cancel":
+			_music_session_site=""
+			_notify("MUSIC / Set ended. No reward.")
+		"busking_waypoint":
+			var site:="moon_noodles" if venue_system.call("is_open","moon_noodles") or not venue_system.call("is_open","copper_cup") else "copper_cup"
+			var point:Vector3=venue_system.call("venue_position",site)
+			set_navigation_waypoint(Vector2(point.x,point.z))
+			game_menu.call("open_journal",_journal_context())
+		"music_waypoint":
+			if progression.street_cred()>=100 and not progression.has_receipt("venue:soundcheck_pass"):
+				var point:Vector3=venue_system.call("venue_position","blue_hour" if venue_job_active=="soundcheck_pass" else "static_room")
+				set_navigation_waypoint(Vector2(point.x,point.z))
+			game_menu.call("open_journal",_journal_context())
+		"cal_waypoint":
+			_track_cal_waypoint()
+			game_menu.call("open_journal",_journal_context())
+		"street_reply_0","street_reply_1":
+			if is_instance_valid(pedestrians) and not _street_contact_id.is_empty():
+				pedestrians.call("request_player_reply",_street_contact_id,0 if action=="street_reply_0" else 1)
+			_street_contact_id=""
+		"street_leave":
+			_street_contact_id=""
+		"begin_opening":
+			if not progression.has_receipt(Opening.RECEIPT):
+				_start_opening_office()
+			else:
+				game_menu.call("hide_for_game")
+		"guard_leave":
+			_snap_camera()
+		"restroom_leave":
+			if is_instance_valid(_opening_office):
+				_snap_camera()
+		"breakroom_leave":
+			if is_instance_valid(_opening_office):
+				_opening_office.call("mark_breakroom_seen")
+				_snap_camera()
+		"opening_walk":
+			if is_instance_valid(_opening_office):
+				_opening_office.call("end_dialogue")
+				_opening_office.call("set_stage",int(game_menu.get("_opening_stage")))
+				_snap_camera()
+		"opening_camera":
+			if is_instance_valid(_opening_office):
+				_opening_office.call("dialogue_camera",camera,int(game_menu.get("_opening_stage")),int(game_menu.get("_briefing_beat")))
+		"accept_opening":
+			_accept_opening()
 		"save":
 			_save_game()
 		"load":
@@ -338,22 +563,170 @@ func _on_menu_action(action: String) -> void:
 			_new_game()
 		"journal":
 			game_menu.call("open_journal", _journal_context())
+		"restart_courier":
+			if courier_mission.restart():
+				_refresh_courier_target()
+				_notify("Package abandoned. Return to the pickup to retry.")
+			game_menu.call("open_journal", _journal_context())
+		"story_waypoint":
+			if story_mission.status != "complete":
+				var target := _story_target()
+				set_navigation_waypoint(Vector2(target.x,target.z))
+			game_menu.call("open_journal", _journal_context())
+		"garage_waypoint":
+			if progression.owns_home():
+				var entry := StarterGarage.entry()
+				set_navigation_waypoint(Vector2(entry.x,entry.z))
+			game_menu.call("open_journal", _journal_context())
+		"synaxis_waypoint":
+			set_navigation_waypoint(Vector2(OpeningOffice.ENTRY.x,OpeningOffice.ENTRY.z))
+			game_menu.call("open_journal",_journal_context())
+		"home_waypoint":
+			if progression.has_receipt(StarterHome.ACCESS_RECEIPT):
+				var entry := StarterHome.entry()
+				set_navigation_waypoint(Vector2(entry.x, entry.z))
+			game_menu.call("open_journal", _journal_context())
+		"abandon_story":
+			if story_mission.interrupt("abandoned"):
+				_notify("Contact mission abandoned. Speak to Mara to retry.")
+			game_menu.call("open_journal", _journal_context())
+
+func _start_opening_office() -> void:
+	if is_instance_valid(_opening_office) or progression.has_receipt(Opening.RECEIPT):
+		return
+	city_details.call("set_focus",OpeningOffice.ENTRY)
+	_opening_office = city_details.call("synaxis_headquarters")
+	if not is_instance_valid(_opening_office):
+		# Fail safely to the accessible dialogue rather than strand a new game.
+		game_menu.call("open_opening")
+		return
+	if is_instance_valid(dialogue_director):
+		dialogue_director.call("cancel_all")
+	_cancel_street_interactions()
+	_opening_office.call("begin_prologue")
+	player.get("visual").call("set_corporate_attire",true)
+	player.global_position = _opening_office.to_global(OpeningOffice.START)
+	player.velocity = Vector3.ZERO
+	yaw = 0.0
+	player.set("camera_yaw",yaw)
+	get_node("HUD").hide()
+	marker.hide()
+	game_menu.call("open_opening",true)
+	_opening_office.call("start_arrival",player,camera)
+
+func _opening_interact() -> void:
+	if not is_instance_valid(_opening_office) or game_menu.call("is_open"):
+		return
+	if _opening_office.call("arrival_active"):
+		_opening_office.call("finish_arrival",player,camera)
+		_snap_camera()
+		return
+	if _opening_office.call("lift_active"):
+		return
+	if _opening_office.call("exit_active"):
+		_opening_office.call("try_exit_step",player)
+		return
+	if _opening_office.call("try_lift",player):
+		return
+	if _opening_office.call("try_office_service",player.global_position):
+		player.call("play_visual_action",&"interact")
+		return
+	if _opening_office.call("parking_guard_reachable",player.global_position):
+		game_menu.call("open_parking_guard",false)
+		return
+	if not _opening_office.call("errand_complete"):
+		if _opening_office.call("try_errand",player):
+			return
+		# Optional exploration remains available even before the folder handoff.
+		if not _opening_office.call("breakroom_reachable",player.global_position):
+			return
+	var stage := int(game_menu.get("_opening_stage"))
+	if _opening_office.call("breakroom_reachable",player.global_position) and not bool(_opening_office.get("_breakroom_seen")):
+		_opening_office.call("breakroom_camera",camera)
+		game_menu.call("open_breakroom")
+		return
+	if _opening_office.call("errand_complete") and _opening_office.call("reachable",stage,player.global_position):
+		if stage in [2,4]:
+			_opening_office.call("dialogue_camera",camera,stage,int(game_menu.get("_briefing_beat")))
+		game_menu.call("open_opening_stage")
+
+func _finish_opening_office() -> void:
+	if not is_instance_valid(_opening_office):
+		return
+	var old := _opening_office
+	_opening_office = null
+	old.call("finish_prologue")
+	player.get("visual").call("set_corporate_attire",false)
+	player.global_position = OpeningOffice.ENTRY
+	player.velocity = Vector3.ZERO
+	player.call("restore_stamina",100.0)
+	get_node("HUD").show()
+	marker.show()
+	city_details.call("set_focus",player.global_position)
+	_snap_camera()
+
+func _accept_opening() -> void:
+	if is_instance_valid(_opening_office):
+		if not _opening_office.call("exit_active"):
+			if int(game_menu.get("_opening_stage"))==5:
+				_opening_office.call("begin_exit",player.global_position)
+			return
+		if not _opening_office.call("exit_ready",player.global_position):
+			return
+	if progression.credit_once(Opening.RECEIPT,Opening.SEVERANCE):
+		_finish_opening_office()
+		courier_mission.gig_economy = true
+		_refresh_courier_target()
+		_notify("SYNAXIS: $75 severance credited. QUOTADROP: Your first delivery is ready. Earn your pod deposit.")
+
+# Resolve from existing venue/route contracts, never save another position.
+func _story_target() -> Vector3:
+	if story_mission.status == "complete":
+		return Vector3.INF
+	if story_mission.step == 1:
+		return mission_position
+	return venue_system.call("venue_position", "lantern_cup")
 
 func _journal_context() -> Dictionary:
 	var outside: Vector3 = interiors.get("exterior_position") if interiors.call("is_inside") else _actor().global_position
 	var district: String = city_details.call("get_district_at", outside)
 	var landmark: String = city_details.call("get_nearby_landmark", outside)
-	var objective := "Deliver package" if carrying else "Collect courier package"
+	var objective: Dictionary = courier_mission.objective()
 	var remaining := roundi(outside.distance_to(mission_position))
 	var loaded: Dictionary = city_details.call("get_streaming_stats")
 	return {
 		"district": district if landmark.is_empty() else "%s / %s" % [district, landmark],
 		"clock": day_night.call("clock_string"),
 		"seed": session.get("world_seed"),
-		"main_objective": "%s  •  %dm" % [objective, remaining],
+		"platform_notice": Opening.app_notice(deliveries) if courier_mission.gig_economy else "",
+		"synaxis_site": "SYNAXIS HQ / Glassline / Access revoked" if progression.has_receipt(Opening.RECEIPT) else "",
+		"opening_goal": "QUOTADROP / POD DEPOSIT: $%d of $%d saved" % [mini(cash,StarterHome.move_in_price()),StarterHome.move_in_price()] if courier_mission.gig_economy and not progression.owns_home() else "",
+		"main_objective": "%s  •  STEP %d/%d  •  %dm  •  $%d" % [objective["title"], objective["step"], objective["total_steps"], remaining, objective["reward"]],
+		"courier_can_restart": carrying,
+		"story_objective": story_mission.journal(),
+		"conditioning": courier_mission.conditioning_text(),
+		"clothing_store": ClothingStore.directory(), "fashion_locations": ClothingStore.IDS.duplicate(),
+		"outfit": "OUTFIT: %s / %s" % [Wardrobe.ITEMS[progression.outfit_id]["name"],Wardrobe.ITEMS[progression.outfit_id]["rarity"]],
+		"bitcoin_sats": progression.bitcoin_sats,
+		"story_can_navigate": story_mission.status != "complete",
+		"story_can_abandon": story_mission.status == "active",
 		"venue_job": _venue_job_text(),
+		"cal_quest":_cal_objective(),
+		"street_cred":progression.street_cred_rank(),
+		"street_cred_summary":progression.street_cred_summary(),
+		"street_cred_sources":progression.street_cred_sources(),
+		"music_contact":_music_contact_status(),
+		"instrument_status":progression.instrument_summary(),
+		"busking_status":"STREET MUSIC / Moon Noodles or Copper Cup • %d sets completed"%progression.street_activity_runs("busking"),
+		"music_can_navigate":progression.street_cred()>=100 and not progression.has_receipt("venue:soundcheck_pass"),
+		"cal_can_navigate":_cal_target().is_finite(),
 		"civic_job": _civic_job_text(),
 		"cash": cash, "health": health, "heat": heat,
+		"owned_vehicles": _owned_vehicle_text(),
+		"home_owned": progression.owns_home(),
+		"home_can_navigate": progression.has_receipt(StarterHome.ACCESS_RECEIPT),
+		"garage_text": "GARAGE: Two reserved bays / recovery desk" if progression.owns_home() else "GARAGE: Locked services",
+		"home_text": "HOME: %s / %d of %d stored provisions" % [StarterHome.NAME,progression.home_supplies,progression.home_capacity()] if progression.owns_home() else "HOME: Complete Mara’s contact mission and pay the move-in cost.",
 		"weapons": weapons.inventory_text(),
 		"dispatch": dispatch.status(),
 		"ambient_civic_open": ambient_civic.open_count(),
@@ -374,6 +747,7 @@ func _apply_game_settings(options: Dictionary) -> void:
 		nightgrid_fm.call("set_preferences", float(options.get("music_volume", 0.65)), bool(options.get("radio_on", true)))
 	if is_instance_valid(world_audio):
 		world_audio.call("set_preferences", float(options.get("ambience_volume", 0.65)), float(options.get("sfx_volume", 0.75)))
+	AudioMix.set_level(AudioMix.DIALOGUE, float(options.get("dialogue_volume", 0.82)))
 	var bus_index := AudioServer.get_bus_index("Master")
 	if bus_index >= 0:
 		AudioServer.set_bus_volume_db(bus_index, linear_to_db(maxf(0.001, float(options.get("master_volume", 0.8)))))
@@ -394,9 +768,42 @@ func _input(event: InputEvent) -> void:
 		gamepad_active = false
 	if game_menu != null and game_menu.call("is_open"):
 		return
+	if _wardrobe_panel and venue_panel.visible:
+		# Route venue shortcuts before GUI focus can consume controller A.
+		if event is InputEventKey and event.echo:
+			get_viewport().set_input_as_handled()
+			return
+		for index in range(3):
+			if event.is_action_pressed(["service_one","service_two","service_three"][index]):
+				_venue_action(index+1)
+				get_viewport().set_input_as_handled()
+				return
+		if event.is_action_pressed("game_back"):
+			_close_venue()
+			get_viewport().set_input_as_handled()
+			return
+		if event.is_action_pressed("interior_toggle") or event.is_action_pressed("transit_toggle"):
+			_cycle_wardrobe_category(-1 if event.is_action_pressed("interior_toggle") else 1)
+			get_viewport().set_input_as_handled()
+			return
+		if event.is_action_pressed("use_supply"):
+			_toggle_fitting_compare()
+			get_viewport().set_input_as_handled()
+			return
+		if _clothing_retail and event is InputEventMouseMotion and event.button_mask & MOUSE_BUTTON_MASK_RIGHT:
+			_fitting_rotation=wrapf(_fitting_rotation+event.relative.x*.012,-PI,PI)
+			get_viewport().set_input_as_handled()
+			return
+		if _clothing_retail and event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
+			_fitting_zoom=clampf(_fitting_zoom+(.12 if event.button_index==MOUSE_BUTTON_WHEEL_UP else -.12),0.0,1.0)
+			get_viewport().set_input_as_handled()
+			return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		yaw -= event.relative.x * mouse_sensitivity
-		pitch = clampf(pitch + event.relative.y * mouse_sensitivity * (-1.0 if invert_look_y else 1.0) * 0.625, 0.20, 0.85)
+		if _cinder_cockpit and _can_use_cinder_view():
+			_adjust_cockpit_look(Vector2(-event.relative.x, event.relative.y * (-1.0 if invert_look_y else 1.0) * .625) * mouse_sensitivity)
+		else:
+			yaw -= event.relative.x * mouse_sensitivity
+			pitch = clampf(pitch + event.relative.y * mouse_sensitivity * (-1.0 if invert_look_y else 1.0) * 0.625, 0.20, 0.85)
 	if event is InputEventMouseButton and event.pressed and Input.mouse_mode == Input.MOUSE_MODE_VISIBLE and not venue_panel.visible:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -406,6 +813,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.echo:
 		return
 	if not event.is_pressed():
+		return
+	if _handle_playtest_diagnostic(event):
+		get_viewport().set_input_as_handled()
+		return
+	if is_instance_valid(_opening_office):
+		if event.is_action_pressed("interact") or (_opening_office.call("arrival_active") and event.is_action_pressed("game_pause")):
+			_opening_interact()
 		return
 	if event.is_action_pressed("game_pause"):
 		if venue_panel.visible:
@@ -445,6 +859,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_close_venue()
 	elif event.is_action_pressed("weapon_wheel") and _can_use_weapon():
 		_open_equipment_wheel()
+	elif event.is_action_pressed("vehicle_view") and _can_use_cinder_view():
+		_toggle_cinder_view()
 	elif event.is_action_pressed("weapon_cycle") and _can_use_weapon():
 		weapons.cycle()
 		_fire_held = true
@@ -471,28 +887,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		day_night.call("advance_hour", 1.0)
 	elif event.is_action_pressed("pause_clock"):
 		day_night.call("toggle_pause")
+	elif event.is_action_pressed("sky_weather_cycle"):
+		var state: String = str(day_night.call("cycle_weather"))
+		_log_playtest("sky_weather_preview", {"weather": state, "sky": str(day_night.call("active_sky_preset"))})
+		_notify("Original sky preview: " + state + " (F2 cycles clear/cloudy/overcast/rain/storm)")
 	elif event.is_action_pressed("toggle_fps"):
 		performance_overlay = not performance_overlay
 		performance_label.visible = performance_overlay
-	elif event.is_action_pressed("playtest_mark"):
-		_log_playtest("manual_marker", {"note": "Player pressed F7 after noticing an issue"})
-		playtest_logger.flush()
-		_notify("Playtest marker saved: " + playtest_logger.get_log_path() if playtest_logger.is_active() else "Playtest logging unavailable.")
-	elif event.is_action_pressed("record_frame_trace"):
-		if frame_time_recorder.recording or frame_time_recorder.capture_full:
-			frame_time_recorder.end_capture()
-			var exported: String = frame_time_recorder.export_csv()
-			_log_playtest("frame_trace_saved", {"path": exported, "frames": frame_time_recorder.captured_frames()})
-			_notify("Drive trace saved: " + exported if not exported.is_empty() else "Drive trace export failed.")
-		else:
-			var stream_start: Dictionary = city_details.call("get_streaming_stats")
-			frame_time_recorder.begin_capture(int(stream_start["loads"]),
-				int(stream_start.get("stage_steps", 0)), int(stream_start.get("total_build_usec", 0)))
-			_log_playtest("frame_trace_started")
-			_notify("Drive trace recording. Press F8 again to save a CSV.")
-	elif event.is_action_pressed("capture_playtest_frame"):
-		if not _capturing_evidence:
-			call_deferred("_capture_playtest_frame")
 	elif event.is_action_pressed("compare_render_look"):
 		var profile: String = str(day_night.call("cycle_render_profile"))
 		_log_playtest("render_profile_switched", {"render_profile": profile})
@@ -504,6 +905,31 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	get_viewport().set_input_as_handled()
 
+func _handle_playtest_diagnostic(event:InputEvent) -> bool:
+	if event.is_action_pressed("playtest_mark"):
+		_log_playtest("manual_marker", {"note": "Player pressed F7 after noticing an issue"})
+		playtest_logger.flush()
+		_notify("Playtest marker saved: " + playtest_logger.get_log_path() if playtest_logger.is_active() else "Playtest logging unavailable.")
+	elif event.is_action_pressed("record_frame_trace"):
+		if frame_time_recorder.recording or frame_time_recorder.capture_full:
+			frame_time_recorder.end_capture()
+			var exported: String = frame_time_recorder.export_csv()
+			var transitions: String = frame_time_recorder.export_vehicle_trace(exported)
+			_log_playtest("frame_trace_saved", {"path": exported, "vehicle_transitions":transitions,"frames":frame_time_recorder.captured_frames()})
+			_notify("Frame trace saved: " + exported if not exported.is_empty() else "Frame trace export failed.")
+		else:
+			var stream_start: Dictionary = city_details.call("get_streaming_stats")
+			frame_time_recorder.begin_capture(int(stream_start["loads"]),
+				int(stream_start.get("stage_steps", 0)), int(stream_start.get("total_build_usec", 0)))
+			_log_playtest("frame_trace_started")
+			_notify("Frame trace recording. Press F8 again to save a CSV.")
+	elif event.is_action_pressed("capture_playtest_frame"):
+		if not _capturing_evidence:
+			call_deferred("_capture_playtest_frame")
+	else:
+		return false
+	return true
+
 ## F10 produces a genuine rendered viewport frame without HUD, plus an
 ## adjacent JSON record with exact camera pose, game world, settings and
 ## measured rolling frame intervals. No world teleport or save mutation.
@@ -512,7 +938,15 @@ func _capture_playtest_frame() -> void:
 		return
 	if game_menu != null and game_menu.call("is_open"):
 		return
+	var office_capture:=is_instance_valid(_opening_office)
+	if office_capture and (_opening_office.call("arrival_active") or _opening_office.call("lift_active")):
+		print("F10: capture after the arrival or lift transition.")
+		return
 	_capturing_evidence = true
+	var office_layer:CanvasLayer=_opening_office.get("_intro_canvas") if office_capture else null
+	var office_was_visible:=is_instance_valid(office_layer) and office_layer.visible
+	if is_instance_valid(office_layer):
+		office_layer.hide()
 	var hud_layer := get_node_or_null("HUD") as CanvasLayer
 	var hud_was_visible := hud_layer != null and hud_layer.visible
 	if hud_layer != null:
@@ -524,6 +958,8 @@ func _capture_playtest_frame() -> void:
 	var framebuffer := get_viewport().get_texture().get_image()
 	if hud_layer != null:
 		hud_layer.visible = hud_was_visible
+	if is_instance_valid(office_layer) and is_instance_valid(_opening_office) and not _opening_office.call("lift_active"):
+		office_layer.visible=office_was_visible
 	if framebuffer == null or framebuffer.is_empty():
 		_capturing_evidence = false
 		_notify("F10 capture failed: renderer returned no framebuffer.")
@@ -534,15 +970,19 @@ func _capture_playtest_frame() -> void:
 	if current_car != null:
 		motion = "player_vehicle"
 	elif current_transit != null:
-		motion = "rail" if transit_kind == "TRAIN" else "bus"
+		motion = {"TRAIN": "rail", "BUS": "bus", "LIFT": "station_lift"}[transit_kind]
 	var metadata: Dictionary = PlaytestEvidence.build_metadata(camera, actual_actor, {
 		"world_seed": int(session.get("world_seed")),
 		"game_clock": str(day_night.call("clock_string")),
 		"district": str(city_details.call("get_district_at", outdoor_position)),
-		"indoors": bool(interiors.call("is_inside")),
+		"indoors": bool(interiors.call("is_inside")) or _inside_opening_hq(),
+		"chapter_context": _opening_diagnostic_context(),
+		"build_revision": BuildInfo.REVISION,
 		"motion_context": motion,
 		"graphic_settings": game_menu.call("get_settings"),
 		"render_profile": str(day_night.call("get_render_profile")),
+		"sky_weather": str(day_night.call("get_weather")),
+		"sky_preset": str(day_night.call("active_sky_preset")),
 		"frame_interval_metrics": frame_time_recorder.get_frame_metrics(),
 		"streaming": city_details.call("get_streaming_stats"),
 		"render_batch_stats": city_details.call("get_render_batch_stats"),
@@ -561,36 +1001,106 @@ func _capture_playtest_frame() -> void:
 		_log_playtest("screenshot_failed", {"error": str(result.get("error", "unknown error"))})
 		_notify("F10 capture failed: " + str(result.get("error", "unknown error")))
 
+func _inside_opening_hq() -> bool:
+	if not is_instance_valid(_opening_office):
+		return false
+	var local:=_opening_office.to_local(player.global_position)
+	return absf(local.x)<8.5 and absf(local.z)<10.0
+
+func _opening_diagnostic_context() -> Dictionary:
+	if not is_instance_valid(_opening_office):
+		return {}
+	return {"site":"synaxis_hq","floor":int(_opening_office.get("_active_floor")),"stage":int(_opening_office.call("objective_stage",int(game_menu.get("_opening_stage")))),"arrival":bool(_opening_office.call("arrival_active")),"lift":bool(_opening_office.call("lift_active")),"offboarding":bool(_opening_office.call("exit_active"))}
+
 func _process(delta: float) -> void:
 	if not is_instance_valid(player):
 		return
+	if is_instance_valid(_opening_office):
+		var opening_stream:Dictionary=city_details.call("get_streaming_stats")
+		frame_time_recorder.sample_frame(delta,opening_stream,player.global_position,false)
+		playtest_logger.sample_frame(delta,opening_stream,player.global_position,"synaxis_opening")
+		if _opening_office.call("arrival_active"):
+			if not _opening_office.call("tick_arrival",delta,player,camera):
+				_snap_camera()
+			return
+		if _opening_office.call("lift_active"):
+			if _opening_office.call("tick_lift",delta,player):
+				_snap_camera()
+			return
+		var look := GameInput.look_vector()
+		yaw -= look.x * stick_sensitivity * delta
+		pitch = clampf(pitch+look.y*stick_sensitivity*delta*(-1.0 if invert_look_y else 1.0),.20,.85)
+		player.set("camera_yaw",yaw)
+		_update_camera(delta)
+		_opening_office.call("update_prompt",int(_opening_office.call("objective_stage",int(game_menu.get("_opening_stage")))),player.global_position,gamepad_active)
+		if _opening_office.call("exit_ready",player.global_position):
+			_accept_opening()
+			return
+		if _opening_office.call("exit_active"):
+			return
+		if not game_menu.call("is_open"):
+			var restroom := str(_opening_office.call("restroom_encounter",player.global_position))
+			if not restroom.is_empty():
+				game_menu.call("open_restroom",restroom)
+		return
 	var actor := _actor()
+	if current_car != null and current_car.get("model_id") == RoadCars.R9:
+		current_car.set("road_wetness", day_night.call("surface_film"))
+		current_car.get("hero_visual").call("set_lighting_hour", float(day_night.get("hour")))
 	var stream_snapshot: Dictionary = city_details.call("get_streaming_stats")
 	frame_time_recorder.sample_frame(delta, stream_snapshot, actor.global_position, current_car != null)
 	playtest_logger.sample_frame(delta, stream_snapshot, actor.global_position,
 		"car" if current_car != null else ("transit_" + transit_kind.to_lower() if current_transit != null else "on_foot"))
 	var indoors: bool = interiors.call("is_inside")
+	var repair := _repair_storefront()
+	var in_workshop := repair != null and repair.contains(actor.global_position)
+	if repair != null:
+		repair.set_listener(actor.global_position, in_workshop)
+	if is_instance_valid(dialogue_director):
+		dialogue_director.call("tick", delta, actor.global_position)
 	_update_police_radio(delta)
+	var interior_id := str(interiors.call("active_site_id")) if indoors else ""
+	var interior_kind := ""
+	var physical_room: Node3D = city_details.call("nearby_walk_in",actor.global_position) if not indoors and current_car == null and current_transit == null else null
+	var in_physical_room := is_instance_valid(physical_room) and bool(physical_room.call("contains",actor.global_position))
+	if in_physical_room:
+		interior_id = str(physical_room.get("physical_venue_id"))
+		interior_kind = str((venue_system.call("venue_by_id",interior_id) as Dictionary).get("kind",""))
+		if not str(physical_room.get("clothing_store_id")).is_empty():
+			interior_id=str(physical_room.get("clothing_store_id"))
+			interior_kind=str(ClothingStore.THEMES[interior_id]["music"]).to_upper()
+	if indoors and str(interiors.call("active_site_group")) == "VENUE":
+		interior_kind = str((venue_system.call("venue_by_id", interior_id) as Dictionary).get("kind", ""))
 	if is_instance_valid(nightgrid_fm):
-		var interior_id := str(interiors.call("active_site_id")) if indoors else ""
-		var interior_kind := ""
-		if indoors and str(interiors.call("active_site_group")) == "VENUE":
-			interior_kind = str((venue_system.call("venue_by_id", interior_id) as Dictionary).get("kind", ""))
-		nightgrid_fm.call("update_listener", actor.global_position, current_car != null, interior_id, interior_kind)
+		nightgrid_fm.call("update_listener", actor.global_position, current_car != null, interior_id, interior_kind, current_transit != null)
 	if is_instance_valid(world_audio):
+		world_audio.call("set_room_kind", "WORKSHOP" if in_workshop else interior_kind)
+		world_audio.call("set_doorway_leak", repair.doorway_leak(actor.global_position) if in_workshop else 0.0)
 		var street_position: Vector3 = interiors.get("exterior_position") if indoors else actor.global_position
 		var district: String = city_details.call("get_district_at", street_position)
 		var foot_speed := Vector2(player.velocity.x, player.velocity.z).length()
 		world_audio.call("update_context", actor.global_position, player.global_position,
 			current_car == null and current_transit == null, player.is_on_floor(),
-			indoors, district, float(day_night.get("hour")), foot_speed, player.velocity.y)
+			indoors or in_workshop or in_physical_room, district, float(day_night.get("hour")), foot_speed, player.velocity.y)
+		if is_instance_valid(current_car):
+			world_audio.call("set_transport", "CAR", float(current_car.get("speed")), Input.is_action_pressed("drive_brake"),
+				current_car.get("model_id") == RoadCars.R9)
+		elif transit_kind == "TRAIN":
+			world_audio.call("set_transport", "TRAIN", float(rail.get("speed")), false)
+		elif transit_kind == "BUS" and is_instance_valid(current_transit):
+			world_audio.call("set_transport", "BUS", float(current_transit.get("speed")), false)
+		else:
+			world_audio.call("set_transport", "", 0.0, false)
 	if indoors and str(interiors.call("active_site_id")) == "lantern_cup":
 		interiors.call("set_mara_focus", player.global_position)
 	if not venue_panel.visible:
 		# Right stick or mouse may orbit the camera on foot, in vehicles or in transit.
 		var right_look: Vector2 = GameInput.look_vector()
-		yaw -= right_look.x * stick_sensitivity * delta
-		pitch = clampf(pitch + right_look.y * stick_sensitivity * delta * (-1.0 if invert_look_y else 1.0), 0.20, 0.85)
+		if _cinder_cockpit and _can_use_cinder_view():
+			_adjust_cockpit_look(Vector2(-right_look.x, right_look.y * (-1.0 if invert_look_y else 1.0)) * stick_sensitivity * delta)
+		else:
+			yaw -= right_look.x * stick_sensitivity * delta
+			pitch = clampf(pitch + right_look.y * stick_sensitivity * delta * (-1.0 if invert_look_y else 1.0), 0.20, 0.85)
 	_focus_update_clock += delta
 	if _focus_update_clock >= 0.1:
 		_focus_update_clock = 0.0
@@ -599,23 +1109,50 @@ func _process(delta: float) -> void:
 			if actor is CharacterBody3D:
 				traversal_velocity = (actor as CharacterBody3D).velocity
 			city_details.call("request_focus", actor.global_position, traversal_velocity)
+		city_details.call("update_walk_in_light", actor.global_position if not indoors and current_car == null and current_transit == null else Vector3.INF)
+		var headquarters: Node3D = city_details.call("synaxis_headquarters")
+		if is_instance_valid(headquarters):
+			headquarters.call("update_public_light",actor.global_position if not indoors and current_car == null and current_transit == null else Vector3.INF)
+		var started := StreamProfile.begin()
 		street_lights.call("set_focus", interiors.get("exterior_position") if indoors else actor.global_position)
+		StreamProfile.end(started, "street_light_focus")
+		started = StreamProfile.begin()
 		venue_system.call("set_focus", actor.global_position)
+		StreamProfile.end(started, "venue_focus")
+		started = StreamProfile.begin()
 		civic_services.call("set_focus", actor.global_position)
+		StreamProfile.end(started, "civic_focus")
 	_venue_clock_tick += delta
 	if _venue_clock_tick >= 0.5:
 		_venue_clock_tick = 0.0
 		venue_system.call("set_hour", float(day_night.get("hour")))
 		civic_services.call("set_hour", float(day_night.get("hour")))
 	if venue_panel.visible:
-		var menu_position: Vector3 = interiors.call("get_counter_point") if indoors else (
-			civic_services.call("position_for", civic_selected_id) if not civic_selected_id.is_empty() else
-			venue_system.call("venue_position", venue_selected_id))
+		var menu_position: Vector3
+		if is_instance_valid(_vending_machine):
+			menu_position = _vending_machine.global_position if city_details.call("nearby_vending",player.global_position) == _vending_machine else Vector3.INF
+		elif _wardrobe_panel:
+			var wardrobe_lot:Node3D=city_details.call("nearby_walk_in",player.global_position)
+			var reachable:bool=is_instance_valid(wardrobe_lot) and (wardrobe_lot.get("clothing_store_id")==_retail_id and wardrobe_lot.call("clothing_reachable",player.global_position) if _clothing_retail else progression.owns_home() and wardrobe_lot.call("home_action",player.global_position)=="wardrobe")
+			menu_position=player.global_position if reachable else Vector3.INF
+		elif _repair_panel:
+			menu_position = repair.counter_position() if repair != null else Vector3.INF
+		elif indoors:
+			menu_position = interiors.call("get_counter_point")
+		elif venue_selected_id == "helix_espresso":
+			var lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+			menu_position = lot.call("service_counter") if is_instance_valid(lot) and str(lot.get("physical_venue_id")) == venue_selected_id else Vector3.INF
+			if not is_instance_valid(lot) or not lot.call("service_reachable",player.global_position):
+				menu_position = Vector3.INF
+		else:
+			menu_position = civic_services.call("position_for", civic_selected_id) if not civic_selected_id.is_empty() else venue_system.call("venue_position", venue_selected_id)
 		if current_car != null or current_transit != null or menu_position.distance_to(player.global_position) > 7.0:
 			_close_venue()
 	if current_car == null and current_transit == null:
 		player.set("camera_yaw", yaw)
+	var camera_started := StreamProfile.begin()
 	_update_camera(delta, false)
+	StreamProfile.accumulate(camera_started, "world_camera")
 	_hud_update_clock += delta
 	if _hud_update_clock >= 0.1:
 		_hud_update_clock = 0.0
@@ -625,10 +1162,35 @@ func _physics_process(delta: float) -> void:
 	# Gameplay mission/heat/damage timers are fixed-tick, not render-tick.
 	if not is_instance_valid(player):
 		return
+	if is_instance_valid(_opening_office):
+		if _opening_office.call("lift_active"):
+			return
+		if player.global_position.y < float(_opening_office.call("recovery_floor")):
+			player.global_position = _opening_office.call("recovery_position")
+			player.velocity = Vector3.ZERO
+			_snap_camera()
+		return
+	if _active_station_lift != null and not bool(_active_station_lift.get("travelling")):
+		var landing: Vector3 = _active_station_lift.call("destination")
+		var upstairs: bool = _active_station_lift.get("going_up")
+		_active_station_lift = null
+		_leave_transit(landing, "M-Line platform. Board a stopped train." if upstairs else "Back at street level.")
 	var actor := _actor()
 	var indoors: bool = interiors.call("is_inside")
+	if _pooled_traffic_enabled:
+		var vehicle_speed: float = (actor as CharacterBody3D).velocity.length() if actor is CharacterBody3D else 0.0
+		var repair := _repair_storefront()
+		var storefront_inside := repair != null and repair.contains(actor.global_position)
+		traffic.call("tick_pooled", delta, actor.global_position, vehicle_speed, camera,
+			city_details, indoors or storefront_inside or current_transit != null,
+			cars + officers + routine_patrols, road_restrictions)
+	var started := StreamProfile.begin()
+	if is_instance_valid(pedestrians):
+		_update_pedestrians(delta, actor, indoors)
+	StreamProfile.accumulate(started, "world_pedestrians")
+	started = StreamProfile.begin()
 	_update_combat(delta)
-	if not indoors and current_transit == null and actor.global_position.distance_to(mission_position) < 5.3:
+	if not courier_mission.gig_economy and not indoors and current_transit == null and actor.global_position.distance_to(mission_position) < CourierMission.RADIUS:
 		_advance_mission()
 	if (actor.global_position.y < -15.0 or not indoors and
 			(absf(actor.global_position.x) > 390.0 or absf(actor.global_position.z) > 390.0)):
@@ -636,6 +1198,7 @@ func _physics_process(delta: float) -> void:
 	_update_wanted(delta)
 	_update_ambient_civic(delta)
 	_update_civic_patrols(delta)
+	StreamProfile.accumulate(started, "world_civic_combat_and_wanted")
 	if not indoors and wanted.police_seen:
 		for officer in officers:
 			if is_instance_valid(officer) and float(officer.get("condition")) > 18.0 and officer.global_position.distance_to(actor.global_position) < 3.8:
@@ -652,6 +1215,48 @@ func _actor() -> Node3D:
 		return current_transit
 	return current_car if current_car != null else player
 
+func enable_living_streets() -> bool:
+	if is_instance_valid(pedestrians):
+		return true
+	var models: Array[PackedScene] = []
+	for path in PEDESTRIAN_MODELS:
+		var model := load(path) as PackedScene
+		if model == null:
+			return false
+		models.append(model)
+	var director := PedestrianDirector.new()
+	director.name = "LivingStreets"
+	add_child(director)
+	var visual := load("res://scenes/pedestrian_visual.tscn") as PackedScene
+	if not director.configure(city_details, int(session.get("world_seed")), PedestrianRoutes.city_links(), visual, 12, models):
+		director.queue_free()
+		return false
+	pedestrians = director
+	if is_instance_valid(world_audio):
+		world_audio.call("set_pedestrians", pedestrians)
+	return true
+
+func _update_pedestrians(delta: float, actor: Node3D, indoors: bool) -> void:
+	pedestrians.call("track_cal_quest",progression.cal_quest in [1,2])
+	var occupied: Array[Vector3] = [actor.global_position]
+	var street_mode := not indoors and current_transit == null and is_instance_valid(camera)
+	pedestrians.call("tick", delta, actor.global_position, camera, not street_mode,
+		occupied, float(day_night.get("hour")), signal_controller)
+	if is_instance_valid(dialogue_director):
+		pedestrians.call("update_street_dialogue",dialogue_director,actor.global_position+Vector3.UP*1.6,player.get_rid(),street_mode and current_car==null and weapons.equipped=="holstered",delta)
+	_resolve_cal_action(street_mode and current_car==null and weapons.equipped=="holstered")
+	_update_cal_navigation(delta)
+	_pedestrian_scan += delta
+	if not street_mode or _pedestrian_scan < 0.18:
+		return
+	_pedestrian_scan = 0.0
+	var nearby: Array[CharacterBody3D] = []
+	var fleet: Array = traffic.get("fleet")
+	for vehicle in cars + officers + routine_patrols + fleet:
+		if is_instance_valid(vehicle) and actor.global_position.distance_squared_to(vehicle.global_position) < 105.0 * 105.0:
+			nearby.append(vehicle)
+	pedestrians.call("react_to_traffic", nearby)
+
 # The former chase camera always interpolated over the full world distance.
 # Interiors are in a dedicated scene at (950, 950); on H exit this exposed the
 # empty space between it and the city for many frames. A spatial discontinuity
@@ -662,7 +1267,7 @@ func _camera_focus() -> Vector3:
 		1.65 if current_car != null or current_transit != null else 1.45)
 
 func _camera_goal() -> Vector3:
-	var distance := (3.0 if interiors.call("is_inside") else
+	var distance := (3.0 if is_instance_valid(_opening_office) or interiors.call("is_inside") else
 		(21.0 if transit_kind == "TRAIN" else
 		(15.0 if transit_kind == "BUS" else
 		(13.0 if current_car != null else 7.5))))
@@ -670,31 +1275,88 @@ func _camera_goal() -> Vector3:
 		cos(pitch) * distance).rotated(Vector3.UP, yaw)
 
 func _camera_clearance(focus: Vector3, target: Vector3) -> Vector3:
-	# Physics-backed camera arm. The camera never goes THROUGH a collidable
-	# building or a venue wall, even when the player rotates next to it.
-	var distance := focus.distance_to(target)
-	if distance < 0.001:
+	var motion := target - focus
+	if motion.length_squared() < 0.000001:
 		return target
+	# Sweep the near plane's clearance volume so canopy edges and corners
+	# protect the whole view even when the camera arm's centre ray misses.
+	_camera_probe.transform.origin = focus
+	_camera_probe.motion = motion
 	var ignored: Array[RID] = [player.get_rid()]
 	if current_car != null:
 		ignored.append(current_car.get_rid())
 	if current_transit is CollisionObject3D:
 		ignored.append((current_transit as CollisionObject3D).get_rid())
-	var query := PhysicsRayQueryParameters3D.create(focus, target)
-	query.exclude = ignored
-	query.collision_mask = 1
-	query.collide_with_areas = false
-	var obstruction: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
+	if is_instance_valid(pedestrians):
+		ignored.append_array(pedestrians.call("camera_exclusions"))
+	_camera_probe.exclude = ignored
+	var space := get_world_3d().direct_space_state
+	var clearance := space.cast_motion(_camera_probe)
+	if clearance[0] < 1.0:
+		return focus + motion * clearance[0]
+	# A sweep ignores a collider overlapping its starting volume. Check
+	# the centreline so an avatar tight against a wall cannot orbit through it.
+	var ray := PhysicsRayQueryParameters3D.create(focus, target, 1, ignored)
+	var obstruction := space.intersect_ray(ray)
 	if obstruction.is_empty():
 		return target
-	# Keep the camera in front of the wall; minimum 0.65m from focus.
 	var hit: Vector3 = obstruction["position"]
-	var safe_distance := maxf(0.65, focus.distance_to(hit) - 0.38)
-	return focus + (target - focus).normalized() * minf(distance, safe_distance)
+	return focus + motion.normalized() * maxf(0.0, focus.distance_to(hit) - 0.30)
+
+func _can_use_cinder_view() -> bool:
+	return is_instance_valid(current_car) and current_car.get("model_id") == RoadCars.R9
+
+func _adjust_cockpit_look(amount: Vector2) -> void:
+	_cockpit_look.x = clampf(_cockpit_look.x + amount.x, -.60, .60)
+	_cockpit_look.y = clampf(_cockpit_look.y + amount.y, -.22, .28)
+
+func _toggle_cinder_view() -> void:
+	if not _can_use_cinder_view():
+		return
+	_cinder_cockpit = not _cinder_cockpit
+	_cockpit_look = Vector2.ZERO
+	# Switch modes without sweeping the chase camera through the car.
+	_snap_camera()
+	_notify("Cinder cockpit view." if _cinder_cockpit else "Chase camera.")
 
 func _update_camera(delta: float, teleport: bool = false) -> void:
 	if camera == null or not is_instance_valid(player):
 		return
+	if _wardrobe_panel and _clothing_retail and venue_panel.visible:
+		var visual:Node3D=player.get_node("Visual")
+		var stick:=GameInput.look_vector()
+		_fitting_rotation=wrapf(_fitting_rotation+stick.x*delta*2.2,-PI,PI)
+		_fitting_zoom=clampf(_fitting_zoom-stick.y*delta*.8,0.0,1.0)
+		var patch_view:=false
+		if _wardrobe_category!="LOOKS" and _wardrobe_index>=0 and _wardrobe_index<Wardrobe.browse_ids().size():
+			var selected:String=Wardrobe.browse_ids()[_wardrobe_index]
+			patch_view=Wardrobe.reset_slot(selected)=="patch" or (Wardrobe.piece_valid(selected) and Wardrobe.PIECES[selected]["slot"]=="patch")
+		visual.rotation.y=PI/2+_fitting_rotation+(PI if patch_view else 0.0)
+		var focus:=player.global_position+Vector3.UP*lerpf(.03,.58,_fitting_zoom)
+		var offset:=Vector3(2.25,.26,1.05)*lerpf(1.0,.53,_fitting_zoom)
+		camera.global_position=_camera_clearance(focus,focus+offset)
+		if camera.global_position.distance_squared_to(focus)>.001:
+			camera.look_at(focus,Vector3.UP)
+		return
+	if _cinder_cockpit and _can_use_cinder_view():
+		var coach := current_car.get_node("RoadCarVisual/Coachwork") as Node3D
+		# Center-cabin viewpoint is clear of the seated driver mesh. This
+		# is an interior perspective rather than an exact driver-eye rig.
+		camera.global_position = coach.to_global(Vector3(.08, 1.12, .12))
+		var view_basis := Basis.from_euler(Vector3(-.14 - _cockpit_look.y, _cockpit_look.x, 0.0))
+		camera.global_basis = coach.global_basis.orthonormalized() * view_basis
+		camera.fov = 78.0
+		camera.near = .035
+		_cockpit_camera_active = true
+		return
+	if _cockpit_camera_active:
+		camera.fov = 68.0
+		camera.near = .08
+		_cockpit_camera_active = false
+		teleport = true
+	if not _can_use_cinder_view():
+		_cinder_cockpit = false
+		_cockpit_look = Vector2.ZERO
 	var focus := _camera_focus()
 	if weapon_aiming and _can_use_weapon():
 		var shoulder := player.global_position + Vector3.UP * 0.65
@@ -703,18 +1365,19 @@ func _update_camera(delta: float, teleport: bool = false) -> void:
 		camera.global_position = _camera_clearance(shoulder, shoulder + offset)
 		camera.look_at(camera.global_position + forward, Vector3.UP)
 		return
-	var goal := _camera_clearance(focus, _camera_goal())
+	var goal := _camera_goal()
 	var distance_to_goal := camera.global_position.distance_to(goal)
 	# Suppress stale camera positions after a save-load or streaming jump
 	# even when teleport was triggered through another system.
 	if teleport or distance_to_goal > 35.0:
 		if not teleport and distance_to_goal > 35.0:
 			_log_playtest("camera_distance_snap", {"distance_m": snappedf(distance_to_goal, 0.01)})
-		camera.global_position = goal
+		camera.global_position = _camera_clearance(focus, goal)
 	else:
 		var smoothed := camera.global_position.lerp(goal, minf(delta * 7.0, 1.0))
 		camera.global_position = _camera_clearance(focus, smoothed)
-	camera.look_at(focus, Vector3.UP)
+	if camera.global_position.distance_squared_to(focus) > 0.000001:
+		camera.look_at(focus, Vector3.UP)
 
 func _snap_camera() -> void:
 	_update_camera(0.0, true)
@@ -726,23 +1389,42 @@ func _toggle_car() -> void:
 		_notify("You're a passenger. Press F to leave at the next stop.")
 		return
 	if current_car != null:
+		var exit_trace: int = frame_time_recorder.begin_vehicle_transition("exit",str(current_car.get("model_id")))
 		if int(current_car.call("speed_kph")) > 15:
 			_log_playtest("vehicle_exit_blocked", {"reason": "speed"})
 			_notify("Slow down before exiting.")
+			frame_time_recorder.finish_vehicle_transition(exit_trace,"blocked_speed")
 			return
-		var exit_position := current_car.global_position + current_car.global_transform.basis.x * 3.3
-		exit_position.y = 1.15
+		var exit_position := _clear_car_exit(current_car)
+		frame_time_recorder.mark_vehicle_stage(exit_trace,"clearance")
+		if not exit_position.is_finite():
+			_log_playtest("vehicle_exit_blocked", {"reason": "clearance"})
+			_notify("Both sides are blocked. Pull forward to make room.")
+			frame_time_recorder.finish_vehicle_transition(exit_trace,"blocked_clearance")
+			return
 		player.global_position = exit_position
 		player.velocity = Vector3.ZERO
 		player.collision_layer = 1
 		player.collision_mask = 1
 		player.visible = true
+		frame_time_recorder.mark_vehicle_stage(exit_trace,"capsule_visibility")
 		player.set("driving", false)
-		world_audio.call("play_event", "DOOR", current_car.global_position)
+		player.call("play_visual_action", &"alight_car")
+		frame_time_recorder.mark_vehicle_stage(exit_trace,"rig_reparent_animation")
+		if current_car.get("model_id") == RoadCars.R9:
+			current_car.call("play_access_door", exit_position, true, player.get_rid())
+		else:
+			world_audio.call("play_event", "DOOR", current_car.global_position)
+		frame_time_recorder.mark_vehicle_stage(exit_trace,"door_audio")
 		current_car.set("occupied", false)
 		current_car = null
+		_cinder_cockpit = false
+		_snap_camera()
+		frame_time_recorder.mark_vehicle_stage(exit_trace,"occupancy_camera")
 		_log_playtest("vehicle_exit", {"exit_x": exit_position.x, "exit_z": exit_position.z})
 		_notify("Back on foot. Find your next pickup.")
+		frame_time_recorder.mark_vehicle_stage(exit_trace,"log_hud")
+		frame_time_recorder.finish_vehicle_transition(exit_trace,"ok")
 		return
 	var nearest: CharacterBody3D
 	var nearest_distance := 5.0
@@ -756,15 +1438,26 @@ func _toggle_car() -> void:
 	if nearest == null:
 		_notify("No vehicle nearby. Stand beside a parked car and press E.")
 		return
+	var entry_trace: int = frame_time_recorder.begin_vehicle_transition("enter",str(nearest.get("model_id")))
 	current_car = nearest
-	world_audio.call("play_event", "DOOR", nearest.global_position)
+	if nearest.get("model_id") == RoadCars.R9:
+		nearest.call("play_access_door", player.global_position, false, player.get_rid())
+	else:
+		world_audio.call("play_event", "DOOR", nearest.global_position)
+	frame_time_recorder.mark_vehicle_stage(entry_trace,"door_audio")
 	_log_playtest("vehicle_enter", {"vehicle": nearest.name})
+	frame_time_recorder.mark_vehicle_stage(entry_trace,"log")
 	current_car.set("occupied", true)
 	player.set("driving", true)
 	player.visible = false
 	player.collision_layer = 0
 	player.collision_mask = 0
-	if not current_car.has_meta("claimed"):
+	frame_time_recorder.mark_vehicle_stage(entry_trace,"occupancy_capsule_visibility")
+	player.call("show_vehicle_rider", current_car, true)
+	frame_time_recorder.mark_vehicle_stage(entry_trace,"rig_reparent_animation")
+	if progression.owns_vehicle(str(current_car.get_meta("vehicle_id", ""))):
+		_notify("Your vehicle. Drive with WASD; Space is the handbrake.")
+	elif not current_car.has_meta("claimed"):
 		current_car.set_meta("claimed", true)
 		# Capture the entry position before the player is hidden. Resolve the
 		# witness query in the next physics tick, not an input callback.
@@ -772,21 +1465,82 @@ func _toggle_car() -> void:
 		_notify("Vehicle acquired.")
 	else:
 		_notify("Drive with WASD. Space is the handbrake.")
+	frame_time_recorder.mark_vehicle_stage(entry_trace,"claim_hud")
+	frame_time_recorder.finish_vehicle_transition(entry_trace,"ok")
+
+func _clear_car_exit(car: CharacterBody3D) -> Vector3:
+	var space := get_world_3d().direct_space_state
+	var excluded: Array[RID] = [player.get_rid(), car.get_rid()]
+	var capsule := (player.get_node("CollisionShape3D") as CollisionShape3D).shape as CapsuleShape3D
+	var collider := car.get_node("CollisionShape3D") as CollisionShape3D
+	var body := collider.shape as BoxShape3D
+	var threshold_y := collider.global_position.y - body.size.y * .5
+	var clearance := PhysicsShapeQueryParameters3D.new()
+	clearance.shape = capsule
+	clearance.collision_mask = 1
+	clearance.exclude = excluded
+	for side in [1.0, -1.0]:
+		var point := car.to_global(Vector3(side * (body.size.x * .5 + capsule.radius + .125), 0, -.22))
+		var floor := PhysicsRayQueryParameters3D.create(point + Vector3.UP * .80,
+			point - Vector3.UP * 1.42, 1, excluded)
+		var support := space.intersect_ray(floor)
+		if support.is_empty() or (support["normal"] as Vector3).y < .72:
+			continue
+		var ground_y := (support["position"] as Vector3).y
+		if ground_y > threshold_y + .32 or ground_y < threshold_y - .42:
+			continue
+		point.y = ground_y + capsule.height * .5 + .045
+		clearance.transform = Transform3D(Basis.IDENTITY, point)
+		if not space.intersect_shape(clearance, 1).is_empty():
+			continue
+		var sill := car.to_global(Vector3(side * .85, 0, -.22))
+		sill.y = point.y
+		clearance.transform.origin = sill
+		clearance.motion = point - sill
+		# Casts omit overlaps at the start. Check both the sill and end point.
+		if space.intersect_shape(clearance, 1).is_empty() and space.cast_motion(clearance)[0] >= 1.0:
+			return point
+	return Vector3.INF
 
 func _advance_mission() -> void:
-	if not carrying:
-		carrying = true
-		world_audio.call("play_event", "PICKUP", _actor().global_position)
-		_set_mission_target(DROPOFFS[deliveries % DROPOFFS.size()], true)
-		_notify("Package secured! Follow the cyan beacon.")
-	else:
-		carrying = false
-		world_audio.call("play_event", "DELIVERY", _actor().global_position)
-		deliveries += 1
-		var payout := 250 + 50 * mini(deliveries - 1, 8)
-		cash += payout
-		_set_mission_target(PICKUPS[deliveries % PICKUPS.size()], false)
-		_notify("Delivery done! +$%d. Next pickup marked in amber." % payout)
+	var objective := courier_mission.objective()
+	if courier_mission.gig_economy:
+		if current_car != null or current_transit != null or interiors.call("is_inside"):
+			return
+		if not carrying and not venue_system.call("is_open",str(objective.get("vendor",""))):
+			_notify("QuotaDrop: kitchen closed. Return during posted opening hours.")
+			return
+	var event_id: String = objective["id"]
+	var result := courier_mission.advance(event_id, _actor().global_position, progression)
+	match result.get("event", ""):
+		"collected":
+			world_audio.call("play_event", "PICKUP", _actor().global_position)
+			_refresh_courier_target()
+			if courier_mission.gig_economy:
+				player.call("play_visual_action",&"interact")
+				_notify("QuotaDrop: prepaid order collected. Deliver to the customer.")
+			else:
+				_notify("Package secured! Follow the cyan beacon.")
+		"delivered":
+			player.call("set_courier_conditioning",courier_mission.conditioning_rank())
+			world_audio.call("play_event", "DELIVERY", _actor().global_position)
+			_refresh_courier_target()
+			if courier_mission.gig_economy:
+				player.call("play_visual_action",&"interact")
+				_notify("QuotaDrop: delivered. +$%d base + $%d tip. Next order offered." % [objective["base_pay"],objective["tip"]])
+			else:
+				_notify("Delivery done! +$%d. Next pickup marked in amber." % int(result["reward"]))
+			if story_mission.event("courier_delivered", progression) == "delivered":
+				_notify("Delivery done! +$%d. Report back to Mara at Lantern Cup." % int(result["reward"]))
+		"blocked":
+			_notify("Cannot settle delivery. Check wallet capacity.")
+
+func _refresh_courier_target() -> void:
+	_set_mission_target(courier_mission.target() - Vector3.UP * 0.2, carrying)
+	if is_instance_valid(player):
+		var visual: Node3D = player.get("visual")
+		if is_instance_valid(visual):
+			visual.call("set_meal_bag",courier_mission.gig_economy and carrying)
 
 func _set_mission_target(pos: Vector3, has_package: bool) -> void:
 	mission_position = pos + Vector3.UP * 0.2
@@ -905,6 +1659,8 @@ func _build_routine_patrols() -> void:
 func _witness_candidates(at: Vector3) -> Array[Dictionary]:
 	var candidates: Array[Dictionary] = venue_system.call("witness_candidates", at)
 	candidates.append_array(traffic.call("witness_candidates", at))
+	if is_instance_valid(pedestrians) and not interiors.call("is_inside"):
+		candidates.append_array(pedestrians.call("witness_candidates", at, camera))
 	for patrol in routine_patrols + officers:
 		if is_instance_valid(patrol) and float(patrol.get("condition")) > 18.0 and patrol.global_position.distance_squared_to(at) < 45.0 * 45.0:
 			candidates.append({"eye": patrol.global_position + Vector3.UP * 0.65, "facing": -patrol.global_basis.z, "police": true, "rid": patrol.get_rid()})
@@ -924,6 +1680,9 @@ func _report_incident(reason: String, at: Vector3, officer: bool) -> void:
 	if Wanted.stars(heat) > previous:
 		police_cooldown = minf(police_cooldown, 1.0)
 	_notify("REPORTED • %s • %d STAR%s" % [reason, Wanted.stars(heat), "" if Wanted.stars(heat) == 1 else "S"])
+	if is_instance_valid(pedestrians) and officer:
+		var ignore: Array[RID] = [player.get_rid()]
+		pedestrians.call("react_to_incident", at, 18.0, ignore)
 
 func _update_wanted(delta: float) -> void:
 	var actor := _actor()
@@ -1043,6 +1802,7 @@ func _spawn_police() -> void:
 		return
 
 func _respawn() -> void:
+	_cancel_street_interactions()
 	_log_playtest("respawn", {"health": health, "reason": "fall_or_boundary_or_damage"})
 	_close_venue()
 	weapons.holster()
@@ -1052,6 +1812,8 @@ func _respawn() -> void:
 		interiors.call("leave")
 	current_transit = null
 	transit_kind = ""
+	_active_station_lift = null
+	_rail_platform_rider = false
 	if current_car != null:
 		current_car.set("occupied", false)
 		current_car = null
@@ -1062,10 +1824,15 @@ func _respawn() -> void:
 	player.global_position = PLAYER_START
 	player.velocity = Vector3.ZERO
 	health = 100.0
+	player.call("restore_stamina",100.0)
 	heat = 0.0
 	wanted.reset()
 	_pending_theft = null
-	cash = maxi(0, cash - 100)
+	var failed_story := story_mission.interrupt("failed")
+	var lost_order := courier_mission.gig_economy and courier_mission.restart()
+	if lost_order:
+		_refresh_courier_target()
+	progression.charge_up_to(100)
 	for officer in officers + returning_units:
 		if is_instance_valid(officer):
 			officer.queue_free()
@@ -1074,7 +1841,7 @@ func _respawn() -> void:
 	dispatch.update_case(Vector3.INF, 0)
 	city_details.call("set_focus", player.global_position)
 	_snap_camera()
-	_notify("Back at the safehouse. Medical and towing fee: up to $100.")
+	_notify("Returned to the street. Emergency recovery fee: up to $100." + (" Order canceled without pay." if lost_order else "") + (" Contact mission failed; speak to Mara to retry." if failed_story else ""))
 
 func _notify(message: String) -> void:
 	notification = message
@@ -1190,15 +1957,12 @@ func _build_world_systems() -> void:
 	hero_intersection = HeroIntersectionScript.new()
 	hero_intersection.name = "CentralExchangeHero"
 	add_child(hero_intersection)
-	# Two photo-scanned material-sorted road meshes at the protected hero junction.
-	# Flat visual-only geometry; traffic, original crossing paint and saves stay put.
-	central_roadway = CentralRoadScanScript.new()
-	central_roadway.name = "CentralExchangeScannedRoadway"
-	add_child(central_roadway)
 	day_night = DayNightScript.new()
 	day_night.name = "DayNight"
 	add_child(day_night)
 	day_night.call("configure", world_environment, sun_light, city_details, street_lights, hero_intersection)
+	day_night.call("register_surface_receiver", get_node("PhotoRoadNetwork"))
+	day_night.call("register_surface_receiver", wet_streets)
 	venue_system = VenueSystemScript.new()
 	venue_system.name = "SocialVenues"
 	add_child(venue_system)
@@ -1207,6 +1971,8 @@ func _build_world_systems() -> void:
 	civic_services.name = "CivicServices"
 	add_child(civic_services)
 	civic_services.call("set_hour", float(day_night.get("hour")))
+	if not courier_mission.configure_gig_routes(venue_system,civic_services):
+		push_error("QuotaDrop authored route catalog failed to resolve")
 	interiors = InteriorSystemScript.new()
 	interiors.name = "Interiors"
 	add_child(interiors)
@@ -1217,16 +1983,16 @@ func _create_player() -> void:
 	player.set_script(PlayerScript)
 	player.position = PLAYER_START
 	var capsule := CollisionShape3D.new()
+	capsule.name = "CollisionShape3D"
 	var collision := CapsuleShape3D.new()
 	collision.radius = 0.45
 	collision.height = 1.9
 	capsule.shape = collision
 	player.add_child(capsule)
-	var visual := HumanoidVisualScript.new()
+	var visual := CourierVisual.new()
 	visual.name = "Visual"
-	visual.configure(0, "PLAYER")
 	# The avatar's boots meet the physical 1.9-metre capsule footprint.
-	visual.position.y = -0.90
+	visual.position.y = CourierVisual.FOOT_OFFSET
 	player.add_child(visual)
 	add_child(player)
 	_weapon_audio = AudioStreamPlayer3D.new()
@@ -1239,7 +2005,7 @@ func _create_player() -> void:
 	for kind in ["PULSE", "ARC", "RELOAD"]:
 		CombatFoley.sound(kind)
 
-func _create_car(where: Vector3, color: Color, police: bool = false) -> CharacterBody3D:
+func _create_car(where: Vector3, color: Color, police: bool = false, model_id: String = "") -> CharacterBody3D:
 	var car := CharacterBody3D.new()
 	car.name = "PoliceCruiser" if police else "StreetVehicle"
 	car.set_script(CarScript)
@@ -1248,16 +2014,24 @@ func _create_car(where: Vector3, color: Color, police: bool = false) -> Characte
 	if police:
 		car.set("police_signals", signal_controller)
 	var hitbox := CollisionShape3D.new()
+	hitbox.name = "CollisionShape3D"
 	var shape := BoxShape3D.new()
 	shape.size = Vector3(2.35, 1.65, 4.7)
 	hitbox.shape = shape
 	car.add_child(hitbox)
-	# Hero body remains a visual child of the original, save-compatible car.
-	# Physics, position, rotation, condition and player ownership do not change.
-	var hero := KestrelVisual.new()
-	hero.name = "KestrelS6HeroVisual"
-	hero.configure(color, police)
-	car.add_child(hero)
+	if model_id == RoadCars.R9:
+		car.call("configure_road_car", model_id)
+		shape.size = RoadCars.DATA[model_id]["body"]
+		hitbox.position.y = shape.size.y * .5 + RoadCarVisual.GROUND
+		var supercar := RoadCarVisual.new()
+		supercar.name = "RoadCarVisual"
+		supercar.configure(color)
+		car.add_child(supercar)
+	else:
+		var hero := KestrelVisual.new()
+		hero.name = "KestrelS6HeroVisual"
+		hero.configure(color, police)
+		car.add_child(hero)
 	add_child(car)
 	return car
 
@@ -1271,8 +2045,11 @@ func _spawn_traffic() -> void:
 		Vector3(203.0, 1.0, 237.0), Vector3(-146.0, 1.0, 237.0)
 	]
 	for i in range(parked.size()):
-		var car := _create_car(parked[i], VEHICLE_COLORS[i % VEHICLE_COLORS.size()])
+		var model_id := RoadCars.R9 if i in RoadCars.R9_PAID_PARKING_SLOTS else ""
+		var color: Color = RoadCars.R9_PAID_PARKING_SLOTS.get(i, VEHICLE_COLORS[i % VEHICLE_COLORS.size()])
+		var car := _create_car(parked[i], color, false, model_id)
 		car.rotation.y = PI if i % 2 == 1 else 0.0
+		car.set_meta("vehicle_id", RoadCars.PARKED_IDS[i])
 		cars.append(car)
 
 func _build_transport() -> void:
@@ -1282,7 +2059,8 @@ func _build_transport() -> void:
 	traffic = TrafficSystemScript.new()
 	traffic.name = "SurfaceTraffic"
 	add_child(traffic)
-	traffic.call("initialize", rng.seed, signal_controller)
+	_pooled_traffic_enabled = _pooled_traffic_enabled or "--pooled-traffic" in OS.get_cmdline_user_args()
+	traffic.call("initialize", rng.seed, signal_controller, _pooled_traffic_enabled)
 	rail = RailSystemScript.new()
 	rail.name = "MorrowLine"
 	add_child(rail)
@@ -1292,6 +2070,9 @@ func _toggle_transit() -> void:
 		_notify("Park and exit your car before boarding transit.")
 		return
 	if current_transit != null:
+		if transit_kind == "LIFT":
+			_notify("Wait for the lift to reach the landing.")
+			return
 		var exit_pos := Vector3.ZERO
 		if transit_kind == "BUS":
 			if not bool(current_transit.call("is_boardable")):
@@ -1302,11 +2083,19 @@ func _toggle_transit() -> void:
 			if not bool(rail.call("can_alight")):
 				_notify("M-Line is moving. Wait for the next station.")
 				return
-			exit_pos = rail.call("alight_position")
-		_leave_transit(exit_pos)
+			exit_pos = rail.call("alight_position", _rail_platform_rider)
+		_leave_transit(exit_pos, "M-Line platform. Use the lift to return to the street." if _rail_platform_rider else "Back on the street.")
+		return
+	var lift: Node3D = rail.call("lift_at", player.global_position)
+	if lift != null:
+		_active_station_lift = lift
+		lift.call("start", player.global_position)
+		_board_transit(lift.get("carrier"), "LIFT")
+		_notify("M-Line lift called.")
 		return
 	if bool(rail.call("boardable_from", player.global_position)):
 		_board_transit(rail.get_node("MorrowLineTrain"), "TRAIN")
+		_rail_platform_rider = rail.call("on_platform", player.global_position, int(rail.get("current_station")))
 		_notify("M-Line boarded. F to leave at a station.")
 		return
 	var bus: CharacterBody3D = traffic.call("get_boardable_bus", player.global_position)
@@ -1314,9 +2103,9 @@ func _toggle_transit() -> void:
 		_board_transit(bus, "BUS")
 		_notify("City Loop boarded. F to leave at the next stop.")
 		return
-	_notify("Board with F at a marked bus stop or M-Line elevator when a vehicle is stopped.")
+	_notify("Board a stopped vehicle or use a marked M-Line lift.")
 
-func _board_transit(vehicle: Node3D, kind: String) -> void:
+func _board_transit(vehicle: Node3D, kind: String, play_audio: bool = true) -> void:
 	current_transit = vehicle
 	transit_kind = kind
 	player.set("driving", true)
@@ -1324,21 +2113,30 @@ func _board_transit(vehicle: Node3D, kind: String) -> void:
 	player.collision_layer = 0
 	player.collision_mask = 0
 	player.velocity = Vector3.ZERO
-	world_audio.call("play_event", "TRANSIT", vehicle.global_position)
+	if play_audio:
+		world_audio.call("play_event", _transit_sound(kind), vehicle.global_position)
 	_log_playtest("transit_board", {"kind": kind})
 
-func _leave_transit(at: Vector3) -> void:
-	world_audio.call("play_event", "TRANSIT", at)
+func _leave_transit(at: Vector3, message: String = "Back on the street.") -> void:
+	world_audio.call("play_event", _transit_sound(transit_kind), at)
 	_log_playtest("transit_exit", {"kind": transit_kind, "destination": [at.x, at.y, at.z]})
 	current_transit = null
 	transit_kind = ""
+	_rail_platform_rider = false
 	player.global_position = at
 	player.velocity = Vector3.ZERO
 	player.collision_layer = 1
 	player.collision_mask = 1
 	player.visible = true
 	player.set("driving", false)
-	_notify("Back on the street.")
+	_notify(message)
+
+func _transit_sound(kind: String) -> String:
+	if kind == "TRAIN":
+		return "RAIL_DOOR"
+	if kind == "BUS":
+		return "BUS_DOOR"
+	return "TRANSIT"
 
 func _save_game() -> void:
 	if bool(session.call("save_snapshot", _capture_snapshot())):
@@ -1351,6 +2149,7 @@ func _save_game() -> void:
 		_notify("Save failed. Check user data folder or permissions.")
 
 func _load_game() -> void:
+	_close_arcade()
 	if game_menu != null and game_menu.call("is_open"):
 		game_menu.call("hide_for_game")
 	if not bool(session.call("prepare_load")):
@@ -1362,6 +2161,7 @@ func _load_game() -> void:
 	get_tree().call_deferred("reload_current_scene")
 
 func _new_game() -> void:
+	_close_arcade()
 	if game_menu != null and game_menu.call("is_open"):
 		game_menu.call("hide_for_game")
 	_log_playtest("new_game_requested")
@@ -1372,36 +2172,81 @@ func _new_game() -> void:
 func _capture_snapshot() -> Dictionary:
 	var stored_cars := []
 	for car in cars:
-		stored_cars.append({
+		var saved := {
 			"position": [car.global_position.x, car.global_position.y, car.global_position.z],
 			"yaw": car.rotation.y, "claimed": car.has_meta("claimed"),
 			"condition": car.get("condition")
-		})
+		}
+		# Preserve pristine legacy sedan records; damaged sedans now use the
+		# same optional four-channel field as Cinder. Old saves still load.
+		if car.get("model_id") == RoadCars.R9 or car.get("damage_zones") != Vector4.ZERO:
+			var zones: Vector4 = car.get("damage_zones")
+			saved["damage"] = [zones.x, zones.y, zones.z, zones.w]
+		stored_cars.append(saved)
 	var aboard_id := ""
 	if transit_kind == "BUS" and current_transit != null:
 		aboard_id = str(current_transit.get("vehicle_id"))
-	return {
-		"player_position": [player.global_position.x, player.global_position.y, player.global_position.z],
-		"camera_yaw": yaw, "cash": cash, "health": health, "heat": heat,
-		"deliveries": deliveries, "carrying": carrying,
-		"hour": day_night.get("hour"), "cars": stored_cars,
+	# A save during an elevator transfer resumes safely at its destination.
+	var saved_at := player.global_position
+	if _active_station_lift != null:
+		saved_at = _active_station_lift.call("destination")
+	var state := {
+		"player_position": [saved_at.x, saved_at.y, saved_at.z],
+		"camera_yaw": yaw, "cash": cash, "progression": progression.snapshot(), "health": health, "heat": heat,
+		"deliveries": deliveries, "carrying": carrying, "story_mission": story_mission.snapshot(),
+		"hour": day_night.get("hour"), "day_index":day_night.get("day_index"), "cars": stored_cars,
 		"occupied_car": cars.find(current_car),
 		"traffic": traffic.call("snapshot"), "rail": rail.call("snapshot"),
 		"signal_elapsed": signal_controller.get("elapsed"),
-		"transit_kind": transit_kind, "transit_id": aboard_id,
+		"transit_kind": "" if transit_kind == "LIFT" else transit_kind, "transit_id": aboard_id,
+		"rail_platform_rider": _rail_platform_rider,
 		"venue_job_active": venue_job_active, "venue_job_completed": venue_job_completed.duplicate(),
 		"civic_job_active": civic_job_active, "civic_job_completed": civic_job_completed.duplicate(),
 		"civic_intel": civic_intel.duplicate(), "ration_packs": ration_packs,
-		"interior": interiors.call("snapshot"),
+		"consumables": consumable_inventory.duplicate(), "stamina": player.get("stamina"),
+		"interior": interiors.call("snapshot"), "arcade_best": _arcade_best.duplicate(),
 		"navigation_waypoint": [] if navigation_waypoint == null else [navigation_waypoint.x, navigation_waypoint.y],
 		"weapons": weapons.snapshot(),
 		"ambient_civic": ambient_civic.snapshot(),
 		"civic_patrol_service": civic_patrol_service.snapshot(),
 		"wanted_last_known": [wanted.last_known.x, wanted.last_known.y, wanted.last_known.z] if wanted.last_known.is_finite() else []
 	}
+	if is_instance_valid(pedestrians):
+		var street_state: Dictionary = pedestrians.call("snapshot")
+		if not street_state.is_empty():
+			state["sidewalk_population"] = street_state
+	if is_instance_valid(nightgrid_fm):
+		var tuning: Dictionary = nightgrid_fm.call("snapshot")
+		if not tuning.is_empty():
+			state["nightgrid_radio"] = tuning
+	var repair := _repair_storefront()
+	if repair != null and (repair.contains(saved_at) or repair.door_reachable(saved_at)):
+		state["night_shift_door_open"] = repair.door.is_requested_open() or repair.overlaps_threshold(saved_at)
+	return state
 
 func _apply_snapshot(data: Dictionary) -> void:
+	_close_arcade()
+	_cancel_street_interactions()
+	if is_instance_valid(dialogue_director):
+		dialogue_director.call("cancel_all")
+	if not progression.restore(data.get("cash", 0), data.get("progression", {"version": ProgressionLedger.VERSION, "receipts": []})):
+		push_error("Invalid progression snapshot")
+		return
+	_arcade_best = ArcadeScores.normalized(data.get("arcade_best", {}))
+	var saved_visual: Node3D = player.get("visual")
+	if is_instance_valid(saved_visual):
+		saved_visual.call("set_look",progression.outfit_id,progression.clothing_slots)
+	_cinder_cockpit = false
+	_cockpit_look = Vector2.ZERO
 	# Geometry is already reconstructed from the saved immutable seed.
+	if is_instance_valid(nightgrid_fm):
+		nightgrid_fm.call("restore", data.get("nightgrid_radio", {}))
+	# A saved active favor is explicit prior opt-in; do not strand the job
+	# when the next launch omits --living-streets.
+	if progression.cal_quest in [1,2] and not is_instance_valid(pedestrians):
+		enable_living_streets()
+	if is_instance_valid(pedestrians):
+		pedestrians.call("restore", data.get("sidewalk_population", {}))
 	navigation_waypoint = Nav.decode(data.get("navigation_waypoint", []))
 	# No live closures are saved until physical scene/traffic integration.
 	road_restrictions = RoadRestrictions.new()
@@ -1415,7 +2260,6 @@ func _apply_snapshot(data: Dictionary) -> void:
 	traffic.call("restore", data["traffic"])
 	rail.call("restore", data["rail"])
 	signal_controller.set("elapsed", fposmod(float(data.get("signal_elapsed", 0.0)), 72.0))
-	cash = maxi(0, int(data.get("cash", 0)))
 	health = clampf(float(data.get("health", 100.0)), 1.0, 100.0)
 	heat = clampf(float(data.get("heat", 0.0)), 0.0, 5.0)
 	wanted.reset()
@@ -1424,8 +2268,10 @@ func _apply_snapshot(data: Dictionary) -> void:
 		var p := Vector3(float(last[0]), float(last[1]), float(last[2]))
 		if p.is_finite() and absf(p.x) <= 390.0 and absf(p.z) <= 390.0 and absf(p.y) <= 25.0 and heat >= Wanted.MIN_HEAT:
 			wanted.last_known = p
-	deliveries = maxi(0, int(data.get("deliveries", 0)))
-	carrying = bool(data.get("carrying", false))
+	courier_mission.gig_economy = progression.has_receipt(Opening.RECEIPT)
+	courier_mission.restore(data.get("deliveries", 0), data.get("carrying", false))
+	player.call("set_courier_conditioning",courier_mission.conditioning_rank())
+	story_mission.restore(data.get("story_mission", StoryMission.new().snapshot()))
 	yaw = float(data.get("camera_yaw", 0.0))
 	var position_data: Array = data["player_position"]
 	player.global_position = Vector3(float(position_data[0]), float(position_data[1]), float(position_data[2]))
@@ -1438,8 +2284,11 @@ func _apply_snapshot(data: Dictionary) -> void:
 			c.global_position = Vector3(float(pos[0]), float(pos[1]), float(pos[2]))
 		c.rotation.y = float(info.get("yaw", c.rotation.y))
 		c.set("condition", clampf(float(info.get("condition", 100.0)), 18.0, 100.0))
+		c.call("restore_damage", info.get("damage", []))
 		if bool(info.get("claimed", false)):
 			c.set_meta("claimed", true)
+		elif c.has_meta("claimed"):
+			c.remove_meta("claimed")
 	var selected := int(data.get("occupied_car", -1))
 	if selected >= 0 and selected < cars.size():
 		current_car = cars[selected]
@@ -1448,14 +2297,17 @@ func _apply_snapshot(data: Dictionary) -> void:
 		player.visible = false
 		player.collision_layer = 0
 		player.collision_mask = 0
+		player.call("show_vehicle_rider", current_car, false)
 	else:
 		var saved_transit := str(data.get("transit_kind", ""))
 		if saved_transit == "BUS":
 			var bus: CharacterBody3D = traffic.call("bus_by_id", str(data.get("transit_id", "")))
 			if bus != null:
-				_board_transit(bus, "BUS")
+				_board_transit(bus, "BUS", false)
 		elif saved_transit == "TRAIN":
-			_board_transit(rail.get_node("MorrowLineTrain"), "TRAIN")
+			_board_transit(rail.get_node("MorrowLineTrain"), "TRAIN", false)
+			_rail_platform_rider = bool(data.get("rail_platform_rider", false))
+	day_night.set("day_index",int(data.get("day_index",0)))
 	day_night.call("set_hour", float(data.get("hour", 19.25)))
 	venue_system.call("set_hour", float(day_night.get("hour")))
 	civic_services.call("set_hour", float(day_night.get("hour")))
@@ -1470,6 +2322,8 @@ func _apply_snapshot(data: Dictionary) -> void:
 			if not venue_system.call("job_by_id", valid_id).is_empty() and not venue_job_completed.has(valid_id):
 				venue_job_completed.append(valid_id)
 	ration_packs = clampi(int(data.get("ration_packs", 0)), 0, 99)
+	consumable_inventory = Consumables.restore(data.get("consumables",{}))
+	player.call("restore_stamina",data.get("stamina",100.0))
 	civic_job_active = str(data.get("civic_job_active", ""))
 	if civic_services.call("order_by_id", civic_job_active).is_empty():
 		civic_job_active = ""
@@ -1505,10 +2359,98 @@ func _apply_snapshot(data: Dictionary) -> void:
 			city_details.call("set_focus", interiors.get("exterior_position"))
 	if not interiors.call("is_inside"):
 		city_details.call("set_focus", player.global_position)
-	_set_mission_target(DROPOFFS[deliveries % DROPOFFS.size()] if carrying else PICKUPS[deliveries % PICKUPS.size()], carrying)
+		var walk_in: Node3D = city_details.call("nearby_walk_in",player.global_position)
+		if is_instance_valid(walk_in) and current_car == null and current_transit == null:
+			walk_in.call("restore_safe_threshold",player.global_position)
+			city_details.call("update_walk_in_light",player.global_position)
+		var repair := _repair_storefront()
+		if repair != null and (repair.contains(player.global_position) or repair.door_reachable(player.global_position)):
+			repair.door.restore_open(data.get("night_shift_door_open", false) == true or repair.overlaps_threshold(player.global_position))
+	_refresh_courier_target()
 	_snap_camera()
 	_log_playtest("save_restored", {"seed": int(session.get("world_seed"))})
 	_notify("Save loaded. Seed %d; Morrow Bay restored." % int(session.get("world_seed")))
+
+func _parking_guard_near() -> bool:
+	if current_car!=null or current_transit!=null or interiors.call("is_inside"):
+		return false
+	var hq:Node3D=city_details.call("synaxis_headquarters")
+	return is_instance_valid(hq) and bool(hq.call("parking_guard_reachable",player.global_position))
+
+func _try_parking_guard() -> bool:
+	if _parking_guard_near():
+		game_menu.call("open_parking_guard",progression.has_receipt(Opening.RECEIPT))
+		return true
+	return false
+
+func _synaxis_access_notice() -> bool:
+	var hq: Node3D = city_details.call("synaxis_headquarters")
+	if is_instance_valid(hq) and hq.call("public_checkpoint_reachable",player.global_position):
+		_notify("SYNAXIS SECURITY: Badge access revoked. Your concern has been resolved. Authorized visitors only beyond this checkpoint.")
+		return true
+	if OpeningOffice.entrance_reachable(player.global_position):
+		_notify("SYNAXIS: Public lobby open. Badge access revoked for the restricted offices.")
+		return true
+	return false
+
+func _open_arcade(id: String) -> bool:
+	if is_instance_valid(_arcade_layer) or get_tree().paused or current_car != null or current_transit != null:
+		return false
+	if str(interiors.call("arcade_cabinet_near", player.global_position)) != id or id.is_empty():
+		return false
+	var screen := ArcadeScreen.instantiate()
+	if not screen.call("configure_cabinet", id, _arcade_best):
+		screen.free()
+		return false
+	screen.connect("score_recorded", _record_arcade_score)
+	if id == "grand_delay":
+		screen.call("bind_deluxe_cabinet",interiors.call("arcade_cabinet_node",id))
+	return _present_arcade_overlay(screen)
+
+func _open_arcade_circuit() -> bool:
+	if is_instance_valid(_arcade_layer) or get_tree().paused or current_car != null or current_transit != null:
+		return false
+	if not interiors.call("arcade_circuit_near",player.global_position):
+		return false
+	var screen := ArcadeCircuit.new()
+	screen.configure(_arcade_best)
+	return _present_arcade_overlay(screen)
+
+func _present_arcade_overlay(screen: Control) -> bool:
+	_arcade_layer = CanvasLayer.new()
+	_arcade_layer.name = "ArcadeModal"
+	_arcade_layer.layer = 100
+	_arcade_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(_arcade_layer)
+	_arcade_layer.add_child(screen)
+	screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	screen.connect("exit_requested", _close_arcade)
+	suspend_weapon()
+	player.set("input_blocked", true)
+	player.velocity = Vector3.ZERO
+	get_tree().paused = true
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	return true
+
+func _record_arcade_score(id: String, value: int) -> void:
+	var before := ArcadeScores.circuit_count(_arcade_best)
+	if ArcadeScores.record(_arcade_best,id,value):
+		var after := ArcadeScores.circuit_count(_arcade_best)
+		if after > before:
+			_notify("ROOK: Local Legend! All eight stamps earned." if after == 8 else "ROOK: Circuit stamp earned. %d/8." % after)
+
+func _close_arcade() -> void:
+	if not is_instance_valid(_arcade_layer):
+		return
+	# Completed results are recorded immediately; abandoned rounds do not settle.
+	_arcade_layer.hide()
+	_arcade_layer.process_mode = Node.PROCESS_MODE_DISABLED
+	_arcade_layer.queue_free()
+	_arcade_layer = null
+	get_tree().paused = false
+	player.set("input_blocked", false)
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	_fire_held = true
 
 func _toggle_interior() -> void:
 	if interiors.call("is_inside"):
@@ -1529,8 +2471,56 @@ func _toggle_interior() -> void:
 	if current_car != null or current_transit != null:
 		_notify("Exit your vehicle before entering a building.")
 		return
+	if _synaxis_access_notice():
+		return
+	var repair := _repair_storefront()
+	if repair != null:
+		if repair.door_reachable(player.global_position):
+			if repair.door.request_toggle():
+				player.call("play_visual_action", &"interact")
+				world_audio.call("play_event", "DOOR", repair.door.global_position)
+			else:
+				_notify("Night Shift Repairs is preparing the entrance.")
+			return
+		if repair.contains(player.global_position):
+			_notify("Return to the front door to open or close it.")
+			return
 	var venue: Dictionary = venue_system.call("nearest_venue", player.global_position)
 	var civic: Dictionary = civic_services.call("nearest_site", player.global_position)
+	var physical_lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+	if is_instance_valid(physical_lot) and not str(physical_lot.get("home_id")).is_empty() and not progression.owns_home() and not physical_lot.call("contains",player.global_position):
+		if progression.has_receipt(StarterHome.ACCESS_RECEIPT) and physical_lot.call("doorway_reachable",player.global_position):
+			_tenancy_panel = true
+			_show_venue_dialogue()
+			_update_venue_panel()
+		else:
+			_notify("Locked residence. Speak to Mara at Lantern Cup first.")
+		return
+	# Migrated café has no remote-room entry. Approach the actual hinge.
+	if str(venue.get("id","")) == "helix_espresso":
+		venue = {}
+	# Existing named shops keep H at their exact old public anchor. Their
+	# service migration is separate from the generic building conversion.
+	var legacy_anchor := false
+	if str(venue.get("id", "")) == "insert_coin":
+		if not venue_system.call("is_open", "insert_coin"):
+			_notify("INSERT COIN is closed. Open 14:00–03:00.")
+			return
+		legacy_anchor = true
+	if not venue.is_empty() and not legacy_anchor:
+		legacy_anchor = player.global_position.distance_to(venue_system.call("venue_position",str(venue["id"]))) < .3
+	if not civic.is_empty():
+		legacy_anchor = legacy_anchor or player.global_position.distance_to(civic_services.call("position_for",str(civic["id"]))) < .3
+	if physical_lot != null and not legacy_anchor:
+		if physical_lot.call("doorway_reachable",player.global_position):
+			var leaf: AnimatableBody3D = physical_lot.get("door")
+			if leaf.call("request_toggle"):
+				player.call("play_visual_action",&"interact")
+				player.get_node("Visual").call("reach_target",leaf,physical_lot.call("door_handle_anchor"),1)
+				world_audio.call("play_event","DOOR",leaf.global_position)
+		else:
+			_notify("Return to the front door to open or close it.")
+		return
 	if venue.is_empty() and civic.is_empty():
 		_notify("Approach a marked storefront and press H to enter.")
 		return
@@ -1557,6 +2547,25 @@ func _toggle_interaction() -> void:
 		_close_venue()
 		return
 	if interiors.call("is_inside"):
+		if str(interiors.call("active_site_id")) == "insert_coin":
+			var cabinet_id := str(interiors.call("arcade_cabinet_near", player.global_position))
+			if not cabinet_id.is_empty():
+				_open_arcade(cabinet_id)
+			elif interiors.call("arcade_circuit_near",player.global_position):
+				_open_arcade_circuit()
+			else:
+				var exhibit: Dictionary = interiors.call("arcade_exhibit_near",player.global_position)
+				if not exhibit.is_empty():
+					_notify("%s / %s" % [exhibit["title"],exhibit["line"]])
+					return
+				var regular: Dictionary = interiors.call("arcade_talk_regular",player.global_position)
+				if not regular.is_empty():
+					_notify("%s / %s: %s" % [regular["name"],regular["role"],regular["line"]])
+				elif interiors.call("counter_reachable", player.global_position):
+					_notify("ROOK: " + str(interiors.call("arcade_rook_line")))
+				else:
+					_notify("Approach a cabinet from the front to play. Practice is free.")
+			return
 		# Mara's collectible, one-time shift note is a real world interaction,
 		# available only beside the flagship café booth. Reuse the already
 		# persisted civic-intel list; old saves and quest schemas are unchanged.
@@ -1577,12 +2586,12 @@ func _toggle_interaction() -> void:
 			"shift_notes": civic_intel.has("lantern_cup_shift_notes")
 		})
 		if not regular.is_empty():
-			_notify("%s / %s: %s" % [
-				str(regular["name"]), str(regular["role"]), str(regular["line"])])
+			ambient_caption.call("present", str(regular["name"]), str(regular["line"]))
 			return
 		if not interiors.call("counter_reachable", player.global_position):
 			_notify("Walk toward the staffed service counter to interact.")
 			return
+		player.call("play_visual_action", &"interact")
 		if str(interiors.call("active_site_group")) == "CIVIC":
 			_toggle_civic()
 		else:
@@ -1591,8 +2600,122 @@ func _toggle_interaction() -> void:
 	if current_car != null or current_transit != null:
 		_notify("Get out of the vehicle before interacting with neighborhood businesses.")
 		return
+	if _try_parking_guard():
+		return
+	if _synaxis_access_notice():
+		return
+	if courier_mission.gig_economy and player.global_position.distance_to(mission_position) < CourierMission.RADIUS:
+		_advance_mission()
+		return
+	var garage: Node3D = city_details.call("starter_garage",player.global_position)
+	if is_instance_valid(garage) and garage.call("desk_reachable",player.global_position):
+		if not progression.owns_home():
+			_notify("Garage services unlock after Mara’s contact mission.")
+			return
+		_garage_panel = true
+		_show_venue_dialogue()
+		_update_venue_panel()
+		return
+	var repair := _repair_storefront()
+	if repair != null and repair.contains(player.global_position):
+		if repair.counter_reachable(player.global_position):
+			_repair_panel = true
+			player.call("play_visual_action", &"interact")
+			_show_venue_dialogue()
+			_update_venue_panel()
+		else:
+			_notify("Approach the service counter.")
+		return
+	var physical_lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+	if is_instance_valid(physical_lot) and not str(physical_lot.get("clothing_store_id")).is_empty():
+		if physical_lot.call("clothing_reachable",player.global_position):
+			_clothing_retail=true
+			_retail_id=str(physical_lot.get("clothing_store_id"))
+			_retail_day=int(day_night.get("day_index"))
+			_retail_stock=ClothingStore.stock_for_day(_retail_id,_retail_day)
+			_fitting_yaw=player.get_node("Visual").rotation.y
+			_fitting_rotation=0.0
+			_fitting_zoom=0.0
+			_fitting_compare=false
+			_wardrobe_category="ALL"
+			_wardrobe_panel=true
+			_wardrobe_index=Wardrobe.browse_ids().find(progression.outfit_id if progression.outfit_id in _retail_stock else "dispatch")
+			var greeting:String=physical_lot.call("clothing_greeting")
+			if not greeting.is_empty():
+				_notify(greeting)
+			_show_venue_dialogue()
+			_update_venue_panel()
+		else:
+			_notify(str(ClothingStore.STORES[physical_lot.get("clothing_store_id")]["name"])+": approach the fitting and checkout counter.")
+		return
+	if is_instance_valid(physical_lot) and not str(physical_lot.get("home_id")).is_empty():
+		if not progression.owns_home():
+			_notify("Complete Mara’s contact mission first.")
+			return
+		match str(physical_lot.call("home_action",player.global_position)):
+			"rest":
+				if heat > 0.01:
+					_notify("Lose police attention before resting.")
+				else:
+					health = 100.0
+					player.call("restore_stamina",100.0)
+					_notify("Rested at home. Health and stamina restored.")
+			"save":
+				_save_game()
+			"exchange":
+				_exchange_panel = true
+				_show_venue_dialogue()
+				_update_venue_panel()
+			"wardrobe":
+				_wardrobe_category="ALL"
+				_wardrobe_panel = true
+				_wardrobe_index = Wardrobe.IDS.find(progression.outfit_id)
+				_show_venue_dialogue()
+				_update_venue_panel()
+			"storage":
+				_home_panel = true
+				_show_venue_dialogue()
+				_update_venue_panel()
+			_:
+				_notify("At home: approach the bed, desk, wardrobe or storage cabinet.")
+		return
+	if is_instance_valid(physical_lot) and not str(physical_lot.get("physical_venue_id")).is_empty():
+		if physical_lot.call("service_reachable",player.global_position):
+			venue_selected_id = str(physical_lot.get("physical_venue_id"))
+			player.call("play_visual_action",&"interact")
+			_show_venue_dialogue()
+			_update_venue_panel()
+		else:
+			_notify("Walk to the indoor service counter.")
+		return
+	if _cal_pickup_reachable() and progression.collect_cal_gift():
+		_notify("COMPATIBILITY PATCH: Collected Cal\u0027s prepaid anniversary heat sink. Return to Cal Mercer.")
+		_track_cal_waypoint()
+		return
+	var machine: Node3D = city_details.call("nearby_vending",player.global_position)
+	if is_instance_valid(machine):
+		_vending_machine = machine
+		_show_venue_dialogue()
+		_update_venue_panel()
+		return
 	var shop: Dictionary = venue_system.call("nearest_venue", player.global_position)
 	var service: Dictionary = civic_services.call("nearest_site", player.global_position)
+	if shop.is_empty() and service.is_empty() and is_instance_valid(pedestrians) and weapons.equipped=="holstered":
+		var contact:Dictionary=pedestrians.call("nearby_contact")
+		if not contact.is_empty():
+			_street_contact_id=str(contact["lease_id"])
+			if pedestrians.call("is_named_cal",_street_contact_id) and progression.has_receipt(Opening.RECEIPT):
+				contact["cal_quest"]=progression.cal_quest
+			game_menu.call("open_street_contact",contact)
+			return
+	if str(shop.get("id","")) == "helix_espresso":
+		_notify("HELIX ESPRESSO: enter the actual building to order.")
+		return
+	if shop.is_empty() and service.is_empty():
+		for car in cars:
+			if car.global_position.distance_squared_to(player.global_position) < 12.0 \
+					and car.call("toggle_near_door", player.global_position, player.get_rid()):
+				return
 	if not service.is_empty():
 		var civic_distance: float = civic_services.call("position_for", str(service["id"])).distance_to(player.global_position)
 		var shop_distance: float = 9999.0 if shop.is_empty() else venue_system.call("venue_position", str(shop["id"])).distance_to(player.global_position)
@@ -1617,6 +2740,18 @@ func _toggle_civic() -> void:
 	_update_civic_panel()
 
 func _consume_ration() -> void:
+	if current_car == null and current_transit == null:
+		var id := Consumables.best_item(consumable_inventory,health,float(player.get("stamina")))
+		if not id.is_empty():
+			var item: Dictionary = Consumables.ITEMS[id]
+			consumable_inventory[id] -= 1
+			if int(consumable_inventory[id]) == 0:
+				consumable_inventory.erase(id)
+			health = minf(100.0,health+float(item["health"]))
+			player.call("add_stamina",float(item["stamina"]))
+			player.get_node("Visual").call("play_product_action",id,false)
+			_notify("Consumed %s. Health %d / stamina %d." % [item["name"],ceili(health),ceili(float(player.get("stamina")))])
+			return
 	if current_car != null or current_transit != null:
 		_notify("Use a ration pack when safely on foot.")
 	elif ration_packs <= 0:
@@ -1647,6 +2782,186 @@ func _civic_service_text(site: Dictionary) -> String:
 		"WAREHOUSE":
 			return "Read today's shipping workboard (free)"
 	return "Visit"
+
+func _repair_storefront() -> BrickwaterRepair:
+	return city_details.call("repair_storefront") as BrickwaterRepair
+
+func _recover_garage_vehicle(garage: Node3D,index: int) -> void:
+	# Explicit recovery service only. Never spawn another vehicle or move an
+	# occupied one; test clearance before changing money or ownership.
+	var id: String = StarterGarage.IDS[index]
+	var owned := progression.owns_vehicle(id)
+	if not owned and index != 0:
+		_notify("Register the Cinder title at Night Shift Repairs first.")
+		return
+	if heat > 0.01:
+		_notify("Lose police attention before requesting recovery.")
+		return
+	var car: CharacterBody3D
+	for candidate in cars:
+		if str(candidate.get_meta("vehicle_id","")) == id:
+			car = candidate
+			break
+	if not is_instance_valid(car) or car.get("occupied") or absf(float(car.get("speed"))) > .5:
+		_notify("Vehicle unavailable for recovery.")
+		return
+	if garage.call("parked_at",car.global_position,index):
+		if not owned and not progression.grant_starter_vehicle():
+			_notify("Not enough cash for the Kestrel title.")
+			return
+		_notify("Vehicle already parked in its bay.")
+		return
+	var collider := car.get_node("CollisionShape3D") as CollisionShape3D
+	var box := collider.shape as BoxShape3D
+	var bay: Vector3 = garage.call("bay_point",index)
+	var target := bay + Vector3.UP*(box.size.y*.5-collider.position.y+.05)
+	var query := PhysicsShapeQueryParameters3D.new()
+	var clearance := BoxShape3D.new()
+	clearance.size = box.size + Vector3(.45,0,.45)
+	query.shape = clearance
+	query.transform = Transform3D(Basis.IDENTITY,target+collider.position)
+	query.exclude = [car.get_rid()]
+	query.collision_mask = car.collision_mask
+	if not get_world_3d().direct_space_state.intersect_shape(query,1).is_empty():
+		_notify("Recovery bay blocked. Clear it before requesting the vehicle.")
+		return
+	if owned:
+		if not progression.spend(StarterGarage.RECOVERY_FEE):
+			_notify("Not enough cash for recovery.")
+			return
+	elif not progression.grant_starter_vehicle():
+		_notify("Not enough cash for the Kestrel title.")
+		return
+	car.global_position = target
+	car.rotation.y = 0.0
+	car.velocity = Vector3.ZERO
+	car.set("speed",0.0)
+	_notify("Vehicle returned to its reserved bay." if owned else "Starter Kestrel registered and parked. It’s yours.")
+
+func _owned_vehicle_text() -> String:
+	var names: Array[String] = []
+	for id in progression.owned_vehicle_ids():
+		names.append(str(RoadCars.TITLES[id]["name"]))
+	return "VEHICLE TITLES: " + ("None" if names.is_empty() else ", ".join(names))
+
+# Actual nearby stationary pilot stock only; no new spawn or remote purchase.
+func _title_eligible(car: CharacterBody3D) -> bool:
+	if not is_instance_valid(car):
+		return false
+	var id := str(car.get_meta("vehicle_id", ""))
+	if not RoadCars.TITLES.has(id) or progression.owns_vehicle(id):
+		return false
+	# With residence access, the Kestrel title is sold at the garage.
+	if progression.owns_home() and id == StarterGarage.IDS[0]:
+		return false
+	return not bool(car.get("occupied")) and absf(float(car.get("speed"))) <= .28 and car.global_position.distance_to(player.global_position) < 18.0
+
+func _title_by_id(id: String) -> CharacterBody3D:
+	for car in cars:
+		if is_instance_valid(car) and str(car.get_meta("vehicle_id","")) == id:
+			return car
+	return null
+
+func _nearby_title_candidate() -> CharacterBody3D:
+	var selected: CharacterBody3D
+	var nearest := 18.0
+	for car in cars:
+		if not _title_eligible(car):
+			continue
+		var distance := car.global_position.distance_to(player.global_position)
+		if distance < nearest:
+			selected = car
+			nearest = distance
+	return selected
+
+func _open_title_quote() -> void:
+	var car := _title_by_id(_title_offer_id)
+	if not _title_eligible(car):
+		_notify("That vehicle is no longer eligible. Select a new offer.")
+		return
+	var price: int = RoadCars.title_price(_title_offer_id)
+	if cash < price:
+		_notify("Not enough cash for this vehicle title.")
+		return
+	_title_quote_id = _title_offer_id
+
+func _confirm_title_quote() -> void:
+	# Consume the quote before validating; a second action cannot replay it.
+	var id := _title_quote_id
+	_title_quote_id = ""
+	var car := _title_by_id(id)
+	if not _title_eligible(car) or str(car.get_meta("vehicle_id","")) != id:
+		_notify("Offer expired. No payment taken.")
+		return
+	if not progression.buy_vehicle(id):
+		_notify("Not enough cash for this vehicle title.")
+		return
+	_notify("TITLE REGISTERED: %s. This vehicle is yours." % RoadCars.TITLES[id]["name"])
+
+func _sale_value(car: CharacterBody3D) -> int:
+	if not is_instance_valid(car) or heat > .01 or bool(car.get("occupied")) or absf(float(car.get("speed"))) > .28 or car.global_position.distance_to(player.global_position) >= 18.0:
+		return 0
+	var id := str(car.get_meta("vehicle_id",""))
+	if not progression.owns_vehicle(id):
+		return 0
+	return RoadCars.resale_price(id,float(car.get("condition")))
+
+func _nearby_sale_candidate() -> CharacterBody3D:
+	var selected: CharacterBody3D
+	var nearest := 18.0
+	for car in cars:
+		if _sale_value(car) <= 0:
+			continue
+		var distance := car.global_position.distance_to(player.global_position)
+		if distance < nearest:
+			selected = car
+			nearest = distance
+	return selected
+
+func _clear_sale_quote() -> void:
+	_sale_quote_id = ""
+	_sale_quote_amount = 0
+
+func _open_sale_quote() -> void:
+	var car := _title_by_id(_sale_offer_id)
+	var value := _sale_value(car)
+	if value <= 0 or value > ProgressionLedger.MAX_CASH - cash:
+		_notify("Vehicle unavailable for sale or wallet full.")
+		return
+	_sale_quote_id = _sale_offer_id
+	_sale_quote_amount = value
+
+func _confirm_sale_quote() -> void:
+	var id := _sale_quote_id
+	var amount := _sale_quote_amount
+	_clear_sale_quote()
+	var car := _title_by_id(id)
+	if amount <= 0 or _sale_value(car) != amount:
+		_notify("Sale offer expired. No title or money changed.")
+		return
+	if not progression.sell_vehicle(id,float(car.get("condition"))):
+		_notify("Sale declined. No title or money changed.")
+		return
+	# This is now dealer stock; taking it without a new title is theft.
+	if car.has_meta("claimed"):
+		car.remove_meta("claimed")
+	_notify("TITLE TRANSFERRED: %s  +$%d" % [RoadCars.TITLES[id]["name"],amount])
+
+func _repair_nearby_vehicle(price: int) -> void:
+	var selected_car: CharacterBody3D
+	var nearest := 18.0
+	for car in cars:
+		var distance := car.global_position.distance_to(player.global_position)
+		if distance < nearest and float(car.get("condition")) < 99.9:
+			selected_car = car
+			nearest = distance
+	if selected_car == null:
+		_notify("Park a damaged vehicle near the shop.")
+	elif not progression.spend(price):
+		_notify("Not enough cash to repair this vehicle.")
+	else:
+		selected_car.call("repair")
+		_notify("Vehicle repaired. Roadworthiness restored.")
 
 func _update_civic_panel() -> void:
 	if civic_selected_id.is_empty() or venue_label == null:
@@ -1679,10 +2994,10 @@ func _update_civic_panel() -> void:
 	venue_label.text = title
 	if venue_service_button != null:
 		venue_service_button.disabled = not opened
-		venue_service_button.text = "1 / A  •  SERVICE"
+		venue_service_button.text = "1 / A  ·  %s  $%d" % [_civic_service_text(site), int(site["price"])]
 	if venue_job_button != null:
 		var offered: Dictionary = civic_services.call("order_from", civic_selected_id) if civic_job_active.is_empty() else civic_services.call("order_by_id", civic_job_active)
-		var available := not offered.is_empty() and (
+		var available:bool = not offered.is_empty() and (
 			(not civic_job_active.is_empty() and str(offered["to"]) == civic_selected_id) or
 			(civic_job_active.is_empty() and not civic_job_completed.has(str(offered["id"]))))
 		venue_job_button.disabled = not opened or not available
@@ -1699,7 +3014,6 @@ func _civic_action(option: int) -> void:
 	if option == 1:
 		var price := int(site["price"])
 		var purchase := true
-		var selected_car: CharacterBody3D
 		match kind:
 			"GROCERY":
 				if ration_packs > 97:
@@ -1714,25 +3028,17 @@ func _civic_action(option: int) -> void:
 					_notify("No citations are currently outstanding.")
 					return
 			"GARAGE":
-				var nearest := 18.0
-				for car in cars:
-					var distance := car.global_position.distance_to(player.global_position)
-					if distance < nearest and float(car.get("condition")) < 99.9:
-						selected_car = car
-						nearest = distance
-				if selected_car == null:
-					_notify("Park a damaged vehicle near the garage counter.")
-					return
+				_repair_nearby_vehicle(price)
+				return
 			"LIBRARY", "UTILITY":
 				purchase = false
 			"WAREHOUSE":
 				_notify("The warehouse shift board lists work under option [2].")
 				return
 		if purchase:
-			if cash < price:
+			if not progression.spend(price):
 				_notify("Not enough cash; visit a courier pickup or complete a work order.")
 				return
-			cash -= price
 		match kind:
 			"GROCERY":
 				ration_packs += 2
@@ -1746,9 +3052,6 @@ func _civic_action(option: int) -> void:
 			"CIVIC":
 				heat = maxf(0.0, heat - 1.75)
 				_notify("Municipal citation settled. Police heat reduced.")
-			"GARAGE":
-				selected_car.call("repair")
-				_notify("Vehicle repaired. Roadworthiness restored.")
 			"LIBRARY", "UTILITY":
 				if not civic_intel.has(civic_selected_id):
 					civic_intel.append(civic_selected_id)
@@ -1772,7 +3075,14 @@ func _civic_action(option: int) -> void:
 				var destination: Dictionary = civic_services.call("site_by_id", str(active["to"]))
 				_notify("Work in progress. Destination: %s" % str(destination["name"]))
 				return
-			cash += int(active["reward"])
+			if civic_job_completed.has(civic_job_active) or progression.has_receipt("civic:" + civic_job_active):
+				civic_job_active = ""
+				_notify("Work order already paid.")
+				_update_civic_panel()
+				return
+			if not progression.credit_once("civic:" + civic_job_active, int(active["reward"])):
+				_notify("Unable to settle work order. Check wallet capacity.")
+				return
 			civic_job_completed.append(civic_job_active)
 			civic_job_active = ""
 			_notify("WORK ORDER COMPLETE +$%d: %s" % [int(active["reward"]), str(active["ending"])])
@@ -1800,6 +3110,12 @@ func _toggle_venue() -> void:
 		_close_venue()
 		return
 	var venue: Dictionary = venue_system.call("venue_by_id", str(interiors.call("active_site_id"))) if interiors.call("is_inside") else venue_system.call("nearest_venue", player.global_position)
+	if not interiors.call("is_inside") and str(venue.get("id","")) == "helix_espresso":
+		_notify("Enter Helix Espresso and use its physical counter.")
+		return
+	if str(venue.get("id", "")) == "insert_coin":
+		_notify("INSERT COIN: enter with H / LB to play.")
+		return
 	if venue.is_empty():
 		_notify("Find a glowing venue frontage, then press G to visit.")
 		return
@@ -1811,6 +3127,8 @@ func _toggle_venue() -> void:
 func _show_venue_dialogue() -> void:
 	if venue_selected_id == "lantern_cup" and interiors.call("is_inside"):
 		interiors.call("set_mara_attention", true)
+	if is_instance_valid(ambient_caption):
+		ambient_caption.call("clear")
 	venue_panel.visible = true
 	player.set("input_blocked", true)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -1818,21 +3136,378 @@ func _show_venue_dialogue() -> void:
 		venue_service_button.call_deferred("grab_focus")
 
 func _close_venue() -> void:
+	if is_instance_valid(dialogue_director):
+		dialogue_director.call("cancel_scope","venue:music_contact")
 	if interiors != null:
 		interiors.call("set_mara_attention", false)
 	mara_dialogue_line = ""
+	if is_instance_valid(contact_caption):
+		contact_caption.call("clear")
+	if is_instance_valid(ambient_caption):
+		ambient_caption.call("clear")
 	if venue_talk_button != null:
 		venue_talk_button.visible = false
 	venue_selected_id = ""
+	_repair_panel = false
+	_title_offer_id = ""
+	_title_quote_id = ""
+	_clear_sale_quote()
+	_sale_offer_id = ""
+	_home_panel = false
+	_storage_upgrade_quote = false
+	if _wardrobe_panel and is_instance_valid(player):
+		player.get_node("Visual").call("set_look",progression.outfit_id,progression.clothing_slots)
+		if _clothing_retail:
+			player.get_node("Visual").rotation.y=_fitting_yaw
+	_wardrobe_panel = false
+	_clothing_retail=false
+	_retail_id=""
+	_retail_stock.clear()
+	_fitting_compare=false
+	_wardrobe_category="ALL"
+	_look_index=0
+	_look_save_pending=false
+	if is_instance_valid(_wardrobe_controls):
+		_wardrobe_controls.hide()
+	_wardrobe_quote_id = ""
+	_wardrobe_tender = "USD"
+	_exchange_panel = false
+	_tenancy_panel = false
+	_garage_panel = false
+	_vending_machine = null
+	for button in [venue_service_button,venue_job_button,venue_talk_button]:
+		if is_instance_valid(button):
+			button.icon = null
 	civic_selected_id = ""
 	if venue_panel != null:
 		venue_panel.visible = false
+	if venue_job_button != null:
+		venue_job_button.show()
 	if is_instance_valid(player):
 		player.set("input_blocked", false)
 	if game_menu == null or not game_menu.call("is_open"):
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
+func _wardrobe_visible_ids() -> Array:
+	var result:Array=[]
+	for id in Wardrobe.category_ids(_wardrobe_category):
+		if _wardrobe_category=="OWNED":
+			if _clothing_owned(id):
+				result.append(id)
+			continue
+		var available:bool=(id in _retail_stock or id in Wardrobe.RESET_IDS) if _clothing_retail else (id not in ClothingStore.EXCLUSIVE or _clothing_owned(id))
+		if not available:
+			continue
+		if _wardrobe_category in ["AFFORDABLE","UNOWNED"]:
+			if _clothing_owned(id):
+				continue
+			var cost:=int(Wardrobe.listing(id)["price"])
+			if _wardrobe_category=="AFFORDABLE" and not progression.can_pay(cost,"USD") and not progression.can_pay(cost,"BTC"):
+				continue
+		result.append(id)
+	return result
+
+func _cycle_wardrobe_category(direction:int) -> void:
+	if not _wardrobe_panel or not _wardrobe_quote_id.is_empty():
+		return
+	var index:=Wardrobe.CATEGORIES.find(_wardrobe_category)
+	_wardrobe_category=Wardrobe.CATEGORIES[posmod(index+direction,Wardrobe.CATEGORIES.size())]
+	player.get_node("Visual").call("set_look",progression.outfit_id,progression.clothing_slots)
+	_fitting_rotation=0.0
+	_fitting_zoom=0.0
+	_look_save_pending=false
+	_look_index=0
+	var visible_ids:=_wardrobe_visible_ids()
+	if not visible_ids.is_empty():
+		_wardrobe_index=Wardrobe.browse_ids().find(visible_ids[0])
+	_fitting_compare=false
+	_update_venue_panel()
+
+func _toggle_fitting_compare() -> void:
+	if _wardrobe_panel and _wardrobe_category=="LOOKS":
+		_save_fitting_look()
+		return
+	if not _wardrobe_panel or not _clothing_retail:
+		return
+	_fitting_compare=not _fitting_compare
+	_update_venue_panel()
+
+func _wardrobe_session_valid() -> bool:
+	if not _wardrobe_panel or not is_instance_valid(player) or not venue_panel.visible or current_car!=null or current_transit!=null:
+		return false
+	var lot:Node3D=city_details.call("nearby_walk_in",player.global_position)
+	if not is_instance_valid(lot):
+		return false
+	if _clothing_retail:
+		return lot.get("clothing_store_id")==_retail_id and lot.call("clothing_reachable",player.global_position)
+	return progression.owns_home() and lot.call("home_action",player.global_position)=="wardrobe"
+
+func _save_fitting_look() -> void:
+	if not _wardrobe_session_valid() or _wardrobe_category!="LOOKS":
+		return
+	var id:String=ProgressionLedger.LOOK_IDS[_look_index]
+	if not progression.saved_look(id).is_empty() and not _look_save_pending:
+		_look_save_pending=true
+		_update_venue_panel()
+		return
+	if progression.save_look(id,_clothing_retail):
+		_notify("Saved current outfit to Look %d." % (_look_index+1))
+	_look_save_pending=false
+	_update_venue_panel()
+
+func _update_saved_looks() -> void:
+	var id:String=ProgressionLedger.LOOK_IDS[_look_index]
+	var look:Dictionary=progression.saved_look(id)
+	var visual:Node3D=player.get_node("Visual")
+	var preview_ok:=true
+	if look.is_empty():
+		visual.call("set_look",progression.outfit_id,progression.clothing_slots)
+	else:
+		preview_ok=bool(visual.call("set_look",look["outfit"],look["slots"]))
+	_wardrobe_controls.show()
+	_wardrobe_category_label.text="LOOKS / %d of %d" % [_look_index+1,ProgressionLedger.LOOK_IDS.size()]
+	for button in _wardrobe_controls.get_children():
+		if button is Button:
+			button.disabled=false
+	_wardrobe_compare_button.show()
+	_wardrobe_compare_button.text="R / ↓ CONFIRM REPLACE" if _look_save_pending else "R / ↓ SAVE CURRENT"
+	var info:="Empty slot" if look.is_empty() else str(Wardrobe.ITEMS[look["outfit"]]["name"])
+	if not look.is_empty():
+		for slot in Wardrobe.SLOTS:
+			if look["slots"].has(slot):
+				info+=" / "+str(Wardrobe.PIECES[look["slots"][slot]]["name"])
+	venue_label.text="PERSONAL LOOK %d\n%s\n%s" % [_look_index+1,info,"Confirm replacement with your committed look." if _look_save_pending else "Save the look you are wearing or equip this saved combination. No charge."]
+	venue_service_button.show()
+	venue_service_button.text="1 / A  •  PREVIOUS"
+	venue_service_button.disabled=_look_index==0
+	venue_job_button.show()
+	venue_job_button.text="2 / X  •  NEXT"
+	venue_job_button.disabled=_look_index==ProgressionLedger.LOOK_IDS.size()-1
+	venue_talk_button.show()
+	venue_talk_button.text="3 / Y  •  EQUIP LOOK"
+	venue_talk_button.disabled=look.is_empty() or not preview_ok
+
+func _step_wardrobe(direction:int) -> void:
+	var visible_ids:=_wardrobe_visible_ids()
+	if visible_ids.is_empty():
+		return
+	var current:String=Wardrobe.browse_ids()[_wardrobe_index]
+	var index:=visible_ids.find(current)
+	_wardrobe_index=Wardrobe.browse_ids().find(visible_ids[clampi(index+direction,0,visible_ids.size()-1)])
+	_fitting_compare=false
+	_fitting_rotation=0.0
+	_fitting_zoom=0.0
+
+func _clothing_owned(id:String) -> bool:
+	if not Wardrobe.reset_slot(id).is_empty():
+		return true
+	return progression.owns_piece(id) if Wardrobe.piece_valid(id) else progression.owns_outfit(id)
+
+func _clothing_selected(id:String) -> bool:
+	var slot:=Wardrobe.reset_slot(id)
+	if not slot.is_empty():
+		return not progression.clothing_slots.has(slot)
+	if Wardrobe.piece_valid(id):
+		return progression.clothing_slots.get(Wardrobe.PIECES[id]["slot"],"")==id
+	return progression.outfit_id==id and progression.clothing_slots.is_empty()
+
+func _preview_clothing(id:String) -> bool:
+	var visual:Node3D=player.get_node("Visual")
+	var reset:=Wardrobe.reset_slot(id)
+	if not reset.is_empty():
+		var slots:Dictionary=progression.clothing_slots.duplicate()
+		slots.erase(reset)
+		return visual.call("set_look",progression.outfit_id,slots)
+	if Wardrobe.piece_valid(id):
+		var slots:Dictionary=progression.clothing_slots.duplicate()
+		slots[Wardrobe.PIECES[id]["slot"]]=id
+		return visual.call("set_look",progression.outfit_id,slots)
+	return visual.call("set_look",id,{})
+
 func _update_venue_panel() -> void:
+	if is_instance_valid(contact_caption) and (venue_selected_id != "lantern_cup" or not interiors.call("is_inside")):
+		contact_caption.call("clear")
+	if _tenancy_panel:
+		var price := StarterHome.move_in_price()
+		venue_label.text = "LANTERN COURT / CAPSULE TENANCY\nInitial deposit $%d  |  CASH $%d\nStarter rental access. [1 / A] Cancel  [3 / Y] Confirm" % [price,cash]
+		venue_service_button.show()
+		venue_service_button.text = "1 / A  •  CANCEL"
+		venue_service_button.disabled = false
+		venue_job_button.hide()
+		venue_talk_button.show()
+		venue_talk_button.text = "3 / Y  •  PAY POD DEPOSIT"
+		venue_talk_button.disabled = cash < price
+		return
+	if _exchange_panel:
+		venue_label.text = "MORROW EXCHANGE / HOME TERMINAL\nUSD $%d  |  BTC %d sats\n$100 buy: +39,200 sats\n40,000 sats sell: +$98\n2%% fee each trade; fictional fixed rate." % [cash,progression.bitcoin_sats]
+		venue_service_button.show()
+		venue_service_button.text = "1 / A  •  BUY BTC ($100)"
+		venue_service_button.disabled = cash < Economy.EXCHANGE_USD or progression.bitcoin_sats > Economy.MAX_SATS-Economy.sats_for_usd(Economy.EXCHANGE_USD-Economy.EXCHANGE_FEE_USD)
+		venue_job_button.show()
+		venue_job_button.text = "2 / X  •  SELL BTC (40,000 sats)"
+		venue_job_button.disabled = progression.bitcoin_sats < Economy.sats_for_usd(Economy.EXCHANGE_USD) or cash > ProgressionLedger.MAX_CASH-(Economy.EXCHANGE_USD-Economy.EXCHANGE_FEE_USD)
+		venue_talk_button.hide()
+		return
+	if _wardrobe_panel:
+		if _wardrobe_category=="LOOKS":
+			_update_saved_looks()
+			return
+		var id: String = _wardrobe_quote_id if not _wardrobe_quote_id.is_empty() else Wardrobe.browse_ids()[_wardrobe_index]
+		var item: Dictionary = Wardrobe.listing(id)
+		var price:=int(item["price"])
+		var visible_ids:=_wardrobe_visible_ids()
+		if visible_ids.is_empty() and _wardrobe_quote_id.is_empty():
+			player.get_node("Visual").call("set_look",progression.outfit_id,progression.clothing_slots)
+			_wardrobe_controls.show()
+			_wardrobe_category_label.text=_wardrobe_category+" / 0 items"
+			_wardrobe_compare_button.hide()
+			for button in _wardrobe_controls.get_children():
+				if button is Button:
+					button.disabled=false
+			venue_label.text="NO MATCHING CLOTHING\n"+("No unowned items fit either wallet balance." if _wardrobe_category=="AFFORDABLE" else "Nothing available in this category.")+"\nChange category to continue browsing."
+			venue_service_button.show()
+			venue_job_button.show()
+			venue_talk_button.show()
+			venue_service_button.text="1 / A  •  PREVIOUS"
+			venue_job_button.text="2 / X  •  NEXT"
+			venue_talk_button.text="3 / Y  •  SELECT"
+			venue_service_button.disabled=true
+			venue_job_button.disabled=true
+			venue_talk_button.disabled=true
+			return
+		var visible_index:=visible_ids.find(id)
+		if visible_index<0 and _wardrobe_quote_id.is_empty() and not visible_ids.is_empty():
+			id=visible_ids[0]
+			_wardrobe_index=Wardrobe.browse_ids().find(id)
+			item=Wardrobe.listing(id)
+			price=int(item["price"])
+			visible_index=0
+		var preview_ok:=true
+		if _clothing_retail:
+			preview_ok=bool(player.get_node("Visual").call("set_look",progression.outfit_id,progression.clothing_slots)) if _fitting_compare else _preview_clothing(id)
+		_wardrobe_controls.show()
+		_wardrobe_category_label.text=_wardrobe_category+"  /  "+str(visible_index+1)+" of "+str(visible_ids.size())+("  •  DROP "+str(_retail_day%3+1) if _retail_id==ClothingStore.THRIFT else "")
+		_wardrobe_compare_button.visible=_clothing_retail
+		_wardrobe_compare_button.text="R / ↓  PREVIEW" if _fitting_compare else "R / ↓  COMPARE"
+		for button in _wardrobe_controls.get_children():
+			if button is Button and button!=_wardrobe_compare_button:
+				button.disabled=not _wardrobe_quote_id.is_empty()
+		venue_service_button.show()
+		venue_talk_button.show()
+		if not _wardrobe_quote_id.is_empty():
+			var cost := "$%d" % price if _wardrobe_tender == "USD" else "%d sats" % Economy.sats_for_usd(price)
+			venue_label.text = "CONFIRM CLOTHING PURCHASE\n%s / %s\nPay %s (%s)\nUSD $%d  |  BTC %d sats\nCosmetic only. Owned permanently." % [item["name"],item["rarity"],cost,_wardrobe_tender,cash,progression.bitcoin_sats]
+			venue_service_button.text = "1 / A  •  CANCEL"
+			venue_service_button.disabled = false
+			venue_job_button.show()
+			venue_job_button.text = "2 / X  •  SWITCH USD / BTC"
+			venue_job_button.disabled = false
+			venue_talk_button.text = "3 / Y  •  CONFIRM PURCHASE"
+			venue_talk_button.disabled = visible_index<0 or not preview_ok or not progression.can_pay(price,_wardrobe_tender) or _clothing_owned(id)
+			return
+		var owned := _clothing_owned(id)
+		venue_label.text = (str(ClothingStore.STORES[_retail_id]["name"])+" / FITTING" if _clothing_retail else "WARDROBE")+"\n%s  ·  %s\n%s   |   CASH $%d\n%s" % [item["name"],item["type"]+" / "+item["rarity"],"EQUIPPED" if _clothing_selected(id) else ("OWNED" if owned else "$%d / %d sats" % [price,Economy.sats_for_usd(price)]),cash,"CURRENT LOOK" if _fitting_compare else ("TRY-ON ONLY • Right stick / drag RMB to rotate • zoom with stick / wheel" if _clothing_retail else "Wearing: "+str(Wardrobe.ITEMS[progression.outfit_id]["name"]))]
+		venue_label.text+="\n"+str(item.get("detail",""))
+		venue_service_button.text = "1 / A  •  PREVIOUS"
+		venue_service_button.disabled = visible_index<=0
+		venue_job_button.show()
+		venue_job_button.text = "2 / X  •  NEXT"
+		venue_job_button.disabled = visible_index>=visible_ids.size()-1
+		venue_talk_button.text = ("3 / Y  •  REMOVE / RESTORE" if not Wardrobe.reset_slot(id).is_empty() else "3 / Y  •  EQUIP") if owned else "3 / Y  •  REVIEW PURCHASE"
+		if _clothing_retail and Wardrobe.piece_valid(id) and Wardrobe.PIECES[id]["slot"]=="patch":
+			venue_label.text+="\nBACKPACK ART / "+("CURRENT PATCH" if _fitting_compare else "ROTATE TO INSPECT")
+		venue_talk_button.disabled = not preview_ok or _clothing_selected(id) or (not owned and not progression.can_pay(price,"USD") and not progression.can_pay(price,"BTC"))
+		return
+	if _garage_panel:
+		venue_label.text = "LANTERN GARAGE / RECOVERY\nDrive into either marked bay and leave your car there. Recovery $75; damage retained."
+		var buttons := [venue_service_button,venue_job_button]
+		for i in range(2):
+			var id: String = StarterGarage.IDS[i]
+			var owned := progression.owns_vehicle(id)
+			buttons[i].show()
+			buttons[i].text = "%d / %s  •  %s" % [i+1,"A" if i==0 else "X",("RECOVER " + str(RoadCars.TITLES[id]["name"])) if owned else ("BUY KESTREL TITLE $%d" % RoadCars.title_price(id) if i==0 else "CINDER TITLE REQUIRED")]
+			buttons[i].disabled = (not owned and (i!=0 or cash<RoadCars.title_price(id))) or (owned and cash<StarterGarage.RECOVERY_FEE)
+		venue_talk_button.hide()
+		return
+	if _home_panel:
+		if _storage_upgrade_quote:
+			venue_label.text = "HOME / STORAGE EXPANSION\nCapacity %d → %d provisions\nPrice $%d  |  Cash after $%d\n[1 / A] Cancel  •  [3 / Y] Confirm" % [StarterHome.MAX_STORAGE,StarterHome.EXPANDED_STORAGE,StarterHome.STORAGE_UPGRADE_PRICE,cash-StarterHome.STORAGE_UPGRADE_PRICE]
+			venue_service_button.text = "1 / A  •  CANCEL"
+			venue_service_button.disabled = false
+			venue_job_button.hide()
+			venue_talk_button.show()
+			venue_talk_button.text = "3 / Y  •  CONFIRM UPGRADE"
+			venue_talk_button.disabled = progression.home_storage_expanded or cash < StarterHome.STORAGE_UPGRADE_PRICE
+			return
+		venue_label.text = "HOME STORAGE / %d of %d provisions\nCarrying %d / 99" % [progression.home_supplies,progression.home_capacity(),ration_packs]
+		venue_service_button.text = "1 / A  •  STORE ONE"
+		venue_service_button.disabled = ration_packs <= 0 or progression.home_supplies >= progression.home_capacity()
+		venue_job_button.show()
+		venue_job_button.text = "2 / X  •  TAKE ONE"
+		venue_job_button.disabled = ration_packs >= 99 or progression.home_supplies <= 0
+		venue_talk_button.visible = not progression.home_storage_expanded
+		venue_talk_button.text = "3 / Y  •  REVIEW UPGRADE $%d" % StarterHome.STORAGE_UPGRADE_PRICE
+		venue_talk_button.disabled = cash < StarterHome.STORAGE_UPGRADE_PRICE
+		return
+	if is_instance_valid(_vending_machine):
+		var items: Array = _vending_machine.get_meta("items",[])
+		var body := "NIGHTGRID / 24H  •  VENDING\nCASH $%d  |  PACK %d/%d\n" % [cash,Consumables.count(consumable_inventory),Consumables.MAX_ITEMS]
+		var buttons := [venue_service_button,venue_job_button,venue_talk_button]
+		for i in range(3):
+			var item: Dictionary = Consumables.ITEMS[items[i]]
+			body += "%d. %s  $%d  +%d HP / +%d ST\n" % [i+1,item["name"],item["price"],item["health"],item["stamina"]]
+			buttons[i].show()
+			buttons[i].icon = Consumables.PRODUCT_ICONS[items[i]]
+			buttons[i].add_theme_constant_override("icon_max_width",36)
+			buttons[i].disabled = cash < int(item["price"]) or Consumables.count(consumable_inventory) >= Consumables.MAX_ITEMS
+			buttons[i].text = "%d  •  BUY $%d" % [i+1,item["price"]]
+		venue_label.text = body+"[G / B] Close  •  R / D-pad down: use best snack"
+		return
+	if _repair_panel:
+		if not _sale_quote_id.is_empty():
+			var quoted_car := _title_by_id(_sale_quote_id)
+			venue_label.text = "CONFIRM VEHICLE SALE\n%s / %s\nOffer $%d  |  Cash after $%d\nTitle transfers to dealer. Vehicle stays parked.\n[3 / Y] Confirm  •  [1 / A] Cancel" % [RoadCars.TITLES[_sale_quote_id]["name"],_sale_quote_id,_sale_quote_amount,cash+_sale_quote_amount]
+			venue_service_button.text = "1 / A  •  CANCEL"
+			venue_service_button.disabled = false
+			venue_job_button.hide()
+			venue_talk_button.show()
+			venue_talk_button.text = "3 / Y  •  CONFIRM SALE"
+			venue_talk_button.disabled = _sale_value(quoted_car) != _sale_quote_amount or _sale_quote_amount > ProgressionLedger.MAX_CASH-cash
+			return
+		if not _title_quote_id.is_empty():
+			var title: Dictionary = RoadCars.TITLES[_title_quote_id]
+			var quoted_car := _title_by_id(_title_quote_id)
+			var condition := "%.0f%%" % float(quoted_car.get("condition")) if is_instance_valid(quoted_car) else "Unavailable"
+			venue_label.text = "CONFIRM VEHICLE TITLE\n%s / %s\nCondition %s   |   Price $%d\nCash $%d  →  $%d\n[2 / X] Confirm  •  [1 / A] Cancel" % [title["name"],_title_quote_id,condition,RoadCars.title_price(_title_quote_id),cash,cash-RoadCars.title_price(_title_quote_id)]
+			venue_service_button.text = "1 / A  •  CANCEL"
+			venue_service_button.disabled = false
+			venue_job_button.show()
+			venue_job_button.text = "2 / X  •  CONFIRM TITLE"
+			venue_job_button.disabled = not _title_eligible(quoted_car) or cash < RoadCars.title_price(_title_quote_id)
+			venue_talk_button.hide()
+			return
+		venue_label.text = "NIGHT SHIFT REPAIRS\nLeave the vehicle outside and bring the keys to the counter.\n[1 / A] Repair parked vehicle  $%d\n[G / B] Close   |   CASH $%d" % [BrickwaterRepair.PRICE, cash]
+		venue_service_button.text = "1 / A  •  REPAIR"
+		venue_service_button.disabled = false
+		var candidate := _nearby_title_candidate()
+		_title_offer_id = str(candidate.get_meta("vehicle_id")) if candidate != null else ""
+		venue_job_button.show()
+		venue_job_button.disabled = candidate == null
+		venue_job_button.text = "2 / X  •  REGISTER VEHICLE TITLE"
+		if candidate != null:
+			var title: Dictionary = RoadCars.TITLES[str(candidate.get_meta("vehicle_id"))]
+			venue_job_button.text = "2 / X  •  REVIEW %s TITLE  $%d" % [title["name"], RoadCars.title_price(_title_offer_id)]
+			venue_job_button.disabled = cash < RoadCars.title_price(_title_offer_id)
+		venue_label.text += "\nTitle desk: bring eligible parked stock to the shop."
+		if progression.owns_home() and not progression.owns_vehicle(StarterGarage.IDS[0]):
+			venue_label.text += "\nKestrel title available at Lantern Garage."
+		var sale := _nearby_sale_candidate()
+		_sale_offer_id = str(sale.get_meta("vehicle_id")) if sale != null else ""
+		venue_talk_button.visible = sale != null
+		if sale != null:
+			venue_talk_button.text = "3 / Y  •  REVIEW SALE  $%d" % _sale_value(sale)
+			venue_talk_button.disabled = _sale_value(sale) > ProgressionLedger.MAX_CASH-cash
+		return
 	if not civic_selected_id.is_empty():
 		_update_civic_panel()
 		return
@@ -1851,14 +3526,18 @@ func _update_venue_panel() -> void:
 	var is_mara := venue_selected_id == "lantern_cup" and bool(interiors.call("is_inside"))
 	if is_mara:
 		var introduction := str(interiors.call("mara_greeting", _mara_context()))
-		body += "\n" + (mara_dialogue_line if not mara_dialogue_line.is_empty() else introduction)
-		body += "\n[3 / Y] TALK TO MARA"
+		contact_caption.call("present", "Mara", mara_dialogue_line if not mara_dialogue_line.is_empty() else introduction, true)
+	else:
+		contact_caption.call("clear")
 	if open_now:
-		body += "[1 / A] %s  $%d   " % [str(venue["item"]), int(venue["price"])]
+		body += "Available: %s  $%d   " % [str(venue["item"]), int(venue["price"])]
 		if venue_job_active.is_empty():
 			var offer: Dictionary = venue_system.call("job_from", venue_selected_id)
-			if not offer.is_empty() and not venue_job_completed.has(str(offer["id"])):
-				body += "\n[2 / X] SIDE JOB: %s (+$%d)" % [str(offer["title"]), int(offer["reward"])]
+			if not offer.is_empty() and not venue_job_completed.has(str(offer["id"])) and not progression.has_receipt("venue:"+str(offer["id"])):
+				if venue_system.call("job_unlocked",offer,progression.street_cred()):
+					body += "\n[2 / X] SIDE JOB: %s (+$%d)" % [str(offer["title"]), int(offer["reward"])]
+				else:
+					body += "\n%s / Requires %d Street Cred (you have %d)"%[str(offer["title"]),int(offer["min_cred"]),progression.street_cred()]
 		else:
 			var active: Dictionary = venue_system.call("job_by_id", venue_job_active)
 			if not active.is_empty() and str(active["to"]) == venue_selected_id:
@@ -1869,27 +3548,189 @@ func _update_venue_panel() -> void:
 	venue_label.text = body
 	if venue_service_button != null:
 		venue_service_button.disabled = not open_now
-		venue_service_button.text = "1 / A  •  SERVICE"
+		venue_service_button.text = "1 / A  ·  %s  $%d" % [str(venue["item"]), int(venue["price"])]
 	if venue_job_button != null:
 		var offered: Dictionary = venue_system.call("job_from", venue_selected_id) if venue_job_active.is_empty() else venue_system.call("job_by_id", venue_job_active)
-		var available := not offered.is_empty() and (
+		var available:bool = not offered.is_empty() and (
 			(not venue_job_active.is_empty() and str(offered["to"]) == venue_selected_id) or
-			(venue_job_active.is_empty() and not venue_job_completed.has(str(offered["id"]))))
+			(venue_job_active.is_empty() and not venue_job_completed.has(str(offered["id"])) and not progression.has_receipt("venue:"+str(offered["id"])) and venue_system.call("job_unlocked",offered,progression.street_cred())))
 		venue_job_button.disabled = not open_now or not available
-		venue_job_button.text = "2 / X  •  SIDE JOB"
+		venue_job_button.text = "2 / X  ·  " + ("Turn in job" if not venue_job_active.is_empty() else "Ask for work")
 	if venue_talk_button != null:
-		venue_talk_button.visible = is_mara
-		venue_talk_button.disabled = not is_mara
+		var music_set:=venue_selected_id=="blue_hour" and progression.has_receipt("venue:soundcheck_pass")
+		var busk:bool=bool(venue_selected_id in BUSKING_SITES and not interiors.call("is_inside"))
+		venue_talk_button.visible = is_mara or music_set or busk
+		venue_talk_button.disabled = not is_mara and not (music_set and open_now and _blue_hour_set_reachable()) and not (busk and _busking_reachable(venue_selected_id))
+		venue_talk_button.text="3 / Y  •  PLAY OPENING SET" if music_set else (("3 / Y  •  MUSIC DESK" if venue_selected_id=="copper_cup" else "3 / Y  •  BUSK WITH LOANER SAMPLER") if busk else "3 / Y  •  TALK TO MARA")
 
 func _mara_context() -> Dictionary:
 	return {
 		"hour": float(day_night.get("hour")),
 		"health": health, "heat": heat,
 		"shift_notes": civic_intel.has("lantern_cup_shift_notes"),
-		"job": venue_job_active
+		"job": venue_job_active,
+		"outfit_tier": int(Wardrobe.ITEMS[progression.outfit_id]["tier"]) if story_mission.status == "complete" else 0
 	}
 
 func _venue_action(option: int) -> void:
+	if _tenancy_panel:
+		var lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+		if not venue_panel.visible or not is_instance_valid(lot) or lot.get("home_id") != StarterHome.ID or not lot.call("doorway_reachable",player.global_position) or current_car != null or current_transit != null:
+			_close_venue()
+			return
+		if option == 1:
+			_close_venue()
+		elif option == 3:
+			if progression.activate_home_tenancy():
+				_close_venue()
+				_notify("Deposit accepted. Sleep Pod 01 is unlocked.")
+			else:
+				_notify("Payment declined. Earn more from courier contracts.")
+		return
+	if _exchange_panel:
+		var lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+		if not venue_panel.visible or not is_instance_valid(lot) or lot.call("home_action",player.global_position) != "exchange" or not progression.owns_home() or current_car != null or current_transit != null:
+			_close_venue()
+			return
+		if option in [1,2]:
+			if progression.exchange_bitcoin(option == 1):
+				_notify("Currency exchanged. 2% fee paid.")
+			else:
+				_notify("Exchange declined. No balances changed.")
+		_update_venue_panel()
+		return
+	if _wardrobe_panel:
+		var lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+		var retail_ok:bool=is_instance_valid(lot) and _clothing_retail and lot.get("clothing_store_id")==_retail_id and lot.call("clothing_reachable",player.global_position)
+		var home_ok:bool=is_instance_valid(lot) and not _clothing_retail and progression.owns_home() and lot.call("home_action",player.global_position)=="wardrobe"
+		if not venue_panel.visible or not (retail_ok or home_ok) or current_car != null or current_transit != null:
+			_close_venue()
+			return
+		var visual := player.get_node("Visual")
+		if _wardrobe_category=="LOOKS":
+			_look_save_pending=false
+			if option in [1,2]:
+				_look_index=clampi(_look_index+(-1 if option==1 else 1),0,ProgressionLedger.LOOK_IDS.size()-1)
+			elif option==3:
+				var look_id:String=ProgressionLedger.LOOK_IDS[_look_index]
+				var look:Dictionary=progression.saved_look(look_id)
+				if not look.is_empty() and visual.call("set_look",look["outfit"],look["slots"]) and progression.equip_look(look_id,retail_ok):
+					_notify("Equipped personal look %d." % (_look_index+1))
+			_update_venue_panel()
+			return
+		if not _wardrobe_quote_id.is_empty():
+			if option == 1:
+				_wardrobe_quote_id = ""
+			elif option == 2:
+				_wardrobe_tender = "BTC" if _wardrobe_tender == "USD" else "USD"
+			elif option == 3:
+				var id := _wardrobe_quote_id
+				_wardrobe_quote_id = ""
+				if id in _wardrobe_visible_ids() and _preview_clothing(id) and int(visual.call("wardrobe_surface_count"))>0 and (progression.buy_piece(id,_wardrobe_tender,retail_ok) if Wardrobe.piece_valid(id) else progression.buy_outfit(id,_wardrobe_tender,retail_ok)):
+					_notify("Purchased "+str(Wardrobe.listing(id)["name"])+". Ready to equip."+(" "+str(lot.call("clothing_remark",true)) if retail_ok else ""))
+					if _wardrobe_category in ["AFFORDABLE","UNOWNED"]:
+						_wardrobe_category="OWNED"
+						_wardrobe_index=Wardrobe.browse_ids().find(id)
+				else:
+					_notify("Purchase unavailable. No payment taken.")
+		elif option == 1:
+			_step_wardrobe(-1)
+		elif option == 2:
+			_step_wardrobe(1)
+		elif option == 3:
+			var id:String=Wardrobe.browse_ids()[_wardrobe_index]
+			if id not in _wardrobe_visible_ids():
+				return
+			var price:=int(Wardrobe.listing(id)["price"])
+			_fitting_compare=false
+			if _clothing_owned(id):
+				if _preview_clothing(id):
+					var reset:=Wardrobe.reset_slot(id)
+					var changed:bool=progression.clear_piece(reset,retail_ok) if not reset.is_empty() else (progression.select_piece(id,retail_ok) if Wardrobe.piece_valid(id) else progression.select_outfit(id,retail_ok))
+					if changed:
+						_notify("Appearance: "+str(Wardrobe.listing(id)["name"]))
+			elif progression.can_pay(price,"USD") or progression.can_pay(price,"BTC"):
+				_wardrobe_tender="USD" if progression.can_pay(price,"USD") else "BTC"
+				_wardrobe_quote_id=id
+		_update_venue_panel()
+		return
+	if _garage_panel:
+		var garage: Node3D = city_details.call("starter_garage",player.global_position)
+		if not venue_panel.visible or not is_instance_valid(garage) or not garage.call("desk_reachable",player.global_position) or not progression.owns_home():
+			_close_venue()
+			return
+		if option in [1,2]:
+			_recover_garage_vehicle(garage,option-1)
+		_update_venue_panel()
+		return
+	if _home_panel:
+		var lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+		if not venue_panel.visible or not is_instance_valid(lot) or lot.call("home_action",player.global_position) != "storage" or not progression.owns_home():
+			_close_venue()
+			return
+		if _storage_upgrade_quote:
+			if option == 1:
+				_storage_upgrade_quote = false
+			elif option == 3:
+				_storage_upgrade_quote = false
+				if progression.expand_home_storage():
+					_notify("Storage expanded to %d provisions." % progression.home_capacity())
+				else:
+					_notify("Upgrade unavailable. No payment taken.")
+		elif option == 1:
+			ration_packs -= progression.deposit_supply(ration_packs)
+		elif option == 2:
+			ration_packs += progression.withdraw_supply(ration_packs)
+		elif option == 3 and not progression.home_storage_expanded and cash >= StarterHome.STORAGE_UPGRADE_PRICE:
+			_storage_upgrade_quote = true
+		_update_venue_panel()
+		return
+	if is_instance_valid(_vending_machine):
+		if not venue_panel.visible or city_details.call("nearby_vending",player.global_position) != _vending_machine or current_car != null or current_transit != null:
+			_close_venue()
+			return
+		var items: Array = _vending_machine.get_meta("items",[])
+		if option < 1 or option > items.size():
+			return
+		var id: String = items[option-1]
+		var item: Dictionary = Consumables.ITEMS[id]
+		if Consumables.count(consumable_inventory) >= Consumables.MAX_ITEMS or not progression.spend(int(item["price"])):
+			_notify("Not enough cash or inventory is full.")
+			return
+		consumable_inventory[id] = int(consumable_inventory.get(id,0))+1
+		var facing := _vending_machine.global_position-player.global_position
+		player.get_node("Visual").rotation.y = atan2(facing.x,facing.z)
+		player.get_node("Visual").call("play_product_action",id,true)
+		# The right hand holds the packaged product; the free left hand
+		# can contact the cabinet terminal when within anatomical reach.
+		player.get_node("Visual").call("reach_target",_vending_machine,_vending_machine.call("payment_anchor"),0)
+		_vending_machine.call("dispense_feedback")
+		_notify("Dispensed %s. R / D-pad down to consume." % item["name"])
+		_update_venue_panel()
+		return
+	if _repair_panel:
+		var repair := _repair_storefront()
+		if not venue_panel.visible or repair == null or not repair.counter_reachable(player.global_position) or current_car != null or current_transit != null:
+			_close_venue()
+			return
+		if not _sale_quote_id.is_empty():
+			if option == 1:
+				_clear_sale_quote()
+			elif option == 3:
+				_confirm_sale_quote()
+		elif not _title_quote_id.is_empty():
+			if option == 1:
+				_title_quote_id = ""
+			elif option == 2:
+				_confirm_title_quote()
+		elif option == 1:
+			_repair_nearby_vehicle(BrickwaterRepair.PRICE)
+		elif option == 2:
+			_open_title_quote()
+		elif option == 3:
+			_open_sale_quote()
+		_update_venue_panel()
+		return
 	if not civic_selected_id.is_empty():
 		_civic_action(option)
 		return
@@ -1901,11 +3742,39 @@ func _venue_action(option: int) -> void:
 		return
 	# Dialogue is no-cost and remains accessible even near closing time.
 	if option == 3:
+		if venue_selected_id=="copper_cup" and _busking_reachable(venue_selected_id):
+			_close_venue()
+			_music_session_site="desk:copper_cup"
+			_open_music_desk()
+			return
+		if _busking_reachable(venue_selected_id):
+			var site:=venue_selected_id
+			var sequence:=progression.street_activity_runs("busking")+1
+			_close_venue()
+			_music_session_site=site
+			game_menu.call("open_busking_set",sequence)
+			return
+		if venue_selected_id=="blue_hour" and _blue_hour_set_reachable():
+			var sequence:=progression.street_activity_runs("live_gig")+1
+			_close_venue()
+			_music_session_site="blue_hour"
+			game_menu.call("open_blue_hour_set",sequence)
+			return
 		if venue_selected_id == "lantern_cup" and interiors.call("is_inside"):
 			var response: Dictionary = interiors.call("mara_talk", _mara_context())
 			if not response.is_empty():
 				mara_dialogue_line = str(response["line"])
 				_notify("MARA / " + str(response["topic"]))
+			if interiors.call("active_site_id") == "lantern_cup" and interiors.call("counter_reachable", player.global_position):
+				match story_mission.event("mara_talk", progression):
+					"started":
+						mara_dialogue_line = "Mara: I need someone who knows these streets. Finish a courier run, then come tell me how it went."
+						_notify("NIGHT SHIFT CONTACT / New mission")
+					"complete":
+						mara_dialogue_line = "Mara: You made it back. Here’s a hundred for the referral. Lantern Court has a sleep pod available. Scrape together the deposit and pay at the entrance. It’s not much, but it locks."
+						_notify("NIGHT SHIFT CONTACT COMPLETE +$%d" % StoryMission.REWARD)
+					"blocked":
+						_notify("Wallet full. Speak to Mara again after spending some cash.")
 			_update_venue_panel()
 		return
 	if not bool(venue_system.call("is_open", venue_selected_id)):
@@ -1917,17 +3786,20 @@ func _venue_action(option: int) -> void:
 		var service: Dictionary = venue_system.call("service_effect", str(venue["kind"]))
 		var healing := float(service.get("heal", 0.0))
 		var cover := float(service.get("heat", 0.0))
-		if healing > 0.0 and health >= 99.9:
+		var energy := 40.0 if str(venue["kind"]) == "CAFE" else (20.0 if str(venue["kind"]) == "STALL" else 0.0)
+		if healing > 0.0 and health >= 99.9 and (energy <= 0.0 or float(player.get("stamina")) >= 99.9):
 			_notify("You're already feeling rested. Save your cash.")
 			return
 		if cover > 0.0 and heat < 0.01:
 			_notify("No police attention to shake. Enjoy the atmosphere.")
 			return
-		if cash < price:
+		if not progression.spend(price):
 			_notify("Not enough cash for %s. Try a courier or side job." % str(venue["item"]))
 			return
-		cash -= price
 		health = minf(100.0, health + healing)
+		player.call("add_stamina",energy)
+		if energy>0.0:
+			player.get_node("Visual").call("play_product_action","energy" if str(venue["kind"])=="CAFE" else "sandwich",false)
 		heat = maxf(0.0, heat - cover)
 		if venue_selected_id == "lantern_cup" and interiors.call("is_inside"):
 			interiors.call("mara_purchase_reaction")
@@ -1937,11 +3809,18 @@ func _venue_action(option: int) -> void:
 	elif option == 2:
 		if venue_job_active.is_empty():
 			var job: Dictionary = venue_system.call("job_from", venue_selected_id)
-			if job.is_empty() or venue_job_completed.has(str(job.get("id", ""))):
+			if job.is_empty() or venue_job_completed.has(str(job.get("id", ""))) or progression.has_receipt("venue:"+str(job.get("id",""))):
 				_notify("No new work from this contact.")
+				return
+			if not venue_system.call("job_unlocked",job,progression.street_cred()):
+				_notify("Build your local reputation first. Requires %d Street Cred."%int(job.get("min_cred",0)))
 				return
 			venue_job_active = str(job["id"])
 			_notify("NEW SIDE JOB: %s — %s" % [str(job["title"]), str(job["brief"])])
+			_play_music_contact_cue(venue_job_active,"brief")
+			if venue_job_active=="soundcheck_pass":
+				var target:=_venue_job_target()
+				set_navigation_waypoint(Vector2(target.x,target.z))
 		else:
 			var contract: Dictionary = venue_system.call("job_by_id", venue_job_active)
 			if contract.is_empty():
@@ -1952,10 +3831,22 @@ func _venue_action(option: int) -> void:
 					str(contract["title"]),
 					str(venue_system.call("venue_by_id", str(contract["to"]))["name"])])
 				return
-			cash += int(contract["reward"])
+			if venue_job_completed.has(venue_job_active) or progression.has_receipt("venue:" + venue_job_active):
+				venue_job_active = ""
+				_notify("Side job already paid.")
+				_update_venue_panel()
+				return
+			if not venue_system.call("job_unlocked",contract,progression.street_cred()):
+				_notify("This contract requires more Street Cred.")
+				return
+			var previous_cred:=progression.street_cred()
+			if not progression.credit_once("venue:" + venue_job_active, int(contract["reward"])):
+				_notify("Unable to settle side job. Check wallet capacity.")
+				return
 			venue_job_completed.append(venue_job_active)
+			_play_music_contact_cue(venue_job_active,"ending")
 			venue_job_active = ""
-			_notify("SIDE JOB COMPLETE +$%d: %s" % [int(contract["reward"]), str(contract["ending"])])
+			_notify("SIDE JOB COMPLETE +$%d • +%d STREET CRED: %s" % [int(contract["reward"]),progression.street_cred()-previous_cred,str(contract["ending"])])
 	_update_venue_panel()
 
 func _venue_job_text() -> String:
@@ -2016,7 +3907,7 @@ func _build_hud() -> void:
 	var ui := CanvasLayer.new()
 	ui.name = "HUD"
 	add_child(ui)
-	# Small, anchored hierarchy: status and objective left, map right,
+	# Small, anchored hierarchy: status and objective top left, circular radar bottom left,
 	# transient notices at top center, context-only inputs at bottom center.
 	var backing := PanelContainer.new()
 	backing.name = "PlayerStatus"
@@ -2041,6 +3932,15 @@ func _build_hud() -> void:
 	hud_health.add_theme_stylebox_override("background", Ui.button_style(Color("29363e"), Color("29363e")))
 	hud_health.add_theme_stylebox_override("fill", Ui.button_style(Ui.ACCENT, Ui.ACCENT))
 	stack.add_child(hud_health)
+	hud_stamina = ProgressBar.new()
+	hud_stamina.name = "StaminaBar"
+	hud_stamina.max_value = 100.0
+	hud_stamina.show_percentage = false
+	hud_stamina.custom_minimum_size.y = 5
+	hud_stamina.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud_stamina.add_theme_stylebox_override("background",Ui.button_style(Color("29363e"),Color("29363e")))
+	hud_stamina.add_theme_stylebox_override("fill",Ui.button_style(Color("e1b96a"),Color("e1b96a")))
+	stack.add_child(hud_stamina)
 	var rule := HSeparator.new()
 	stack.add_child(rule)
 	_hud_text(stack, "ObjectiveHeading", 15, Ui.MUTED).text = "CURRENT OBJECTIVE"
@@ -2064,6 +3964,11 @@ func _build_hud() -> void:
 	_radio_caption = _hud_text(_radio_card, "Transmission", 16, Color("a4c7ef"))
 	_radio_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_radio_card.hide()
+	_dialogue_card = _hud_card(ui, "SpeechCaptionCard", 0.5, 1.0, Vector4(-375, -238, 375, -160))
+	_dialogue_caption = _hud_text(_dialogue_card, "SpeechCaption", 19, Ui.TEXT)
+	_dialogue_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_dialogue_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_dialogue_card.hide()
 	_reticle = Reticle.new()
 	_reticle.name = "AimReticle"
 	_reticle.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -2072,25 +3977,28 @@ func _build_hud() -> void:
 	_reticle.hide()
 	minimap = Control.new()
 	minimap.name = "Minimap"
-	minimap.set_script(MinimapScript)
-	minimap.anchor_left = 1.0
-	minimap.anchor_right = 1.0
-	minimap.offset_left = -264.0
-	minimap.offset_right = -24.0
-	minimap.offset_top = 24.0
-	minimap.offset_bottom = 264.0
+	minimap.set_script(RadarScript)
+	minimap.anchor_left = 0.0
+	minimap.anchor_right = 0.0
+	minimap.anchor_top = 1.0
+	minimap.anchor_bottom = 1.0
+	minimap.offset_left = 24.0
+	minimap.offset_right = 264.0
+	minimap.offset_top = -264.0
+	minimap.offset_bottom = -24.0
 	minimap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	minimap.set("world_node", self)
 	ui.add_child(minimap)
 	performance_label = Label.new()
 	performance_label.name = "PerformanceOverlay"
 	performance_label.visible = false
-	performance_label.anchor_top = 1.0
-	performance_label.anchor_bottom = 1.0
-	performance_label.offset_left = 18.0
-	performance_label.offset_right = 1160.0
-	performance_label.offset_top = -68.0
-	performance_label.offset_bottom = -18.0
+	performance_label.anchor_left = 0.5
+	performance_label.anchor_right = 1.0
+	performance_label.offset_left = 0.0
+	performance_label.offset_right = -24.0
+	performance_label.offset_top = 116.0
+	performance_label.offset_bottom = 166.0
+	performance_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	performance_label.add_theme_font_size_override("font_size", 15)
 	performance_label.add_theme_color_override("font_color", Color("b5eae4"))
 	ui.add_child(performance_label)
@@ -2102,11 +4010,13 @@ func _build_hud() -> void:
 	venue_panel.offset_right = 784.0
 	venue_panel.offset_top = -330.0
 	venue_panel.offset_bottom = -94.0
+	venue_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	venue_panel.custom_minimum_size = Vector2(0.0, 218.0)
 	venue_panel.theme = Ui.make_theme()
 	venue_panel.add_theme_stylebox_override("panel", Ui.card(0.97, 20))
 	venue_panel.visible = false
 	ui.add_child(venue_panel)
+	venue_panel.visibility_changed.connect(func() -> void: minimap.visible = not venue_panel.visible)
 	venue_label = Label.new()
 	venue_label.add_theme_font_size_override("font_size", 20)
 	venue_label.add_theme_color_override("font_color", Color("eadcc9"))
@@ -2114,9 +4024,32 @@ func _build_hud() -> void:
 	var dialogue_layout := VBoxContainer.new()
 	dialogue_layout.add_theme_constant_override("separation", 7)
 	venue_panel.add_child(dialogue_layout)
+	_wardrobe_controls=HBoxContainer.new()
+	_wardrobe_controls.name="FittingCategories"
+	_wardrobe_controls.hide()
+	dialogue_layout.add_child(_wardrobe_controls)
+	var previous_category:=Button.new()
+	previous_category.text="H / LB  ‹"
+	previous_category.pressed.connect(func()->void: _cycle_wardrobe_category(-1))
+	_wardrobe_controls.add_child(previous_category)
+	_wardrobe_category_label=Label.new()
+	_wardrobe_category_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	_wardrobe_category_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	_wardrobe_controls.add_child(_wardrobe_category_label)
+	var next_category:=Button.new()
+	next_category.text="›  F / RB"
+	next_category.pressed.connect(func()->void: _cycle_wardrobe_category(1))
+	_wardrobe_controls.add_child(next_category)
+	_wardrobe_compare_button=Button.new()
+	_wardrobe_compare_button.pressed.connect(_toggle_fitting_compare)
+	_wardrobe_controls.add_child(_wardrobe_compare_button)
 	dialogue_layout.add_child(venue_label)
-	var action_row := HBoxContainer.new()
-	action_row.add_theme_constant_override("separation", 7)
+	contact_caption = DialogueCaption.new()
+	contact_caption.name = "ContactCaption"
+	dialogue_layout.add_child(contact_caption)
+	var action_row := HFlowContainer.new()
+	action_row.add_theme_constant_override("h_separation", 7)
+	action_row.add_theme_constant_override("v_separation", 7)
 	dialogue_layout.add_child(action_row)
 	venue_service_button = Button.new()
 	venue_service_button.name = "ServiceAction"
@@ -2143,6 +4076,18 @@ func _build_hud() -> void:
 	venue_close_button.focus_mode = Control.FOCUS_ALL
 	venue_close_button.pressed.connect(func() -> void: _close_venue())
 	action_row.add_child(venue_close_button)
+	ambient_caption = DialogueCaption.new()
+	ambient_caption.name = "AmbientCaption"
+	ambient_caption.anchor_left = 0.5
+	ambient_caption.anchor_right = 0.5
+	ambient_caption.anchor_top = 1.0
+	ambient_caption.anchor_bottom = 1.0
+	ambient_caption.offset_left = -420.0
+	ambient_caption.offset_right = 420.0
+	ambient_caption.offset_top = -300.0
+	ambient_caption.offset_bottom = -205.0
+	ambient_caption.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	ui.add_child(ambient_caption)
 	var equipment_layer := CanvasLayer.new()
 	equipment_layer.name = "EquipmentOverlay"
 	equipment_layer.layer = 9
@@ -2163,6 +4108,11 @@ func _hud_text(parent: Node, node_name: String, font_size: int, tint: Color) -> 
 	label.add_theme_color_override("font_color", tint)
 	parent.add_child(label)
 	return label
+
+func _show_dialogue_caption(_line_id: String, caption: String) -> void:
+	if is_instance_valid(_dialogue_card):
+		_dialogue_caption.text = caption
+		_dialogue_card.visible = not caption.is_empty()
 
 func _hud_card(layer: CanvasLayer, node_name: String, ax: float, ay: float, bounds: Vector4) -> PanelContainer:
 	var panel := PanelContainer.new()
@@ -2188,9 +4138,10 @@ func _update_hud() -> void:
 	var clock: String = day_night.call("clock_string")
 	var vehicle_text := "ON FOOT"
 	if current_car != null:
-		vehicle_text = "DRIVING • %d km/h" % int(current_car.call("speed_kph"))
+		var vehicle_label := "DRIVING" if current_car.get("model_id") == "" else str(current_car.call("display_name")).to_upper()
+		vehicle_text = "%s • %d km/h" % [vehicle_label, int(current_car.call("speed_kph"))]
 	elif current_transit != null:
-		vehicle_text = "M-LINE RIDER" if transit_kind == "TRAIN" else "CITY LOOP RIDER"
+		vehicle_text = {"TRAIN": "M-LINE RIDER", "BUS": "CITY LOOP RIDER", "LIFT": "STATION LIFT"}[transit_kind]
 	var tier: int = Wanted.stars(heat)
 	var wanted_text := "★".repeat(tier) + "☆".repeat(5 - tier)
 	_wanted_label.text = "%s  •  %s" % [wanted.status_text(heat), "%d RESPONSE UNIT%s" % [officers.size(), "" if officers.size() == 1 else "S"]]
@@ -2198,7 +4149,8 @@ func _update_hud() -> void:
 		_wanted_label.text += "\n" + dispatch.status()
 	_wanted_label.visible = tier > 0 or weapons.equipped != "holstered"
 	_wanted_label.modulate = Ui.DANGER if wanted.police_seen and tier > 0 else Ui.AMBER
-	var mission := "DELIVER PACKAGE" if carrying else "PICK UP PACKAGE"
+	var active_order := courier_mission.objective()
+	var mission: String = active_order["hud"]
 	var distance := roundi(outdoors.distance_to(mission_position))
 	var message := notification if notification_time > 0.0 else ""
 	if performance_overlay:
@@ -2217,15 +4169,27 @@ func _update_hud() -> void:
 	hud_location.text = "%s   /   %s" % [local_name, clock]
 	hud_label.text = "$%d    HEALTH %d    HEAT %s\n%s  •  %d deliveries  •  %d supplies" % [cash, ceili(health), wanted_text, vehicle_text, deliveries, ration_packs]
 	hud_health.value = health
+	hud_stamina.value = float(player.get("stamina"))
+	hud_label.text += "\nSTAMINA %d  •  %d snacks" % [ceili(float(player.get("stamina"))),Consumables.count(consumable_inventory)]
 	hud_objective.text = "%s  /  %dm" % [mission, distance]
+	if courier_mission.gig_economy and current_car == null and current_transit == null and not interiors.call("is_inside") and player.global_position.distance_to(mission_position) < CourierMission.RADIUS:
+		hud_objective.text += "  /  " + ("X" if gamepad_active else "G") + (" HAND OFF" if carrying else " COLLECT ORDER")
 	hud_objective.modulate = Ui.ACCENT if carrying else Ui.AMBER
 	hud_navigation.visible = navigation_waypoint != null
 	hud_navigation.text = navigation_text() if navigation_waypoint != null else ""
 	var jobs: Array[String] = []
+	if courier_mission.gig_economy and not progression.owns_home():
+		jobs.append("POD DEPOSIT / $%d of $%d" % [mini(cash,StarterHome.move_in_price()),StarterHome.move_in_price()])
+	if story_mission.status != "complete":
+		jobs.append(story_mission.journal())
 	if not venue_job_active.is_empty():
 		jobs.append(_venue_job_text())
 	if not civic_job_active.is_empty():
 		jobs.append(_civic_job_text())
+	if progression.cal_quest in [1,2]:
+		jobs.append(_cal_objective())
+	if progression.street_cred()>0:
+		jobs.append(progression.street_cred_summary())
 	hud_jobs.text = "\n".join(jobs)
 	hud_jobs.visible = not jobs.is_empty()
 	hud_notice.text = message
@@ -2234,6 +4198,7 @@ func _update_hud() -> void:
 	var interact_key := "X" if gamepad_active else "G"
 	var enter_key := "LB" if gamepad_active else "H"
 	var utility := "Start Pause  •  View Map" if gamepad_active else "Esc Pause  •  M Map  •  Tab Journal"
+	var repair := _repair_storefront()
 	if current_car != null:
 		prompts.append("RT/LT Drive  •  B Brake  •  Y Exit" if gamepad_active else "W/S Drive  •  Space Brake  •  E Exit")
 		if is_instance_valid(nightgrid_fm):
@@ -2241,17 +4206,43 @@ func _update_hud() -> void:
 			prompts.append("%s   |   %s" % [str(nightgrid_fm.call("get_now_playing")), radio_keys])
 	elif current_transit != null:
 		prompts.append("RB Leave at next stop" if gamepad_active else "F Leave at next stop")
+	elif _parking_guard_near():
+		prompts.append("%s  Talk to Marcus Vale  •  Synaxis security" % interact_key)
+	elif repair != null and repair.door_reachable(player.global_position):
+		prompts.append("%s %s door  •  NIGHT SHIFT REPAIRS" % [enter_key, "Close" if repair.door.is_requested_open() else "Open"])
+		if repair.door.movement_blocked:
+			prompts.append("Step clear of the door swing")
+	elif repair != null and repair.contains(player.global_position):
+		prompts.append("%s Service counter" % interact_key if repair.counter_reachable(player.global_position) else "NIGHT SHIFT REPAIRS")
 	elif interiors.call("is_inside"):
 		var site_id := str(interiors.call("active_site_id"))
 		var room_site: Dictionary = civic_services.call("site_by_id", site_id) if str(interiors.call("active_site_group")) == "CIVIC" else venue_system.call("venue_by_id", site_id)
 		prompts.append("%s  •  %s" % [str(room_site.get("name", site_id)), enter_key + " Exit" if interiors.call("exit_reachable", player.global_position) else "Return to front door"])
-		if interiors.call("counter_reachable", player.global_position):
+		if site_id == "insert_coin":
+			var cabinet_id := str(interiors.call("arcade_cabinet_near", player.global_position))
+			if not cabinet_id.is_empty():
+				prompts.append("%s  Play %s (free)" % [interact_key, cabinet_id.replace("_", " ").capitalize()])
+			elif interiors.call("arcade_circuit_near",player.global_position):
+				prompts.append("%s  Rook's circuit (%d/8)" % [interact_key,ArcadeScores.circuit_count(_arcade_best)])
+			else:
+				var exhibit: Dictionary = interiors.call("arcade_exhibit_near",player.global_position)
+				var regular: Dictionary = interiors.call("arcade_regular_near",player.global_position)
+				if not exhibit.is_empty():
+					prompts.append("%s  Inspect %s" % [interact_key,exhibit["title"]])
+				elif not regular.is_empty():
+					prompts.append("%s  Chat with %s" % [interact_key,regular["name"]])
+				elif interiors.call("counter_reachable", player.global_position):
+					prompts.append("%s  Talk to Rook" % interact_key)
+		elif interiors.call("counter_reachable", player.global_position):
 			prompts.append("%s  Service counter" % interact_key)
 		if site_id == "lantern_cup":
 			var local_regular: Dictionary = interiors.call("patron_near", player.global_position)
 			if not local_regular.is_empty():
 				prompts.append("%s  Chat with %s" % [interact_key, str(local_regular["name"])])
 	else:
+		var garage: Node3D = city_details.call("starter_garage",player.global_position)
+		if is_instance_valid(garage) and garage.call("desk_reachable",player.global_position):
+			prompts.append("%s  LANTERN GARAGE / RECOVERY" % interact_key)
 		var near: Dictionary = venue_system.call("nearest_venue", player.global_position)
 		if not near.is_empty():
 			var accessible := "OPEN" if venue_system.call("is_open", str(near["id"])) else "CLOSED"
@@ -2260,6 +4251,25 @@ func _update_hud() -> void:
 		if not nearby_service.is_empty():
 			var availability := "OPEN" if civic_services.call("is_open", str(nearby_service["id"])) else "CLOSED"
 			prompts.append("%s  %s (%s)   •   %s Enter" % [interact_key, str(nearby_service["name"]), availability, enter_key])
+		var physical_lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+		if physical_lot != null and not str(physical_lot.get("home_id")).is_empty():
+			var home_action := str(physical_lot.call("home_action",player.global_position))
+			prompts.append("HOME / " + (interact_key + " " + home_action.capitalize() if progression.owns_home() and not home_action.is_empty() else ("Unit 01" if progression.owns_home() else "Locked — tenancy payment required")))
+		if physical_lot != null and physical_lot.call("clothing_reachable",player.global_position):
+			prompts.append("%s Browse %s clothing" % [interact_key,ClothingStore.STORES[physical_lot.get("clothing_store_id")]["name"]])
+		if physical_lot != null and physical_lot.call("service_reachable",player.global_position):
+			prompts.append("%s Order at HELIX ESPRESSO" % interact_key)
+		if physical_lot != null and physical_lot.call("doorway_reachable",player.global_position):
+			var leaf: AnimatableBody3D = physical_lot.get("door")
+			prompts.append("%s %s building door" % [enter_key,"Close" if leaf.call("is_requested_open") else "Open"])
+		if is_instance_valid(city_details.call("nearby_vending",player.global_position)):
+			prompts.append("%s  Vending machine" % interact_key)
+		if _cal_pickup_reachable():
+			prompts.append("%s  Collect Cal\u0027s prepaid gift" % interact_key)
+		if prompts.is_empty() and is_instance_valid(pedestrians) and weapons.equipped=="holstered":
+			var contact:Dictionary=pedestrians.call("nearby_contact")
+			if not contact.is_empty():
+				prompts.append("%s  Talk to %s" % [interact_key,str(contact["name"])])
 		if prompts.is_empty():
 			prompts.append("Y Vehicle  •  RB Transit  •  X Interact" if gamepad_active else "E Vehicle  •  F Transit  •  G Interact")
 	if _can_use_weapon():
@@ -2269,6 +4279,10 @@ func _update_hud() -> void:
 	hud_prompt_card.visible = not venue_panel.visible
 	if venue_panel.visible:
 		_update_venue_panel()
+	if is_instance_valid(ambient_caption) and ambient_caption.visible:
+		var bottom := minf(-150.0, hud_prompt_card.offset_top - 12.0) if hud_prompt_card.visible else -150.0
+		ambient_caption.offset_bottom = bottom
+		ambient_caption.offset_top = bottom - maxf(90.0, ambient_caption.get_combined_minimum_size().y)
 
 func _venue_job_target() -> Vector3:
 	if venue_job_active.is_empty():
@@ -2281,6 +4295,7 @@ func _venue_job_target() -> Vector3:
 func set_navigation_waypoint(point: Vector2) -> Vector2:
 	if not point.is_finite():
 		return Vector2.ZERO if navigation_waypoint == null else navigation_waypoint
+	_cal_tracking=false
 	point = Nav.clamp_point(point)
 	# Prefer exact, persistent interaction positions when clicking near pins.
 	var selected := point
@@ -2292,6 +4307,9 @@ func set_navigation_waypoint(point: Vector2) -> Vector2:
 	for pin in civic_services.call("get_map_pins"):
 		var p: Vector3 = civic_services.call("position_for", str(pin["id"]))
 		candidates.append(Vector2(p.x, p.z))
+	if progression.owns_home():
+		for entry in [StarterHome.entry(),StarterGarage.entry()]:
+			candidates.append(Vector2(entry.x,entry.z))
 	for candidate in candidates:
 		var gap := point.distance_to(candidate)
 		if gap <= distance and Nav.valid(candidate):
@@ -2303,6 +4321,7 @@ func set_navigation_waypoint(point: Vector2) -> Vector2:
 	return selected
 
 func clear_navigation_waypoint() -> void:
+	_cal_tracking=false
 	navigation_waypoint = null
 	_route_cache.clear()
 	_route_revision = -1
@@ -2353,6 +4372,7 @@ func _can_use_weapon() -> bool:
 	return is_instance_valid(player) and is_instance_valid(venue_panel) and not venue_panel.visible and current_car == null and current_transit == null and not interiors.call("is_inside") and not get_tree().paused and (game_menu == null or not game_menu.call("is_open"))
 
 func _play_weapon_sound(kind: String) -> void:
+	player.call("play_visual_action", &"reload" if kind == "RELOAD" else &"fire")
 	if is_instance_valid(_weapon_audio):
 		_weapon_audio.stream = CombatFoley.sound(kind)
 		_weapon_audio.play()
@@ -2407,6 +4427,8 @@ func _fire_weapon() -> bool:
 	var camera_hit := space.intersect_ray(query)
 	var target: Vector3 = camera_hit.get("position", view_end)
 	var origin := player.global_position + Vector3.UP * 0.55
+	if is_instance_valid(pedestrians):
+		pedestrians.call("react_to_incident", origin, 22.0, ignore, true)
 	var direction := origin.direction_to(target)
 	var endpoint := origin + direction * minf(origin.distance_to(target) + 0.05, float(spec["reach"]))
 	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(origin, endpoint, 1, ignore))
@@ -2458,6 +4480,13 @@ func navigation_text() -> String:
 		if destination.distance_to(Vector2(p.x, p.z)) < 0.1:
 			label = str(civic_services.call("site_by_id", str(pin["id"]))["name"])
 			break
+	if progression.owns_home():
+		var home := StarterHome.entry()
+		var garage := StarterGarage.entry()
+		if destination.distance_to(Vector2(home.x,home.z)) < .1:
+			label = StarterHome.NAME
+		elif destination.distance_to(Vector2(garage.x,garage.z)) < .1:
+			label = StarterGarage.NAME
 	var route := _navigation_route(origin)
 	var line := "WAYPOINT  %s  •  %dm direct" % [label, roundi(origin.distance_to(destination))]
 	if route.is_empty():
@@ -2480,12 +4509,19 @@ func get_map_state() -> Dictionary:
 	var actor := _actor()
 	var map_actor: Vector3 = interiors.get("exterior_position") if interiors.call("is_inside") else actor.global_position
 	var quest: Vector3 = _venue_job_target()
+	var heading: Vector3 = -actor.global_basis.z
+	if actor == player:
+		var visual: Node3D = player.get("visual")
+		if is_instance_valid(visual):
+			heading = visual.global_basis.z
 	return {
 		"player": Vector2(map_actor.x, map_actor.z),
+		"player_heading": Vector2(heading.x, heading.z),
 		"mission": Vector2(mission_position.x, mission_position.z),
 		"waypoint_active": navigation_waypoint != null,
 		"waypoint": Vector2.ZERO if navigation_waypoint == null else navigation_waypoint,
 		"street_route": _navigation_route(Vector2(map_actor.x, map_actor.z)),
+		"road_restrictions": road_restrictions.catalog(),
 		"officers": car_positions,
 		"routine_patrols": patrol_positions,
 		"police_stations": dispatch.catalog(),
@@ -2503,3 +4539,149 @@ func get_map_state() -> Dictionary:
 		"civic_quest_active": not civic_job_active.is_empty(),
 		"civic_quest": Vector2(_civic_job_target().x, _civic_job_target().z)
 	}
+
+func _cancel_street_interactions()->void:
+	_music_session_site=""
+	_street_contact_id=""
+	_cal_pending={}
+	if is_instance_valid(pedestrians) and is_instance_valid(dialogue_director):
+		pedestrians.call("cancel_street_dialogue",dialogue_director)
+
+## Anniversaries are optional; the ledger is the sole reward/state owner.
+func _cal_pickup_reachable()->bool:
+	if progression.cal_quest!=1 or not is_instance_valid(venue_system) or not is_instance_valid(player) or current_car!=null or current_transit!=null or interiors.call("is_inside") or weapons.equipped!="holstered":
+		return false
+	var at:Vector3=venue_system.call("venue_position",CAL_PICKUP)
+	return player.global_position.distance_to(at)<=3.0
+
+func _cal_target()->Vector3:
+	if progression.cal_quest==1 and is_instance_valid(venue_system):
+		return venue_system.call("venue_position",CAL_PICKUP)
+	if progression.cal_quest==2 and is_instance_valid(pedestrians):
+		return pedestrians.call("cal_position")
+	return Vector3.INF
+
+func _cal_objective()->String:
+	match progression.cal_quest:
+		1: return "COMPATIBILITY PATCH / Collect prepaid gift at Moon Noodles"
+		2:
+			if not is_instance_valid(pedestrians):
+				return "COMPATIBILITY PATCH / Living Streets unavailable; relaunch with --living-streets"
+			if not pedestrians.call("cal_is_live"):
+				return "COMPATIBILITY PATCH / Cal's neighborhood; approach from 35–95m with the sidewalk out of view"
+			return "COMPATIBILITY PATCH / Return heat sink to Cal Mercer"
+		3: return "COMPATIBILITY PATCH / Completed"
+	return ""
+
+func _resolve_cal_action(allowed:bool)->void:
+	if _cal_pending.is_empty():
+		return
+	var pending:=_cal_pending
+	_cal_pending={}
+	var id:=str(pending["id"])
+	var listener:Vector3=player.global_position+Vector3.UP*1.6
+	if not allowed or not progression.has_receipt(Opening.RECEIPT) or not pedestrians.call("confirm_cal_contact",id,listener,player.get_rid()):
+		_notify("Cal is no longer within reach. Approach him again.")
+		return
+	var action:="accept" if pending["action"]=="cal_accept" else "complete"
+	var before_cred:=progression.street_cred()
+	var changed:=progression.accept_cal_quest() if action=="accept" else progression.complete_cal_quest()
+	if not changed:
+		_notify("Unable to advance Compatibility Patch.")
+		return
+	var cue:=StreetSatire.cal_quest_line(action)
+	var reward_notice:="COMPATIBILITY PATCH / Accepted" if action=="accept" else "COMPATIBILITY PATCH / Completed +$85 • +%d STREET CRED"%(progression.street_cred()-before_cred)
+	if not is_instance_valid(dialogue_director) or not pedestrians.call("play_cal_quest_line",dialogue_director,id,action,listener,player.get_rid()):
+		_notify(reward_notice+" / "+str(cue["text"]))
+	else:
+		_notify(reward_notice)
+	if action=="accept":
+		_track_cal_waypoint()
+	elif _cal_tracking:
+		clear_navigation_waypoint()
+
+## Quest-owned waypoints bypass venue snapping; manual map pins keep priority.
+func _track_cal_waypoint()->void:
+	var point:=_cal_target()
+	if not point.is_finite():
+		return
+	_cal_tracking=true
+	_cal_nav_clock=0.0
+	_update_cal_navigation(0.0)
+
+func _update_cal_navigation(delta:float)->void:
+	if not _cal_tracking:
+		return
+	if progression.cal_quest not in [1,2]:
+		clear_navigation_waypoint()
+		return
+	_cal_nav_clock-=delta
+	if _cal_nav_clock>0.0:
+		return
+	_cal_nav_clock=1.0
+	var point:=_cal_target()
+	if not point.is_finite():
+		return
+	var target:=Nav.clamp_point(Vector2(point.x,point.z))
+	if navigation_waypoint==null or target.distance_to(navigation_waypoint)>=4.0:
+		navigation_waypoint=target
+		_route_cache.clear()
+		_route_revision=-1
+
+func _music_contact_status()->String:
+	if progression.has_receipt("venue:soundcheck_pass"):
+		return "UNDERGROUND / Rae at Blue Hour: Opening sets available • %d completed"%progression.street_activity_runs("live_gig")
+	if venue_job_active=="soundcheck_pass":
+		return "UNDERGROUND / Deliver Nyx's demo to Blue Hour."
+	if progression.street_cred()>=100:
+		return "UNDERGROUND / Nyx at Static Room has a music favor for you."
+	return "UNDERGROUND / Reach 100 Street Cred to meet Nyx."
+
+func _play_music_contact_cue(id:String,beat:String)->void:
+	var cue:=StreetSatire.venue_job_line(id,beat)
+	if cue.is_empty() or not is_instance_valid(dialogue_director):
+		return
+	# Existing venue panel does not expose a physical host node; use the
+	# bounded nonspatial voice channel rather than inventing a world speaker.
+	dialogue_director.call("cancel_scope","venue:music_contact")
+	dialogue_director.call("enqueue",str(cue["id"]),str(cue["text"]),DialogueDirector.STORY,null,"venue:music_contact")
+
+func _blue_hour_set_reachable()->bool:
+	if not progression.has_receipt("venue:soundcheck_pass") or not is_instance_valid(player) or current_car!=null or current_transit!=null or weapons.equipped!="holstered" or not venue_system.call("is_open","blue_hour"):
+		return false
+	if interiors.call("is_inside"):
+		return str(interiors.call("active_site_id"))=="blue_hour" and bool(interiors.call("counter_reachable",player.global_position))
+	var point:Vector3=venue_system.call("venue_position","blue_hour")
+	return player.global_position.distance_to(point)<=5.5
+
+func _busking_reachable(site:String)->bool:
+	if site not in BUSKING_SITES or not is_instance_valid(player) or current_car!=null or current_transit!=null or interiors.call("is_inside") or weapons.equipped!="holstered" or not venue_system.call("is_open",site):
+		return false
+	var point:Vector3=venue_system.call("venue_position",site)
+	return player.global_position.distance_to(point)<=5.5
+
+func _open_music_desk()->void:
+	game_menu.call("open_music_desk",{"owned":progression.owns_instrument(Instruments.STARTER),"owned_set":progression.owned_set_unlocked(),"cash":cash,"summary":progression.instrument_summary()})
+
+func _music_desk_action(action:String)->void:
+	if action=="music_desk_leave":
+		_music_session_site=""
+		return
+	if _music_session_site!="desk:copper_cup" or game_menu.get("screen")!="music_desk" or not _busking_reachable("copper_cup"):
+		return
+	match action:
+		"music_desk_buy":
+			if progression.buy_instrument(Instruments.STARTER):
+				_notify("Purchased PocketBeat M3. Your own sampler is ready to practice.")
+			_open_music_desk()
+		"music_desk_busk":
+			_music_session_site="copper_cup"
+			game_menu.call("open_busking_set",progression.street_activity_runs("busking")+1)
+		"music_desk_owned":
+			if progression.owned_set_unlocked():
+				_music_session_site="owned:copper_cup"
+				game_menu.call("open_owned_sampler_set",progression.street_activity_runs("busking")+1)
+		"music_desk_practice":
+			if progression.owns_instrument(Instruments.STARTER) and progression.sampler_practice<Instruments.MAX_PRACTICE:
+				_music_session_site="practice:copper_cup"
+				game_menu.call("open_sampler_practice",progression.sampler_practice+1)

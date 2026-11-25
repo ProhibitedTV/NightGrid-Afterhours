@@ -25,3 +25,19 @@ phase, active handoff projection and JSON-safe phase persistence.
 
 ## Route certification pilot (part of #98)
 `SidewalkCertification.evaluate(city, space, entry)` returns PENDING, CLEAR or BLOCKED; advance the same candidate on successive physics ticks until decided. One job at a time, at most eight supporting-ground rays per tick plus final endpoint overlaps and continuous capsule sweep. No synchronous chunk load. Restricted to straight existing parcel-side sidewalk strips; no crosswalks. Cache is bounded and short-lived, invalidated by city load/unload counters or city identity. `cached_clear` is a predicate for the streaming planner, not permanent permission; recheck actual spawn clearance and use CharacterBody movement collision. The probe uses layer 1 physical geometry and rejects interrupted support and large height changes; it cannot certify visual-only props or future moving obstacles. The smoke uses real physics fixtures rather than claiming every native street is walkable. District-round-robin population selection covers all eight districts under the cap. Remaining: native candidate audit, visual-only props and curated obstacle detours, integration with pooled NPCs, verification of actual foot height and route continuity. Existing live game unchanged.
+
+## Bounded scheduling for the pedestrian director
+Call `advance_candidates(city, space, entries)` once per physics tick with a local priority-ordered list (at most 256 entries considered). It returns an empty dictionary when no work is due, or an ID and PENDING/CLEAR/BLOCKED status for the one evaluated link. An unfinished job stays pinned across distance-priority changes while relevant; when it is no longer in the supplied set, it is discarded. Fresh CLEAR and BLOCKED results are skipped until expiry or city revision invalidation. Use `cached_clear` separately in the real spawn guard; never treat PENDING as permission. This scheduling API does not instantiate pedestrians, change existing world behavior, or certify untested native streets.
+
+## District civilian activity profiles (opt-in)
+`CivilianRoutines` models fictional hourly demand across all eight districts
+with smooth four-hour knots and a midnight wrap. Each logical ID receives a
+stable district role and activity threshold from a separate seed stream,
+without changing the existing phase/speed/style draws or v1 phase save.
+`plan_changes(..., hour)` optionally filters new activations; omitted or
+negative hour preserves the old behavior. Use the actual DayNight.hour in a
+future director and `available_at` to avoid certifying inactive candidates.
+Schedules never force visible actors to vanish, change their walking routes,
+claim actual workplaces, or instantly relocate NPCs. Existing active actors
+continue until ordinary safe recycling. Roles are future art/dialogue hooks,
+not yet multi-location routines or an implemented public population feature.

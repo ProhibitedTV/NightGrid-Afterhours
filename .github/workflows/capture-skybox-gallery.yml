@@ -1,0 +1,127 @@
+name: Capture original skybox game screenshots
+
+on:
+  push:
+    branches:
+      - feat/skybox-real-captures-20261123
+    paths:
+      - '.github/workflows/capture-skybox-gallery.yml'
+      - 'tools/capture_skybox_gallery.gd'
+      - 'scripts/**'
+      - 'assets/skyboxes/**'
+      - 'project.godot'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nightgrid-skybox-capture-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Prepare real offscreen game renderer
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libgl1 libx11-6 libxext6 libxrandr2 mesa-utils espeak-ng
+          python3 tools/generate_mbpd_radio.py
+          command -v xvfb-run
+          godot --version
+      - name: Import the actual game and original sky textures
+        run: |
+          set -o pipefail
+          godot --headless --path . --import --quit 2>&1 | tee /tmp/skybox-import.log
+          if grep -q 'SCRIPT ERROR:' /tmp/skybox-import.log; then exit 1; fi
+      - name: Render eight sky/weather screenshots in the actual game
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          MESA_GL_VERSION_OVERRIDE: '3.3'
+          GODOT_HEADLESS: '0'
+        run: |
+          set -o pipefail
+          mkdir -p docs/screenshots/skyboxes
+          xvfb-run -a -s "-screen 0 1600x900x24" \
+            godot --path . --display-driver x11 --rendering-driver opengl3 \
+              --rendering-method gl_compatibility --resolution 1600x900 \
+              --script res://tools/capture_skybox_gallery.gd 2>&1 | tee /tmp/skybox-capture.log
+          if grep -q 'SCRIPT ERROR:' /tmp/skybox-capture.log; then exit 1; fi
+          grep -q 'SKYBOX_GALLERY_CAPTURE PASS: 8' /tmp/skybox-capture.log
+      - name: Verify authentic images, preset selection and record hashes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from hashlib import sha256
+          import json, struct, os
+          folder=Path("docs/screenshots/skyboxes")
+          record=json.loads((folder/"capture.json").read_text())
+          expected=["01-dawn-clear.png","02-afternoon-sunny.png","03-afternoon-cloudy.png",
+            "04-evening-golden.png","05-night-clear.png","06-overcast.png",
+            "07-rain.png","08-storm.png"]
+          assert record["source_revision"]==os.environ["GITHUB_SHA"], "Wrong game revision"
+          assert record["renderer"]=="gl_compatibility", "Unexpected capture renderer"
+          assert [v["file"] for v in record["shots"]]==expected, "Missing or reordered screenshots"
+          checksums=set()
+          for item in record["shots"]:
+            path=folder/item["file"]
+            raw=path.read_bytes()
+            assert raw[:8]==b'\x89PNG\r\n\x1a\n' and raw[12:16]==b"IHDR", path
+            w,h=struct.unpack(">II",raw[16:24])
+            assert (w,h)==(1600,900), (path,w,h)
+            assert len(raw)>16000 and raw.endswith(b"IEND\xaeB\x60\x82"),path
+            digest=sha256(raw).hexdigest()
+            assert digest not in checksums, "Repeated pixels across two weather states"
+            checksums.add(digest)
+            item["sha256"]=digest
+            assert item["bytes"]==len(raw)
+          (folder/"capture.json").write_text(json.dumps(record,indent=2)+"\n")
+          print("SKYBOX_GALLERY_VERIFY PASS: eight real rendered distinct frames")
+          PY
+      - name: Attach full framebuffer evidence and metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightgrid-original-skybox-gameplay
+          path: |
+            docs/screenshots/skyboxes/*.png
+            docs/screenshots/skyboxes/capture.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Commit verified game-rendered PNGs to this capture branch
+        if: ${{ github.event_name == 'push' && github.ref != 'refs/heads/main' }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          OUTPUT="$RUNNER_TEMP/nightgrid-skybox-capture"
+          mkdir -p "$OUTPUT"
+          cp docs/screenshots/skyboxes/*.png docs/screenshots/skyboxes/capture.json "$OUTPUT/"
+          for attempt in 1 2 3; do
+            git fetch origin "${GITHUB_REF_NAME}"
+            if ! git diff --quiet "$GITHUB_SHA" "origin/${GITHUB_REF_NAME}" -- \
+                 project.godot scripts assets tools/capture_skybox_gallery.gd .github/workflows/capture-skybox-gallery.yml; then
+              echo "Game/source changed during capture; refusing stale frames" >&2
+              exit 1
+            fi
+            git reset --hard "origin/${GITHUB_REF_NAME}"
+            mkdir -p docs/screenshots/skyboxes
+            cp "$OUTPUT/"* docs/screenshots/skyboxes/
+            git add docs/screenshots/skyboxes/*.png docs/screenshots/skyboxes/capture.json
+            if git diff --cached --quiet; then
+              echo "Already checked in verified skybox frames"
+              exit 0
+            fi
+            git commit -m "docs(skybox): capture eight genuine game screenshots with new skies"
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              exit 0
+            fi
+          done
+          echo "Unable to safely publish captures" >&2
+          exit 1

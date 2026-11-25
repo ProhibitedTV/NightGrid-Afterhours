@@ -1,0 +1,126 @@
+name: Vesper V2 original convertible study
+on:
+  pull_request:
+    paths:
+      - "tools/vehicles/**"
+      - "docs/vehicles/VESPER_V2_STUDY.md"
+      - ".github/workflows/vesper-v2-study.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: vesper-precision-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-original-car:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test precision surface library and glTF contract
+        run: |
+          python -m unittest discover -s tests -p 'test_vehicle*.py' -v
+          python -m compileall -q tools/vehicles
+      - name: Record independent automotive body-quality metrics
+        run: |
+          python tools/vehicles/audit_vesper_geometry.py --output out/vesper-v2/geometry_audit.json
+      - name: Install Blender with Python dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri xvfb
+      - name: Produce original Vesper high-detail master, GLBs, and workbench previews
+        run: |
+          blender --background --python-exit-code 1 --python-expr "import numpy; print('Numpy', numpy.__version__)"
+          blender --background --python-exit-code 1 \
+            --python tools/vehicles/author_vesper_v2_blender.py -- \
+            --output-dir out/vesper-v2 --skip-preview
+      - name: Validate both game meshes and original source hashes
+        run: |
+          for lod in 0 1; do
+            python3 tools/vehicles/validate_gltf.py out/vesper-v2/vesper_v2_lod${lod}.glb \
+              --max-triangles 120000 \
+              --require-node WheelFL \
+              --require-node WheelFR \
+              --require-node WheelRL \
+              --require-node WheelRR \
+              --require-node SeatDriver \
+              --require-node SeatPassenger \
+              --require-node RoofStow \
+              --require-node RoofPivotL \
+              --require-node RoofPivotR \
+              --require-node HeadlampL \
+              --require-node HeadlampR \
+              --manifest out/vesper-v2/source.json
+          done
+          python3 - <<'PY'
+          import json, pathlib
+          path = pathlib.Path("out/vesper-v2")
+          spec = json.loads((path/"source.json").read_text())
+          assert spec["seat_count"] == 2 and spec["roof"] == "stowed_prototype_only"
+          sheets=spec["manufactured_sheet_panels"]
+          assert len(sheets)==3
+          for label,record in sheets.items():
+              assert record["closed_sheet_panel_count"] >= 10, label
+              assert record["minimum_sheet_thickness_mm"] >= 4.0, label
+          for fname in ["vesper_v2_master.blend", "vesper_v2_lod0.glb", "vesper_v2_lod1.glb"]:
+              assert (path/fname).is_file() and (path/fname).stat().st_size > 1024, fname
+          audit=json.loads((path/"geometry_audit.json").read_text())
+          assert audit["min_wheel_clearance_m"] >= 0.045
+          assert audit["max_hood_fender_normal_gap_deg"] < 1.0
+          assert audit["max_wheel_arch_tangent_jump"] < 0.035
+          print("Source, two LOD exports and numeric manufacturing audit verified")
+          PY
+      - name: Render offline 360-degree source views with Mesa software OpenGL
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          MESA_LOADER_DRIVER_OVERRIDE: llvmpipe
+        run: |
+          xvfb-run -a blender --background --python-exit-code 1 \
+            --python tools/vehicles/render_vesper_v2_blender.py -- \
+            --input out/vesper-v2/vesper_v2_master.blend \
+            --output-dir out/vesper-v2
+          python3 - <<'PY'
+          import json, pathlib, hashlib
+          path=pathlib.Path("out/vesper-v2")
+          manifest=json.loads((path/"source.json").read_text())
+          for name in ["front_three_quarter.png","rear_three_quarter.png","profile.png","open_cockpit.png",
+                       "front_optic_macro.png","front_wheel_macro.png","fender_shoulder_macro.png",
+                       "clay_front_three_quarter.png","clay_rear_three_quarter.png",
+                       "clay_profile.png","clay_open_cockpit.png",
+                       "clay_front_optic_macro.png","clay_front_wheel_macro.png",
+                       "clay_fender_shoulder_macro.png"]:
+              data=(path/name).read_bytes()
+              assert len(data)>1024, name
+              assert hashlib.sha256(data).hexdigest()==manifest["files"][name]["sha256"], name
+          print("Fourteen full-car and macro material/clay Blender review images verified")
+          PY
+      - name: Inspect body highlights with Blender Cycles zebra reflections
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          MESA_LOADER_DRIVER_OVERRIDE: llvmpipe
+        run: |
+          xvfb-run -a blender --background --python-exit-code 1 \
+            --python tools/vehicles/render_vesper_zebra_blender.py -- \
+            --input out/vesper-v2/vesper_v2_master.blend \
+            --output-dir out/vesper-v2
+          python3 - <<'PY'
+          import hashlib, json, pathlib
+          root=pathlib.Path("out/vesper-v2")
+          manifest=json.loads((root/"source.json").read_text())
+          for file in ("zebra_front_three_quarter.png","zebra_rear_three_quarter.png"):
+              raw=(root/file).read_bytes()
+              assert len(raw)>1024
+              assert hashlib.sha256(raw).hexdigest()==manifest["files"][file]["sha256"]
+          print("Reflected stripe image provenance and hashes verified")
+          PY
+      - name: Upload reviewable model and evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vesper-v2-original-convertible-study
+          path: out/vesper-v2/
+          if-no-files-found: warn
+          retention-days: 14

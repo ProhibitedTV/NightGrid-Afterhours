@@ -1,0 +1,107 @@
+{
+  "adapter": "llvmpipe (LLVM 15.0.7, 256 bits)",
+  "camera_look_target": [
+    -91.0,
+    35.0,
+    170.0
+  ],
+  "camera_position": [
+    -91.0,
+    17.0,
+    43.0
+  ],
+  "capture_only_sky_radiance_size": 32,
+  "capture_type": "actual game root viewport, not a concept/render",
+  "district": "Brickwater",
+  "engine": "4.7.2-stable (official)",
+  "note": "Rain and storm are visual weather presets; no precipitation simulation in this pilot",
+  "render_driver": "opengl3",
+  "renderer": "gl_compatibility",
+  "resolution": [
+    1600,
+    900
+  ],
+  "shots": [
+    {
+      "bytes": 1172006,
+      "clock_hour": 6.5,
+      "file": "01-dawn-clear.png",
+      "height": 900,
+      "selected_sky": "dawn_clear",
+      "weather": "clear",
+      "width": 1600,
+      "sha256": "ad44df3cbe334a6d3f7d5aca8f796a284d94d67f96ce797a7f15b0d952d104bc"
+    },
+    {
+      "bytes": 891478,
+      "clock_hour": 12.5,
+      "file": "02-afternoon-sunny.png",
+      "height": 900,
+      "selected_sky": "clear_day",
+      "weather": "clear",
+      "width": 1600,
+      "sha256": "504cf35fba0319851c263834deeeb4334cc9e6fabbf4f03763bae39d377bf203"
+    },
+    {
+      "bytes": 1209900,
+      "clock_hour": 12.5,
+      "file": "03-afternoon-cloudy.png",
+      "height": 900,
+      "selected_sky": "afternoon_clouds",
+      "weather": "cloudy",
+      "width": 1600,
+      "sha256": "d94af4fce846a1c679f66b39179244b8913428fb2f7734c8704e74c5aa6579a9"
+    },
+    {
+      "bytes": 1074247,
+      "clock_hour": 18.5,
+      "file": "04-evening-golden.png",
+      "height": 900,
+      "selected_sky": "evening_clear",
+      "weather": "clear",
+      "width": 1600,
+      "sha256": "e7faf6522f79e9d85c8415bee8f3d249962826101c63e8813ef5afbd2b2a98bc"
+    },
+    {
+      "bytes": 766784,
+      "clock_hour": 22.0,
+      "file": "05-night-clear.png",
+      "height": 900,
+      "selected_sky": "moonlit_night",
+      "weather": "clear",
+      "width": 1600,
+      "sha256": "032830da28f920109343e27f04ba739fd2721ea7a9cb05bd7dd9980fd1c05310"
+    },
+    {
+      "bytes": 969900,
+      "clock_hour": 12.5,
+      "file": "06-overcast.png",
+      "height": 900,
+      "selected_sky": "overcast_day",
+      "weather": "overcast",
+      "width": 1600,
+      "sha256": "e566beaadb50ea1891b20e56112f5a7266022a00e79d505da835bb2b90884f03"
+    },
+    {
+      "bytes": 855519,
+      "clock_hour": 12.5,
+      "file": "07-rain.png",
+      "height": 900,
+      "selected_sky": "storm_day",
+      "weather": "rain",
+      "width": 1600,
+      "sha256": "06061c07ed41cd66b89adca3c12d5718afec922f366098f66c944084c1c829b4"
+    },
+    {
+      "bytes": 777010,
+      "clock_hour": 12.5,
+      "file": "08-storm.png",
+      "height": 900,
+      "selected_sky": "storm_day",
+      "weather": "storm",
+      "width": 1600,
+      "sha256": "9c9de11717605cb9168254547ce3ba190a6a463902257dd7a9100162b1404ea5"
+    }
+  ],
+  "source_revision": "2500ceb266e2dd0e2c75af159d627752b4f746f6"
+}

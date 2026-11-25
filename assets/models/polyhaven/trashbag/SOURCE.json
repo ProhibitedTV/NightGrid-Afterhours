@@ -1,0 +1,50 @@
+{
+  "asset": "trashbag",
+  "author": "Benny Weimer",
+  "files": {
+    "textures/trashbag_arm_1k.jpg": {
+      "bytes": 684660,
+      "sha256": "95e69ba47bc7b84f342cdbe4385cfab670295827740fb09407b967ea2114c0aa",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/trashbag/trashbag_arm_1k.jpg",
+      "source_md5": "1efc021580dd12ef73a27b5d974056aa"
+    },
+    "textures/trashbag_diff_1k.jpg": {
+      "bytes": 332301,
+      "sha256": "676e01cbeef39b51c9ecd67315c952a605c8db9c11544fbe11e14dcbd00be27f",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/trashbag/trashbag_diff_1k.jpg",
+      "source_md5": "255360a490bf3838f55e7f21c7ab57ab"
+    },
+    "textures/trashbag_nor_gl_1k.jpg": {
+      "bytes": 573449,
+      "sha256": "33ddb9711bb3ab2ff1ed19fa361a4251909643fada7e5579a28f6346a58b4daf",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/trashbag/trashbag_nor_gl_1k.jpg",
+      "source_md5": "e576356779a07ac478126012544ab7b7"
+    },
+    "trashbag.bin": {
+      "bytes": 106316,
+      "sha256": "7bfac5b9c39a058af347944b437f712718ec129ec883c16339179862cc155fe2",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/trashbag/trashbag.bin",
+      "source_md5": "ad6ebbf5b9aa0179feeea87a4bd289a3"
+    },
+    "trashbag.gltf": {
+      "bytes": 2738,
+      "sha256": "22202e1ec48d924577584dce6751d5ab198fd7c0aee44602e9a7317b5b60a4a7",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/trashbag/trashbag_1k.gltf",
+      "source_md5": "c29158e170beeeb6bb518fe8d4407fe5"
+    }
+  },
+  "license": "CC0 1.0",
+  "license_url": "https://polyhaven.com/license",
+  "materials": 1,
+  "mesh_count": 1,
+  "model": "trashbag.gltf",
+  "native_approved": false,
+  "node_names": [
+    "trashbag"
+  ],
+  "resolution": "1k",
+  "runtime_download_required": false,
+  "source_api": "https://api.polyhaven.com/files/trashbag",
+  "source_mesh_triangles": 4482,
+  "source_page": "https://polyhaven.com/a/trashbag"
+}

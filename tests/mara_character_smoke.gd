@@ -119,7 +119,9 @@ func _verify() -> void:
 	if dialogue_line.is_empty() or int(world.get("cash")) != money_before or absf(float(world.get("health")) - health_before) > 0.001:
 		_fail("Talking via the real menu must not change player money or health")
 		return
-	if not (world.get("venue_label") as Label).text.contains(dialogue_line):
+	var caption: PanelContainer = world.get("contact_caption")
+	var spoken: Dictionary = caption.call("content")
+	if not caption.visible or spoken["speaker"] != "Mara" or not dialogue_line.contains(str(spoken["line"])) or not bool(spoken["persistent"]):
 		_fail("Dialogue panel must actually show Mara's current response")
 		return
 	rooms.call("set_mara_focus", player.global_position + Vector3(1.25, 0.0, 0.0))
@@ -131,6 +133,9 @@ func _verify() -> void:
 	mara.call("_process", 0.27)
 	if absf(float(mara.call("get_performance_state")["head_yaw"])) < 0.02:
 		_fail("Mara's head is not tracking a patron at the counter")
+		return
+	if world.get("story_mission").status != "active" or world.get("story_mission").step != 1:
+		_fail("Speaking to Mara did not start authored contact mission")
 		return
 	# Purchase retains original fixed-price gameplay and triggers a sleeve/
 	# hand rig gesture. A denied transaction must not animate a new sale.
@@ -166,6 +171,9 @@ func _verify() -> void:
 	if not (world.get("civic_intel") as Array).has("lantern_cup_shift_notes"):
 		_fail("Discovered shift note missing on reload")
 		return
+	if world.get("story_mission").status != "active" or world.get("story_mission").step != 1:
+		_fail("Contact mission progress lost during real interior save restore")
+		return
 	var restored_mara: Node3D = rooms.call("get_mara_character")
 	if restored_mara == null or restored_mara == mara or int(rooms.call("get_mara_stats")["face_details"]) < 20:
 		_fail("Save restore must recreate Mara instead of serializing live nodes")
@@ -186,10 +194,50 @@ func _verify() -> void:
 	if rooms.call("get_mara_character") != null:
 		_fail("Character should not stay resident after streaming out")
 		return
-	player.global_position = venues.call("venue_position", "helix_espresso")
+	# Complete the existing courier loop, then return to the real contact.
+	var courier = world.get("courier_mission")
+	if courier.has_package():
+		courier.restart()
+		world.call("_refresh_courier_target")
+	player.global_position = courier.target()
+	world.call("_advance_mission")
+	player.global_position = courier.target()
+	world.call("_advance_mission")
+	if world.get("story_mission").step != 2 or world.call("_story_target") != exterior:
+		_fail("Real courier delivery did not advance the contact chain to Mara’s address")
+		return
+	player.global_position = exterior
 	world.call("_toggle_interior")
-	if rooms.call("get_mara_character") != null or str(rooms.call("active_site_id")) != "helix_espresso":
+	player.global_position = rooms.call("get_counter_point") + Vector3(0.0, 0.0, 2.0)
+	world.call("_toggle_interaction")
+	var before_bonus: int = world.get("cash")
+	world.call("_venue_action", 3)
+	world.call("_venue_action", 3)
+	if world.get("story_mission").status != "complete" or int(world.get("cash")) != before_bonus + 100:
+		_fail("Contact completion bonus must pay exactly once")
+		return
+	var complete: Dictionary = session.call("make_snapshot", world.call("_capture_snapshot"))
+	if not session.call("is_valid_snapshot", complete):
+		_fail("Completed contact mission produced an invalid save")
+		return
+	complete["story_mission"]["step"] = 1
+	if session.call("is_valid_snapshot", complete):
+		_fail("Inconsistent completed mission state was accepted")
+		return
+	world.call("_close_venue")
+	player.global_position = rooms.call("get_entry_point")
+	world.call("_toggle_interior")
+	# Use an unmigrated café to verify isolation of the legacy room archetype.
+	player.global_position = venues.call("venue_position", "copper_cup")
+	world.call("_toggle_interior")
+	if rooms.call("get_mara_character") != null or str(rooms.call("active_site_id")) != "copper_cup":
 		_fail("Unique character should not leak into other businesses")
 		return
+	var sample: Node3D = load("res://scripts/mara_hero.gd").new()
+	var compliment: Dictionary = sample.call("next_dialogue",{"outfit_tier":3,"health":100.0,"heat":0.0})
+	if not str(compliment.get("line","")).contains("Afterimage Lounge"):
+		_fail("Luxury clothing must enable optional contextual contact dialogue")
+		return
+	sample.free()
 	print("MARA_CHARACTER_SMOKE PASS: ", counts, " / dialogue, gestures, venue economy, save/load")
 	quit(0)

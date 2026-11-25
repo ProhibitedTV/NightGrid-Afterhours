@@ -1,10 +1,13 @@
 extends Node3D
 const AudioMix = preload("res://scripts/audio_mix.gd")
+const Crumple = preload("res://scripts/vehicle_crumple.gd")
 ## KESTREL S6 — an original player-drivable, four-seat EV hero body.
-## No imported mesh/texture licenses or per-frame mesh generation.
+## Authored rear coachwork shares one imported mesh set across the fleet.
 ## The parent CharacterBody3D owns all real movement, collision and saves.
 const Materials = preload("res://scripts/material_library.gd")
 const VehicleAudio = preload("res://scripts/kestrel_vehicle_audio.gd")
+const RearAssembly = preload("res://assets/models/nightgrid/kestrel_s6_rear/rear_lod0.gltf")
+const CoachworkNormal = preload("res://assets/models/nightgrid/kestrel_s6_front/crimson_micro_normal.png")
 const BODY_LENGTH = 4.65
 const WHEEL_RADIUS = 0.41
 const BODY_COLOR = Color("afc6c5")
@@ -17,6 +20,7 @@ const CYAN = Color("65dacd")
 var _paint := Color("6e9ea9")
 var _police := false
 var _built := false
+var _parking_display:=false
 var _materials: Dictionary = {}
 var _wheel_rotors: Array[Node3D] = []
 var _steering_pivots: Array[Node3D] = []
@@ -25,10 +29,21 @@ var _reverse_lenses: Array[MeshInstance3D] = []
 var _police_lenses: Array[MeshInstance3D] = []
 var _beams: Array[SpotLight3D] = []
 var _motor: AudioStreamPlayer3D
+var _motor_active := false
+var _motor_load := 0.0
 var _signal_clock := 0.0
 var _wheel_angle := 0.0
 var _brake_active := false
+var _reversing := false
 var _speed := 0.0
+var _damage := Vector4.ZERO
+var _crash_front: Dictionary = {}
+var _crash_rear: Dictionary = {}
+var _crash_mounts: Dictionary = {}
+var _crash_lenses: Dictionary = {}
+static var _front_shell: ArrayMesh
+static var _brake_material: StandardMaterial3D
+static var _reverse_material: StandardMaterial3D
 var _visual_stats := {
 	"wheels": 0, "cabins": 0, "transparent_glass": 0,
 	"seats": 0, "headlamps": 0, "brake_lamps": 0,
@@ -40,6 +55,10 @@ func configure(paint: Color, police: bool = false) -> void:
 	_paint = paint
 	_police = police
 
+func configure_parking_display(paint:Color) -> void:
+	configure(paint,false)
+	_parking_display=true
+
 func _ready() -> void:
 	if _built:
 		return
@@ -49,38 +68,101 @@ func _ready() -> void:
 	_build_road_gear()
 	_build_lights()
 	_build_interior()
+	if _parking_display:
+		for beam in _beams:
+			beam.hide()
+		set_process(false)
+		set_physics_process(false)
+		return
 	_build_sound()
 	if _police:
 		_build_police_equipment()
+	_cache_crash_parts()
+
+func _cache_crash_parts() -> void:
+	var shell := get_node("KestrelMonocoque") as MeshInstance3D
+	_crash_front[shell] = shell.mesh
+	var rear := get_node("RearAssembly")
+	for label in ["RearHatchSolid", "HatchFrame", "RearLowerTrim", "LampHousingL", "LampHousingR", "BrakeLensL", "BrakeLensR", "ReverseLensL", "ReverseLensR"]:
+		var part := rear.get_node(label) as MeshInstance3D
+		_crash_rear[part] = part.mesh
+	# Direct front hardware uses local mount coordinates, not new collision.
+	for child in get_children():
+		if child is MeshInstance3D and child.position.z < -1.80:
+			_crash_mounts[child] = child.position
+			var mat := child.material_override as StandardMaterial3D
+			if mat != null and mat.emission_enabled:
+				_crash_lenses[child] = mat
+	for beam in _beams:
+		_crash_mounts[beam] = beam.position
+
+func _deform_end(parts: Dictionary, end_sign: float, amount: float) -> void:
+	for part in parts:
+		var source: ArrayMesh = parts[part]
+		var overrides: Array[Material] = []
+		for index in source.get_surface_count():
+			overrides.append(part.get_surface_override_material(index))
+		part.mesh = Crumple.build(source, end_sign, amount)
+		for index in overrides.size():
+			part.set_surface_override_material(index, overrides[index])
+
+func detaching_parts(previous: Vector4, zones: Vector4) -> Array[MeshInstance3D]:
+	var parts: Array[MeshInstance3D] = []
+	if previous.x < .90 and zones.x >= .90:
+		parts.append(get_node("FrontSplitter") as MeshInstance3D)
+	return parts
+
+func apply_damage(zones: Vector4) -> void:
+	if not is_equal_approx(zones.x, _damage.x):
+		_deform_end(_crash_front, -1.0, zones.x)
+		for part in _crash_mounts:
+			var at: Vector3 = _crash_mounts[part]
+			part.position = at + Crumple.vertex_delta(at, -1.0, zones.x)
+		for lens in _crash_lenses:
+			lens.material_override = _mat("RUBBER", Color("26272a")) if zones.x > 0.71 else _crash_lenses[lens]
+	if not is_equal_approx(zones.y, _damage.y):
+		_deform_end(_crash_rear, 1.0, zones.y)
+	_damage = zones
+	get_node("FrontSplitter").visible = zones.x < .90
+	for label in ["SteeringLeft", "RearLeft", "SteeringRight", "RearRight"]:
+		var hub := get_node(label) as Node3D
+		var left: bool = label.ends_with("Left")
+		var wear := zones.z if left else zones.w
+		hub.rotation.z = (-1.0 if left else 1.0) * smoothstep(.45, 1.0, wear) * .035
+	if zones.x > 0.71:
+		for beam in _beams:
+			beam.hide()
+	# Refresh lamp state immediately after repair or restore.
+	for lens in _brake_lenses:
+		lens.material_override = _mat("RUBBER", Color("26272a")) if zones.y > 0.75 else (_brake_material if _brake_active else null)
+	for lens in _reverse_lenses:
+		lens.material_override = _mat("RUBBER", Color("26272a")) if zones.y > 0.75 else (_reverse_material if _reversing else null)
 
 func update_motion(speed: float, steer: float, braking: bool,
 		occupied: bool, police: bool, delta: float) -> void:
 	# Animation is driven by actual vehicle motion, not synthetic movement.
+	var acceleration := (absf(speed) - absf(_speed)) / maxf(delta, 0.001)
+	_motor_active = occupied or police
+	_motor_load = move_toward(_motor_load, clampf(acceleration / 12.0, 0.0, 1.0), delta * 4.0)
 	_speed = speed
-	_brake_active = braking
 	_wheel_angle = fposmod(_wheel_angle + speed * delta / WHEEL_RADIUS, TAU)
 	for rotor in _wheel_rotors:
 		rotor.rotation.x = -_wheel_angle
 	for pivot in _steering_pivots:
 		pivot.rotation.y = clampf(steer * 0.28, -0.28, 0.28)
-	var brake_mat := _mat("LED", Color("ff4569") if braking else Color("8f182f"))
-	for lens in _brake_lenses:
-		lens.material_override = brake_mat
+	if braking != _brake_active:
+		_brake_active = braking
+		for lens in _brake_lenses:
+			lens.material_override = _mat("RUBBER", Color("26272a")) if _damage.y > 0.75 else (_brake_material if braking else null)
 	var reversing := speed < -0.4
-	for lens in _reverse_lenses:
-		lens.material_override = _mat("LED", Color("e7f6e6") if reversing else Color("283747"))
+	if reversing != _reversing:
+		_reversing = reversing
+		for lens in _reverse_lenses:
+			lens.material_override = _mat("RUBBER", Color("26272a")) if _damage.y > 0.75 else (_reverse_material if reversing else null)
 	for beam in _beams:
 		# Keep unshadowed headlamps bounded to occupied and pursuing cars,
 		# not the whole parked fleet.
-		beam.visible = occupied or police
-	if _motor != null:
-		if occupied or police:
-			if not _motor.playing:
-				_motor.play()
-			_motor.volume_db = lerpf(-29.0, -15.0, clampf(absf(speed) / 32.0, 0.0, 1.0))
-			_motor.pitch_scale = lerpf(0.86, 1.33, clampf(absf(speed) / 36.0, 0.0, 1.0))
-		elif _motor.playing:
-			_motor.stop()
+		beam.visible = (occupied or police) and _damage.x <= 0.71
 	if _police:
 		_signal_clock = fposmod(_signal_clock + delta * 3.8, 2.0)
 		var blue_on := _signal_clock < 1.0
@@ -89,6 +171,22 @@ func update_motion(speed: float, steer: float, braking: bool,
 			_police_lenses[idx].material_override = _mat("LED",
 				Color("438fff") if police and is_blue and blue_on else
 				Color("ff4768") if police and (not is_blue) and (not blue_on) else Color("293c55"))
+
+func _process(delta: float) -> void:
+	if _motor == null:
+		return
+	var target := -80.0
+	if _motor_active:
+		if not _motor.playing:
+			_motor.play()
+		target = lerpf(-35.0, -17.0, clampf(absf(_speed) / 32.0, 0.0, 1.0))
+		target += _motor_load * 5.0
+	_motor.volume_db = move_toward(_motor.volume_db, target, delta * 120.0)
+	_motor.pitch_scale = lerpf(_motor.pitch_scale,
+		clampf(0.82 + absf(_speed) * 0.016 + _motor_load * 0.11, 0.82, 1.49),
+		1.0 - exp(-8.0 * delta))
+	if not _motor_active and _motor.volume_db < -75.0:
+		_motor.stop()
 
 func get_visual_stats() -> Dictionary:
 	return _visual_stats.duplicate()
@@ -125,6 +223,15 @@ func _mat(kind: String, tint: Color) -> StandardMaterial3D:
 				material.clearcoat_enabled = true
 				material.clearcoat = 0.38
 				material.clearcoat_roughness = 0.23
+			"REAR_PAINT":
+				material.metallic = 0.43
+				material.roughness = 0.235
+				material.normal_enabled = true
+				material.normal_texture = CoachworkNormal
+				material.normal_scale = 0.10
+				material.clearcoat_enabled = true
+				material.clearcoat = 0.84
+				material.clearcoat_roughness = 0.12
 			"RUBBER":
 				material.roughness = 0.94
 			"GLAZING":
@@ -190,8 +297,7 @@ func _quad(tool: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3) ->
 	_triangle(tool, a, c, d)
 
 func _lofted_body_mesh() -> ArrayMesh:
-	# Beveled longitudinal monocoque: realistic wheel-track proportions and
-	# a hood line with a narrower end cap. Built exactly once per vehicle.
+	# The retained front and passenger floor end at the authored quarter joint.
 	var ring := [
 		Vector2(-1.02, -0.33), Vector2(-1.17, -0.08),
 		Vector2(-1.15, 0.25), Vector2(-0.98, 0.48),
@@ -204,9 +310,6 @@ func _lofted_body_mesh() -> ArrayMesh:
 		{"z": -1.50, "scale": 1.0, "raise": 0.06},
 		{"z": -0.70, "scale": 1.0, "raise": 0.0},
 		{"z": 0.77, "scale": 1.0, "raise": 0.0},
-		{"z": 1.87, "scale": 1.0, "raise": 0.02},
-		{"z": 2.22, "scale": 0.95, "raise": 0.0},
-		{"z": 2.32, "scale": 0.80, "raise": -0.08}
 	]
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -244,119 +347,72 @@ func _lofted_body_mesh() -> ArrayMesh:
 	st.generate_normals()
 	return st.commit()
 
-func _rear_hatch_point(section: Dictionary, side: int) -> Vector3:
-	var half_width: float = float(section["half_width"])
-	var upper: float = float(section["top"])
-	var lower: float = float(section["bottom"])
-	var z: float = float(section["z"])
-	match side:
-		0:
-			return Vector3(-half_width, lower, z)
-		1:
-			return Vector3(-half_width, upper, z)
-		2:
-			return Vector3(half_width, upper, z)
-		_:
-			return Vector3(half_width, lower, z)
-
-func _rear_hatch_mesh() -> ArrayMesh:
-	# The old monocoque closes at its ends, but the transparent rear glass
-	# revealed a bare, flat rear shelf with no trunk lid or cabin bulkhead.
-	# These authored cross sections form a six-sided, watertight painted
-	# hatch/deck with correct outward-facing normal winding.
-	var sections := [
-		{"z": 1.38, "half_width": 0.88, "top": 0.53, "bottom": 0.45},
-		{"z": 1.76, "half_width": 0.96, "top": 0.56, "bottom": 0.44},
-		{"z": 2.12, "half_width": 0.94, "top": 0.51, "bottom": 0.41},
-		{"z": 2.31, "half_width": 0.77, "top": 0.41, "bottom": 0.34}
-	]
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for index in range(sections.size() - 1):
-		for side in range(4):
-			var next := (side + 1) % 4
-			var a := _rear_hatch_point(sections[index], side)
-			var b := _rear_hatch_point(sections[index], next)
-			var c := _rear_hatch_point(sections[index + 1], next)
-			var d := _rear_hatch_point(sections[index + 1], side)
-			# Godot 4.3 treats clockwise-wound triangles as front-facing;
-			# the old order exposed the inward face from exterior cameras.
-			_quad(st, a, b, c, d)
-	for end in [0, sections.size() - 1]:
-		var item: Dictionary = sections[end]
-		var z: float = float(item["z"])
-		var center := Vector3(0.0,
-			(float(item["top"]) + float(item["bottom"])) * 0.5, z)
-		for side in range(4):
-			var point := _rear_hatch_point(item, side)
-			var other := _rear_hatch_point(item, (side + 1) % 4)
-			if end == 0:
-				_triangle(st, center, other, point)
-			else:
-				_triangle(st, center, point, other)
-	st.generate_normals()
-	return st.commit()
-
-func _build_rear_closure() -> void:
-	var hatch := MeshInstance3D.new()
-	hatch.name = "RearHatchSolid"
-	hatch.mesh = _rear_hatch_mesh()
-	hatch.material_override = _mat("PAINT", _paint)
-	add_child(hatch)
+func _build_rear_assembly() -> void:
+	var rear := RearAssembly.instantiate() as Node3D
+	rear.name = "RearAssembly"
+	add_child(rear)
+	var paint := _mat("REAR_PAINT", _paint)
+	var shell := rear.get_node("RearHatchSolid") as MeshInstance3D
+	shell.material_override = paint
+	var frame := rear.get_node("HatchFrame") as MeshInstance3D
+	for index in frame.mesh.get_surface_count():
+		if frame.mesh.surface_get_material(index).resource_name.contains("Crimson"):
+			frame.set_surface_override_material(index, paint)
+	for side in ["L", "R"]:
+		_brake_lenses.append(rear.get_node("BrakeLens" + side))
+		_reverse_lenses.append(rear.get_node("ReverseLens" + side))
+	if _brake_material == null:
+		_brake_material = _powered_lens(_brake_lenses[0], Color("ff294c"), 2.55)
+		_reverse_material = _powered_lens(_reverse_lenses[0], Color("def0f6"), 2.05)
 	_visual_stats["body_panels"] += 1
-	_visual_stats["hero_components"] += 1
-	# An opaque cargo compartment wall replaces the line of sight from the
-	# rear hatch glass straight through the trunk. The rear bench and roof
-	# glazing remain visible; geometry does not touch vehicle collision.
-	_box(self, "RearCabinBulkhead", Vector3(0.0, 0.45, 1.16),
-		Vector3(1.72, 0.68, 0.12), "PAINT", _paint.darkened(0.34))
-	_box(self, "RearParcelShelf", Vector3(0.0, 0.73, 1.13),
-		Vector3(1.66, 0.07, 0.31), "SEAT", Color("283740"))
-	for side in [-1.0, 1.0]:
-		_box(self, "RearInnerQuarter", Vector3(float(side) * 0.83, 0.57, 1.48),
-			Vector3(0.15, 0.22, 0.66), "PAINT", _paint.darkened(0.16))
-		_box(self, "HatchWeatherSeal", Vector3(float(side) * 0.91, 0.565, 1.76),
-			Vector3(0.026, 0.027, 0.62), "RUBBER", Color("25323b"))
+	_visual_stats["transparent_glass"] += 1
+	_visual_stats["brake_lamps"] += _brake_lenses.size()
+	_visual_stats["seats"] += 2
+	_visual_stats["hero_components"] += 12
+
+func _powered_lens(mesh: MeshInstance3D, tint: Color, intensity: float) -> StandardMaterial3D:
+	var material := mesh.mesh.surface_get_material(0).duplicate() as StandardMaterial3D
+	material.emission_enabled = true
+	material.emission = tint
+	material.emission_energy_multiplier = intensity
+	return material
+
 
 func _build_body() -> void:
 	var shell := MeshInstance3D.new()
 	shell.name = "KestrelMonocoque"
-	shell.mesh = _lofted_body_mesh()
+	if _front_shell == null:
+		_front_shell = _lofted_body_mesh()
+	shell.mesh = _front_shell
 	shell.material_override = _mat("PAINT", _paint)
 	add_child(shell)
 	_visual_stats["body_panels"] += 1
-	_build_rear_closure()
+	_build_rear_assembly()
 	# A continuous rib, actual undertray, recessed splitter and roof luggage/spine
 	# define a functional vehicle silhouette instead of a floating colored cube.
 	_box(self, "CarbonUndertray", Vector3(0.0, -0.35, 0.02),
 		Vector3(1.88, 0.12, 4.43), "RUBBER", Color("1b2730"))
 	_box(self, "FrontSplitter", Vector3(0.0, -0.26, -2.34),
 		Vector3(1.97, 0.08, 0.25), "METAL", Color("303f48"))
-	_box(self, "RearDiffuser", Vector3(0.0, -0.25, 2.32),
-		Vector3(2.03, 0.17, 0.17), "METAL", Color("34464f"))
 	for side in [-1.0, 1.0]:
-		_box(self, "RockerBeam", Vector3(side * 1.09, -0.25, 0.04),
-			Vector3(0.14, 0.13, 2.90), "METAL", Color("30414d"))
-		_box(self, "CopperPinstripe", Vector3(side * 1.155, 0.22, 0.0),
-			Vector3(0.027, 0.045, 4.08), "METAL", Color("cba279"))
-		for fender_z in [-1.48, 1.49]:
-			_box(self, "WheelArchSill", Vector3(side * 1.15, 0.04, float(fender_z)),
-				Vector3(0.13, 0.10, 1.12), "RUBBER", Color("2d3640"))
+		_box(self, "RockerBeam", Vector3(side * 1.09, -0.25, -.325),
+			Vector3(0.14, 0.13, 2.17), "METAL", Color("30414d"))
+		_box(self, "CopperPinstripe", Vector3(side * 1.155, 0.22, -.635),
+			Vector3(0.027, 0.045, 2.81), "METAL", Color("cba279"))
+		_box(self, "WheelArchSill", Vector3(side * 1.15, 0.04, -1.48),
+			Vector3(0.13, 0.10, 1.12), "RUBBER", Color("2d3640"))
 		for handle_z in [-0.55, 0.75]:
 			_box(self, "FlushDoorHandle", Vector3(side * 1.176, 0.31, float(handle_z)),
 				Vector3(0.026, 0.045, 0.25), "METAL", STEEL)
 			_visual_stats["door_reveals"] += 1
 		_box(self, "LowerDoorSplit", Vector3(side * 1.174, -0.03, 0.12),
 			Vector3(0.021, 0.47, 0.022), "RUBBER", Color("243642"))
-		_box(self, "SideSkirtMarker", Vector3(side * 1.161, -0.20, 0.03),
-			Vector3(0.035, 0.035, 2.78), "LED", CYAN)
+		_box(self, "SideSkirtMarker", Vector3(side * 1.161, -0.20, -.30),
+			Vector3(0.035, 0.035, 2.04), "LED", CYAN)
 	# Dashboard and split hood panel telltales are grounded in actual hardware.
 	for rib in [-0.88, 0.88]:
 		_box(self, "HoodCrease", Vector3(float(rib), 0.51, -1.75),
 			Vector3(0.035, 0.022, 0.83), "METAL", _paint.lightened(0.13))
-	for vent in range(6):
-		_box(self, "CoolingVent", Vector3(-0.41 + float(vent) * 0.16, 0.489, 1.96),
-			Vector3(0.078, 0.022, 0.28), "RUBBER", Color("1b3039"))
 	_box(self, "ServicePanel", Vector3(0.0, 0.49, -1.81),
 		Vector3(0.69, 0.025, 0.55), "METAL", _paint.darkened(0.22))
 
@@ -383,11 +439,7 @@ func _build_cabin() -> void:
 		Vector3(-0.90, 0.49, -1.30), Vector3(0.90, 0.49, -1.30),
 		Vector3(0.76, 1.13, -0.82), Vector3(-0.76, 1.13, -0.82)],
 		"GLAZING", GLASS_DARK)
-	_mesh_quad(self, "RearGlass", [
-		Vector3(0.76, 1.13, 0.54), Vector3(-0.76, 1.13, 0.54),
-		Vector3(-0.94, 0.49, 1.42), Vector3(0.94, 0.49, 1.42)],
-		"GLAZING", WINDOW_TINT)
-	_visual_stats["transparent_glass"] += 2
+	_visual_stats["transparent_glass"] += 1
 	for side in [-1.0, 1.0]:
 		_mesh_quad(self, "CabinSideGlass", [
 			Vector3(side * 0.94, 0.51, -1.16),
@@ -397,7 +449,7 @@ func _build_cabin() -> void:
 			"GLAZING", WINDOW_TINT)
 		_visual_stats["transparent_glass"] += 1
 		# A/B/C pillars, door split and moulded gasket.
-		for pillar_z in [-1.11, 0.02, 1.23]:
+		for pillar_z in [-1.11, 0.02]:
 			var pillar_height := 0.59 if absf(float(pillar_z)) > 0.8 else 0.68
 			_box(self, "WindowMullion", Vector3(side * 0.90, 0.81, float(pillar_z)),
 				Vector3(0.075, pillar_height, 0.095), "METAL", Color("293b46"))
@@ -443,8 +495,8 @@ func _build_road_gear() -> void:
 					cos(angle) * 0.195, sin(angle) * 0.195),
 					Vector3(0.025, 0.075, 0.26),
 					"METAL", Color("c1bab0"))
-			_cylinder(rotor, "CenterNut", Vector3(side * 0.161, 0.0, 0.0),
-				0.074, 0.34, "X", "METAL", Color("566778"), 12)
+			_cylinder(rotor, "CenterNut", Vector3(side * .158, 0.0, 0.0),
+				.060, .035, "X", "METAL", Color("566778"), 12)
 			_visual_stats["wheels"] += 1
 			_box(self, "SuspensionLowerArm", Vector3(side * 0.86, -0.31, z),
 				Vector3(0.53, 0.11, 0.12), "METAL", Color("495b61"))
@@ -465,13 +517,6 @@ func _build_lights() -> void:
 		_box(self, "ProjectorLens", Vector3(x, 0.18, -2.365),
 			Vector3(0.18, 0.085, 0.046), "LED", Color("d6eee5"))
 		_visual_stats["headlamps"] += 1
-		_box(self, "TailLampHousing", Vector3(x, 0.15, 2.324),
-			Vector3(0.53, 0.21, 0.062), "RUBBER", Color("2a2633"))
-		_brake_lenses.append(_box(self, "BrakeLens", Vector3(x, 0.24, 2.370),
-			Vector3(0.47, 0.085, 0.025), "LED", Color("8f182f")))
-		_visual_stats["brake_lamps"] += 1
-		_reverse_lenses.append(_box(self, "ReverseLens", Vector3(x, 0.10, 2.369),
-			Vector3(0.21, 0.065, 0.029), "LED", Color("283747")))
 		# Active white headlight projected only while driving or in pursuit.
 		var beam := SpotLight3D.new()
 		beam.name = "LiveHeadlamp"
@@ -485,13 +530,6 @@ func _build_lights() -> void:
 		beam.visible = false
 		add_child(beam)
 		_beams.append(beam)
-	# Readable rear motif — one connecting taillight blade; rear diffuser vents.
-	_box(self, "FullWidthTailblade", Vector3(0.0, 0.285, 2.362),
-		Vector3(1.37, 0.031, 0.035), "LED", Color("a83d53"))
-	for slot in range(8):
-		_box(self, "RearHeatExtraction", Vector3(-0.62 + float(slot) * 0.177,
-			-0.17, 2.375), Vector3(0.087, 0.05, 0.027),
-			"RUBBER", Color("1b2b35"))
 	_box(self, "ForwardServiceSensor", Vector3(0.0, 0.06, -2.385),
 		Vector3(0.45, 0.07, 0.045), "GLAZING", GLASS_DARK)
 
@@ -505,16 +543,15 @@ func _build_interior() -> void:
 		Vector3(0.45, 0.14, 0.04), "LED", Color("64c9c4"))
 	_box(self, "CenterConsole", Vector3(0.0, 0.44, -0.13),
 		Vector3(0.23, 0.14, 1.60), "METAL", Color("617175"))
-	for seat_z in [-0.43, 0.72]:
-		for side in [-0.49, 0.49]:
-			var pos := Vector3(float(side), 0.32, float(seat_z))
-			_box(self, "SeatCushion", pos, Vector3(0.66, 0.17, 0.62),
-				"SEAT", Color("5f6263"))
-			_box(self, "SeatBack", pos + Vector3(0.0, 0.37, 0.24),
-				Vector3(0.62, 0.77, 0.16), "SEAT", Color("415661"))
-			_box(self, "SeatHeadrest", pos + Vector3(0.0, 0.79, 0.25),
-				Vector3(0.43, 0.19, 0.19), "SEAT", Color("8e988e"))
-			_visual_stats["seats"] += 1
+	for side in [-0.49, 0.49]:
+		var pos := Vector3(float(side), 0.32, -.43)
+		_box(self, "SeatCushion", pos, Vector3(0.66, 0.17, 0.62),
+			"SEAT", Color("5f6263"))
+		_box(self, "SeatBack", pos + Vector3(0.0, 0.37, 0.24),
+			Vector3(0.62, 0.77, 0.16), "SEAT", Color("415661"))
+		_box(self, "SeatHeadrest", pos + Vector3(0.0, 0.79, 0.25),
+			Vector3(0.43, 0.19, 0.19), "SEAT", Color("8e988e"))
+		_visual_stats["seats"] += 1
 	# Driver wheel is fitted to a believable column in the forward cabin.
 	_cylinder(self, "SteeringWheelRim", Vector3(-0.49, 0.62, -0.83),
 		0.17, 0.055, "Z", "METAL", Color("9ea7a2"), 16)
@@ -530,7 +567,7 @@ func _build_sound() -> void:
 	AudioMix.ensure()
 	_motor.bus = AudioMix.EFFECTS
 	_motor.stream = VehicleAudio.sound()
-	_motor.volume_db = -30.0
+	_motor.volume_db = -80.0
 	_motor.max_distance = 32.0
 	add_child(_motor)
 

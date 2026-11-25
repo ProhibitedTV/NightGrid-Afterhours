@@ -1,82 +1,46 @@
 # NIGHTGRID: AFTERHOURS
 
-**A cyberpunk open-world action sandbox set in the coastal city of Morrow Bay.**
+**A neon-noir open-world game set in Morrow Bay, a restless coastal city.**
 
-Take courier jobs, drive through neon-lit streets, ride the city's buses and trains, explore cafés and nightclubs, and decide how to make your living after dark. The city keeps moving around you as daylight fades, businesses open and close, and police respond to reported incidents.
+![The real Morrow Bay game under the original golden-hour sky](docs/screenshots/skyboxes/04-evening-golden.png)
 
-**Early playable beta — actively in development.**
+*Golden hour over Brickwater — an actual Godot game capture with our new original sky art.*
 
-[**Download for Windows**](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) · [Report a bug or suggest a feature](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues) · [Playtest guide](docs/PLAYTEST_CHECKLIST.md)
+| Dawn over Brickwater | Sunny afternoon |
+|:--:|:--:|
+| ![Dawn original sky in the actual NightGrid world](docs/screenshots/skyboxes/01-dawn-clear.png) | ![Sunny sky in the actual NightGrid world](docs/screenshots/skyboxes/02-afternoon-sunny.png) |
+| **Moonlit night** | **Approaching storm** |
+| ![The original moonlit NightGrid sky in gameplay](docs/screenshots/skyboxes/05-night-clear.png) | ![The storm sky preview in gameplay](docs/screenshots/skyboxes/08-storm.png) |
 
-![Morrow Bay at night, captured in the actual game](docs/screenshots/01-morrow-bay-neon-night.png)
-
-*Central Exchange — real in-game rendering, not concept art.*
+*These five images are **actual game screenshots**, not standalone sky paintings or concept art. All use the same camera in Brickwater to show the new sky and weather mood changes. [Explore all eight skies](docs/screenshots/skyboxes/GALLERY.md). The captures use Godot 4.7.2 with Linux Mesa rendering; Windows Vulkan appearance may differ.*
 
 ## Explore Morrow Bay
 
-- Eight distinct neighborhoods, from the nightlife of Vesper Market to West Docks and the coastal North Quay.
-- Drive cars or ride the M-Line train and city buses.
-- Deliver packages, earn cash, take local jobs, visit shops, cafés, bars, clubs and public services.
-- Explore furnished interiors, meet local characters and discover neighborhood stories.
-- Experiment with arcade combat and a witness-based police wanted system.
-- Experience a changing day/night cycle, working traffic signals, routine police patrols and dispatch communications.
+Take courier jobs, drive through neon-lit streets, ride the M-Line and city buses, step into local shops, and follow the rhythms of a city that changes after dark. Twenty original **NightGrid FM** tracks play across vehicles, venues and neighborhoods.
 
-Your city layout and progress persist when you save and return.
+We're building **one large, handcrafted city**, with believable buildings and interiors, dynamic traffic and street life, cinematic lighting and weather. It is still early development, with plenty left to improve.
 
-## In-game gallery
+Want to see more than the skies? [Browse the Brickwater, vehicle and transit gameplay gallery](docs/screenshots/beta8-rc1/GALLERY.md).
 
-| Nightlife at Moon Noodles | M-Line elevated railway |
-|:--:|:--:|
-| ![Vesper Market nightlife](docs/screenshots/02-vesper-market-nightlife.png) | ![Helix Terminal rail](docs/screenshots/03-m-line-helix-terminal.png) |
-| **Horizon Gardens by day** | **Inside Quay Fresh** |
-| ![Horizon Commons daytime](docs/screenshots/04-horizon-commons-daylight.png) | ![Quay Fresh grocery interior](docs/screenshots/05-quay-fresh-interior.png) |
-| **Title screen** | **City map** |
-| ![Game title menu](docs/screenshots/06-title-menu.png) | ![Morrow Bay city map](docs/screenshots/07-city-map-menu.png) |
+## Play, follow and contribute
 
-| **Redesigned Morrow Bay city bus** | **Original civilian sedan** |
-| ![Original bus body in the actual city](docs/screenshots/08-city-bus-coachwork.png) | ![Original civilian sedan in the actual city](docs/screenshots/09-civilian-sedan-coachwork.png) |
+**[Windows download](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases)** · **[Latest development builds](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/workflows/windows-build.yml)** · **[Feedback and ideas](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues)**
 
-All nine images are actual Godot 4.7.2 viewport captures from the development build. The two vehicle portraits stage real existing traffic actors on their route for an unobstructed comparison; they're not concept art or a driving benchmark. These development-build screenshots may be newer than the downloadable tagged beta. [Capture date/source, renderer and checksums](docs/screenshots/capture-manifest.json) · [Capture method](docs/screenshots/README.md). The gallery uses Linux software-rendered OpenGL; the Windows Forward+/Vulkan build may look different.
+The latest published candidate at this writing is **[Beta.8 RC6](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases/tag/v0.1.0-beta.8-rc.6)**. The [releases page](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) lists newer candidates when published. RC7 is being prepared from integrated main with Chapter One: Executive Privilege and the offline audio studio. [RC7 notes and acceptance route](docs/BETA8_RC7.md). Publication requires exact-current-main preflight and Windows artifact launch verification, plus offline audio authoring checks. For the newest development build, download a successful `main` build. Extract the full ZIP and keep the `.exe` alongside its `.pck`. [Playtest instructions](docs/PLAYTEST_MAIN_ACCEPTANCE.md).
 
-## Play the beta
+**Help shape Afterhours.** If something looks exciting, unfinished or out of place, we'd like to hear about it. We welcome player feedback, screenshot comparisons, bug reports and ideas for life in Morrow Bay.
 
-1. Open [GitHub Releases](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases) and download the Windows x64 beta ZIP, **not** the source code ZIP.
-2. Extract the full archive into one folder and launch `NightGrid-Afterhours.exe`. Keep the EXE and PCK together.
-3. Choose New World, then follow the amber pickup beacon and deliver the package to the cyan destination.
+Made with **Godot 4.7.2**. [Developer notes](docs/DEVELOPMENT.md) · [Roadmap](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/197) · [More real game captures](docs/screenshots/development/GALLERY.md)
 
-The beta is unsigned and may trigger Windows SmartScreen. Check the official release and its SHA256SUMS file before running.
+*This repository does not yet have a general public source license; third-party assets retain their documented licenses.*
 
-### Quick controls
+### Environmental sound authoring
+See [Offline SFX authoring](docs/SFX_AUTHORING.md) for the optional local Stable Audio 3 pipeline and review process.
 
-| Action | Keyboard / mouse |
-|---|---|
-| Move / look | WASD / mouse |
-| Sprint / jump | Shift / Space |
-| Enter or leave a car | E |
-| Drive / brake | WASD / Space |
-| Board or leave public transit | F |
-| Enter or leave buildings | H |
-| Interact with people and services | G |
-| Map / journal / pause | M / Tab / Esc |
-| Save / load | F5 / F9 |
-| Equipment wheel | C |
+### Unified audio production
+See [Anubis audio studio](docs/AUDIO_PRODUCTION_STUDIO.md) for dialogue, NPC choices, SFX and ambience. Neural processing is development-only; game assets require review.
 
-Standard Xbox-style controller mappings are included. See the [full controls](docs/INPUT_MENUS.md) and in-game Controls menu.
+### Fashion and personal style (development)
+Six physical stores with distinct inventories, clerks, lighting, signage and NightGrid FM playlists: Threadline, Quay Standard, Vesper Line, Nocturne, Obscura and Second Signal. Open the journal's fashion directory to set a waypoint. At the counter, browse with 1/2/3 or A/X/Y, H/F or LB/RB for categories, right stick or right mouse drag to rotate and wheel/stick to zoom. Review USD or fictional BTC purchases, equip individual garments/accessories, collect original backpack art and save three personal looks. Second Signal rotates affordable stock daily. Try-ons never change ownership; closing the panel restores the committed look. Most garments are existing rig-compatible material variants. The offline fitted geometry pilot is not published to gameplay yet.
 
-## What's next
-
-NightGrid is a rough but playable indie project. We're working toward richer street life, more detailed environments, dynamic traffic diversions, better animations and seamless movement through the city. The logical pedestrian and traffic foundations are in development; crowds and hybrid traffic streaming are not yet live gameplay.
-
-The intended look is a realistic, atmospheric cyberpunk city, but visuals are still provisional. 1080p at 60 FPS on an RTX 3060 is a target, not a measured guarantee.
-
-NightGrid FM uses original, creator-owned chipwave music. The music system is implemented, but the complete track pack is not currently included in the downloadable beta. See [soundtrack details](docs/NIGHTGRID_FM_SOUNDTRACK.md).
-
-## For developers
-
-Built with Godot **4.7.2** (Forward+/Vulkan). Clone the repository, open `project.godot` in the standard Godot editor and press F5 to run. For a locally voiced police radio build, install eSpeak NG and run `python3 tools/generate_mbpd_radio.py` before importing.
-
-[Developer guide](docs/DEVELOPMENT.md) · [World bible](docs/WORLD_BIBLE.md) · [Development roadmap](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/75) · [Builds](https://github.com/ProhibitedTV/NightGrid-Afterhours/actions/workflows/windows-build.yml)
-
-**Help shape Morrow Bay.** Tried the beta or came here from Substack? [Share a bug, visual critique or feature suggestion](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/new). Tell us what build you tried, what worked, what felt unrealistic, and what you'd most like improved. F7 marks an issue in your local playtest log, F8 records frame times, and F10 captures a real game screenshot. See the [reporting checklist](docs/PLAYTEST_CHECKLIST.md) for details.
-
-The source has no general public license yet; individual third-party assets retain their documented licenses.
+See [character customization](docs/CHARACTER_CUSTOMIZATION.md) and [garment authoring](docs/THREADLINE_ASSET_AUTHORING.md). Native route, input, visual quality, and performance verification remain pending.

@@ -54,5 +54,32 @@ func _verify() -> void:
 		full[a.ids()[i]]=focus
 	if not _check(a.plan_changes(focus,focus,false,full,empty,allow,hide)["activate"].is_empty(),"active ceiling"):
 		return
+	var routines = preload("res://scripts/civilian_routines.gd")
+	if not _check(routines.PROFILES.size()==8 and routines.demand("AFTERHOURS",0.0)>routines.demand("AFTERHOURS",8.0) and routines.demand("GLASSLINE",8.0)>routines.demand("GLASSLINE",0.0),"district day/night demand"):
+		return
+	if not _check(is_equal_approx(routines.demand("VESPER MARKET",24.0),routines.demand("VESPER MARKET",0.0)) and absf(routines.demand("VESPER MARKET",23.99)-routines.demand("VESPER MARKET",0.0))<0.001,"midnight wrap"):
+		return
+	for agent in a.ids():
+		if not _check(a.routine_for(agent)==b.routine_for(agent) and a.available_at(agent,12.0)==b.available_at(agent,12.0),"routine identity stable across order and restore"):
+			return
+	for hour in [0.0,8.0,12.0,20.0]:
+		for entry in a.plan_changes(focus,focus,false,{},empty,allow,hide,hour)["activate"]:
+			if not _check(a.available_at(entry["id"],hour),"scheduled activation gate"):
+				return
+	if not _check(routines.activity({"role":"OFFICE_WORKER"},8.0)=="COMMUTE" and routines.activity({"role":"OFFICE_WORKER"},12.0)=="BREAK" and routines.activity({"role":"PATRON"},23.0)=="NIGHT_OUT" and routines.activity({"role":"PATRON"},1.0)=="NIGHT_OUT","role-based local daily activities"):
+		return
+	if not _check(routines.dwell("COMMUTE")<routines.dwell("BREAK") and routines.activity({"role":"RESIDENT"},-1.0)=="RESTING","bounded endpoint dwell and legacy hour"):
+		return
+	a.prioritize_resident(id)
+	for hour in [0.0,4.0,8.0,12.0,16.0,20.0]:
+		if not _check(a.available_at(id,hour),"quest resident schedule override"):
+			return
+	a.prioritize_resident("")
+	if not _check(a.available_at(id,0.0)==b.available_at(id,0.0),"schedule override cleared without changing identity"):
+		return
+	# A time change never removes a nearby visible actor.
+	var nearby := {id:focus}
+	if not _check(a.plan_changes(focus,focus,false,nearby,empty,allow,hide,0.0)["recycle"].is_empty(),"schedule cannot force active despawn"):
+		return
 	print("SIDEWALK_POPULATION_SMOKE PASS: candidate bounds, seeded identities, phase handoff, save and guarded activation")
 	quit(0)

@@ -1,0 +1,46 @@
+{
+  "seed": 834726,
+  "revision": "22aab3e56451d7d14cac8ef03136dfd8928a0e41",
+  "adapter": "NVIDIA GeForce RTX 3060",
+  "driver": "vulkan",
+  "renderer": "forward_plus",
+  "resolution": [
+    1920,
+    1080
+  ],
+  "settings": {
+    "ao": true,
+    "fog": true,
+    "glow": true,
+    "ssr": true,
+    "vsync": false
+  },
+  "cases": [
+    {
+      "label": "west-docks-day",
+      "distance_m": 19.5070495605469,
+      "peak_active": 3,
+      "unobstructed_in_frame": 1,
+      "off": {
+        "frames": 1115,
+        "median_ms": 4.167,
+        "p95_ms": 4.762,
+        "p99_ms": 5.366,
+        "max_ms": 8.714,
+        "over_16_67": 0,
+        "over_33_3": 0,
+        "max_stream_build_ms": 0.0
+      },
+      "on": {
+        "frames": 999,
+        "median_ms": 4.762,
+        "p95_ms": 5.556,
+        "p99_ms": 7.407,
+        "max_ms": 12.606,
+        "over_16_67": 0,
+        "over_33_3": 0,
+        "max_stream_build_ms": 0.0
+      }
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "description": "Genuine unreleased Windows development screenshots. Copied unchanged from the original Git objects; original capture manifests contain PNG SHA-256 and camera data.",
+  "engine": "Godot 4.7.2",
+  "renderer": "Forward+/Vulkan",
+  "gpu": "NVIDIA RTX 3060",
+  "resolution": [
+    1920,
+    1080
+  ],
+  "images": [
+    {
+      "file": "brickwater/01-alley-night-north.png",
+      "source_commit": "0346ed09924563ec4261045f9e9a39b702d5189b",
+      "source_path": "docs/art/brickwater-consolidated/after/01-alley-night-north.png",
+      "git_blob_sha": "0c4a99acb8f280c3de5e2bcdcb3ae98644a20429"
+    },
+    {
+      "file": "brickwater/02-alley-daylight-matched.png",
+      "source_commit": "0346ed09924563ec4261045f9e9a39b702d5189b",
+      "source_path": "docs/art/brickwater-consolidated/after/02-alley-daylight-matched.png",
+      "git_blob_sha": "9a805d9a6f85729eb71969098109bb9b63aadd13"
+    },
+    {
+      "file": "brickwater/08-workroom-detail.png",
+      "source_commit": "0346ed09924563ec4261045f9e9a39b702d5189b",
+      "source_path": "docs/art/brickwater-consolidated/after/08-workroom-detail.png",
+      "git_blob_sha": "62b246572f8b94f56f5c3d7b9e990d2ec8a63318"
+    },
+    {
+      "file": "brickwater/09-alley-dusk.png",
+      "source_commit": "0346ed09924563ec4261045f9e9a39b702d5189b",
+      "source_path": "docs/art/brickwater-consolidated/after/09-alley-dusk.png",
+      "git_blob_sha": "a7c43c827ab5b834d9d7bf86c17b90534c727123"
+    },
+    {
+      "file": "physical/m-line-and-signals-after.png",
+      "source_commit": "1d45c0ae29830b8ceec74e9593723f5caa6703eb",
+      "source_path": "docs/playtest/physical-coherence-159/m-line-and-signals-after.png",
+      "git_blob_sha": "a59e85548b4b6bb3beb0a7b43beff3b8b65e7022"
+    },
+    {
+      "file": "physical/east-gardens-platform.png",
+      "source_commit": "1d45c0ae29830b8ceec74e9593723f5caa6703eb",
+      "source_path": "docs/playtest/physical-coherence-159/east-gardens-platform.png",
+      "git_blob_sha": "2ae0c26d1e84e5dd722f4559d07acee48faf9249"
+    },
+    {
+      "file": "physical/horizon-gameplay-camera-after.png",
+      "source_commit": "1d45c0ae29830b8ceec74e9593723f5caa6703eb",
+      "source_path": "docs/playtest/physical-coherence-159/horizon-gameplay-camera-after.png",
+      "git_blob_sha": "12f5931a70c4271fc1f7bc64c2ee941e63040bfa"
+    },
+    {
+      "file": "physical/pier-storage-after.png",
+      "source_commit": "1d45c0ae29830b8ceec74e9593723f5caa6703eb",
+      "source_path": "docs/playtest/physical-coherence-159/pier-storage-after.png",
+      "git_blob_sha": "0c86f17a41f359f931a195dc59ff32692bdeb199"
+    },
+    {
+      "file": "courier/day-face-after.png",
+      "source_commit": "f1774a2b86d429435c1ccd712b360aaacdcb2ea0",
+      "source_path": "docs/playtest/courier-132/day-face-after.png",
+      "git_blob_sha": "4023f2fe36347b369be1651d1e5de6f14ca1735b"
+    },
+    {
+      "file": "courier/day-rear-after.png",
+      "source_commit": "f1774a2b86d429435c1ccd712b360aaacdcb2ea0",
+      "source_path": "docs/playtest/courier-132/day-rear-after.png",
+      "git_blob_sha": "a0e1c308f8ebfd8b7a635d8f8777507a7ea5a66d"
+    },
+    {
+      "file": "courier/day-walking-after.png",
+      "source_commit": "f1774a2b86d429435c1ccd712b360aaacdcb2ea0",
+      "source_path": "docs/playtest/courier-132/day-walking-after.png",
+      "git_blob_sha": "ed7b8ad64e30eefc699b2887d773cfb6d664bccf"
+    },
+    {
+      "file": "courier/night-rear-after.png",
+      "source_commit": "f1774a2b86d429435c1ccd712b360aaacdcb2ea0",
+      "source_path": "docs/playtest/courier-132/night-rear-after.png",
+      "git_blob_sha": "c65fe93c9dd047afb964d26b796a1d5d61db1afb"
+    },
+    {
+      "file": "courier/vehicle-seated.png",
+      "source_commit": "f1774a2b86d429435c1ccd712b360aaacdcb2ea0",
+      "source_path": "docs/playtest/courier-132/vehicle-seated.png",
+      "git_blob_sha": "cb1356c6dd09643ea36fb5b16b9a2f533d73928c"
+    }
+  ]
+}

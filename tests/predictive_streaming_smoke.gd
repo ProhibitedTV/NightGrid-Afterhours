@@ -102,8 +102,44 @@ func _verify() -> void:
 	if (city.get("_loaded") as Dictionary).has(Vector2i(3, 0)):
 		_fail("Teleport failed to evict stale remote city blocks")
 		return
+	# Simulate two retained distant chunks from a previous driving corridor.
+	# Normal focus requests must not bulk-delete them or combine teardown
+	# with the final incoming construction stage.
+	world.set_process(false)
+	var obsolete_a := Vector2i(3, 3)
+	var obsolete_b := Vector2i(3, 2)
+	city.call("_load_block", obsolete_a)
+	city.call("_load_block", obsolete_b)
+	var before_replan: Dictionary = city.call("get_streaming_stats")
+	city.call("request_focus", remote, Vector3(60.0, 0.0, 0.0))
+	var after_replan: Dictionary = city.call("get_streaming_stats")
+	if int(after_replan["unloads"]) != int(before_replan["unloads"]) or not bool(after_replan["prune_due"]):
+		_fail("Driving focus synchronously evicted chunks or lost deferred pruning")
+		return
+	for index in range(400):
+		var before_frame: Dictionary = city.call("get_streaming_stats")
+		if int(before_frame["pending_blocks"]) == 0 and not bool(before_frame["prune_due"]):
+			break
+		city.call("_process", 0.016)
+		var after_tick: Dictionary = city.call("get_streaming_stats")
+		var evicted := int(after_tick["unloads"]) - int(before_frame["unloads"])
+		var built := int(after_tick["stage_steps"]) - int(before_frame["stage_steps"])
+		if evicted > 1 or (evicted > 0 and built > 0):
+			_fail("Traversal combined multiple evictions or build and teardown")
+			return
+		if evicted > 0 and int(before_frame["pending_blocks"]) > 0:
+			_fail("Old geometry was evicted before the replacement queue drained")
+			return
+	var settled: Dictionary = city.call("get_streaming_stats")
+	var remaining: Array = city.call("get_loaded_blocks")
+	if bool(settled["prune_due"]) or int(settled["pending_blocks"]) != 0 or obsolete_a in remaining or obsolete_b in remaining:
+		_fail("Deferred eviction did not finish while focus remained unchanged")
+		return
+	if not occupied in remaining:
+		_fail("Deferred eviction removed the occupied collision block")
+		return
 	if int(session.get("world_seed")) != seed_before:
 		_fail("Incremental streaming changed the immutable saved world seed")
 		return
-	print("PREDICTIVE_STREAMING_SMOKE PASS: forward ring queued, one stage/frame, collider-first fast arrival and complete teleport, seed=", seed_before)
+	print("PREDICTIVE_STREAMING_SMOKE PASS: forward ring queued, one stage/frame, collider-first fast arrival, complete teleport and bounded idle eviction, seed=", seed_before)
 	quit(0)

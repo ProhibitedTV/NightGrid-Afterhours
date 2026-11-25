@@ -9,7 +9,7 @@ func _initialize() -> void:
 	call_deferred("_check")
 
 func _fail(reason: String) -> void:
-	for action in ["move_forward", "move_backward", "move_left", "move_right"]:
+	for action in ["move_forward", "move_backward", "move_left", "move_right", "drive_accelerate"]:
 		Input.action_release(action)
 	push_error("SOUTHWORKS_PLAYTEST_SMOKE: " + reason)
 	quit(1)
@@ -65,6 +65,86 @@ func _verify_southworks(city: Node3D, block: Vector2i) -> bool:
 	assert(checked == 10)
 	return true
 
+func _capture_vehicle_check(game: Node3D, label: String) -> bool:
+	var output := OS.get_environment("NIGHTGRID_SOUTHWORKS_CAPTURE_DIR")
+	if output.is_empty():
+		return true
+	if not output.is_absolute_path() or DisplayServer.get_name() == "headless" \
+			or DirAccess.make_dir_recursive_absolute(output) != OK:
+		_fail("Southworks evidence requires a native renderer and absolute path")
+		return false
+	game.get_node("HUD").hide()
+	var clock: Node = game.get("day_night")
+	clock.set("paused", true)
+	clock.call("set_hour", 13.4)
+	var camera: Camera3D = game.get("camera")
+	camera.global_position = Vector3(82.5, 3.8, 175.9)
+	camera.look_at(Vector3(85, .76, 182.04), Vector3.UP)
+	camera.fov = 46.0
+	for i in 16:
+		await RenderingServer.frame_post_draw
+	if root.get_texture().get_image().save_png(output.path_join(label + ".png")) != OK:
+		_fail("Could not capture real Southworks exit frame")
+		return false
+	return true
+
+func _check_vehicle(game: Node3D, player: CharacterBody3D) -> bool:
+	var fleet: Array = game.get("cars")
+	var car: CharacterBody3D = fleet[0]
+	var blocker: CharacterBody3D = fleet[1]
+	car.global_position = Vector3(80.32, 1.04, 184.50)
+	car.rotation.y = -PI * .5
+	player.global_position = car.global_position - Vector3(0, 0, 1.85)
+	player.velocity = Vector3.ZERO
+	car.set_meta("claimed", true)
+	await physics_frame
+	game.call("_toggle_car")
+	if game.get("current_car") != car:
+		_fail("Could not enter the actual South Bus Works test vehicle")
+		return false
+	Input.action_press("drive_accelerate", .45)
+	var contacted := false
+	for tick in 95:
+		await physics_frame
+		for index in car.get_slide_collision_count():
+			var contact := car.get_slide_collision(index)
+			var obstacle := contact.get_collider() as StaticBody3D
+			if obstacle != null and obstacle.global_position.distance_to(Vector3(85, .52, 184.50)) < .03:
+				contacted = true
+		if contacted:
+			break
+	Input.action_release("drive_accelerate")
+	if not contacted or car.global_position.x > 82.18 or absf(float(car.get("speed"))) > .25:
+		_fail("The Kestrel must stop against the original cargo collider at street scale")
+		return false
+	var hit_x := car.global_position.x
+	car.global_position = Vector3(85.22, .975, 182.56)
+	car.velocity = Vector3.ZERO
+	car.set("speed", 0.0)
+	# The exact curbside stack occupies the right door. A second parked
+	# car blocks the roadway side until it is moved clear.
+	blocker.global_position = Vector3(85.22, .84, 179.46)
+	blocker.rotation.y = car.rotation.y
+	await physics_frame
+	await physics_frame
+	game.call("_toggle_car")
+	if game.get("current_car") != car or player.visible or player.collision_layer != 0:
+		_fail("A blocked exit must keep the courier seated and non-colliding")
+		return false
+	if not await _capture_vehicle_check(game, "both-doors-blocked"):
+		return false
+	blocker.global_position = Vector3(63.0, .84, 176.4)
+	await physics_frame
+	await physics_frame
+	game.call("_toggle_car")
+	if game.get("current_car") != null or not player.visible or player.collision_layer != 1 \
+			or player.global_position.z >= car.global_position.z - 1.45:
+		_fail("The opposite door must release the courier to the clear side of the car")
+		return false
+	print("SOUTHWORKS_CAR_CONTACT ", JSON.stringify({"contact_x": hit_x,
+		"car": str(car.global_position), "exit": str(player.global_position)}))
+	return await _capture_vehicle_check(game, "clear-side-exit")
+
 func _check() -> void:
 	var scene := load("res://scenes/main.tscn") as PackedScene
 	if scene == null:
@@ -106,17 +186,18 @@ func _check() -> void:
 	if int(session.get("world_seed")) != seed or WorldPlan.manifest_signature(session.call("get_world_manifest")) != signature:
 		_fail("Collider restoration modified the saved world layout")
 		return
+	game.get_node("GameMenus").call("hide_for_game")
+	game.set_process(false)
+	if not await _check_vehicle(game, player):
+		return
 
 	var visual := player.get_node_or_null("Visual") as Node3D
 	if visual == null:
 		_fail("Courier visual missing")
 		return
-	# Confirm the real source character faces +Z: both eyes are slightly
-	# forward of the center of the head in the +Z direction.
-	var head := visual.get_node_or_null("BreathingTorso/HeadLookRig") as Node3D
-	var eye := head.get_node_or_null("LeftBlinkEye") as Node3D if head != null else null
-	if eye == null or eye.position.z < 0.15:
-		_fail("Character mesh forward-axis contract changed")
+	var rig: Skeleton3D = visual.get("skeleton")
+	if rig == null or rig.find_bone("Head") < 0:
+		_fail("Character has no skinned head rig")
 		return
 	var tests := [
 		[Vector2(0.0, -1.0), 0.0], [Vector2(0.0, 1.0), 0.0],
@@ -137,5 +218,5 @@ func _check() -> void:
 	if int(Engine.physics_ticks_per_second) != 60:
 		_fail("Courier fix changed independent 60Hz game physics")
 		return
-	print("SOUTHWORKS_PLAYTEST_SMOKE PASS: 10 matched solid props, physics ray, unload/reload, eight +Z avatar headings")
+	print("SOUTHWORKS_PLAYTEST_SMOKE PASS: 10 solid props, real car contact, blocked/clear exit, unload/reload and eight avatar headings")
 	quit(0)

@@ -10,12 +10,19 @@ func _fail(reason: String) -> void:
 	quit(1)
 
 func _geometry_signature(chunk: Node3D) -> Dictionary:
-	var result := {"solid": 0, "mesh": 0, "instances": 0, "signs": 0, "façades": 0}
+	var result := {"solid": 0, "doors":0, "collision_shapes":0, "dumpsters": 0, "mesh": 0, "instances": 0, "signs": 0, "façades": 0}
 	var pending: Array[Node] = [chunk]
 	while not pending.is_empty():
 		var node: Node = pending.pop_back()
-		if node is StaticBody3D:
-			result["solid"] += 1
+		if node is AnimatableBody3D:
+			result["doors"] += 1
+		elif node is StaticBody3D:
+			var count_key := "dumpsters" if node.name == &"AlleyDumpster" else "solid"
+			result[count_key] += 1
+		elif node is CollisionShape3D:
+			result["collision_shapes"] += 1
+		elif node is MultiMeshInstance3D:
+			result["instances"] += node.multimesh.instance_count
 		elif node is MeshInstance3D:
 			result["mesh"] += 1
 		elif node.name == "VisualBatches" and node.has_method("get_batch_stats"):
@@ -77,6 +84,15 @@ func _verify() -> void:
 	if shells != 2:
 		_fail("Both building colliders must exist before decorative mesh stages")
 		return
+	var dumpster := partial.get_node_or_null("StreetPropCollision/AlleyDumpster") as StaticBody3D
+	if (dumpster == null or dumpster.find_children("*", "CollisionShape3D", false, false).size() != 2
+			or dumpster.find_children("*", "MeshInstance3D", false, false).size() != 3):
+		_fail("The alley dumpster must appear with its matching collision in the first phase")
+		return
+	var early_geometry := _geometry_signature(partial)
+	if int(early_geometry["doors"]) != 2 or int(early_geometry["collision_shapes"]) < 40:
+		_fail("Stage zero lacks entrance and furnished physical room collision")
+		return
 	var after_first: Dictionary = city.call("get_streaming_stats")
 	if int(after_first["stage_steps"]) != int(before["stage_steps"]) + 1 or int(after_first["loads"]) != int(before["loads"]):
 		_fail("One stage advanced multiple completed chunk builds")
@@ -103,9 +119,15 @@ func _verify() -> void:
 		_fail("A forced arrival duplicated the staged colliders instead of completing them")
 		return
 	var before_reload := _geometry_signature(original)
-	if int(before_reload["solid"]) != 2 or int(before_reload["instances"]) < 40:
-		_fail("Completed staged lot lost its solid buildings or visual material batches: " + str(before_reload))
+	if int(before_reload["solid"]) != 2 or int(before_reload["doors"]) != 2 or int(before_reload["collision_shapes"]) < int(early_geometry["collision_shapes"]) or int(before_reload["dumpsters"]) != 1 or int(before_reload["instances"]) < 40:
+		_fail("Completed staged lot lost its solid buildings, alley dumpster or visual material batches: " + str(before_reload))
 		return
+	# Neither decorative stage may add a new obstacle inside either walk-in lot.
+	for i in range(2):
+		var lot := original.get_node("WalkInLot_%d" % i)
+		if lot.get_node_or_null("EntryDoor") == null or lot.find_children("*","CollisionShape3D",true,false).size() < 20:
+			_fail("Finished parcel lost the early room collision or door")
+			return
 
 	city.call("set_focus", Vector3(-203.0, 0.0, -203.0))
 	await process_frame
@@ -138,5 +160,31 @@ func _verify() -> void:
 	if int(session.get("world_seed")) != old_seed or WorldPlan.manifest_signature(session.call("get_world_manifest")) != signature:
 		_fail("Staged loading mutated save seed or authored world manifest")
 		return
-	print("STAGED_CITY_SMOKE PASS: early physical shells, bounded stage progress, no duplicates, cancellation and deterministic reload")
+	# Exercise the save encoder, disk reader and actual world restore while a
+	# previous district still has speculative work queued. Use a test-only slot.
+	world.set_process(false)
+	var player: CharacterBody3D = world.get("player")
+	var path := "user://tests/staged_city_streaming_restore.json"
+	var disk_signature := WorldPlan.manifest_signature(JSON.parse_string(JSON.stringify(old_manifest)))
+	for at in [Vector3(-86.8, 1.15, 81), Vector3(3.35, 1.15, 203), Vector3(3.35, 1.15, -145)]:
+		player.global_position = at
+		if not session.call("save_snapshot_to", world.call("_capture_snapshot"), path):
+			_fail("Could not write the traversal save fixture")
+			return
+		var data: Dictionary = session.call("read_snapshot_from", path)
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+		if int(data.get("version", -1)) != 1 or int(data.get("seed", -1)) != old_seed:
+			_fail("Repeated traversal save lost its v1 layout or world seed")
+			return
+		city.call("request_focus", -at, Vector3(0, 0, 36.0))
+		world.call("_apply_snapshot", data)
+		var occupied := Vector2i(floori(at.x / WorldPlan.BLOCK_SIZE), floori(at.z / WorldPlan.BLOCK_SIZE))
+		if not player.global_position.is_equal_approx(at) or occupied not in city.call("get_loaded_blocks"):
+			_fail("Restore did not rebuild the occupied district before returning control")
+			return
+		if WorldPlan.manifest_signature(data["world_manifest"]) != disk_signature:
+			_fail("Exterior save/restore changed the seeded parcel layout")
+			return
+		await process_frame
+	print("STAGED_CITY_SMOKE PASS: early shells, stage progress, cancellation and three deterministic exterior restores")
 	quit(0)

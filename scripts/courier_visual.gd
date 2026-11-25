@@ -1,0 +1,596 @@
+extends Node3D
+## Presentation only. The character controller still owns the capsule and motion.
+const Model = preload("res://assets/models/nightgrid/courier/morrow_courier.glb")
+const Materials = preload("res://scripts/material_library.gd")
+const ProductArt = preload("res://scripts/consumable_prop.gd")
+const Locomotion = preload("res://scripts/locomotion_policy.gd")
+const TerrainFeet = preload("res://scripts/courier_terrain_feet.gd")
+const Posture = preload("res://scripts/courier_posture.gd")
+const Reach = preload("res://scripts/courier_reach.gd")
+const GAIT_LOOPS = [&"walk",&"run",&"walk_back",&"strafe_left",&"strafe_right",&"aim_walk",&"aim_run",&"aim_left",&"aim_right"]
+const DeliveryBag = preload("res://scripts/quotadrop_bag.gd")
+var _meal_bag: Node3D
+var _meal_bag_carried := false
+const Wardrobe = preload("res://scripts/wardrobe_catalog.gd")
+var outfit_id := Wardrobe.DEFAULT
+var clothing_slots:Dictionary={}
+var _piece_materials:Dictionary={}
+var _patch_surfaces:Array[Dictionary]=[]
+var _patch_materials:Dictionary={}
+const PATCH_TEXTURES={
+	"patch_deadcarrier":preload("res://assets/textures/fashion/patch_deadcarrier.svg"),
+	"patch_voltage":preload("res://assets/textures/fashion/patch_voltage.svg"),
+	"patch_ghostshift":preload("res://assets/textures/fashion/patch_ghostshift.svg"),
+	"patch_nightgrid":preload("res://assets/textures/fashion/patch_nightgrid.svg"),
+	"patch_rustchoir":preload("res://assets/textures/fashion/patch_rustchoir.svg"),
+	"patch_nullrent":preload("res://assets/textures/fashion/patch_nullrent.svg"),
+	"patch_scrapangel":preload("res://assets/textures/fashion/patch_scrapangel.svg"),
+	"patch_afterunion":preload("res://assets/textures/fashion/patch_afterunion.svg"),
+	"patch_blackrelay":preload("res://assets/textures/fashion/patch_blackrelay.svg"),
+	"patch_laserwake":preload("res://assets/textures/fashion/patch_laserwake.svg"),
+	"patch_citybus":preload("res://assets/textures/fashion/patch_citybus.svg"),
+	"patch_dockrat":preload("res://assets/textures/fashion/patch_dockrat.svg")
+}
+const Accessories=preload("res://scripts/wardrobe_accessories.gd")
+var _accessories:Dictionary={}
+var _wardrobe_surfaces: Array[Dictionary] = []
+var _wardrobe_materials: Dictionary = {}
+var _corporate_mesh: MeshInstance3D
+var _street_mesh: Mesh
+var _street_skin: Skin
+var corporate_attire := false
+const CORPORATE_MODEL_DIR = "res://assets/models/nightgrid/courier/"
+
+static func corporate_model_path() -> String:
+	return CORPORATE_MODEL_DIR + "synaxis_suit.glb"
+const FOOT_OFFSET = -0.95
+const DRIVER_SEAT = Vector3(-0.52, -0.23, -0.43)
+const LOOPS = [&"idle", &"walk", &"run", &"walk_back", &"strafe_left", &"strafe_right",
+	&"jump_air", &"weapon_idle", &"aim", &"aim_walk", &"aim_run", &"aim_left", &"aim_right", &"drive_car", &"sit"]
+
+static var _courier_library: AnimationLibrary
+var skeleton: Skeleton3D
+var animations: AnimationPlayer
+var current_pose: StringName
+var _action: StringName
+var _equipment := "holstered"
+var _aiming := false
+var _seat := false
+var _grounded := true
+var _horizontal := Vector3.ZERO
+var _gait_speed := 0.0
+var _gait_running := false
+var _gait_rate := 1.0
+var _moving_gait := false
+var _sprinting := false
+var _pivot_cooldown := 0.0
+var _reverse_playback := false
+var _entry_ground_y := 0.0
+var _driver_seat := DRIVER_SEAT
+var _weapon_display: Node3D
+var _held_product: Node3D
+var _product_hand: BoneAttachment3D
+var _terrain_feet: SkeletonModifier3D
+var _posture: SkeletonModifier3D
+var _reach: SkeletonModifier3D
+const FOOD_ACTIONS = [&"purchase_item",&"drink_item",&"eat_item"]
+
+func _ready() -> void:
+	var courier := Model.instantiate()
+	add_child(courier)
+	_cache_wardrobe_surfaces(courier)
+	skeleton = courier.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
+	animations = courier.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
+	animations.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS
+	# Prepare the clips once. Save/load can reuse them with independent playback.
+	if _courier_library == null:
+		_courier_library = animations.get_animation_library(&"").duplicate(true) as AnimationLibrary
+		_prepare_library()
+		_prepare_product_clips()
+	animations.remove_animation_library(&"")
+	animations.add_animation_library(&"", _courier_library)
+	animations.animation_finished.connect(_finish_action)
+	_build_equipment_display()
+	_product_hand = skeleton.get_node("RightHandEquipment")
+	skeleton.modifier_callback_mode_process = Skeleton3D.MODIFIER_CALLBACK_MODE_PROCESS_PHYSICS
+	_terrain_feet = TerrainFeet.new()
+	_terrain_feet.name = "TerrainFeet"
+	_terrain_feet.active = false
+	skeleton.add_child(_terrain_feet)
+	_terrain_feet.call("configure")
+	_posture = Posture.new()
+	_posture.name = "ReactivePosture"
+	_posture.active = false
+	skeleton.add_child(_posture)
+	_posture.call("configure")
+	_reach = Reach.new()
+	_reach.name = "ContextualReach"
+	_reach.active = false
+	skeleton.add_child(_reach)
+	_reach.call("configure")
+	_play(&"idle", 0.0)
+	set_physics_process(false)
+
+func _cache_wardrobe_surfaces(model: Node3D) -> void:
+	for child in model.find_children("*","MeshInstance3D",true,false):
+		var mesh := child as MeshInstance3D
+		if mesh.skin == null or mesh.mesh == null:
+			continue
+		for index in mesh.mesh.get_surface_count():
+			var material := mesh.mesh.surface_get_material(index) as StandardMaterial3D
+			if material == null:
+				continue
+			if material.resource_name.to_lower().contains("morrow dispatch woven patch"):
+				_patch_surfaces.append({"mesh":mesh,"surface":index,"material":material})
+				continue
+			var slot := Wardrobe.garment_slot(material.resource_name)
+			if not slot.is_empty():
+				_wardrobe_surfaces.append({"mesh":mesh,"surface":index,"material":material,"slot":slot})
+
+func set_outfit(id: String) -> bool:
+	return set_look(id,{})
+
+func set_look(id:String,slots:Dictionary) -> bool:
+	if corporate_attire or not Wardrobe.valid_id(id) or not Wardrobe.valid_slots(slots) or _wardrobe_surfaces.is_empty():
+		return false
+	if slots.has("patch") and (_patch_surfaces.is_empty() or not PATCH_TEXTURES.has(slots["patch"])):
+		return false
+	if id==outfit_id and slots==clothing_slots:
+		return true
+	for slot in ["glasses","watch","hat"]:
+		var item_id:String=str(slots.get(slot,""))
+		if not item_id.is_empty() and not _accessories.has(item_id):
+			var attachment:=Accessories.build(skeleton,item_id)
+			if attachment==null:
+				return false
+			attachment.hide()
+			_accessories[item_id]=attachment
+	if id!=Wardrobe.DEFAULT and not _wardrobe_materials.has(id):
+		var variants:Array[StandardMaterial3D]=[]
+		for entry in _wardrobe_surfaces:
+			var original:StandardMaterial3D=entry["material"]
+			var variant:=original.duplicate() as StandardMaterial3D
+			variant.albedo_color=original.albedo_color*Wardrobe.ITEMS[id][entry["slot"]]
+			variant.roughness=clampf(original.roughness*float(Wardrobe.ITEMS[id]["finish"]),.2,1.0)
+			variants.append(variant)
+		_wardrobe_materials[id]=variants
+	for index in _wardrobe_surfaces.size():
+		var entry:Dictionary=_wardrobe_surfaces[index]
+		var mesh:MeshInstance3D=entry["mesh"]
+		var override:Material=null if id==Wardrobe.DEFAULT else _wardrobe_materials[id][index]
+		var piece_id:String=str(slots.get(entry["slot"],""))
+		if not piece_id.is_empty():
+			var key:="%s:%d" % [piece_id,index]
+			if not _piece_materials.has(key):
+				var original:StandardMaterial3D=entry["material"]
+				var variant:=original.duplicate() as StandardMaterial3D
+				var piece:Dictionary=Wardrobe.PIECES[piece_id]
+				variant.albedo_color=original.albedo_color*piece["tint"]
+				variant.roughness=clampf(original.roughness*float(piece["finish"]),.2,1.0)
+				_piece_materials[key]=variant
+			override=_piece_materials[key]
+		mesh.set_surface_override_material(entry["surface"],override)
+	var patch_id:String=slots.get("patch","")
+	for entry in _patch_surfaces:
+		var mesh:MeshInstance3D=entry["mesh"]
+		var surface:int=entry["surface"]
+		var patch:Material=null
+		if not patch_id.is_empty():
+			var key:="%s:%d:%d" % [patch_id,mesh.get_instance_id(),surface]
+			if not _patch_materials.has(key):
+				var original:StandardMaterial3D=entry["material"]
+				var variant:=original.duplicate() as StandardMaterial3D
+				variant.albedo_texture=PATCH_TEXTURES[patch_id]
+				variant.albedo_color=Color.WHITE
+				_patch_materials[key]=variant
+			patch=_patch_materials[key]
+		mesh.set_surface_override_material(surface,patch)
+	for item_id in _accessories:
+		_accessories[item_id].visible=slots.get(Wardrobe.PIECES[item_id]["slot"],"")==item_id
+	outfit_id=id
+	clothing_slots=slots.duplicate()
+	return true
+
+# Swap only the weighted clothing/body mesh; keep the live rig, equipment and animation player.
+# The optional candidate is generated by the pinned authoring workflow.
+func set_corporate_attire(active: bool) -> bool:
+	if active == corporate_attire:
+		return true
+	if not active:
+		_corporate_mesh.mesh = _street_mesh
+		_corporate_mesh.skin = _street_skin
+		corporate_attire = false
+		var selected := outfit_id
+		outfit_id = ""
+		set_look(selected,clothing_slots)
+		_corporate_mesh = null
+		_street_mesh = null
+		_street_skin = null
+		return true
+	var path := corporate_model_path()
+	if not ResourceLoader.exists(path, "PackedScene") or skeleton == null:
+		return false
+	var packed := ResourceLoader.load(path, "PackedScene") as PackedScene
+	if packed == null:
+		return false
+	var candidate := packed.instantiate()
+	var rigs := candidate.find_children("*","Skeleton3D",true,false)
+	var donor_rig: Skeleton3D = rigs[0] if rigs.size()==1 else null
+	var donor: MeshInstance3D
+	for child in candidate.find_children("*","MeshInstance3D",true,false):
+		if child.skin != null:
+			donor = child
+			break
+	var target: MeshInstance3D
+	for child in find_children("*","MeshInstance3D",true,false):
+		if child.skin != null:
+			target = child
+			break
+	var compatible := donor_rig != null and donor != null and target != null and donor.mesh != null
+	if compatible:
+		compatible = donor_rig.get_bone_count()==skeleton.get_bone_count()
+	if compatible:
+		for i in skeleton.get_bone_count():
+			if donor_rig.get_bone_name(i)!=skeleton.get_bone_name(i) or donor_rig.get_bone_parent(i)!=skeleton.get_bone_parent(i) or not donor_rig.get_bone_rest(i).is_equal_approx(skeleton.get_bone_rest(i)):
+				compatible=false
+				break
+	if not compatible:
+		candidate.free()
+		return false
+	_corporate_mesh=target
+	_street_mesh=target.mesh
+	_street_skin=target.skin
+	for i in target.mesh.get_surface_count():
+		target.set_surface_override_material(i,null)
+	target.mesh=donor.mesh
+	target.skin=donor.skin
+	candidate.free()
+	corporate_attire=true
+	for item_id in _accessories:
+		_accessories[item_id].hide()
+	return true
+
+func wardrobe_surface_count() -> int:
+	return _wardrobe_surfaces.size()
+
+# Presentation only; the courier director remains the sole order owner.
+# Instantiate once on first successful pickup, then reuse on subsequent orders.
+func set_meal_bag(carried: bool) -> void:
+	_meal_bag_carried = carried
+	if carried and not is_instance_valid(_meal_bag):
+		if skeleton == null or skeleton.find_bone("LeftHand") < 0:
+			return
+		var hand := BoneAttachment3D.new()
+		hand.name = "LeftHandDelivery"
+		hand.bone_name = "LeftHand"
+		skeleton.add_child(hand)
+		_meal_bag = DeliveryBag.build()
+		hand.add_child(_meal_bag)
+		_meal_bag.position = Vector3(0,.04,.02)
+	if is_instance_valid(_meal_bag):
+		_meal_bag.visible = carried and not _seat
+
+func _prepare_library() -> void:
+	for clip in LOOPS:
+		_courier_library.get_animation(clip).loop_mode = Animation.LOOP_LINEAR
+	var alight := _courier_library.get_animation(&"alight_car")
+	for track in range(alight.get_track_count()):
+		if alight.track_get_type(track) != Animation.TYPE_POSITION_3D or alight.track_get_path(track).get_subname(0) != &"Hips":
+			continue
+		var count := alight.track_get_key_count(track)
+		var end: Vector3 = alight.track_get_key_value(track, count - 1)
+		for key in range(count):
+			var at: Vector3 = alight.track_get_key_value(track, key)
+			alight.track_set_key_value(track, key, Vector3(at.x - end.x, at.y, at.z))
+
+func _prepare_product_clips() -> void:
+	# Purchase uses the existing weighted reach animation. Consumption
+	# adds authored wrist-to-mouth poses to a full weighted idle clip.
+	var purchase := _courier_library.get_animation(&"interact").duplicate(true) as Animation
+	_courier_library.add_animation(&"purchase_item",purchase)
+	for clip in [&"drink_item",&"eat_item"]:
+		var motion := _courier_library.get_animation(&"idle").duplicate(true) as Animation
+		motion.loop_mode = Animation.LOOP_NONE
+		motion.length = 1.65 if clip == &"drink_item" else 1.40
+		var upper := skeleton.find_bone("RightArm")
+		var fore := skeleton.find_bone("RightForeArm")
+		var wrist := skeleton.find_bone("RightHand")
+		var head := skeleton.find_bone("Head")
+		if mini(mini(upper,fore),mini(wrist,head)) >= 0:
+			var shoulder := skeleton.get_bone_global_rest(upper)
+			var elbow := skeleton.get_bone_global_rest(fore)
+			var hand := skeleton.get_bone_global_rest(wrist)
+			var mouth := skeleton.get_bone_global_rest(head).origin+Vector3(0,-.10,.12)
+			var target := mouth+Vector3(.045,-.045,.055) if clip==&"drink_item" else mouth+Vector3(.035,-.025,.045)
+			var reach := target-shoulder.origin
+			var a := shoulder.origin.distance_to(elbow.origin)
+			var b := elbow.origin.distance_to(hand.origin)
+			var length := clampf(reach.length(),absf(a-b)+.001,a+b-.001)
+			var axis := reach.normalized()
+			var bend := (Vector3.RIGHT+Vector3.DOWN*.7)
+			bend = (bend-axis*bend.dot(axis)).normalized()
+			var along := (a*a-b*b+length*length)/(2.0*length)
+			var joint := shoulder.origin+axis*along+bend*sqrt(maxf(0.0,a*a-along*along))
+			var final := shoulder.origin+axis*length
+			var arm_basis := Basis(Quaternion((elbow.origin-shoulder.origin).normalized(),(joint-shoulder.origin).normalized()))*shoulder.basis
+			var fore_basis := Basis(Quaternion((hand.origin-elbow.origin).normalized(),(final-joint).normalized()))*elbow.basis
+			var parent_basis := skeleton.get_bone_global_rest(skeleton.get_bone_parent(upper)).basis
+			_key_product_bone(motion,"RightArm",(parent_basis.inverse()*arm_basis).get_rotation_quaternion())
+			_key_product_bone(motion,"RightForeArm",(arm_basis.inverse()*fore_basis).get_rotation_quaternion())
+			_key_product_bone(motion,"RightHand",(fore_basis.inverse()*hand.basis).get_rotation_quaternion())
+		_courier_library.add_animation(clip,motion)
+
+func _key_product_bone(motion: Animation,bone: String,pose: Quaternion) -> void:
+	for track in motion.get_track_count():
+		if motion.track_get_type(track)!=Animation.TYPE_ROTATION_3D or str(motion.track_get_path(track).get_subname(0))!=bone:
+			continue
+		var rest: Quaternion = motion.track_get_key_value(track,0)
+		while motion.track_get_key_count(track)>0:
+			motion.track_remove_key(track,0)
+		motion.rotation_track_insert_key(track,0.0,rest)
+		motion.rotation_track_insert_key(track,.38,pose)
+		motion.rotation_track_insert_key(track,motion.length-.38,pose)
+		motion.rotation_track_insert_key(track,motion.length,rest)
+		return
+
+func play_product_action(id: String,purchase: bool) -> void:
+	if _seat or not _grounded:
+		return
+	_clear_product()
+	_held_product = ProductArt.build(id)
+	_product_hand.add_child(_held_product)
+	_held_product.position = Vector3(0,.065,.035)
+	_held_product.rotation = Vector3(0,0,PI*.5)
+	_weapon_display.hide()
+	play_action(&"purchase_item" if purchase else (&"drink_item" if ProductArt.is_drink(id) else &"eat_item"))
+
+func _clear_product() -> void:
+	if is_instance_valid(_held_product):
+		_held_product.hide()
+		_held_product.queue_free()
+	_held_product = null
+	if is_instance_valid(_weapon_display):
+		_weapon_display.visible = _equipment!="holstered" and not _seat
+
+func set_weapon_pose(id: String, aiming: bool) -> void:
+	if _equipment == id and _aiming == aiming:
+		return
+	_equipment = id
+	_aiming = aiming
+	_weapon_display.visible = id != "holstered" and not _seat and not is_instance_valid(_held_product)
+	_weapon_display.get_node("Pulse").visible = id == "pulse"
+	_weapon_display.get_node("Arc").visible = id == "arc"
+	if id == "holstered" and _action in [&"fire", &"reload"]:
+		_action = &""
+	_choose_pose()
+
+func update_motion(local_velocity: Vector3, on_floor: bool, jumped: bool,
+		landed: bool, sprinting: bool, delta: float = 1.0/60.0, impact_speed: float = 9.0, yaw_rate: float = 0.0) -> void:
+	if _seat:
+		return
+	_horizontal = Vector3(local_velocity.x, 0.0, local_velocity.z)
+	_gait_speed = lerpf(_gait_speed,_horizontal.length(),1.0-exp(-18.0*delta))
+	_grounded = on_floor
+	_sprinting = sprinting
+	_pivot_cooldown = maxf(0.0,_pivot_cooldown-delta)
+	if jumped:
+		play_action(&"jump_start")
+	elif landed and current_pose in [&"jump_start", &"jump_air"]:
+		play_action(&"jump_land",Locomotion.landing_rate(impact_speed))
+	elif not on_floor and _action not in [&"jump_start", &"alight_car"]:
+		_clear_product()
+		_action = &""
+	elif _horizontal.length_squared() > 1.2 and (_action in [&"interact", &"stand_up", &"alight_car"] or _action in FOOD_ACTIONS):
+		_clear_product()
+		_action = &""
+	elif _action in [&"turn_left",&"turn_right"] and (_horizontal.length()>1.65 or _equipment!="holstered"):
+		_action = &""
+	if _grounded and not landed and not jumped and _action==&"" and _equipment=="holstered" and _pivot_cooldown<=0.0:
+		var pivot := Locomotion.pivot_clip(_horizontal.length(),yaw_rate)
+		if pivot!=&"":
+			_pivot_cooldown = .45
+			play_action(pivot,1.3)
+	_choose_pose()
+
+func sample_terrain(body: CharacterBody3D,delta: float) -> void:
+	if is_instance_valid(_terrain_feet):
+		_terrain_feet.call("sample_ground",body,delta,_grounded and not _seat and _action==&"" and _gait_speed<3.5 and not _aiming)
+
+func update_posture(world_velocity: Vector3,yaw_rate: float,delta: float) -> void:
+	if is_instance_valid(_posture):
+		_posture.call("update_posture",global_basis.inverse()*world_velocity,yaw_rate,delta,_grounded and not _seat and _action==&"" and _equipment=="holstered")
+
+func reset_terrain() -> void:
+	if is_instance_valid(_terrain_feet):
+		_terrain_feet.call("reset")
+	if is_instance_valid(_posture):
+		_posture.call("reset")
+
+func reach_target(target: Node3D,anchor: Vector3,side: int) -> void:
+	if is_instance_valid(_reach) and _grounded and not _seat and _equipment=="holstered" and _action in [&"interact",&"open_door",&"purchase_item"]:
+		_reach.call("begin",target,anchor,side,animations,_action)
+
+func play_action(clip: StringName, rate_override: float = 0.0) -> void:
+	if _seat or (clip == &"interact" and (_horizontal.length_squared() > 0.8 or not _grounded)):
+		return
+	if is_instance_valid(_reach):
+		_reach.call("reset")
+	if clip not in FOOD_ACTIONS:
+		_clear_product()
+	_action = clip
+	if is_instance_valid(_posture):
+		_posture.call("reset")
+	if current_pose == clip:
+		animations.seek(0.0)
+	var rate := rate_override if rate_override>0.0 else (1.85 if clip == &"jump_start" else 1.0)
+	_play(clip, 0.08, rate)
+	if clip == &"alight_car":
+		# The original gameplay exit chooses a safe curb-side placement. Use
+		# the authored weight transfer after the feet have cleared the sill.
+		animations.seek(animations.current_animation_length * 0.72, true)
+
+func sit_in_vehicle(car: Node3D, play_entry: bool, ground_y: float) -> void:
+	if get_parent() != car:
+		reparent(car, false)
+	_driver_seat = car.call("driving_seat") if car.has_method("driving_seat") else DRIVER_SEAT
+	position = _driver_seat
+	rotation = Vector3(0.0, PI, 0.0)
+	_seat = true
+	if is_instance_valid(_reach):
+		_reach.call("reset")
+	reset_terrain()
+	set_meal_bag(_meal_bag_carried)
+	_clear_product()
+	_horizontal = Vector3.ZERO
+	_reset_gait()
+	# The combat controller holsters while driving. Forget the last on-foot
+	# pose so re-equipping that item on exit always restores the held prop.
+	_equipment = "holstered"
+	_aiming = false
+	_weapon_display.hide()
+	_action = &"board_car" if play_entry else &""
+	_entry_ground_y = ground_y
+	if play_entry:
+		position.y = ground_y
+	_play(&"board_car" if play_entry else &"drive_car", 0.0, 1.15 if play_entry else 1.0)
+	set_physics_process(play_entry)
+
+func _physics_process(_delta: float) -> void:
+	if absf(float(get_parent().get("speed"))) > 2.5:
+		_finish_action(&"board_car")
+		return
+	var progress := animations.current_animation_position / animations.current_animation_length
+	position.y = lerpf(_entry_ground_y, _driver_seat.y, smoothstep(0.25, 0.63, progress))
+
+func return_to_player(player: Node3D) -> void:
+	var facing := global_rotation.y
+	reparent(player, false)
+	position = Vector3.UP * FOOT_OFFSET
+	rotation = Vector3(0.0, facing, 0.0)
+	_seat = false
+	if is_instance_valid(_reach):
+		_reach.call("reset")
+	reset_terrain()
+	set_meal_bag(_meal_bag_carried)
+	_clear_product()
+	_reset_gait()
+	_grounded = true
+	_action = &""
+	_play(&"idle", 0.0)
+	set_physics_process(false)
+
+func _finish_action(clip: StringName) -> void:
+	if clip != _action:
+		return
+	if is_instance_valid(_reach):
+		_reach.call("reset")
+	if clip in FOOD_ACTIONS:
+		_clear_product()
+	_action = &""
+	if _seat:
+		position = _driver_seat
+		set_physics_process(false)
+	_choose_pose()
+
+func _reset_gait() -> void:
+	_gait_speed = 0.0
+	_pivot_cooldown = 0.0
+	_gait_running = false
+	_gait_rate = 1.0
+	_moving_gait = false
+
+func _choose_pose() -> void:
+	if _action != &"":
+		return
+	if is_instance_valid(_reach) and _reach.active:
+		_reach.call("reset")
+	if _seat:
+		_play(&"drive_car", 0.18)
+		return
+	if not _grounded:
+		_play(&"jump_air", 0.10)
+		return
+	var speed := _gait_speed
+	_moving_gait = speed > (.22 if _moving_gait else .38)
+	if not _moving_gait:
+		_gait_running = false
+		_gait_rate = 1.0
+		var stance := &"idle"
+		if _equipment != "holstered":
+			stance = &"aim" if _aiming else &"weapon_idle"
+		_play(stance, 0.18)
+		return
+	_gait_running = Locomotion.run_gait(speed,_gait_running)
+	var running := _gait_running
+	var clip := &"run" if running else &"walk"
+	var natural_speed := 4.1 if running else 1.75
+	var playback_direction := 1.0
+	if _aiming:
+		if absf(_horizontal.x) > absf(_horizontal.z):
+			clip = &"aim_left" if _horizontal.x > 0.0 else &"aim_right"
+			natural_speed = 2.85
+		elif _horizontal.z < -0.3:
+			clip = &"aim_walk"
+			natural_speed = 2.85
+			playback_direction = -1.0
+		else:
+			clip = &"aim_run" if running else &"aim_walk"
+	elif absf(_horizontal.x) > absf(_horizontal.z) + 0.35:
+		clip = &"strafe_left" if _horizontal.x > 0.0 else &"strafe_right"
+		natural_speed = 2.85
+	elif _horizontal.z < -0.45:
+		clip = &"walk_back"
+		natural_speed = 1.75
+	var target_rate := clampf(speed/natural_speed,.6,1.85 if _sprinting else 1.65)
+	_gait_rate = lerpf(_gait_rate,target_rate,.22)
+	_play(clip,.20,playback_direction*_gait_rate)
+
+func _play(clip: StringName, blend: float, rate: float = 1.0) -> void:
+	var backward := rate < 0.0
+	animations.speed_scale = absf(rate)
+	if current_pose == clip and backward == _reverse_playback:
+		return
+	var preserve_phase := current_pose in GAIT_LOOPS and clip in GAIT_LOOPS
+	var phase := Locomotion.loop_phase(animations.current_animation_position,animations.current_animation_length) if preserve_phase else 0.0
+	if preserve_phase:
+		# Phase is actual authored clip time, independent of playback direction.
+		phase = Locomotion.contact_phase(current_pose,clip,phase)
+	current_pose = clip
+	_reverse_playback = backward
+	animations.play(clip, blend, -1.0 if backward else 1.0, backward)
+	if preserve_phase:
+		# Align measured left/right contacts while retaining the outgoing fade.
+		animations.seek(phase*animations.get_animation(clip).length,false)
+
+func _build_equipment_display() -> void:
+	var hand := BoneAttachment3D.new()
+	hand.name = "RightHandEquipment"
+	hand.bone_name = "RightHand"
+	skeleton.add_child(hand)
+	_weapon_display = Node3D.new()
+	_weapon_display.name = "EquippedWeapon"
+	# Barrel and up axes in the authored aim clip's right-hand frame.
+	var barrel := Vector3(0.054, 0.936, 0.348)
+	var up := Vector3(0.0014, -0.349, 0.937)
+	_weapon_display.basis = Basis(up.cross(barrel), up, barrel).orthonormalized()
+	_weapon_display.position = barrel * 0.051 + up * 0.012
+	hand.add_child(_weapon_display)
+	for id in ["Pulse", "Arc"]:
+		var item := Node3D.new()
+		item.name = id
+		_weapon_display.add_child(item)
+		var tint := Color("567b83") if id == "Pulse" else Color("926f67")
+		_equipment_part(item, Vector3(0, 0.041, 0.075), Vector3(0.069, 0.074, 0.21 if id == "Pulse" else 0.27), tint)
+		_equipment_part(item, Vector3(0, -0.022, -0.008), Vector3(0.056, 0.105, 0.062), Color("26353e"))
+		_equipment_part(item, Vector3(0, 0.081, 0.084), Vector3(0.047, 0.014, 0.082),
+			Color("81d5cd") if id == "Pulse" else Color("e3bb83"))
+	_weapon_display.hide()
+
+func _equipment_part(parent: Node3D, at: Vector3, size: Vector3, tint: Color) -> void:
+	var part := MeshInstance3D.new()
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	part.mesh = mesh
+	part.material_override = Materials.surface("METAL", tint)
+	part.position = at
+	parent.add_child(part)

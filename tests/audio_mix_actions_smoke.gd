@@ -46,7 +46,7 @@ func _verify() -> void:
 		if (deck as AudioStreamPlayer).bus != AudioMix.MUSIC:
 			_fail("Radio music is bypassing the music stem")
 			return
-	if (fm.get("_venue") as AudioStreamPlayer3D).bus != AudioMix.MUSIC:
+	if (fm.get("_venue") as AudioStreamPlayer3D).bus != AudioMix.STREET_MUSIC:
 		_fail("Outdoor venue soundtrack is bypassing the music stem")
 		return
 	if (menu.get("_ui_click") as AudioStreamPlayer).bus != AudioMix.UI:
@@ -54,7 +54,7 @@ func _verify() -> void:
 		return
 	for kind in ["WIND", "TRAFFIC", "INDUSTRIAL", "WATER"]:
 		var bed := director.get_node_or_null("MorrowBay_" + kind) as AudioStreamPlayer
-		if bed == null or bed.bus != AudioMix.AMBIENCE:
+		if bed == null or bed.bus != AudioMix.OUTSIDE_BEDS:
 			_fail("City background is not routed independently: " + kind)
 			return
 	var venues := game.get_node_or_null("SocialVenues")
@@ -62,7 +62,7 @@ func _verify() -> void:
 		_fail("Venue system missing")
 		return
 	for emitter in (venues.get("_ambience") as Dictionary).values():
-		if (emitter as AudioStreamPlayer3D).bus != AudioMix.AMBIENCE:
+		if (emitter as AudioStreamPlayer3D).bus != AudioMix.OUTSIDE_BEDS:
 			_fail("Outdoor venue ambience bypasses the ambient stem")
 			return
 	var step := director.get_node_or_null("CourierFootsteps") as AudioStreamPlayer3D
@@ -74,7 +74,7 @@ func _verify() -> void:
 		_fail("Spatial traffic soundfield is missing")
 		return
 	for voice in traffic.get("_voices"):
-		if (voice as AudioStreamPlayer3D).bus != AudioMix.EFFECTS:
+		if (voice as AudioStreamPlayer3D).bus != AudioMix.OUTSIDE_EFFECTS:
 			_fail("A moving traffic source bypassed the effects stem")
 			return
 	var motor := car.get_node_or_null("KestrelS6HeroVisual/OriginalElectricDrivetrain") as AudioStreamPlayer3D
@@ -90,6 +90,18 @@ func _verify() -> void:
 		_fail("M-Line train audio does not use the effects stem")
 		return
 	var voices: Array = director.get("_events")
+	var radio := game.get_node("PoliceRadio")
+	for property in ["_voice", "_local_voice"]:
+		if radio.get(property).bus != AudioMix.DIALOGUE:
+			_fail("The local and player dispatch receivers need an independent dialogue stem")
+			return
+	var key := InputEventKey.new()
+	key.physical_keycode = KEY_B
+	var pad := InputEventJoypadButton.new()
+	pad.button_index = JOY_BUTTON_DPAD_RIGHT
+	if not InputMap.action_has_event("radio_toggle", key) or not InputMap.action_has_event("radio_toggle", pad):
+		_fail("Keyboard and gamepad radio power bindings must both be installed")
+		return
 	if voices.size() != 4:
 		_fail("Action sounds must use four bounded pooled voices")
 		return
@@ -123,7 +135,11 @@ func _verify() -> void:
 		_fail("Door sound does not follow its physical source")
 		return
 	# Real courier delivery and vehicle entry/exit must call the shared director.
+	var courier = game.get("courier_mission")
+	var courier_player: CharacterBody3D = game.get("player")
+	courier_player.global_position = courier.target()
 	game.call("_advance_mission")
+	courier_player.global_position = courier.target()
 	game.call("_advance_mission")
 	if _count(director) != origin + 3:
 		_fail("Delivery objective transitions did not trigger pickup and completion cues")
@@ -165,5 +181,5 @@ func _verify() -> void:
 		_fail("Saved SFX mute is not respected for action sounds")
 		return
 	director.call("set_preferences", 0.65, 0.75)
-	print("AUDIO_MIX_ACTIONS_SMOKE PASS: 4 routed stems, shared bus gains/mutes, car/rail/traffic, 4 pooled voices, mission/car/jump/land events and idempotence")
+	print("AUDIO_MIX_ACTIONS_SMOKE PASS: routed stems, acoustic buses, dispatch, 4 pooled cues, mission/car/jump/land and idempotence")
 	quit(0)

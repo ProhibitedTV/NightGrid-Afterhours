@@ -1,5 +1,6 @@
 extends SceneTree
 const Road = preload("res://scripts/photo_road_network.gd")
+const Maps = preload("res://scripts/material_library.gd")
 func _initialize() -> void:
 	call_deferred("_verify")
 func _check(ok:bool,message:String)->bool:
@@ -40,8 +41,64 @@ func _verify()->void:
 		var uv:PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV]
 		if not _check(vertices.size()==uv.size() and vertices.size()*4==(arrays[Mesh.ARRAY_TANGENT] as PackedFloat32Array).size(),"UVs and tangents"):
 			return
+		var normals:PackedVector3Array=arrays[Mesh.ARRAY_NORMAL]
+		var tangents:PackedFloat32Array=arrays[Mesh.ARRAY_TANGENT]
+		if not _check((node.material_override as StandardMaterial3D).cull_mode==BaseMaterial3D.CULL_BACK,"retain front-face culling; do not mask incorrect topology"):
+			return
+		for i in range(0,vertices.size(),3):
+			var cross:Vector3=(vertices[i+1]-vertices[i]).cross(vertices[i+2]-vertices[i])
+			if not _check(cross.dot(Vector3.UP)<-0.00001,"clockwise upward-facing nondegenerate asphalt triangle"):
+				return
 		for i in range(vertices.size()):
+			# ArrayMesh stores packed normals/tangents; compare directional
+			# alignment rather than exact reconstructed vector components.
+			var tangent := Vector3(tangents[i*4],tangents[i*4+1],tangents[i*4+2])
+			var handedness:float = tangents[i*4+3]
+			if not _check(normals[i].dot(Vector3.UP)>0.999 and tangent.dot(Vector3.RIGHT)>0.999 and handedness < -0.99,"correct photo normal and tangent basis: %s / %s / %f" % [normals[i],tangent,handedness]):
+				return
 			if not _check(is_equal_approx(vertices[i].y,Road.Y) and uv[i].is_equal_approx(Vector2(vertices[i].x,vertices[i].z)/Road.TILE_METRES),"world-aligned scale and road height"):
 				return
-	print("PHOTO_ROAD_NETWORK_SMOKE PASS: exact nonoverlapping street union, two drawables, photo PBR and UV scale")
+	var clock: Node = world.get("day_night")
+	clock.set_process(false)
+	clock.set("paused", true)
+	var sidewalk := Maps.surface("PHOTO_SIDEWALK", Color("b2b0ac"))
+	var curb := Maps.surface("PHOTO_CURB", Color("bfc0bd"))
+	var puddles := world.get_node_or_null("WetStreets")
+	if not _check(puddles != null and puddles.get_child_count() == 1 and puddles.call("patch_count") == 16, "sixteen authored puddles use one visual batch"):
+		return
+	var puddle_batch := puddles.get_node("WeatherPuddleBatch") as MeshInstance3D
+	if not _check(puddle_batch != null and not puddle_batch.visible and puddle_batch.mesh is ArrayMesh, "clear weather hides puddle batch"):
+		return
+	var puddle_arrays: Array = puddle_batch.mesh.surface_get_arrays(0)
+	var puddle_verts: PackedVector3Array = puddle_arrays[Mesh.ARRAY_VERTEX]
+	var puddle_uv: PackedVector2Array = puddle_arrays[Mesh.ARRAY_TEX_UV]
+	if not _check(puddle_verts.size() == 16 * 20 * 3 and puddle_uv.size() == puddle_verts.size(), "bounded original shoreline geometry"):
+		return
+	for k in range(0, puddle_verts.size(), 3):
+		if not _check((puddle_verts[k+1]-puddle_verts[k]).cross(puddle_verts[k+2]-puddle_verts[k]).dot(Vector3.UP) < 0.0, "correct puddle winding"):
+			return
+	for k in puddle_verts.size():
+		if not _check(is_equal_approx(puddle_verts[k].y, Road.Y + .006) and puddle_uv[k].is_equal_approx(Vector2(puddle_verts[k].x,puddle_verts[k].z)/Road.TILE_METRES), "puddles align to asphalt photo"):
+			return
+	var old_tint := a.albedo_color
+	var old_rough := a.roughness
+	var old_sidewalk := sidewalk.roughness
+	var old_curb := curb.roughness
+	var old_mesh := dry.mesh
+	clock.call("set_weather", "storm")
+	clock.call("_process", 3.0)
+	if not _check(puddle_batch.visible, "storm activates pooled water batch"):
+		return
+	if not _check(a.albedo_color.r < old_tint.r and a.roughness < old_rough and b.roughness < a.roughness and sidewalk.roughness < old_sidewalk and curb.roughness < old_curb, "shared city weather reaches all ground families"):
+		return
+	var new_sidewalk := Maps.surface("PHOTO_SIDEWALK", Color("b1b2b3"))
+	if not _check(new_sidewalk.roughness < 1.0 and dry.mesh == old_mesh and dry.material_override == a, "newly cached ground inherits film without rebuilding meshes"):
+		return
+	clock.call("set_weather", "clear")
+	clock.call("_process", 20.0)
+	if not _check(not puddle_batch.visible, "drying hides puddles"):
+		return
+	if not _check(a.albedo_color.is_equal_approx(old_tint) and is_equal_approx(a.roughness, old_rough) and is_equal_approx(sidewalk.roughness, old_sidewalk) and is_equal_approx(curb.roughness, old_curb) and is_equal_approx(new_sidewalk.roughness,1.0), "drying restores baseline across city"):
+		return
+	print("PHOTO_ROAD_NETWORK_SMOKE PASS: exact nonoverlapping street union, two drawables, photo PBR, UV scale, clockwise front faces and tangent basis")
 	quit(0)

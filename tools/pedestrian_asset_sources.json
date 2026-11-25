@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "source": "https://tevy.dev/models.json",
+  "license": "CC0-1.0",
+  "assets": [
+    {
+      "id": "casual-walker",
+      "url": "https://tevy.dev/models/casual-walker/v1/lod1.glb",
+      "source_page": "https://tevy.dev/models/casual-walker",
+      "bytes": 671280,
+      "sha256": "ed578eebe688843f684391719158a08bf454665fd63f16df6b4745a57cffda9f",
+      "triangles": 8999,
+      "clips": [
+        "idle",
+        "walk",
+        "look_around",
+        "wave"
+      ]
+    },
+    {
+      "id": "dog-walker",
+      "url": "https://tevy.dev/models/dog-walker/v1/lod1.glb",
+      "source_page": "https://tevy.dev/models/dog-walker",
+      "bytes": 600648,
+      "sha256": "a5408cf77434f9a74b112bc4924f07e1f86191edfac7f11eb4bb29b7d28b0ef4",
+      "triangles": 8999,
+      "clips": [
+        "idle",
+        "walk",
+        "look_around",
+        "wave"
+      ]
+    },
+    {
+      "id": "road-worker",
+      "url": "https://tevy.dev/models/road-worker/v1/lod1.glb",
+      "source_page": "https://tevy.dev/models/road-worker",
+      "bytes": 628044,
+      "sha256": "a7b66ac6b58404ad4d076b25dd77412191ef2462c6f5f06e72eb9cd854d4d17b",
+      "triangles": 8999,
+      "clips": [
+        "idle",
+        "walk",
+        "look_around",
+        "wave"
+      ]
+    },
+    {
+      "id": "hiker",
+      "url": "https://tevy.dev/models/hiker/v1/lod1.glb",
+      "source_page": "https://tevy.dev/models/hiker",
+      "bytes": 614708,
+      "sha256": "bbf5f07bf23991a967cd29ef6c692d852047f1fc0d6860f689108e8e485b2f6e",
+      "triangles": 8999,
+      "clips": [
+        "idle",
+        "walk",
+        "look_around",
+        "wave"
+      ]
+    }
+  ]
+}

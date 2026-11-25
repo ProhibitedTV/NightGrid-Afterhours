@@ -97,6 +97,17 @@ func _draw() -> void:
 			var pos := _to_map(station, side, scale)
 			draw_rect(Rect2(pos - Vector2(4.0, 4.0), Vector2(8.0, 8.0)), rail_tint, true)
 			draw_rect(Rect2(pos - Vector2(4.0, 4.0), Vector2(8.0, 8.0)), Color("1b4050"), false, 1.1)
+		var closures: Dictionary = state.get("road_restrictions", {})
+		for record in closures.values():
+			var edge := Nav.closure_segment(record)
+			if edge.size() == 2:
+				var a := _to_map(edge[0],side,scale)
+				var b := _to_map(edge[1],side,scale)
+				draw_line(a,b,Color("101821"),5.5,true)
+				draw_dashed_line(a,b,Nav.CLOSURE_COLOR,3.2,5.0,true,true)
+				var mid := (a+b)*0.5
+				var crossbar := (b-a).orthogonal().normalized()*4.0
+				draw_line(mid-crossbar,mid+crossbar,Nav.CLOSURE_COLOR,2.3,true)
 		var mission: Vector2 = state["mission"]
 		var actor: Vector2 = state["player"]
 		var color := Color("38e5e4") if state["carrying"] else Color("ffba56")
@@ -109,6 +120,8 @@ func _draw() -> void:
 					tint = Color("86d3df")
 				"BAR":
 					tint = Color("e5a1a6")
+				"ARCADE":
+					tint = Color("72d7cf")
 				"CLUB":
 					tint = Color("e28eec")
 			if not bool(location["open"]):
@@ -167,8 +180,7 @@ func _draw() -> void:
 					draw_dashed_line(_to_map(actor, side, scale), _to_map(entry, side, scale), Nav.COLOR, 1.4, 4.0, true, true)
 				if destination.distance_to(exit) >= 0.1:
 					draw_dashed_line(_to_map(exit, side, scale), target_pin, Nav.COLOR, 1.4, 4.0, true, true)
-			else:
-				draw_dashed_line(_to_map(actor, side, scale), target_pin, Nav.COLOR, 1.4, 4.0, true, true)
+			# Retain the destination pin even if the route is unavailable.
 			var diamond := PackedVector2Array([target_pin + Vector2(0, -8), target_pin + Vector2(8, 0),
 				target_pin + Vector2(0, 8), target_pin + Vector2(-8, 0), target_pin + Vector2(0, -8)])
 			draw_polyline(diamond, Nav.COLOR, 2.5, true)

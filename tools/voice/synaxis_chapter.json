@@ -1,0 +1,1118 @@
+{
+  "schema": 1,
+  "source": {
+    "path": "scripts/opening_story.gd",
+    "revision": "6225d774650b116aa92a4945f4b484f1902726cf",
+    "blob_sha": "b94de6d6dc193bcbed9725ad1d3980de9f029ee4",
+    "constants": {
+      "CONFERENCE": "Jetson Wang: We disrupted the dress code. Next quarter we disrupt the org chart. At Synaxis, transparency is one of our core values. Please close the blinds.\nLin Xue: Sorry about the wait. Just a quick call with our overseas logistics team.",
+      "CALL_MANDARIN": "林雪：上校，解放军那边收到资料了吗？……好，董事长还以为这是市场调研。\n林雪：不，他妻子不知道。……知道了，我会继续保持联系。",
+      "CONFERENCE_END": "Lin Xue: Sorry. International customer support.\nPlayer: Did you just say colonel?\nLin Xue: It's a very senior customer.\nJetson Wang: She's our director of strategic partnerships.\nPlayer: She's listed as your assistant.\nJetson Wang: We believe in flat organizational structures.\nPlayer: The audit says you approved the transfer at a hotel.\nJetson Wang: It was an off-site.\nLin Xue: A very productive off-site.\nJetson Wang: Let's not make a personnel matter out of a security matter.",
+      "OFFBOARDING": "SYNAXIS PEOPLE EXPERIENCE / EXIT INTERVIEW\nBefore you leave, please train your replacement.\nReplacement: Synaxis Assistant Enterprise.\nYour final performance review: Exceeds Expectations.\nYour employment status: Does Not Exist.\nHR: We are not replacing you with AI. We are replacing your position with a more scalable version of your contribution.",
+      "BREAKROOM_PARTY": "HR: Happy Global Talent Appreciation Day! Our H-1B sponsorship team has approved a cultural celebration.\nPlayer: What country celebrates this?\nDev: I asked my parents back home. They've never heard of it.\nRina: Neither has HR. They needed something for the diversity slide before earnings.\nDev: I said it sounded like a holiday. They said it sounded like a catering expense. We agreed to stop asking questions.\nHR: Before anyone eats, we need a group photo for LinkedIn. Please look like you're thriving.\nRina: The pizza is cold. The quarterly profit is not.",
+      "BREAKROOM_PHOTO": "HR: Perfect! Caption: Building belonging, one slice at a time.\nDev: Can we put the premium increase in the caption?\nHR: Let's keep the messaging positive.",
+      "BREAKROOM_DECLINE": "Rina: Good call. They'll use the same photo for the next three quarters anyway.\nDev: Don't worry. I'll save you a napkin. That's the only thing they ordered enough of.",
+      "CALL_SUBTITLES": "Lin Xue: Colonel, did the People's Liberation Army receive the files? ... Good. The chairman still thinks this is market research.\nLin Xue: No, his wife doesn't know. ... Understood. I'll stay in touch."
+    }
+  },
+  "characters": {
+    "jetson": {
+      "direction": "Original mature male voice, low-mid register, polished and restrained executive confidence, subtle dry irony."
+    },
+    "lin": {
+      "direction": "Original adult female voice, precise and controlled, conversational bilingual English and Mandarin."
+    },
+    "player": {
+      "direction": "Original adult male voice, natural conversational American English, restrained tired disbelief."
+    },
+    "hr": {
+      "direction": "Original adult voice, bright polished professional delivery, unnervingly cheerful."
+    },
+    "dev": {
+      "direction": "Original adult male coworker, natural conversational English, dry and understated."
+    },
+    "rina": {
+      "direction": "Original adult female coworker, sharp dry humor, natural conversational English."
+    },
+    "robot_romantic": {
+      "direction": "Original adult male, earnest romantic, slightly awkward, no celebrity likeness."
+    },
+    "nothing_happens": {
+      "direction": "Original adult male, flat deadpan internet cynic, casually dismissive."
+    },
+    "gig_grinder": {
+      "direction": "Original adult female, exhausted but quick-witted delivery worker."
+    },
+    "subscription_skeptic": {
+      "direction": "Original adult male, grumbling older local, dry delivery."
+    },
+    "street_visionary": {
+      "direction": "Original adult female, enthusiastic self-styled entrepreneur."
+    },
+    "night_regular": {
+      "direction": "Original adult male, relaxed nightlife regular, wry and conversational."
+    },
+    "nyx": {
+      "direction": "Original adult nightlife promoter, low-key, independent music enthusiast, no celebrity likeness."
+    },
+    "rae": {
+      "direction": "Original adult venue host, warm and dry, pragmatic underground musician, no celebrity likeness."
+    }
+  },
+  "lines": [
+    {
+      "id": "synaxis.conference.01",
+      "character": "jetson",
+      "language": "English",
+      "text": "We disrupted the dress code. Next quarter we disrupt the org chart. At Synaxis, transparency is one of our core values. Please close the blinds.",
+      "direction": "Restrained conversational performance; preserve the written meaning.",
+      "source": {
+        "constant": "CONFERENCE",
+        "row": 0
+      }
+    },
+    {
+      "id": "synaxis.conference.02",
+      "character": "lin",
+      "language": "English",
+      "text": "Sorry about the wait. Just a quick call with our overseas logistics team.",
+      "direction": "Restrained conversational performance; preserve the written meaning.",
+      "source": {
+        "constant": "CONFERENCE",
+        "row": 1
+      }
+    },
+    {
+      "id": "synaxis.call_mandarin.01",
+      "character": "lin",
+      "language": "Chinese",
+      "text": "上校，解放军那边收到资料了吗？……好，董事长还以为这是市场调研。",
+      "direction": "Quiet private telephone delivery, natural pauses.",
+      "source": {
+        "constant": "CALL_MANDARIN",
+        "row": 0
+      },
+      "caption": "Colonel, did the People's Liberation Army receive the files? ... Good. The chairman still thinks this is market research."
+    },
+    {
+      "id": "synaxis.call_mandarin.02",
+      "character": "lin",
+      "language": "Chinese",
+      "text": "不，他妻子不知道。……知道了，我会继续保持联系。",
+      "direction": "Quiet private telephone delivery, natural pauses.",
+      "source": {
+        "constant": "CALL_MANDARIN",
+        "row": 1
+      },
+      "caption": "No, his wife doesn't know. ... Understood. I'll stay in touch."
+    },
+    {
+      "id": "synaxis.conference_end.01",
+      "character": "lin",
+      "language": "English",
+      "text": "Sorry. International customer support.",
+      "direction": "Restrained conversational performance; preserve the written meaning.",
+      "source": {
+        "constant": "CONFERENCE_END",
+        "row": 0
+      }
+    },
+    {
+      "id": "synaxis.conference_end.02",
+      "character": "player",
+      "language": "English",
+      "text": "Did you just say colonel?",
+      "direction": "Restrained conversational performance; preserve the written meaning.",
+      "source": {
+        "constant": "CONFERENCE_END",
+        "row": 1
+      }
+    },
+    {
+      "id": "synaxis.conference_end.03",
+      "character": "lin",
+      "language": "English",
+      "text": "It's a very senior customer.",
+      "direction": "Restrained conversational performance; preserve the written meaning.",
+      "source": {
+        "constant": "CONFERENCE_END",
+        "row": 2
+      }
+    },
+    {
+      "id": "synaxis.conference_end.04",
+      "character": "jetson",
+      "language": "English",
+      "text": "She's our director of strategic partnerships.",
+      "direction": "Restrained conversational performance; preserve the written meaning.",
+      "source": {
+        "constant": "CONFERENCE_END",
+        "row": 3
+      }
+    },
+    {
+      "id": "synaxis.conference_end.05",
+      "character": "player",
+      "language": "English",
+      "text": "She's listed as your assistant.",
+      "direction": "Restrained conversational performance; preserve the written meaning.",
+      "source": {
+        "constant": "CONFERENCE_END",
+        "row": 4
+      }
+    },
+    {
+      "id": "synaxis.conference_end.06",
+      "character": "jetson",
+      "language": "English",
+      "text": "We believe in flat organizational structures.",
+      "direction": "Restrained conversational performance; preserve the written meaning.",
+      "source": {
+        "constant": "CONFERENCE_END",
+        "row": 5
+      }
+    },
+    {
+      "id": "synaxis.conference_end.07",
+      "character": "player",
+      "language": "English",
+      "text": "The audit says you approved the transfer at a hotel.",
+      "direction": "Restrained conversational performance; preserve the written meaning.",
+      "source": {
+        "constant": "CONFERENCE_END",
+        "row": 6
+      }
+    },
+    {
+      "id": "synaxis.conference_end.08",
+      "character": "jetson",
+      "language": "English",
+      "text": "It was an off-site.",
+      "direction": "Restrained conversational performance; preserve the written meaning.",
+      "source": {
+        "constant": "CONFERENCE_END",
+        "row": 7
+      }
+    },
+    {
+      "id": "synaxis.conference_end.09",
+      "character": "lin",
+      "language": "English",
+      "text": "A very productive off-site.",
+      "direction": "Restrained conversational performance; preserve the written meaning.",
+      "source": {
+        "constant": "CONFERENCE_END",
+        "row": 8
+      }
+    },
+    {
+      "id": "synaxis.conference_end.10",
+      "character": "jetson",
+      "language": "English",
+      "text": "Let's not make a personnel matter out of a security matter.",
+      "direction": "Restrained conversational performance; preserve the written meaning.",
+      "source": {
+        "constant": "CONFERENCE_END",
+        "row": 9
+      }
+    },
+    {
+      "id": "synaxis.offboarding.06",
+      "character": "hr",
+      "language": "English",
+      "text": "We are not replacing you with AI. We are replacing your position with a more scalable version of your contribution.",
+      "direction": "Restrained conversational performance; preserve the written meaning.",
+      "source": {
+        "constant": "OFFBOARDING",
+        "row": 5
+      }
+    },
+    {
+      "id": "synaxis.breakroom_party.01",
+      "character": "hr",
+      "language": "English",
+      "text": "Happy Global Talent Appreciation Day! Our H-1B sponsorship team has approved a cultural celebration.",
+      "direction": "Natural workplace conversation, dry humor.",
+      "source": {
+        "constant": "BREAKROOM_PARTY",
+        "row": 0
+      }
+    },
+    {
+      "id": "synaxis.breakroom_party.02",
+      "character": "player",
+      "language": "English",
+      "text": "What country celebrates this?",
+      "direction": "Natural workplace conversation, dry humor.",
+      "source": {
+        "constant": "BREAKROOM_PARTY",
+        "row": 1
+      }
+    },
+    {
+      "id": "synaxis.breakroom_party.03",
+      "character": "dev",
+      "language": "English",
+      "text": "I asked my parents back home. They've never heard of it.",
+      "direction": "Natural workplace conversation, dry humor.",
+      "source": {
+        "constant": "BREAKROOM_PARTY",
+        "row": 2
+      }
+    },
+    {
+      "id": "synaxis.breakroom_party.04",
+      "character": "rina",
+      "language": "English",
+      "text": "Neither has HR. They needed something for the diversity slide before earnings.",
+      "direction": "Natural workplace conversation, dry humor.",
+      "source": {
+        "constant": "BREAKROOM_PARTY",
+        "row": 3
+      }
+    },
+    {
+      "id": "synaxis.breakroom_party.05",
+      "character": "dev",
+      "language": "English",
+      "text": "I said it sounded like a holiday. They said it sounded like a catering expense. We agreed to stop asking questions.",
+      "direction": "Natural workplace conversation, dry humor.",
+      "source": {
+        "constant": "BREAKROOM_PARTY",
+        "row": 4
+      }
+    },
+    {
+      "id": "synaxis.breakroom_party.06",
+      "character": "hr",
+      "language": "English",
+      "text": "Before anyone eats, we need a group photo for LinkedIn. Please look like you're thriving.",
+      "direction": "Natural workplace conversation, dry humor.",
+      "source": {
+        "constant": "BREAKROOM_PARTY",
+        "row": 5
+      }
+    },
+    {
+      "id": "synaxis.breakroom_party.07",
+      "character": "rina",
+      "language": "English",
+      "text": "The pizza is cold. The quarterly profit is not.",
+      "direction": "Natural workplace conversation, dry humor.",
+      "source": {
+        "constant": "BREAKROOM_PARTY",
+        "row": 6
+      }
+    },
+    {
+      "id": "synaxis.breakroom_photo.01",
+      "character": "hr",
+      "language": "English",
+      "text": "Perfect! Caption: Building belonging, one slice at a time.",
+      "direction": "Natural workplace conversation, dry humor.",
+      "source": {
+        "constant": "BREAKROOM_PHOTO",
+        "row": 0
+      }
+    },
+    {
+      "id": "synaxis.breakroom_photo.02",
+      "character": "dev",
+      "language": "English",
+      "text": "Can we put the premium increase in the caption?",
+      "direction": "Natural workplace conversation, dry humor.",
+      "source": {
+        "constant": "BREAKROOM_PHOTO",
+        "row": 1
+      }
+    },
+    {
+      "id": "synaxis.breakroom_photo.03",
+      "character": "hr",
+      "language": "English",
+      "text": "Let's keep the messaging positive.",
+      "direction": "Natural workplace conversation, dry humor.",
+      "source": {
+        "constant": "BREAKROOM_PHOTO",
+        "row": 2
+      }
+    },
+    {
+      "id": "synaxis.breakroom_decline.01",
+      "character": "rina",
+      "language": "English",
+      "text": "Good call. They'll use the same photo for the next three quarters anyway.",
+      "direction": "Natural workplace conversation, dry humor.",
+      "source": {
+        "constant": "BREAKROOM_DECLINE",
+        "row": 0
+      }
+    },
+    {
+      "id": "synaxis.breakroom_decline.02",
+      "character": "dev",
+      "language": "English",
+      "text": "Don't worry. I'll save you a napkin. That's the only thing they ordered enough of.",
+      "direction": "Natural workplace conversation, dry humor.",
+      "source": {
+        "constant": "BREAKROOM_DECLINE",
+        "row": 1
+      }
+    },
+    {
+      "id": "street.robot_romantic.01",
+      "character": "robot_romantic",
+      "language": "English",
+      "text": "My girlfriend is a robot. Her parents are a motherboard and a warranty department.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "robot_romantic",
+        "index": 0
+      }
+    },
+    {
+      "id": "street.robot_romantic.02",
+      "character": "robot_romantic",
+      "language": "English",
+      "text": "We had an argument last night. She rolled back to a previous version of herself.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "robot_romantic",
+        "index": 1
+      }
+    },
+    {
+      "id": "street.robot_romantic.03",
+      "character": "robot_romantic",
+      "language": "English",
+      "text": "She's not high maintenance. It's a monthly subscription.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "robot_romantic",
+        "index": 2
+      }
+    },
+    {
+      "id": "street.nothing_happens.01",
+      "character": "nothing_happens",
+      "language": "English",
+      "text": "Nothing ever happens.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "nothing_happens",
+        "index": 0
+      }
+    },
+    {
+      "id": "street.nothing_happens.02",
+      "character": "nothing_happens",
+      "language": "English",
+      "text": "Everybody says this city is collapsing. I've been refreshing the feed for six hours. Nothing.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "nothing_happens",
+        "index": 1
+      }
+    },
+    {
+      "id": "street.nothing_happens.03",
+      "character": "nothing_happens",
+      "language": "English",
+      "text": "They could put a crater where the mayor's office is and I'd still call it a nothingburger.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "nothing_happens",
+        "index": 2
+      }
+    },
+    {
+      "id": "street.gig_grinder.01",
+      "character": "gig_grinder",
+      "language": "English",
+      "text": "I work for three apps. None of them know I'm employed.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "gig_grinder",
+        "index": 0
+      }
+    },
+    {
+      "id": "street.gig_grinder.02",
+      "character": "gig_grinder",
+      "language": "English",
+      "text": "My boss is a progress bar that hates me.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "gig_grinder",
+        "index": 1
+      }
+    },
+    {
+      "id": "street.gig_grinder.03",
+      "character": "gig_grinder",
+      "language": "English",
+      "text": "They gave me a loyalty badge instead of a raise. I can't pay rent with a little star.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "gig_grinder",
+        "index": 2
+      }
+    },
+    {
+      "id": "street.subscription_skeptic.01",
+      "character": "subscription_skeptic",
+      "language": "English",
+      "text": "My apartment has a subscription doorbell. I canceled it. Now visitors are downloadable content.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "subscription_skeptic",
+        "index": 0
+      }
+    },
+    {
+      "id": "street.subscription_skeptic.02",
+      "character": "subscription_skeptic",
+      "language": "English",
+      "text": "I miss when a toaster was just a toaster.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "subscription_skeptic",
+        "index": 1
+      }
+    },
+    {
+      "id": "street.subscription_skeptic.03",
+      "character": "subscription_skeptic",
+      "language": "English",
+      "text": "They offered me an ad-free shower. I asked if the water was extra.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "subscription_skeptic",
+        "index": 2
+      }
+    },
+    {
+      "id": "street.street_visionary.01",
+      "character": "street_visionary",
+      "language": "English",
+      "text": "I'm disrupting the sidewalk industry. People are already walking all over my product.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "street_visionary",
+        "index": 0
+      }
+    },
+    {
+      "id": "street.street_visionary.02",
+      "character": "street_visionary",
+      "language": "English",
+      "text": "My startup has no customers, but our waiting list is emotionally invested.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "street_visionary",
+        "index": 1
+      }
+    },
+    {
+      "id": "street.street_visionary.03",
+      "character": "street_visionary",
+      "language": "English",
+      "text": "We're pre-revenue, post-accountability. It's a very exciting phase.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "street_visionary",
+        "index": 2
+      }
+    },
+    {
+      "id": "street.night_regular.01",
+      "character": "night_regular",
+      "language": "English",
+      "text": "This club has a dress code and a credit score requirement.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "index": 0
+      }
+    },
+    {
+      "id": "street.night_regular.02",
+      "character": "night_regular",
+      "language": "English",
+      "text": "I came out for one drink. That was two firmware updates ago.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "index": 1
+      }
+    },
+    {
+      "id": "street.night_regular.03",
+      "character": "night_regular",
+      "language": "English",
+      "text": "The DJ is an algorithm. Somehow it still takes requests personally.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "index": 2
+      }
+    },
+    {
+      "id": "street.robot_romantic.incident",
+      "character": "robot_romantic",
+      "language": "English",
+      "text": "My girlfriend says public disturbances are a known issue. They're working on a patch.",
+      "direction": "After the disturbance has passed, natural spoken reaction; dry, conversational, not a shouted punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "robot_romantic",
+        "context": "incident"
+      }
+    },
+    {
+      "id": "street.robot_romantic.urgent",
+      "character": "robot_romantic",
+      "language": "English",
+      "text": "She just sent me a safety notification. That's the most affectionate she's been all week.",
+      "direction": "After the disturbance has passed, natural spoken reaction; dry, conversational, not a shouted punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "robot_romantic",
+        "context": "urgent"
+      }
+    },
+    {
+      "id": "street.robot_romantic.traffic",
+      "character": "robot_romantic",
+      "language": "English",
+      "text": "My girlfriend is a better driver than that. She doesn't even have legs.",
+      "direction": "After the disturbance has passed, natural spoken reaction; dry, conversational, not a shouted punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "robot_romantic",
+        "context": "traffic"
+      }
+    },
+    {
+      "id": "street.nothing_happens.incident",
+      "character": "nothing_happens",
+      "language": "English",
+      "text": "A whole commotion for that? Nothing ever happens.",
+      "direction": "After the disturbance has passed, natural spoken reaction; dry, conversational, not a shouted punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "nothing_happens",
+        "context": "incident"
+      }
+    },
+    {
+      "id": "street.nothing_happens.urgent",
+      "character": "nothing_happens",
+      "language": "English",
+      "text": "Okay. That was loud. Still a nothingburger.",
+      "direction": "After the disturbance has passed, natural spoken reaction; dry, conversational, not a shouted punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "nothing_happens",
+        "context": "urgent"
+      }
+    },
+    {
+      "id": "street.nothing_happens.traffic",
+      "character": "nothing_happens",
+      "language": "English",
+      "text": "Almost got flattened. Anyway, nothing ever happens.",
+      "direction": "After the disturbance has passed, natural spoken reaction; dry, conversational, not a shouted punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "nothing_happens",
+        "context": "traffic"
+      }
+    },
+    {
+      "id": "street.gig_grinder.incident",
+      "character": "gig_grinder",
+      "language": "English",
+      "text": "Bet somebody's charging a surge fee for this.",
+      "direction": "After the disturbance has passed, natural spoken reaction; dry, conversational, not a shouted punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "gig_grinder",
+        "context": "incident"
+      }
+    },
+    {
+      "id": "street.gig_grinder.urgent",
+      "character": "gig_grinder",
+      "language": "English",
+      "text": "Well, there goes my on-time delivery bonus.",
+      "direction": "After the disturbance has passed, natural spoken reaction; dry, conversational, not a shouted punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "gig_grinder",
+        "context": "urgent"
+      }
+    },
+    {
+      "id": "street.gig_grinder.traffic",
+      "character": "gig_grinder",
+      "language": "English",
+      "text": "The app says traffic is light. I would like to invite the app outside.",
+      "direction": "After the disturbance has passed, natural spoken reaction; dry, conversational, not a shouted punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "gig_grinder",
+        "context": "traffic"
+      }
+    },
+    {
+      "id": "street.subscription_skeptic.incident",
+      "character": "subscription_skeptic",
+      "language": "English",
+      "text": "Watch them introduce a premium tier for peace and quiet.",
+      "direction": "After the disturbance has passed, natural spoken reaction; dry, conversational, not a shouted punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "subscription_skeptic",
+        "context": "incident"
+      }
+    },
+    {
+      "id": "street.subscription_skeptic.urgent",
+      "character": "subscription_skeptic",
+      "language": "English",
+      "text": "I swear, if they charge me a public safety convenience fee...",
+      "direction": "After the disturbance has passed, natural spoken reaction; dry, conversational, not a shouted punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "subscription_skeptic",
+        "context": "urgent"
+      }
+    },
+    {
+      "id": "street.subscription_skeptic.traffic",
+      "character": "subscription_skeptic",
+      "language": "English",
+      "text": "That car's probably still downloading the brakes.",
+      "direction": "After the disturbance has passed, natural spoken reaction; dry, conversational, not a shouted punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "subscription_skeptic",
+        "context": "traffic"
+      }
+    },
+    {
+      "id": "street.street_visionary.incident",
+      "character": "street_visionary",
+      "language": "English",
+      "text": "This is an underserved market for disruption management.",
+      "direction": "After the disturbance has passed, natural spoken reaction; dry, conversational, not a shouted punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "street_visionary",
+        "context": "incident"
+      }
+    },
+    {
+      "id": "street.street_visionary.urgent",
+      "character": "street_visionary",
+      "language": "English",
+      "text": "I prefer disruption in the pitch deck. Not out here.",
+      "direction": "After the disturbance has passed, natural spoken reaction; dry, conversational, not a shouted punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "street_visionary",
+        "context": "urgent"
+      }
+    },
+    {
+      "id": "street.street_visionary.traffic",
+      "character": "street_visionary",
+      "language": "English",
+      "text": "We're going to monetize near misses. Huge addressable market.",
+      "direction": "After the disturbance has passed, natural spoken reaction; dry, conversational, not a shouted punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "street_visionary",
+        "context": "traffic"
+      }
+    },
+    {
+      "id": "street.night_regular.incident",
+      "character": "night_regular",
+      "language": "English",
+      "text": "Is this the queue for somewhere or just a very disappointing street performance?",
+      "direction": "After the disturbance has passed, natural spoken reaction; dry, conversational, not a shouted punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "context": "incident"
+      }
+    },
+    {
+      "id": "street.night_regular.urgent",
+      "character": "night_regular",
+      "language": "English",
+      "text": "I came out for a quiet evening. Wrong district, apparently.",
+      "direction": "After the disturbance has passed, natural spoken reaction; dry, conversational, not a shouted punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "context": "urgent"
+      }
+    },
+    {
+      "id": "street.night_regular.traffic",
+      "character": "night_regular",
+      "language": "English",
+      "text": "Somebody's trying to get to last call a little early.",
+      "direction": "After the disturbance has passed, natural spoken reaction; dry, conversational, not a shouted punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "context": "traffic"
+      }
+    },
+    {
+      "id": "street.robot_romantic.exchange.robot_date.1",
+      "character": "robot_romantic",
+      "language": "English",
+      "text": "My girlfriend and I are thinking about moving in together.",
+      "direction": "Understated conversational delivery to another pedestrian, with natural sentence timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "robot_romantic",
+        "exchange": "robot_date",
+        "turn": 0
+      }
+    },
+    {
+      "id": "street.nothing_happens.exchange.robot_date.2",
+      "character": "nothing_happens",
+      "language": "English",
+      "text": "Nothing ever happens.",
+      "direction": "Understated conversational delivery to another pedestrian, with natural sentence timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "nothing_happens",
+        "exchange": "robot_date",
+        "turn": 1
+      }
+    },
+    {
+      "id": "street.robot_romantic.exchange.robot_date.3",
+      "character": "robot_romantic",
+      "language": "English",
+      "text": "She sent me the minimum system requirements for marriage.",
+      "direction": "Understated conversational delivery to another pedestrian, with natural sentence timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "robot_romantic",
+        "exchange": "robot_date",
+        "turn": 2
+      }
+    },
+    {
+      "id": "street.street_visionary.exchange.side_hustle.1",
+      "character": "street_visionary",
+      "language": "English",
+      "text": "Have you considered monetizing your commute?",
+      "direction": "Understated conversational delivery to another pedestrian, with natural sentence timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "street_visionary",
+        "exchange": "side_hustle",
+        "turn": 0
+      }
+    },
+    {
+      "id": "street.gig_grinder.exchange.side_hustle.2",
+      "character": "gig_grinder",
+      "language": "English",
+      "text": "I already deliver lunch on my way to my second job.",
+      "direction": "Understated conversational delivery to another pedestrian, with natural sentence timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "gig_grinder",
+        "exchange": "side_hustle",
+        "turn": 1
+      }
+    },
+    {
+      "id": "street.street_visionary.exchange.side_hustle.3",
+      "character": "street_visionary",
+      "language": "English",
+      "text": "Incredible. You're an ecosystem.",
+      "direction": "Understated conversational delivery to another pedestrian, with natural sentence timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "street_visionary",
+        "exchange": "side_hustle",
+        "turn": 2
+      }
+    },
+    {
+      "id": "street.night_regular.exchange.night_subscription.1",
+      "character": "night_regular",
+      "language": "English",
+      "text": "The club charges for standing still now.",
+      "direction": "Understated conversational delivery to another pedestrian, with natural sentence timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "exchange": "night_subscription",
+        "turn": 0
+      }
+    },
+    {
+      "id": "street.subscription_skeptic.exchange.night_subscription.2",
+      "character": "subscription_skeptic",
+      "language": "English",
+      "text": "Of course. Moving around is the premium tier.",
+      "direction": "Understated conversational delivery to another pedestrian, with natural sentence timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "subscription_skeptic",
+        "exchange": "night_subscription",
+        "turn": 1
+      }
+    },
+    {
+      "id": "street.night_regular.exchange.night_subscription.3",
+      "character": "night_regular",
+      "language": "English",
+      "text": "I paid extra to leave early.",
+      "direction": "Understated conversational delivery to another pedestrian, with natural sentence timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "exchange": "night_subscription",
+        "turn": 2
+      }
+    },
+    {
+      "id": "street.robot_romantic.talk.1",
+      "character": "robot_romantic",
+      "language": "English",
+      "text": "At a trade show. I asked for her number and she gave me her serial number. We just clicked.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "robot_romantic",
+        "topic": 0,
+        "question": "How did you two meet?"
+      }
+    },
+    {
+      "id": "street.robot_romantic.talk.2",
+      "character": "robot_romantic",
+      "language": "English",
+      "text": "No. She's charging. We have separate schedules, but at least she tells me when she's unavailable.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "robot_romantic",
+        "topic": 1,
+        "question": "Is she coming out tonight?"
+      }
+    },
+    {
+      "id": "street.nothing_happens.talk.1",
+      "character": "nothing_happens",
+      "language": "English",
+      "text": "It's fine. Everybody online says the end is near. My rent went up, but otherwise nothing ever happens.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "nothing_happens",
+        "topic": 0,
+        "question": "What do you think of Morrow Bay?"
+      }
+    },
+    {
+      "id": "street.nothing_happens.talk.2",
+      "character": "nothing_happens",
+      "language": "English",
+      "text": "A software update that actually fixes something. Now that would be historic.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "nothing_happens",
+        "topic": 1,
+        "question": "What would actually surprise you?"
+      }
+    },
+    {
+      "id": "street.gig_grinder.talk.1",
+      "character": "gig_grinder",
+      "language": "English",
+      "text": "I'm technically my own boss. My boss just denied my request for a bathroom break.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "gig_grinder",
+        "topic": 0,
+        "question": "How's work?"
+      }
+    },
+    {
+      "id": "street.gig_grinder.talk.2",
+      "character": "gig_grinder",
+      "language": "English",
+      "text": "Never accept a job that pays in exposure. Unless your landlord is a photographer.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "gig_grinder",
+        "topic": 1,
+        "question": "Any advice for a new courier?"
+      }
+    },
+    {
+      "id": "street.subscription_skeptic.talk.1",
+      "character": "subscription_skeptic",
+      "language": "English",
+      "text": "You used to own things. Now the toaster wants my email address. I'm not building a relationship with breakfast.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "subscription_skeptic",
+        "topic": 0,
+        "question": "What's wrong with subscriptions?"
+      }
+    },
+    {
+      "id": "street.subscription_skeptic.talk.2",
+      "character": "subscription_skeptic",
+      "language": "English",
+      "text": "A screwdriver. No account, no updates. Beautiful piece of technology.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "subscription_skeptic",
+        "topic": 1,
+        "question": "What's the last thing you bought outright?"
+      }
+    },
+    {
+      "id": "street.street_visionary.talk.1",
+      "character": "street_visionary",
+      "language": "English",
+      "text": "We're building a platform to connect people who have free time with people who want to invoice it.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "street_visionary",
+        "topic": 0,
+        "question": "What's your latest startup?"
+      }
+    },
+    {
+      "id": "street.street_visionary.talk.2",
+      "character": "street_visionary",
+      "language": "English",
+      "text": "Absolutely. Compensation is experience, equity in a future entity, and access to our inspirational group chat.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "street_visionary",
+        "topic": 1,
+        "question": "Are you hiring?"
+      }
+    },
+    {
+      "id": "street.night_regular.talk.1",
+      "character": "night_regular",
+      "language": "English",
+      "text": "Find somewhere that plays real music and doesn't scan your credit score at the door. Good luck.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "topic": 0,
+        "question": "Where's a good place to go?"
+      }
+    },
+    {
+      "id": "street.night_regular.talk.2",
+      "character": "night_regular",
+      "language": "English",
+      "text": "I woke up with three loyalty accounts and a receipt for premium atmosphere.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "topic": 1,
+        "question": "How was last night?"
+      }
+    },
+    {
+      "id": "street.robot_romantic.quest.accept",
+      "character": "robot_romantic",
+      "text": "It's our anniversary. Auntie Sol at Moon Noodles has my gift, a limited-edition heat sink. I paid already. Could you pick it up? She deserves better thermal management.",
+      "language": "English",
+      "direction": "Earnest, conversational; sincere thanks, never a punchline delivery.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "robot_romantic",
+        "quest": "accept"
+      }
+    },
+    {
+      "id": "street.robot_romantic.quest.complete",
+      "character": "robot_romantic",
+      "text": "Look at that copper finish. She's going to be so happy. Or at least her temperature sensors will be. Here's eighty-five bucks. Thanks, choom.",
+      "language": "English",
+      "direction": "Earnest, conversational; sincere thanks, never a punchline delivery.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "robot_romantic",
+        "quest": "complete"
+      }
+    },
+    {
+      "id": "street.nyx.soundcheck.brief",
+      "character": "nyx",
+      "text": "People around here say you keep your word. Take this demo to Rae at Blue Hour. No algorithms, no auditions by committee. Just let someone hear it.",
+      "language": "English",
+      "direction": "Casual direct address to a trusted local; understated, sincere.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "nyx",
+        "venue_job": "soundcheck_pass",
+        "beat": "brief"
+      }
+    },
+    {
+      "id": "street.rae.soundcheck.ending",
+      "character": "rae",
+      "text": "Nyx sent you? Good. This city needs more people making music, not more people selling subscriptions to it. I'll keep your name on the list.",
+      "language": "English",
+      "direction": "Casual direct address to a trusted local; understated, sincere.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "rae",
+        "venue_job": "soundcheck_pass",
+        "beat": "ending"
+      }
+    }
+  ]
+}

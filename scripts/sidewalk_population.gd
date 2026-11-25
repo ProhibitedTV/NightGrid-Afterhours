@@ -3,6 +3,7 @@ extends RefCounted
 ## are not certified walkable until the live scene validates each segment.
 ## No physical bodies, witnesses, player tracking or scene changes here.
 const Plan = preload("res://scripts/world_plan.gd")
+const Routines = preload("res://scripts/civilian_routines.gd")
 const MAX_LOGICAL = 128
 const MAX_ACTIVE = 12
 const MAX_CHANGES = 2
@@ -14,6 +15,7 @@ const UNLOAD_DISTANCE = 120.0
 const MIN_SEPARATION = 2.0
 var _agents: Dictionary = {}
 var _routes: Dictionary = {}
+var _priority_resident:=""
 
 static func block_candidates(ix: int, iz: int) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
@@ -33,7 +35,10 @@ static func balanced_links(links: Array[Dictionary]) -> Array[Dictionary]:
 	# from exhausting the west side of the map before reaching the east.
 	var groups := {}
 	var sorted := links.duplicate()
-	sorted.sort_custom(func(a: Dictionary,b: Dictionary) -> bool: return str(a.get("id","")) < str(b.get("id","")))
+	sorted.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var first := int(a.get("priority", 0))
+		var second := int(b.get("priority", 0))
+		return first < second if first != second else str(a.get("id", "")) < str(b.get("id", "")))
 	for link in sorted:
 		var district := str(link.get("district",""))
 		if not groups.has(district):
@@ -59,6 +64,7 @@ static func balanced_links(links: Array[Dictionary]) -> Array[Dictionary]:
 func configure(seed_value: int, links: Array[Dictionary]) -> void:
 	_agents.clear()
 	_routes.clear()
+	_priority_resident=""
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value ^ 615213
 	for link in balanced_links(links):
@@ -70,7 +76,8 @@ func configure(seed_value: int, links: Array[Dictionary]) -> void:
 		if id.is_empty() or _routes.has(id) or not a is Vector3 or not b is Vector3 or not a.is_finite() or not b.is_finite() or a.distance_to(b)<1.0:
 			continue
 		_routes[id] = link.duplicate(true)
-		_agents[id] = {"phase":rng.randf(),"speed":rng.randf_range(0.9,1.45),"style":rng.randi_range(0,5)}
+		_agents[id] = {"phase":rng.randf(),"speed":rng.randf_range(0.9,1.45),"style":rng.randi_range(0,5),
+			"routine":Routines.identity(seed_value,id,str(link.get("district","")))}
 
 func ids() -> Array:
 	return _agents.keys()
@@ -87,7 +94,22 @@ func sample(id: String) -> Dictionary:
 	var t := 1.0-absf(phase*2.0-1.0)
 	return {"id":id,"position":a.lerp(b,t),"heading":(b-a).normalized()*(1.0 if phase<0.5 else -1.0),
 		"style":agent["style"],"speed":agent["speed"],"district":route.get("district",""),
-		"start":a,"end":b}
+		"routine":agent["routine"].duplicate(),
+		"start":a,"end":b, "kind":route.get("kind", ""), "arrival":route.get("arrival", ""),
+		"signal":route.get("signal", Vector3i.ZERO)}
+
+## Activation preference only: existing live actors are never removed just
+## because an activity window changed. Old callers may omit this gate.
+func routine_for(id: String) -> Dictionary:
+	if not _agents.has(id):
+		return {}
+	return (_agents[id]["routine"] as Dictionary).duplicate()
+
+func available_at(id: String,hour: float) -> bool:
+	return _agents.has(id) and (id==_priority_resident or Routines.eligible(_agents[id]["routine"],str(_routes[id].get("district","")),hour))
+
+func prioritize_resident(id:String)->void:
+	_priority_resident=id if _agents.has(id) else ""
 
 func advance(seconds: float, active_ids: Array) -> void:
 	if not is_finite(seconds) or seconds<=0.0:
@@ -133,9 +155,9 @@ func restore(value: Variant) -> void:
 			_agents[id]["phase"] = float(phase)
 
 func plan_changes(focus: Vector3, camera: Vector3, indoors: bool, active: Dictionary,
-		occupied: Array[Vector3], can_walk_and_spawn: Callable, can_hide: Callable) -> Dictionary:
+		occupied: Array[Vector3], can_walk_and_spawn: Callable, can_hide: Callable, hour: float = -1.0) -> Dictionary:
 	var result := {"activate":[],"recycle":[]}
-	if indoors or not focus.is_finite() or not camera.is_finite() or not can_walk_and_spawn.is_valid() or not can_hide.is_valid():
+	if not is_finite(hour) or indoors or not focus.is_finite() or not camera.is_finite() or not can_walk_and_spawn.is_valid() or not can_hide.is_valid():
 		return result
 	for id in active:
 		var at: Variant = active[id]
@@ -146,7 +168,7 @@ func plan_changes(focus: Vector3, camera: Vector3, indoors: bool, active: Dictio
 	var remaining := maxi(0,MAX_ACTIVE-active.size()+result["recycle"].size())
 	var candidates: Array[Dictionary] = []
 	for id in _agents:
-		if active.has(id):
+		if active.has(id) or (hour>=0.0 and not available_at(id,hour)):
 			continue
 		var entry := sample(id)
 		var at: Vector3 = entry["position"]
@@ -156,6 +178,8 @@ func plan_changes(focus: Vector3, camera: Vector3, indoors: bool, active: Dictio
 		entry["distance"] = distance
 		candidates.append(entry)
 	candidates.sort_custom(func(a: Dictionary,b: Dictionary) -> bool:
+		if a["id"]==_priority_resident or b["id"]==_priority_resident:
+			return a["id"]==_priority_resident and b["id"]!=_priority_resident
 		if is_equal_approx(float(a["distance"]),float(b["distance"])):
 			return str(a["id"])<str(b["id"])
 		return float(a["distance"])<float(b["distance"]))

@@ -20,7 +20,7 @@ func _edge_id(a: Vector3, b: Vector3) -> String:
 	return first + "|" + second if first < second else second + "|" + first
 
 func _verify_hatch(hero: Node3D) -> bool:
-	var hatch := hero.get_node_or_null("RearHatchSolid") as MeshInstance3D
+	var hatch := hero.get_node_or_null("RearAssembly/RearHatchSolid") as MeshInstance3D
 	if hatch == null or not (hatch.mesh is ArrayMesh):
 		_fail("Missing actual painted trunk/hatch closing mesh")
 		return false
@@ -30,16 +30,19 @@ func _verify_hatch(hero: Node3D) -> bool:
 	var arrays: Array = hatch.mesh.surface_get_arrays(0)
 	var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 	var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
-	if vertices.size() < 80 or vertices.size() % 3 != 0 or normals.size() != vertices.size():
+	var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+	if vertices.size() < 150 or indices.size() % 3 != 0 or normals.size() != vertices.size():
 		_fail("Rear deck has missing triangle panels or normals")
 		return false
 	var edge_counts := {}
 	var rear_cap := 0
 	var top_normals := 0
-	for start in range(0, vertices.size(), 3):
-		var a: Vector3 = vertices[start]
-		var b: Vector3 = vertices[start + 1]
-		var c: Vector3 = vertices[start + 2]
+	var cargo_rays := [Vector3(-.58, 1.15, 1.71), Vector3(0, 1.15, 1.82), Vector3(.58, 1.15, 1.71)]
+	var covered := [false, false, false]
+	for start in range(0, indices.size(), 3):
+		var a: Vector3 = vertices[indices[start]]
+		var b: Vector3 = vertices[indices[start + 1]]
+		var c: Vector3 = vertices[indices[start + 2]]
 		var triangle_normal := (b - a).cross(c - a)
 		if triangle_normal.length() <= 0.00001:
 			_fail("Degenerate rear hatch triangle creates a camera hole")
@@ -47,33 +50,49 @@ func _verify_hatch(hero: Node3D) -> bool:
 		# Godot 4.3 front faces are CLOCKWISE. The outward face normal
 		# opposes the right-handed vertex cross product by convention.
 		var outward_normal := -triangle_normal.normalized()
-		if normals[start].dot(outward_normal) < 0.2:
-			_fail("Rear hatch has inverted exterior shading: clockwise=%s normal=%s" % [outward_normal, normals[start]])
+		var normal := normals[indices[start]] + normals[indices[start + 1]] + normals[indices[start + 2]]
+		if normal.normalized().dot(outward_normal) < 0.04:
+			_fail("Rear hatch has inverted exterior shading")
 			return false
 		for pair in [[a, b], [b, c], [c, a]]:
 			var key := _edge_id(pair[0], pair[1])
 			edge_counts[key] = int(edge_counts.get(key, 0)) + 1
 		# Smoothed vertex normals need not align 1:1 with the geometric
 		# surface normal. Audit actual triangle winding for cap/deck faces.
-		if a.z >= 2.30 and b.z >= 2.30 and c.z >= 2.30 and outward_normal.z > 0.9:
+		if a.z > 2.24 and b.z > 2.24 and c.z > 2.24 and outward_normal.z > 0.78:
 			rear_cap += 1
 		if a.y > 0.5 and b.y > 0.5 and c.y > 0.5 and outward_normal.y > 0.6:
 			top_normals += 1
+		for i in cargo_rays.size():
+			if not covered[i] and Geometry3D.segment_intersects_triangle(cargo_rays[i],
+					cargo_rays[i] - Vector3.UP * .92, a, b, c) != null:
+				covered[i] = true
 	for key in edge_counts:
 		if int(edge_counts[key]) != 2:
 			_fail("Open, unpaired hatch mesh edge: " + str(key))
 			return false
-	if rear_cap < 2 or top_normals < 2:
+	if rear_cap < 2 or top_normals < 2 or covered.has(false):
 		_fail("Rear cap/roof topology missing or inverted (rear cap %d, upper facets %d)" % [rear_cap, top_normals])
 		return false
-	var bulkhead := hero.get_node_or_null("RearCabinBulkhead") as MeshInstance3D
-	var shelf := hero.get_node_or_null("RearParcelShelf") as MeshInstance3D
-	if bulkhead == null or shelf == null or bulkhead.mesh == null:
-		_fail("Opaque rear passenger bulkhead / cargo parcel shelf missing")
+	var bulkhead := hero.get_node_or_null("RearAssembly/RearCabinBulkhead") as MeshInstance3D
+	var glass := hero.get_node_or_null("RearAssembly/RearGlass") as MeshInstance3D
+	if bulkhead == null or bulkhead.mesh == null or glass == null or glass.mesh == null:
+		_fail("Opaque passenger bulkhead or bonded rear glazing missing")
 		return false
-	if absf(bulkhead.position.z - 1.16) > 0.01:
+	if bulkhead.mesh.get_aabb().position.z > 1.14 or bulkhead.mesh.get_aabb().end.z < 1.51:
 		_fail("Trunk bulkhead no longer closes the opening behind the rear seats")
 		return false
+	for side in ["L", "R"]:
+		var brake := hero.get_node("RearAssembly/BrakeLens" + side) as MeshInstance3D
+		var reverse := hero.get_node("RearAssembly/ReverseLens" + side) as MeshInstance3D
+		hero.call("update_motion", -4.0, 0.0, true, false, false, 0.0)
+		if brake.material_override == null or reverse.material_override == null:
+			_fail("Integrated lens state failed to reach the rear assembly")
+			return false
+		hero.call("update_motion", 0.0, 0.0, false, false, false, 0.0)
+		if brake.material_override != null or reverse.material_override != null:
+			_fail("Parked assembly did not return to its running and unlit guides")
+			return false
 	return true
 
 func _verify() -> void:
@@ -98,7 +117,7 @@ func _verify() -> void:
 		return
 	var before: Dictionary = world.call("_capture_snapshot")
 	world.call("_apply_snapshot", before)
-	if car.get_node_or_null("KestrelS6HeroVisual/RearHatchSolid") == null:
+	if car.get_node_or_null("KestrelS6HeroVisual/RearAssembly/RearHatchSolid") == null:
 		_fail("Car lost closed hatch after save restore")
 		return
 	var police: CharacterBody3D = world.call("_create_car",
