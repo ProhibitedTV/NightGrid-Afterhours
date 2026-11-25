@@ -152,6 +152,7 @@ var minimap: Control
 var city_details: Node3D
 var pedestrians: Node3D
 var _pedestrian_scan := 0.0
+var _street_contact_id:=""
 var city_perimeter: Node3D
 var flora: Node3D
 var day_night: Node
@@ -434,6 +435,12 @@ func _build_world_audio() -> void:
 
 func _on_menu_action(action: String) -> void:
 	match action:
+		"street_reply_0","street_reply_1":
+			if is_instance_valid(pedestrians) and not _street_contact_id.is_empty():
+				pedestrians.call("request_player_reply",_street_contact_id,0 if action=="street_reply_0" else 1)
+			_street_contact_id=""
+		"street_leave":
+			_street_contact_id=""
 		"begin_opening":
 			if not progression.has_receipt(Opening.RECEIPT):
 				_start_opening_office()
@@ -1063,7 +1070,7 @@ func _update_pedestrians(delta: float, actor: Node3D, indoors: bool) -> void:
 	pedestrians.call("tick", delta, actor.global_position, camera, not street_mode,
 		occupied, float(day_night.get("hour")), signal_controller)
 	if is_instance_valid(dialogue_director):
-		pedestrians.call("update_street_dialogue",dialogue_director,actor.global_position+Vector3.UP*1.6,player.get_rid(),street_mode and current_car==null,delta)
+		pedestrians.call("update_street_dialogue",dialogue_director,actor.global_position+Vector3.UP*1.6,player.get_rid(),street_mode and current_car==null and weapons.equipped=="holstered",delta)
 	_pedestrian_scan += delta
 	if not street_mode or _pedestrian_scan < 0.18:
 		return
@@ -2382,6 +2389,12 @@ func _toggle_interaction() -> void:
 		return
 	var shop: Dictionary = venue_system.call("nearest_venue", player.global_position)
 	var service: Dictionary = civic_services.call("nearest_site", player.global_position)
+	if shop.is_empty() and service.is_empty() and is_instance_valid(pedestrians) and weapons.equipped=="holstered":
+		var contact:Dictionary=pedestrians.call("nearby_contact")
+		if not contact.is_empty():
+			_street_contact_id=str(contact["lease_id"])
+			game_menu.call("open_street_contact",contact)
+			return
 	if str(shop.get("id","")) == "helix_espresso":
 		_notify("HELIX ESPRESSO: enter the actual building to order.")
 		return
@@ -3613,6 +3626,10 @@ func _update_hud() -> void:
 			prompts.append("%s %s building door" % [enter_key,"Close" if leaf.call("is_requested_open") else "Open"])
 		if is_instance_valid(city_details.call("nearby_vending",player.global_position)):
 			prompts.append("%s  Vending machine" % interact_key)
+		if prompts.is_empty() and is_instance_valid(pedestrians) and weapons.equipped=="holstered":
+			var contact:Dictionary=pedestrians.call("nearby_contact")
+			if not contact.is_empty():
+				prompts.append("%s  Talk to %s" % [interact_key,str(contact["name"])])
 		if prompts.is_empty():
 			prompts.append("Y Vehicle  •  RB Transit  •  X Interact" if gamepad_active else "E Vehicle  •  F Transit  •  G Interact")
 	if _can_use_weapon():

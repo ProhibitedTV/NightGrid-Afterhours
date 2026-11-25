@@ -120,6 +120,14 @@ func open_restroom(id: String) -> void:
 	_restroom_id=id
 	_open("restroom")
 
+var _street_contact:Dictionary={}
+
+func open_street_contact(contact:Dictionary)->void:
+	if contact.get("topics",[]).size()!=2:
+		return
+	_street_contact=contact.duplicate(true)
+	_open("street_contact")
+
 func open_parking_guard(former:bool) -> void:
 	_guard_former=former
 	_guard_topic=""
@@ -195,6 +203,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				_choice("breakroom_leave")
 			"parking_guard":
 				_choice("guard_leave")
+			"street_contact":
+				_choice("street_leave")
 			_:
 				pass
 		get_viewport().set_input_as_handled()
@@ -296,6 +306,13 @@ func _render() -> void:
 			_title(col,"AIR QUALITY INCIDENT" if _restroom_id==Restrooms.MEN else "FACILITIES / REQUIRED TRAINING",23,Ui.AMBER)
 			_label(col,Restrooms.MEN_DIALOGUE if _restroom_id==Restrooms.MEN else Restrooms.WOMEN_DIALOGUE,16,Ui.TEXT)
 			_button(col,"restroom_leave","BACK TO WORK","restroom_leave")
+		"street_contact":
+			_title(col,str(_street_contact["name"]).to_upper(),23,Ui.AMBER)
+			_label(col,str(_street_contact["role"]),16,Ui.MUTED)
+			for i in range(2):
+				var key:="street_reply_%d"%i
+				_button(col,key,str(_street_contact["topics"][i]["question"]),key)
+			_button(col,"street_leave","SEE YOU AROUND","street_leave")
 		"parking_guard":
 			SynaxisBrand.ui_lockup(col)
 			_title(col,"MARCUS VALE / PARKING SECURITY",23,Ui.AMBER)
@@ -616,6 +633,11 @@ func _choice(action: String) -> void:
 				action_requested.emit("begin_opening")
 			else:
 				hide_for_game()
+		"street_reply_0","street_reply_1","street_leave":
+			if screen=="street_contact":
+				_street_contact={}
+				hide_for_game()
+				action_requested.emit(action)
 		"guard_r9", "guard_parking", "guard_robots", "guard_access", "guard_shift", "guard_layoff":
 			if screen=="parking_guard" and ParkingDialogue.available(action,_guard_former):
 				_guard_topic=action

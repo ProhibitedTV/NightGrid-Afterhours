@@ -32,6 +32,15 @@ var _exchange_elapsed:=0.0
 var _exchange_check:=0.0
 var _exchange_gap:=0.0
 var _street_dialogue:WeakRef
+const Satire=preload("res://scripts/street_satire.gd")
+var _named_ids:Dictionary={}
+var _contact:Dictionary={}
+var _contact_clock:=0.0
+var _player_request:Dictionary={}
+var _player_lease:=""
+var _player_line:=""
+var _player_finished:=false
+const PLAYER_SCOPE="street:player"
 const EXCHANGE_SCOPE="street:exchange"
 
 func configure(city: Node, seed_value: int, links: Array[Dictionary], approved_visual: PackedScene,
@@ -50,6 +59,13 @@ func configure(city: Node, seed_value: int, links: Array[Dictionary], approved_v
 	_pool = pool
 	_city = city
 	_population.configure(seed_value,links)
+	# Reserve each named identity for exactly one stable logical resident.
+	var ids:=_population.ids()
+	ids.sort()
+	for id in ids:
+		var character:=Satire.personality(id)
+		if not _named_ids.has(character):
+			_named_ids[character]=id
 	_running = true
 	return true
 
@@ -199,8 +215,11 @@ func shutdown() -> void:
 				_end_exchange(speech)
 			if not _street_lease.is_empty():
 				speech.call("cancel_scope","street:"+_street_lease)
+			_finish_player_reply(speech)
 	_street_dialogue=null
 	_street_lease=""
+	_contact={}
+	_player_request={}
 	_running = false
 	if is_instance_valid(_pool):
 		_pool.call("disable_all")
@@ -220,6 +239,9 @@ func update_street_dialogue(dialogue:Node, listener:Vector3, listener_rid:RID, a
 	_street_dialogue=weakref(dialogue)
 	if not dialogue.is_connected("line_ended",_on_street_line_ended):
 		dialogue.connect("line_ended",_on_street_line_ended)
+	_update_contact(dialogue,listener,listener_rid,allowed,delta)
+	if not _player_lease.is_empty():
+		return
 	if not _exchange.is_empty():
 		_tick_exchange(dialogue,listener,listener_rid,allowed,delta)
 		return
@@ -258,6 +280,8 @@ func update_street_dialogue(dialogue:Node, listener:Vector3, listener_rid:RID, a
 		_street_clock=24.0
 
 func _on_street_line_ended(line_id:String,reason:String) -> void:
+	if not _player_line.is_empty() and line_id==_player_line:
+		_player_finished=true
 	if not _exchange.is_empty() and line_id==_exchange_line:
 		_exchange_result=reason
 
@@ -312,3 +336,62 @@ func _tick_exchange(dialogue:Node,listener:Vector3,listener_rid:RID,allowed:bool
 	_exchange_line=str(beat["id"])
 	if not bool(dialogue.call("enqueue",_exchange_line,str(beat["text"]),0,speaker,EXCHANGE_SCOPE)):
 		_end_exchange(dialogue)
+
+func nearby_contact()->Dictionary:
+	return _contact.duplicate(true)
+
+func request_player_reply(id:String,topic:int)->bool:
+	if not _running or id.is_empty() or topic<0 or topic>1:
+		return false
+	_player_request={"id":id,"topic":topic}
+	return true
+
+func _finish_player_reply(dialogue:Node)->void:
+	var id:=_player_lease
+	_player_lease=""
+	_player_line=""
+	_player_finished=false
+	if not id.is_empty() and is_instance_valid(_pool):
+		_pool.call("release_player_reply",id)
+	dialogue.call("cancel_scope",PLAYER_SCOPE)
+	_street_clock=maxf(_street_clock,24.0)
+
+func _update_contact(dialogue:Node,listener:Vector3,listener_rid:RID,allowed:bool,delta:float)->void:
+	var space:=get_world_3d().direct_space_state
+	if not _player_lease.is_empty() and (not allowed or _player_finished or not bool(_pool.call("street_bark_valid",_player_lease))):
+		_finish_player_reply(dialogue)
+	_contact_clock-=delta
+	if not allowed:
+		_contact={}
+		_player_request={}
+		return
+	if _contact_clock<=0.0:
+		_contact_clock=0.18
+		_contact=_pool.call("contact_near",space,listener,listener_rid)
+		if not _contact.is_empty() and _named_ids.get(_contact["character"],"")!=_contact["lease_id"]:
+			# Other residents of the same archetype are not duplicate named people.
+			_contact["name"]=_contact["role"]
+		if not _player_lease.is_empty() and (_pool.call("contact_near",space,listener,listener_rid,_player_lease) as Dictionary).is_empty():
+			_finish_player_reply(dialogue)
+	if _player_request.is_empty():
+		return
+	var request:=_player_request
+	_player_request={}
+	if not _player_lease.is_empty():
+		_finish_player_reply(dialogue)
+	if not _exchange.is_empty():
+		_end_exchange(dialogue)
+	if not _street_lease.is_empty():
+		dialogue.call("cancel_scope","street:"+_street_lease)
+		_street_lease=""
+	var stats:Dictionary=dialogue.call("stats")
+	if not str(stats["active"]).is_empty() or int(stats["pending"])>0:
+		return
+	var reply:Dictionary=_pool.call("begin_player_reply",space,listener,listener_rid,str(request["id"]),int(request["topic"]))
+	if reply.is_empty():
+		return
+	_player_lease=str(request["id"])
+	_player_line=str(reply["id"])
+	_player_finished=false
+	if not bool(dialogue.call("enqueue",_player_line,str(reply["text"]),0,reply["speaker"],PLAYER_SCOPE)):
+		_finish_player_reply(dialogue)

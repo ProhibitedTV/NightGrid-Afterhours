@@ -516,3 +516,48 @@ func release_exchange(pair:Dictionary) -> void:
 	for id in [pair["first"],pair["second"]]:
 		if _leases.has(id):
 			_leases[id]["social"]=0.0
+
+## Player-directed talk uses a live, nearby, calm lease, never abstract IDs.
+func contact_near(space:PhysicsDirectSpaceState3D,listener:Vector3,listener_rid:RID,required_id:String="") -> Dictionary:
+	var best:=2.8*2.8
+	var result:Dictionary={}
+	for id in _leases:
+		if not required_id.is_empty() and id!=required_id:
+			continue
+		var lease:Dictionary=_leases[id]
+		if not _bark_calm(lease) or float(lease["context_ttl"])>0.0:
+			continue
+		var body:=_slots[int(lease["slot"])]
+		var eye:=body.global_position+Vector3.UP*1.6
+		var distance:=eye.distance_squared_to(listener)
+		if distance>best or distance<0.36:
+			continue
+		var ignored:Array[RID]=[body.get_rid()]
+		if listener_rid.is_valid():
+			ignored.append(listener_rid)
+		if not space.intersect_ray(PhysicsRayQueryParameters3D.create(eye,listener,1,ignored)).is_empty():
+			continue
+		best=distance
+		result=Satire.profile(id)
+		result["lease_id"]=id
+	return result
+
+func begin_player_reply(space:PhysicsDirectSpaceState3D,listener:Vector3,listener_rid:RID,id:String,topic:int)->Dictionary:
+	var contact:=contact_near(space,listener,listener_rid,id)
+	if contact.is_empty() or topic<0 or topic>=contact["topics"].size():
+		return {}
+	var lease:Dictionary=_leases[id]
+	var body:=_slots[int(lease["slot"])]
+	var facing:=body.global_position.direction_to(listener)
+	facing.y=0.0
+	lease["social_facing"]=facing.normalized()
+	lease["social"]=15.0
+	lease["social_cooldown"]=30.0
+	lease["bark_cooldown"]=75.0
+	var line:Dictionary=contact["topics"][topic].duplicate()
+	line["speaker"]=body
+	return line
+
+func release_player_reply(id:String)->void:
+	if _leases.has(id):
+		_leases[id]["social"]=0.0
