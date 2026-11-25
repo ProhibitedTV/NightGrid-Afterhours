@@ -102,6 +102,36 @@ func _verify() -> void:
 		return
 	if not _check(pool.street_bark(pool.get_world_3d().direct_space_state,after_listener,RID()).is_empty(),"event remark consumed once despite generic cooldown bypass"):
 		return
+	# Reaching a certified endpoint during an urgent retreat must not
+	# reverse heading toward the original incident. This uses the real
+	# pooled body and step function; restore the fixture for later tests.
+	var lease: Dictionary = pool.get("_leases")[id]
+	var saved_position := body.global_position
+	var saved_heading: Vector3 = lease["heading"]
+	var end: Vector3 = lease["end"]
+	var start: Vector3 = lease["start"]
+	var axis := (end-start).normalized()
+	body.global_position = Vector3(end.x, saved_position.y, end.z)-0.025*axis
+	body.velocity = Vector3.ZERO
+	lease["heading"] = axis
+	lease["alert"] = 0.0
+	lease["retreat"] = 0.8
+	await physics_frame
+	for tick in range(24):
+		pool.step(1.0/60.0)
+		await physics_frame
+	if not _check((lease["heading"] as Vector3).dot(axis)>0.99 and float(lease["retreat"])>0.0 and Vector2(body.global_position.x,body.global_position.z).distance_to(Vector2(end.x,end.z))<0.15 and body.is_on_floor(),"retreat holds at safe endpoint instead of reversing"):
+		return
+	for tick in range(30):
+		pool.step(1.0/60.0)
+		await physics_frame
+	if not _check(float(lease["retreat"])<=0.0 and (lease["heading"] as Vector3).dot(axis)<-0.99,"normal endpoint reversal resumes after retreat timeout"):
+		return
+	body.global_position = saved_position
+	body.velocity = Vector3.ZERO
+	lease["heading"] = saved_heading
+	lease["hold"] = 0.0
+	body.rotation.y = atan2(saved_heading.x,saved_heading.z)
 	# A temporary obstruction in front of a live actor triggers a bounded
 	# yield followed by a reversal on the same certified line.
 	var heading := Vector3(sin(body.rotation.y),0,cos(body.rotation.y))

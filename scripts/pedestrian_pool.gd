@@ -155,10 +155,9 @@ func step(delta: float, signals: Node = null, hour: float = -1.0) -> void:
 		var remaining := (target-body.global_position).dot(heading)
 		var arrival: String = lease["arrival"]
 		lease["intent"] = Routines.activity(lease["routine"],hour)
-		if remaining<=0.06:
-			# Reaching the safe end terminates retreat before ordinary reversal.
-			if float(lease["retreat"])>0.0:
-				lease["retreat"]=0.0
+		if remaining<=0.06 and float(lease["retreat"])<=0.0:
+			# A frightened resident at the end of a certified strip waits
+			# there until the retreat expires. Never turn back into danger.
 			heading = -heading
 			lease["heading"] = heading
 			target = a if toward_end else b
@@ -191,8 +190,9 @@ func step(delta: float, signals: Node = null, hour: float = -1.0) -> void:
 			desired = Vector3.ZERO
 			lease["state"] = "ALERT"
 		elif float(lease["retreat"]) > 0.0:
-			# Retreat along the certified strip, not into traffic.
-			desired = heading*minf(float(lease["speed"])*1.5,maxf(0.0,remaining)/delta)
+			# Retreat along the certified strip, not into traffic. At its
+			# end, remain stationary until the same bounded timer expires.
+			desired = Vector3.ZERO if remaining<=0.06 else heading*minf(float(lease["speed"])*1.5,maxf(0.0,remaining)/delta)
 			lease["state"] = "RETREAT"
 		elif float(lease["social"]) > 0.0:
 			desired = Vector3.ZERO
@@ -218,7 +218,7 @@ func step(delta: float, signals: Node = null, hour: float = -1.0) -> void:
 			lease["blocked_time"] = float(lease["blocked_time"])+delta
 			# A sustained obstruction warrants walking back along the same
 			# link, not stepping into the street or teleporting through it.
-			if float(lease["blocked_time"])>=YIELD_SECONDS and float(lease["turn_cooldown"])<=0.0:
+			if float(lease["blocked_time"])>=YIELD_SECONDS and float(lease["turn_cooldown"])<=0.0 and float(lease["retreat"])<=0.0:
 				heading = -heading
 				lease["heading"] = heading
 				lease["blocked_time"] = 0.0
@@ -279,7 +279,11 @@ func react_to_traffic(vehicles: Array[CharacterBody3D]) -> void:
 	for id in _leases:
 		var lease: Dictionary = _leases[id]
 		var body := _slots[int(lease["slot"])]
+		if float(lease["retreat"])>0.0 or float(lease["alert"])>0.0:
+			continue
 		for vehicle in vehicles:
+			if not is_instance_valid(vehicle):
+				continue
 			var offset := body.global_position - vehicle.global_position
 			offset.y = 0.0
 			if offset.length_squared() > 9.0 * 9.0:
