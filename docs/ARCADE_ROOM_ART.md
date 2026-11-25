@@ -12,3 +12,6 @@ This branch supplies art and reusable reachability only, not playable city place
 
 ## World integration
 INSERT COIN is now authored at block (1,2), west lot, using the existing legacy interior doorway transition, 14:00–03:00. Cabinet play pauses the world and locks the selected title; Escape/B returns to selection, then closes the overlay. Free practice only; session best survives cabinet changes, not saves or scene reload. Map and HUD identify the arcade. Seamless physical building migration and native collision/visual testing remain pending.
+
+## Atmosphere pass
+Four local animated regulars use the shared HumanoidVisual rig and static cylinder collision, with proximity-based rotating dialogue. Cabinet reachability takes priority. Three original print/carpet SVGs, a rear repair bench, spare CRT, toolbox, and parts bins provide lived-in dressing. No cabinet slots or aisle positions changed. The Friday night poster is environmental fiction only; tournament gameplay remains future work. Native art/collision review remains required.

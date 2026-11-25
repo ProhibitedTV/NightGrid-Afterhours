@@ -2363,10 +2363,14 @@ func _toggle_interaction() -> void:
 			var cabinet_id := str(interiors.call("arcade_cabinet_near", player.global_position))
 			if not cabinet_id.is_empty():
 				_open_arcade(cabinet_id)
-			elif interiors.call("counter_reachable", player.global_position):
-				_notify("ROOK: " + str(interiors.call("arcade_rook_line")))
 			else:
-				_notify("Approach a cabinet from the front to play. Practice is free.")
+				var regular: Dictionary = interiors.call("arcade_talk_regular",player.global_position)
+				if not regular.is_empty():
+					_notify("%s / %s: %s" % [regular["name"],regular["role"],regular["line"]])
+				elif interiors.call("counter_reachable", player.global_position):
+					_notify("ROOK: " + str(interiors.call("arcade_rook_line")))
+				else:
+					_notify("Approach a cabinet from the front to play. Practice is free.")
 			return
 		# Mara's collectible, one-time shift note is a real world interaction,
 		# available only beside the flagship café booth. Reuse the already
@@ -3703,8 +3707,12 @@ func _update_hud() -> void:
 			var cabinet_id := str(interiors.call("arcade_cabinet_near", player.global_position))
 			if not cabinet_id.is_empty():
 				prompts.append("%s  Play %s (free)" % [interact_key, cabinet_id.replace("_", " ").capitalize()])
-			elif interiors.call("counter_reachable", player.global_position):
-				prompts.append("%s  Talk to Rook" % interact_key)
+			else:
+				var regular: Dictionary = interiors.call("arcade_regular_near",player.global_position)
+				if not regular.is_empty():
+					prompts.append("%s  Chat with %s" % [interact_key,regular["name"]])
+				elif interiors.call("counter_reachable", player.global_position):
+					prompts.append("%s  Talk to Rook" % interact_key)
 		elif interiors.call("counter_reachable", player.global_position):
 			prompts.append("%s  Service counter" % interact_key)
 		if site_id == "lantern_cup":

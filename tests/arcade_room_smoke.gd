@@ -32,6 +32,16 @@ func _verify() -> void:
 			return
 	if not check(room.cabinet_near(Vector3(0,1.1,5.8)).is_empty(), "entry aisle clear"):
 		return
+	var local := Vector3(-2.8,1.05,-.6)
+	if not check(room.regular_near(local)["name"] == "Ev" and room.regular_near(Vector3(0,1.1,5.8)).is_empty(), "regular proximity and clear entry"):
+		return
+	var first_line := room.talk_regular(local)
+	var second_line := room.talk_regular(local)
+	if not check(first_line["line"] != second_line["line"], "regular has rotating dialogue"):
+		return
+	room.talk_regular(local)
+	if not check(room.talk_regular(local) == first_line, "regular dialogue wraps"):
+		return
 	var first := room.rook_line()
 	for i in range(Room.ROOK_LINES.size()-1):
 		room.rook_line()

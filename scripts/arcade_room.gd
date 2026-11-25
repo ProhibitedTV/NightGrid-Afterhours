@@ -2,6 +2,9 @@ extends Node3D
 ## On-demand room dressing, fits the existing 16 x 18 interior envelope.
 ## The owner supplies the architectural shell and lighting.
 const Cabinet = preload("res://scripts/arcade_cabinet.gd")
+const Dressing = preload("res://scripts/arcade_dressing.gd")
+const CARPET = preload("res://assets/arcade/carpet_tile.svg")
+var dressing: Node3D
 const ROOK_LINES := [
 	"The devs aren't the problem. The boardroom is.",
 	"Someone brought me a bug report with a save file and a thank-you note. Made my week.",
@@ -38,10 +41,20 @@ func _ready() -> void:
 	carpet.mesh = mesh
 	carpet.position = Vector3(0,.14,.2)
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color("493843")
+	mat.albedo_texture = CARPET
+	mat.uv1_scale = Vector3(3.0,12.0,1.0)
 	mat.roughness = 1.0
 	carpet.material_override = mat
 	add_child(carpet)
+	dressing = Dressing.new()
+	dressing.name = "ArcadeDressing"
+	add_child(dressing)
+
+func regular_near(at: Vector3) -> Dictionary:
+	return dressing.call("regular_near",at) if is_instance_valid(dressing) else {}
+
+func talk_regular(at: Vector3) -> Dictionary:
+	return dressing.call("talk",at) if is_instance_valid(dressing) else {}
 
 func cabinet_near(at: Vector3) -> String:
 	for cabinet in cabinets:
