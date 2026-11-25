@@ -80,6 +80,16 @@ func buy_vehicle(id: String) -> bool:
 	_owned_vehicles[id] = true
 	return true
 
+## Transfer title only after the catalog-derived credit succeeds.
+func sell_vehicle(id: String, condition: float) -> bool:
+	if not owns_vehicle(id):
+		return false
+	var amount := RoadCars.resale_price(id, condition)
+	if amount <= 0 or not credit(amount):
+		return false
+	_owned_vehicles.erase(id)
+	return true
+
 func owns_home() -> bool:
 	return has_receipt(StarterHome.ACCESS_RECEIPT)
 

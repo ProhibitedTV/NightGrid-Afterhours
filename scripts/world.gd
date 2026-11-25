@@ -71,6 +71,9 @@ var _garage_panel := false
 # Transient quote; never serialized, never charges on selection.
 var _title_offer_id := ""
 var _title_quote_id := ""
+var _sale_offer_id := ""
+var _sale_quote_id := ""
+var _sale_quote_amount := 0
 
 var rng := RandomNumberGenerator.new()
 var player: CharacterBody3D
@@ -1853,6 +1856,8 @@ func _apply_snapshot(data: Dictionary) -> void:
 		c.call("restore_damage", info.get("damage", []))
 		if bool(info.get("claimed", false)):
 			c.set_meta("claimed", true)
+		elif c.has_meta("claimed"):
+			c.remove_meta("claimed")
 	var selected := int(data.get("occupied_car", -1))
 	if selected >= 0 and selected < cars.size():
 		current_car = cars[selected]
@@ -2297,6 +2302,55 @@ func _confirm_title_quote() -> void:
 		return
 	_notify("TITLE REGISTERED: %s. This vehicle is yours." % RoadCars.TITLES[id]["name"])
 
+func _sale_value(car: CharacterBody3D) -> int:
+	if not is_instance_valid(car) or heat > .01 or bool(car.get("occupied")) or absf(float(car.get("speed"))) > .28 or car.global_position.distance_to(player.global_position) >= 18.0:
+		return 0
+	var id := str(car.get_meta("vehicle_id",""))
+	if not progression.owns_vehicle(id):
+		return 0
+	return RoadCars.resale_price(id,float(car.get("condition")))
+
+func _nearby_sale_candidate() -> CharacterBody3D:
+	var selected: CharacterBody3D
+	var nearest := 18.0
+	for car in cars:
+		if _sale_value(car) <= 0:
+			continue
+		var distance := car.global_position.distance_to(player.global_position)
+		if distance < nearest:
+			selected = car
+			nearest = distance
+	return selected
+
+func _clear_sale_quote() -> void:
+	_sale_quote_id = ""
+	_sale_quote_amount = 0
+
+func _open_sale_quote() -> void:
+	var car := _title_by_id(_sale_offer_id)
+	var value := _sale_value(car)
+	if value <= 0 or value > ProgressionLedger.MAX_CASH - cash:
+		_notify("Vehicle unavailable for sale or wallet full.")
+		return
+	_sale_quote_id = _sale_offer_id
+	_sale_quote_amount = value
+
+func _confirm_sale_quote() -> void:
+	var id := _sale_quote_id
+	var amount := _sale_quote_amount
+	_clear_sale_quote()
+	var car := _title_by_id(id)
+	if amount <= 0 or _sale_value(car) != amount:
+		_notify("Sale offer expired. No title or money changed.")
+		return
+	if not progression.sell_vehicle(id,float(car.get("condition"))):
+		_notify("Sale declined. No title or money changed.")
+		return
+	# This is now dealer stock; taking it without a new title is theft.
+	if car.has_meta("claimed"):
+		car.remove_meta("claimed")
+	_notify("TITLE TRANSFERRED: %s  +$%d" % [RoadCars.TITLES[id]["name"],amount])
+
 func _repair_nearby_vehicle(price: int) -> void:
 	var selected_car: CharacterBody3D
 	var nearest := 18.0
@@ -2490,6 +2544,8 @@ func _close_venue() -> void:
 	_repair_panel = false
 	_title_offer_id = ""
 	_title_quote_id = ""
+	_clear_sale_quote()
+	_sale_offer_id = ""
 	_home_panel = false
 	_garage_panel = false
 	_vending_machine = null
@@ -2542,6 +2598,16 @@ func _update_venue_panel() -> void:
 		venue_label.text = body+"[G / B] Close  •  R / D-pad down: use best snack"
 		return
 	if _repair_panel:
+		if not _sale_quote_id.is_empty():
+			var quoted_car := _title_by_id(_sale_quote_id)
+			venue_label.text = "CONFIRM VEHICLE SALE\n%s / %s\nOffer $%d  |  Cash after $%d\nTitle transfers to dealer. Vehicle stays parked.\n[3 / Y] Confirm  •  [1 / A] Cancel" % [RoadCars.TITLES[_sale_quote_id]["name"],_sale_quote_id,_sale_quote_amount,cash+_sale_quote_amount]
+			venue_service_button.text = "1 / A  •  CANCEL"
+			venue_service_button.disabled = false
+			venue_job_button.hide()
+			venue_talk_button.show()
+			venue_talk_button.text = "3 / Y  •  CONFIRM SALE"
+			venue_talk_button.disabled = _sale_value(quoted_car) != _sale_quote_amount or _sale_quote_amount > ProgressionLedger.MAX_CASH-cash
+			return
 		if not _title_quote_id.is_empty():
 			var title: Dictionary = RoadCars.TITLES[_title_quote_id]
 			var quoted_car := _title_by_id(_title_quote_id)
@@ -2569,7 +2635,12 @@ func _update_venue_panel() -> void:
 		venue_label.text += "\nTitle desk: bring eligible parked stock to the shop."
 		if progression.owns_home() and not progression.owns_vehicle(StarterGarage.IDS[0]):
 			venue_label.text += "\nYour starter Kestrel is free at Lantern Garage."
-		venue_talk_button.hide()
+		var sale := _nearby_sale_candidate()
+		_sale_offer_id = str(sale.get_meta("vehicle_id")) if sale != null else ""
+		venue_talk_button.visible = sale != null
+		if sale != null:
+			venue_talk_button.text = "3 / Y  •  REVIEW SALE  $%d" % _sale_value(sale)
+			venue_talk_button.disabled = _sale_value(sale) > ProgressionLedger.MAX_CASH-cash
 		return
 	if not civic_selected_id.is_empty():
 		_update_civic_panel()
@@ -2673,7 +2744,12 @@ func _venue_action(option: int) -> void:
 		if not venue_panel.visible or repair == null or not repair.counter_reachable(player.global_position) or current_car != null or current_transit != null:
 			_close_venue()
 			return
-		if not _title_quote_id.is_empty():
+		if not _sale_quote_id.is_empty():
+			if option == 1:
+				_clear_sale_quote()
+			elif option == 3:
+				_confirm_sale_quote()
+		elif not _title_quote_id.is_empty():
 			if option == 1:
 				_title_quote_id = ""
 			elif option == 2:
@@ -2682,6 +2758,8 @@ func _venue_action(option: int) -> void:
 			_repair_nearby_vehicle(BrickwaterRepair.PRICE)
 		elif option == 2:
 			_open_title_quote()
+		elif option == 3:
+			_open_sale_quote()
 		_update_venue_panel()
 		return
 	if not civic_selected_id.is_empty():

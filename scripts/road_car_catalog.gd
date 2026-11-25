@@ -20,3 +20,10 @@ const DATA = {
 		"grip": 14.5, "mass": 1460.0, "body": Vector3(2.03, 1.31, 4.66), "tire": 0.358,
 		"axles": Vector2(-1.43, 1.44), "track": 0.858, "seat": Vector3(-0.41, -0.91, -0.26)},
 }
+
+# Provisional buyback rate: at most 60% of retail, scaled by current
+# condition. The free/reclaimable starter is never a resale asset.
+static func resale_price(id: String, condition: float) -> int:
+	if id != "street:cinder_01" or not is_finite(condition) or condition < 18.0 or condition > 100.0:
+		return 0
+	return floori(float(TITLES[id]["price"]) * .60 * condition / 100.0)
