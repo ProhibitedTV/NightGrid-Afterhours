@@ -181,5 +181,37 @@ func _verify() -> void:
 		_fail("Saved SFX mute is not respected for action sounds")
 		return
 	director.call("set_preferences", 0.65, 0.75)
+	# Test the actual music overlay, including muted play and transition
+	# cleanup. Restore preferences without writing the settings file.
+	var options: Dictionary = menu.get("settings")
+	var original_music: float = options["music_volume"]
+	options["music_volume"] = 0.5
+	var intro: AudioStreamPlayer = menu.get("_rhythm_intro")
+	var pads: AudioStreamPlayer = menu.get("_rhythm_player")
+	menu.call("open_band_rehearsal",1)
+	if intro.bus != AudioMix.MUSIC or not intro.playing or intro.stream == null or intro.stream.loop_mode != AudioStreamWAV.LOOP_DISABLED or absf(intro.volume_db-(linear_to_db(0.5)-16.0))>0.02:
+		_fail("Band soundcheck intro missing or misrouted")
+		return
+	menu.call("_process",2.0)
+	if intro.playing:
+		_fail("Soundcheck intro overlaps the playable beat window")
+		return
+	menu.call("_rhythm_strike",0)
+	if not pads.playing or absf(pads.volume_db-(linear_to_db(0.5)-8.0))>0.02:
+		_fail("Pad gain ignores the music preference")
+		return
+	menu.call("hide_for_game")
+	if intro.playing or pads.playing or paused:
+		_fail("Leaving a music set leaked playback or pause")
+		return
+	options["music_volume"] = 0.0
+	menu.call("open_busking_set",1)
+	menu.call("_process",2.0)
+	menu.call("_rhythm_strike",0)
+	if intro.playing or pads.playing or int(menu.get("_rhythm").hits)!=1:
+		_fail("Muted music must remain playable without sound")
+		return
+	menu.call("hide_for_game")
+	options["music_volume"] = original_music
 	print("AUDIO_MIX_ACTIONS_SMOKE PASS: routed stems, acoustic buses, dispatch, 4 pooled cues, mission/car/jump/land and idempotence")
 	quit(0)
