@@ -39,6 +39,8 @@ var _confirmation_origin := "pause"
 var _has_save := false
 var _world: Node3D
 var _journal_data: Dictionary = {}
+var _opening_stage := 0
+var _opening_report := ""
 var settings: Dictionary = DEFAULT_SETTINGS.duplicate(true)
 var _root: Control
 var _screen_nodes: Array[Control] = []
@@ -92,6 +94,8 @@ func open_title() -> void:
 	_open("title")
 
 func open_opening() -> void:
+	_opening_stage = 0
+	_opening_report = ""
 	_open("opening")
 
 func open_pause() -> void:
@@ -238,12 +242,35 @@ func _render() -> void:
 			_button(col, "controls", "CONTROLS & GAMEPAD", "controls")
 			_button(col, "quit", "QUIT TO DESKTOP", "quit")
 		"opening":
-			_title(col, Opening.EMPLOYER + " / PEOPLE OPERATIONS", 21, Ui.AMBER)
-			_title(col, Opening.HEADLINE, 29, Color("e3a39b"))
-			_label(col, Opening.NOTICE, 17, Color("cbd8e3"))
-			_divider(col)
-			_label(col, Opening.OFFER, 17, Ui.TEXT)
-			_button(col, "opening_accept", "ACCEPT TERMS / START DELIVERING", "opening_accept")
+			_title(col, Opening.EMPLOYER + " / 2036", 21, Ui.AMBER)
+			_label(col, "CHAPTER ONE / EXECUTIVE PRIVILEGE  •  %d/5" % (_opening_stage+1), 16, Ui.MUTED)
+			match _opening_stage:
+				0:
+					_title(col, "ONE LAST TICKET", 29, Ui.TEXT)
+					_label(col, Opening.TICKET, 17, Color("cbd8e3"))
+					_label(col, "Executive floor: CEO Jetson Wang and his impeccably dressed Shanghai-born executive assistant, Lin Xue.", 16, Ui.MUTED)
+					_button(col, "opening_inspect", "REVIEW ACCESS ALERT", "opening_inspect")
+				1:
+					_title(col, "EXECUTIVE EXCEPTION", 29, Ui.TEXT)
+					_label(col, Opening.AUDIT, 17, Color("cbd8e3"))
+					_label(col, "The security policy applies to everyone. Except, apparently, the people who wrote it.", 16, Ui.MUTED)
+					_button(col, "opening_brief", "ATTEND EXECUTIVE BRIEFING", "opening_brief")
+				2:
+					_title(col, "A PERSONNEL MATTER", 29, Ui.TEXT)
+					_label(col, Opening.CONFERENCE, 17, Color("cbd8e3"))
+					_button(col, "opening_security", "REPORT THE INCIDENT TO SECURITY", "opening_security")
+					_button(col, "opening_legal", "ASK LEGAL TO PRESERVE THE AUDIT", "opening_legal")
+				3:
+					_title(col, "YOUR CONCERN HAS BEEN RECEIVED", 29, Ui.TEXT)
+					_label(col, Opening.REPORT_RESPONSE if _opening_report == "opening_security" else Opening.LEGAL_RESPONSE, 17, Color("cbd8e3"))
+					_label(col, "Company share price: record high. Employee access: revoked.", 16, Ui.AMBER)
+					_button(col, "opening_read_notice", "OPEN PEOPLE OPERATIONS NOTICE", "opening_read_notice")
+				4:
+					_title(col, Opening.HEADLINE, 29, Color("e3a39b"))
+					_label(col, Opening.NOTICE, 17, Color("cbd8e3"))
+					_divider(col)
+					_label(col, Opening.OFFER, 17, Ui.TEXT)
+					_button(col, "opening_accept", "ACCEPT TERMS / START DELIVERING", "opening_accept")
 		"pause":
 			_title(col, "PAUSED / SAFE MOMENT", 22, Color("f0dfcd"))
 			_button(col, "resume", "RESUME GAME", "resume")
@@ -490,9 +517,27 @@ func _choice(action: String) -> void:
 				action_requested.emit("begin_opening")
 			else:
 				hide_for_game()
+		"opening_inspect":
+			if screen == "opening" and _opening_stage == 0:
+				_opening_stage = 1
+				_render()
+		"opening_brief":
+			if screen == "opening" and _opening_stage == 1:
+				_opening_stage = 2
+				_render()
+		"opening_security", "opening_legal":
+			if screen == "opening" and _opening_stage == 2:
+				_opening_report = action
+				_opening_stage = 3
+				_render()
+		"opening_read_notice":
+			if screen == "opening" and _opening_stage == 3:
+				_opening_stage = 4
+				_render()
 		"opening_accept":
-			hide_for_game()
-			action_requested.emit("accept_opening")
+			if screen == "opening" and _opening_stage == 4:
+				hide_for_game()
+				action_requested.emit("accept_opening")
 		"resume":
 			hide_for_game()
 		"settings":

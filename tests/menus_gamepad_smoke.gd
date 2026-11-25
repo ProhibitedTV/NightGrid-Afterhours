@@ -369,10 +369,34 @@ func _verify() -> void:
 		_fail("Restored courier milestones must apply real bounded sprint benefit and journal state")
 		return
 	menu.call("open_opening")
-	if not menu.call("is_open") or not (menu.call("get_buttons") as Dictionary).has("opening_accept"):
-		_fail("Opening notice must be controller accessible")
-		return
 	var before_severance: int = world.get("cash")
+	if not menu.call("is_open") or not (menu.call("get_buttons") as Dictionary).has("opening_inspect"):
+		_fail("Opening ticket must be controller accessible")
+		return
+	menu.call("_choice","opening_accept")
+	if not menu.call("is_open") or world.get("cash")!=before_severance:
+		_fail("Cannot skip corporate investigation and collect severance early")
+		return
+	menu.call("_choice","opening_inspect")
+	menu.call("_choice","opening_brief")
+	if not (menu.call("get_buttons") as Dictionary).has("opening_security") or not (menu.call("get_buttons") as Dictionary).has("opening_legal"):
+		_fail("Executive confrontation must present both report choices")
+		return
+	menu.call("_choice","opening_legal")
+	if menu.get("_opening_report")!="opening_legal" or not (menu.call("get_buttons") as Dictionary).has("opening_read_notice"):
+		_fail("Legal escalation has its own response")
+		return
+	menu.call("open_opening")
+	menu.call("_choice","opening_inspect")
+	menu.call("_choice","opening_brief")
+	menu.call("_choice","opening_security")
+	if menu.get("_opening_report")!="opening_security":
+		_fail("Security escalation has its own response")
+		return
+	menu.call("_choice","opening_read_notice")
+	if not (menu.call("get_buttons") as Dictionary).has("opening_accept"):
+		_fail("Final notice must expose QuotaDrop acceptance")
+		return
 	menu.call("_choice","opening_accept")
 	world.call("_accept_opening")
 	if world.get("cash") != before_severance+75 or not world.get("courier_mission").gig_economy or menu.call("is_open"):
