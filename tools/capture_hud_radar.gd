@@ -58,6 +58,25 @@ func _run() -> void:
 	_stage(actor.global_position, Vector3(-87,4.25,76), Vector3(-87,2.0,94))
 	if not await _capture("01-on-foot.png"):
 		return
+	print("RADAR_STAGE equipment wheel")
+	# Use the normal equipment selector with the same live paused scene.
+	# Opening requires an unpaused on-foot state; there is no await until
+	# the actual modal pauses simulation again.
+	paused = false
+	if not game.call("_open_equipment_wheel"):
+		fail("Actual equipment wheel failed to open")
+		return
+	var wheel: Control = game.get("equipment_wheel")
+	wheel.call("select_index", 1)
+	wheel.call("_process", 0.14)
+	if not wheel.visible or not paused:
+		fail("Equipment wheel did not enter modal preview")
+		return
+	if not await _capture("04-equipment-wheel.png",false):
+		return
+	game.call("_finish_equipment_wheel", "")
+	paused = true
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	# Use an actual player vehicle and the ordinary enter interaction; don't
 	# substitute a showcase mesh or patch the resulting framebuffer.
 	print("RADAR_STAGE vehicle")
@@ -91,7 +110,7 @@ func _run() -> void:
 		return
 	if not await _capture("03-interactive-atlas.png",false):
 		return
-	print("RADAR_CAPTURE PASS: three real framebuffer views ", root.get_texture().get_size())
+	print("RADAR_CAPTURE PASS: four real framebuffer views ", root.get_texture().get_size())
 	RenderingServer.render_loop_enabled = true
 	quit(0)
 

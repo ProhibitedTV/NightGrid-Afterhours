@@ -1,10 +1,13 @@
-name: Circular radar framebuffer QA
+name: HUD and equipment framebuffer QA
 on:
   push:
-    branches: [ui/circular-lower-left-radar, integration/circular-radar-current-main]
+    branches: [ui/circular-lower-left-radar, integration/circular-radar-current-main, ui/afterhours-interface-polish]
     paths:
       - 'scripts/hud_radar.gd'
       - 'scripts/world.gd'
+      - 'scripts/equipment_wheel.gd'
+      - 'scripts/game_menu.gd'
+      - 'scripts/ui_style.gd'
       - 'tools/capture_hud_radar.gd'
       - '.github/workflows/capture-hud-radar.yml'
 permissions:
@@ -55,7 +58,7 @@ jobs:
           import hashlib, json, os, struct
           from pathlib import Path
           folder = Path(os.environ["RADAR_CAPTURE_OUT"])
-          expected = {"01-on-foot.png", "02-driving.png", "03-interactive-atlas.png"}
+          expected = {"01-on-foot.png", "02-driving.png", "03-interactive-atlas.png", "04-equipment-wheel.png"}
           assert {p.name for p in folder.glob("*.png")} == expected
           requested = tuple(map(int, os.environ["RESOLUTION"].split("x")))
           # Godot ships a 1920x1080 canvas with keep-aspect stretch. The
@@ -67,7 +70,7 @@ jobs:
               assert raw.startswith(b"\x89PNG\r\n\x1a\n") and len(raw) > 16000
               assert struct.unpack(">II", raw[16:24]) == dimensions, p
               entries[p.name] = {"sha256": hashlib.sha256(raw).hexdigest(), "bytes": len(raw)}
-          assert len({x["sha256"] for x in entries.values()}) == 3
+          assert len({x["sha256"] for x in entries.values()}) == len(expected)
           (folder / "manifest.json").write_text(json.dumps({"source_revision": os.environ["GITHUB_SHA"], "renderer": "Godot 4.7.2 Mesa software OpenGL (not native Vulkan)", "requested_window": os.environ["RESOLUTION"], "content_resolution": f"{dimensions[0]}x{dimensions[1]}", "aspect_policy": "shipped keep-aspect canvas; root framebuffer excludes letterbox", "images": entries}, indent=2) + "\n")
           PY
       - name: Preserve capture diagnostics even on failure

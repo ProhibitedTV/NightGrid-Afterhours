@@ -161,6 +161,12 @@ var hud_prompt: Label
 var hud_prompt_card: PanelContainer
 var hud_notice: Label
 var hud_notice_card: PanelContainer
+var hud_drive_card: PanelContainer
+var hud_drive_name: Label
+var hud_drive_speed: Label
+var hud_drive_radio: Label
+var show_control_hints := true
+var show_hud_inventory := true
 var performance_label: Label
 var performance_overlay := false
 var minimap: Control
@@ -557,12 +563,19 @@ func _on_menu_action(action: String) -> void:
 			_accept_opening()
 		"save":
 			_save_game()
+		"save_waypoint":
+			var entrance := StarterHome.entry()
+			set_navigation_waypoint(Vector2(entrance.x, entrance.z))
+			game_menu.call("hide_for_game")
+			_notify("Route set to Lantern Court / save point.")
 		"load":
 			_load_game()
 		"new":
 			_new_game()
 		"journal":
 			game_menu.call("open_journal", _journal_context())
+		"inventory":
+			game_menu.call("open_inventory", _journal_context())
 		"restart_courier":
 			if courier_mission.restart():
 				_refresh_courier_target()
@@ -577,7 +590,10 @@ func _on_menu_action(action: String) -> void:
 			if progression.owns_home():
 				var entry := StarterGarage.entry()
 				set_navigation_waypoint(Vector2(entry.x,entry.z))
-			game_menu.call("open_journal", _journal_context())
+			if game_menu.get("screen") == "inventory":
+				game_menu.call("open_inventory", _journal_context())
+			else:
+				game_menu.call("open_journal", _journal_context())
 		"synaxis_waypoint":
 			set_navigation_waypoint(Vector2(OpeningOffice.ENTRY.x,OpeningOffice.ENTRY.z))
 			game_menu.call("open_journal",_journal_context())
@@ -722,6 +738,8 @@ func _journal_context() -> Dictionary:
 		"cal_can_navigate":_cal_target().is_finite(),
 		"civic_job": _civic_job_text(),
 		"cash": cash, "health": health, "heat": heat,
+		"stamina": float(player.get("stamina")),
+		"consumables": consumable_inventory.duplicate(true),
 		"owned_vehicles": _owned_vehicle_text(),
 		"home_owned": progression.owns_home(),
 		"home_can_navigate": progression.has_receipt(StarterHome.ACCESS_RECEIPT),
@@ -740,6 +758,8 @@ func _journal_context() -> Dictionary:
 	}
 
 func _apply_game_settings(options: Dictionary) -> void:
+	show_control_hints = bool(options.get("show_control_hints", true))
+	show_hud_inventory = bool(options.get("show_hud_inventory", true))
 	mouse_sensitivity = clampf(float(options.get("mouse_sensitivity", 0.0032)), 0.001, 0.010)
 	stick_sensitivity = clampf(float(options.get("stick_sensitivity", 2.6)), 0.5, 5.0)
 	invert_look_y = bool(options.get("invert_look_y", false))
@@ -1382,6 +1402,19 @@ func _update_camera(delta: float, teleport: bool = false) -> void:
 func _snap_camera() -> void:
 	_update_camera(0.0, true)
 
+# Same reachability rule for the actual action and reduced-HUD prompt.
+func _nearby_drivable_car() -> CharacterBody3D:
+	var nearest: CharacterBody3D
+	var nearest_distance := 5.0
+	for car in cars:
+		if not is_instance_valid(car):
+			continue
+		var dist := player.global_position.distance_to(car.global_position)
+		if dist < nearest_distance:
+			nearest = car
+			nearest_distance = dist
+	return nearest
+
 func _toggle_car() -> void:
 	if venue_panel != null and venue_panel.visible:
 		_close_venue()
@@ -1426,15 +1459,7 @@ func _toggle_car() -> void:
 		frame_time_recorder.mark_vehicle_stage(exit_trace,"log_hud")
 		frame_time_recorder.finish_vehicle_transition(exit_trace,"ok")
 		return
-	var nearest: CharacterBody3D
-	var nearest_distance := 5.0
-	for car in cars:
-		if not is_instance_valid(car):
-			continue
-		var dist := player.global_position.distance_to(car.global_position)
-		if dist < nearest_distance:
-			nearest = car
-			nearest_distance = dist
+	var nearest := _nearby_drivable_car()
 	if nearest == null:
 		_notify("No vehicle nearby. Stand beside a parked car and press E.")
 		return
@@ -2138,15 +2163,45 @@ func _transit_sound(kind: String) -> String:
 		return "BUS_DOOR"
 	return "TRANSIT"
 
-func _save_game() -> void:
-	if bool(session.call("save_snapshot", _capture_snapshot())):
+# All player-facing save paths use this same live location/entitlement gate.
+# The free check-in is at the real hotel door, not a global pre-tenancy exemption.
+func save_availability() -> Dictionary:
+	if is_instance_valid(_opening_office):
+		return {"allowed": false, "reason": "Finish the corporate prologue before saving."}
+	if not is_instance_valid(player) or current_car != null or current_transit != null:
+		return {"allowed": false, "reason": "Save on foot at Lantern Court."}
+	if interiors.call("is_inside") or venue_panel.visible or (is_instance_valid(equipment_wheel) and equipment_wheel.visible):
+		return {"allowed": false, "reason": "Leave the current interaction and visit Lantern Court."}
+	var lot: Node3D = city_details.call("nearby_walk_in", player.global_position)
+	if not is_instance_valid(lot) or str(lot.get("home_id")) != StarterHome.ID:
+		return {"allowed": false, "reason": "Visit Lantern Court to save."}
+	var at_save_point: bool = lot.call("home_action", player.global_position) == "save" if progression.owns_home() else (bool(lot.call("doorway_reachable", player.global_position)) and not bool(lot.call("contains", player.global_position)))
+	if not at_save_point:
+		return {"allowed": false, "reason": "Approach your capsule's save desk." if progression.owns_home() else "Use the free check-in checkpoint at the hotel entrance."}
+	if heat > 0.01:
+		return {"allowed": false, "reason": "Lose police attention before saving."}
+	return {"allowed": true, "reason": "Capsule save desk ready." if progression.owns_home() else "Free hotel check-in checkpoint ready."}
+
+func _save_game() -> bool:
+	var availability := save_availability()
+	var message: String
+	var success := false
+	if not bool(availability["allowed"]):
+		message = str(availability["reason"])
+		_log_playtest("save_blocked", {"reason": message})
+	elif bool(session.call("save_snapshot", _capture_snapshot())):
+		success = true
+		message = "Progress saved at Lantern Court."
 		if game_menu != null:
 			game_menu.call("set_has_save", true)
 		_log_playtest("save_success", {"seed": int(session.get("world_seed"))})
-		_notify("Saved slot 1. City seed: %d" % int(session.get("world_seed")))
 	else:
 		_log_playtest("save_failed")
-		_notify("Save failed. Check user data folder or permissions.")
+		message = "Save failed. Check user data folder or permissions."
+	_notify(message)
+	if game_menu != null and game_menu.call("is_open"):
+		game_menu.call("set_save_feedback", message)
+	return success
 
 func _load_game() -> void:
 	_close_arcade()
@@ -2650,6 +2705,9 @@ func _toggle_interaction() -> void:
 		return
 	if is_instance_valid(physical_lot) and not str(physical_lot.get("home_id")).is_empty():
 		if not progression.owns_home():
+			if str(physical_lot.get("home_id")) == StarterHome.ID and physical_lot.call("doorway_reachable", player.global_position) and not physical_lot.call("contains", player.global_position):
+				_save_game()
+				return
 			_notify("Complete Mara’s contact mission first.")
 			return
 		match str(physical_lot.call("home_action",player.global_position)):
@@ -3535,20 +3593,20 @@ func _update_venue_panel() -> void:
 			var offer: Dictionary = venue_system.call("job_from", venue_selected_id)
 			if not offer.is_empty() and not venue_job_completed.has(str(offer["id"])) and not progression.has_receipt("venue:"+str(offer["id"])):
 				if venue_system.call("job_unlocked",offer,progression.street_cred()):
-					body += "\n[2 / X] SIDE JOB: %s (+$%d)" % [str(offer["title"]), int(offer["reward"])]
+					body += "\nLocal work: %s (+$%d)" % [str(offer["title"]), int(offer["reward"])]
 				else:
 					body += "\n%s / Requires %d Street Cred (you have %d)"%[str(offer["title"]),int(offer["min_cred"]),progression.street_cred()]
 		else:
 			var active: Dictionary = venue_system.call("job_by_id", venue_job_active)
 			if not active.is_empty() and str(active["to"]) == venue_selected_id:
-				body += "\n[2 / X] DELIVER: %s (+$%d)" % [str(active["title"]), int(active["reward"])]
+				body += "\nDeliver: %s (+$%d)" % [str(active["title"]), int(active["reward"])]
 	else:
 		body += "Come back during business hours."
-	body += "\n[G / B] Close   |   CASH $%d" % cash
+	body += "\nCash  $%d" % cash
 	venue_label.text = body
 	if venue_service_button != null:
 		venue_service_button.disabled = not open_now
-		venue_service_button.text = "1 / A  ·  %s  $%d" % [str(venue["item"]), int(venue["price"])]
+		venue_service_button.text = "1 / A  •  SERVICE"
 	if venue_job_button != null:
 		var offered: Dictionary = venue_system.call("job_from", venue_selected_id) if venue_job_active.is_empty() else venue_system.call("job_by_id", venue_job_active)
 		var available:bool = not offered.is_empty() and (
@@ -3912,16 +3970,16 @@ func _build_hud() -> void:
 	var backing := PanelContainer.new()
 	backing.name = "PlayerStatus"
 	backing.position = Vector2(24.0, 24.0)
-	backing.custom_minimum_size = Vector2(420.0, 0.0)
+	backing.custom_minimum_size = Vector2(390.0, 0.0)
 	backing.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	backing.theme = Ui.make_theme()
-	backing.add_theme_stylebox_override("panel", Ui.card(0.88))
+	backing.add_theme_stylebox_override("panel", Ui.card(0.84, 12))
 	ui.add_child(backing)
 	var stack := VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 7)
+	stack.add_theme_constant_override("separation", 5)
 	backing.add_child(stack)
-	hud_location = _hud_text(stack, "Location", 17, Ui.AMBER)
-	hud_label = _hud_text(stack, "PlayerVitals", 20, Ui.TEXT)
+	hud_location = _hud_text(stack, "Location", 15, Ui.AMBER)
+	hud_label = _hud_text(stack, "PlayerVitals", 17, Ui.TEXT)
 	_wanted_label = _hud_text(stack, "WantedStatus", 17, Ui.AMBER)
 	hud_health = ProgressBar.new()
 	hud_health.name = "HealthBar"
@@ -3929,8 +3987,8 @@ func _build_hud() -> void:
 	hud_health.show_percentage = false
 	hud_health.custom_minimum_size.y = 6
 	hud_health.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hud_health.add_theme_stylebox_override("background", Ui.button_style(Color("29363e"), Color("29363e")))
-	hud_health.add_theme_stylebox_override("fill", Ui.button_style(Ui.ACCENT, Ui.ACCENT))
+	hud_health.add_theme_stylebox_override("background", Ui.meter(Color("29363e")))
+	hud_health.add_theme_stylebox_override("fill", Ui.meter(Ui.ACCENT))
 	stack.add_child(hud_health)
 	hud_stamina = ProgressBar.new()
 	hud_stamina.name = "StaminaBar"
@@ -3938,28 +3996,42 @@ func _build_hud() -> void:
 	hud_stamina.show_percentage = false
 	hud_stamina.custom_minimum_size.y = 5
 	hud_stamina.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hud_stamina.add_theme_stylebox_override("background",Ui.button_style(Color("29363e"),Color("29363e")))
-	hud_stamina.add_theme_stylebox_override("fill",Ui.button_style(Color("e1b96a"),Color("e1b96a")))
+	hud_stamina.add_theme_stylebox_override("background",Ui.meter(Color("29363e")))
+	hud_stamina.add_theme_stylebox_override("fill",Ui.meter(Ui.AMBER))
 	stack.add_child(hud_stamina)
 	var rule := HSeparator.new()
 	stack.add_child(rule)
 	_hud_text(stack, "ObjectiveHeading", 15, Ui.MUTED).text = "CURRENT OBJECTIVE"
-	hud_objective = _hud_text(stack, "Objective", 25, Ui.ACCENT)
+	hud_objective = _hud_text(stack, "Objective", 21, Ui.ACCENT)
 	hud_navigation = _hud_text(stack, "Waypoint", 18, Nav.COLOR)
 	hud_navigation.hide()
-	hud_jobs = _hud_text(stack, "ActiveContracts", 17, Ui.TEXT)
-	var center_notice := _hud_card(ui, "NotificationCard", 0.5, 0.0, Vector4(-410, 24, 410, 92))
+	hud_jobs = _hud_text(stack, "ActiveContracts", 15, Ui.MUTED)
+	var center_notice := _hud_card(ui, "NotificationCard", 1.0, 0.0, Vector4(-434, 24, -24, 92))
 	hud_notice_card = center_notice
-	hud_notice = _hud_text(center_notice, "Notice", 21, Ui.TEXT)
+	hud_notice = _hud_text(center_notice, "Notice", 18, Ui.TEXT)
 	hud_notice.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hud_notice_card.hide()
-	hud_prompt_card = _hud_card(ui, "ContextCard", 0.5, 1.0, Vector4(-460, -152, 460, -24))
-	hud_prompt = _hud_text(hud_prompt_card, "ContextActions", 19, Ui.TEXT)
+	hud_prompt_card = _hud_card(ui, "ContextCard", 0.5, 1.0, Vector4(-320, -112, 320, -24))
+	hud_prompt_card.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	hud_prompt = _hud_text(hud_prompt_card, "ContextActions", 16, Ui.TEXT)
 	hud_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_weapon_card = _hud_card(ui, "WeaponCard", 1.0, 1.0, Vector4(-342, -142, -24, -24))
-	_weapon_label = _hud_text(_weapon_card, "WeaponAmmo", 20, Ui.TEXT)
+	_weapon_card = _hud_card(ui, "WeaponCard", 1.0, 1.0, Vector4(-302, -112, -24, -24))
+	_weapon_label = _hud_text(_weapon_card, "WeaponAmmo", 18, Ui.TEXT)
 	_weapon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_weapon_card.hide()
+	# Driving and weapon displays share a mutually exclusive HUD slot.
+	hud_drive_card = _hud_card(ui, "DrivingCard", 1.0, 1.0, Vector4(-302, -150, -24, -24))
+	hud_drive_card.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	var drive_stack := VBoxContainer.new()
+	drive_stack.add_theme_constant_override("separation", 3)
+	drive_stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud_drive_card.add_child(drive_stack)
+	hud_drive_name = _hud_text(drive_stack, "VehicleName", 15, Ui.MUTED)
+	hud_drive_speed = _hud_text(drive_stack, "Speed", 32, Ui.TEXT)
+	hud_drive_radio = _hud_text(drive_stack, "NowPlaying", 15, Ui.ACCENT)
+	for label in [hud_drive_name, hud_drive_speed, hud_drive_radio]:
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	hud_drive_card.hide()
 	_radio_card = _hud_card(ui, "PoliceRadioCard", 1.0, 0.0, Vector4(-402, 278, -24, 362))
 	_radio_caption = _hud_text(_radio_card, "Transmission", 16, Color("a4c7ef"))
 	_radio_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -4016,7 +4088,11 @@ func _build_hud() -> void:
 	venue_panel.add_theme_stylebox_override("panel", Ui.card(0.97, 20))
 	venue_panel.visible = false
 	ui.add_child(venue_panel)
-	venue_panel.visibility_changed.connect(func() -> void: minimap.visible = not venue_panel.visible)
+	venue_panel.visibility_changed.connect(func() -> void:
+		minimap.visible = not venue_panel.visible
+		if venue_panel.visible:
+			hud_drive_card.hide()
+			hud_prompt_card.hide())
 	venue_label = Label.new()
 	venue_label.add_theme_font_size_override("font_size", 20)
 	venue_label.add_theme_color_override("font_color", Color("eadcc9"))
@@ -4126,7 +4202,7 @@ func _hud_card(layer: CanvasLayer, node_name: String, ax: float, ay: float, boun
 	panel.offset_right = bounds.z
 	panel.offset_bottom = bounds.w
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_theme_stylebox_override("panel", Ui.card(0.92))
+	panel.add_theme_stylebox_override("panel", Ui.card(0.86, 10))
 	layer.add_child(panel)
 	return panel
 
@@ -4137,18 +4213,24 @@ func _update_hud() -> void:
 	var local_name := district if landmark.is_empty() else "%s / %s" % [district, landmark]
 	var clock: String = day_night.call("clock_string")
 	var vehicle_text := "ON FOOT"
+	hud_drive_card.visible = current_car != null and not venue_panel.visible
 	if current_car != null:
-		var vehicle_label := "DRIVING" if current_car.get("model_id") == "" else str(current_car.call("display_name")).to_upper()
-		vehicle_text = "%s • %d km/h" % [vehicle_label, int(current_car.call("speed_kph"))]
+		vehicle_text = "DRIVING"
+		hud_drive_name.text = "VEHICLE" if current_car.get("model_id") == "" else str(current_car.call("display_name")).to_upper()
+		hud_drive_speed.text = "%d km/h" % maxi(0, roundi(absf(float(current_car.call("speed_kph")))))
+		var now_playing := str(nightgrid_fm.call("get_now_playing")) if is_instance_valid(nightgrid_fm) else ""
+		hud_drive_radio.text = now_playing
+		hud_drive_radio.visible = not now_playing.is_empty()
+		_weapon_card.hide()
 	elif current_transit != null:
 		vehicle_text = {"TRAIN": "M-LINE RIDER", "BUS": "CITY LOOP RIDER", "LIFT": "STATION LIFT"}[transit_kind]
 	var tier: int = Wanted.stars(heat)
 	var wanted_text := "★".repeat(tier) + "☆".repeat(5 - tier)
 	_wanted_label.text = "%s  •  %s" % [wanted.status_text(heat), "%d RESPONSE UNIT%s" % [officers.size(), "" if officers.size() == 1 else "S"]]
 	if tier > 0:
-		_wanted_label.text += "\n" + dispatch.status()
+		_wanted_label.text = wanted_text + "  " + _wanted_label.text + "\n" + dispatch.status()
 	_wanted_label.visible = tier > 0 or weapons.equipped != "holstered"
-	_wanted_label.modulate = Ui.DANGER if wanted.police_seen and tier > 0 else Ui.AMBER
+	_wanted_label.add_theme_color_override("font_color", Ui.DANGER if wanted.police_seen and tier > 0 else Ui.AMBER)
 	var active_order := courier_mission.objective()
 	var mission: String = active_order["hud"]
 	var distance := roundi(outdoors.distance_to(mission_position))
@@ -4167,14 +4249,15 @@ func _update_hud() -> void:
 			int(stream.get("pending_blocks", 0)), float(stream.get("last_build_usec", 0)) / 1000.0,
 			float(stream.get("peak_build_usec", 0)) / 1000.0, capture_status]
 	hud_location.text = "%s   /   %s" % [local_name, clock]
-	hud_label.text = "$%d    HEALTH %d    HEAT %s\n%s  •  %d deliveries  •  %d supplies" % [cash, ceili(health), wanted_text, vehicle_text, deliveries, ration_packs]
+	hud_label.text = "$%d  ·  %s\nHealth %d  ·  Stamina %d" % [cash, vehicle_text, ceili(health), ceili(float(player.get("stamina")))]
 	hud_health.value = health
 	hud_stamina.value = float(player.get("stamina"))
-	hud_label.text += "\nSTAMINA %d  •  %d snacks" % [ceili(float(player.get("stamina"))),Consumables.count(consumable_inventory)]
+	if show_hud_inventory:
+		hud_label.text += "\n%d deliveries  ·  %d supplies  ·  %d snacks" % [deliveries, ration_packs, Consumables.count(consumable_inventory)]
 	hud_objective.text = "%s  /  %dm" % [mission, distance]
 	if courier_mission.gig_economy and current_car == null and current_transit == null and not interiors.call("is_inside") and player.global_position.distance_to(mission_position) < CourierMission.RADIUS:
 		hud_objective.text += "  /  " + ("X" if gamepad_active else "G") + (" HAND OFF" if carrying else " COLLECT ORDER")
-	hud_objective.modulate = Ui.ACCENT if carrying else Ui.AMBER
+	hud_objective.add_theme_color_override("font_color", Ui.ACCENT if carrying else Ui.AMBER)
 	hud_navigation.visible = navigation_waypoint != null
 	hud_navigation.text = navigation_text() if navigation_waypoint != null else ""
 	var jobs: Array[String] = []
@@ -4200,10 +4283,9 @@ func _update_hud() -> void:
 	var utility := "Start Pause  •  View Map" if gamepad_active else "Esc Pause  •  M Map  •  Tab Journal"
 	var repair := _repair_storefront()
 	if current_car != null:
-		prompts.append("RT/LT Drive  •  B Brake  •  Y Exit" if gamepad_active else "W/S Drive  •  Space Brake  •  E Exit")
-		if is_instance_valid(nightgrid_fm):
-			var radio_keys := "D-pad → Radio  •  ↑ Next" if gamepad_active else "B Radio  •  N Next"
-			prompts.append("%s   |   %s" % [str(nightgrid_fm.call("get_now_playing")), radio_keys])
+		prompts.append(("RT/LT Drive  •  B Brake  •  Y Exit" if gamepad_active else "W/S Drive  •  Space Brake  •  E Exit") if show_control_hints else ("Y Exit vehicle" if gamepad_active else "E Exit vehicle"))
+		if is_instance_valid(nightgrid_fm) and show_control_hints:
+			prompts.append("D-pad → Radio  •  ↑ Next" if gamepad_active else "B Radio  •  N Next")
 	elif current_transit != null:
 		prompts.append("RB Leave at next stop" if gamepad_active else "F Leave at next stop")
 	elif _parking_guard_near():
@@ -4254,7 +4336,12 @@ func _update_hud() -> void:
 		var physical_lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
 		if physical_lot != null and not str(physical_lot.get("home_id")).is_empty():
 			var home_action := str(physical_lot.call("home_action",player.global_position))
-			prompts.append("HOME / " + (interact_key + " " + home_action.capitalize() if progression.owns_home() and not home_action.is_empty() else ("Unit 01" if progression.owns_home() else "Locked — tenancy payment required")))
+			var at_checkin := not progression.owns_home() and bool(physical_lot.call("doorway_reachable", player.global_position)) and not bool(physical_lot.call("contains", player.global_position))
+			if at_checkin or (progression.owns_home() and home_action == "save"):
+				var save_info := save_availability()
+				prompts.append(interact_key + "  Save progress / " + ("Free hotel check-in" if at_checkin else "Capsule desk") if bool(save_info["allowed"]) else str(save_info["reason"]))
+			else:
+				prompts.append("HOME / " + (interact_key + " " + home_action.capitalize() if progression.owns_home() and not home_action.is_empty() else ("Unit 01" if progression.owns_home() else "Locked — tenancy payment required")))
 		if physical_lot != null and physical_lot.call("clothing_reachable",player.global_position):
 			prompts.append("%s Browse %s clothing" % [interact_key,ClothingStore.STORES[physical_lot.get("clothing_store_id")]["name"]])
 		if physical_lot != null and physical_lot.call("service_reachable",player.global_position):
@@ -4270,16 +4357,27 @@ func _update_hud() -> void:
 			var contact:Dictionary=pedestrians.call("nearby_contact")
 			if not contact.is_empty():
 				prompts.append("%s  Talk to %s" % [interact_key,str(contact["name"])])
-		if prompts.is_empty():
+		if not show_control_hints:
+			if _nearby_drivable_car() != null:
+				prompts.append("Y Enter vehicle" if gamepad_active else "E Enter vehicle")
+			if rail.call("lift_at", player.global_position) != null or bool(rail.call("boardable_from", player.global_position)) or traffic.call("get_boardable_bus", player.global_position) != null:
+				prompts.append("RB Board transit" if gamepad_active else "F Board transit")
+		if prompts.is_empty() and show_control_hints:
 			prompts.append("Y Vehicle  •  RB Transit  •  X Interact" if gamepad_active else "E Vehicle  •  F Transit  •  G Interact")
-	if _can_use_weapon():
+	if _can_use_weapon() and (show_control_hints or weapons.equipped != "holstered"):
 		prompts.append("D-pad ← Cycle • R3 Equipment" if gamepad_active else "Q Cycle • C Equipment")
-	prompts.append(utility)
+	if show_control_hints:
+		prompts.append(utility)
 	hud_prompt.text = "\n".join(prompts)
-	hud_prompt_card.visible = not venue_panel.visible
+	hud_prompt_card.visible = not venue_panel.visible and not prompts.is_empty()
+	# Reflow upward for long contextual text without covering the bottom inset.
+	hud_prompt_card.offset_top = -24.0 - maxf(40.0, hud_prompt_card.get_combined_minimum_size().y)
+	hud_prompt_card.offset_bottom = -24.0
 	if venue_panel.visible:
 		_update_venue_panel()
 	if is_instance_valid(ambient_caption) and ambient_caption.visible:
+		# Keep the subtitle above the actual contextual action stack, even if
+		# a future HUD layout changes its height or hides its prompts.
 		var bottom := minf(-150.0, hud_prompt_card.offset_top - 12.0) if hud_prompt_card.visible else -150.0
 		ambient_caption.offset_bottom = bottom
 		ambient_caption.offset_top = bottom - maxf(90.0, ambient_caption.get_combined_minimum_size().y)
@@ -4307,9 +4405,11 @@ func set_navigation_waypoint(point: Vector2) -> Vector2:
 	for pin in civic_services.call("get_map_pins"):
 		var p: Vector3 = civic_services.call("position_for", str(pin["id"]))
 		candidates.append(Vector2(p.x, p.z))
+	var hotel_entry := StarterHome.entry()
+	candidates.append(Vector2(hotel_entry.x, hotel_entry.z))
 	if progression.owns_home():
-		for entry in [StarterHome.entry(),StarterGarage.entry()]:
-			candidates.append(Vector2(entry.x,entry.z))
+		var garage_entry := StarterGarage.entry()
+		candidates.append(Vector2(garage_entry.x, garage_entry.z))
 	for candidate in candidates:
 		var gap := point.distance_to(candidate)
 		if gap <= distance and Nav.valid(candidate):
@@ -4480,12 +4580,12 @@ func navigation_text() -> String:
 		if destination.distance_to(Vector2(p.x, p.z)) < 0.1:
 			label = str(civic_services.call("site_by_id", str(pin["id"]))["name"])
 			break
-	if progression.owns_home():
-		var home := StarterHome.entry()
+	var home := StarterHome.entry()
+	if destination.distance_to(Vector2(home.x,home.z)) < .1:
+		label = StarterHome.NAME if progression.owns_home() else "LANTERN COURT / FREE CHECK-IN"
+	elif progression.owns_home():
 		var garage := StarterGarage.entry()
-		if destination.distance_to(Vector2(home.x,home.z)) < .1:
-			label = StarterHome.NAME
-		elif destination.distance_to(Vector2(garage.x,garage.z)) < .1:
+		if destination.distance_to(Vector2(garage.x,garage.z)) < .1:
 			label = StarterGarage.NAME
 	var route := _navigation_route(origin)
 	var line := "WAYPOINT  %s  •  %dm direct" % [label, roundi(origin.distance_to(destination))]
