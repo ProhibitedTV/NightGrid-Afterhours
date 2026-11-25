@@ -628,7 +628,7 @@ func _story_target() -> Vector3:
 	return venue_system.call("venue_position", "lantern_cup")
 
 func phone_available() -> bool:
-	return is_instance_valid(player) and not is_instance_valid(_opening_office) and current_car == null and current_transit == null and not venue_panel.visible and not equipment_wheel.visible
+	return music_career.mode.is_empty() and is_instance_valid(player) and not is_instance_valid(_opening_office) and current_car == null and current_transit == null and not venue_panel.visible and not equipment_wheel.visible
 
 func _open_phone(from_pause: bool) -> void:
 	if not phone_available():
@@ -719,6 +719,7 @@ func _start_music(kind: String, site: String) -> bool:
 	suspend_weapon()
 	_music_site = site
 	player.set("input_blocked",true)
+	player.get_node("Visual").call("set_music_prop",true)
 	if not is_instance_valid(_music_audio):
 		_music_audio = AudioStreamPlayer3D.new()
 		_music_audio.name = "LiveBusker"
@@ -747,6 +748,7 @@ func _stop_music() -> void:
 		_music_audio.stop()
 	if is_instance_valid(player):
 		player.set("input_blocked",false)
+		player.get_node("Visual").call("set_music_prop",false)
 
 func _tick_music(delta: float) -> void:
 	if not music_career.mode.is_empty() and (_music_near_spot()!=_music_site or heat>.01 or health<=0.0):
