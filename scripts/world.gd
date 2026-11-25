@@ -447,6 +447,8 @@ func _on_menu_action(action: String) -> void:
 			_new_game()
 		"journal":
 			game_menu.call("open_journal", _journal_context())
+		"inventory":
+			game_menu.call("open_inventory", _journal_context())
 		"restart_courier":
 			if courier_mission.restart():
 				_refresh_courier_target()
@@ -461,7 +463,10 @@ func _on_menu_action(action: String) -> void:
 			if progression.owns_home():
 				var entry := StarterGarage.entry()
 				set_navigation_waypoint(Vector2(entry.x,entry.z))
-			game_menu.call("open_journal", _journal_context())
+			if game_menu.get("screen") == "inventory":
+				game_menu.call("open_inventory", _journal_context())
+			else:
+				game_menu.call("open_journal", _journal_context())
 		"home_waypoint":
 			if progression.has_receipt(StarterHome.ACCESS_RECEIPT):
 				var entry := StarterHome.entry()
@@ -509,6 +514,8 @@ func _journal_context() -> Dictionary:
 		"venue_job": _venue_job_text(),
 		"civic_job": _civic_job_text(),
 		"cash": cash, "health": health, "heat": heat,
+		"stamina": float(player.get("stamina")),
+		"consumables": consumable_inventory.duplicate(true),
 		"owned_vehicles": _owned_vehicle_text(),
 		"home_owned": progression.owns_home(),
 		"home_can_navigate": progression.has_receipt(StarterHome.ACCESS_RECEIPT),
