@@ -49,6 +49,7 @@ var _breakroom_choice := ""
 const ParkingDialogue=preload("res://scripts/synaxis_parking_dialogue.gd")
 var _guard_topic:=""
 var _guard_former:=false
+var _guard_contact:=0
 var _interview:Dictionary={}
 var _interview_topic:=-1
 var _investigation_notes:Dictionary={}
@@ -138,8 +139,9 @@ func open_staff_interview(data:Dictionary) -> void:
 	_interview_topic=-1
 	_open("staff_interview")
 
-func open_parking_guard(former:bool) -> void:
+func open_parking_guard(former:bool,contact:int=0) -> void:
 	_guard_former=former
+	_guard_contact=contact
 	_guard_topic=""
 	_open("parking_guard")
 
@@ -376,13 +378,13 @@ func _render() -> void:
 			SynaxisBrand.ui_lockup(col)
 			_title(col,"MARCUS VALE / PARKING SECURITY",23,Ui.AMBER)
 			if _guard_topic.is_empty():
-				_label(col,ParkingDialogue.greeting(_guard_former),16,Ui.TEXT)
+				_label(col,ParkingDialogue.greeting(_guard_former,_guard_contact),16,Ui.TEXT)
 				for topic in ParkingDialogue.TOPICS:
-					if ParkingDialogue.available(topic,_guard_former):
+					if ParkingDialogue.available(topic,_guard_former,_guard_contact):
 						_button(col,topic,str(ParkingDialogue.TOPICS[topic]["question"]),topic)
 			else:
 				_label(col,str(ParkingDialogue.TOPICS[_guard_topic]["question"]),16,Ui.MUTED)
-				_label(col,ParkingDialogue.reply(_guard_topic,_guard_former),17,Ui.TEXT)
+				_label(col,ParkingDialogue.reply(_guard_topic,_guard_former,_guard_contact),17,Ui.TEXT)
 				_button(col,"guard_back","ASK SOMETHING ELSE","guard_back")
 			_button(col,"guard_leave","SEE YOU AROUND","guard_leave")
 		"breakroom":
@@ -523,6 +525,8 @@ func _render() -> void:
 			if not str(_journal_data.get("synaxis_site","")).is_empty():
 				_label(col,str(_journal_data["synaxis_site"]),16,Ui.MUTED)
 				_button(col,"synaxis_waypoint","SET WAYPOINT TO SYNAXIS HQ","synaxis_waypoint")
+			if not str(_journal_data.get("synaxis_contact","")).is_empty():
+				_label(col,str(_journal_data["synaxis_contact"]),16,Ui.ACCENT)
 			_label(col, str(_journal_data.get("home_text", "")), 16, Ui.ACCENT)
 			if bool(_journal_data.get("home_can_navigate", false)):
 				_button(col, "home_waypoint", "SET WAYPOINT TO POD", "home_waypoint")
@@ -734,9 +738,11 @@ func _choice(action: String) -> void:
 				_interview.clear()
 				_interview_topic=-1
 				hide_for_game()
-		"guard_r9", "guard_parking", "guard_robots", "guard_access", "guard_shift", "guard_layoff":
-			if screen=="parking_guard" and ParkingDialogue.available(action,_guard_former):
+		"guard_r9", "guard_parking", "guard_robots", "guard_access", "guard_shift", "guard_layoff", "guard_followup":
+			if screen=="parking_guard" and ParkingDialogue.available(action,_guard_former,_guard_contact):
 				_guard_topic=action
+				if action in ["guard_shift","guard_followup"]:
+					action_requested.emit(action)
 				_render()
 		"guard_back":
 			if screen=="parking_guard":
