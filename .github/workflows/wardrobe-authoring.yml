@@ -1,0 +1,55 @@
+name: Author Threadline garment candidates
+on:
+  push:
+    branches: [gameplay/threadline-clothing-store]
+    paths:
+      - 'tools/wardrobe/**'
+      - 'scripts/wardrobe_geometry.gd'
+      - 'tests/wardrobe_geometry_smoke.gd'
+      - '.github/workflows/wardrobe-authoring.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: threadline-wardrobe-authoring
+  cancel-in-progress: true
+jobs:
+  candidates:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Generate and validate fitted combinations offline
+        run: |
+          python tools/wardrobe/author.py build --out assets/models/nightgrid/wardrobe_candidates
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Import candidates and verify shared live animation rig
+        run: |
+          set -euo pipefail
+          godot --headless --path . --import --quit 2>&1 | tee /tmp/wardrobe-import.log
+          ! grep -q 'SCRIPT ERROR:' /tmp/wardrobe-import.log
+          export NIGHTGRID_WARDROBE_CANDIDATES="$(find assets/models/nightgrid/wardrobe_candidates -name Morrow_Courier.glb | sort | sed 's|^|res://|' | paste -sd, -)"
+          test "$(find assets/models/nightgrid/wardrobe_candidates -name Morrow_Courier.glb | wc -l)" = 8
+          godot --headless --path . --script res://tests/wardrobe_geometry_smoke.gd 2>&1 | tee /tmp/wardrobe-smoke.log
+          ! grep -q 'SCRIPT ERROR:' /tmp/wardrobe-smoke.log
+          grep -q 'WARDROBE_GEOMETRY PASS:' /tmp/wardrobe-smoke.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: threadline-review-candidates
+          path: |
+            assets/models/nightgrid/wardrobe_candidates/**/appearance.json
+            assets/models/nightgrid/wardrobe_candidates/**/Morrow_Courier.glb
+            assets/models/nightgrid/wardrobe_candidates/**/candidate.json
+            /tmp/wardrobe-*.log
+          if-no-files-found: warn
+          retention-days: 14

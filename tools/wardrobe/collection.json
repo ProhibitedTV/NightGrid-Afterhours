@@ -1,0 +1,108 @@
+{
+  "schema": 1,
+  "source": "ara3d@0.13.0",
+  "source_revision": "9d3b9f9933cbeb9529630a270ffc7fe01bd05511",
+  "base": "assets/models/nightgrid/courier/appearance.json",
+  "axes": {
+    "top": [
+      {
+        "id": "tee",
+        "settings": {
+          "top": "oversized_tee",
+          "jacket": "none"
+        },
+        "styles": {
+          "oversized_tee": {
+            "color": "#e0d9cc"
+          }
+        },
+        "materials": [
+          "tee|t-shirt|shirt"
+        ]
+      },
+      {
+        "id": "racer",
+        "settings": {
+          "top": "racer_casual_shirt",
+          "jacket": "racing_jacket_long"
+        },
+        "styles": {
+          "racer_casual_shirt": {
+            "color": "#34363a"
+          },
+          "racing_jacket_long": {
+            "color": "#282e35",
+            "color2": "#87705c"
+          }
+        },
+        "materials": [
+          "racing|racer",
+          "jacket"
+        ]
+      }
+    ],
+    "bottom": [
+      {
+        "id": "denim",
+        "settings": {
+          "bottom": "baggy_jeans"
+        },
+        "styles": {
+          "baggy_jeans": {
+            "color": "#445571"
+          }
+        },
+        "materials": [
+          "jean|denim"
+        ]
+      },
+      {
+        "id": "cargo",
+        "settings": {
+          "bottom": "cargo_pants"
+        },
+        "styles": {
+          "cargo_pants": {
+            "color": "#555b48"
+          }
+        },
+        "materials": [
+          "cargo"
+        ]
+      }
+    ],
+    "shoe": [
+      {
+        "id": "trainer",
+        "settings": {
+          "shoes": "sneakers"
+        },
+        "styles": {},
+        "materials": [
+          "sneaker|trainer|shoe"
+        ]
+      },
+      {
+        "id": "boot",
+        "settings": {
+          "shoes": "combat_boots"
+        },
+        "styles": {},
+        "materials": [
+          "boot"
+        ]
+      }
+    ]
+  },
+  "common": {
+    "outfit": "none",
+    "accessories": [],
+    "carry": "none",
+    "hat": "none"
+  },
+  "limits": {
+    "max_bytes": 18000000,
+    "max_vertices": 120000,
+    "max_variants": 8
+  }
+}
