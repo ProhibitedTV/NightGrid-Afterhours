@@ -598,6 +598,13 @@ func _verify() -> void:
 	if not bool(reserved_stats["founder"]) or not bool(reserved_stats["static"]) or reserved_stats["plate"]!="SYNX1" or reserved.get_node_or_null("JetsonFounderR9/Coachwork/FrontClip")==null or reserved.get_node_or_null("FounderR9Collision")==null or world.get("cars").size()!=12:
 		_fail("Founder R9 uses the authored vehicle and a physical bay without modifying save fleet indices")
 		return
+	if int(reserved_stats["staff_bays"])!=4 or int(reserved_stats["other_parked"])!=5 or not bool(reserved_stats["covered"]):
+		_fail("Parking has covered leadership reserve and separate staff row without changing the active fleet")
+		return
+	for display in reserved.get("_parked"):
+		if display.is_processing() or display.get_node_or_null("KestrelMonocoque")==null:
+			_fail("Parked commuter displays must use authored models without runtime processing")
+			return
 	var staff: Dictionary=office.get("_staff")
 	if staff.size()!=8 or not staff.has("reception"):
 		_fail("HQ has eight authored staff plus the executive assistant")
