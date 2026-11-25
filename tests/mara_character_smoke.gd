@@ -119,7 +119,9 @@ func _verify() -> void:
 	if dialogue_line.is_empty() or int(world.get("cash")) != money_before or absf(float(world.get("health")) - health_before) > 0.001:
 		_fail("Talking via the real menu must not change player money or health")
 		return
-	if not (world.get("venue_label") as Label).text.contains(dialogue_line):
+	var caption: PanelContainer = world.get("contact_caption")
+	var spoken: Dictionary = caption.call("content")
+	if not caption.visible or spoken["speaker"] != "Mara" or not dialogue_line.contains(str(spoken["line"])) or not bool(spoken["persistent"]):
 		_fail("Dialogue panel must actually show Mara's current response")
 		return
 	rooms.call("set_mara_focus", player.global_position + Vector3(1.25, 0.0, 0.0))
