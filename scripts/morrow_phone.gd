@@ -8,7 +8,8 @@ const APPS = [
 	{"id":"housing","name":"Housing","mark":"H","color":"e2bba0"},
 	{"id":"transit","name":"Transit","mark":"M","color":"8ebce8"},
 	{"id":"messages","name":"Messages","mark":"••","color":"b4c9cb"},
-	{"id":"opportunities","name":"Workboard","mark":"W","color":"e5ce89"}
+	{"id":"opportunities","name":"Workboard","mark":"W","color":"e5ce89"},
+	{"id":"music","name":"Music","mark":"♪","color":"e6a8cf"}
 ]
 
 const ICONS = {
@@ -18,7 +19,8 @@ const ICONS = {
 	"housing": preload("res://assets/phone/housing.svg"),
 	"transit": preload("res://assets/phone/transit.svg"),
 	"messages": preload("res://assets/phone/messages.svg"),
-	"opportunities": preload("res://assets/phone/opportunities.svg")
+	"opportunities": preload("res://assets/phone/opportunities.svg"),
+	"music": preload("res://assets/phone/music.svg")
 }
 
 static func app(id: String) -> Dictionary:
@@ -62,6 +64,17 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 					"action":"phone_route_contract:"+str(listing["id"]),
 					"action_label":str(listing.get("action_label",status))+" · navigate"
 				})
+		"music":
+			subtitle = "Morrow Bay music scene"
+			rows.append({"label":"Instrument","value":"Used acoustic guitar" if state.get("music_owned",false) else "Copper Strings · Copper Cup counter · $85"})
+			actions.append({"label":"Route to Copper Strings","action":"phone_route_music_shop"})
+			rows.append({"label":"Street sets","value":"%d completed / 3 for first booking" % int(state.get("music_sets",0))})
+			rows.append({"label":"Busking spots","value":"Copper Cup, Lantern Cup and Dock Nine exterior frontages."})
+			if state.get("music_owned",false) and state.get("music_near",false) and not state.get("music_cooldown",false):
+				actions.append({"label":"Play street set","action":"phone_music_play"})
+			if state.get("music_gig",false):
+				rows.append({"label":"Debut booking","value":"Dock Nine Social · $95 · visit the open counter"})
+				actions.append({"label":"Route to Dock Nine","action":"phone_route_music_gig"})
 		"wallet":
 			subtitle = "Available funds"
 			rows.append({"label":"Cash on hand","value":"$%d" % int(state.get("cash",0))})
