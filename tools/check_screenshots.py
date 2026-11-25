@@ -101,8 +101,8 @@ for folder, count, manifest_name in (
         record = records[name]
         p = provenance["images"][name]
         sha = hashlib.sha256(payload).hexdigest()
-        blob = hashlib.sha1(f"blob {len(payload)}\\0".encode() + payload).hexdigest()
-        if not payload.startswith(PNG_HEADER) or payload[12:16] != b"IHDR" or not payload.endswith(b"IEND\\xaeB\\x60\\x82") or len(payload) < 16000:
+        blob = hashlib.sha1(f"blob {len(payload)}\0".encode() + payload).hexdigest()
+        if not payload.startswith(PNG_HEADER) or payload[12:16] != b"IHDR" or not payload.endswith(b"IEND\xaeB\x60\x82") or len(payload) < 16000:
             issues.append(f"Invalid archive PNG: {folder}/{name}")
         elif min(struct.unpack(">II", payload[16:24])) < 600:
             issues.append(f"Archive PNG too small: {folder}/{name}")
