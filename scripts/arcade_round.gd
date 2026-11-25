@@ -1,6 +1,6 @@
 extends RefCounted
 ## Deterministic, bounded cabinet simulation. No world, wallet or save dependencies.
-const GAMES := {
+const GAMES = {
 	"grand_delay": {"title":"GRAND DELAY AUTO VI", "studio":"Milestone Mirage", "tagline":"A revolutionary city. Available eventually.", "instructions":"Steer into green feature drops. Avoid red paywalls.", "color":"69d8c2"},
 	"claw_compliance": {"title":"CLAW & COMPLIANCE", "studio":"Committee Interactive", "tagline":"Unleash your inner focus group.", "instructions":"Move between lanes. Strike approaching audit drones before they reach you.", "color":"efb169"},
 	"patch_day": {"title":"PATCH DAY 2077", "studio":"Quarterly Vision", "tagline":"The hotfix needs a hotfix.", "instructions":"Move across the grid and repair bugs before they crash the build.", "color":"c4a2f3"},
@@ -12,11 +12,11 @@ const GAMES := {
 	"starline_patrol": {"title":"STARLINE PATROL", "studio":"Rook's Restoration Series", "tagline":"One ship. One more try.", "instructions":"Hold left/right to pilot. Hold fire to clear three alien waves.", "color":"72d7cf"},
 	"neon_rebound": {"title":"NEON REBOUND", "studio":"Rook's Restoration Series", "tagline":"Good physics. No fine print.", "instructions":"Move the paddle, launch the ball, and clear two walls of bricks.", "color":"f2a96b"}
 }
-const IDS := ["grand_delay", "claw_compliance", "patch_day", "indie_dev", "annual_warfare", "day_one_dlc", "open_world_checklist", "battle_pass_hero", "starline_patrol", "neon_rebound"]
-const LANES := 3
-const END_ROW := 5
-const ROUND_STEPS := 32
-const STEP_SECONDS := 0.40
+const IDS = ["grand_delay", "claw_compliance", "patch_day", "indie_dev", "annual_warfare", "day_one_dlc", "open_world_checklist", "battle_pass_hero", "starline_patrol", "neon_rebound"]
+const LANES = 3
+const END_ROW = 5
+const ROUND_STEPS = 32
+const STEP_SECONDS = 0.40
 var game_id := ""
 var lane := 1
 var score := 0

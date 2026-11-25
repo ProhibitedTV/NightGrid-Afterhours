@@ -33,7 +33,7 @@ static func build(rig:Skeleton3D,id:String) -> Node3D:
 	if rig==null:
 		return null
 	var style:Dictionary=STYLES.get(id,{})
-	var glasses:=id in ["glasses_night","glasses_clear"] or style.get("slot","")=="glasses"
+	var glasses:bool=id in ["glasses_night","glasses_clear"] or str(style.get("slot",""))=="glasses"
 	var hat:bool=style.get("slot","")=="hat"
 	if not glasses and not hat and id not in ["watch_shift","watch_brass"] and style.get("slot","")!="watch":
 		return null
