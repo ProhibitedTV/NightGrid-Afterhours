@@ -212,7 +212,21 @@ func _verify() -> void:
 	if not check(int(world.get("cash"))==80 and is_equal_approx(float(world.get("health")),70.0),"existing purchase economics preserved"):
 		return
 	world.call("_close_venue")
+	# Real gameplay entry point must refuse a street/shop save without touching the slot.
+	var session_for_save := root.get_node("GameSession")
+	var original_slot: Dictionary = session_for_save.call("read_snapshot")
+	if not check(not bool(world.call("save_availability")["allowed"]) and not bool(world.call("_save_game")) and session_for_save.call("read_snapshot") == original_slot,"non-property save rejected without replacing slot"):
+		return
 	var home_entry := Home.entry()
+	var save_menu := world.get_node("GameMenus")
+	save_menu.call("open_pause")
+	var save_buttons: Dictionary = save_menu.call("get_buttons")
+	if not check(save_buttons["save"].disabled and save_buttons.has("save_waypoint"),"pause exposes blocked save and hotel route"):
+		return
+	save_buttons["save_waypoint"].pressed.emit()
+	if not check(not paused and world.get("navigation_waypoint") == Vector2(home_entry.x,home_entry.z) and str(world.call("navigation_text")).contains("FREE CHECK-IN"),"hotel route works before tenancy"):
+		return
+	world.call("clear_navigation_waypoint")
 	city.call("set_focus",home_entry)
 	var home: Node3D = city.get("_loaded")[Home.BLOCK].get_node("WalkInLot_0")
 	player.global_position = home_entry
@@ -221,6 +235,13 @@ func _verify() -> void:
 	if not check(home.get("home_id") == Home.ID and not home_door.call("is_requested_open"),"locked home uses stable physical parcel"):
 		return
 	var ledger = world.get("progression")
+	world.set("heat",0.0)
+	if not check(not ledger.owns_home() and bool(world.call("save_availability")["allowed"]),"free entrance checkpoint before tenancy"):
+		return
+	world.set("heat",1.0)
+	if not check(not bool(world.call("save_availability")["allowed"]) and not bool(world.call("_save_game")),"wanted checkpoint save blocked"):
+		return
+	world.set("heat",0.0)
 	ledger.credit_once(Home.ACCESS_RECEIPT,100)
 	world.get("story_mission").restore({"version":1,"id":Home.ACCESS_RECEIPT,"status":"complete","step":3})
 	world.set("cash",Home.move_in_price()-1)
@@ -231,6 +252,8 @@ func _verify() -> void:
 	world.set("cash",Home.move_in_price())
 	world.call("_venue_action",3)
 	if not check(ledger.owns_home() and world.get("cash")==0,"paid tenancy activated at door"):
+		return
+	if not check(not bool(world.call("save_availability")["allowed"]),"rented capsule requires inside save desk"):
 		return
 	world.call("_toggle_interior")
 	for i in 48:
@@ -243,7 +266,24 @@ func _verify() -> void:
 		await physics_frame
 	if not check(home.call("contains",player.global_position) and not world.get("interiors").call("is_inside"),"continuous entry without remote room"):
 		return
+	player.global_position = home.call("home_action_point","save")
+	if not check(bool(world.call("save_availability")["allowed"]),"actual rented capsule save desk eligible"):
+		return
+	save_menu.call("open_pause")
+	save_buttons = save_menu.call("get_buttons")
+	if not check(not save_buttons["save"].disabled,"pause save enabled at desk"):
+		return
+	save_menu.call("hide_for_game")
+	var checkpoint_path := "user://saves/property_checkpoint_regression.json"
+	if not check(session_for_save.call("save_snapshot_to",world.call("_capture_snapshot"),checkpoint_path),"eligible checkpoint snapshot persists"):
+		return
+	var checkpoint: Dictionary = session_for_save.call("read_snapshot_from",checkpoint_path)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(checkpoint_path))
+	if not check(not checkpoint.is_empty() and checkpoint["progression"]["home_tenancy_paid"],"checkpoint retains tenancy"):
+		return
 	player.global_position = home.call("home_action_point","rest")
+	if not check(not bool(world.call("save_availability")["allowed"]),"bed does not bypass desk save rule"):
+		return
 	world.set("health",40.0)
 	world.set("heat",0.0)
 	player.call("restore_stamina",20.0)
