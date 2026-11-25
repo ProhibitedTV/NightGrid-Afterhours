@@ -1,6 +1,7 @@
 extends SceneTree
 const Round = preload("res://scripts/arcade_round.gd")
 const Alt = preload("res://scripts/arcade_alt_round.gd")
+const Extra = preload("res://scripts/arcade_extra_round.gd")
 func _initialize() -> void:
 	call_deferred("_verify")
 
@@ -86,6 +87,38 @@ func _verify() -> void:
 	for i in range(3):
 		indie.strike()
 	if not check(not indie.strike() and indie.step == 3 and indie.energy == 0, "burnout action rejected without advancing week"):
+		return
+	var gallery := Extra.new()
+	gallery.start("annual_warfare")
+	gallery.cursor = gallery.target
+	if not check(gallery.strike() and gallery.score == 100 and gallery.strike() and gallery.score == 100, "target only scores once"):
+		return
+	gallery.cursor = gallery.decoy
+	if not check(gallery.strike() and gallery.lives == 2 and gallery.strike() and gallery.ammo == 0 and gallery.strike() and gallery.ammo == Extra.MAGAZINE, "fan penalty and free reload"):
+		return
+	gallery.start("annual_warfare")
+	while not gallery.finished:
+		if gallery.ammo == 0:
+			gallery.strike()
+		gallery.cursor = gallery.target
+		gallery.strike()
+		gallery.advance()
+	if not check(gallery.result()["cleared"] and gallery.step == Extra.GALLERY_STEPS, "perfect gallery clears"):
+		return
+	var puzzle := Extra.new()
+	puzzle.start("day_one_dlc")
+	for scramble in Extra.SCRAMBLES:
+		for i in range(scramble.size()-1,-1,-1):
+			var delta: Vector2i = -scramble[i]
+			if delta.x != 0:
+				puzzle.steer(delta.x)
+			else:
+				puzzle.vertical(delta.y)
+	if not check(puzzle.result()["cleared"] and puzzle.stage == 3 and puzzle.score > 0, "all puzzle packs solvable"):
+		return
+	var ending_puzzle := puzzle.result()
+	puzzle.steer(1)
+	if not check(puzzle.result() == ending_puzzle, "finished puzzle immutable"):
 		return
 	var screen := preload("res://scenes/arcade_pilot.tscn").instantiate()
 	root.add_child(screen)

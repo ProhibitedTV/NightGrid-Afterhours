@@ -9,10 +9,11 @@ An independent coin-op repair shop in the Afterhours district keeps games alive 
 | Grand Delay Auto VI | Milestone Mirage | Three-lane driving, collect feature drops and avoid paywalls | Overhype, long waits, editions and nickel-and-diming |
 | Claw & Compliance | Committee Interactive | Lane-based brawler, intercept audit drones | Corporate focus-group design and endless approvals |
 | Patch Day 2077 | Quarterly Vision | Real-time grid repair | Fix bugs faster than the roadmap adds them |
-| Annual Warfare 19 | Recurrence Media | Future light-gun target gallery | Identical sequels and premium reloads |
+| Annual Warfare 19 | Recurrence Media | Timed target gallery with free reloads | Identical sequels and premium reloads |
+| Day-One DLC | Partition Publishing | Three-stage sliding puzzle | Complete game split into artificial packs |
 | Indie Dev Simulator | Two Friends & A Laptop | Eight-week studio management strategy | Tiny teams competing with big marketing budgets |
 
-Four cabinets now have playable isolated screens and deterministic bounded simulation. Annual Warfare remains a concept. Patch Day uses a 4×3 grid with expiring bug deadlines and three server lives; Indie Dev uses eight player-driven weeks, balancing features, bug debt, energy and community support. The cult-classic finish requires quality ≥9, bug debt ≤2 and fans ≥3. Pilot uses a deliberately simple original graphic style; not the final cabinet visual quality.
+Six cabinets now have playable screens and deterministic bounded simulation. Annual Warfare uses a timed 3×3 gallery with four-round magazines, streak bonuses and protected fan targets; Day-One DLC is a three-stage sliding puzzle with a 36-move budget per stage. All content is free in practice. Patch Day uses a 4×3 grid with expiring bug deadlines and three server lives; Indie Dev uses eight player-driven weeks, balancing features, bug debt, energy and community support. The cult-classic finish requires quality ≥9, bug debt ≤2 and fans ≥3. Pilot uses a deliberately simple original graphic style; not the final cabinet visual quality.
 
 ## Run the pilot
 From repo root: `godot --path . res://scenes/arcade_pilot.tscn`.
@@ -42,3 +43,5 @@ The in-city vertical slice adds INSERT COIN as a fixed legacy-transition venue i
 
 ## Player-first writing rule
 The games are free practice during this isolated pilot. Celebrate bug reporters, fan artists, friends, speedrunners and players who waited patiently. No real studio allegations or copied assets. Rest is a positive strategic action in Indie Dev, not a punishment.
+
+The six-cabinet layout preserves the original four positions; two more are near the entrance sides, with no extra live viewports. Both extra titles have original SVG art. Controller/native validation remains required.

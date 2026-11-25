@@ -4,9 +4,11 @@ const GAMES := {
 	"grand_delay": {"title":"GRAND DELAY AUTO VI", "studio":"Milestone Mirage", "tagline":"A revolutionary city. Available eventually.", "instructions":"Steer into green feature drops. Avoid red paywalls.", "color":"69d8c2"},
 	"claw_compliance": {"title":"CLAW & COMPLIANCE", "studio":"Committee Interactive", "tagline":"Unleash your inner focus group.", "instructions":"Move between lanes. Strike approaching audit drones before they reach you.", "color":"efb169"},
 	"patch_day": {"title":"PATCH DAY 2077", "studio":"Quarterly Vision", "tagline":"The hotfix needs a hotfix.", "instructions":"Move across the grid and repair bugs before they crash the build.", "color":"c4a2f3"},
-	"indie_dev": {"title":"INDIE DEV SIMULATOR", "studio":"Two Friends & A Laptop", "tagline":"No shareholders were consulted.", "instructions":"Choose how to spend eight weeks. Ship a game, not a roadmap.", "color":"f1cd82"}
+	"indie_dev": {"title":"INDIE DEV SIMULATOR", "studio":"Two Friends & A Laptop", "tagline":"No shareholders were consulted.", "instructions":"Choose how to spend eight weeks. Ship a game, not a roadmap.", "color":"f1cd82"},
+	"annual_warfare": {"title":"ANNUAL WARFARE 19", "studio":"Recurrence Media", "tagline":"Same war. Different price.", "instructions":"Aim at recurring bots. Spare the fan targets. Reload for free.", "color":"a5ca82"},
+	"day_one_dlc": {"title":"DAY-ONE DLC", "studio":"Partition Publishing", "tagline":"Some assembly required.", "instructions":"Slide the empty space to put all eight base-game tiles in order.", "color":"ed9db5"}
 }
-const IDS := ["grand_delay", "claw_compliance", "patch_day", "indie_dev"]
+const IDS := ["grand_delay", "claw_compliance", "patch_day", "indie_dev", "annual_warfare", "day_one_dlc"]
 const LANES := 3
 const END_ROW := 5
 const ROUND_STEPS := 32

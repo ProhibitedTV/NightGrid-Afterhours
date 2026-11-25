@@ -13,7 +13,7 @@ func _verify() -> void:
 	var room := Room.new()
 	root.add_child(room)
 	await process_frame
-	if not check(room.cabinets.size() == 4, "four cabinets"):
+	if not check(room.cabinets.size() == 6, "six cabinets"):
 		return
 	for cabinet in room.cabinets:
 		var front: Vector3 = cabinet.to_global(Vector3(0,1.1,1.0))

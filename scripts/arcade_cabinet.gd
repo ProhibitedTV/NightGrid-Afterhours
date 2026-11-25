@@ -1,13 +1,15 @@
 extends StaticBody3D
 ## Original static cabinet, face toward local +Z. No active viewport or per-frame scripts.
-const IDS := ["grand_delay", "claw_compliance", "patch_day", "indie_dev"]
+const IDS := ["grand_delay", "claw_compliance", "patch_day", "indie_dev", "annual_warfare", "day_one_dlc"]
 const ART := {
 	"grand_delay": preload("res://assets/arcade/grand_delay.svg"),
 	"claw_compliance": preload("res://assets/arcade/claw_compliance.svg"),
 	"patch_day": preload("res://assets/arcade/patch_day.svg"),
-	"indie_dev": preload("res://assets/arcade/indie_dev.svg")
+	"indie_dev": preload("res://assets/arcade/indie_dev.svg"),
+	"annual_warfare": preload("res://assets/arcade/annual_warfare.svg"),
+	"day_one_dlc": preload("res://assets/arcade/day_one_dlc.svg")
 }
-const TINTS := {"grand_delay": "69d8c2", "claw_compliance": "efb169", "patch_day": "c4a2f3", "indie_dev": "f1cd82"}
+const TINTS := {"grand_delay": "69d8c2", "claw_compliance": "efb169", "patch_day": "c4a2f3", "indie_dev": "f1cd82", "annual_warfare": "a5ca82", "day_one_dlc": "ed9db5"}
 const CRT = preload("res://assets/arcade/attract_crt.gdshader")
 var game_id := "grand_delay"
 static var materials: Dictionary = {}

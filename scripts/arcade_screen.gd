@@ -3,6 +3,7 @@ extends Control
 ## No persistent score, world time, street cred or currency changes in this pilot.
 const Round = preload("res://scripts/arcade_round.gd")
 const AltRound = preload("res://scripts/arcade_alt_round.gd")
+const ExtraRound = preload("res://scripts/arcade_extra_round.gd")
 signal exit_requested
 var round = Round.new()
 var selection := 0
@@ -37,9 +38,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			selection = posmod(selection + direction, Round.IDS.size())
 		elif state == "play":
 			round.steer(direction)
+			_finish_if_needed()
 	elif event.is_action_pressed("ui_up") or event.is_action_pressed("ui_down"):
-		if state == "play" and round is AltRound:
+		if state == "play" and (round is AltRound or round is ExtraRound):
 			round.vertical(-1 if event.is_action_pressed("ui_up") else 1)
+			_finish_if_needed()
 	elif event.is_action_pressed("ui_accept"):
 		match state:
 			"select":
@@ -62,16 +65,23 @@ func _show_selection() -> void:
 
 func _start_round() -> void:
 	var id: String = Round.IDS[selection]
-	round = AltRound.new() if id == "patch_day" or id == "indie_dev" else Round.new()
+	if id == "annual_warfare" or id == "day_one_dlc":
+		round = ExtraRound.new()
+	elif id == "patch_day" or id == "indie_dev":
+		round = AltRound.new()
+	else:
+		round = Round.new()
 	if not round.start(id):
 		return
 	state = "play"
 	elapsed = 0.0
-	set_process(id != "indie_dev")
+	set_process(id != "indie_dev" and id != "day_one_dlc")
 	queue_redraw()
 
 func _process(delta: float) -> void:
 	var interval := AltRound.PATCH_SECONDS if round.game_id == "patch_day" else Round.STEP_SECONDS
+	if round.game_id == "annual_warfare":
+		interval = ExtraRound.GALLERY_SECONDS
 	# Limit catch-up after a stall; no unfair instant loss of multiple lives.
 	elapsed += minf(delta, interval)
 	if elapsed >= interval:
@@ -111,7 +121,7 @@ func _draw() -> void:
 		_line("CREDITS ROLL" if round.result()["cleared"] else "GAME OVER", Vector2(32, 195), accent, 34)
 		_line("SCORE  %06d  /  BEST  %06d" % [round.score, int(best.get(id, 0))], Vector2(32, 245), Color.WHITE, 24)
 		var joke := "Next-gen features sold separately." if id == "grand_delay" else "Your combat performance is pending stakeholder approval."
-		if round is AltRound:
+		if round is AltRound or round is ExtraRound:
 			joke = round.feedback
 		_line(joke, Vector2(32, 308), accent, 19)
 		_line("ENTER / A  CABINETS     ESC / B  BACK", Vector2(32, 428), Color.WHITE, 18)
@@ -119,6 +129,8 @@ func _draw() -> void:
 		_draw_patch(accent)
 	elif id == "indie_dev":
 		_draw_studio(accent)
+	elif id == "annual_warfare" or id == "day_one_dlc":
+		_draw_extra(accent, id == "annual_warfare")
 	else:
 		_line("SCORE %06d  |  LIFE %d  |  WAVE %02d/%02d" % [round.score, round.lives, round.step, Round.ROUND_STEPS], Vector2(32, 150), Color.WHITE, 18)
 		for n in range(Round.LANES):
@@ -172,3 +184,32 @@ func _draw_studio(accent: Color) -> void:
 	_line(round.feedback, Vector2(32, 391), accent, 17)
 	_line("LEFT / RIGHT  CHOOSE    ENTER / A  COMMIT WEEK", Vector2(32, 428), Color.WHITE, 16)
 	_line("ESC / B  ABANDON", Vector2(570, 428), Color("a0b0ba"), 16)
+
+func _draw_extra(accent: Color, gallery: bool) -> void:
+	if gallery:
+		_line("SCORE %06d  |  AMMO %d  |  LIFE %d  |  WAVE %02d/%02d" % [round.score,round.ammo,round.lives,round.step + 1,ExtraRound.GALLERY_STEPS],Vector2(32,150),Color.WHITE,18)
+	else:
+		_line("PACK %d/3  |  MOVES %d/%d  |  SCORE %06d" % [round.stage+1,round.moves,ExtraRound.MOVE_LIMIT,round.score],Vector2(32,150),Color.WHITE,18)
+	for y in range(3):
+		for x in range(3):
+			var cell := Vector2i(x,y)
+			var at := Vector2(245+x*105,165+y*68)
+			var bounds := Rect2(at,Vector2(95,60))
+			draw_rect(bounds,Color("26343e"))
+			if gallery:
+				if cell == round.target and not round.target_hit:
+					draw_circle(at+Vector2(47,27),18.0,Color("ed777e"))
+					_line("BOT",at+Vector2(30,33),Color("10151d"),15)
+				elif cell == round.decoy:
+					_line("FAN",at+Vector2(30,34),Color("69d8c2"),18)
+				if cell == round.cursor:
+					draw_rect(bounds,accent,false,3.0)
+			else:
+				var value: int = round.tiles[y*3+x]
+				if value == 0:
+					draw_rect(bounds,accent,false,2.0)
+				else:
+					_line("%d" % value,at+Vector2(37,40),accent if value == y*3+x+1 else Color.WHITE,30)
+	_line(round.feedback,Vector2(32,391),accent,17)
+	_line("ARROWS / D-PAD AIM   ENTER / A FIRE OR RELOAD" if gallery else "ARROWS / D-PAD SLIDE EMPTY SPACE",Vector2(32,428),Color.WHITE,16)
+	_line("ESC / B ABANDON",Vector2(570,428),Color("a0b0ba"),16)
