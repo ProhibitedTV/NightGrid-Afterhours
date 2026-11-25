@@ -6,6 +6,8 @@ const AudioMix = preload("res://scripts/audio_mix.gd")
 const Materials = preload("res://scripts/material_library.gd")
 const WorldPlan = preload("res://scripts/world_plan.gd")
 const VenueAmbience = preload("res://scripts/venue_ambience.gd")
+const MusicCareer = preload("res://scripts/music_career.gd")
+const MusicContactVisual = preload("res://scenes/pedestrian_visual.tscn")
 const CELL = 58.0
 const INTERACT_RANGE = 5.5
 
@@ -46,6 +48,7 @@ var _nodes: Dictionary = {}
 var _sign_materials: Dictionary = {}
 var _open_labels: Dictionary = {}
 var _patrons: Dictionary = {}
+var _music_contacts: Dictionary = {}
 var _lights: Array[OmniLight3D] = []
 var _focus := Vector3.ZERO
 var _hour := 19.25
@@ -56,6 +59,7 @@ var _ambience: Dictionary = {}
 func _ready() -> void:
 	for venue in VENUES:
 		_build_venue(venue)
+	_build_music_contacts()
 	for index in range(2):
 		var pool_light := OmniLight3D.new()
 		pool_light.name = "LocalVenueLight_%d" % index
@@ -254,6 +258,42 @@ func _build_venue(venue: Dictionary) -> void:
 	front.add_child(audio)
 	_ambience[venue_id] = audio
 
+func _build_music_contacts() -> void:
+	# Reuse the existing imported pedestrian rigs, not a second character pipeline.
+	var models := {"rhea":"res://assets/models/nightgrid/pedestrians/casual-walker.glb","milo":"res://assets/models/nightgrid/pedestrians/hiker.glb"}
+	for id in MusicCareer.MEMBERS:
+		var entry: Dictionary = MusicCareer.MEMBERS[id]
+		var site: String = entry["site"]
+		var anchor: Node3D = _nodes[site]
+		var contact := Node3D.new()
+		contact.name = "MusicContact_"+id
+		contact.position = Vector3(2.8,.21,-2.3)
+		anchor.add_child(contact)
+		var model := load(models[id]) as PackedScene
+		if model != null:
+			var visual := MusicContactVisual.instantiate() as Node3D
+			visual.call("set_pedestrian_model",model)
+			visual.call("set_pedestrian_style",2 if id=="rhea" else 5)
+			visual.rotation.y = PI
+			contact.add_child(visual)
+			visual.call("set_activity","STOREFRONT")
+		# An instrument case gives the musician a recognizable street presence.
+		_box(contact,Vector3(.55,.12,0),Vector3(.32,.19,.8),Color("292d35"),"METAL")
+		_box(contact,Vector3(.55,.22,0),Vector3(.29,.025,.73),Color("845d76"))
+		var tag := _make_label(contact,str(entry["name"])+" / "+str(entry["role"]),Vector3(0,2.1,0),Color("e6a8cf"),22)
+		tag.visibility_range_end = 12.0
+		_music_contacts[id] = contact
+
+func music_contact_position(id: String) -> Vector3:
+	var contact: Node3D = _music_contacts.get(id)
+	return contact.global_position if is_instance_valid(contact) else Vector3.INF
+
+func music_contact_near(id: String, at: Vector3) -> bool:
+	if not MusicCareer.MEMBERS.has(id) or not is_open(MusicCareer.MEMBERS[id]["site"]):
+		return false
+	var point := music_contact_position(id)
+	return point.is_finite() and Vector2(point.x,point.z).distance_to(Vector2(at.x,at.z)) <= 2.8 and absf(point.y-at.y)<2.5
+
 func _build_stall(root: Node3D, accent: Color, neon: StandardMaterial3D) -> void:
 	_box(root, Vector3(0.0, 2.85, -0.65), Vector3(7.7, 0.18, 3.35), accent)
 	_box(root, Vector3(0.0, 2.67, -2.12), Vector3(7.4, 0.16, 0.15), accent, "", neon)
@@ -432,6 +472,11 @@ func _night_factor() -> float:
 
 func _refresh() -> void:
 	var darkness := _night_factor()
+	for id in _music_contacts:
+		var contact: Node3D = _music_contacts[id]
+		var visible_now := is_open(MusicCareer.MEMBERS[id]["site"]) and contact.global_position.distance_squared_to(_focus)<55.0*55.0
+		contact.visible = visible_now
+		contact.process_mode = Node.PROCESS_MODE_INHERIT if visible_now else Node.PROCESS_MODE_DISABLED
 	var nearby: Array[Dictionary] = []
 	for pin in _map_pins:
 		pin["open"] = is_open(str(pin["id"]))
