@@ -42,6 +42,10 @@ const PLAYLISTS = {
 	"cafe": ["save_point", "high_score_with_no_name", "second_controller",
 		"sweep_the_carpet_at_sunrise", "fix_it_with_a_paper_clip"],
 	"retail": ["memory_address", "save_point", "midnight_bus", "second_controller"],
+	"retail_quay": ["midnight_bus","last_packet_home","fix_it_with_a_paper_clip"],
+	"retail_vesper": ["save_point","phosphor_ghosts","memory_address"],
+	"retail_nocturne": ["null_district","packet_loss","rasterburn"],
+	"retail_obscura": ["phosphor_ghosts","carrier_signal","neon_checksum"],
 	"stall": ["door_on_the_spin_cycle", "midnight_bus", "carrier_signal",
 		"second_controller", "the_coin_slot_is_taped"]
 }

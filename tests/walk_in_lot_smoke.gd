@@ -433,6 +433,9 @@ func _verify() -> void:
 		var spec:Dictionary=Store.STORES[id]
 		if not check(Store.for_lot(spec["block"],spec["lot"])==id and Store.entry(id).is_finite(),"fixed fashion parcel directory"):
 			return
+		var theme:Dictionary=Store.THEMES[id]
+		if not check(Store.carries(id,theme["featured"]) and not str(theme["clerk"]).is_empty(),"featured product and clerk authored"):
+			return
 		for item in spec["stock"]:
 			if not check(not catalog.listing(item).is_empty(),"valid stock item"):
 				return
@@ -443,6 +446,11 @@ func _verify() -> void:
 	if not check(is_instance_valid(quay) and quay.get("clothing_store_id")=="quay_standard","North Quay physical clothing store"):
 		return
 	player.global_position=quay.call("clothing_counter")
+	quay.call("set_local_light",true,player.global_position)
+	if not check(quay.get_node("ThreadlineClerk").call("get_staff_state")["name"]=="Ren Ives","Quay has distinct employee"):
+		return
+	world.call("_on_menu_action","fashion_waypoint:obscura")
+	world.get("game_menu").call("hide_for_game")
 	world.set("cash",500)
 	world.call("_toggle_interaction")
 	world.set("_wardrobe_quote_id","obscura_sable")

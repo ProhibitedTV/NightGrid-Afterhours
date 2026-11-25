@@ -441,6 +441,14 @@ func _build_world_audio() -> void:
 		float(options.get("sfx_volume", 0.75)))
 
 func _on_menu_action(action: String) -> void:
+	if action.begins_with("fashion_waypoint:"):
+		var id:=action.trim_prefix("fashion_waypoint:")
+		if ClothingStore.STORES.has(id):
+			var entry:=ClothingStore.entry(id)
+			set_navigation_waypoint(Vector2(entry.x,entry.z))
+			_notify("Route set to "+str(ClothingStore.STORES[id]["name"]))
+		game_menu.call("open_journal",_journal_context())
+		return
 	match action:
 		"begin_opening":
 			if not progression.has_receipt(Opening.RECEIPT):
@@ -613,7 +621,7 @@ func _journal_context() -> Dictionary:
 		"courier_can_restart": carrying,
 		"story_objective": story_mission.journal(),
 		"conditioning": courier_mission.conditioning_text(),
-		"clothing_store": ClothingStore.directory(),
+		"clothing_store": ClothingStore.directory(), "fashion_locations": ClothingStore.IDS.duplicate(),
 		"outfit": "OUTFIT: %s / %s" % [Wardrobe.ITEMS[progression.outfit_id]["name"],Wardrobe.ITEMS[progression.outfit_id]["rarity"]],
 		"bitcoin_sats": progression.bitcoin_sats,
 		"story_can_navigate": story_mission.status != "complete",
@@ -920,7 +928,7 @@ func _process(delta: float) -> void:
 		interior_kind = str((venue_system.call("venue_by_id",interior_id) as Dictionary).get("kind",""))
 		if not str(physical_room.get("clothing_store_id")).is_empty():
 			interior_id=str(physical_room.get("clothing_store_id"))
-			interior_kind="RETAIL"
+			interior_kind=str(ClothingStore.THEMES[interior_id]["music"]).to_upper()
 	if indoors and str(interiors.call("active_site_group")) == "VENUE":
 		interior_kind = str((venue_system.call("venue_by_id", interior_id) as Dictionary).get("kind", ""))
 	if is_instance_valid(nightgrid_fm):

@@ -23,3 +23,6 @@ Threadline has a named shopkeeper, Tess Vale, with a distinct retail tag, greeti
 
 ## District stock pass
 Five stable physical clothing locations: Threadline (-3,-2 east), Quay Standard (0,-4 west), Vesper Line (-1,-2 east), Nocturne (0,2 west), Obscura (1,-3 west). Four new outfits and one jacket variant are retailer-exclusive; home retains legacy purchase compatibility and can equip owned exclusives. Checkout validates the specific store and available inventory. Shared interior and clerk are temporary until distinct shop art and staff pass; native testing pending.
+
+## Brand identity increment
+Five distinct shopkeepers, palette and light colors, feature walls and music groups. Threadline patch wall, Quay canvas/tool panel, Vesper fabric library, Nocturne violet light installation (static, no strobe), Obscura brass signature display. Each feature is catalog-driven and priced; existing static batches, one local light, and occupied-floor NPC processing are reused. Journal fashion directory provides a waypoint action for each address. The shells and interim character rigs are shared; native visual/audio/controller validation pending.

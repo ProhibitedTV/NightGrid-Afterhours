@@ -39,3 +39,86 @@ static func directory() -> String:
 		var site:Dictionary=STORES[id]
 		lines.append("%s / %s" % [site["name"],site["district"]])
 	return "\n".join(lines)
+
+const THEMES={
+  "vesper_threadline": {
+    "clerk": "Tess Vale",
+    "hair": "bun",
+    "palette": 3,
+    "base": "252c33",
+    "wood": "8e7660",
+    "trim": "b9a277",
+    "light": "f4d9b0",
+    "tag": "EVERYDAY. EVERYWHERE.",
+    "music": "retail",
+    "coat": "4d4641",
+    "greet": "Try anything on. The mirror does not charge rent.",
+    "receipt": "Good choice. See you out there.",
+    "feature": "PATCH WALL / INDEPENDENT SINCE 2028",
+    "featured": "threadline_basics"
+  },
+  "quay_standard": {
+    "clerk": "Ren Ives",
+    "hair": "cropped",
+    "palette": 1,
+    "base": "324b49",
+    "wood": "80735e",
+    "trim": "719e92",
+    "light": "c6e0d8",
+    "tag": "BUILT FOR THE SHIFT.",
+    "music": "retail_quay",
+    "coat": "435b55",
+    "greet": "Good gear lasts longer than a shift. What are you working in?",
+    "receipt": "That should survive the docks. Wear it well.",
+    "feature": "SHIFT TESTED / REPAIR. REUSE. REPEAT.",
+    "featured": "quay_dock"
+  },
+  "vesper_line": {
+    "clerk": "Mina Chen",
+    "hair": "parted",
+    "palette": 2,
+    "base": "403d46",
+    "wood": "95857b",
+    "trim": "c0b4cc",
+    "light": "ede0d3",
+    "tag": "AFTER THE ORDINARY.",
+    "music": "retail_vesper",
+    "coat": "646075",
+    "greet": "A clean line changes how you carry yourself. Take your time.",
+    "receipt": "The fit is yours. No corporate dress code required.",
+    "feature": "FABRIC LIBRARY / INK COLLECTION",
+    "featured": "vesper_ink"
+  },
+  "nocturne": {
+    "clerk": "Jules Venn",
+    "hair": "dark",
+    "palette": 4,
+    "base": "211c2b",
+    "wood": "514357",
+    "trim": "a89acb",
+    "light": "d9b8eb",
+    "tag": "DRESSED FOR THE DARK.",
+    "music": "retail_nocturne",
+    "coat": "392d4a",
+    "greet": "The city looks different after midnight. So should you.",
+    "receipt": "See how that catches the club lights tonight.",
+    "feature": "VIOLET VEIL / AFTER MIDNIGHT",
+    "featured": "nocturne_veil"
+  },
+  "obscura": {
+    "clerk": "Dorian Kade",
+    "hair": "silver",
+    "palette": 0,
+    "base": "24282d",
+    "wood": "b4a18b",
+    "trim": "d4bd83",
+    "light": "f4e5ca",
+    "tag": "BEYOND ACCESS.",
+    "music": "retail_obscura",
+    "coat": "30363b",
+    "greet": "Welcome to Obscura. Every piece has a point of view.",
+    "receipt": "An excellent selection. It is exclusively yours to wear.",
+    "feature": "SABLE / PRIVATE COLLECTION",
+    "featured": "obscura_sable"
+  }
+}

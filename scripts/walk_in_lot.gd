@@ -166,23 +166,24 @@ func dress_clothing_store(store_id:String=ClothingStore.ID) -> void:
 	_dressed=true
 	clothing_store_id=store_id
 	var store:Dictionary=ClothingStore.STORES[store_id]
-	var black:=_mat(Color("252c33"))
-	var oak:=_mat(Color("8e7660"))
-	var brass:=_mat(Color("b9a277"))
+	var theme:Dictionary=ClothingStore.THEMES[store_id]
+	var black:=_mat(Color(theme["base"]))
+	var oak:=_mat(Color(theme["wood"]))
+	var brass:=_mat(Color(theme["trim"]))
 	# Counter against west wall; center route and side passages remain open.
 	_section("Furnishing",Vector3(-3.55,.52,2.8),Vector3(1.65,1.04,1.7),black)
 	_visual("Worktop",Vector3(-3.55,1.07,2.8),Vector3(1.75,.10,1.8),oak)
 	_visual("Worktop",Vector3(-3.35,1.22,2.65),Vector3(.32,.23,.22),black)
-	# Two collision-backed garment display fixtures with folded colorways.
+	var display:Array=[]
+	for stock_id in store["stock"]:
+		if Wardrobe.valid_id(stock_id):
+			display.append(stock_id)
+	# Three collision-backed display fixtures with folded colorways.
 	for z in [2.6,6.3,11.8]:
 		_section("Furnishing",Vector3(3.58,.45,z),Vector3(1.45,.90,1.55),black)
 		_visual("Worktop",Vector3(3.58,.93,z),Vector3(1.52,.08,1.63),oak)
 		_visual("Worktop",Vector3(4.19,1.53,z),Vector3(.055,1.15,1.43),brass)
 		for i in range(3):
-			var display:Array=[]
-			for stock_id in store["stock"]:
-				if Wardrobe.valid_id(stock_id):
-					display.append(stock_id)
 			var id:String=display[(int(z)+i)%display.size()]
 			var item:Dictionary=Wardrobe.ITEMS[id]
 			var tint:Color=item["jacket"]
@@ -193,7 +194,7 @@ func dress_clothing_store(store_id:String=ClothingStore.ID) -> void:
 			_visual("Worktop",Vector3(4.04,1.58,at.z),Vector3(.15,.62,.35),_mat(tint.darkened(.25)))
 			_visual("Worktop",Vector3(4.04,1.74,at.z),Vector3(.16,.23,.45),_mat(tint.darkened(.25)))
 	for z in [2.3,6.1,10.7,14.5]:
-		_visual("CeilingFixture",Vector3(0,ROOM_HEIGHT-.13,z),Vector3(2.6,.12,.42),_mat(Color("f4d9b0"),true))
+		_visual("CeilingFixture",Vector3(0,ROOM_HEIGHT-.13,z),Vector3(2.6,.12,.42),_mat(Color(theme["light"]),true))
 	# Branded sign panels, counter point-of-sale and merchandise tags.
 	_visual("Worktop",Vector3(4.68,2.0,8.2),Vector3(.07,1.1,1.2),black)
 	_visual("Worktop",Vector3(-3.82,1.24,2.25),Vector3(.30,.28,.12),black)
@@ -201,22 +202,64 @@ func dress_clothing_store(store_id:String=ClothingStore.ID) -> void:
 	_visual("Worktop",Vector3(-3.15,1.14,3.15),Vector3(.22,.028,.16),brass)
 	for z in [2.6,6.3,11.8]:
 		_visual("Worktop",Vector3(2.82,.99,z),Vector3(.045,.12,.65),brass)
-	_shop_label(str(store["style"])+" / COLLECTION",Vector3(0,2.66,4.1),.003,PI)
+	_shop_label(str(theme["tag"]),Vector3(0,2.66,4.1),.003,PI)
 	_shop_label(str(store["name"]),Vector3(4.62,2.12,8.2),.003,-PI/2)
 	_shop_label("USD / BTC ACCEPTED",Vector3(-3.50,1.83,2.8),.003,PI)
 	_shop_label("FITTING / LOOK GOOD. FEEL LIKE YOURSELF.",Vector3(3.45,2.25,6.3),.003,-PI/2)
 	_shop_label(str(store["name"])+" / "+str(store["district"]),Vector3(0,2.95,4.1),.005,PI)
 	_shop_label("FITTING / CHECKOUT",Vector3(-3.55,2.28,2.8),.004,PI)
-	_shop_label("WORKWEAR / STREET / AFTER DARK",Vector3(3.45,2.25,2.6),.003,PI)
+	_shop_label(str(store["style"])+" / COLLECTION",Vector3(3.45,2.25,2.6),.003,PI)
+	_dress_retail_feature(store_id,theme,black,oak,brass)
 	_flush_interior_visuals()
 	_clothing_clerk=ShopClerk.new()
-	_clothing_clerk.call("configure_staff",{"id":"tess_threadline","name":"Tess Vale","role":"Threadline shopkeeper","activity":"TYPE","seated":false,"palette":3,"phase":1.4,"outfit":"retail","hair":"bun","glasses":true,"coat":Color("4d4641"),"height":.92,"width":.78})
+	_clothing_clerk.call("configure_staff",{"id":store_id+"_clerk","name":theme["clerk"],"role":str(store["name"])+" shopkeeper","activity":"TYPE","seated":false,"palette":theme["palette"],"phase":1.4,"outfit":"retail","hair":theme["hair"],"glasses":store_id!="nocturne","coat":Color(theme["coat"]),"height":.92,"width":.78})
 	_clothing_clerk.name="ThreadlineClerk"
 	_clothing_clerk.position=Vector3(-4.12,0,2.0)
 	_clothing_clerk.rotation.y=PI/2
 	add_child(_clothing_clerk)
 	_clothing_clerk.process_mode=Node.PROCESS_MODE_DISABLED
 	_clothing_clerk.hide()
+
+# Shop-specific wall installations; leave the door, main corridor, ramp
+# and side passages clear. All decor is static and uses the existing batches.
+func _dress_retail_feature(id:String,theme:Dictionary,base:Material,wood:Material,trim:Material) -> void:
+	var x:=4.63
+	var z:=3.65
+	var glow:=_mat(Color(theme["trim"]),true)
+	var feature:String=theme["featured"]
+	var tint:Color=Wardrobe.ITEMS[feature]["jacket"]
+	_visual("Worktop",Vector3(x,2.35,z),Vector3(.10,1.2,1.6),base)
+	match id:
+		"vesper_threadline":
+			# Woven patch wall, a repaired-jacket brand signature.
+			for row in range(3):
+				for col in range(5):
+					var color:=Color(theme["trim"]).lerp(tint,float((row+col)%4)/4.0).darkened(.1)
+					_visual("Worktop",Vector3(x-.075,2.12+row*.20,z-.56+col*.28),Vector3(.045,.14,.21),_mat(color))
+		"quay_standard":
+			# Tool-board ribs and canvas swatches, industrial hazard stripes.
+			for i in range(7):
+				_visual("Worktop",Vector3(x-.075,2.36,z-.63+i*.21),Vector3(.045,.85,.07),trim)
+			for i in range(4):
+				_visual("Worktop",Vector3(x-.12,2.25,z-.48+i*.32),Vector3(.075,.38,.24),_mat(tint.darkened(i*.12)))
+		"vesper_line":
+			# Tailor's fabric library, arranged by shade.
+			for i in range(6):
+				_visual("Worktop",Vector3(x-.09,2.34,z-.60+i*.24),Vector3(.10,.80,.18),_mat(tint.lerp(Color("ddd1bf"),i*.13)))
+			_visual("Worktop",Vector3(x-.12,1.86,z),Vector3(.16,.045,1.47),wood)
+		"nocturne":
+			# Graphic violet bars in a dark frame; no flashing or strobe.
+			for i in range(5):
+				_visual("Worktop",Vector3(x-.08,2.2+i*.14,z),Vector3(.06,.036,1.28-i*.17),glow)
+			_visual("Worktop",Vector3(x-.09,2.53,z),Vector3(.05,.60,.035),trim)
+		"obscura":
+			# Sparse brass display and a single folded signature piece.
+			for edge in [-.68,.68]:
+				_visual("Worktop",Vector3(x-.08,2.35,z+edge),Vector3(.06,1.02,.026),trim)
+			_visual("Worktop",Vector3(x-.16,2.18,z),Vector3(.20,.055,.85),trim)
+			_visual("Worktop",Vector3(x-.16,2.29,z),Vector3(.19,.17,.54),_mat(tint))
+	_shop_label(str(theme["feature"]),Vector3(x-.17,2.94,z),.0026,-PI/2)
+	_shop_label("%s / $%d" % [Wardrobe.ITEMS[feature]["name"],Wardrobe.price(feature)],Vector3(x-.18,1.72,z),.0024,-PI/2)
 
 func _shop_label(value:String,at:Vector3,pixel:float,yaw:float) -> void:
 	var label:=Label3D.new()
@@ -233,15 +276,17 @@ func clothing_greeting() -> String:
 	if _clothing_greeted:
 		return ""
 	_clothing_greeted=true
-	return str(ClothingStore.STORES[clothing_store_id]["name"])+": Try anything on. You only pay when you decide to keep it."
+	var theme:Dictionary=ClothingStore.THEMES[clothing_store_id]
+	return str(theme["clerk"])+": "+str(theme["greet"])
 
 func clothing_remark(purchased:bool=false) -> String:
+	var theme:Dictionary=ClothingStore.THEMES[clothing_store_id]
 	if purchased:
-		return "Tess: Nice choice. It is yours now. Come back whenever you want to change things up."
-	var lines:Array=["Tess: Good clothes do not have to come with a corporate badge.","Tess: The night-shift colors look better under the streetlights.","Tess: Try the accessories with something you already own."]
+		return str(theme["clerk"])+": "+str(theme["receipt"])
+	var lines:Array=["Good clothes do not have to come with a corporate badge.","The colors change under the streetlights.","Try the accessories with something you already own."]
 	var line:String=lines[_clothing_remark_index%lines.size()]
 	_clothing_remark_index+=1
-	return line
+	return str(theme["clerk"])+": "+line
 
 func clothing_counter() -> Vector3:
 	return to_global(ClothingStore.COUNTER)
@@ -344,7 +389,7 @@ func set_local_light(enabled: bool, at: Vector3 = Vector3.INF) -> void:
 		_lamp.position = Vector3(0,ROOM_HEIGHT-.45,6.3)
 		_lamp.omni_range = 12.0
 		_lamp.light_energy = .9
-		_lamp.light_color = Color("f6dfbf")
+		_lamp.light_color = Color(ClothingStore.THEMES[clothing_store_id]["light"]) if ClothingStore.THEMES.has(clothing_store_id) else Color("f6dfbf")
 		_lamp.shadow_enabled = false
 		add_child(_lamp)
 	if is_instance_valid(_lamp):
