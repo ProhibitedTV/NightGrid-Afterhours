@@ -17,6 +17,8 @@ const ART := {
 const TINTS := {"grand_delay": "69d8c2", "claw_compliance": "efb169", "patch_day": "c4a2f3", "indie_dev": "f1cd82", "annual_warfare": "a5ca82", "day_one_dlc": "ed9db5", "open_world_checklist": "80bce9", "battle_pass_hero": "e6a1ef", "starline_patrol": "72d7cf", "neon_rebound": "f2a96b"}
 const SERVICE_STICKERS := {"grand_delay":"RELEASE DATE: TBA", "claw_compliance":"APPROVED BY 12 COMMITTEES", "patch_day":"HOTFIX HOTLINE", "indie_dev":"MADE WITH WEEKENDS OFF", "annual_warfare":"RELOADS ARE FREE", "day_one_dlc":"ALL PARTS INCLUDED", "open_world_checklist":"SOCK NOT INCLUDED", "battle_pass_hero":"NO ATTENDANCE TRACKING", "starline_patrol":"RESTORED BY ROOK", "neon_rebound":"ORIGINAL BOARD / FREE PLAY"}
 const CRT = preload("res://assets/arcade/attract_crt.gdshader")
+const DeluxeCRT = preload("res://assets/arcade/grand_delay_crt.gdshader")
+const DeluxeMarquee = preload("res://assets/arcade/grand_delay_marquee.svg")
 var game_id := "grand_delay"
 static var materials: Dictionary = {}
 static var screens: Dictionary = {}
@@ -59,14 +61,17 @@ func _ready() -> void:
 	screen.size = Vector2(.59,.65)
 	if not screens.has(game_id):
 		var mat := ShaderMaterial.new()
-		mat.shader = CRT
+		mat.shader = DeluxeCRT if game_id == "grand_delay" else CRT
 		mat.set_shader_parameter("art",ART[game_id])
 		screens[game_id] = mat
 	_mesh("CRTAttract",screen,Vector3(0,1.52,.29),screens[game_id])
 	var side := QuadMesh.new()
 	side.size = Vector2(.60,.77)
 	for sign in [-1,1]:
-		var panel := _mesh("SideArt",side,Vector3(sign*.419,1.48,-.08),screens[game_id])
+		var panel_mat: Material = screens[game_id]
+		if game_id == "grand_delay":
+			panel_mat = _printed(ART[game_id])
+		var panel := _mesh("SideArt",side,Vector3(sign*.419,1.48,-.08),panel_mat)
 		panel.rotation.y = sign * PI / 2.0
 	var marquee := Label3D.new()
 	marquee.name = "MarqueeTitle"
@@ -86,6 +91,9 @@ func _ready() -> void:
 	sticker.position = Vector3(0,.31,.401)
 	sticker.outline_size = 0
 	add_child(sticker)
+	if game_id == "grand_delay":
+		marquee.hide()
+		_deluxe_details()
 	_collision(Vector3(0,1.10,.03),Vector3(.87,2.16,.85))
 	_collision(Vector3(0,1.04,.43),Vector3(.84,.15,.24))
 
@@ -131,4 +139,72 @@ func _collision(at: Vector3, dimensions: Vector3) -> void:
 	var node := CollisionShape3D.new()
 	node.shape = shape
 	node.position = at
+	add_child(node)
+
+# Deluxe cabinet: separate printed vinyl from the CRT, all static except GPU screen sweep.
+func _printed(texture: Texture2D, illuminated: bool = false) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_texture = texture
+	mat.roughness = .42 if illuminated else .78
+	if illuminated:
+		mat.emission_enabled = true
+		mat.emission_texture = texture
+		mat.emission = Color.WHITE
+		mat.emission_energy_multiplier = .65
+	return mat
+
+func _deluxe_details() -> void:
+	var chrome := _mat(Color("899ca3"),.82)
+	var rubber := _mat(Color("111a24"),.0)
+	var warm := _mat(Color("f1b683"),.25)
+	var led := StandardMaterial3D.new()
+	led.albedo_color = Color("58e5ca")
+	led.emission_enabled = true
+	led.emission = Color("58e5ca")
+	led.emission_energy_multiplier = 1.3
+	var marquee_mesh := QuadMesh.new()
+	marquee_mesh.size = Vector2(.79,.145)
+	_mesh("DeluxeBacklitMarquee",marquee_mesh,Vector3(0,2.05,.278),_printed(DeluxeMarquee,true))
+	for side_x in [-.405,.405]:
+		_box("ChromeRail",Vector3(side_x,1.52,.293),Vector3(.018,.79,.025),chrome)
+		_box("MarqueeLightPipe",Vector3(side_x,2.05,.282),Vector3(.015,.155,.02),led)
+		_box("KickplateLightPipe",Vector3(side_x,.24,.403),Vector3(.018,.12,.025),led)
+		for y in [.29,.91,1.12,1.91]:
+			_cylinder("Fastener",Vector3(side_x,y,.411 if y < 1.0 else .31),.009,.012,chrome)
+	for y in [1.14,1.90]:
+		_box("CRTFrame",Vector3(0,y,.295),Vector3(.74,.025,.034),chrome)
+	_box("Kickplate",Vector3(0,.19,.407),Vector3(.76,.12,.026),rubber)
+	_box("CoinReturnTray",Vector3(0,.48,.431),Vector3(.16,.08,.04),rubber)
+	_box("CoinReturnLip",Vector3(0,.45,.456),Vector3(.16,.014,.04),chrome)
+	for i in range(7):
+		_box("CoolingLouver",Vector3(0,.78+i*.025,-.4),Vector3(.36,.009,.025),rubber)
+	_cylinder("JoystickBoot",Vector3(-.22,1.127,.36),.067,.022,rubber)
+	for i in range(3):
+		_cylinder("ButtonCollar",Vector3(.04+i*.105,1.118,.36),.043,.012,chrome)
+	_box("FreePlayLamp",Vector3(.27,.69,.42),Vector3(.075,.025,.014),led)
+	_box("SerialPlate",Vector3(.26,.36,.419),Vector3(.22,.08,.01),chrome)
+	_deluxe_label("Serial","MM-006 / ROOK 014",Vector3(.26,.36,.427),Color("162833"),12,.0008)
+	_deluxe_label("FreePlay","FREE PLAY",Vector3(.27,.65,.429),Color("86e9d2"),12,.001)
+	_deluxe_label("ControlLegend","STEER   /   NITRO",Vector3(0,1.043,.566),Color("e9cfaa"),16,.0015)
+	_deluxe_label("Warranty","NO ONLINE ACCOUNT REQUIRED",Vector3(0,.88,.417),Color("e9cfaa"),15,.001)
+	_box("ServiceSeal",Vector3(-.28,.36,.416),Vector3(.14,.075,.01),warm)
+	_deluxe_label("Seal","OFFLINE",Vector3(-.28,.36,.425),Color("26333d"),13,.0011)
+	var spill := OmniLight3D.new()
+	spill.name = "MarqueeSpill"
+	spill.position = Vector3(0,1.94,.48)
+	spill.light_color = Color("69d8c2")
+	spill.light_energy = .32
+	spill.omni_range = 1.25
+	spill.shadow_enabled = false
+	add_child(spill)
+
+func _deluxe_label(label: String, message: String, at: Vector3, tint: Color, font_size: int, pixel: float) -> void:
+	var node := Label3D.new()
+	node.name = label
+	node.text = message
+	node.position = at
+	node.font_size = font_size
+	node.pixel_size = pixel
+	node.modulate = tint
+	node.outline_size = 0
 	add_child(node)

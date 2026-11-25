@@ -55,6 +55,26 @@ func _verify() -> void:
 		b.advance()
 	if not check(b.lives == 2, "paywall damage"):
 		return
+	var deluxe := Round.new()
+	deluxe.start("grand_delay")
+	for i in range(10):
+		for item in deluxe.objects:
+			if item["kind"] == "feature" and item["row"] == 4:
+				deluxe.lane = item["lane"]
+		deluxe.advance()
+	if not check(deluxe.nitro_charge == 3 and deluxe.score == 300 and deluxe.strike() and not deluxe.strike(), "three shipped features charge one nitro"):
+		return
+	for item in deluxe.objects:
+		if item["kind"] == "paywall" and item["row"] == 3:
+			deluxe.lane = item["lane"]
+	var before_nitro := deluxe.lives
+	deluxe.advance()
+	deluxe.advance()
+	if not check(deluxe.lives == before_nitro and deluxe.nitro_ticks == 0, "nitro bypasses one paywall"):
+		return
+	deluxe.start("grand_delay")
+	if not check(deluxe.nitro_charge == 0 and deluxe.nitro_ticks == 0 and deluxe.streak == 0, "nitro and streak reset on replay"):
+		return
 	var patch := Alt.new()
 	if not check(patch.start("patch_day") and patch.strike() and patch.score == 150 and not patch.strike(), "patch repairs exactly once"):
 		return

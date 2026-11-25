@@ -30,6 +30,11 @@ func _verify() -> void:
 				return
 		if not check(shapes == 2 and cabinet.get_node_or_null("CRTAttract") != null, "collidable shell and attract screen"):
 			return
+	var deluxe = room.cabinets[0]
+	if not check(deluxe.get_node_or_null("DeluxeBacklitMarquee") != null and deluxe.get_node_or_null("MarqueeSpill") is OmniLight3D and deluxe.get_node_or_null("CoinReturnTray") != null, "deluxe cabinet has authored physical detail"):
+		return
+	if not check(room.cabinets[1].get_node_or_null("DeluxeBacklitMarquee") == null, "hero details isolated to one cabinet"):
+		return
 	if not check(room.cabinet_near(Vector3(0,1.1,5.8)).is_empty(), "entry aisle clear"):
 		return
 	var local := Vector3(-2.8,1.05,-.6)
