@@ -1,15 +1,15 @@
 extends RefCounted
 ## Fixed-step original retro games. Simulation uses a 600 x 250 logical arena.
-const WIDTH := 600.0
-const HEIGHT := 250.0
-const DT := 1.0 / 30.0
-const MAX_TICKS := 3600
-const PADDLE_HALF := 43.0
-const BALL_RADIUS := 5.0
-const SHIP_Y := 231.0
-const SHIP_SPEED := 250.0
-const SHOT_SPEED := 350.0
-const MAX_SHOTS := 8
+const WIDTH = 600.0
+const HEIGHT = 250.0
+const DT = 1.0 / 30.0
+const MAX_TICKS = 3600
+const PADDLE_HALF = 43.0
+const BALL_RADIUS = 5.0
+const SHIP_Y = 231.0
+const SHIP_SPEED = 250.0
+const SHOT_SPEED = 350.0
+const MAX_SHOTS = 8
 var game_id := ""
 var finished := true
 var cleared := false

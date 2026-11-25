@@ -1,15 +1,15 @@
 extends RefCounted
 ## Two offline score attacks: route optimization and timed command sequences.
-const WIDTH := 5
-const HEIGHT := 3
-const CHECK_TICKS := 36
-const CHECK_INTERVAL := 0.9
-const SEASON_INTERVAL := 0.75
-const SEASONS := 6
-const SEASON_TICKS := 8
-const COMMANDS := ["LEFT","UP","RIGHT","DOWN","A"]
-const TASKS := ["TOWER","SHARD","CHEST"]
-const OBJECTIVES := ["Log in for one glove","Visit the store (don't buy anything)","Complete three daily chores","Prove you are having fun","Defeat the engagement metric","Play because you want to"]
+const WIDTH = 5
+const HEIGHT = 3
+const CHECK_TICKS = 36
+const CHECK_INTERVAL = 0.9
+const SEASON_INTERVAL = 0.75
+const SEASONS = 6
+const SEASON_TICKS = 8
+const COMMANDS = ["LEFT","UP","RIGHT","DOWN","A"]
+const TASKS = ["TOWER","SHARD","CHEST"]
+const OBJECTIVES = ["Log in for one glove","Visit the store (don't buy anything)","Complete three daily chores","Prove you are having fun","Defeat the engagement metric","Play because you want to"]
 var game_id := ""
 var finished := true
 var cleared := false
