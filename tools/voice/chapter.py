@@ -1,0 +1,141 @@
+#!/usr/bin/env python3
+"""Offline chapter coverage and production planning. Never auto-approve."""
+import argparse
+import json
+from pathlib import Path
+import re
+
+import studio
+import production
+import qc
+
+CATALOG = studio.ROOT / "tools/voice/synaxis_chapter.json"
+SPEAKERS = {"Jetson Wang":"jetson","Lin Xue":"lin","林雪":"lin","Player":"player",
+            "HR":"hr","Dev":"dev","Rina":"rina"}
+SCENES = ("CONFERENCE","CALL_MANDARIN","CONFERENCE_END","OFFBOARDING",
+          "BREAKROOM_PARTY","BREAKROOM_PHOTO","BREAKROOM_DECLINE")
+
+
+def source_constants(path):
+    return {m[1]:json.loads(m[2]) for m in re.finditer(
+        r'^const (\w+) = ("(?:[^"\\]|\\.)*")$',path.read_text(encoding="utf-8"),re.M)}
+
+
+def validate_catalog(path, source=None):
+    catalog = production.load(path)
+    specs = studio.read_manifest(path)
+    pinned = catalog["source"]
+    if not studio.REV.fullmatch(pinned["revision"]) or not studio.REV.fullmatch(pinned["blob_sha"]):
+        raise ValueError("Unpinned source snapshot")
+    constants = pinned["constants"]
+    if set(constants) != set(SCENES) | {"CALL_SUBTITLES"}:
+        raise ValueError("Missing or unexpected scene constants")
+    if source is not None:
+        current = source_constants(source)
+        if any(current.get(k) != v for k,v in constants.items()):
+            raise ValueError("Mission dialogue changed; reconcile IDs and regenerate catalog")
+    expected = {}
+    for scene in SCENES:
+        chinese = scene == "CALL_MANDARIN"
+        sep = "：" if chinese else ": "
+        for index,row in enumerate(constants[scene].splitlines()):
+            speaker, delim, spoken = row.partition(sep)
+            if speaker not in SPEAKERS or not delim:
+                if scene == "OFFBOARDING":
+                    continue  # written UI, not an utterance
+                raise ValueError("Unknown speaker: "+row)
+            ident = f"synaxis.{scene.lower()}.{index+1:02d}"
+            line = {"id":ident,"character":SPEAKERS[speaker],"language":"Chinese" if chinese else "English",
+                    "text":spoken,"source":{"constant":scene,"row":index}}
+            if chinese:
+                cap = constants["CALL_SUBTITLES"].splitlines()[index]
+                if not cap.startswith("Lin Xue: "):
+                    raise ValueError("Caption speaker mismatch")
+                line["caption"] = cap[len("Lin Xue: "):]
+            expected[ident] = line
+    if set(expected) != set(specs):
+        raise ValueError("Catalog coverage differs from spoken script")
+    for ident, fields in expected.items():
+        if any(specs[ident]["line"].get(k) != v for k,v in fields.items()):
+            raise ValueError("Canonical text or speaker mismatch: "+ident)
+    return specs
+
+
+def status(specs, cast_root=production.CAST, take_root=production.TAKES,
+           library=production.PUBLISHED):
+    # Existing published assets must pass full verification, not just exist.
+    production.verify_library(specs, library)
+    casts = {}
+    rows = []
+    for ident,spec in specs.items():
+        char = spec["line"]["character"]
+        if (library/ident).is_dir():
+            rows.append({"id":ident,"character":char,"state":"published","takes":[]})
+            continue
+        if char not in casts:
+            try:
+                casts[char] = production.read_cast(cast_root/char,char,spec["voice"])
+            except (FileNotFoundError,ValueError,KeyError):
+                casts[char] = None
+        cast = casts[char]
+        if cast is None:
+            rows.append({"id":ident,"character":char,"state":"needs_cast","takes":[]})
+            continue
+        candidates = []
+        for folder in sorted((take_root/ident).glob("*")):
+            if not folder.is_dir() or not studio.SHA.fullmatch(folder.name):
+                continue
+            try:
+                production.verify_take(folder,spec,cast)
+                state = "needs_qc"
+                try:
+                    report = qc.verify_report(folder,spec)
+                    state = "needs_review"
+                    if report["metrics"]["flags"]:
+                        state = "flagged"
+                    try:
+                        production.verify_take(folder,spec,cast,approved=True)
+                        state = "approved"
+                    except (FileNotFoundError,ValueError,KeyError):
+                        pass
+                except (FileNotFoundError,ValueError,KeyError):
+                    pass
+                candidates.append({"take":folder.name,"state":state})
+            except (FileNotFoundError,ValueError,KeyError):
+                candidates.append({"take":folder.name,"state":"invalid"})
+        ranking = ["approved","needs_review","flagged","needs_qc"]
+        available = {x["state"] for x in candidates}
+        state = next((s for s in ranking if s in available),"needs_render")
+        rows.append({"id":ident,"character":char,"state":state,"takes":candidates})
+    return rows
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("action",choices=["validate","status","require-complete"])
+    parser.add_argument("--manifest",type=Path,default=CATALOG)
+    parser.add_argument("--source",type=Path,help="Actual checked-out mission script")
+    parser.add_argument("--json",action="store_true")
+    args=parser.parse_args()
+    if args.action=="require-complete" and args.source is None:
+        parser.error("Release coverage requires the actual checked-out --source")
+    specs=validate_catalog(args.manifest,args.source)
+    if args.action=="validate":
+        print(f"Validated {len(specs)} spoken lines (source {'checked' if args.source else 'snapshot only'})")
+        return
+    rows=status(specs)
+    counts={}
+    for row in rows:
+        counts[row["state"]]=counts.get(row["state"],0)+1
+    if args.json:
+        print(json.dumps({"source_checked":args.source is not None,"counts":counts,"lines":rows},indent=2))
+    else:
+        for row in rows:
+            print(row["state"].ljust(14),row["id"],row["character"])
+        print("Coverage:",counts)
+    if args.action=="require-complete" and counts.get("published",0)!=len(specs):
+        raise SystemExit("Required chapter dialogue is incomplete")
+
+
+if __name__=="__main__":
+    main()
