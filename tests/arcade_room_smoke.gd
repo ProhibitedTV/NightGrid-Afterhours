@@ -46,6 +46,8 @@ func _verify() -> void:
 	var archive := room.get_node_or_null("GameCultureArchive")
 	if not check(archive != null and archive.EXHIBITS.size() == 8, "eight archive exhibits"):
 		return
+	if not check(archive.get_node_or_null("PublisherAwards") != null and archive.get_node_or_null("CommunityAward") != null, "physical satire and community awards"):
+		return
 	var seen := {}
 	for exhibit in archive.EXHIBITS:
 		var point: Vector3 = archive.to_global(exhibit["approach"])

@@ -23,6 +23,11 @@ func _ready() -> void:
 	_prop("SpareCRTGlass",Vector3(-3.68,1.25,-6.965),Vector3(.39,.38,.025),Color("212a2e"))
 	_prop("Toolbox",Vector3(-3.0,1.08,-7.2),Vector3(.44,.24,.36),Color("8d494a"))
 	_prop("Handle",Vector3(-3.0,1.23,-7.2),Vector3(.17,.035,.08),Color("a1a6a3"))
+	# Bench inventory is static, kept behind the staffed counter.
+	_prop("CircuitBoard",Vector3(-3.38,.985,-7.0),Vector3(.34,.04,.22),Color("3d7768"))
+	for n in range(4):
+		_prop("Chip",Vector3(-3.49+n*.07,1.013,-7.0),Vector3(.045,.018,.10),Color("252b2e"))
+	_prop("ServiceManual",Vector3(-3.12,.985,-7.0),Vector3(.19,.04,.24),Color("c3af8b"))
 	for n in range(3):
 		_prop("PartsBin",Vector3(3.2+n*.43,.25,-7.3),Vector3(.38,.42,.54),Color("4c5759"),true)
 		_prop("BinLabel",Vector3(3.2+n*.43,.35,-7.02),Vector3(.23,.08,.018),Color("c7b89a"))

@@ -53,6 +53,64 @@ func _ready() -> void:
 	_box(self,"Manual",Vector3(4.10,.94,8.40),Vector3(.30,.16,.10),Color("8b6055"))
 	_box(self,"DiscCase",Vector3(4.48,1.01,8.40),Vector3(.26,.29,.06),Color("3d777a"))
 	_box(self,"SaveDisk",Vector3(4.84,.98,8.40),Vector3(.24,.23,.05),Color("6c647d"))
+	_build_awards()
+
+func _build_awards() -> void:
+	# A tiny awards case below the publisher exhibit, against the side wall.
+	# Keep the floor-level interaction anchor and exit walkway unobstructed.
+	var display := Node3D.new()
+	display.name = "PublisherAwards"
+	display.position = Vector3(7.53,0.0,6.0)
+	display.rotation.y = -PI / 2.0
+	add_child(display)
+	_box(display,"AwardShelf",Vector3(0,.82,.12),Vector3(1.36,.09,.40),Color("7c6954"),true)
+	var awards := [
+		["BEST APOLOGY",Color("d8b26e")],
+		["BEST ROADMAP",Color("9caab5")],
+		["MOST EDITIONS",Color("b88a72")]
+	]
+	for i in range(awards.size()):
+		var x := -.42+i*.42
+		var tint: Color = awards[i][1]
+		_box(display,"TrophyBase",Vector3(x,.91,.12),Vector3(.25,.10,.24),Color("33333c"))
+		_box(display,"TrophyStem",Vector3(x,1.04,.12),Vector3(.06,.17,.06),tint)
+		var cup := CylinderMesh.new()
+		cup.top_radius = .115
+		cup.bottom_radius = .052
+		cup.height = .17
+		cup.radial_segments = 12
+		var visual := MeshInstance3D.new()
+		visual.name = "PublisherTrophy"
+		visual.mesh = cup
+		visual.position = Vector3(x,1.20,.12)
+		var metal := StandardMaterial3D.new()
+		metal.albedo_color = tint
+		metal.metallic = .7
+		metal.roughness = .32
+		visual.material_override = metal
+		display.add_child(visual,true)
+		var label := Label3D.new()
+		label.text = awards[i][0]
+		label.font_size = 16
+		label.pixel_size = .0011
+		label.modulate = Color("e2d2ba")
+		label.position = Vector3(x,.91,.25)
+		display.add_child(label)
+	# The actual community award is on the opposite side, next to the joke.
+	var community := Node3D.new()
+	community.name = "CommunityAward"
+	community.position = Vector3(-7.53,0.0,6.0)
+	community.rotation.y = PI / 2.0
+	add_child(community)
+	_box(community,"AwardShelf",Vector3(0,.82,.12),Vector3(1.12,.09,.40),Color("7c6954"),true)
+	_box(community,"WoodPlaque",Vector3(0,1.08,.13),Vector3(.84,.43,.10),Color("896e53"))
+	var plaque := Label3D.new()
+	plaque.text = "COMMUNITY FIXED IT FIRST\nTHANK YOU, PLAYERS"
+	plaque.font_size = 22
+	plaque.pixel_size = .0018
+	plaque.position = Vector3(0,1.08,.19)
+	plaque.modulate = Color("f3d79d")
+	community.add_child(plaque)
 
 func exhibit_near(at: Vector3) -> Dictionary:
 	var local := to_local(at)
