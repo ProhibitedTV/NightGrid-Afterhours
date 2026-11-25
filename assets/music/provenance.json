@@ -1,0 +1,67 @@
+{
+  "source_pull_request": 315,
+  "source_commit": "2903f9dd85b723c65dd2a3c68bebcf57daa25f36",
+  "review": "pending; imported assets only",
+  "files": {
+    "assets/audio/music/band_demo.wav": {
+      "git_blob_sha": "cdf708adf8b7b5f2c8d7baf97bfb2e348c896824",
+      "bytes": 176444
+    },
+    "assets/audio/music/bass_demo.wav": {
+      "git_blob_sha": "70df7253cc64d83fcf280d0118981ab7ef782a81",
+      "bytes": 352844
+    },
+    "assets/audio/music/busker_demo.wav": {
+      "git_blob_sha": "7dcedcab2b01e74fbbf09d3a8bec4506beb26a33",
+      "bytes": 176444
+    },
+    "assets/audio/music/synth_demo.wav": {
+      "git_blob_sha": "b536e55d87a89786a067bf88ec62abb009d10911",
+      "bytes": 352844
+    },
+    "assets/music/models/acoustic_guitar.obj": {
+      "git_blob_sha": "c2375f1f38516336f8657ab1df3285febe584d90",
+      "bytes": 205402
+    },
+    "assets/music/models/combo_amp.obj": {
+      "git_blob_sha": "82568661a3b850f98f47ded6e861d4e1973c2bd5",
+      "bytes": 24239
+    },
+    "assets/music/models/mic_stand.obj": {
+      "git_blob_sha": "eeb058b76b034507573d4e4aff37bd6032505b04",
+      "bytes": 11905
+    },
+    "assets/music/models/portable_synth.obj": {
+      "git_blob_sha": "f9ad3e4d84c2f1e4d6966059f2075eda50066dec",
+      "bytes": 153671
+    },
+    "assets/music/models/punk_bass.obj": {
+      "git_blob_sha": "8e39cc955e4c21705d5cb2ca6ca1c47e40903afe",
+      "bytes": 157727
+    },
+    "assets/music/models/road_case.obj": {
+      "git_blob_sha": "94a37653baca8f86de3d041795173075e1839690",
+      "bytes": 21574
+    },
+    "assets/music/textures/instrument_color.svg": {
+      "git_blob_sha": "49d7fc4fdf27bffecd66922295cbaed868c1c6b7",
+      "bytes": 46111
+    },
+    "assets/music/textures/instrument_normal.svg": {
+      "git_blob_sha": "3d0a8e2fafd28a9caef22b9992271b090491f8fc",
+      "bytes": 42875
+    },
+    "assets/music/textures/instrument_surface.svg": {
+      "git_blob_sha": "1b9a26e7e7d9e9e6e4c9106c927949420b7a6d26",
+      "bytes": 1174
+    },
+    "assets/music/textures/label_tape.svg": {
+      "git_blob_sha": "8969eb63301e83bb09f2dd49f7aa9e9962d5f5b1",
+      "bytes": 928
+    },
+    "shaders/music/instrument_wear.gdshader": {
+      "git_blob_sha": "38de473017cedd5ae654df4ac8ff7bcf2b3d6f4d",
+      "bytes": 587
+    }
+  }
+}
