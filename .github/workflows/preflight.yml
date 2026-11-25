@@ -508,6 +508,12 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/bus_coachwork_smoke.gd 2>&1 | tee /tmp/nightgrid-bus-coachwork.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-bus-coachwork.log; then exit 1; fi
+      - name: Validate batched traffic rim motion and independent pooled actor phase
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/traffic_wheel_motion_smoke.gd 2>&1 | tee /tmp/nightgrid-traffic-rim.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-traffic-rim.log; then exit 1; fi
+          grep -q "TRAFFIC_WHEEL_MOTION_SMOKE PASS" /tmp/nightgrid-traffic-rim.log
       - name: Validate positional road traffic buses and cars using bounded voice pool
         run: godot --headless --path . --script res://tests/traffic_spatial_audio_smoke.gd
       - name: Validate independent mix stems and all live interaction cues

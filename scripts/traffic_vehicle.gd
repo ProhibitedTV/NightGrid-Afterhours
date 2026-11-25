@@ -1,5 +1,6 @@
 extends CharacterBody3D
 const Materials = preload("res://scripts/material_library.gd")
+const WheelArt = preload("res://scripts/traffic_wheel_mesh.gd")
 const BusCoachwork = preload("res://scripts/bus_coachwork.gd")
 const CarCoachwork = preload("res://scripts/civilian_car_coachwork.gd")
 const StreamProfile = preload("res://scripts/streaming_profile.gd")
@@ -28,6 +29,9 @@ var _detour_hold := false
 const HANDOFF_TOLERANCE = 0.55
 const DETOUR_MAX_POINTS = 81
 static var _wheel_sets: Dictionary = {}
+var _rim_batch: MultiMesh
+var _rim_rest: Array[Transform3D] = []
+var _wheel_phase := 0.0
 static var _body_shapes: Dictionary = {}
 var _crash_zones := Vector2.ZERO
 var _crash_condition := 100.0
@@ -66,6 +70,7 @@ func lease_ambient(path: Array[Vector3], entry: Dictionary) -> void:
 	dwell_remaining = 0.0
 	last_served = -1
 	laps = 0
+	_reset_wheel_phase()
 	_leased = true
 	_pristine_coach = CarCoachwork.mesh_for(paint)
 	_reset_crash()
@@ -214,8 +219,10 @@ func _physics_process(delta: float) -> void:
 	StreamProfile.accumulate(driving_started, "traffic_control_including_headway")
 	var collision_started := StreamProfile.begin()
 	var incoming := velocity
+	var before := global_position
 	move_and_slide()
 	StreamProfile.accumulate(collision_started, "traffic_move_and_slide")
+	_roll_wheels(global_position - before)
 	if _crash_cooldown <= 0.0:
 		_resolve_crash(incoming)
 
@@ -307,6 +314,7 @@ func apply_snapshot(data: Dictionary) -> void:
 	dwell_remaining = clampf(float(data.get("dwell", 0.0)), 0.0, 8.0)
 	last_served = clampi(int(data.get("last_served", -1)), -1, stop_points.size() - 1)
 	laps = maxi(0, int(data.get("laps", 0)))
+	_reset_wheel_phase()
 	_reset_crash()
 	var saved: Variant = data.get("crash", [])
 	if not _leased and saved is Array and saved.size() == 4:
@@ -334,8 +342,8 @@ func _build_body() -> void:
 	if not _wheel_sets.has(buses):
 		var radius := 0.44 if buses else CarCoachwork.TIRE_RADIUS
 		_wheel_sets[buses] = [
-			_wheel_batch(radius, 0.28, 14),
-			_wheel_batch(radius * 0.47, 0.295, 12),
+			_wheel_batch(WheelArt.tire(radius)),
+			WheelArt.rim(radius),
 		]
 	var tires := MultiMeshInstance3D.new()
 	tires.name = "Tires"
@@ -344,16 +352,14 @@ func _build_body() -> void:
 	add_child(tires)
 	var hubs := MultiMeshInstance3D.new()
 	hubs.name = "Hubs"
-	hubs.multimesh = _wheel_sets[buses][1]
+	# Share immutable rim geometry, not the independently animated transforms.
+	_rim_batch = _wheel_batch(_wheel_sets[buses][1])
+	_rim_rest.assign(_rim_batch.get_meta("wheel_transforms"))
+	hubs.multimesh = _rim_batch
 	hubs.material_override = Materials.surface("METAL", Color("89939c"))
 	add_child(hubs)
 
-func _wheel_batch(radius: float, thickness: float, segments: int) -> MultiMesh:
-	var mesh := CylinderMesh.new()
-	mesh.top_radius = radius
-	mesh.bottom_radius = radius
-	mesh.height = thickness
-	mesh.radial_segments = segments
+func _wheel_batch(mesh: Mesh) -> MultiMesh:
 	var batch := MultiMesh.new()
 	batch.transform_format = MultiMesh.TRANSFORM_3D
 	batch.mesh = mesh
@@ -372,3 +378,30 @@ func _wheel_batch(radius: float, thickness: float, segments: int) -> MultiMesh:
 	batch.set_meta("wheel_transforms", wheel_transforms)
 	return batch
 
+
+func _roll_wheels(displacement: Vector3) -> void:
+	if not is_instance_valid(_rim_batch):
+		return
+	displacement.y = 0.0
+	if not displacement.is_finite() or displacement.length_squared() > 4.0:
+		return
+	var signed_metres := displacement.dot(-global_basis.z)
+	if absf(signed_metres) < 0.0001:
+		return
+	var radius := 0.44 if buses else CarCoachwork.TIRE_RADIUS
+	_wheel_phase = fposmod(_wheel_phase + signed_metres / radius, TAU)
+	_apply_wheel_phase()
+
+func _reset_wheel_phase() -> void:
+	_wheel_phase = 0.0
+	if is_instance_valid(_rim_batch):
+		_apply_wheel_phase()
+
+func _apply_wheel_phase() -> void:
+	# Local +Y maps onto world-local -X. Positive forward displacement
+	# moves the tire's bottom contact towards the rear of the vehicle.
+	var rotation_basis := Basis(Vector3.UP, _wheel_phase)
+	for i in range(_rim_rest.size()):
+		var pose := _rim_rest[i]
+		pose.basis = pose.basis * rotation_basis
+		_rim_batch.set_instance_transform(i, pose)

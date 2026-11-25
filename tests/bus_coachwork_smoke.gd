@@ -49,7 +49,9 @@ func _verify()->void:
 				collider_count+=1
 				if not _check((child.shape as BoxShape3D).size==Vector3(2.7,2.85,8.3),"unchanged collision"):
 					return
-			if child is MultiMeshInstance3D and child.multimesh.mesh is CylinderMesh:
+			if child is MultiMeshInstance3D and child.name in ["Tires","Hubs"]:
+				if not _check((child.name=="Tires" and child.multimesh.mesh is CylinderMesh) or (child.name=="Hubs" and child.multimesh.mesh is ArrayMesh),"batched tire and modeled rim"):
+					return
 				var authored: Array = child.multimesh.get_meta("wheel_transforms", [])
 				if not _check(authored.size() == child.multimesh.instance_count, "four recorded wheel transforms"):
 					return
