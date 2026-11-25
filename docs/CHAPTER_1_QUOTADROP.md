@@ -83,3 +83,6 @@ On the Product & Design floor, Cal Mercer is a heavyset systems analyst seated a
 
 ### Unmarked office Easter eggs
 Business Operations has Arthur Bell, a possessive procurement clerk with a small red stapler constructed from distinct hinge, channel, anvil and handle pieces. Proximity reveals three original remarks on separate visits, never a quest marker or economy action. Engineering and QA have original printer and paperwork jokes. No borrowed film dialogue or footage. Native visual verification pending.
+
+### AI and robotics engineering
+Level 2 retains 28 desks but replaces its east collaboration lounge with a sealed transparent robotics showcase. CARETAKER-03 and HARMONY-08 are original articulated noncombat demonstration props with animated head gimbals, shoulders and status strips; no real weapon or targeting systems. Four physical glass barriers prevent entry. Robotics validation engineer Imani Reed provides optional satirical remarks. The deck features a fictional workforce-complementarity display and corporate safety slogans. Animation pauses off-floor. Native asset quality and collision review remain pending.

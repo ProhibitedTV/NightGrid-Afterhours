@@ -3,10 +3,11 @@ extends Node3D
 ## Real desk and partition collision; no per-desk process or lights.
 const Rage=preload("res://scripts/synaxis_keyboard_rage.gd")
 const Eggs=preload("res://scripts/synaxis_office_easter_eggs.gd")
+const Robotics=preload("res://scripts/synaxis_robotics_lab.gd")
 const FLOOR_COUNT=4
 const FLOOR_HEIGHT=3.65
 const LIFT=Vector2(0,5.0)
-const DEPARTMENTS=["ENGINEERING","PRODUCT & DESIGN","QUALITY & VALIDATION","BUSINESS OPERATIONS"]
+const DEPARTMENTS=["AI & ROBOTICS ENGINEERING","PRODUCT & DESIGN","QUALITY & VALIDATION","BUSINESS OPERATIONS"]
 const COLORS={
 	"oak":Color("d2b58e"),"oak_edge":Color("a98c68"),"white":Color("e7e4dc"),
 	"steel":Color("535a5e"),"black":Color("252e36"),"carpet":Color("777b7c"),
@@ -31,6 +32,7 @@ var _colliders:=0
 var _lights: Array[OmniLight3D]=[]
 var _rage:Node3D
 var _eggs:Node3D
+var _robotics:Node3D
 
 static func desk_positions() -> Array[Vector2]:
 	var result: Array[Vector2]=[]
@@ -64,6 +66,10 @@ func _ready() -> void:
 	_shared_area(accent)
 	_architecture(accent)
 	_flush()
+	if level==1:
+		_robotics=Robotics.new()
+		_robotics.name="RoboticsLab"
+		add_child(_robotics)
 	if level==2:
 		_rage=Rage.new()
 		_rage.configure_staff({"id":"cal","name":"Cal Mercer","role":"Product systems analyst","activity":"TYPE","seated":true,"palette":0,"outfit":"office","hair":"parted","glasses":true,"coat":"61727c","width":1.02,"height":.90,"phase":.3})
@@ -86,6 +92,8 @@ func set_occupied(active: bool) -> void:
 		_rage.call("enable_performance",active)
 	if is_instance_valid(_eggs):
 		_eggs.call("set_active",active)
+	if is_instance_valid(_robotics):
+		_robotics.call("set_active",active)
 
 func _material(key: String) -> StandardMaterial3D:
 	if not _materials.has(key):
@@ -215,6 +223,8 @@ func _plant(at: Vector3,size: float) -> void:
 func _shared_area(accent: String) -> void:
 	# Leave the lift landing and central cross-aisle empty.
 	for x in [-4.7,4.7]:
+		if level==1 and x>0:
+			continue
 		_part("oak",Vector3(x,.76,7.55),Vector3(2.3,.075,1.28))
 		_solid(Vector3(x,.40,7.55),Vector3(2.3,.80,1.28))
 		for dx in [-.95,.95]:
@@ -238,9 +248,12 @@ func _shared_area(accent: String) -> void:
 		_solid(Vector3(x,.53,-.4),Vector3(.68,1.06,1.4))
 		_part("white",Vector3(x,1.23,-.4),Vector3(.55,.36,.62))
 		_part("black",Vector3(x,1.38,-.4),Vector3(.36,.045,.42))
-		_plant(Vector3(x,0,8.8),.46)
+		if level!=1 or x<0:
+			_plant(Vector3(x,0,8.8),.46)
 	# Soft seating, facing the collaboration tables but away from main paths.
 	for x in [-6.2,6.2]:
+		if level==1 and x>0:
+			continue
 		_part(accent,Vector3(x,.43,9.45),Vector3(2.2,.56,.72))
 		_part(accent,Vector3(x,.82,9.70),Vector3(2.2,.56,.20))
 		_solid(Vector3(x,.50,9.45),Vector3(2.2,1.0,.72))
@@ -260,6 +273,8 @@ func observe_worker(at:Vector3) -> String:
 		_rage.call("observe",at)
 	if is_instance_valid(_eggs):
 		return str(_eggs.call("observe",at))
+	if is_instance_valid(_robotics):
+		return str(_robotics.call("observe",at))
 	return ""
 
 func _architecture(accent: String) -> void:

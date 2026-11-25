@@ -504,6 +504,21 @@ func _verify() -> void:
 		if int(office.get("_active_floor"))!=level or absf(office.to_local(player.global_position).y-(level*3.65+1.15))>.01:
 			_fail("Lift travels to actual upper floor elevations")
 			return
+	var engineering_deck:Node3D=office.get_node("Workfloor1")
+	var robotics_lab:Node3D=engineering_deck.get_node("RoboticsLab")
+	engineering_deck.call("set_occupied",true)
+	var lab_stats:Dictionary=robotics_lab.call("lab_stats")
+	if int(lab_stats["prototypes"])!=2 or int(lab_stats["barriers"])!=4 or not bool(lab_stats["active"]):
+		_fail("Robotics lab has two articulated display prototypes and a closed collision bay")
+		return
+	var engineer_line:String=engineering_deck.call("observe_worker",engineering_deck.to_global(Vector3(3.8,1.15,4.45)))
+	if not engineer_line.contains("Imani"):
+		_fail("Robotics engineer has unmarked proximity dialogue")
+		return
+	engineering_deck.call("set_occupied",false)
+	if bool(robotics_lab.call("lab_stats")["active"]):
+		_fail("Robot demonstration stops when its floor is unoccupied")
+		return
 	var comic_deck:Node3D=office.get_node("Workfloor2")
 	var cal:Node3D=comic_deck.get("_rage")
 	comic_deck.call("set_occupied",true)
