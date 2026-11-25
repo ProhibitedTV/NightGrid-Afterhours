@@ -81,12 +81,47 @@ func _verify() -> void:
 	if menu.call("get_buttons").has("phone_decline_offer") or mission.decline_offer():
 		_fail("A carried package cannot be switched")
 		return
+	if mission.set_on_duty(false):
+		_fail("Cannot go offline with a carried order")
+		return
 	mission.step = 0
-	menu.call("hide_for_game")
+	menu.call("refresh_phone",world.call("_phone_context"))
+	menu.call("_choice","phone_toggle_duty")
+	if mission.on_duty or world.get("marker").visible or world.call("get_map_state")["mission_active"] or not str(world.call("_journal_context")["main_objective"]).contains("offline"):
+		_fail("Offline must clear active courier presentation")
+		return
+	if not mission.advance("collect",mission.target(),world.get("progression")).is_empty():
+		_fail("Offline courier must not collect")
+		return
+	if world.call("_capture_snapshot")["courier_on_duty"] != false:
+		_fail("Offline state missing from save")
+		return
+	menu.call("_choice","phone_back")
+	menu.call("_choice","phone_app_opportunities")
+	var listings: Array = world.call("_phone_workboard")
+	if listings.size() != 8:
+		_fail("Workboard must list the eight authored contracts")
+		return
+	var first: Dictionary = listings[0]
+	var route_action: String = "phone_route_contract:"+str(first["id"])
+	if not menu.call("get_buttons").has(route_action):
+		_fail("Missing real contract route")
+		return
+	var ledger_before: Dictionary = world.get("progression").snapshot()
+	menu.call("_choice",route_action)
+	if paused or world.get("navigation_waypoint") == null or world.get("progression").snapshot() != ledger_before or not str(world.get("venue_job_active")).is_empty():
+		_fail("Browsing must route, never remotely accept or pay")
+		return
+	var story = world.get("story_mission")
+	var wallet = world.get("progression")
+	story.event("mara_talk",wallet)
+	if story.event("contract_completed",wallet) != "delivered" or story.step != 2:
+		_fail("Legitimate local work should qualify for Mara's referral")
+		return
 	world.set("current_car",world.get("cars")[0])
 	if world.call("phone_available"):
 		_fail("Phone must not open while driving")
 		return
 	world.set("current_car",null)
-	print("MORROW_PHONE PASS: six apps, live state, physical routes, pause ownership and driving gate")
+	print("MORROW_PHONE PASS: seven apps, live state, offer rotation, duty gate, workboard, alternate contact progression and driving gate")
 	quit(0)
