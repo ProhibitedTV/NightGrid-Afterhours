@@ -463,6 +463,10 @@ func _on_menu_action(action: String) -> void:
 			_new_game()
 		"journal":
 			game_menu.call("open_journal", _journal_context())
+		"phone":
+			_open_phone(true)
+		"phone_route_order", "phone_route_mara", "phone_route_home", "phone_route_rail", "phone_route_bus":
+			_phone_route(action)
 		"restart_courier":
 			if courier_mission.restart():
 				_refresh_courier_target()
@@ -584,6 +588,72 @@ func _story_target() -> Vector3:
 		return mission_position
 	return venue_system.call("venue_position", "lantern_cup")
 
+func phone_available() -> bool:
+	return is_instance_valid(player) and not is_instance_valid(_opening_office) and current_car == null and current_transit == null and not venue_panel.visible and not equipment_wheel.visible
+
+func _open_phone(from_pause: bool) -> void:
+	if not phone_available():
+		_notify("Use your phone on foot, outside an active conversation.")
+		return
+	game_menu.call("open_phone", _phone_context(), from_pause)
+
+func _phone_nearest(points: Array, origin: Vector2) -> Vector2:
+	var best := Vector2.INF
+	var distance := INF
+	for point in points:
+		if not point is Vector2 or not point.is_finite():
+			continue
+		var gap: float = origin.distance_to(point)
+		if gap < distance:
+			distance = gap
+			best = point
+	return best
+
+func _phone_transit() -> Dictionary:
+	var outside: Vector3 = interiors.get("exterior_position") if interiors.call("is_inside") else player.global_position
+	var origin := Vector2(outside.x, outside.z)
+	return {"origin":origin, "rail":_phone_nearest(rail.call("get_map_stations"),origin), "bus":_phone_nearest(traffic.call("get_map_stops"),origin)}
+
+func _phone_context() -> Dictionary:
+	var transit := _phone_transit()
+	var origin: Vector2 = transit["origin"]
+	var rail_point: Vector2 = transit["rail"]
+	var bus_point: Vector2 = transit["bus"]
+	return {
+		"clock":day_night.call("clock_string"), "gig":courier_mission.gig_economy,
+		"offboarded":progression.has_receipt(Opening.RECEIPT), "order":courier_mission.objective()["title"],
+		"carrying":carrying, "payout":courier_mission.payout(), "deliveries":deliveries,
+		"cash":cash, "bitcoin_sats":progression.bitcoin_sats, "story":story_mission.journal(),
+		"home_owned":progression.owns_home(), "home_access":progression.has_receipt(StarterHome.ACCESS_RECEIPT),
+		"deposit":StarterHome.move_in_price(), "notice":Opening.app_notice(deliveries),
+		"rail_available":rail_point.is_finite(), "bus_available":bus_point.is_finite(),
+		"rail_name":"%d m away (direct)" % roundi(origin.distance_to(rail_point)) if rail_point.is_finite() else "Unavailable",
+		"bus_name":"%d m away (direct)" % roundi(origin.distance_to(bus_point)) if bus_point.is_finite() else "Unavailable"
+	}
+
+func _phone_route(action: String) -> void:
+	if not phone_available() or game_menu.get("screen") != "phone":
+		return
+	var destination := Vector2.INF
+	match action:
+		"phone_route_order":
+			if courier_mission.gig_economy:
+				destination = Vector2(mission_position.x,mission_position.z)
+		"phone_route_mara":
+			var p: Vector3 = venue_system.call("venue_position","lantern_cup")
+			destination = Vector2(p.x,p.z)
+		"phone_route_home":
+			var p := StarterHome.entry()
+			destination = Vector2(p.x,p.z)
+		"phone_route_rail":
+			destination = _phone_transit()["rail"]
+		"phone_route_bus":
+			destination = _phone_transit()["bus"]
+	if destination.is_finite():
+		set_navigation_waypoint(destination)
+		game_menu.call("hide_for_game")
+		_notify("Phone: route set.")
+
 func _journal_context() -> Dictionary:
 	var outside: Vector3 = interiors.get("exterior_position") if interiors.call("is_inside") else _actor().global_position
 	var district: String = city_details.call("get_district_at", outside)
@@ -690,6 +760,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		if venue_panel.visible:
 			_close_venue()
 		game_menu.call("open_map")
+	elif event.is_action_pressed("phone_open"):
+		_open_phone(false)
 	elif event.is_action_pressed("journal_open"):
 		if venue_panel.visible:
 			_close_venue()
