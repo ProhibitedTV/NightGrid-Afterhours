@@ -258,6 +258,9 @@ func _render() -> void:
 				2:
 					_title(col, "A PERSONNEL MATTER", 29, Ui.TEXT)
 					_label(col, Opening.CONFERENCE, 17, Color("cbd8e3"))
+				_label(col, "INCOMING CALL / MANDARIN", 16, Ui.AMBER)
+				_label(col, Opening.CALL_SUBTITLES, 17, Ui.TEXT)
+				_label(col, Opening.CONFERENCE_END, 17, Color("cbd8e3"))
 					_button(col, "opening_security", "REPORT THE INCIDENT TO SECURITY", "opening_security")
 					_button(col, "opening_legal", "ASK LEGAL TO PRESERVE THE AUDIT", "opening_legal")
 				3:

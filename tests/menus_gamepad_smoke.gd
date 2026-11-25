@@ -379,6 +379,10 @@ func _verify() -> void:
 		return
 	menu.call("_choice","opening_inspect")
 	menu.call("_choice","opening_brief")
+	var opening = preload("res://scripts/opening_story.gd")
+	if not opening.CALL_MANDARIN.contains("解放军") or not opening.CALL_SUBTITLES.contains("People's Liberation Army"):
+		_fail("Mandarin phone call and English subtitles must identify the fictional military contact")
+		return
 	if not (menu.call("get_buttons") as Dictionary).has("opening_security") or not (menu.call("get_buttons") as Dictionary).has("opening_legal"):
 		_fail("Executive confrontation must present both report choices")
 		return
