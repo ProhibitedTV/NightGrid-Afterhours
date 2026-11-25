@@ -3427,6 +3427,9 @@ func _venue_action(option: int) -> void:
 				_wardrobe_quote_id = ""
 				if id in _wardrobe_visible_ids() and _preview_clothing(id) and int(visual.call("wardrobe_surface_count"))>0 and (progression.buy_piece(id,_wardrobe_tender,retail_ok) if Wardrobe.piece_valid(id) else progression.buy_outfit(id,_wardrobe_tender,retail_ok)):
 					_notify("Purchased "+str(Wardrobe.listing(id)["name"])+". Ready to equip."+(" "+str(lot.call("clothing_remark",true)) if retail_ok else ""))
+					if _wardrobe_category in ["AFFORDABLE","UNOWNED"]:
+						_wardrobe_category="OWNED"
+						_wardrobe_index=Wardrobe.browse_ids().find(id)
 				else:
 					_notify("Purchase unavailable. No payment taken.")
 		elif option == 1:
