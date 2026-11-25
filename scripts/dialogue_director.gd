@@ -42,7 +42,7 @@ func _ready() -> void:
 func prewarm(line_id: String) -> bool:
 	if not _valid_id(line_id):
 		return false
-	var path := "res:" + "//assets/audio/voiced/%s/take.wav" % line_id
+	var path := "res://assets/audio" + ("/voiced/%s/take.wav" % line_id)
 	if not ResourceLoader.exists(path):
 		return false
 	return cache_clip(line_id, load(path) as AudioStream)
