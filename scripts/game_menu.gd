@@ -45,6 +45,7 @@ var _opening_report := ""
 var _opening_exit := ""
 var _physical_opening := false
 var _briefing_beat := 0
+var _breakroom_choice := ""
 var settings: Dictionary = DEFAULT_SETTINGS.duplicate(true)
 var _root: Control
 var _screen_nodes: Array[Control] = []
@@ -108,6 +109,10 @@ func open_opening(physical: bool = false) -> void:
 	else:
 		_open("opening")
 
+func open_breakroom() -> void:
+	_breakroom_choice=""
+	_open("breakroom")
+
 func open_opening_stage() -> void:
 	_open("opening")
 
@@ -168,6 +173,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				_open(_confirmation_origin)
 			"pause":
 				hide_for_game()
+			"breakroom":
+				_choice("breakroom_leave")
 			_:
 				pass
 		get_viewport().set_input_as_handled()
@@ -215,7 +222,7 @@ func _render() -> void:
 	_buttons.clear()
 	_focus_order.clear()
 	_first_focus = null
-	var staged := screen=="opening" and _physical_opening and _opening_stage in [2,4]
+	var staged := screen=="breakroom" or (screen=="opening" and _physical_opening and _opening_stage in [2,4])
 	var shade := ColorRect.new()
 	shade.name = "Scrim"
 	shade.color = Color(0.028, 0.045, 0.060, .12 if staged else .94)
@@ -264,6 +271,16 @@ func _render() -> void:
 			_button(col, "settings", "SETTINGS", "settings")
 			_button(col, "controls", "CONTROLS & GAMEPAD", "controls")
 			_button(col, "quit", "QUIT TO DESKTOP", "quit")
+		"breakroom":
+			SynaxisBrand.ui_lockup(col)
+			_title(col,Opening.BREAKROOM_TITLE,23,Ui.AMBER)
+			if _breakroom_choice.is_empty():
+				_label(col,Opening.BREAKROOM_PARTY,16,Ui.TEXT)
+				_button(col,"breakroom_photo","JOIN THE CORPORATE PHOTO","breakroom_photo")
+				_button(col,"breakroom_decline","SKIP THE PHOTO","breakroom_decline")
+			else:
+				_label(col,Opening.BREAKROOM_PHOTO if _breakroom_choice=="breakroom_photo" else Opening.BREAKROOM_DECLINE,17,Ui.TEXT)
+				_button(col,"breakroom_leave","BACK TO WORK","breakroom_leave")
 		"opening":
 			SynaxisBrand.ui_lockup(col)
 			_label(col, "OMNISYSTEMS / INTERNAL USE ONLY / 2036", 14, SynaxisBrand.AQUA)
@@ -561,6 +578,14 @@ func _choice(action: String) -> void:
 				action_requested.emit("begin_opening")
 			else:
 				hide_for_game()
+		"breakroom_photo", "breakroom_decline":
+			if screen=="breakroom" and _breakroom_choice.is_empty():
+				_breakroom_choice=action
+				_render()
+		"breakroom_leave":
+			if screen=="breakroom":
+				hide_for_game()
+				action_requested.emit("breakroom_leave")
 		"opening_inspect":
 			if screen == "opening" and _opening_stage == 0:
 				_opening_stage = 1

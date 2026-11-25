@@ -21,6 +21,8 @@ var _assistant: Node3D
 var _ceo: Node3D
 var _hr: Node3D
 const START = Vector3(0,1.15,7)
+const BREAKROOM_POINT = Vector3(-4.2,1.15,6.85)
+var _breakroom_seen := false
 const POINTS = {0:Vector3(-5,1.15,4),2:Vector3(5,1.15,-4),4:Vector3(-5,1.15,-4),5:Vector3(5,1.15,5)}
 const TITLES = {0:"IT DESK / REVIEW THE ALERT",2:"EXECUTIVE OFFICE / ATTEND BRIEFING",4:"PEOPLE EXPERIENCE / EXIT INTERVIEW",5:"RECEPTION / COLLECT FINAL NOTICE"}
 var _target_sign: Label3D
@@ -60,6 +62,7 @@ func _ready() -> void:
 	_solid("ExecutivePartition",Vector3(0,1.5,-3.8),Vector3(.18,3.0,6.8),wall)
 	_build_lobby(desk,accent,screen)
 	_build_office_details(desk,accent,screen)
+	_build_breakroom(desk,accent)
 	var propaganda := Propaganda.new()
 	propaganda.name="CorporatePropaganda"
 	add_child(propaganda)
@@ -142,6 +145,30 @@ func _build_office_details(desk: Material,accent: Material,screen: Material) -> 
 		_visual("DeskNamePlate",Vector3(x,1.13,-5.05),Vector3(.47,.13,.08),accent)
 	_visual("ExecutiveCarpet",Vector3(5,.012,-3.3),Vector3(5,.015,3.1),_material("carpet",Color("383d49")))
 
+func _build_breakroom(desk: Material,accent: Material) -> void:
+	# Furniture is permanent; the short party performance is intro-only.
+	_solid("BreakroomTable",Vector3(-4.2,.47,8.12),Vector3(3.4,.94,1.02),desk)
+	var card:=_material("party_cardboard",Color("c3a880"))
+	var cheese:=_material("party_food",Color("d5aa56"))
+	var paper:=_material("party_paper",Color("eceae1"))
+	_visual("CateringCarton",Vector3(-5.12,1.01,8.12),Vector3(.67,.12,.64),card)
+	_visual("OpenPizzaCarton",Vector3(-4.28,.98,8.12),Vector3(.68,.07,.66),card)
+	_visual("LastTwoSlices",Vector3(-4.28,1.04,8.12),Vector3(.36,.035,.31),cheese)
+	for i in range(3):
+		_visual("PaperCup",Vector3(-3.62+i*.22,1.055,8.10),Vector3(.11,.23,.11),paper)
+	_visual("NapkinStack",Vector3(-2.90,1.00,8.18),Vector3(.22,.09,.22),paper)
+	_visual("PartyBannerBacking",Vector3(-4.2,2.98,9.80),Vector3(4.7,.66,.04),_material("party_navy",Brand.NAVY))
+	Brand.wall_logo(self,"PartyBrand",Vector3(-6.03,2.98,9.765),PI,.72)
+	_sign("GLOBAL TALENT APPRECIATION DAY",Vector3(-3.77,3.07,9.76),.004).rotation.y=PI
+	_sign("SPONSORSHIP TEAM / PHOTO BEFORE FOOD",Vector3(-3.77,2.86,9.76),.003).rotation.y=PI
+	_sign("CATERING BUDGET: $48\nATTENDANCE GOAL: 65",Vector3(-2.85,1.40,8.14),.0028).rotation.y=PI
+
+func breakroom_reachable(at: Vector3) -> bool:
+	return _prologue_active and at.is_finite() and at.distance_to(to_global(BREAKROOM_POINT))<1.35
+
+func mark_breakroom_seen() -> void:
+	_breakroom_seen=true
+
 func update_public_light(at: Vector3) -> void:
 	var active := at.is_finite() and at.distance_squared_to(ENTRY)<81.0
 	if _lobby_active==active:
@@ -155,6 +182,7 @@ func public_checkpoint_reachable(at: Vector3) -> bool:
 
 func begin_prologue() -> void:
 	_prologue_active=true
+	_breakroom_seen=false
 	if not is_instance_valid(_cast):
 		_build_cast()
 	_target_sign.show()
@@ -198,6 +226,13 @@ func _build_cast() -> void:
 	_hr.call("configure",{"id":"people_ops","role":"People Experience","activity":"SCROLL","seated":true,"palette":4,"phase":2.1})
 	_hr.position = Vector3(-5,0,-6.65)
 	_cast.add_child(_hr)
+	for spec in [{"id":"dev","role":"Platform engineer","palette":1,"position":Vector3(-5.35,0,9.18)},{"id":"rina","role":"QA analyst","palette":3,"position":Vector3(-3.1,0,9.18)}]:
+		var coworker:=Patron.new()
+		coworker.call("configure",{"id":spec["id"],"role":spec["role"],"activity":"CHAT","seated":false,"palette":spec["palette"]})
+		coworker.position=spec["position"]
+		coworker.rotation.y=PI
+		coworker.process_mode=Node.PROCESS_MODE_ALWAYS
+		_cast.add_child(coworker)
 	for actor in [_ceo,_assistant,_hr]:
 		actor.process_mode = Node.PROCESS_MODE_ALWAYS
 	for sign in [_sign("JETSON WANG / CEO",Vector3(5,2.55,-6.65),.0045),_sign("LIN XUE / EXECUTIVE ASSISTANT",Vector3(7.1,2.35,-5.8),.004),_sign("PEOPLE EXPERIENCE",Vector3(-5,2.55,-6.65),.0045)]:
@@ -215,6 +250,10 @@ func dialogue_camera(camera: Camera3D,stage: int,beat: int) -> void:
 	camera.global_position = to_global(from)
 	camera.look_at(to_global(toward),Vector3.UP)
 	_assistant.call("set_phone_call",stage==2 and beat==1)
+
+func breakroom_camera(camera: Camera3D) -> void:
+	camera.global_position=to_global(Vector3(-6.1,1.9,5.0))
+	camera.look_at(to_global(Vector3(-3.7,1.5,8.7)),Vector3.UP)
 
 func end_dialogue() -> void:
 	if is_instance_valid(_assistant):
@@ -280,3 +319,5 @@ func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 	if not POINTS.has(stage):
 		return
 	_hint.text = "SYNAXIS / EXECUTIVE PRIVILEGE\n%s\n%s" % [TITLES[stage],("X / INTERACT" if gamepad else "G / INTERACT") if reachable(stage,at) else "%dm to objective" % roundi(at.distance_to(point(stage)))]
+	if breakroom_reachable(at) and not _breakroom_seen:
+		_hint.text += "\n" + ("X" if gamepad else "G") + " / OPTIONAL: BREAKROOM PARTY"

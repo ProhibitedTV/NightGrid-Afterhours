@@ -416,6 +416,21 @@ func _verify() -> void:
 	if menu.call("is_open"):
 		_fail("Cannot interact with office workstation remotely")
 		return
+	var breakroom_hq=preload("res://scripts/synaxis_office.gd")
+	player.global_position=office.to_global(breakroom_hq.BREAKROOM_POINT)
+	world.call("_opening_interact")
+	if not (menu.call("get_buttons") as Dictionary).has("breakroom_photo") or not is_instance_valid(office.get_node_or_null("PartyBannerBacking")):
+		_fail("Optional breakroom party requires actual in-world proximity and branded decor")
+		return
+	menu.call("_choice","breakroom_decline")
+	menu.call("_choice","breakroom_leave")
+	if menu.call("is_open") or not office.get("_breakroom_seen") or menu.get("_opening_stage")!=0 or world.get("cash")!=before_severance:
+		_fail("Optional party cannot alter mission stage or wallet")
+		return
+	world.call("_opening_interact")
+	if menu.call("is_open"):
+		_fail("Party cannot be replayed repeatedly in the same prologue")
+		return
 	player.global_position = office.call("point",0)
 	world.call("_opening_interact")
 	menu.call("_choice","opening_inspect")

@@ -428,6 +428,10 @@ func _on_menu_action(action: String) -> void:
 				_start_opening_office()
 			else:
 				game_menu.call("hide_for_game")
+		"breakroom_leave":
+			if is_instance_valid(_opening_office):
+				_opening_office.call("mark_breakroom_seen")
+				_snap_camera()
 		"opening_walk":
 			if is_instance_valid(_opening_office):
 				_opening_office.call("end_dialogue")
@@ -497,6 +501,10 @@ func _opening_interact() -> void:
 	if not is_instance_valid(_opening_office) or game_menu.call("is_open"):
 		return
 	var stage := int(game_menu.get("_opening_stage"))
+	if _opening_office.call("breakroom_reachable",player.global_position) and not bool(_opening_office.get("_breakroom_seen")):
+		_opening_office.call("breakroom_camera",camera)
+		game_menu.call("open_breakroom")
+		return
 	if _opening_office.call("reachable",stage,player.global_position):
 		if stage in [2,4]:
 			_opening_office.call("dialogue_camera",camera,stage,int(game_menu.get("_briefing_beat")))

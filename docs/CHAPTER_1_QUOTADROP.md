@@ -39,3 +39,7 @@ Six original wall-mounted corporate print designs persist with headquarters: qua
 ### Synaxis corporate identity
 
 Original geometric hexagon/signal emblem and custom outlined SYNAXIS wordmark are stored as scalable source SVGs in `assets/art/synaxis/`. Light/dark lockups share the exact same artwork; no external logo, font or trademark source. The brand script shares imported textures/materials between all six posters, tower faces, entrance, reception, executive wall mark and cardboard exit box. The same lockup appears in the opening terminal UI. Palette: midnight navy #152e40, signal aqua #95e3d6, warm paper #e8e8df, warning red #ad4040, investor gold #f1c879. Clear-space and scale guidance in the asset README. No real company identity used. Native visual verification remains pending.
+
+### Breakroom: Global Talent Appreciation Day
+
+Optional proximity-gated encounter during the office prologue. HR invents a non-existent appreciation holiday for its sponsorship program and diversity metrics; employees of different backgrounds play along for catering and openly joke about the absurdity. The branded banner, table, cartons, snacks and two animated coworkers are physical scene elements. Player chooses whether to join the mandatory-looking corporate photo; unique replies, no mission advancement, currency, inventory or health changes. The party is optional and cannot repeat within the prologue. The props remain, the actors leave with the opening cast. Not a representation of any real national holiday. Native scene framing and full CI pending.

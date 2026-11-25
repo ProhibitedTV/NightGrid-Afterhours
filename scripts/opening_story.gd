@@ -22,6 +22,10 @@ const EXIT_DECLINE = "Exit interview declined. Your response has been recorded a
 const NOTICE = "Position eliminated: Systems Operations Associate. Your duties have been reassigned to an autonomous workflow. Your access has expired. Final severance: $75 after badge deactivation, transition processing and benefit reconciliation.\nPlease return your laptop. The cardboard box is available for purchase at reception."
 const OFFER = "QUOTADROP / BE YOUR OWN BOSS*\nCongratulations! You have been promoted from employee to customer of your employer.\nYour rating belongs to us; your expenses belong to you.\n*Independent contractor. No guaranteed hours, benefits or minimum earnings. Our algorithm is your business partner, not your supervisor. It will explain this again if you decline an order."
 
+const BREAKROOM_TITLE = "GLOBAL TALENT APPRECIATION DAY"
+const BREAKROOM_PARTY = "HR: Happy Global Talent Appreciation Day! Our H-1B sponsorship team has approved a cultural celebration.\nPlayer: What country celebrates this?\nDev: I asked my parents back home. They've never heard of it.\nRina: Neither has HR. They needed something for the diversity slide before earnings.\nDev: I said it sounded like a holiday. They said it sounded like a catering expense. We agreed to stop asking questions.\nHR: Before anyone eats, we need a group photo for LinkedIn. Please look like you're thriving.\nRina: The pizza is cold. The quarterly profit is not."
+const BREAKROOM_PHOTO = "HR: Perfect! Caption: Building belonging, one slice at a time.\nDev: Can we put the premium increase in the caption?\nHR: Let's keep the messaging positive."
+const BREAKROOM_DECLINE = "Rina: Good call. They'll use the same photo for the next three quarters anyway.\nDev: Don't worry. I'll save you a napkin. That's the only thing they ordered enough of."
 # Rotating platform notices use existing run count, not a new simulation.
 const APP_NOTICES = [
 	"Your flexibility is our greatest asset.",
