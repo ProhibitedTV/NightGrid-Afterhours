@@ -8,6 +8,9 @@ func _build_uniform() -> void:
 	for side in [-1.0,1.0]:
 		_segment(_torso,"BlazerLapel",Vector3(side*.16,.46,.19),Vector3(side*.05,.18,.235),.035,.028,"FABRIC",Color("28212f"),"uniform")
 	_box(_torso,"ExecutiveBadge",Vector3(-.18,.32,.245),Vector3(.13,.044,.018),"BRASS",Color("c4ae84"),"uniform")
+	for side in [-1.0,1.0]:
+		_sphere(_head,"PearlStud",Vector3(side*.185,-.045,.015),Vector3(.026,.026,.026),"BRASS",Color("e3d6c5"),"uniform")
+	_box(_left_arm,"ExecutiveWatch",Vector3(0,-.57,.07),Vector3(.07,.055,.022),"BRASS",Color("b59b73"),"uniform")
 	_phone = Node3D.new()
 	_phone.name = "ExecutivePhone"
 	_right_arm.add_child(_phone)

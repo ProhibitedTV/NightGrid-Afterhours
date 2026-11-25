@@ -456,12 +456,12 @@ func _verify() -> void:
 		if float(shot["duration"])<=0.0 or (i>0 and shot["from"]!=shots[i-1]["to"]):
 			_fail("Arrival camera cuts must not teleport the player")
 			return
-		var start: Vector3=shot["from"]
-		var end: Vector3=shot["to"]
+		var shot_start: Vector3=shot["from"]
+		var shot_end: Vector3=shot["to"]
 		# Sample each route leg against the executive partition expanded by capsule clearance.
 		for step in range(21):
-			var pos := start.lerp(end,float(step)/20.0)
-			if absf(pos.x)<.45 and pos.z>arrival_script.PARTITION_NEAR_Z-.36 and pos.z<arrival_script.PARTITION_FAR_Z+.36:
+			var route_sample := shot_start.lerp(shot_end,float(step)/20.0)
+			if absf(route_sample.x)<.45 and route_sample.z>arrival_script.PARTITION_NEAR_Z-.36 and route_sample.z<arrival_script.PARTITION_FAR_Z+.36:
 				_fail("Arrival must turn around the partition rather than walk through it")
 				return
 	var partition: MeshInstance3D=office.get_node("ExecutivePartition")
@@ -484,6 +484,23 @@ func _verify() -> void:
 	world.call("_opening_interact")
 	if menu.call("is_open") or int(office.call("objective_stage",0))!=-2:
 		_fail("Cannot interact with office workstation remotely")
+		return
+	var staff: Dictionary=office.get("_staff")
+	if staff.size()!=8 or not staff.has("reception"):
+		_fail("HQ has eight authored staff plus the executive assistant")
+		return
+	for staff_id in staff:
+		var employee: Node3D=staff[staff_id]
+		if employee.get_node_or_null("BreathingTorso/SynaxisEmployeeBadge")==null or str(employee.get("display_name")).is_empty():
+			_fail("Each employee has physical department attire and an identity")
+			return
+	var mika: Node3D=staff["mika"]
+	var staff_line: String=office.call("update_staff_attention",-2,mika.global_position+Vector3.UP*1.15)
+	if not staff_line.contains("Mika Torres") or not mika.call("get_staff_state")["attention"]:
+		_fail("Nearby supervisor reacts without a modal menu")
+		return
+	if office.call("update_staff_attention",-2,office.to_global(Vector3(0,1.15,0)))!="" or mika.call("get_staff_state")["attention"]:
+		_fail("Staff attention clears out of range")
 		return
 	var rooms=preload("res://scripts/synaxis_restrooms.gd")
 	var washrooms=office.get_node_or_null("Restrooms")
@@ -548,6 +565,9 @@ func _verify() -> void:
 	world.call("_opening_interact")
 	menu.call("_choice","opening_phone")
 	var assistant: Node3D = office.get("_assistant")
+	if staff["jetson_wang"].call("get_staff_state")["beat"]!=1:
+		_fail("CEO performance follows the staged executive briefing")
+		return
 	if not is_instance_valid(assistant) or not assistant.get("_on_call") or not assistant.get("_phone").visible:
 		_fail("Visible assistant speakerphone performance during Mandarin beat")
 		return

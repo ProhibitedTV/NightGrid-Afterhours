@@ -13,7 +13,12 @@ const LOBBY_CHECKPOINT = Vector3(0,1.15,-9.0)
 var _lobby_light: OmniLight3D
 var _lobby_active := false
 var _prologue_active := false
-const Patron = preload("res://scripts/lantern_patron.gd")
+const Staff = preload("res://scripts/synaxis_staff.gd")
+const Cast = preload("res://scripts/synaxis_cast.gd")
+var _staff: Dictionary = {}
+var _near_staff := ""
+var _staff_remark := ""
+var _staff_phase := -1
 const Assistant = preload("res://scripts/synaxis_assistant.gd")
 const Propaganda = preload("res://scripts/synaxis_propaganda.gd")
 const Brand = preload("res://scripts/synaxis_brand.gd")
@@ -274,6 +279,10 @@ func finish_prologue() -> void:
 	if is_instance_valid(_cast):
 		_cast.queue_free()
 		_cast = null
+	_staff.clear()
+	_near_staff=""
+	_staff_remark=""
+	_staff_phase=-1
 	_assistant = null
 	_ceo = null
 	_hr = null
@@ -288,35 +297,23 @@ func _build_cast() -> void:
 	_cast = Node3D.new()
 	_cast.name = "OpeningCast"
 	add_child(_cast)
-	_ceo = Patron.new()
-	_ceo.call("configure",{"id":"jetson_wang","role":"Chief Executive Officer","activity":"CHAT","seated":true,"palette":2,"phase":1.2})
-	_ceo.position = Vector3(5,0,-6.65)
-	_cast.add_child(_ceo)
-	_assistant = Assistant.new()
-	_assistant.name = "LinXue"
-	_assistant.position = Vector3(7.1,0,-5.8)
-	_assistant.scale = Vector3.ONE*.88
+	_staff.clear()
+	for spec in Cast.STAFF:
+		var actor:=Staff.new()
+		actor.configure_staff(spec)
+		actor.position=spec["position"]
+		actor.rotation.y=float(spec["yaw"])
+		actor.process_mode=Node.PROCESS_MODE_ALWAYS
+		_cast.add_child(actor)
+		_staff[spec["id"]]=actor
+	_ceo=_staff["jetson_wang"]
+	_hr=_staff["people_ops"]
+	_assistant=Assistant.new()
+	_assistant.name="LinXue"
+	_assistant.position=Vector3(7.1,0,-5.8)
+	_assistant.scale=Vector3.ONE*.88
+	_assistant.process_mode=Node.PROCESS_MODE_ALWAYS
 	_cast.add_child(_assistant)
-	_hr = Patron.new()
-	_hr.call("configure",{"id":"people_ops","role":"People Experience","activity":"SCROLL","seated":true,"palette":4,"phase":2.1})
-	_hr.position = Vector3(-5,0,-6.65)
-	_cast.add_child(_hr)
-	for spec in [{"id":"dev","role":"Platform engineer","palette":1,"position":Vector3(-5.35,0,9.18)},{"id":"rina","role":"QA analyst","palette":3,"position":Vector3(-3.1,0,9.18)}]:
-		var coworker:=Patron.new()
-		coworker.call("configure",{"id":spec["id"],"role":spec["role"],"activity":"CHAT","seated":false,"palette":spec["palette"]})
-		coworker.position=spec["position"]
-		coworker.rotation.y=PI
-		coworker.process_mode=Node.PROCESS_MODE_ALWAYS
-		_cast.add_child(coworker)
-	# Department staff remain at authored standing anchors, not in circulation lanes.
-	for spec in [{"id":"mika","role":"IP Security supervisor","palette":0,"position":Vector3(6.35,0,2.65),"yaw":-PI/2},{"id":"eli","role":"IT support technician","palette":2,"position":Vector3(-6.75,0,3.55),"yaw":PI/2},{"id":"security","role":"Lobby security","palette":4,"position":Vector3(3.5,0,-8.75),"yaw":-PI/2}]:
-		var staff:=Patron.new()
-		staff.call("configure",{"id":spec["id"],"role":spec["role"],"activity":"CHAT","seated":false,"palette":spec["palette"]})
-		staff.position=spec["position"]
-		staff.rotation.y=spec["yaw"]
-		_cast.add_child(staff)
-	for actor in [_ceo,_assistant,_hr]:
-		actor.process_mode = Node.PROCESS_MODE_ALWAYS
 	for sign in [_sign("JETSON WANG / CEO",Vector3(5,2.55,-6.65),.0045),_sign("LIN XUE / EXECUTIVE ASSISTANT",Vector3(7.1,2.35,-5.8),.004),_sign("PEOPLE EXPERIENCE",Vector3(-5,2.55,-6.65),.0045)]:
 		sign.reparent(_cast,false)
 
@@ -332,6 +329,10 @@ func dialogue_camera(camera: Camera3D,stage: int,beat: int) -> void:
 	camera.global_position = to_global(from)
 	camera.look_at(to_global(toward),Vector3.UP)
 	_assistant.call("set_phone_call",stage==2 and beat==1)
+	if is_instance_valid(_ceo):
+		_ceo.call("set_scene_beat",beat if stage==2 else -1)
+	if is_instance_valid(_hr):
+		_hr.call("set_scene_beat",2 if stage==4 else -1)
 
 func breakroom_camera(camera: Camera3D) -> void:
 	camera.global_position=to_global(Vector3(-6.1,1.9,5.0))
@@ -340,6 +341,8 @@ func breakroom_camera(camera: Camera3D) -> void:
 func end_dialogue() -> void:
 	if is_instance_valid(_assistant):
 		_assistant.call("set_phone_call",false)
+	for actor in _staff.values():
+		actor.call("set_scene_beat",-1)
 
 func _material(key: String,tint: Color,emissive: bool=false) -> StandardMaterial3D:
 	if not _mat.has(key):
@@ -560,6 +563,33 @@ func set_stage(stage: int) -> void:
 	_target_sign.position = POINTS[stage]+Vector3.UP*1.15
 	_target_sign.text = TITLES[stage]
 
+func update_staff_attention(stage: int,at: Vector3) -> String:
+	if not _prologue_active or _arrival!=null or not at.is_finite():
+		return ""
+	var closest := ""
+	var best := 2.25*2.25
+	for id in _staff:
+		var actor: Node3D=_staff[id]
+		var distance:=actor.global_position.distance_squared_to(at-Vector3.UP*1.15)
+		# Avoid talking through executive partitions or across the locked gate.
+		var local:=to_local(at)
+		var anchor:=actor.position
+		if (local.z< -7.65)!=(anchor.z< -7.65):
+			continue
+		if local.z>Arrival.PARTITION_NEAR_Z and local.z<Arrival.PARTITION_FAR_Z and anchor.z>Arrival.PARTITION_NEAR_Z and anchor.z<Arrival.PARTITION_FAR_Z and local.x*anchor.x<0.0:
+			continue
+		if distance<best:
+			closest=id
+			best=distance
+	var phase:=0 if stage< -1 else (1 if stage<4 else 2)
+	if closest!=_near_staff or phase!=_staff_phase:
+		_near_staff=closest
+		_staff_phase=phase
+		_staff_remark="" if closest.is_empty() else "%s: %s" % [_staff[closest].get("display_name"),Cast.remark(closest,phase)]
+	for id in _staff:
+		_staff[id].call("attend",at,id==closest)
+	return _staff_remark
+
 func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 	if not POINTS.has(stage):
 		return
@@ -575,3 +605,6 @@ func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 		_hint.text += "\n"+("X / INTERACT" if gamepad else "G / INTERACT")
 	if breakroom_reachable(at) and not _breakroom_seen:
 		_hint.text += "\n" + ("X" if gamepad else "G") + " / OPTIONAL: BREAKROOM PARTY"
+	var remark:=update_staff_attention(stage,at)
+	if not remark.is_empty():
+		_hint.text += "\n"+remark
