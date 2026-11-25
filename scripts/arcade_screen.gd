@@ -1,6 +1,6 @@
 extends Control
-## Isolated cabinet screen: playable directly or embedded as a single modal later.
-## No persistent score, world time, street cred or currency changes in this pilot.
+## Isolated cabinet screen: standalone or embedded as a single world modal.
+## Only completed personal bests are emitted; no world-time or wallet changes.
 const Round = preload("res://scripts/arcade_round.gd")
 const AltRound = preload("res://scripts/arcade_alt_round.gd")
 const ExtraRound = preload("res://scripts/arcade_extra_round.gd")
@@ -102,13 +102,18 @@ func _unhandled_input(event: InputEvent) -> void:
 	queue_redraw()
 
 func _show_selection() -> void:
-	_reset_deluxe_controls()
+	# Abandon is not a result. Stop the old round before releasing controls.
 	state = "select"
-	elapsed = 0.0
 	set_process(false)
+	if is_instance_valid(_cue):
+		_cue.stop()
+	_reset_deluxe_controls()
+	elapsed = 0.0
 	queue_redraw()
 
 func _start_round() -> void:
+	if state != "select":
+		return
 	var id: String = Round.IDS[selection]
 	if id == "grand_delay":
 		round = Race.new()
@@ -142,6 +147,8 @@ func _start_round() -> void:
 	queue_redraw()
 
 func _process(delta: float) -> void:
+	if state != "play":
+		return
 	if round is Race:
 		_process_race(delta)
 		return
@@ -205,13 +212,15 @@ func _process_classic(delta: float) -> void:
 
 func _finish_if_needed() -> void:
 	if state == "play" and round.finished:
+		# Finalize local state before notifying the world: a listener can
+		# synchronously inspect or leave the cabinet without re-settlement.
+		state = "result"
+		set_process(false)
 		new_record = Scores.record(best,round.game_id,round.score)
+		_reset_deluxe_controls()
 		if new_record:
 			_play_cue("record")
 			score_recorded.emit(round.game_id,round.score)
-		state = "result"
-		_reset_deluxe_controls()
-		set_process(false)
 
 func _play_cue(id: String) -> void:
 	if not is_instance_valid(_cue) or not CUES.has(id):

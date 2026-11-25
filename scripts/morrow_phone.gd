@@ -72,6 +72,7 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 		"cred":
 			subtitle = "Reputation belongs to the streets."
 			rows.append({"label":"Citywide reputation","value":str(state.get("global_street_cred","Unknown"))})
+			rows.append({"label":"Neighborhood scenes","value":str(state.get("scene_reputation",""))})
 			for source in state.get("cred_sources",[]):
 				rows.append({"label":str(source["name"]),"value":"+%d earned" % int(source["points"])})
 		"music":

@@ -28,7 +28,7 @@ func _ready() -> void:
 	add_child(_collider)
 
 func knock_loose(closing_speed: float, direction: Vector3, point: Vector3) -> bool:
-	if closing_speed < BREAK_SPEED:
+	if not is_finite(closing_speed) or closing_speed < BREAK_SPEED or not direction.is_finite() or direction.length_squared()<.001 or not point.is_finite():
 		return false
 	if not _broken:
 		_broken = true

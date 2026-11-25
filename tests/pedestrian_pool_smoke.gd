@@ -111,7 +111,7 @@ func _verify() -> void:
 	var end: Vector3 = lease["end"]
 	var start: Vector3 = lease["start"]
 	var axis := (end-start).normalized()
-	body.global_position = end-0.025*axis+Vector3.UP*0.02
+	body.global_position = Vector3(end.x, saved_position.y, end.z)-0.025*axis
 	body.velocity = Vector3.ZERO
 	lease["heading"] = axis
 	lease["alert"] = 0.0
@@ -120,7 +120,7 @@ func _verify() -> void:
 	for tick in range(24):
 		pool.step(1.0/60.0)
 		await physics_frame
-	if not _check((lease["heading"] as Vector3).dot(axis)>0.99 and float(lease["retreat"])>0.0 and body.global_position.distance_to(end)<0.15,"retreat holds at safe endpoint instead of reversing"):
+	if not _check((lease["heading"] as Vector3).dot(axis)>0.99 and float(lease["retreat"])>0.0 and Vector2(body.global_position.x,body.global_position.z).distance_to(Vector2(end.x,end.z))<0.15 and body.is_on_floor(),"retreat holds at safe endpoint instead of reversing"):
 		return
 	for tick in range(30):
 		pool.step(1.0/60.0)

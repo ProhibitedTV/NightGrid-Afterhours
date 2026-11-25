@@ -1,6 +1,7 @@
 extends SceneTree
 const Rhythm=preload("res://scripts/rhythm_rehearsal.gd")
 const Ledger=preload("res://scripts/progression_ledger.gd")
+const SceneRep=preload("res://scripts/scene_reputation.gd")
 const Art=preload("res://scripts/instrument_art.gd")
 const DEMOS=[preload("res://assets/audio/music/band_demo.wav"),preload("res://assets/audio/music/bass_demo.wav"),preload("res://assets/audio/music/busker_demo.wav"),preload("res://assets/audio/music/synth_demo.wav")]
 func _initialize()->void:
@@ -210,6 +211,48 @@ func _initialize()->void:
 		return
 	show_save["street_activity_runs"]["band_encore"]=1
 	if Ledger.valid_snapshot(show_save):
+		quit(1)
+		return
+	var merch:=Ledger.new()
+	if not merch.restore(before+240,JSON.parse_string(JSON.stringify(debut_save.merged({"band_rehearsals":2},true)))) or not merch.choose_band_name(0) or merch.choose_band_name(1) or not merch.press_tapes():
+		quit(1)
+		return
+	if merch.balance!=before+180 or merch.tape_stock!=12 or merch.tapes_sold!=0:
+		quit(1)
+		return
+	if not merch.settle_band_encore(1) or merch.settle_band_encore(1) or merch.tape_stock!=8 or merch.tapes_sold!=4 or merch.balance!=before+348:
+		quit(1)
+		return
+	if not merch.settle_band_encore(2) or not merch.settle_band_showcase() or merch.tape_stock!=0 or merch.tapes_sold!=12 or merch.press_tapes():
+		quit(1)
+		return
+	var merch_save:=merch.snapshot()
+	if not band_copy.restore(merch.balance,JSON.parse_string(JSON.stringify(merch_save))) or band_copy.band_name!="Signal Rot" or band_copy.tapes_sold!=12:
+		quit(1)
+		return
+	merch_save["tapes_sold"]=99
+	if Ledger.valid_snapshot(merch_save):
+		quit(1)
+		return
+	var scene_wallet:=Ledger.new()
+	var scores:=SceneRep.scores(scene_wallet)
+	if scores!={"music":0,"community":0,"underground":0}:
+		quit(1)
+		return
+	scene_wallet.set_balance(500)
+	if SceneRep.scores(scene_wallet)!=scores:
+		quit(1)
+		return
+	scene_wallet.credit_once("technical:crane_interlock",480)
+	scene_wallet.credit_once("investigation:paper_city",1450)
+	scene_wallet.settle_busking_set(1)
+	var derived:=SceneRep.scores(scene_wallet)
+	if derived!={"music":3,"community":12,"underground":40} or SceneRep.scores(band)["music"]!=78:
+		quit(1)
+		return
+	var projection:=SceneRep.scores(scene_wallet)
+	projection["music"]=100
+	if SceneRep.scores(scene_wallet)!=derived:
 		quit(1)
 		return
 	print("RHYTHM_REHEARSAL PASS: timing, cancellation, once-only claims, sequence and atomic payout")

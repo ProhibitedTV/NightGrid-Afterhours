@@ -148,6 +148,21 @@ func _check_market() -> void:
 	Input.action_release("drive_accelerate")
 	var counter := _ray(Vector3(-32, 3.5, -209.0), Vector3(-32, 0.5, -209.0))
 	_expect(counter is StaticBody3D, "The actual North Quay counter must be solid")
+	var counters := city.find_children("MarketCounter_*","StaticBody3D",true,false)
+	var spills := 0
+	var pieces := 0
+	for fixture in counters:
+		if fixture.get("spilled"):
+			spills += 1
+		pieces += fixture.find_children("MarketStockDebris_*","RigidBody3D",true,false).size()
+	_expect(counters.size()==8 and spills>=1 and pieces==spills*3 and pieces<=24,
+		"Real hard vehicle contact must scatter bounded merchandise while preserving solid counters")
+	if counter!=null and counter.has_method("receive_fixture_impact") and not counter.get("spilled"):
+		counter.call("receive_fixture_impact",2.0,Vector3.FORWARD,counter.global_position)
+		_expect(not counter.get("spilled"),"Low-speed counter bump must leave stock intact")
+		counter.call("receive_fixture_impact",NAN,Vector3.FORWARD,counter.global_position)
+		_expect(not counter.get("spilled"),"Nonfinite impact cannot trigger debris")
+
 	measurements["north_quay_impacts"] = {"after_carton_mps": retained_speed, "final_z": car.global_position.z,
 		"condition": car.get("condition"), "final_kph": car.call("speed_kph")}
 	_expect(retained_speed > 7.0 and float(car.get("condition")) < 100.0 and int(car.call("speed_kph")) < 4

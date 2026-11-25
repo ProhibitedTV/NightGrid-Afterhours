@@ -4,6 +4,8 @@ const AudioMix = preload("res://scripts/audio_mix.gd")
 ## authored; transient geometry is allocated on entry and freed on exit.
 ## This is a separate interior space, not a cut-through doorway in building mesh.
 const ArcadeRoom = preload("res://scripts/arcade_room.gd")
+const InstrumentArt = preload("res://scripts/instrument_art.gd")
+const MUSIC_ROOMS = ["copper_cup", "dock_nine", "blue_hour", "static_room"]
 const Materials = preload("res://scripts/material_library.gd")
 const VenueAmbience = preload("res://scripts/venue_ambience.gd")
 const LanternCupHero = preload("res://scripts/lantern_cup_hero.gd")
@@ -274,6 +276,8 @@ func _build_room(site: Dictionary) -> void:
 				_lounge(room, accent, kind)
 		"BAR", "CLUB":
 			_lounge(room, accent, kind)
+	if active_group == "VENUE" and active_id in MUSIC_ROOMS:
+		_build_music_backline(room, accent)
 	# Set dressing and light fixtures remain bounded to the active room.
 	for x in [-4.55, 4.55]:
 		_box(room, Vector3(x, 4.97, -1.0), Vector3(3.1, 0.16, 1.0), Color("8c9299"))
@@ -295,6 +299,29 @@ func _build_room(site: Dictionary) -> void:
 		sound.max_distance = 24.0
 		room.add_child(sound)
 		sound.play()
+
+func _build_music_backline(room: Node3D, accent: Color) -> void:
+	# Real imported instrument meshes from #348. Rear side bays are outside
+	# the central counter/exit path; no extra lights, actors or audio players.
+	var backline := Node3D.new()
+	backline.name = "MusicBackline"
+	room.add_child(backline)
+	var display_name := {"copper_cup":"COPPER CUP / REHEARSAL BACKLINE", "dock_nine":"DOCK NINE / OPEN MIC", "blue_hour":"BLUE HOUR / LIVE SESSIONS", "static_room":"STATIC ROOM / INDEPENDENT SOUND"}
+	_label(backline, str(display_name[active_id]), Vector3(-3.9,3.45,-8.55), accent, 20, true)
+	# Model origins differ; offsets derived from the imported OBJ bounds.
+	InstrumentArt.place(backline,"mic_stand",Vector3(-3.18,.49,-7.15))
+	InstrumentArt.place(backline,"combo_amp",Vector3(-4.05,.17,-7.35))
+	InstrumentArt.place(backline,"road_case",Vector3(-3.28,.08,-8.10))
+	# A real wall-side instrument display, not a purchase prompt.
+	InstrumentArt.place(backline,"acoustic_guitar" if active_id == "copper_cup" or active_id == "dock_nine" else "punk_bass",Vector3(-3.65,1.20,-8.47))
+	# Clear of the lounge's side cabinets and back counter.
+	_box(backline,Vector3(3.35,.51,-7.12),Vector3(.88,1.02,.56),Color("41404a"),true,"METAL")
+	InstrumentArt.place(backline,"portable_synth",Vector3(3.35,1.06,-7.12),Vector3(-90,0,0))
+	if active_id == "copper_cup":
+		InstrumentArt.place(backline,"punk_bass",Vector3(3.22,1.25,-8.47))
+		_label(backline,"USED INSTRUMENTS / DISPLAY",Vector3(3.55,3.10,-8.53),accent,18,true)
+	# Use the existing floor/counter shell and atmosphere. These props are
+	# static dressing; the existing rhythm interface owns performances.
 
 func _stocked_market(room: Node3D, accent: Color) -> void:
 	for x in [-5.3, 5.3]:

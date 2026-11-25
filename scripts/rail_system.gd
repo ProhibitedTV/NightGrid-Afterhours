@@ -12,6 +12,7 @@ const PIER_SETBACK = 11.1
 const LIFT_X = 11.25
 const LIFT_Z = 12.02
 const DOOR_BOARD_WIDTH = 1.65
+const DOOR_CLOSE_CUTOFF = 0.1
 var train: Node3D
 var train_visual: Node3D
 var speed := 0.0
@@ -21,6 +22,8 @@ var direction := 1
 var dwell_remaining := 8.0
 var _initialized := false
 var _lifts: Array[Node3D] = []
+var _arrival_boards: Array[Label3D] = []
+var _board_clock := 0.0
 # Godot 4.3 lacks built-in 3D physics interpolation; only the visual child
 # is smoothed between fixed-tick simulation positions.
 var _previous_train_x := STATIONS[0]
@@ -38,13 +41,18 @@ func _ready() -> void:
 	train_visual.name = "CicadaM8HeroVisual"
 	train.add_child(train_visual)
 	_sync_train_visual()
+	_refresh_arrival_boards()
 
 func _sync_train_visual() -> void:
 	if train_visual != null:
-		train_visual.call("set_operational_state", direction, speed, dwell_remaining > 0.1)
+		train_visual.call("set_operational_state", direction, speed, doors_open())
 		train_visual.call("set_destination", STATION_NAMES[next_station])
 
 func _physics_process(delta: float) -> void:
+	_board_clock += delta
+	if _board_clock >= 0.25:
+		_board_clock = 0.0
+		_refresh_arrival_boards()
 	# The timetable, position and saves advance ONLY on fixed physics ticks.
 	_previous_train_x = train.position.x if absf(train.position.x - _current_train_x) > 0.5 else _current_train_x
 	if not _initialized:
@@ -91,8 +99,30 @@ func _reset_render_history() -> void:
 	if train_visual != null:
 		train_visual.position.x = 0.0
 
+func doors_open() -> bool:
+	return dwell_remaining > DOOR_CLOSE_CUTOFF
+
+func station_board_text(index: int) -> String:
+	if index < 0 or index >= STATIONS.size():
+		return ""
+	var terminal: String = STATION_NAMES[-1] if direction > 0 else STATION_NAMES[0]
+	if index == current_station and doors_open():
+		return "BOARD NOW / %ds\nTO %s" % [ceili(dwell_remaining), terminal]
+	if index == current_station and dwell_remaining > 0.0:
+		return "DOORS CLOSING\nTO %s" % terminal
+	if index == next_station:
+		return "NEXT STOP / WAIT\nTO %s" % terminal
+	return "WAIT ON PLATFORM\nNEXT STOP: %s" % STATION_NAMES[next_station]
+
+func _refresh_arrival_boards() -> void:
+	for i in range(_arrival_boards.size()):
+		var board := _arrival_boards[i]
+		var message := station_board_text(i)
+		if board.text != message:
+			board.text = message
+
 func boardable_from(at: Vector3) -> bool:
-	if dwell_remaining <= 0.1:
+	if not doors_open():
 		return false
 	if on_platform(at, current_station):
 		if at.z > TRACK_Z + 5.2:
@@ -108,6 +138,8 @@ func boardable_from(at: Vector3) -> bool:
 	return Vector2(at.x - entrance.x, at.z - entrance.z).length() < 9.0
 
 func on_platform(at: Vector3, index: int) -> bool:
+	if index < 0 or index >= STATIONS.size() or not at.is_finite():
+		return false
 	var across := at.z - TRACK_Z
 	return absf(at.x - STATIONS[index]) < 13.6 and across > 2.55 and across < 5.95 and (
 		at.y > PLATFORM_FLOOR + 0.55 and at.y < PLATFORM_FLOOR + 2.0)
@@ -119,7 +151,7 @@ func lift_at(at: Vector3) -> Node3D:
 	return null
 
 func can_alight() -> bool:
-	return dwell_remaining > 0.05
+	return doors_open()
 
 func station_entrance(index: int) -> Vector3:
 	return Vector3(STATIONS[clampi(index, 0, STATIONS.size() - 1)] + 9.0, 1.15, -48.0)
@@ -147,6 +179,7 @@ func restore(data: Dictionary) -> void:
 	dwell_remaining = clampf(float(data.get("dwell", 0.0)), 0.0, 8.0)
 	_reset_render_history()
 	_sync_train_visual()
+	_refresh_arrival_boards()
 
 func get_map_stations() -> Array[Vector2]:
 	var result: Array[Vector2] = []
@@ -260,6 +293,20 @@ func _build_station(index: int) -> void:
 		Vector3(0.0, 14.78, 6.31), Color("e0eee5"), 36)
 	_station_label(platform, "%02d   ALL NIGHT  //  MORROW BAY" % [index + 1],
 		Vector3(0.0, 13.44, 6.31), Color("8fd3d1"), 24)
+	# Mounted passenger information faces the waiting platform, not the road.
+	_station_box(platform, Vector3(-9.4, 14.44, 6.13),
+		Vector3(5.6, 0.83, 0.18), "METAL", Color("1a2a39"))
+	var arrival := Label3D.new()
+	arrival.name = "LiveArrivalBoard"
+	arrival.position = Vector3(-9.4, 14.44, 6.025)
+	arrival.rotation.y = PI
+	arrival.font_size = 25
+	arrival.pixel_size = 0.007
+	arrival.modulate = Color("a9ffe2")
+	arrival.outline_size = 4
+	arrival.double_sided = false
+	platform.add_child(arrival)
+	_arrival_boards.append(arrival)
 	# Bridge clear width is 2.2 m. A real guardrail leaves a gap at the landing.
 	_station_box(platform, Vector3(LIFT_X, PLATFORM_FLOOR - 0.12, 8.50),
 		Vector3(2.43, 0.24, 4.73), "METAL", Color("647d86"), "LiftWalkway")

@@ -96,6 +96,28 @@ func _check() -> void:
 	if hero == null:
 		_fail("Missing CICADA M8 playable rolling-stock visuals")
 		return
+	var live_before: Dictionary = rail.call("snapshot")
+	for index in range(5):
+		var board := rail.get_node_or_null("MLineStation_%02d/LiveArrivalBoard" % index) as Label3D
+		if board == null or board.text != rail.call("station_board_text",index) or board.text.is_empty():
+			_fail("Missing or stale live arrival display")
+			return
+	rail.call("restore",{"x":-232.0,"current_station":0,"next_station":1,"direction":1,"speed":0.0,"dwell":5.0})
+	if not str(rail.call("station_board_text",0)).begins_with("BOARD NOW / 5s") or not str(rail.call("station_board_text",1)).begins_with("NEXT STOP"):
+		_fail("Station boards do not reflect stopped train and next stop")
+		return
+	rail.call("restore",{"x":-232.0,"current_station":0,"next_station":1,"direction":1,"speed":0.0,"dwell":0.08})
+	if rail.call("can_alight") or rail.call("boardable_from",rail.call("station_entrance",0)) or not str(rail.call("station_board_text",0)).begins_with("DOORS CLOSING"):
+		_fail("Boarding, alighting and closing display disagree")
+		return
+	rail.call("restore",{"x":232.0,"current_station":4,"next_station":3,"direction":-1,"speed":0.0,"dwell":7.0})
+	if not str(rail.call("station_board_text",4)).contains("WEST QUAY GATE") or not str(rail.call("station_board_text",3)).begins_with("NEXT STOP"):
+		_fail("Reversed train destination not reflected on station boards")
+		return
+	if rail.call("on_platform",Vector3.ZERO,-1) or rail.call("on_platform",Vector3.ZERO,5) or not str(rail.call("station_board_text",5)).is_empty():
+		_fail("Invalid station IDs must be rejected")
+		return
+	rail.call("restore",live_before)
 	var visual_stats: Dictionary = rail.call("get_train_visual_stats")
 	var audio = load("res://scripts/m_line_train_audio.gd")
 	if audio.cache_count() != 2 or hero.get_node_or_null("OriginalRailRollingLoop") == null or hero.get_node_or_null("OriginalStationArrivalChime") == null:
