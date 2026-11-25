@@ -632,6 +632,8 @@ func _journal_context() -> Dictionary:
 		"story_can_abandon": story_mission.status == "active",
 		"venue_job": _venue_job_text(),
 		"cal_quest":_cal_objective(),
+		"street_cred":progression.street_cred_rank(),
+		"street_cred_summary":progression.street_cred_summary(),
 		"cal_can_navigate":_cal_target().is_finite(),
 		"civic_job": _civic_job_text(),
 		"cash": cash, "health": health, "heat": heat,
@@ -3600,6 +3602,8 @@ func _update_hud() -> void:
 		jobs.append(_civic_job_text())
 	if progression.cal_quest in [1,2]:
 		jobs.append(_cal_objective())
+	if progression.street_cred()>0:
+		jobs.append(progression.street_cred_summary())
 	hud_jobs.text = "\n".join(jobs)
 	hud_jobs.visible = not jobs.is_empty()
 	hud_notice.text = message
@@ -3972,6 +3976,7 @@ func _resolve_cal_action(allowed:bool)->void:
 		_notify("Cal is no longer within reach. Approach him again.")
 		return
 	var action:="accept" if pending["action"]=="cal_accept" else "complete"
+	var before_cred:=progression.street_cred()
 	var changed:=progression.accept_cal_quest() if action=="accept" else progression.complete_cal_quest()
 	if not changed:
 		_notify("Unable to advance Compatibility Patch.")
@@ -3980,7 +3985,7 @@ func _resolve_cal_action(allowed:bool)->void:
 	if not is_instance_valid(dialogue_director) or not pedestrians.call("play_cal_quest_line",dialogue_director,id,action,listener,player.get_rid()):
 		_notify(str(cue["text"]))
 	else:
-		_notify("COMPATIBILITY PATCH / Accepted" if action=="accept" else "COMPATIBILITY PATCH / Completed +$85")
+		_notify("COMPATIBILITY PATCH / Accepted" if action=="accept" else "COMPATIBILITY PATCH / Completed +$85 • +%d STREET CRED"%(progression.street_cred()-before_cred))
 	if action=="accept":
 		_track_cal_waypoint()
 	elif _cal_tracking:

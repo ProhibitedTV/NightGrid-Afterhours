@@ -13,7 +13,7 @@ func _initialize()->void:
 	if not restored.restore(ledger.balance,JSON.parse_string(JSON.stringify(ledger.snapshot()))) or restored.cal_quest!=2:
 		quit(1)
 		return
-	if not restored.complete_cal_quest() or restored.complete_cal_quest() or restored.balance!=105 or not restored.has_receipt(Ledger.CAL_RECEIPT):
+	if not restored.complete_cal_quest() or restored.complete_cal_quest() or restored.balance!=105 or restored.street_cred()!=25 or not restored.has_receipt(Ledger.CAL_RECEIPT):
 		quit(1)
 		return
 	var invalid:=restored.snapshot()

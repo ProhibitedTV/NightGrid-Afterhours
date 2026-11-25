@@ -13,6 +13,8 @@ var bitcoin_sats: int = 0
 const CAL_RECEIPT="street:compatibility_patch"
 const CAL_REWARD=85
 var cal_quest:int=0 # 0 offered, 1 accepted, 2 collected, 3 completed
+const StreetCred=preload("res://scripts/street_cred.gd")
+var _street_cred=StreetCred.new()
 
 var balance: int = 0
 var _receipts: Dictionary = {}
@@ -206,10 +208,26 @@ func complete_cal_quest()->bool:
 	cal_quest=3
 	return true
 
+func street_cred()->int:
+	return _street_cred.total(_receipts)
+
+func street_cred_rank()->Dictionary:
+	return StreetCred.rank(street_cred())
+
+func street_cred_summary()->String:
+	return _street_cred.summary(_receipts)
+
+func street_activity_runs(source:String)->int:
+	return _street_cred.completed_runs(source)
+
+## Gameplay systems call this only after validating a completed activity.
+func settle_street_activity(source:String,sequence:int)->bool:
+	return _street_cred.settle_run(source,sequence)
+
 func snapshot() -> Dictionary:
 	var ids: Array = _receipts.keys()
 	ids.sort()
-	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "bitcoin_sats":bitcoin_sats, "cal_quest":cal_quest}
+	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "bitcoin_sats":bitcoin_sats, "cal_quest":cal_quest, "street_activity_runs":_street_cred.snapshot()}
 
 static func valid_snapshot(value: Variant) -> bool:
 	if not value is Dictionary:
@@ -226,6 +244,8 @@ static func valid_snapshot(value: Variant) -> bool:
 		if not valid_id(id) or seen.has(id):
 			return false
 		seen[id] = true
+	if not StreetCred.valid_runs(data.get("street_activity_runs",{})):
+		return false
 	var cal:Variant=data.get("cal_quest",0)
 	if not valid_cash(cal) or int(cal)>3 or (int(cal)==3)!=seen.has(CAL_RECEIPT):
 		return false
@@ -286,6 +306,7 @@ func restore(amount: Variant, data: Variant) -> bool:
 	outfit_id = data.get("outfit_id",Wardrobe.DEFAULT)
 	bitcoin_sats = int(data.get("bitcoin_sats",0))
 	cal_quest=int(data.get("cal_quest",0))
+	_street_cred.restore(data.get("street_activity_runs",{}))
 	_purchased_outfits.clear()
 	for id in data.get("purchased_outfits",[]):
 		_purchased_outfits[id] = true
