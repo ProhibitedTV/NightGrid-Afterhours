@@ -50,6 +50,19 @@ func _verify() -> void:
 		pool.step(1.0/60.0)
 	if not _check(body.global_position.distance_to(before)>0.15 and body.is_on_floor(),"physics movement and ground contact"):
 		return
+	var satire=preload("res://scripts/street_satire.gd")
+	var seen:Dictionary={}
+	for n in range(3):
+		var remark:Dictionary=satire.line_for(id,n)
+		if not _check(remark["character"]==satire.personality(id) and not seen.has(remark["id"]),"stable personality and three unique variants"):
+			return
+		seen[remark["id"]]=true
+	var listener:=body.global_position+Vector3.UP*1.6+Vector3.RIGHT*3.0
+	var bark:Dictionary=pool.street_bark(pool.get_world_3d().direct_space_state,listener,RID())
+	if not _check(bark.get("lease_id")==id and bark.get("speaker")==body and str(bark.get("id")).begins_with("street."),"nearby live speaker has a canonical remark"):
+		return
+	if not _check(pool.street_bark(pool.get_world_3d().direct_space_state,listener,RID()).is_empty(),"individual speaker cooldown"):
+		return
 	# Local incident must be visible; a wall blocks the reaction ray.
 	var eye := body.global_position + Vector3.UP*1.6
 	var incident := eye + Vector3.RIGHT*4.0
@@ -71,7 +84,7 @@ func _verify() -> void:
 	await physics_frame
 	pool.react_to_incident(pool.get_world_3d().direct_space_state,incident,10.0,ignored,true)
 	pool.step(1.0/60.0)
-	if not _check(pool.movement_states()[id]=="ALERT","visible urgent incident interrupts routine"):
+	if not _check(pool.movement_states()[id]=="ALERT" and not pool.street_bark_valid(id),"visible urgent incident interrupts routine and cancels ambient speech"):
 		return
 	for i in range(46):
 		await physics_frame
