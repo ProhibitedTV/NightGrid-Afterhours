@@ -485,6 +485,34 @@ func _verify() -> void:
 	if menu.call("is_open") or int(office.call("objective_stage",0))!=-2:
 		_fail("Cannot interact with office workstation remotely")
 		return
+	var office_decks: Array=office.call("workfloor_stats")
+	var desk_total:=0
+	if office_decks.size()!=4:
+		_fail("Four real upper workplace floors exist")
+		return
+	for deck_stats in office_decks:
+		desk_total+=int(deck_stats["desks"])
+		if int(deck_stats["desks"])!=28 or int(deck_stats["chairs"])<28 or int(deck_stats["plants"])<5 or int(deck_stats["colliders"])<10 or int(deck_stats["batches"])>40:
+			_fail("Every workfloor must be fully furnished, collision backed and batched")
+			return
+	if desk_total<100:
+		_fail("HQ needs at least 100 dedicated workstations")
+		return
+	for level in range(1,5):
+		player.global_position=office.to_global(Vector3(-.9,(level-1)*3.65+1.15,5))
+		world.call("_opening_interact")
+		if int(office.get("_active_floor"))!=level or absf(office.to_local(player.global_position).y-(level*3.65+1.15))>.01:
+			_fail("Lift travels to actual upper floor elevations")
+			return
+	for level in range(4,0,-1):
+		player.global_position=office.to_global(Vector3(.9,level*3.65+1.15,5))
+		world.call("_opening_interact")
+		if int(office.get("_active_floor"))!=level-1:
+			_fail("Lift returns to the ground-floor tutorial")
+			return
+	if int(office.call("objective_stage",0))!=-2 or menu.call("is_open") or world.get("cash")!=before_severance:
+		_fail("Office exploration does not advance the mission or alter the wallet")
+		return
 	var staff: Dictionary=office.get("_staff")
 	if staff.size()!=8 or not staff.has("reception"):
 		_fail("HQ has eight authored staff plus the executive assistant")

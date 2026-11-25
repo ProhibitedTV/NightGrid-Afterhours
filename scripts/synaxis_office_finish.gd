@@ -3,8 +3,8 @@ extends Node3D
 ## meshes are batched by material, primitive and zone; no process or extra lights.
 const PALETTE = {
 	"stone": Color("637078"), "joint": Color("28343b"), "trim": Color("a4aeb1"),
-	"ceiling": Color("aeb8b8"), "steel": Color("465159"), "black": Color("1c242a"),
-	"laminate": Color("68757b"), "walnut": Color("644b3c"), "leather": Color("30353b"),
+	"ceiling": Color("e1e3dd"), "steel": Color("465159"), "black": Color("1c242a"),
+	"laminate": Color("d0b58e"), "walnut": Color("644b3c"), "leather": Color("30353b"),
 	"paper": Color("e5e4d8"), "screen": Color("142a31"), "signal": Color("85c9bc"),
 	"blue": Color("547d9a"), "amber": Color("d5ae63"), "red": Color("b55850"),
 	"porcelain": Color("d8dedb"), "card": Color("ae9169"), "glass": Color("405d70"),
@@ -192,7 +192,7 @@ func _workplaces() -> void:
 	_desk(Vector3(4.5,0,1.7),2.25,.85,"laminate")
 	_monitor(Vector3(4.85,1.39,1.62),1.0,"blue")
 	_keyboard(Vector3(4.85,1.10,1.96))
-	_chair(Vector3(4.5,0,.8),1.0)
+	_chair(Vector3(4.5,0,2.65),-1.0)
 	_desk(Vector3(-5,0,2.55),2.6,.85,"laminate")
 	_desk(Vector3(5,0,-5.4),3.8,1.0,"walnut",true)
 	_desk(Vector3(-5,0,-5.4),2.7,1.0,"laminate")

@@ -1,0 +1,261 @@
+extends Node3D
+## Four authored workfloor layouts, using static material/primitive batches.
+## Real desk and partition collision; no per-desk process or lights.
+const FLOOR_COUNT=4
+const FLOOR_HEIGHT=3.65
+const LIFT=Vector2(0,5.0)
+const DEPARTMENTS=["ENGINEERING","PRODUCT & DESIGN","QUALITY & VALIDATION","BUSINESS OPERATIONS"]
+const COLORS={
+	"oak":Color("d2b58e"),"oak_edge":Color("a98c68"),"white":Color("e7e4dc"),
+	"steel":Color("535a5e"),"black":Color("252e36"),"carpet":Color("777b7c"),
+	"fabric":Color("a5aaa7"),"blue":Color("527f9b"),"teal":Color("457d79"),
+	"rust":Color("bd7754"),"sage":Color("82947b"),"screen":Color("263d4c"),
+	"ui":Color("85abb8"),"paper":Color("eee8d8"),"green":Color("4c7352"),
+	"leaf":Color("72916a"),"soil":Color("59473b"),"glass":Color("79959e"),
+	"light":Color("e7e9df")
+}
+const ACCENTS=["teal","blue","sage","rust"]
+const ROWS=[-5.6,-4.65,1.1,2.05]
+const SLOGANS=["INNOVATE WITH INTENT","YOUR IDEAS. OUR INTELLECTUAL PROPERTY.","QUALITY IS EVERYONE'S RESPONSIBILITY*","TOGETHER WE DO MORE WITH LESS."]
+const SUBLINES=["ALIGN. EXECUTE. REPEAT.","ALL SUBMISSIONS BECOME COMPANY PROPERTY.","*EXECUTIVE EXCEPTIONS MAY APPLY.","PLEASE DO NOT DISCUSS HEADCOUNT."]
+var level:=1
+var _groups: Dictionary={}
+var _materials: Dictionary={}
+var _chairs:=0
+var _desks:=0
+var _plants:=0
+var _parts:=0
+var _colliders:=0
+var _lights: Array[OmniLight3D]=[]
+
+static func desk_positions() -> Array[Vector2]:
+	var result: Array[Vector2]=[]
+	for z in ROWS:
+		for col in range(7):
+			result.append(Vector2(-6.0+col*2.0,float(z)))
+	return result
+
+func _ready() -> void:
+	var accent: String=ACCENTS[level-1]
+	_part("carpet",Vector3(0,.007,0),Vector3(16.55,.012,19.65))
+	for row in range(4):
+		var z: float=ROWS[row]
+		var face: float= -1.0 if row%2==0 else 1.0
+		for col in range(7):
+			_station(Vector3(-6.0+col*2.0,0,z),face,row,col,accent)
+		# Continuous desk-row collision; open aisle at both ends of each bench.
+		_solid(Vector3(0,.43,z),Vector3(13.65,.86,.78))
+	for pair in [0,2]:
+		var mid: float=(float(ROWS[pair])+float(ROWS[pair+1]))*.5
+		# Cubicles on floors 1/3, low shared bench dividers on 2/4.
+		var h:=1.39 if level%2==1 else 1.10
+		_part("fabric",Vector3(0,h*.5,mid),Vector3(13.65,h,.065))
+		_part(accent,Vector3(0,h+.017,mid),Vector3(13.65,.034,.075))
+		_solid(Vector3(0,h*.5,mid),Vector3(13.65,h,.065))
+		if level%2==1:
+			for x in [-5.0,-3.0,-1.0,1.0,3.0,5.0]:
+				_part("fabric",Vector3(x,.95,mid),Vector3(.06,.86,1.72))
+				_part("oak_edge",Vector3(x,1.39,mid),Vector3(.075,.025,1.72))
+				_solid(Vector3(x,.95,mid),Vector3(.06,.86,1.72))
+	_shared_area(accent)
+	_architecture(accent)
+	_flush()
+	set_occupied(false)
+
+func get_floor_stats() -> Dictionary:
+	return {"level":level,"department":DEPARTMENTS[level-1],"desks":_desks,"chairs":_chairs,"plants":_plants,"parts":_parts,"colliders":_colliders,"batches":get_children().filter(func(n):return n is MultiMeshInstance3D).size()}
+
+func set_occupied(active: bool) -> void:
+	for lamp in _lights:
+		lamp.visible=active
+
+func _material(key: String) -> StandardMaterial3D:
+	if not _materials.has(key):
+		var mat:=StandardMaterial3D.new()
+		mat.albedo_color=COLORS[key]
+		mat.roughness=.82
+		if key in ["oak","oak_edge","white","glass"]:
+			mat.roughness=.48
+		if key=="steel":
+			mat.metallic=.5
+			mat.roughness=.42
+		if key in ["light","ui"]:
+			mat.emission_enabled=true
+			mat.emission=COLORS[key]
+			mat.emission_energy_multiplier=.65
+		_materials[key]=mat
+	return _materials[key]
+
+func _part(key: String,at: Vector3,size: Vector3,yaw: float=0.0,primitive: String="box",pitch: float=0.0) -> void:
+	var group:=key+"|"+primitive
+	if not _groups.has(group):
+		_groups[group]=[]
+	var basis:=Basis.from_euler(Vector3(pitch,yaw,0)).scaled_local(size)
+	_groups[group].append(Transform3D(basis,at))
+	_parts+=1
+
+func _solid(at: Vector3,size: Vector3) -> void:
+	var body:=StaticBody3D.new()
+	body.position=at
+	var shape:=BoxShape3D.new()
+	shape.size=size
+	var collider:=CollisionShape3D.new()
+	collider.shape=shape
+	body.add_child(collider)
+	add_child(body)
+	_colliders+=1
+
+func _flush() -> void:
+	var box:=BoxMesh.new()
+	box.size=Vector3.ONE
+	var cyl:=CylinderMesh.new()
+	cyl.top_radius=.5
+	cyl.bottom_radius=.5
+	cyl.height=1.0
+	cyl.radial_segments=10
+	var leaf:=SphereMesh.new()
+	leaf.radius=.5
+	leaf.height=1.0
+	leaf.radial_segments=8
+	leaf.rings=4
+	for key in _groups:
+		var transforms: Array=_groups[key]
+		var mm:=MultiMesh.new()
+		mm.transform_format=MultiMesh.TRANSFORM_3D
+		mm.mesh=cyl if str(key).ends_with("|cyl") else (leaf if str(key).ends_with("|leaf") else box)
+		mm.instance_count=transforms.size()
+		for i in transforms.size():
+			mm.set_instance_transform(i,transforms[i])
+		var node:=MultiMeshInstance3D.new()
+		node.name=str(key).replace("|","_")
+		node.multimesh=mm
+		node.material_override=_material(str(key).get_slice("|",0))
+		node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(node)
+	_groups.clear()
+
+func _station(at: Vector3,face: float,row: int,col: int,accent: String) -> void:
+	_desks+=1
+	_part("oak",at+Vector3(0,.82,0),Vector3(1.72,.055,.78))
+	_part("oak_edge",at+Vector3(0,.81,face*.39),Vector3(1.72,.055,.018))
+	for side in [-1.0,1.0]:
+		_part("steel",at+Vector3(side*.78,.40,0),Vector3(.055,.80,.64))
+	_part("white",at+Vector3(.61,.39,0),Vector3(.36,.72,.62))
+	for y in [.24,.47,.66]:
+		_part("steel",at+Vector3(.61,y,face*.32),Vector3(.16,.018,.027))
+	var screen_at:=at+Vector3(-.22,1.12,-face*.19)
+	_monitor(screen_at,face)
+	if (row+col+level)%3==0:
+		_monitor(screen_at+Vector3(.61,0,0),face)
+	_part("black",at+Vector3(-.22,.861,face*.19),Vector3(.45,.025,.15))
+	_part("steel",at+Vector3(-.22,.876,face*.19),Vector3(.41,.008,.12))
+	_part("black",at+Vector3(.12,.87,face*.19),Vector3(.07,.041,.11))
+	_part("paper",at+Vector3(-.66,.86,face*.15),Vector3(.22,.022,.29))
+	if (row+col)%2==0:
+		_part("white",at+Vector3(.55,.91,face*.14),Vector3(.085,.13,.085),0.0,"cyl")
+	if (row*7+col+level)%5==0:
+		_plant(at+Vector3(-.71,.85,-face*.23),.18)
+	_chair(at+Vector3(0,0,face*.85),-face)
+	# Small personal items make desk banks less uniform.
+	if (row+col)%4==0:
+		_part(accent,at+Vector3(.40,.91,-face*.21),Vector3(.15,.13,.045))
+		_part("paper",at+Vector3(.40,.92,-face*.185),Vector3(.11,.08,.005))
+
+func _monitor(at: Vector3,face: float) -> void:
+	_part("black",at,Vector3(.56,.34,.042))
+	_part("screen",at+Vector3(0,0,face*.024),Vector3(.525,.305,.008))
+	_part("steel",at+Vector3(0,-.205,0),Vector3(.055,.10,.055))
+	_part("black",at+Vector3(0,-.26,0),Vector3(.23,.028,.16))
+	_part("ui",at+Vector3(0,.125,face*.030),Vector3(.48,.026,.004))
+	for line in range(3):
+		_part("ui",at+Vector3(-.11,.06-line*.055,face*.030),Vector3(.22-line*.035,.014,.004))
+
+func _chair(at: Vector3,face: float) -> void:
+	_chairs+=1
+	_part("black",at+Vector3(0,.48,0),Vector3(.49,.09,.48))
+	_part("black",at+Vector3(0,.77,-face*.23),Vector3(.48,.48,.085))
+	_part("steel",at+Vector3(0,.24,0),Vector3(.07,.43,.07),0.0,"cyl")
+	for i in range(5):
+		var angle:=i*TAU/5.0
+		var axis:=Vector3(sin(angle),0,cos(angle))
+		_part("steel",at+axis*.16+Vector3.UP*.075,Vector3(.04,.04,.32),angle)
+		_part("black",at+axis*.31+Vector3.UP*.04,Vector3(.065,.08,.065),0.0,"cyl")
+	for side in [-1.0,1.0]:
+		_part("steel",at+Vector3(side*.26,.58,0),Vector3(.035,.20,.035))
+		_part("black",at+Vector3(side*.26,.68,0),Vector3(.065,.035,.29))
+
+func _plant(at: Vector3,size: float) -> void:
+	_plants+=1
+	_part("white",at+Vector3.UP*size*.4,Vector3(size,size*.8,size),0.0,"cyl")
+	_part("soil",at+Vector3.UP*size*.81,Vector3(size*.86,.015,size*.86),0.0,"cyl")
+	for i in range(7):
+		var angle:=i*TAU/7.0
+		_part("leaf" if i%2==0 else "green",at+Vector3(sin(angle)*size*.29,size*(1.0+i%3*.13),cos(angle)*size*.29),Vector3(size*.28,size*.85,size*.15),angle,.60)
+
+func _shared_area(accent: String) -> void:
+	# Leave the lift landing and central cross-aisle empty.
+	for x in [-4.7,4.7]:
+		_part("oak",Vector3(x,.76,7.55),Vector3(2.3,.075,1.28))
+		_solid(Vector3(x,.40,7.55),Vector3(2.3,.80,1.28))
+		for dx in [-.95,.95]:
+			_part("steel",Vector3(x+dx,.36,7.55),Vector3(.08,.72,1.10))
+		for dx in [-.55,.55]:
+			_chair(Vector3(x+dx,0,6.5),1.0)
+			_chair(Vector3(x+dx,0,8.60),-1.0)
+		_part("paper",Vector3(x,.81,7.55),Vector3(.33,.02,.25))
+		_plant(Vector3(x+.8,.80,7.55),.24)
+	# Printer alcove and storage on perimeter.
+	for x in [-7.85,7.85]:
+		_part("oak",Vector3(x,.53,-.4),Vector3(.68,1.06,1.4))
+		_solid(Vector3(x,.53,-.4),Vector3(.68,1.06,1.4))
+		_part("white",Vector3(x,1.23,-.4),Vector3(.55,.36,.62))
+		_part("black",Vector3(x,1.38,-.4),Vector3(.36,.045,.42))
+		_plant(Vector3(x,0,8.8),.46)
+	# Soft seating, facing the collaboration tables but away from main paths.
+	for x in [-6.2,6.2]:
+		_part(accent,Vector3(x,.43,9.45),Vector3(2.2,.56,.72))
+		_part(accent,Vector3(x,.82,9.70),Vector3(2.2,.56,.20))
+		_solid(Vector3(x,.50,9.45),Vector3(2.2,1.0,.72))
+
+func _label(value: String,at: Vector3,pixel: float,yaw: float=0.0) -> void:
+	var sign:=Label3D.new()
+	sign.text=value
+	sign.position=at
+	sign.pixel_size=pixel
+	sign.font_size=44
+	sign.outline_size=2
+	sign.rotation.y=yaw
+	add_child(sign)
+
+func _architecture(accent: String) -> void:
+	# Light oak wall panels, accent bands, acoustic ceiling and corporate banners.
+	for x in [-8.32,8.32]:
+		_part("oak",Vector3(x,.52,0),Vector3(.06,1.04,19.7))
+		_part(accent,Vector3(x,1.75,0),Vector3(.065,.18,19.7))
+		for z in [-7.5,-4.5,-1.5,1.5,4.5,7.5]:
+			_part("glass",Vector3(x,2.34,z),Vector3(.045,1.02,2.62))
+	_part(accent,Vector3(0,1.7,-9.81),Vector3(16.6,3.35,.08))
+	_part("oak",Vector3(0,.48,-9.73),Vector3(16.4,.95,.06))
+	_label(DEPARTMENTS[level-1]+" / LEVEL "+str(level+1),Vector3(0,2.73,-9.70),.008)
+	_label(SLOGANS[level-1],Vector3(0,1.98,-9.70),.006)
+	_label(SUBLINES[level-1],Vector3(0,1.55,-9.70),.0035)
+	_part(accent,Vector3(0,2.12,9.81),Vector3(5.8,1.54,.065))
+	_label("SYNAXIS / "+DEPARTMENTS[level-1],Vector3(0,2.45,9.76),.0048,PI)
+	_label("COLLABORATION IS MANDATORY",Vector3(0,1.94,9.76),.004,PI)
+	for x in [-6,-3,0,3,6]:
+		for z in [-7.5,-2.5,2.5,7.5]:
+			_part("white",Vector3(x,3.31,z),Vector3(2.85,.045,4.85))
+			_part("light",Vector3(x,3.27,z),Vector3(1.25,.04,.18))
+	for z in [-5.0,1.0,7.0]:
+		var lamp:=OmniLight3D.new()
+		lamp.position=Vector3(0,2.95,z)
+		lamp.omni_range=11.0
+		lamp.light_energy=1.45
+		lamp.shadow_enabled=false
+		add_child(lamp)
+		_lights.append(lamp)
+	# Lift call pads are on the floor and have no collision in the landing.
+	for side in [-1.0,1.0]:
+		_part(accent,Vector3(side*.9,.018,5),Vector3(.78,.016,.82))
+	_label("LIFT UP",Vector3(-.9,1.85,5.48),.003)
+	_label("LIFT DOWN",Vector3(.9,1.85,5.48),.003)

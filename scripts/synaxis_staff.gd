@@ -89,7 +89,7 @@ func _ready() -> void:
 	for child in _torso.get_children():
 		if str(child.name) in ["UnionShiftTag","Collar"]:
 			child.hide()
-	var hair := HAIRS[palette]
+	var hair: Color = HAIRS[palette]
 	if hair_style=="silver":
 		hair=Color("777779")
 	elif hair_style=="dark":

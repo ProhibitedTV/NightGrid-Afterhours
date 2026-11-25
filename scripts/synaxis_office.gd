@@ -26,6 +26,9 @@ const Finish = preload("res://scripts/synaxis_office_finish.gd")
 const Radar = preload("res://scripts/hud_radar.gd")
 const Arrival = preload("res://scripts/synaxis_arrival.gd")
 const Restrooms = preload("res://scripts/synaxis_restrooms.gd")
+const Workfloor = preload("res://scripts/synaxis_workfloor.gd")
+var _workfloors: Array[Node3D]=[]
+var _active_floor:=0
 var _restrooms: Node3D
 const CUBICLE_POINT = Vector3(4.5,1.15,2.95)
 var _arrival: RefCounted
@@ -53,7 +56,7 @@ var _mat: Dictionary = {}
 
 func _ready() -> void:
 	var floor_mat := _material("floor",Color("34414a"))
-	var wall := _material("wall",Color("58636b"))
+	var wall := _material("wall",Color("c6c9c5"))
 	var desk := _material("desk",Color("242e36"))
 	var accent := _material("accent",Color("b9cbd0"))
 	var screen := _material("screen",Color("508f8d"),true)
@@ -71,7 +74,8 @@ func _ready() -> void:
 	Brand.wall_logo(self,"EntranceBrand",Vector3(0,3.12,-10.17),PI,2.15)
 	_sign("PUBLIC LOBBY",Vector3(0,2.65,-10.17),.0045).rotation.y = PI
 	# Fixed upper-floor shell, not a second generic building intersecting the office.
-	_solid("TowerCore",Vector3(0,27,0),Vector3(17,46.7,20),_material("glass",Color("354c60")))
+	_solid("TowerCore",Vector3(0,34.30,0),Vector3(17,32.10,20),_material("glass",Color("354c60")))
+	_build_workfloor_shell(wall,floor_mat)
 	for floor in range(12):
 		var y := 5.4+float(floor)*3.65
 		_visual("FacadeSpandrel",Vector3(0,y,-10.13),Vector3(17,.36,.16),accent)
@@ -157,6 +161,67 @@ func _ready() -> void:
 	# Ground-floor furniture and collision remain; stage lighting is local.
 	for light in find_children("*","OmniLight3D",true,false):
 		light.hide()
+
+func _build_workfloor_shell(wall: Material,floor_mat: Material) -> void:
+	for level in range(1,Workfloor.FLOOR_COUNT+1):
+		var base:=level*Workfloor.FLOOR_HEIGHT
+		# Ground ceiling already serves as level 1's floor slab.
+		if level>1:
+			_solid("UpperSlab",Vector3(0,base-.15,0),Vector3(17,.3,20),floor_mat)
+		for side in [-1.0,1.0]:
+			_solid("UpperSide",Vector3(side*8.5,base+1.675,0),Vector3(.25,3.35,20),wall)
+			_solid("UpperEnd",Vector3(0,base+1.675,side*10),Vector3(17,3.35,.25),wall)
+	for side in [-1.0,1.0]:
+		_visual("GroundLiftPad",Vector3(side*.9,.018,5),Vector3(.78,.016,.82),_material("liftpad",Color("457d79")))
+	_sign("LIFT UP / OFFICE FLOORS",Vector3(-.9,1.85,5.48),.003)
+	_sign("GROUND / LOBBY",Vector3(.9,1.85,5.48),.003)
+
+func _ensure_workfloors() -> void:
+	if not _workfloors.is_empty():
+		return
+	for level in range(1,Workfloor.FLOOR_COUNT+1):
+		var deck:=Workfloor.new()
+		deck.level=level
+		deck.name="Workfloor%d" % level
+		deck.position.y=level*Workfloor.FLOOR_HEIGHT
+		add_child(deck)
+		_workfloors.append(deck)
+
+func workfloor_stats() -> Array[Dictionary]:
+	var results: Array[Dictionary]=[]
+	for deck in _workfloors:
+		results.append(deck.call("get_floor_stats"))
+	return results
+
+func _select_floor(level: int) -> void:
+	_active_floor=clampi(level,0,Workfloor.FLOOR_COUNT)
+	for child in get_children():
+		if child is OmniLight3D:
+			child.visible=_prologue_active and _active_floor==0
+	for i in _workfloors.size():
+		_workfloors[i].call("set_occupied",_prologue_active and _active_floor==i+1)
+	_target_sign.visible=_prologue_active and _active_floor==0
+
+func lift_direction(at: Vector3) -> int:
+	if not _prologue_active or _arrival!=null:
+		return 0
+	var local:=to_local(at)
+	if absf(local.y-(_active_floor*Workfloor.FLOOR_HEIGHT+1.15))>.8:
+		return 0
+	if _active_floor<Workfloor.FLOOR_COUNT and Vector2(local.x,local.z).distance_to(Workfloor.LIFT+Vector2(-.9,0))<.73:
+		return 1
+	if _active_floor>0 and Vector2(local.x,local.z).distance_to(Workfloor.LIFT+Vector2(.9,0))<.73:
+		return -1
+	return 0
+
+func try_lift(player: CharacterBody3D) -> bool:
+	var direction:=lift_direction(player.global_position)
+	if direction==0:
+		return false
+	_select_floor(_active_floor+direction)
+	player.global_position=to_global(Vector3(0,_active_floor*Workfloor.FLOOR_HEIGHT+1.15,Workfloor.LIFT.y))
+	player.velocity=Vector3.ZERO
+	return true
 
 func _build_lobby(desk: Material,accent: Material,screen: Material) -> void:
 	_solid("VisitorKiosk",Vector3(-2.8,.61,-8.65),Vector3(.62,1.22,.44),desk)
@@ -261,12 +326,13 @@ func begin_prologue() -> void:
 		_build_cast()
 	_target_sign.show()
 	_intro_canvas.show()
-	for light in find_children("*","OmniLight3D",true,false):
-		light.show()
+	_ensure_workfloors()
+	_select_floor(0)
 	set_stage(-2)
 
 func finish_prologue() -> void:
 	_prologue_active=false
+	_select_floor(0)
 	_restrooms.call("end_visit")
 	_arrival=null
 	_arrival_canvas.hide()
@@ -595,7 +661,13 @@ func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 		return
 	var local := to_local(at)
 	var goal: Vector3=POINTS[stage]
-	_radar.call("set_office_state",Vector2(local.x,local.z),Vector2(goal.x,goal.z))
+	_radar.call("set_office_state",Vector2(local.x,local.z),Vector2(goal.x,goal.z) if _active_floor==0 else Workfloor.LIFT,_active_floor)
+	if _active_floor>0:
+		_hint.text="SYNAXIS / LEVEL %d / %s\nReturn to ground floor for: %s" % [_active_floor+1,Workfloor.DEPARTMENTS[_active_floor-1],TITLES[stage]]
+		var direction:=lift_direction(at)
+		if direction!=0:
+			_hint.text+="\n"+("X" if gamepad else "G")+" / LIFT "+("UP" if direction>0 else "DOWN")
+		return
 	_hint.text = "SYNAXIS / EXECUTIVE PRIVILEGE\n%s" % TITLES[stage]
 	if stage==-2:
 		_hint.text += "\nMika: Take the sealed access-control request to Eli in IT."
@@ -605,6 +677,8 @@ func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 		_hint.text += "\n"+("X / INTERACT" if gamepad else "G / INTERACT")
 	if breakroom_reachable(at) and not _breakroom_seen:
 		_hint.text += "\n" + ("X" if gamepad else "G") + " / OPTIONAL: BREAKROOM PARTY"
+	if lift_direction(at)!=0:
+		_hint.text+="\n"+("X" if gamepad else "G")+" / LIFT UP / WORKFLOORS"
 	var remark:=update_staff_attention(stage,at)
 	if not remark.is_empty():
 		_hint.text += "\n"+remark
