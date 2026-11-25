@@ -2,8 +2,8 @@ extends PanelContainer
 ## A presentation-only caption: never advances missions, changes input, or plays voice.
 ## Embedded conversation lines remain visible; ambient lines expire in game time.
 const Ui = preload("res://scripts/ui_style.gd")
-const MIN_SECONDS := 3.0
-const MAX_SECONDS := 18.0
+const MIN_SECONDS = 3.0
+const MAX_SECONDS = 18.0
 var speaker_label: Label
 var line_label: Label
 var remaining := 0.0

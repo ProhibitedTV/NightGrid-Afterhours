@@ -3,16 +3,16 @@ extends Control
 ## No full-screen flashes, external video codecs or per-frame audio generation.
 signal finished
 const EMBLEM = preload("res://assets/branding/bitriver_emblem.svg")
-const GAME_SCENE := "res://scenes/main.tscn"
-const STUDIO := "BitRiver Gaming"
-const CREDIT := "by RhythmicCarnage"
-const DURATION := 3.2
-const IMPACT_AT := 0.52
-const RATE := 22050
-const INK := Color("080d13")
-const STEEL := Color("e7edf0")
-const CYAN := Color("81e0d4")
-const PINK := Color("d35d86")
+const GAME_SCENE = "res://scenes/main.tscn"
+const STUDIO = "BitRiver Gaming"
+const CREDIT = "by RhythmicCarnage"
+const DURATION = 3.2
+const IMPACT_AT = 0.52
+const RATE = 22050
+const INK = Color("080d13")
+const STEEL = Color("e7edf0")
+const CYAN = Color("81e0d4")
+const PINK = Color("d35d86")
 @export var auto_handoff := true
 var elapsed := 0.0
 var _finished := false
@@ -57,7 +57,7 @@ func _input(event: InputEvent) -> void:
 		return
 	var skip := false
 	if event is InputEventKey:
-		var key := event.physical_keycode if event.physical_keycode != 0 else event.keycode
+		var key: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
 		skip = key in [KEY_ESCAPE, KEY_ENTER, KEY_SPACE]
 	elif event is InputEventJoypadButton:
 		skip = event.button_index in [JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_START]

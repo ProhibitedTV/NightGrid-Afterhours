@@ -7,7 +7,7 @@ signal confirmed(id: String)
 signal cancelled
 const LABELS = ["Holster", "Vanta Pulse", "Coilbreak Arc"]
 const SLOT_LABELS = ["01", "02", "03"]
-const SELECT_TIME := 0.14
+const SELECT_TIME = 0.14
 const DIRECTIONS = [Vector2(0,-1), Vector2(0.866,0.5), Vector2(-0.866,0.5)]
 var selected := 0
 var equipped := 0
