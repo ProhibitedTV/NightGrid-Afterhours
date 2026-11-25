@@ -274,6 +274,35 @@ func _verify() -> void:
 	if paused or busk_ledger.street_activity_runs("busking")!=1 or busk_ledger.street_activity_runs("live_gig")!=1 or int(world.get("cash"))!=cash_before_busk+8:
 		_fail("Busking settlement crossed activity streams")
 		return
+	# A session is tied to its starting frontage, not any eligible venue.
+	player.global_position=venues.call("venue_position","moon_noodles")
+	world.call("_toggle_venue")
+	world.call("_venue_action",3)
+	var displaced=menu.get("_rhythm")
+	for lane in displaced.pattern:
+		displaced.advance(displaced.target_time()-displaced.elapsed)
+		displaced.strike(lane)
+	player.global_position=venues.call("venue_position","copper_cup")
+	menu.call("_choice","rhythm_claim")
+	if busk_ledger.street_activity_runs("busking")!=1 or int(world.get("cash"))!=cash_before_busk+8:
+		_fail("A displaced set was incorrectly paid")
+		return
+	world.call("_toggle_venue")
+	world.call("_venue_action",3)
+	if menu.get("screen")!="blue_hour_set":
+		_fail("Second busking site unavailable")
+		return
+	menu.call("_choice","rhythm_cancel")
+	if paused or busk_ledger.street_activity_runs("busking")!=1 or int(world.get("cash"))!=cash_before_busk+8:
+		_fail("Cancelled street set awarded progression")
+		return
+	venues.call("set_hour",4.0)
+	world.call("_toggle_venue")
+	world.call("_venue_action",3)
+	if menu.get("screen")=="blue_hour_set":
+		_fail("Closed frontage offered loaner sampler")
+		return
+	world.call("_close_venue")
 	print("VENUE_SMOKE PASS: ", kind_counts, " / quests=", catalog.SIDE_JOBS.size(),
 		" / saved_seed=", old_seed, " / venue_lights=", venues.call("get_active_light_count"))
 	quit(0)
