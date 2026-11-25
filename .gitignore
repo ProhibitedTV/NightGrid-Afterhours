@@ -5,3 +5,8 @@
 Thumbs.db
 builds/
 dist/
+.venv-voice/
+.venv-sfx/
+.venv/
+__pycache__/
+*.py[cod]

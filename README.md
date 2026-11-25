@@ -32,4 +32,6 @@ The latest published candidate at this writing is **[Beta.8 RC3](https://github.
 
 Made with **Godot 4.7.2**. [Developer notes](docs/DEVELOPMENT.md) · [Roadmap](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/197) · [More real game captures](docs/screenshots/development/GALLERY.md)
 
+For contributors: [offline dialogue and sound effect production on Anubis](docs/AUDIO_PRODUCTION_STUDIO.md). Neural models are authoring tools only; the game uses reviewed baked assets and caption fallbacks. Current coverage is documented in the studio guide.
+
 *This repository does not yet have a general public source license; third-party assets retain their documented licenses.*
