@@ -193,10 +193,64 @@ func _verify() -> void:
 	if case_state.advance("harbor_library",0,wallet)["status"] != "unavailable":
 		_fail("Completed investigation must not pay again")
 		return
+	# The optional hobby uses real wallet debits and fixed gameplay time.
+	var career = world.get("music_career")
+	var music_cash: int = world.get("cash")
+	var venues = world.get("venue_system")
+	venues.call("set_hour",16.0)
+	actor.global_position = venues.call("venue_position","copper_cup")
+	world.call("_toggle_venue")
+	world.call("_venue_action",3)
+	if not career.owned or world.get("cash") != music_cash-85:
+		_fail("Physical instrument purchase must debit once")
+		return
+	world.call("_venue_action",3)
+	if world.get("cash") != music_cash-85:
+		_fail("Duplicate instrument purchase")
+		return
+	world.call("_close_venue")
+	if not world.call("_start_music","busk","copper_cup") or not actor.get("input_blocked"):
+		_fail("Busking must start at a safe physical spot")
+		return
+	world.call("_tick_music",.25)
+	world.call("_stop_music")
+	if actor.get("input_blocked") or world.get("cash") != music_cash-85:
+		_fail("Interrupted set must restore input and not pay")
+		return
+	for set_index in range(3):
+		if not world.call("_start_music","busk","copper_cup"):
+			_fail("Expected busking set")
+			return
+		for tick in range(96):
+			world.call("_tick_music",.25)
+		if not career.mode.is_empty() or actor.get("input_blocked"):
+			_fail("Completed set must release player input")
+			return
+		for tick in range(60):
+			world.call("_tick_music",.25)
+	if career.completed_sets != 3 or not career.can_gig(wallet) or world.get("cash") != music_cash-85+27:
+		_fail("Three completed sets must unlock debut and award bounded tips")
+		return
+	var music_saved: Dictionary = career.snapshot()
+	career.restore(music_saved)
+	if not career.owned or career.completed_sets != 3:
+		_fail("Instrument ownership and completed sets must restore")
+		return
+	actor.global_position = venues.call("venue_position","dock_nine")
+	world.call("_toggle_venue")
+	world.call("_venue_action",3)
+	if career.mode != "gig":
+		_fail("Debut booking must be available at physical venue")
+		return
+	for tick in range(160):
+		world.call("_tick_music",.25)
+	if not wallet.has_receipt("music:dock_nine_debut") or career.can_gig(wallet) or world.get("cash") != music_cash-85+27+95:
+		_fail("Debut must pay once")
+		return
 	world.set("current_car",world.get("cars")[0])
 	if world.call("phone_available"):
 		_fail("Phone must not open while driving")
 		return
 	world.set("current_car",null)
-	print("MORROW_PHONE PASS: seven apps, live state, offer rotation, duty gate, workboard, alternate contact progression, physical diagnostics, staged investigation and driving gate")
+	print("MORROW_PHONE PASS: eight apps, live state, offer rotation, duty gate, workboard, alternate contact progression, physical diagnostics, staged investigation, music career and driving gate")
 	quit(0)
