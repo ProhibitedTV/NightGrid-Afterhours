@@ -33,7 +33,10 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 	match id:
 		"work":
 			subtitle = "Independent contractor dashboard" if gig else "Account not activated"
-			if gig:
+			if gig and not bool(state.get("on_duty",true)):
+				rows.append({"label":"Status","value":"Offline · No active delivery"})
+				actions.append({"label":"Go online","action":"phone_toggle_duty"})
+			elif gig:
 				rows.append({"label":"Current order","value":str(state.get("order",""))})
 				rows.append({"label":"Status","value":"Deliver to customer" if state.get("carrying",false) else "Collect from restaurant"})
 				rows.append({"label":"Estimated payout","value":"$%d" % int(state.get("payout",0))})
@@ -41,6 +44,7 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 				actions.append({"label":"Navigate to current order" if state.get("carrying",false) else "Take offer / navigate","action":"phone_route_order"})
 				if not bool(state.get("carrying",false)):
 					actions.append({"label":"Decline / see another offer","action":"phone_decline_offer"})
+					actions.append({"label":"Go offline","action":"phone_toggle_duty"})
 			else:
 				rows.append({"label":"QuotaDrop","value":"Available after your Synaxis offboarding."})
 		"wallet":
