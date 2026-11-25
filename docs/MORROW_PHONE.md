@@ -2,7 +2,7 @@
 
 Open on foot with P, or from Pause > Smartphone on controller. The compact device menu occupies the right side, uses the existing paused-world focus and weapon-suspension contract, and closes after routing. Escape/B returns from an app to the launcher, then to the original pause or gameplay state. P puts the phone away. No phone during the corporate prologue, while driving/riding transit, inside an active service dialogue, or while the equipment wheel is open.
 
-Seven original apps are connected to existing gameplay:
+Eight original apps are connected to existing gameplay:
 - QuotaDrop: active order, pickup/delivery stage, payout and completed runs; take offer/navigation or decline an uncollected offer to cycle the six existing authored routes. Declining never pays, increments completed runs or switches a carried package. Pickup remains physical; existing automatic assignment is retained. Inactive account cannot route a gig.
 - Workboard: eight authored private-contact and civic contracts plus two technical consulting assignments, their actual rewards, opening status, brief, and route to the relevant counter. Completed contracts disappear and active ones route to turn-in. No remote acceptance or payout.
 - Wallet: current cash and BTC holdings; no invented bank balance or remote exchange.
@@ -15,7 +15,7 @@ A bounded optional courier_offer_offset persists the selected route in the exist
 
 Validation: independent world smoke for app focus, route, economy invariants and pause ownership. Run exact-head preflight and Windows export; verify actual 720p/1080p layout, controller access and held-weapon safety. Reconcile menu/world and workflow changes with PR #310 before merge.
 
-The launcher now uses seven original SVG icons and a two-column D-pad focus grid. Asset source is `assets/phone/`. Decline clears a waypoint near the old order target and refreshes the existing objective.
+The launcher now uses eight original SVG icons and a two-column D-pad focus grid. Asset source is `assets/phone/`. Decline clears a waypoint near the old order target and refreshes the existing objective.
 
 ## Work beyond QuotaDrop
 
@@ -28,3 +28,7 @@ The Silent Crane ($480, Crane & Gear) and Ghost in the Grid ($620, Grid Annex Fo
 ## Specialist investigation: The Paper City
 
 Completing either technical consulting case unlocks a $1,450 independent investigation on Workboard. Four ordered physical interactions at Harbor Reading Room, Southworks Records, Dock Watch and back at the Reading Room connect the existing Synaxis storyline to conflicting fictional public permit records. Read and record each lead, then choose a defensible finding instead of an unsupported accusation. No real-world hacking, combat, package delivery or new building is involved. Workboard routes to the current lead, and HUD/journal show active stages. The optional bounded v1 `investigation_stage` field is validated against the technical prerequisite receipts and final settlement receipt; missing fields default to stage zero. The existing progression ledger pays once on correct final submission. Tests cover ordered counter visits, unsupported conclusions, stage restoration and duplicate settlement. Native presentation and CI acceptance remain pending.
+
+## Recreational music: first playable slice
+
+Copper Strings is a shop-in-shop at Copper Cup's existing public counter. During staffed hours buy one $85 used acoustic guitar via 3/Y. The Music phone app routes to the counter and exposes street sets at Copper Cup, Lantern Cup and Dock Nine exterior frontages. Sets last 24 seconds of unpaused simulation; cancel with G/X or Esc/Start/B. Interrupted sets pay nothing. Completion gives $8–16 tips and a 15-second cooldown. Three completed street sets unlock the one-time $95 Dock Nine outdoor debut (40 seconds, staffed hours). Instrument ownership and completed sets are bounded optional save data; the debut uses the existing ledger receipt. No active set is restored. Performance blocks conflicting movement/combat and cancels on displacement, wanted heat or respawn. The original eight-second plucked-string WAV is baked offline and played spatially, not generated at runtime. The guitar is a preliminary original mesh prop; dedicated strumming animation, audience/pedestrian reactions, independent storefront, NPC musicians, bands, rehearsal and indoor stages are not yet implemented. This is a hobby-first first slice, not a full music career simulator. Runtime, audio and native visual acceptance remain pending.
