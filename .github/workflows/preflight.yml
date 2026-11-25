@@ -224,6 +224,12 @@ jobs:
           timeout 75s godot --headless --path . --script res://tests/courier_mission_smoke.gd 2>&1 | tee /tmp/nightgrid-courier-mission.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-courier-mission.log; then exit 1; fi
           grep -q "COURIER_MISSION PASS:" /tmp/nightgrid-courier-mission.log
+      - name: Validate one-time technical consulting contracts
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/technical_contracts_smoke.gd 2>&1 | tee /tmp/nightgrid-technical.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-technical.log; then exit 1; fi
+          grep -q "TECHNICAL_CONTRACTS PASS" /tmp/nightgrid-technical.log
       - name: Validate main menus, saved settings and controller action contexts
         timeout-minutes: 2
         run: |

@@ -209,6 +209,9 @@ var mouse_sensitivity := 0.0032
 var stick_sensitivity := 2.6
 var invert_look_y := false
 var civic_selected_id := ""
+const TechnicalContracts = preload("res://scripts/technical_contracts.gd")
+var _technical_case_open := false
+var _technical_feedback := ""
 var civic_job_active := ""
 var civic_job_completed: Array[String] = []
 var civic_intel: Array[String] = []
@@ -787,6 +790,15 @@ func _phone_workboard() -> Array[Dictionary]:
 				"site":record["name"],"open":service.call("is_open",site),
 				"active":id == active,"position":Vector2(position.x,position.z)
 			})
+	for site in TechnicalContracts.CASES:
+		if not TechnicalContracts.available(site,progression):
+			continue
+		var contract: Dictionary = TechnicalContracts.CASES[site]
+		var record: Dictionary = civic_services.call("site_by_id",site)
+		var point: Vector3 = civic_services.call("position_for",site)
+		if record.is_empty() or not point.is_finite():
+			continue
+		listings.append({"id":contract["id"],"category":"Technical consulting","title":contract["title"],"brief":contract["brief"],"reward":contract["reward"],"site":record["name"],"open":civic_services.call("is_open",site),"active":false,"position":Vector2(point.x,point.z),"action_label":"Visit for diagnosis"})
 	return listings
 
 func _phone_context() -> Dictionary:
@@ -3193,6 +3205,9 @@ func _repair_nearby_vehicle(price: int) -> void:
 func _update_civic_panel() -> void:
 	if civic_selected_id.is_empty() or venue_label == null:
 		return
+	if _technical_case_open:
+		_update_technical_panel()
+		return
 	# This fourth menu action must never leak into another venue or service.
 	if venue_talk_button != null:
 		venue_talk_button.visible = false
@@ -3229,6 +3244,61 @@ func _update_civic_panel() -> void:
 			(civic_job_active.is_empty() and not civic_job_completed.has(str(offered["id"]))))
 		venue_job_button.disabled = not opened or not available
 		venue_job_button.text = "2 / X  •  WORK ORDER"
+	if venue_talk_button != null and TechnicalContracts.available(civic_selected_id,progression):
+		venue_talk_button.show()
+		venue_talk_button.disabled = not opened
+		venue_talk_button.text = "3 / Y  •  DIAGNOSTIC CONTRACT"
+
+func _technical_reachable() -> bool:
+	if not venue_panel.visible or current_car != null or current_transit != null or not TechnicalContracts.available(civic_selected_id,progression) or not civic_services.call("is_open",civic_selected_id):
+		return false
+	if interiors.call("is_inside"):
+		return interiors.call("active_site_group") == "CIVIC" and interiors.call("active_site_id") == civic_selected_id and interiors.call("counter_reachable",player.global_position)
+	var point: Vector3 = civic_services.call("position_for",civic_selected_id)
+	return player.global_position.distance_to(point) <= CivicServicesScript.VISIT_RADIUS
+
+func _update_technical_panel() -> void:
+	if not _technical_reachable():
+		_technical_case_open = false
+		_technical_feedback = ""
+		_update_civic_panel()
+		return
+	var job: Dictionary = TechnicalContracts.CASES[civic_selected_id]
+	venue_label.text = "%s / $%d\n%s\n%s" % [job["title"],job["reward"],job["brief"],job["evidence"]]
+	if not _technical_feedback.is_empty():
+		venue_label.text += "\n"+_technical_feedback
+	venue_service_button.show()
+	venue_service_button.disabled = false
+	venue_service_button.text = "1 / A  •  "+str(job["options"][0])
+	venue_job_button.show()
+	venue_job_button.disabled = false
+	venue_job_button.text = "2 / X  •  "+str(job["options"][1])
+	venue_talk_button.show()
+	venue_talk_button.disabled = false
+	venue_talk_button.text = "3 / Y  •  BACK"
+
+func _technical_action(option: int) -> void:
+	if not _technical_reachable():
+		_close_venue()
+		return
+	if option == 3:
+		_technical_case_open = false
+		_technical_feedback = ""
+		_update_civic_panel()
+		return
+	if option not in [1,2]:
+		return
+	var result := TechnicalContracts.resolve(civic_selected_id,option-1,progression)
+	match str(result.get("status","")):
+		"complete":
+			_notify("DIAGNOSTIC COMPLETE +$%d: %s" % [result["reward"],result["message"]])
+			_close_venue()
+		"incorrect":
+			_technical_feedback = str(result["message"])
+			_update_technical_panel()
+		"blocked":
+			_technical_feedback = "Wallet full. Try again after freeing capacity."
+			_update_technical_panel()
 
 func _civic_action(option: int) -> void:
 	if not venue_panel.visible or civic_selected_id.is_empty():
@@ -3236,6 +3306,15 @@ func _civic_action(option: int) -> void:
 	var site: Dictionary = civic_services.call("site_by_id", civic_selected_id)
 	if site.is_empty() or not civic_services.call("is_open", civic_selected_id):
 		_notify("This public service is not open right now.")
+		return
+	if _technical_case_open:
+		_technical_action(option)
+		return
+	if option == 3:
+		if _technical_reachable():
+			_technical_case_open = true
+			_technical_feedback = ""
+			_update_technical_panel()
 		return
 	var kind: String = site["kind"]
 	if option == 1:
@@ -3363,6 +3442,8 @@ func _show_venue_dialogue() -> void:
 		venue_service_button.call_deferred("grab_focus")
 
 func _close_venue() -> void:
+	_technical_case_open = false
+	_technical_feedback = ""
 	if is_instance_valid(dialogue_director):
 		dialogue_director.call("cancel_scope","venue:music_contact")
 	if interiors != null:

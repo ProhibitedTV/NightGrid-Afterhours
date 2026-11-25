@@ -4,3 +4,6 @@ P opens the phone on foot, or use Smartphone in the pause menu. Nine apps expose
 
 ## QuotaDrop offer selection
 Before collecting an order, Decline / next offer cycles through the six authored offers without payment or progress. Carried orders cannot be declined; use the existing abandon/retry flow. The optional bounded `courier_offer_offset` save field preserves the chosen route, including mid-delivery; old saves default to zero. Duty toggles and additional musician progression are separate work.
+
+## Technical consulting
+Workboard lists two optional one-time diagnosis contracts at Crane & Gear and Grid Annex Four. Visit during open hours, examine the fictional evidence and select a repair. Wrong choices do not pay; wallet-capacity failure remains retryable. Completion uses the existing receipt ledger. No additional save schema or remote payout. The Paper City follow-up investigation is not included in this slice.
