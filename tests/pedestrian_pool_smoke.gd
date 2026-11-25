@@ -50,6 +50,58 @@ func _verify() -> void:
 		pool.step(1.0/60.0)
 	if not _check(body.global_position.distance_to(before)>0.15 and body.is_on_floor(),"physics movement and ground contact"):
 		return
+	var satire=preload("res://scripts/street_satire.gd")
+	var seen:Dictionary={}
+	for n in range(3):
+		var remark:Dictionary=satire.line_for(id,n)
+		if not _check(remark["character"]==satire.personality(id) and not seen.has(remark["id"]),"stable personality and three unique variants"):
+			return
+		seen[remark["id"]]=true
+	var listener:=body.global_position+Vector3.UP*1.6+Vector3.RIGHT*3.0
+	var bark:Dictionary=pool.street_bark(pool.get_world_3d().direct_space_state,listener,RID())
+	if not _check(bark.get("lease_id")==id and bark.get("speaker")==body and str(bark.get("id")).begins_with("street."),"nearby live speaker has a canonical remark"):
+		return
+	if not _check(pool.street_bark(pool.get_world_3d().direct_space_state,listener,RID()).is_empty(),"individual speaker cooldown"):
+		return
+	# Local incident must be visible; a wall blocks the reaction ray.
+	var eye := body.global_position + Vector3.UP*1.6
+	var incident := eye + Vector3.RIGHT*4.0
+	var wall := StaticBody3D.new()
+	var wall_collision := CollisionShape3D.new()
+	var wall_shape := BoxShape3D.new()
+	wall_shape.size=Vector3(0.3,3.0,3.0)
+	wall_collision.shape=wall_shape
+	wall.add_child(wall_collision)
+	root.add_child(wall)
+	wall.global_position=eye+Vector3.RIGHT*2.0
+	await physics_frame
+	var ignored: Array[RID]=[]
+	pool.react_to_incident(pool.get_world_3d().direct_space_state,incident,10.0,ignored,true)
+	if not _check(float(pool.get("_leases")[id]["alert"])==0.0 and str(pool.get("_leases")[id]["context"]).is_empty(),"opaque wall blocks both reaction and remembered context"):
+		return
+	wall.queue_free()
+	await process_frame
+	await physics_frame
+	pool.react_to_incident(pool.get_world_3d().direct_space_state,incident,10.0,ignored,true)
+	pool.step(1.0/60.0)
+	if not _check(pool.movement_states()[id]=="ALERT" and not pool.street_bark_valid(id),"visible urgent incident interrupts routine and cancels ambient speech"):
+		return
+	for i in range(46):
+		await physics_frame
+		pool.step(1.0/60.0)
+	if not _check(pool.movement_states()[id]=="RETREAT","urgent incident leads to bounded same-link retreat"):
+		return
+	for i in range(200):
+		await physics_frame
+		pool.step(1.0/60.0)
+	if not _check(float(pool.get("_leases")[id]["retreat"])<=0.0,"retreat expires without permanent panic"):
+		return
+	var after_listener:=body.global_position+Vector3.UP*1.6+Vector3.RIGHT*3.0
+	var response:Dictionary=pool.street_bark(pool.get_world_3d().direct_space_state,after_listener,RID())
+	if not _check(response.get("context")=="urgent" and response.get("character")==satire.personality(id),"recovered pedestrian remembers witnessed incident in its own voice"):
+		return
+	if not _check(pool.street_bark(pool.get_world_3d().direct_space_state,after_listener,RID()).is_empty(),"event remark consumed once despite generic cooldown bypass"):
+		return
 	# A temporary obstruction in front of a live actor triggers a bounded
 	# yield followed by a reversal on the same certified line.
 	var heading := Vector3(sin(body.rotation.y),0,cos(body.rotation.y))

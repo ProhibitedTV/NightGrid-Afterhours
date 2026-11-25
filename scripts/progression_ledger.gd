@@ -10,6 +10,15 @@ const StarterHome = preload("res://scripts/starter_home.gd")
 const Wardrobe = preload("res://scripts/wardrobe_catalog.gd")
 const Economy = preload("res://scripts/economy.gd")
 var bitcoin_sats: int = 0
+const CAL_RECEIPT="street:compatibility_patch"
+const CAL_REWARD=85
+var cal_quest:int=0 # 0 offered, 1 accepted, 2 collected, 3 completed
+const StreetCred=preload("res://scripts/street_cred.gd")
+const Rhythm=preload("res://scripts/rhythm_rehearsal.gd")
+const Instruments=preload("res://scripts/instrument_catalog.gd")
+var _instruments:Dictionary={}
+var sampler_practice:=0
+var _street_cred=StreetCred.new()
 
 var balance: int = 0
 var _receipts: Dictionary = {}
@@ -19,6 +28,10 @@ var home_storage_expanded := false
 var home_tenancy_paid := false
 var outfit_id := Wardrobe.DEFAULT
 var _purchased_outfits: Dictionary = {}
+var clothing_slots:Dictionary={}
+const LOOK_IDS=["look_1","look_2","look_3"]
+var _saved_looks:Dictionary={}
+var _owned_pieces:Dictionary={}
 
 static func valid_cash(value: Variant) -> bool:
 	if not (value is int or value is float):
@@ -142,8 +155,8 @@ func can_pay(usd: int, tender: String) -> bool:
 		return balance >= usd
 	return tender == "BTC" and bitcoin_sats >= Economy.sats_for_usd(usd)
 
-func buy_outfit(id: String, tender: String = "USD") -> bool:
-	if not owns_home() or not Wardrobe.valid_id(id) or owns_outfit(id):
+func buy_outfit(id: String, tender: String = "USD", retail:bool=false) -> bool:
+	if (not owns_home() and not retail) or not Wardrobe.valid_id(id) or owns_outfit(id):
 		return false
 	var price := Wardrobe.price(id)
 	if not can_pay(price,tender):
@@ -155,11 +168,70 @@ func buy_outfit(id: String, tender: String = "USD") -> bool:
 	_purchased_outfits[id] = true
 	return true
 
-func select_outfit(id: String) -> bool:
-	if not owns_home() or not owns_outfit(id):
+func select_outfit(id: String, retail:bool=false) -> bool:
+	if (not owns_home() and not retail) or not owns_outfit(id):
 		return false
 	outfit_id = id
+	clothing_slots.clear()
 	return true
+
+func owns_piece(id:String) -> bool:
+	return Wardrobe.piece_valid(id) and _owned_pieces.has(id)
+
+func buy_piece(id:String,tender:String="USD",retail:bool=false) -> bool:
+	if (not owns_home() and not retail) or not Wardrobe.piece_valid(id) or owns_piece(id):
+		return false
+	var price:=Wardrobe.piece_price(id)
+	if not can_pay(price,tender):
+		return false
+	if tender=="BTC":
+		bitcoin_sats-=Economy.sats_for_usd(price)
+	else:
+		balance-=price
+	_owned_pieces[id]=true
+	return true
+
+func select_piece(id:String,retail:bool=false) -> bool:
+	if (not owns_home() and not retail) or not owns_piece(id):
+		return false
+	clothing_slots[Wardrobe.PIECES[id]["slot"]]=id
+	return true
+
+func clear_piece(slot:String,retail:bool=false) -> bool:
+	if (not owns_home() and not retail) or slot not in Wardrobe.SLOTS:
+		return false
+	clothing_slots.erase(slot)
+	return true
+
+func saved_look(id:String) -> Dictionary:
+	return (_saved_looks.get(id,{}) as Dictionary).duplicate(true)
+
+func save_look(id:String,retail:bool=false) -> bool:
+	if id not in LOOK_IDS or (not retail and not owns_home()) or not owns_outfit(outfit_id) or not Wardrobe.valid_slots(clothing_slots):
+		return false
+	for piece in clothing_slots.values():
+		if not owns_piece(piece):
+			return false
+	_saved_looks[id]={"outfit":outfit_id,"slots":clothing_slots.duplicate()}
+	return true
+
+func equip_look(id:String,retail:bool=false) -> bool:
+	if id not in LOOK_IDS or (not retail and not owns_home()):
+		return false
+	var look:=saved_look(id)
+	if look.is_empty() or not owns_outfit(look["outfit"]) or not Wardrobe.valid_slots(look["slots"]):
+		return false
+	for piece in look["slots"].values():
+		if not owns_piece(piece):
+			return false
+	outfit_id=look["outfit"]
+	clothing_slots=look["slots"].duplicate()
+	return true
+
+func owned_piece_ids() -> Array:
+	var ids:Array=_owned_pieces.keys()
+	ids.sort()
+	return ids
 
 func home_capacity() -> int:
 	return StarterHome.EXPANDED_STORAGE if home_storage_expanded else StarterHome.MAX_STORAGE
@@ -185,10 +257,95 @@ func withdraw_supply(carried: int) -> int:
 	home_supplies -= 1
 	return 1
 
+func accept_cal_quest()->bool:
+	if cal_quest!=0 or has_receipt(CAL_RECEIPT):
+		return false
+	cal_quest=1
+	return true
+
+func collect_cal_gift()->bool:
+	if cal_quest!=1:
+		return false
+	cal_quest=2
+	return true
+
+func complete_cal_quest()->bool:
+	if cal_quest!=2 or not credit_once(CAL_RECEIPT,CAL_REWARD):
+		return false
+	cal_quest=3
+	return true
+
+func street_cred()->int:
+	return _street_cred.total(_receipts)
+
+func street_cred_rank()->Dictionary:
+	return StreetCred.rank(street_cred())
+
+func street_cred_summary()->String:
+	return _street_cred.summary(_receipts)
+
+func street_cred_sources()->Array[Dictionary]:
+	return _street_cred.earned_sources(_receipts)
+
+func street_activity_runs(source:String)->int:
+	return _street_cred.completed_runs(source)
+
+## Gameplay systems call this only after validating a completed activity.
+func settle_street_activity(source:String,sequence:int)->bool:
+	return _street_cred.settle_run(source,sequence)
+
+## Atomic, catalog-priced repeatable set settlement. No caller-selected cash.
+func settle_blue_hour_set(sequence:int)->bool:
+	if not has_receipt("venue:soundcheck_pass") or balance>MAX_CASH-Rhythm.REWARD:
+		return false
+	if not _street_cred.settle_run("live_gig",sequence):
+		return false
+	balance+=Rhythm.REWARD
+	return true
+
+## The loaner street sampler has no contact or ownership prerequisite.
+func settle_busking_set(sequence:int)->bool:
+	if balance>MAX_CASH-Rhythm.BUSKING_REWARD or not _street_cred.settle_run("busking",sequence):
+		return false
+	balance+=Rhythm.BUSKING_REWARD
+	return true
+
+func owned_set_unlocked()->bool:
+	return owns_instrument(Instruments.STARTER) and sampler_practice>=Instruments.OWNED_SET_PRACTICE
+
+func settle_owned_sampler_set(sequence:int)->bool:
+	if not owned_set_unlocked() or balance>MAX_CASH-Rhythm.OWNED_REWARD or not _street_cred.settle_run("busking",sequence):
+		return false
+	balance+=Rhythm.OWNED_REWARD
+	return true
+
+func owns_instrument(id:String)->bool:
+	return Instruments.valid_id(id) and _instruments.has(id)
+
+func buy_instrument(id:String)->bool:
+	if not Instruments.valid_id(id) or owns_instrument(id) or not spend(Instruments.price(id)):
+		return false
+	_instruments[id]=true
+	return true
+
+func complete_sampler_practice(sequence:int)->bool:
+	if not owns_instrument(Instruments.STARTER) or sequence!=sampler_practice+1 or sequence>Instruments.MAX_PRACTICE:
+		return false
+	sampler_practice=sequence
+	return true
+
+func instrument_summary()->String:
+	if not owns_instrument(Instruments.STARTER):
+		return "INSTRUMENT / Loaners available; PocketBeat M3 $40 at Copper Cup"
+	var info:=Instruments.skill(sampler_practice)
+	return "POCKETBEAT M3 / %s • %d practice sets"%[info["name"],sampler_practice]+(" / PERSONAL SET UNLOCKED" if owned_set_unlocked() else " / %d to personal set"%maxi(0,Instruments.OWNED_SET_PRACTICE-sampler_practice))
+
 func snapshot() -> Dictionary:
 	var ids: Array = _receipts.keys()
 	ids.sort()
-	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "bitcoin_sats":bitcoin_sats}
+	var instruments:Array=_instruments.keys()
+	instruments.sort()
+	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "owned_pieces":owned_piece_ids(), "clothing_slots":clothing_slots.duplicate(), "saved_looks":_saved_looks.duplicate(true), "bitcoin_sats":bitcoin_sats, "cal_quest":cal_quest, "street_activity_runs":_street_cred.snapshot(), "instruments":instruments, "sampler_practice":sampler_practice}
 
 static func valid_snapshot(value: Variant) -> bool:
 	if not value is Dictionary:
@@ -205,6 +362,22 @@ static func valid_snapshot(value: Variant) -> bool:
 		if not valid_id(id) or seen.has(id):
 			return false
 		seen[id] = true
+	var instruments:Variant=data.get("instruments",[])
+	if not instruments is Array or instruments.size()>Instruments.ITEMS.size():
+		return false
+	var instrument_seen:Dictionary={}
+	for id in instruments:
+		if not Instruments.valid_id(id) or instrument_seen.has(id):
+			return false
+		instrument_seen[id]=true
+	var practice:Variant=data.get("sampler_practice",0)
+	if not valid_cash(practice) or int(practice)>Instruments.MAX_PRACTICE or (int(practice)>0 and not instrument_seen.has(Instruments.STARTER)):
+		return false
+	if not StreetCred.valid_runs(data.get("street_activity_runs",{})):
+		return false
+	var cal:Variant=data.get("cal_quest",0)
+	if not valid_cash(cal) or int(cal)>3 or (int(cal)==3)!=seen.has(CAL_RECEIPT):
+		return false
 	# Older saves already granted residence access; grandfather it, not new missions.
 	var tenancy: Variant = data.get("home_tenancy_paid",seen.has(StarterHome.ACCESS_RECEIPT))
 	if not tenancy is bool or (tenancy and not seen.has(StarterHome.ACCESS_RECEIPT)):
@@ -213,7 +386,7 @@ static func valid_snapshot(value: Variant) -> bool:
 	if not (sats is int or sats is float) or not is_finite(float(sats)) or float(sats)<0 or float(sats)>Economy.MAX_SATS or floor(float(sats))!=float(sats):
 		return false
 	var purchased: Variant = data.get("purchased_outfits",[])
-	if not purchased is Array or purchased.size() > Wardrobe.IDS.size() or (not purchased.is_empty() and not tenancy):
+	if not purchased is Array or purchased.size() > Wardrobe.IDS.size():
 		return false
 	var closet: Dictionary = {}
 	for id in purchased:
@@ -221,10 +394,38 @@ static func valid_snapshot(value: Variant) -> bool:
 			return false
 		closet[id] = true
 	var outfit: Variant = data.get("outfit_id",Wardrobe.DEFAULT)
-	if not Wardrobe.valid_id(outfit) or (outfit != Wardrobe.DEFAULT and not tenancy):
+	if not Wardrobe.valid_id(outfit):
 		return false
 	if outfit != Wardrobe.DEFAULT and not closet.has(outfit):
 		return false
+	var pieces:Variant=data.get("owned_pieces",[])
+	if not pieces is Array or pieces.size()>Wardrobe.PIECE_IDS.size():
+		return false
+	var owned_pieces:Dictionary={}
+	for id in pieces:
+		if not Wardrobe.piece_valid(id) or owned_pieces.has(id):
+			return false
+		owned_pieces[id]=true
+	var slots:Variant=data.get("clothing_slots",{})
+	if not Wardrobe.valid_slots(slots):
+		return false
+	for id in slots.values():
+		if not owned_pieces.has(id):
+			return false
+	var looks:Variant=data.get("saved_looks",{})
+	if not looks is Dictionary or looks.size()>LOOK_IDS.size():
+		return false
+	for id in looks:
+		if id not in LOOK_IDS or not looks[id] is Dictionary:
+			return false
+		var look:Dictionary=looks[id]
+		if look.size()!=2 or not Wardrobe.valid_id(look.get("outfit")) or not Wardrobe.valid_slots(look.get("slots")):
+			return false
+		if look["outfit"]!=Wardrobe.DEFAULT and not closet.has(look["outfit"]):
+			return false
+		for piece in look["slots"].values():
+			if not owned_pieces.has(piece):
+				return false
 	var expanded: Variant = data.get("home_storage_expanded", false)
 	if not expanded is bool or (expanded and not tenancy):
 		return false
@@ -261,6 +462,17 @@ func restore(amount: Variant, data: Variant) -> bool:
 	home_storage_expanded = data.get("home_storage_expanded",false)
 	outfit_id = data.get("outfit_id",Wardrobe.DEFAULT)
 	bitcoin_sats = int(data.get("bitcoin_sats",0))
+	clothing_slots=data.get("clothing_slots",{}).duplicate()
+	_saved_looks=data.get("saved_looks",{}).duplicate(true)
+	_owned_pieces.clear()
+	for id in data.get("owned_pieces",[]):
+		_owned_pieces[id]=true
+	cal_quest=int(data.get("cal_quest",0))
+	_street_cred.restore(data.get("street_activity_runs",{}))
+	_instruments.clear()
+	for id in data.get("instruments",[]):
+		_instruments[id]=true
+	sampler_practice=int(data.get("sampler_practice",0))
 	_purchased_outfits.clear()
 	for id in data.get("purchased_outfits",[]):
 		_purchased_outfits[id] = true
