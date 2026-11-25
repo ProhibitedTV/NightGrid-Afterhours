@@ -111,7 +111,8 @@ func _draw() -> void:
 		var mission: Vector2 = state["mission"]
 		var actor: Vector2 = state["player"]
 		var color := Color("38e5e4") if state["carrying"] else Color("ffba56")
-		draw_circle(_to_map(mission, side, scale), 5.5, color)
+		if bool(state.get("mission_active",true)):
+			draw_circle(_to_map(mission, side, scale), 5.5, color)
 		for location in state.get("venues", []):
 			var point: Vector2 = location["point"]
 			var tint := Color("f3b86d")

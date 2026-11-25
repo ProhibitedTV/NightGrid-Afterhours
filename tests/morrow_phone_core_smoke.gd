@@ -74,6 +74,18 @@ func _verify() -> void:
 	if menu.get("screen") != "phone" or not paused or courier.call("objective")["route_id"] == original_route or ledger.get("balance") != cash_before or int(courier.get("completed_runs")) != 0:
 		_fail("decline refreshes live order without paying or closing phone")
 		return
+	menu.call("_choice","phone_work_off")
+	if bool(courier.get("on_duty")) or world.get("marker").visible or (menu.call("get_buttons") as Dictionary).has("phone_route_order"):
+		_fail("off duty hides world beacon and route action")
+		return
+	var off: Dictionary = world.call("_capture_snapshot")
+	if bool(off.get("courier_on_duty",true)):
+		_fail("off duty saved")
+		return
+	menu.call("_choice","phone_work_on")
+	if not bool(courier.get("on_duty")) or not world.get("marker").visible or not (menu.call("get_buttons") as Dictionary).has("phone_route_order"):
+		_fail("resume restores same order and world marker")
+		return
 	var snap: Dictionary = world.call("_capture_snapshot")
 	if int(snap.get("courier_offer_offset",0)) != 1:
 		_fail("offer offset captured")

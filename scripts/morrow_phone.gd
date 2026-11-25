@@ -42,13 +42,18 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 		"work":
 			subtitle = "Independent contractor dashboard" if gig else "Account not activated"
 			if gig:
-				rows.append({"label":"Current order","value":str(state.get("order",""))})
-				rows.append({"label":"Status","value":"Deliver to customer" if state.get("carrying",false) else "Collect from restaurant"})
-				rows.append({"label":"Estimated payout","value":"$%d" % int(state.get("payout",0))})
+				var duty := bool(state.get("on_duty",true))
+				var carrying := bool(state.get("carrying",false))
+				rows.append({"label":"Status","value":("Deliver to customer" if carrying else "Collect from restaurant") if duty else "Off duty / no active order"})
 				rows.append({"label":"Completed deliveries","value":str(state.get("deliveries",0))})
-				actions.append({"label":"Navigate to current order","action":"phone_route_order"})
-				if bool(state.get("can_decline_order",false)) and not bool(state.get("carrying",false)):
-					actions.append({"label":"Decline / next offer","action":"phone_work_decline"})
+				if duty:
+					rows.append({"label":"Current order","value":str(state.get("order",""))})
+					rows.append({"label":"Estimated payout","value":"$%d" % int(state.get("payout",0))})
+					actions.append({"label":"Navigate to current order","action":"phone_route_order"})
+					if bool(state.get("can_decline_order",false)) and not carrying:
+						actions.append({"label":"Decline / next offer","action":"phone_work_decline"})
+				if not carrying:
+					actions.append({"label":"Go off duty" if duty else "Go on duty","action":"phone_work_off" if duty else "phone_work_on"})
 			else:
 				rows.append({"label":"QuotaDrop","value":"Available after your Synaxis offboarding."})
 		"opportunities":

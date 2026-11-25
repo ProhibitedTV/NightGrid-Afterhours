@@ -4,3 +4,6 @@ P opens the phone on foot, or use Smartphone in the pause menu. Nine apps expose
 
 ## QuotaDrop offer selection
 Before collecting an order, Decline / next offer cycles through the six authored offers without payment or progress. Carried orders cannot be declined; use the existing abandon/retry flow. The optional bounded `courier_offer_offset` save field preserves the chosen route, including mid-delivery; old saves default to zero. Duty toggles and additional musician progression are separate work.
+
+## Off-duty mode
+Go off duty before collecting cargo to hide the delivery beacon, radar/map pin, route action and pickup prompt. Resume the same offer from QuotaDrop without payment or progression changes. An active carried order must be delivered or abandoned first. The optional boolean save field defaults to on duty for old saves; carried orders cannot be restored off duty. The story journal directs the player to resume QuotaDrop instead of routing to an inactive delivery.
