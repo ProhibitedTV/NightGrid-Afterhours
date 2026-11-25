@@ -383,12 +383,22 @@ func mark_breakroom_seen() -> void:
 	_breakroom_seen=true
 
 func update_public_light(at: Vector3) -> void:
+	update_parking_guard(at)
 	var active := at.is_finite() and at.distance_squared_to(ENTRY)<81.0
 	if _lobby_active==active:
 		return
 	_lobby_active=active
 	if is_instance_valid(_lobby_light):
 		_lobby_light.visible=active or _prologue_active
+
+func parking_guard_reachable(at:Vector3) -> bool:
+	var parking:=get_node_or_null("FounderParking")
+	return is_instance_valid(parking) and bool(parking.call("guard_reachable",at))
+
+func update_parking_guard(at:Vector3) -> void:
+	var parking:=get_node_or_null("FounderParking")
+	if is_instance_valid(parking):
+		parking.call("update_guard",at)
 
 func public_checkpoint_reachable(at: Vector3) -> bool:
 	return at.is_finite() and at.distance_to(to_global(LOBBY_CHECKPOINT))<1.5
@@ -754,6 +764,7 @@ func update_staff_attention(stage: int,at: Vector3) -> String:
 func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 	if not POINTS.has(stage):
 		return
+	update_parking_guard(at)
 	var local := to_local(at)
 	var goal: Vector3=POINTS[stage]
 	_radar.call("set_office_state",Vector2(local.x,local.z),Vector2(goal.x,goal.z) if _active_floor==objective_floor(stage) else Workfloor.LIFT,_active_floor)
@@ -802,6 +813,8 @@ func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 	var lift:=lift_direction(at)
 	if lift!=0:
 		_hint.text+="\n"+("X" if gamepad else "G")+(" / LIFT UP / WORKFLOORS" if lift>0 else " / LIFT DOWN / BASEMENT IT")
+	if parking_guard_reachable(at):
+		_hint.text+="\n"+("X" if gamepad else "G")+" / TALK TO PARKING SECURITY"
 	var remark:=update_staff_attention(stage,at)
 	if not remark.is_empty():
 		_hint.text += "\n"+remark

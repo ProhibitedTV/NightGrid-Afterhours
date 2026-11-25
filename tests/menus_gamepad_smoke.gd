@@ -605,6 +605,25 @@ func _verify() -> void:
 		if display.is_processing() or display.get_node_or_null("KestrelMonocoque")==null:
 			_fail("Parked commuter displays must use authored models without runtime processing")
 			return
+	var guard_data=preload("res://scripts/synaxis_parking_dialogue.gd")
+	var guard_position:Vector3=reserved.to_global(guard_data.ANCHOR+Vector3.UP*1.15)
+	if not bool(reserved_stats["guard"]) or office.call("parking_guard_reachable",office.to_global(Vector3(0,1.15,0))):
+		_fail("Parking guard has local proximity and remains separate from lobby security")
+		return
+	player.global_position=guard_position
+	world.call("_opening_interact")
+	if not (menu.call("get_buttons") as Dictionary).has("guard_r9"):
+		_fail("Parking guard conversation offers actual selectable topics during prologue")
+		return
+	menu.call("_choice","guard_r9")
+	if menu.get("_guard_topic")!="guard_r9" or not (menu.call("get_buttons") as Dictionary).has("guard_back"):
+		_fail("Guard answers selected question and supports returning to topic list")
+		return
+	menu.call("_choice","guard_back")
+	menu.call("_choice","guard_leave")
+	if menu.call("is_open") or menu.get("_opening_stage")!=0 or world.get("cash")!=before_severance:
+		_fail("Guard dialogue is optional and cannot advance the opening or change cash")
+		return
 	var staff: Dictionary=office.get("_staff")
 	if staff.size()!=8 or not staff.has("reception"):
 		_fail("HQ has eight authored staff plus the executive assistant")
@@ -775,6 +794,13 @@ func _verify() -> void:
 	if not str(world.get("notification")).contains("Badge access revoked") or not is_instance_valid(office.get_node_or_null("SecurityGateCollision")):
 		_fail("Restricted office remains physically secured at the public checkpoint")
 		return
+	player.global_position=guard_position
+	world.call("_toggle_interaction")
+	if not menu.get("_guard_former") or not (menu.call("get_buttons") as Dictionary).has("guard_access"):
+		_fail("Permanent guard recognizes revoked badge after offboarding")
+		return
+	menu.call("_choice","guard_access")
+	menu.call("_choice","guard_leave")
 	menu.call("open_journal",world.call("_journal_context"))
 	if not (menu.call("get_buttons") as Dictionary).has("synaxis_waypoint"):
 		_fail("Synaxis has a persistent return waypoint")

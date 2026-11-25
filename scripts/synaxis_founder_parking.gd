@@ -2,6 +2,10 @@ extends Node3D
 ## Permanent parcel-owned display; no added v1 fleet/save index.
 const R9=preload("res://scripts/road_car_visual.gd")
 const Kestrel=preload("res://scripts/kestrel_s6_visual.gd")
+const Staff=preload("res://scripts/synaxis_staff.gd")
+const GuardDialogue=preload("res://scripts/synaxis_parking_dialogue.gd")
+var _guard:Node3D
+var _guard_active:=false
 const BAY=Vector3(0,0,14.1)
 const EMPLOYEE_Z=23.1
 const EMPLOYEE_X=[-5.4,-1.8,1.8,5.4]
@@ -94,6 +98,7 @@ func _ready() -> void:
 	_park_kestrel("TechnologyStrategyS6",Vector3(3.9,0,BAY.z),Color("c1c4c2"),0.0)
 	_build_employee_row()
 	_build_walkway()
+	_build_guard()
 
 func _park_kestrel(id:String,at:Vector3,paint:Color,yaw:float) -> void:
 	var car:=Kestrel.new()
@@ -157,5 +162,31 @@ func _build_walkway() -> void:
 		_box("RearCrosswalk",Vector3(-7.52,.039,17.9+i*.39),Vector3(1.14,.012,.22),Color("c2c3bc"))
 	_label("PedestrianRoute","PEDESTRIAN ROUTE / LOBBY",Vector3(-8.9,.043,10.6),.0026).rotation.x=-PI/2
 
+func _build_guard() -> void:
+	_guard=Staff.new()
+	_guard.name="ParkingSecurityGuard"
+	_guard.configure_staff({"id":"marcus_vale","name":GuardDialogue.NAME,"role":"Executive parking security","activity":"WATCH","seated":false,"palette":3,"outfit":"security","hair":"cropped","glasses":false,"coat":"263b50","height":.94,"width":.86,"phase":2.5})
+	_guard.position=GuardDialogue.ANCHOR
+	_guard.rotation.y=-PI/2
+	add_child(_guard)
+	_box("SecurityStationSign",Vector3(-7.12,1.70,17.65),Vector3(.10,.48,.78),Color("25323e"))
+	_label("GuardStation","SECURITY\nLEADERSHIP RESERVE",Vector3(-7.06,1.70,17.65),.0017,PI/2)
+	update_guard(Vector3.INF)
+
+func guard_reachable(at:Vector3) -> bool:
+	if not at.is_finite():
+		return false
+	var local:=to_local(at)
+	return absf(local.y-1.15)<.8 and local.z>17.0 and local.z<20.2 and local.x< -4.9 and local.distance_to(GuardDialogue.ANCHOR+Vector3.UP*1.15)<1.85
+
+func update_guard(at:Vector3) -> void:
+	if not is_instance_valid(_guard):
+		return
+	var active:=at.is_finite() and _guard.global_position.distance_squared_to(at)<400.0
+	if active!=_guard_active:
+		_guard_active=active
+	_guard.process_mode=Node.PROCESS_MODE_ALWAYS if active else Node.PROCESS_MODE_DISABLED
+	_guard.call("attend",at if active else Vector3.ZERO,guard_reachable(at))
+
 func stats() -> Dictionary:
-	return {"plate":PLATE,"founder":is_instance_valid(_car),"static":_car.get("_founder_display"),"bay":BAY,"reserved_bays":3,"staff_bays":EMPLOYEE_X.size(),"other_parked":_parked.size(),"covered":get_node_or_null("ExecutiveCanopy")!=null}
+	return {"plate":PLATE,"founder":is_instance_valid(_car),"static":_car.get("_founder_display"),"bay":BAY,"reserved_bays":3,"staff_bays":EMPLOYEE_X.size(),"other_parked":_parked.size(),"covered":get_node_or_null("ExecutiveCanopy")!=null,"guard":is_instance_valid(_guard)}

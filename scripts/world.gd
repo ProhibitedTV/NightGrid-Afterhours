@@ -428,6 +428,8 @@ func _on_menu_action(action: String) -> void:
 				_start_opening_office()
 			else:
 				game_menu.call("hide_for_game")
+		"guard_leave":
+			_snap_camera()
 		"restroom_leave":
 			if is_instance_valid(_opening_office):
 				_snap_camera()
@@ -510,6 +512,9 @@ func _opening_interact() -> void:
 		return
 	if _opening_office.call("try_lift",player):
 		_snap_camera()
+		return
+	if _opening_office.call("parking_guard_reachable",player.global_position):
+		game_menu.call("open_parking_guard",false)
 		return
 	if not _opening_office.call("errand_complete"):
 		if _opening_office.call("try_errand",player):
@@ -2113,6 +2118,13 @@ func _apply_snapshot(data: Dictionary) -> void:
 	_log_playtest("save_restored", {"seed": int(session.get("world_seed"))})
 	_notify("Save loaded. Seed %d; Morrow Bay restored." % int(session.get("world_seed")))
 
+func _try_parking_guard() -> bool:
+	var hq:Node3D=city_details.call("synaxis_headquarters")
+	if is_instance_valid(hq) and hq.call("parking_guard_reachable",player.global_position):
+		game_menu.call("open_parking_guard",progression.has_receipt(Opening.RECEIPT))
+		return true
+	return false
+
 func _synaxis_access_notice() -> bool:
 	var hq: Node3D = city_details.call("synaxis_headquarters")
 	if is_instance_valid(hq) and hq.call("public_checkpoint_reachable",player.global_position):
@@ -2246,6 +2258,8 @@ func _toggle_interaction() -> void:
 		return
 	if current_car != null or current_transit != null:
 		_notify("Get out of the vehicle before interacting with neighborhood businesses.")
+		return
+	if _try_parking_guard():
 		return
 	if _synaxis_access_notice():
 		return

@@ -46,6 +46,9 @@ var _opening_exit := ""
 var _physical_opening := false
 var _briefing_beat := 0
 var _breakroom_choice := ""
+const ParkingDialogue=preload("res://scripts/synaxis_parking_dialogue.gd")
+var _guard_topic:=""
+var _guard_former:=false
 const Restrooms = preload("res://scripts/synaxis_restrooms.gd")
 var _restroom_id := ""
 var settings: Dictionary = DEFAULT_SETTINGS.duplicate(true)
@@ -117,6 +120,11 @@ func open_restroom(id: String) -> void:
 	_restroom_id=id
 	_open("restroom")
 
+func open_parking_guard(former:bool) -> void:
+	_guard_former=former
+	_guard_topic=""
+	_open("parking_guard")
+
 func open_breakroom() -> void:
 	_breakroom_choice=""
 	_open("breakroom")
@@ -185,6 +193,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				_choice("restroom_leave")
 			"breakroom":
 				_choice("breakroom_leave")
+			"parking_guard":
+				_choice("guard_leave")
 			_:
 				pass
 		get_viewport().set_input_as_handled()
@@ -232,7 +242,7 @@ func _render() -> void:
 	_buttons.clear()
 	_focus_order.clear()
 	_first_focus = null
-	var staged := screen in ["breakroom","restroom"] or (screen=="opening" and _physical_opening and _opening_stage in [2,4])
+	var staged := screen in ["breakroom","restroom","parking_guard"] or (screen=="opening" and _physical_opening and _opening_stage in [2,4])
 	var shade := ColorRect.new()
 	shade.name = "Scrim"
 	shade.color = Color(0.028, 0.045, 0.060, .12 if staged else .94)
@@ -286,6 +296,18 @@ func _render() -> void:
 			_title(col,"AIR QUALITY INCIDENT" if _restroom_id==Restrooms.MEN else "FACILITIES / REQUIRED TRAINING",23,Ui.AMBER)
 			_label(col,Restrooms.MEN_DIALOGUE if _restroom_id==Restrooms.MEN else Restrooms.WOMEN_DIALOGUE,16,Ui.TEXT)
 			_button(col,"restroom_leave","BACK TO WORK","restroom_leave")
+		"parking_guard":
+			SynaxisBrand.ui_lockup(col)
+			_title(col,"MARCUS VALE / PARKING SECURITY",23,Ui.AMBER)
+			if _guard_topic.is_empty():
+				_label(col,ParkingDialogue.greeting(_guard_former),16,Ui.TEXT)
+				for topic in ParkingDialogue.TOPICS:
+					_button(col,topic,str(ParkingDialogue.TOPICS[topic]["question"]),topic)
+			else:
+				_label(col,str(ParkingDialogue.TOPICS[_guard_topic]["question"]),16,Ui.MUTED)
+				_label(col,ParkingDialogue.reply(_guard_topic,_guard_former),17,Ui.TEXT)
+				_button(col,"guard_back","ASK SOMETHING ELSE","guard_back")
+			_button(col,"guard_leave","SEE YOU AROUND","guard_leave")
 		"breakroom":
 			SynaxisBrand.ui_lockup(col)
 			_title(col,Opening.BREAKROOM_TITLE,23,Ui.AMBER)
@@ -593,6 +615,18 @@ func _choice(action: String) -> void:
 				action_requested.emit("begin_opening")
 			else:
 				hide_for_game()
+		"guard_r9", "guard_parking", "guard_robots", "guard_access":
+			if screen=="parking_guard":
+				_guard_topic=action
+				_render()
+		"guard_back":
+			if screen=="parking_guard":
+				_guard_topic=""
+				_render()
+		"guard_leave":
+			if screen=="parking_guard":
+				hide_for_game()
+				action_requested.emit("guard_leave")
 		"breakroom_photo", "breakroom_decline":
 			if screen=="breakroom" and _breakroom_choice.is_empty():
 				_breakroom_choice=action
