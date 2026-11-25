@@ -38,3 +38,16 @@ Four fictional music/scene patches (Dead Carrier, Voltage Debt, Ghost Shift, Nig
 
 ## Integration polish
 Direct wardrobe service input dispatch prevents GUI focus consuming controller purchase shortcuts. Keyboard repeat is blocked while shopping to prevent accidental repeated actions. Category and item navigation reset orbit/zoom; patch selection presents the backpack, with prices on the merch display and a dedicated preview caption. Switching categories restores the committed appearance before the next preview. The smoke includes closing an unpaid patch preview after a paid patch. README documents all six stores and controls. These are static review changes; automated native checks must still run.
+
+## Retail collection expansion
+
+35 outfit colorways (including the pre-owned Dispatch), 37 individually purchasable pieces, and five no-charge reset actions. New stock: 18 outfits and 18 jacket/trouser colorways, three of each per retailer. All new IDs are permanent and exclusive to their home retailer; existing saves, ownership and pricing anchors are preserved. Three thrift drops each gain one outfit and one piece; owned finds never expire. New stock has short fitting-room finish notes, and display fixtures show outfit and individual garment examples with actual inflation-adjusted price tags. Display examples are static, not an assertion of live thrift stock. Existing weighted meshes are reused: names describe palette and finish, not new silhouettes, fabric simulations, or separate tailoring meshes. No new live assets or skeletons. Added catalog/stock consistency checks to the existing walk-in smoke. Native visual and CI verification remain required.
+
+| Store | New collection | New pieces |
+|---|---|---|
+| vesper_threadline | Threadline / Concrete; Threadline / Copper Hour; Threadline / Rain City | Concrete jacket; Olive cargo trousers; Copper Hour jacket |
+| quay_standard | Quay / Breakwater; Quay / Forge Shift; Quay / Silt | Breakwater jacket; Forge cargo trousers; Silt work jacket |
+| vesper_line | Vesper / Meridian; Vesper / Oxblood; Vesper / Pearl | Meridian jacket; Pearl trousers; Oxblood jacket |
+| nocturne | Nocturne / Afterimage; Nocturne / Eclipse; Nocturne / Ember | Afterimage jacket; Eclipse trousers; Ember jacket |
+| obscura | Obscura / Archivist; Obscura / Porcelain; Obscura / Monolith | Archivist jacket; Porcelain trousers; Monolith jacket |
+| second_signal | Second Signal / Overprint; Second Signal / Scrapyard; Second Signal / Deadstock | Overprint jacket; Scrapyard trousers; Deadstock jacket |

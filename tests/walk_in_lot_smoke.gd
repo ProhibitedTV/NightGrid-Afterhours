@@ -9,6 +9,35 @@ func check(ok: bool, label: String) -> bool:
 		quit(1)
 	return ok
 func _verify() -> void:
+	var expanded_catalog=preload("res://scripts/wardrobe_catalog.gd")
+	var expanded_store=preload("res://scripts/clothing_store.gd")
+	var sold:Dictionary={}
+	if not check(expanded_catalog.IDS.size()>=35 and expanded_catalog.PIECE_IDS.size()>=37,"expanded catalog counts"):
+		return
+	for shop_id in expanded_store.IDS:
+		var inventory:Array=expanded_store.STORES[shop_id]["stock"]
+		var unique:Dictionary={}
+		for item_id in inventory:
+			if not check(not unique.has(item_id) and not expanded_catalog.listing(item_id).is_empty() and int(expanded_catalog.listing(item_id)["price"])>0,"unique priced shop stock"):
+				return
+			unique[item_id]=true
+			sold[item_id]=true
+		for day in range(3):
+			for item_id in expanded_store.stock_for_day(shop_id,day):
+				if not check(unique.has(item_id),"daily stock is sold by its shop"):
+					return
+	for item_id in expanded_catalog.IDS+expanded_catalog.PIECE_IDS:
+		if not check(sold.has(item_id),"every cosmetic is available at a physical retailer"):
+			return
+	for item_id in expanded_store.EXCLUSIVE:
+		var retailer_count:=0
+		for shop_id in expanded_store.IDS:
+			if expanded_store.carries(shop_id,item_id):
+				retailer_count+=1
+		if not check(retailer_count==1,"exclusive item has exactly one retailer"):
+			return
+	if not check("signal_overprint" in expanded_store.stock_for_day(expanded_store.THRIFT,0) and "signal_scrapyard" in expanded_store.stock_for_day(expanded_store.THRIFT,1) and "signal_deadstock" in expanded_store.stock_for_day(expanded_store.THRIFT,2),"expanded thrift drop cadence"):
+		return
 	var world := (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	root.add_child(world)
 	await process_frame

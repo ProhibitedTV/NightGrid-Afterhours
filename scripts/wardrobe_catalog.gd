@@ -3,7 +3,7 @@ extends RefCounted
 ## No new body, geometry, skeleton, texture or collision assets.
 const Economy = preload("res://scripts/economy.gd")
 const DEFAULT = "dispatch"
-const IDS = ["dispatch","tideline","rustline","quay_basic","vesper_tailored","nocturne_atelier","obscura_signature","threadline_basics","night_shift","quay_dock","vesper_ink","nocturne_veil","obscura_sable","signal_reclaimed","signal_rivet","signal_static","signal_union"]
+const IDS = ["dispatch","tideline","rustline","quay_basic","vesper_tailored","nocturne_atelier","obscura_signature","threadline_basics","night_shift","quay_dock","vesper_ink","nocturne_veil","obscura_sable","signal_reclaimed","signal_rivet","signal_static","signal_union","threadline_concrete","threadline_copper","threadline_rain","quay_breakwater","quay_forge","quay_silt","vesper_meridian","vesper_oxblood","vesper_pearl","nocturne_afterimage","nocturne_eclipse","nocturne_ember","obscura_archivist","obscura_porcelain","obscura_monolith","signal_overprint","signal_scrapyard","signal_deadstock"]
 const ITEMS = {
 	"dispatch":{"name":"Morrow Dispatch","rarity":"COMMON","tier":0,"price":45,"jacket":Color.WHITE,"pants":Color.WHITE,"finish":1.0},
 	"tideline":{"name":"Tideline","rarity":"COMMON","tier":0,"price":35,"jacket":Color(.55,.88,1.0),"pants":Color(.65,.83,.95),"finish":1.0},
@@ -21,7 +21,25 @@ const ITEMS = {
 	"signal_reclaimed":{"name":"Second Signal / Reclaimed","rarity":"SECONDHAND","tier":0,"price":8,"jacket":Color(.69,.68,.57),"pants":Color(.61,.66,.60),"finish":1.0},
 	"signal_rivet":{"name":"Second Signal / Rivet","rarity":"ROTATING FIND","tier":0,"price":17,"jacket":Color(.88,.48,.36),"pants":Color(.45,.46,.47),"finish":.96},
 	"signal_static":{"name":"Second Signal / Static","rarity":"ROTATING FIND","tier":0,"price":14,"jacket":Color(.68,.49,.88),"pants":Color(.60,.54,.70),"finish":1.0},
-	"signal_union":{"name":"Second Signal / Union Surplus","rarity":"ROTATING FIND","tier":0,"price":12,"jacket":Color(.69,.84,.47),"pants":Color(.76,.70,.51),"finish":1.0}
+	"signal_union":{"name":"Second Signal / Union Surplus","rarity":"ROTATING FIND","tier":0,"price":12,"jacket":Color(.69,.84,.47),"pants":Color(.76,.70,.51),"finish":1.0},
+	"threadline_concrete":{"name":"Threadline / Concrete","rarity":"COMMON","tier":0,"price":29,"jacket":Color(.68,.71,.74),"pants":Color(.57,.60,.63),"finish":1,"detail":"Cool grey everyday set"},
+	"threadline_copper":{"name":"Threadline / Copper Hour","rarity":"COMMON","tier":0,"price":39,"jacket":Color(.92,.62,.43),"pants":Color(.52,.52,.56),"finish":0.95,"detail":"Copper and slate street colors"},
+	"threadline_rain":{"name":"Threadline / Rain City","rarity":"UNCOMMON","tier":1,"price":68,"jacket":Color(.53,.71,.82),"pants":Color(.48,.58,.70),"finish":0.88,"detail":"Muted blue, satin finish"},
+	"quay_breakwater":{"name":"Quay / Breakwater","rarity":"UNCOMMON","tier":1,"price":88,"jacket":Color(.47,.68,.70),"pants":Color(.58,.65,.65),"finish":0.98,"detail":"Sea-green industrial palette"},
+	"quay_forge":{"name":"Quay / Forge Shift","rarity":"UNCOMMON","tier":1,"price":95,"jacket":Color(.88,.65,.39),"pants":Color(.46,.49,.51),"finish":1,"detail":"Amber and charcoal work colors"},
+	"quay_silt":{"name":"Quay / Silt","rarity":"COMMON","tier":0,"price":48,"jacket":Color(.77,.73,.58),"pants":Color(.65,.60,.48),"finish":1,"detail":"Dusty earth tones"},
+	"vesper_meridian":{"name":"Vesper / Meridian","rarity":"RARE","tier":2,"price":320,"jacket":Color(.62,.66,.76),"pants":Color(.44,.48,.59),"finish":0.79,"detail":"Slate blue refined finish"},
+	"vesper_oxblood":{"name":"Vesper / Oxblood","rarity":"RARE","tier":2,"price":410,"jacket":Color(.68,.37,.41),"pants":Color(.46,.42,.46),"finish":0.75,"detail":"Wine-red evening palette"},
+	"vesper_pearl":{"name":"Vesper / Pearl","rarity":"RARE","tier":2,"price":385,"jacket":Color(.92,.89,.82),"pants":Color(.72,.70,.68),"finish":0.84,"detail":"Pale neutral tonal set"},
+	"nocturne_afterimage":{"name":"Nocturne / Afterimage","rarity":"LUXURY","tier":3,"price":690,"jacket":Color(.49,.80,.87),"pants":Color(.35,.43,.55),"finish":0.68,"detail":"Icy cyan and deep blue"},
+	"nocturne_eclipse":{"name":"Nocturne / Eclipse","rarity":"LUXURY","tier":3,"price":780,"jacket":Color(.45,.38,.58),"pants":Color(.36,.35,.46),"finish":0.65,"detail":"Dark violet low sheen"},
+	"nocturne_ember":{"name":"Nocturne / Ember","rarity":"LUXURY","tier":3,"price":820,"jacket":Color(.94,.43,.54),"pants":Color(.45,.36,.43),"finish":0.72,"detail":"Crimson nightlife palette"},
+	"obscura_archivist":{"name":"Obscura / Archivist","rarity":"EXCLUSIVE","tier":4,"price":1650,"jacket":Color(.67,.63,.55),"pants":Color(.43,.42,.40),"finish":0.64,"detail":"Warm stone and graphite"},
+	"obscura_porcelain":{"name":"Obscura / Porcelain","rarity":"EXCLUSIVE","tier":4,"price":2150,"jacket":Color(.95,.92,.88),"pants":Color(.72,.71,.73),"finish":0.6,"detail":"Pale monochrome collection"},
+	"obscura_monolith":{"name":"Obscura / Monolith","rarity":"EXCLUSIVE","tier":4,"price":2800,"jacket":Color(.35,.39,.46),"pants":Color(.35,.37,.41),"finish":0.58,"detail":"Graphite signature finish"},
+	"signal_overprint":{"name":"Second Signal / Overprint","rarity":"ROTATING FIND","tier":0,"price":15,"jacket":Color(.79,.46,.58),"pants":Color(.56,.58,.66),"finish":1,"detail":"Faded rose and slate"},
+	"signal_scrapyard":{"name":"Second Signal / Scrapyard","rarity":"ROTATING FIND","tier":0,"price":11,"jacket":Color(.73,.72,.43),"pants":Color(.57,.60,.50),"finish":1,"detail":"Worn olive and mustard"},
+	"signal_deadstock":{"name":"Second Signal / Deadstock","rarity":"ROTATING FIND","tier":0,"price":19,"jacket":Color(.46,.65,.83),"pants":Color(.60,.64,.71),"finish":0.95,"detail":"Washed blue deadstock colors"}
 }
 
 # Catalog values are estimated 2026 USD anchors, not final shelf prices.
@@ -43,7 +61,7 @@ static func garment_slot(name: String) -> String:
 # stable slot/item identities, with a separate validated visual asset contract.
 const SLOTS=["jacket","pants","glasses","watch","patch"]
 const RESET_IDS=["reset_jacket","reset_pants","reset_glasses","reset_watch","reset_patch"]
-const PIECE_IDS=["jacket_ash","jacket_oxide","jacket_midnight","pants_charcoal","pants_sand","pants_teal","glasses_night","glasses_clear","watch_shift","watch_brass","jacket_ink","jacket_patch","jacket_signal","pants_salvage","pants_indigo","patch_deadcarrier","patch_voltage","patch_ghostshift","patch_nightgrid"]
+const PIECE_IDS=["jacket_ash","jacket_oxide","jacket_midnight","pants_charcoal","pants_sand","pants_teal","glasses_night","glasses_clear","watch_shift","watch_brass","jacket_ink","jacket_patch","jacket_signal","pants_salvage","pants_indigo","patch_deadcarrier","patch_voltage","patch_ghostshift","patch_nightgrid","jacket_concrete","pants_olive","jacket_copper","jacket_breakwater","pants_forge","jacket_silt","jacket_meridian","pants_pearl","jacket_oxblood","jacket_afterimage","pants_eclipse","jacket_ember","jacket_archivist","pants_porcelain","jacket_monolith","jacket_overprint","pants_scrapyard","jacket_deadstock"]
 const PIECES={
 	"jacket_ash":{"name":"Ash work jacket","slot":"jacket","price":18,"tint":Color(.73,.77,.79),"finish":1.0},
 	"jacket_oxide":{"name":"Oxide street jacket","slot":"jacket","price":32,"tint":Color(1.0,.53,.38),"finish":.9},
@@ -63,7 +81,25 @@ const PIECES={
 	"patch_deadcarrier":{"name":"Dead Carrier / Signal Lost","slot":"patch","price":5},
 	"patch_voltage":{"name":"Voltage Debt / Live Wire","slot":"patch","price":6},
 	"patch_ghostshift":{"name":"Ghost Shift / After Work","slot":"patch","price":4},
-	"patch_nightgrid":{"name":"NightGrid FM / Local Signal","slot":"patch","price":5}
+	"patch_nightgrid":{"name":"NightGrid FM / Local Signal","slot":"patch","price":5},
+	"jacket_concrete":{"name":"Concrete jacket","slot":"jacket","price":22,"tint":Color(.68,.71,.74),"finish":1,"detail":"Cool grey everyday layer"},
+	"pants_olive":{"name":"Olive cargo trousers","slot":"pants","price":21,"tint":Color(.69,.74,.48),"finish":1,"detail":"Muted utility green"},
+	"jacket_copper":{"name":"Copper Hour jacket","slot":"jacket","price":30,"tint":Color(.92,.62,.43),"finish":0.95,"detail":"Warm copper finish"},
+	"jacket_breakwater":{"name":"Breakwater jacket","slot":"jacket","price":47,"tint":Color(.47,.68,.70),"finish":0.98,"detail":"Muted harbor green"},
+	"pants_forge":{"name":"Forge cargo trousers","slot":"pants","price":42,"tint":Color(.46,.49,.51),"finish":1,"detail":"Charcoal shift wear"},
+	"jacket_silt":{"name":"Silt work jacket","slot":"jacket","price":31,"tint":Color(.77,.73,.58),"finish":1,"detail":"Dusty sand finish"},
+	"jacket_meridian":{"name":"Meridian jacket","slot":"jacket","price":165,"tint":Color(.62,.66,.76),"finish":0.79,"detail":"Slate blue subtle sheen"},
+	"pants_pearl":{"name":"Pearl trousers","slot":"pants","price":130,"tint":Color(.72,.70,.68),"finish":0.84,"detail":"Warm grey tonal finish"},
+	"jacket_oxblood":{"name":"Oxblood jacket","slot":"jacket","price":215,"tint":Color(.68,.37,.41),"finish":0.75,"detail":"Deep burgundy finish"},
+	"jacket_afterimage":{"name":"Afterimage jacket","slot":"jacket","price":260,"tint":Color(.49,.80,.87),"finish":0.68,"detail":"Cool cyan sheen"},
+	"pants_eclipse":{"name":"Eclipse trousers","slot":"pants","price":190,"tint":Color(.36,.35,.46),"finish":0.65,"detail":"Dark plum finish"},
+	"jacket_ember":{"name":"Ember jacket","slot":"jacket","price":310,"tint":Color(.94,.43,.54),"finish":0.72,"detail":"Crimson club colors"},
+	"jacket_archivist":{"name":"Archivist jacket","slot":"jacket","price":760,"tint":Color(.67,.63,.55),"finish":0.64,"detail":"Warm stone finish"},
+	"pants_porcelain":{"name":"Porcelain trousers","slot":"pants","price":610,"tint":Color(.72,.71,.73),"finish":0.6,"detail":"Pale grey designer palette"},
+	"jacket_monolith":{"name":"Monolith jacket","slot":"jacket","price":1180,"tint":Color(.35,.39,.46),"finish":0.58,"detail":"Graphite signature finish"},
+	"jacket_overprint":{"name":"Overprint jacket","slot":"jacket","price":8,"tint":Color(.79,.46,.58),"finish":1,"detail":"Faded rose thrift color"},
+	"pants_scrapyard":{"name":"Scrapyard trousers","slot":"pants","price":7,"tint":Color(.57,.60,.50),"finish":1,"detail":"Earthy surplus colors"},
+	"jacket_deadstock":{"name":"Deadstock jacket","slot":"jacket","price":12,"tint":Color(.46,.65,.83),"finish":0.95,"detail":"Washed blue thrift finish"}
 }
 
 static func piece_valid(id:Variant) -> bool:
@@ -88,12 +124,12 @@ static func reset_slot(id:String) -> String:
 
 static func listing(id:String) -> Dictionary:
 	if valid_id(id):
-		return {"name":ITEMS[id]["name"],"rarity":ITEMS[id]["rarity"],"price":price(id),"type":"OUTFIT"}
+		return {"name":ITEMS[id]["name"],"rarity":ITEMS[id]["rarity"],"price":price(id),"type":"OUTFIT","detail":ITEMS[id].get("detail","Coordinated jacket and trousers")}
 	if piece_valid(id):
-		return {"name":PIECES[id]["name"],"rarity":"INDIVIDUAL","price":piece_price(id),"type":str(PIECES[id]["slot"]).to_upper()}
+		return {"name":PIECES[id]["name"],"rarity":"INDIVIDUAL","price":piece_price(id),"type":str(PIECES[id]["slot"]).to_upper(),"detail":PIECES[id].get("detail","Individual cosmetic")}
 	var slot:=reset_slot(id)
 	if not slot.is_empty():
-		return {"name":"Restore base "+slot if slot in ["jacket","pants"] else "Remove "+slot,"rarity":"NO CHARGE","price":0,"type":"RESET"}
+		return {"name":"Restore base "+slot if slot in ["jacket","pants"] else "Remove "+slot,"rarity":"NO CHARGE","price":0,"type":"RESET","detail":"Keep ownership; restore appearance"}
 	return {}
 
 const CATEGORIES=["ALL","OUTFITS","JACKETS","TROUSERS","GLASSES","WATCHES","PATCHES","OWNED","LOOKS"]

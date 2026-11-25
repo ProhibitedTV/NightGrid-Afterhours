@@ -151,6 +151,9 @@ func dress(district: String, accent: Color, variant: int) -> void:
 			_section("Furnishing",Vector3(x,1.0 if tall else .52,z),Vector3(1.65,2.0 if tall else 1.04,1.45 if office else 1.9),counter)
 			_visual("Worktop",Vector3(x,2.04 if tall else 1.07,z),Vector3(1.72,.10,2.0),_mat(accent.darkened(.52)))
 	# Low-cost luminous fixtures; a single local light follows the player.
+			var listing:=Wardrobe.listing(id)
+			_shop_label("$%d" % listing["price"],Vector3(2.79,1.04,at.z),.002,-PI/2)
+		fixture_index+=1
 	for z in [2.3,6.1,10.7,14.5]:
 		_visual("CeilingFixture",Vector3(0,ROOM_HEIGHT-.13,z),Vector3(3.0,.12,.42),_mat(Color("d8dad2"),true))
 
@@ -176,17 +179,20 @@ func dress_clothing_store(store_id:String=ClothingStore.ID) -> void:
 	_visual("Worktop",Vector3(-3.35,1.22,2.65),Vector3(.32,.23,.22),black)
 	var display:Array=[]
 	for stock_id in store["stock"]:
-		if Wardrobe.valid_id(stock_id):
+		if Wardrobe.valid_id(stock_id) and stock_id!=Wardrobe.DEFAULT:
+			display.append(stock_id)
+		elif Wardrobe.piece_valid(stock_id) and Wardrobe.PIECES[stock_id]["slot"] in ["jacket","pants"]:
 			display.append(stock_id)
 	# Three collision-backed display fixtures with folded colorways.
+	var fixture_index:=0
 	for z in [2.6,6.3,11.8]:
 		_section("Furnishing",Vector3(3.58,.45,z),Vector3(1.45,.90,1.55),black)
 		_visual("Worktop",Vector3(3.58,.93,z),Vector3(1.52,.08,1.63),oak)
 		_visual("Worktop",Vector3(4.19,1.53,z),Vector3(.055,1.15,1.43),brass)
 		for i in range(3):
-			var id:String=display[(int(z)+i)%display.size()]
-			var item:Dictionary=Wardrobe.ITEMS[id]
-			var tint:Color=item["jacket"]
+			var id:String=display[(fixture_index*3+i)%display.size()]
+			var item:Dictionary=Wardrobe.ITEMS[id] if Wardrobe.valid_id(id) else Wardrobe.PIECES[id]
+			var tint:Color=item["jacket"] if Wardrobe.valid_id(id) else item["tint"]
 			var at:=Vector3(3.48,1.15,z-.48+float(i)*.48)
 			for layer in range(3):
 				_visual("Worktop",Vector3(at.x,1.00+float(layer)*.065,at.z),Vector3(.60,.058,.36),_mat(tint.darkened(.24+float(layer)*.06)))
@@ -208,7 +214,7 @@ func dress_clothing_store(store_id:String=ClothingStore.ID) -> void:
 	_shop_label("FITTING / LOOK GOOD. FEEL LIKE YOURSELF.",Vector3(3.45,2.25,6.3),.003,-PI/2)
 	_shop_label(str(store["name"])+" / "+str(store["district"]),Vector3(0,2.95,4.1),.005,PI)
 	_shop_label("FITTING / CHECKOUT",Vector3(-3.55,2.28,2.8),.004,PI)
-	_shop_label(str(store["style"])+" / COLLECTION",Vector3(3.45,2.25,2.6),.003,PI)
+	_shop_label(str(store["style"])+" / COLLECTION EXAMPLES",Vector3(3.45,2.25,2.6),.003,PI)
 	_dress_retail_feature(store_id,theme,black,oak,brass)
 	_flush_interior_visuals()
 	_clothing_clerk=ShopClerk.new()

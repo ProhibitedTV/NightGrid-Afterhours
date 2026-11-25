@@ -3135,6 +3135,7 @@ func _update_venue_panel() -> void:
 			return
 		var owned := _clothing_owned(id)
 		venue_label.text = (str(ClothingStore.STORES[_retail_id]["name"])+" / FITTING" if _clothing_retail else "WARDROBE")+"\n%s  ·  %s\n%s   |   CASH $%d\n%s" % [item["name"],item["type"]+" / "+item["rarity"],"EQUIPPED" if _clothing_selected(id) else ("OWNED" if owned else "$%d / %d sats" % [price,Economy.sats_for_usd(price)]),cash,"CURRENT LOOK" if _fitting_compare else ("TRY-ON ONLY • Right stick / drag RMB to rotate • zoom with stick / wheel" if _clothing_retail else "Wearing: "+str(Wardrobe.ITEMS[progression.outfit_id]["name"]))]
+		venue_label.text+="\n"+str(item.get("detail",""))
 		venue_service_button.text = "1 / A  •  PREVIOUS"
 		venue_service_button.disabled = visible_index<=0
 		venue_job_button.show()
