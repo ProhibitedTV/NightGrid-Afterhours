@@ -15,6 +15,7 @@ var opening_pending := false
 var world_manifest: Dictionary = {}
 const WorldPlan = preload("res://scripts/world_plan.gd")
 const ProgressionLedger = preload("res://scripts/progression_ledger.gd")
+const MusicCareer = preload("res://scripts/music_career.gd")
 const CourierMission = preload("res://scripts/courier_mission.gd")
 const StoryMission = preload("res://scripts/story_mission.gd")
 
@@ -79,6 +80,10 @@ func is_valid_snapshot(value: Variant) -> bool:
 	if data.has("progression") and not ProgressionLedger.valid_snapshot(data["progression"]):
 		return false
 	var paid: Array = data.get("progression", {}).get("receipts", [])
+	if data.has("music_career") and not MusicCareer.valid_snapshot(data["music_career"]):
+		return false
+	if paid.has(MusicCareer.GIG_RECEIPT) and (not data.has("music_career") or int(data["music_career"]["sets"])<3):
+		return false
 	var case_stage: Variant = data.get("investigation_stage",0)
 	if not _whole_number(case_stage,0,4):
 		return false
