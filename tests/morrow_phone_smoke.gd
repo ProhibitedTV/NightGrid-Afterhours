@@ -375,6 +375,15 @@ func _verify() -> void:
 		_fail("Music cred cap must not bleed into other scenes")
 		return
 	career.completed_sets = before_cap
+	var old_music := {"owned":true,"sets":3}
+	var legacy = load("res://scripts/music_career.gd").new()
+	legacy.restore(old_music)
+	if legacy.gear!=["acoustic_guitar"] or legacy.equipped!="acoustic_guitar":
+		_fail("Old acoustic save must migrate to owned gear")
+		return
+	if legacy.valid_snapshot({"owned":true,"sets":3,"gear":["punk_bass","punk_bass"],"equipped":"punk_bass"}) or legacy.valid_snapshot({"owned":true,"sets":3,"gear":["punk_bass"],"equipped":"portable_synth"}):
+		_fail("Duplicate gear and unowned selection must be rejected")
+		return
 	var gear_cash: int = world.get("cash")
 	actor.global_position = venues.call("venue_position","copper_cup")
 	venues.call("set_hour",16.0)
@@ -403,6 +412,13 @@ func _verify() -> void:
 	menu.call("hide_for_game")
 	if career.equipped!="punk_bass" or not world.call("_start_music","busk","copper_cup") or rig.get("current_pose")!=&"music_bass":
 		_fail("Equipped bass must use its own performance pose")
+		return
+	if career.equip("portable_synth"):
+		_fail("Cannot change instruments during live set")
+		return
+	world.call("_stop_music")
+	if not career.equip("portable_synth") or not world.call("_start_music","busk","copper_cup") or rig.get("current_pose")!=&"music_synth":
+		_fail("Synth must use its own performance pose")
 		return
 	world.call("_stop_music")
 	venues.call("set_hour",21.0)
