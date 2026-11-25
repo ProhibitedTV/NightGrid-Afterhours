@@ -20,7 +20,7 @@ const Brand = preload("res://scripts/synaxis_brand.gd")
 const Finish = preload("res://scripts/synaxis_office_finish.gd")
 const Radar = preload("res://scripts/hud_radar.gd")
 const Arrival = preload("res://scripts/synaxis_arrival.gd")
-const CUBICLE_POINT = Vector3(4.5,1.15,3.8)
+const CUBICLE_POINT = Vector3(4.5,1.15,2.95)
 var _arrival: RefCounted
 var _arrival_canvas: CanvasLayer
 var _arrival_caption: Label
@@ -30,6 +30,8 @@ var _folder_hand: BoneAttachment3D
 var _folder_desk: Node3D
 var _errand_phase := 0
 var _arrival_fov := 68.0
+var _gate_open := false
+var _desk_beat_played := false
 var _assistant: Node3D
 var _ceo: Node3D
 var _hr: Node3D
@@ -93,6 +95,7 @@ func _ready() -> void:
 	_folder_desk = _make_folder()
 	_folder_desk.position = Vector3(4.05,1.10,1.93)
 	add_child(_folder_desk)
+	_folder_desk.hide()
 	_visual("ExitBox",Vector3(5,1.25,6.5),Vector3(.42,.34,.4),_material("cardboard",Color("a88a63")))
 	for z in [-7.5,-2.5,2.5,7.5]:
 		_visual("CeilingStrip",Vector3(0,3.28,z),Vector3(12,.055,.18),_material("light",Color("c9dfdf"),true))
@@ -231,6 +234,7 @@ func public_checkpoint_reachable(at: Vector3) -> bool:
 func begin_prologue() -> void:
 	_prologue_active=true
 	_errand_phase=0
+	_folder_desk.position=Vector3(4.05,1.10,1.93)
 	_folder_desk.show()
 	_breakroom_seen=false
 	if not is_instance_valid(_cast):
@@ -288,6 +292,13 @@ func _build_cast() -> void:
 		coworker.rotation.y=PI
 		coworker.process_mode=Node.PROCESS_MODE_ALWAYS
 		_cast.add_child(coworker)
+	# Department staff remain at authored standing anchors, not in circulation lanes.
+	for spec in [{"id":"mika","role":"Systems Operations supervisor","palette":0,"position":Vector3(6.35,0,2.65),"yaw":-PI/2},{"id":"eli","role":"IT support technician","palette":2,"position":Vector3(-6.75,0,3.55),"yaw":PI/2},{"id":"security","role":"Lobby security","palette":4,"position":Vector3(3.5,0,-8.75),"yaw":-PI/2}]:
+		var staff:=Patron.new()
+		staff.call("configure",{"id":spec["id"],"role":spec["role"],"activity":"CHAT","seated":false,"palette":spec["palette"]})
+		staff.position=spec["position"]
+		staff.rotation.y=spec["yaw"]
+		_cast.add_child(staff)
 	for actor in [_ceo,_assistant,_hr]:
 		actor.process_mode = Node.PROCESS_MODE_ALWAYS
 	for sign in [_sign("JETSON WANG / CEO",Vector3(5,2.55,-6.65),.0045),_sign("LIN XUE / EXECUTIVE ASSISTANT",Vector3(7.1,2.35,-5.8),.004),_sign("PEOPLE EXPERIENCE",Vector3(-5,2.55,-6.65),.0045)]:
@@ -396,6 +407,9 @@ func _build_arrival_canvas() -> void:
 	_arrival_canvas.hide()
 
 func _set_gate_open(value: bool) -> void:
+	if _gate_open==value:
+		return
+	_gate_open=value
 	get_node("SecurityGate").visible=not value
 	get_node("SecurityGateCollision/CollisionShape3D").set_deferred("disabled",value)
 	for child in get_node("ArchitecturalFinish").get_children():
@@ -404,6 +418,7 @@ func _set_gate_open(value: bool) -> void:
 
 func start_arrival(player: Node3D,camera: Camera3D) -> void:
 	_arrival=Arrival.new()
+	_desk_beat_played=false
 	_arrival_fov=camera.fov
 	player.set("input_blocked",true)
 	_intro_canvas.hide()
@@ -431,6 +446,9 @@ func tick_arrival(delta: float,player: Node3D,camera: Camera3D) -> bool:
 		elif bool(shot["desk"]):
 			visual.rotation.y=PI
 		visual.call("update_motion",visual.global_basis.inverse()*motion,true,false,false,false)
+		if bool(shot["desk"]) and motion.length_squared()<.01 and not _desk_beat_played:
+			_desk_beat_played=true
+			player.call("play_visual_action",&"interact")
 	_set_gate_open(bool(shot["gate_open"]))
 	camera.global_position=to_global(shot["camera"])
 	camera.look_at(to_global(shot["look"]),Vector3.UP)
@@ -534,9 +552,9 @@ func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 	_radar.call("set_office_state",Vector2(local.x,local.z),Vector2(goal.x,goal.z))
 	_hint.text = "SYNAXIS / EXECUTIVE PRIVILEGE\n%s" % TITLES[stage]
 	if stage==-2:
-		_hint.text += "\nSupervisor: Can you take this folder to IT?"
+		_hint.text += "\nMika: Can you take this folder to Eli in IT?"
 	elif stage==-1:
-		_hint.text += "\nIT is across the aisle, by the server racks."
+		_hint.text += "\nEli is across the aisle, by the server racks."
 	if reachable(stage,at):
 		_hint.text += "\n"+("X / INTERACT" if gamepad else "G / INTERACT")
 	if breakroom_reachable(at) and not _breakroom_seen:

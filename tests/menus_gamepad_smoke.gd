@@ -436,6 +436,10 @@ func _verify() -> void:
 	if not str(propaganda.get_node("QuarterlyRecord/Headline").text).contains("$14.8 BILLION") or not str(propaganda.get_node("HealthRenewal/Headline").text).contains("24%") or not str(propaganda.get_node("HealthRenewal/FinePrint").text).contains("$231"):
 		_fail("Profit celebration and increased health premium must be actual in-world text")
 		return
+	var montage=preload("res://scripts/synaxis_arrival.gd").new()
+	if not montage.advance(4.8) or not bool(montage.sample()["gate_open"]) or montage.advance(30.0) or not montage.sample().is_empty():
+		_fail("Arrival timeline opens the gate during crossing and terminates on a large frame delta")
+		return
 	if not office.call("arrival_active") or not player.get("input_blocked"):
 		_fail("New game begins with a controlled arrival cinematic")
 		return
