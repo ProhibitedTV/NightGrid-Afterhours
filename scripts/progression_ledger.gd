@@ -6,10 +6,12 @@ const MAX_CASH = 1000000000
 const MAX_RECEIPTS = 4096
 const MAX_ID_LENGTH = 96
 const RoadCars = preload("res://scripts/road_car_catalog.gd")
+const StarterHome = preload("res://scripts/starter_home.gd")
 
 var balance: int = 0
 var _receipts: Dictionary = {}
 var _owned_vehicles: Dictionary = {}
+var home_supplies: int = 0
 
 static func valid_cash(value: Variant) -> bool:
 	if not (value is int or value is float):
@@ -78,10 +80,26 @@ func buy_vehicle(id: String) -> bool:
 	_owned_vehicles[id] = true
 	return true
 
+func owns_home() -> bool:
+	return has_receipt(StarterHome.ACCESS_RECEIPT)
+
+# Return the number actually transferred; caller updates carried count once.
+func deposit_supply(carried: int) -> int:
+	if not owns_home() or carried <= 0 or home_supplies >= StarterHome.MAX_STORAGE:
+		return 0
+	home_supplies += 1
+	return 1
+
+func withdraw_supply(carried: int) -> int:
+	if not owns_home() or carried >= 99 or carried < 0 or home_supplies <= 0:
+		return 0
+	home_supplies -= 1
+	return 1
+
 func snapshot() -> Dictionary:
 	var ids: Array = _receipts.keys()
 	ids.sort()
-	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids()}
+	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies}
 
 static func valid_snapshot(value: Variant) -> bool:
 	if not value is Dictionary:
@@ -98,6 +116,9 @@ static func valid_snapshot(value: Variant) -> bool:
 		if not valid_id(id) or seen.has(id):
 			return false
 		seen[id] = true
+	var stored: Variant = data.get("home_supplies", 0)
+	if not valid_cash(stored) or int(stored) > StarterHome.MAX_STORAGE or (int(stored) > 0 and not seen.has(StarterHome.ACCESS_RECEIPT)):
+		return false
 	var owned: Variant = data.get("owned_vehicles", [])
 	if not owned is Array or owned.size() > RoadCars.TITLES.size():
 		return false
@@ -122,4 +143,5 @@ func restore(amount: Variant, data: Variant) -> bool:
 	balance = int(amount)
 	_receipts = next
 	_owned_vehicles = titles
+	home_supplies = int(data.get("home_supplies",0))
 	return true

@@ -64,6 +64,8 @@ const VEHICLE_COLORS = [
 ]
 const CourierMission = preload("res://scripts/courier_mission.gd")
 const StoryMission = preload("res://scripts/story_mission.gd")
+const StarterHome = preload("res://scripts/starter_home.gd")
+var _home_panel := false
 
 var rng := RandomNumberGenerator.new()
 var player: CharacterBody3D
@@ -411,6 +413,11 @@ func _on_menu_action(action: String) -> void:
 				_refresh_courier_target()
 				_notify("Package abandoned. Return to the pickup to retry.")
 			game_menu.call("open_journal", _journal_context())
+		"home_waypoint":
+			if progression.owns_home():
+				var entry := StarterHome.entry()
+				set_navigation_waypoint(Vector2(entry.x, entry.z))
+			game_menu.call("open_journal", _journal_context())
 		"abandon_story":
 			if story_mission.interrupt("abandoned"):
 				_notify("Contact mission abandoned. Speak to Mara to retry.")
@@ -435,6 +442,8 @@ func _journal_context() -> Dictionary:
 		"civic_job": _civic_job_text(),
 		"cash": cash, "health": health, "heat": heat,
 		"owned_vehicles": _owned_vehicle_text(),
+		"home_owned": progression.owns_home(),
+		"home_text": "HOME: %s / %d stored provisions" % [StarterHome.NAME,progression.home_supplies] if progression.owns_home() else "HOME: Complete Mara’s contact mission to unlock.",
 		"weapons": weapons.inventory_text(),
 		"dispatch": dispatch.status(),
 		"ambient_civic_open": ambient_civic.open_count(),
@@ -1916,6 +1925,9 @@ func _toggle_interior() -> void:
 	var venue: Dictionary = venue_system.call("nearest_venue", player.global_position)
 	var civic: Dictionary = civic_services.call("nearest_site", player.global_position)
 	var physical_lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+	if is_instance_valid(physical_lot) and not str(physical_lot.get("home_id")).is_empty() and not progression.owns_home() and not physical_lot.call("contains",player.global_position):
+		_notify("Locked residence. Speak to Mara at Lantern Cup.")
+		return
 	# Migrated café has no remote-room entry. Approach the actual hinge.
 	if str(venue.get("id","")) == "helix_espresso":
 		venue = {}
@@ -2007,6 +2019,27 @@ func _toggle_interaction() -> void:
 			_notify("Approach the service counter.")
 		return
 	var physical_lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+	if is_instance_valid(physical_lot) and not str(physical_lot.get("home_id")).is_empty():
+		if not progression.owns_home():
+			_notify("Complete Mara’s contact mission first.")
+			return
+		match str(physical_lot.call("home_action",player.global_position)):
+			"rest":
+				if heat > 0.01:
+					_notify("Lose police attention before resting.")
+				else:
+					health = 100.0
+					player.call("restore_stamina",100.0)
+					_notify("Rested at home. Health and stamina restored.")
+			"save":
+				_save_game()
+			"storage":
+				_home_panel = true
+				_show_venue_dialogue()
+				_update_venue_panel()
+			_:
+				_notify("At home: approach the bed, desk or storage cabinet.")
+		return
 	if is_instance_valid(physical_lot) and not str(physical_lot.get("physical_venue_id")).is_empty():
 		if physical_lot.call("service_reachable",player.global_position):
 			venue_selected_id = str(physical_lot.get("physical_venue_id"))
@@ -2324,6 +2357,7 @@ func _close_venue() -> void:
 		venue_talk_button.visible = false
 	venue_selected_id = ""
 	_repair_panel = false
+	_home_panel = false
 	_vending_machine = null
 	for button in [venue_service_button,venue_job_button,venue_talk_button]:
 		if is_instance_valid(button):
@@ -2339,6 +2373,15 @@ func _close_venue() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _update_venue_panel() -> void:
+	if _home_panel:
+		venue_label.text = "HOME STORAGE / %d of %d provisions\nCarrying %d / 99" % [progression.home_supplies,StarterHome.MAX_STORAGE,ration_packs]
+		venue_service_button.text = "1 / A  •  STORE ONE"
+		venue_service_button.disabled = ration_packs <= 0 or progression.home_supplies >= StarterHome.MAX_STORAGE
+		venue_job_button.show()
+		venue_job_button.text = "2 / X  •  TAKE ONE"
+		venue_job_button.disabled = ration_packs >= 99 or progression.home_supplies <= 0
+		venue_talk_button.hide()
+		return
 	if is_instance_valid(_vending_machine):
 		var items: Array = _vending_machine.get_meta("items",[])
 		var body := "NIGHTGRID / 24H  •  VENDING\nCASH $%d  |  PACK %d/%d\n" % [cash,Consumables.count(consumable_inventory),Consumables.MAX_ITEMS]
@@ -2425,6 +2468,17 @@ func _mara_context() -> Dictionary:
 	}
 
 func _venue_action(option: int) -> void:
+	if _home_panel:
+		var lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+		if not venue_panel.visible or not is_instance_valid(lot) or lot.call("home_action",player.global_position) != "storage" or not progression.owns_home():
+			_close_venue()
+			return
+		if option == 1:
+			ration_packs -= progression.deposit_supply(ration_packs)
+		elif option == 2:
+			ration_packs += progression.withdraw_supply(ration_packs)
+		_update_venue_panel()
+		return
 	if is_instance_valid(_vending_machine):
 		if not venue_panel.visible or city_details.call("nearby_vending",player.global_position) != _vending_machine or current_car != null or current_transit != null:
 			_close_venue()
@@ -2476,7 +2530,7 @@ func _venue_action(option: int) -> void:
 						mara_dialogue_line = "Mara: I need someone who knows these streets. Finish a courier run, then come tell me how it went."
 						_notify("NIGHT SHIFT CONTACT / New mission")
 					"complete":
-						mara_dialogue_line = "Mara: You made it back. Keep the extra hundred. This city needs people who show up."
+						mara_dialogue_line = "Mara: You made it back. Keep the extra hundred. Unit 01 next door is yours to use. The key’s at the entrance."
 						_notify("NIGHT SHIFT CONTACT COMPLETE +$%d" % StoryMission.REWARD)
 					"blocked":
 						_notify("Wallet full. Speak to Mara again after spending some cash.")
@@ -2870,6 +2924,9 @@ func _update_hud() -> void:
 			var availability := "OPEN" if civic_services.call("is_open", str(nearby_service["id"])) else "CLOSED"
 			prompts.append("%s  %s (%s)   •   %s Enter" % [interact_key, str(nearby_service["name"]), availability, enter_key])
 		var physical_lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+		if physical_lot != null and not str(physical_lot.get("home_id")).is_empty():
+			var home_action := str(physical_lot.call("home_action",player.global_position))
+			prompts.append("HOME / " + (interact_key + " " + home_action.capitalize() if progression.owns_home() and not home_action.is_empty() else ("Unit 01" if progression.owns_home() else "Locked — meet Mara")))
 		if physical_lot != null and physical_lot.call("service_reachable",player.global_position):
 			prompts.append("%s Order at HELIX ESPRESSO" % interact_key)
 		if physical_lot != null and physical_lot.call("doorway_reachable",player.global_position):

@@ -1,5 +1,6 @@
 extends SceneTree
 const Lot = preload("res://scripts/walk_in_lot.gd")
+const Home = preload("res://scripts/starter_home.gd")
 func _initialize() -> void:
 	call_deferred("_verify")
 func check(ok: bool, label: String) -> bool:
@@ -211,5 +212,52 @@ func _verify() -> void:
 	if not check(int(world.get("cash"))==80 and is_equal_approx(float(world.get("health")),70.0),"existing purchase economics preserved"):
 		return
 	world.call("_close_venue")
+	var home_entry := Home.entry()
+	city.call("set_focus",home_entry)
+	var home: Node3D = city.get("_loaded")[Home.BLOCK].get_node("WalkInLot_0")
+	player.global_position = home_entry
+	world.call("_toggle_interior")
+	var home_door: AnimatableBody3D = home.get("door")
+	if not check(home.get("home_id") == Home.ID and not home_door.call("is_requested_open"),"locked home uses stable physical parcel"):
+		return
+	var ledger = world.get("progression")
+	ledger.credit_once(Home.ACCESS_RECEIPT,100)
+	world.get("story_mission").restore({"version":1,"id":Home.ACCESS_RECEIPT,"status":"complete","step":3})
+	world.call("_toggle_interior")
+	for i in 48:
+		await physics_frame
+	if not check(float(home_door.call("openness"))>.95,"earned key opens physical home door"):
+		return
+	for i in 60:
+		player.velocity = Vector3(0,0,5)
+		player.move_and_slide()
+		await physics_frame
+	if not check(home.call("contains",player.global_position) and not world.get("interiors").call("is_inside"),"continuous entry without remote room"):
+		return
+	player.global_position = home.call("home_action_point","rest")
+	world.set("health",40.0)
+	world.set("heat",0.0)
+	player.call("restore_stamina",20.0)
+	world.call("_toggle_interaction")
+	if not check(world.get("health")==100.0 and float(player.get("stamina"))==100.0,"home bed restores player"):
+		return
+	player.global_position = home.call("home_action_point","storage")
+	world.set("ration_packs",3)
+	world.call("_toggle_interaction")
+	world.call("_venue_action",1)
+	world.call("_venue_action",2)
+	world.call("_venue_action",1)
+	world.call("_close_venue")
+	if not check(world.get("ration_packs")==2 and ledger.home_supplies==1,"storage conserves carried and stored provisions"):
+		return
+	var home_save: Dictionary = world.call("_capture_snapshot")
+	var session := root.get_node("GameSession")
+	if not check(session.call("is_valid_snapshot",session.call("make_snapshot",home_save)),"home state valid on disk schema"):
+		return
+	ledger.home_supplies=0
+	world.set("ration_packs",0)
+	world.call("_apply_snapshot",home_save)
+	if not check(ledger.home_supplies==1 and ledger.owns_home() and world.get("ration_packs")==2 and player.global_position.distance_to(home.call("home_action_point","storage"))<.1,"home entitlement and stash round trip"):
+		return
 	print("WALK_IN_LOT PASS: physical doors, multiple rooms, upper floor ascent/descent, bounded walls, streamed finish, world-coordinate restore and exit")
 	quit(0)
