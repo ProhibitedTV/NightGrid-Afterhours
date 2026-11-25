@@ -1,15 +1,18 @@
 extends StaticBody3D
 ## Original static cabinet, face toward local +Z. No active viewport or per-frame scripts.
-const IDS := ["grand_delay", "claw_compliance", "patch_day", "indie_dev", "annual_warfare", "day_one_dlc"]
+const Catalog = preload("res://scripts/arcade_round.gd")
+const IDS = Catalog.IDS
 const ART := {
 	"grand_delay": preload("res://assets/arcade/grand_delay.svg"),
 	"claw_compliance": preload("res://assets/arcade/claw_compliance.svg"),
 	"patch_day": preload("res://assets/arcade/patch_day.svg"),
 	"indie_dev": preload("res://assets/arcade/indie_dev.svg"),
 	"annual_warfare": preload("res://assets/arcade/annual_warfare.svg"),
-	"day_one_dlc": preload("res://assets/arcade/day_one_dlc.svg")
+	"day_one_dlc": preload("res://assets/arcade/day_one_dlc.svg"),
+	"open_world_checklist": preload("res://assets/arcade/open_world_checklist.svg"),
+	"battle_pass_hero": preload("res://assets/arcade/battle_pass_hero.svg")
 }
-const TINTS := {"grand_delay": "69d8c2", "claw_compliance": "efb169", "patch_day": "c4a2f3", "indie_dev": "f1cd82", "annual_warfare": "a5ca82", "day_one_dlc": "ed9db5"}
+const TINTS := {"grand_delay": "69d8c2", "claw_compliance": "efb169", "patch_day": "c4a2f3", "indie_dev": "f1cd82", "annual_warfare": "a5ca82", "day_one_dlc": "ed9db5", "open_world_checklist": "80bce9", "battle_pass_hero": "e6a1ef"}
 const CRT = preload("res://assets/arcade/attract_crt.gdshader")
 var game_id := "grand_delay"
 static var materials: Dictionary = {}
@@ -62,6 +65,15 @@ func _ready() -> void:
 	for sign in [-1,1]:
 		var panel := _mesh("SideArt",side,Vector3(sign*.419,1.48,-.08),screens[game_id])
 		panel.rotation.y = sign * PI / 2.0
+	var marquee := Label3D.new()
+	marquee.name = "MarqueeTitle"
+	marquee.text = str(Catalog.GAMES[game_id]["title"])
+	marquee.font_size = 28
+	marquee.pixel_size = .0012
+	marquee.position = Vector3(0,2.05,.275)
+	marquee.modulate = Color("10151d")
+	marquee.outline_size = 0
+	add_child(marquee)
 	_collision(Vector3(0,1.10,.03),Vector3(.87,2.16,.85))
 	_collision(Vector3(0,1.04,.43),Vector3(.84,.15,.24))
 

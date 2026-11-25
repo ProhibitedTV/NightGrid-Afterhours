@@ -13,12 +13,14 @@ func _verify() -> void:
 	var room := Room.new()
 	root.add_child(room)
 	await process_frame
-	if not check(room.cabinets.size() == 6, "six cabinets"):
+	if not check(room.cabinets.size() == 8, "eight cabinets"):
 		return
 	for cabinet in room.cabinets:
 		var front: Vector3 = cabinet.to_global(Vector3(0,1.1,1.0))
 		var back: Vector3 = cabinet.to_global(Vector3(0,1.1,-1.0))
 		if not check(room.cabinet_near(front) == cabinet.game_id and room.cabinet_near(back).is_empty(), "front-only interaction " + str(cabinet.game_id)):
+			return
+		if not check(cabinet.get_node_or_null("MarqueeTitle") != null, "readable cabinet marquee"):
 			return
 		var shapes := 0
 		for child in cabinet.get_children():

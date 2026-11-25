@@ -4,6 +4,7 @@ extends Control
 const Round = preload("res://scripts/arcade_round.gd")
 const AltRound = preload("res://scripts/arcade_alt_round.gd")
 const ExtraRound = preload("res://scripts/arcade_extra_round.gd")
+const SeasonRound = preload("res://scripts/arcade_season_round.gd")
 signal exit_requested
 var round = Round.new()
 var selection := 0
@@ -40,7 +41,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			round.steer(direction)
 			_finish_if_needed()
 	elif event.is_action_pressed("ui_up") or event.is_action_pressed("ui_down"):
-		if state == "play" and (round is AltRound or round is ExtraRound):
+		if state == "play" and (round is AltRound or round is ExtraRound or round is SeasonRound):
 			round.vertical(-1 if event.is_action_pressed("ui_up") else 1)
 			_finish_if_needed()
 	elif event.is_action_pressed("ui_accept"):
@@ -65,7 +66,9 @@ func _show_selection() -> void:
 
 func _start_round() -> void:
 	var id: String = Round.IDS[selection]
-	if id == "annual_warfare" or id == "day_one_dlc":
+	if id == "open_world_checklist" or id == "battle_pass_hero":
+		round = SeasonRound.new()
+	elif id == "annual_warfare" or id == "day_one_dlc":
 		round = ExtraRound.new()
 	elif id == "patch_day" or id == "indie_dev":
 		round = AltRound.new()
@@ -82,6 +85,10 @@ func _process(delta: float) -> void:
 	var interval := AltRound.PATCH_SECONDS if round.game_id == "patch_day" else Round.STEP_SECONDS
 	if round.game_id == "annual_warfare":
 		interval = ExtraRound.GALLERY_SECONDS
+	elif round.game_id == "open_world_checklist":
+		interval = SeasonRound.CHECK_INTERVAL
+	elif round.game_id == "battle_pass_hero":
+		interval = SeasonRound.SEASON_INTERVAL
 	# Limit catch-up after a stall; no unfair instant loss of multiple lives.
 	elapsed += minf(delta, interval)
 	if elapsed >= interval:
@@ -121,7 +128,7 @@ func _draw() -> void:
 		_line("CREDITS ROLL" if round.result()["cleared"] else "GAME OVER", Vector2(32, 195), accent, 34)
 		_line("SCORE  %06d  /  BEST  %06d" % [round.score, int(best.get(id, 0))], Vector2(32, 245), Color.WHITE, 24)
 		var joke := "Next-gen features sold separately." if id == "grand_delay" else "Your combat performance is pending stakeholder approval."
-		if round is AltRound or round is ExtraRound:
+		if round is AltRound or round is ExtraRound or round is SeasonRound:
 			joke = round.feedback
 		_line(joke, Vector2(32, 308), accent, 19)
 		_line("ENTER / A  CABINETS     ESC / B  BACK", Vector2(32, 428), Color.WHITE, 18)
@@ -131,6 +138,10 @@ func _draw() -> void:
 		_draw_studio(accent)
 	elif id == "annual_warfare" or id == "day_one_dlc":
 		_draw_extra(accent, id == "annual_warfare")
+	elif id == "open_world_checklist":
+		_draw_checklist(accent)
+	elif id == "battle_pass_hero":
+		_draw_season(accent)
 	else:
 		_line("SCORE %06d  |  LIFE %d  |  WAVE %02d/%02d" % [round.score, round.lives, round.step, Round.ROUND_STEPS], Vector2(32, 150), Color.WHITE, 18)
 		for n in range(Round.LANES):
@@ -212,4 +223,41 @@ func _draw_extra(accent: Color, gallery: bool) -> void:
 					_line("%d" % value,at+Vector2(37,40),accent if value == y*3+x+1 else Color.WHITE,30)
 	_line(round.feedback,Vector2(32,391),accent,17)
 	_line("ARROWS / D-PAD AIM   ENTER / A FIRE OR RELOAD" if gallery else "ARROWS / D-PAD SLIDE EMPTY SPACE",Vector2(32,428),Color.WHITE,16)
+	_line("ESC / B ABANDON",Vector2(570,428),Color("a0b0ba"),16)
+
+func _draw_checklist(accent: Color) -> void:
+	_line("SCORE %06d  |  ICONS %d  |  TIME %02d" % [round.score,round.completed,SeasonRound.CHECK_TICKS-round.step],Vector2(32,150),Color.WHITE,18)
+	for y in range(SeasonRound.HEIGHT):
+		for x in range(SeasonRound.WIDTH):
+			var cell := Vector2i(x,y)
+			var at := Vector2(145+x*104,165+y*65)
+			var bounds := Rect2(at,Vector2(98,59))
+			draw_rect(bounds,Color("26343e"))
+			draw_line(at+Vector2(0,30),at+Vector2(98,30),Color("3d5260"),2.0)
+			draw_line(at+Vector2(49,0),at+Vector2(49,59),Color("3d5260"),2.0)
+			if round.icons.has(cell):
+				var kind: int = round.icons[cell]
+				_line(SeasonRound.TASKS[kind],at+Vector2(9,24),[accent,Color("f1cd82"),Color("ed9db5")][kind],15)
+			if cell == round.cursor:
+				draw_rect(bounds,accent,false,3.0)
+				draw_circle(at+Vector2(49,42),7.0,accent)
+	_line(round.feedback,Vector2(32,391),accent,17)
+	_line("ARROWS / D-PAD MOVE AND COLLECT",Vector2(32,428),Color.WHITE,16)
+	_line("ESC / B ABANDON",Vector2(570,428),Color("a0b0ba"),16)
+
+func _draw_season(accent: Color) -> void:
+	_line("SCORE %06d  |  SEASON %d/%d  |  LIVES %d" % [round.score,round.season+1,SeasonRound.SEASONS,round.lives],Vector2(32,150),Color.WHITE,18)
+	_line(SeasonRound.OBJECTIVES[round.season],Vector2(32,185),accent,22)
+	draw_rect(Rect2(32,200,736,8),Color("26343e"))
+	draw_rect(Rect2(32,200,736.0*round.time_left/SeasonRound.SEASON_TICKS,8),accent)
+	for i in range(round.chain.size()):
+		var at := Vector2(34+i*144,240)
+		var bounds := Rect2(at,Vector2(130,76))
+		var done: bool = i < round.progress
+		var next: bool = i == round.progress
+		draw_rect(bounds,Color("35463e") if done else Color("26343e"))
+		draw_rect(bounds,accent if next else Color("53606b"),false,3.0 if next else 1.0)
+		_line(SeasonRound.COMMANDS[round.chain[i]],at+Vector2(14,44),Color("69d8c2") if done else Color.WHITE,22)
+	_line(round.feedback,Vector2(32,391),accent,17)
+	_line("ARROWS / D-PAD + ENTER / A MATCH COMMANDS",Vector2(32,428),Color.WHITE,16)
 	_line("ESC / B ABANDON",Vector2(570,428),Color("a0b0ba"),16)

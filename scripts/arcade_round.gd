@@ -6,9 +6,11 @@ const GAMES := {
 	"patch_day": {"title":"PATCH DAY 2077", "studio":"Quarterly Vision", "tagline":"The hotfix needs a hotfix.", "instructions":"Move across the grid and repair bugs before they crash the build.", "color":"c4a2f3"},
 	"indie_dev": {"title":"INDIE DEV SIMULATOR", "studio":"Two Friends & A Laptop", "tagline":"No shareholders were consulted.", "instructions":"Choose how to spend eight weeks. Ship a game, not a roadmap.", "color":"f1cd82"},
 	"annual_warfare": {"title":"ANNUAL WARFARE 19", "studio":"Recurrence Media", "tagline":"Same war. Different price.", "instructions":"Aim at recurring bots. Spare the fan targets. Reload for free.", "color":"a5ca82"},
-	"day_one_dlc": {"title":"DAY-ONE DLC", "studio":"Partition Publishing", "tagline":"Some assembly required.", "instructions":"Slide the empty space to put all eight base-game tiles in order.", "color":"ed9db5"}
+	"day_one_dlc": {"title":"DAY-ONE DLC", "studio":"Partition Publishing", "tagline":"Some assembly required.", "instructions":"Slide the empty space to put all eight base-game tiles in order.", "color":"ed9db5"},
+	"open_world_checklist": {"title":"OPEN WORLD CHECKLIST", "studio":"Icon Avalanche", "tagline":"Discover 900 things to do. Enjoy three.", "instructions":"Clear map icons before the next wave arrives. Towers are worth more.", "color":"80bce9"},
+	"battle_pass_hero": {"title":"BATTLE PASS HERO", "studio":"Retention Systems", "tagline":"Your free time is our KPI.", "instructions":"Match the command sequence before the season resets. Earn your glove.", "color":"e6a1ef"}
 }
-const IDS := ["grand_delay", "claw_compliance", "patch_day", "indie_dev", "annual_warfare", "day_one_dlc"]
+const IDS := ["grand_delay", "claw_compliance", "patch_day", "indie_dev", "annual_warfare", "day_one_dlc", "open_world_checklist", "battle_pass_hero"]
 const LANES := 3
 const END_ROW := 5
 const ROUND_STEPS := 32

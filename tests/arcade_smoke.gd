@@ -2,6 +2,7 @@ extends SceneTree
 const Round = preload("res://scripts/arcade_round.gd")
 const Alt = preload("res://scripts/arcade_alt_round.gd")
 const Extra = preload("res://scripts/arcade_extra_round.gd")
+const Season = preload("res://scripts/arcade_season_round.gd")
 func _initialize() -> void:
 	call_deferred("_verify")
 
@@ -120,6 +121,32 @@ func _verify() -> void:
 	puzzle.steer(1)
 	if not check(puzzle.result() == ending_puzzle, "finished puzzle immutable"):
 		return
+	var checklist := Season.new()
+	checklist.start("open_world_checklist")
+	while not checklist.finished:
+		for cell in checklist.icons.keys():
+			checklist.cursor = cell
+			if not check(checklist.strike() and not checklist.strike(), "map icon scores once"):
+				return
+		checklist.advance()
+	if not check(checklist.result()["cleared"] and checklist.step == Season.CHECK_TICKS, "bounded checklist round"):
+		return
+	var pass_game := Season.new()
+	pass_game.start("battle_pass_hero")
+	if not check(not pass_game._command((pass_game.chain[0]+1)%5) and pass_game.progress == 0, "wrong command resets combo"):
+		return
+	while not pass_game.finished:
+		var commands := pass_game.chain.duplicate()
+		for command in commands:
+			if not check(pass_game._command(command), "season sequence accepted"):
+				return
+	if not check(pass_game.result()["cleared"] and pass_game.completed == Season.SEASONS, "all seasons clear"):
+		return
+	pass_game.start("battle_pass_hero")
+	while not pass_game.finished:
+		pass_game.advance()
+	if not check(pass_game.lives == 0 and not pass_game.result()["cleared"], "missed seasons terminate"):
+		return
 	var screen := preload("res://scenes/arcade_pilot.tscn").instantiate()
 	root.add_child(screen)
 	await process_frame
@@ -141,6 +168,12 @@ func _verify() -> void:
 	screen._finish_if_needed()
 	if not check(screen.state == "result" and screen.best.has("indie_dev"), "turn-based result reaches scoreboard"):
 		return
+	for id in Round.IDS:
+		screen._show_selection()
+		screen.selection = Round.IDS.find(id)
+		screen._start_round()
+		if not check(screen.state == "play" and screen.round.game_id == id, "catalog launches " + id):
+			return
 	screen.queue_free()
 	print("ARCADE_SMOKE: PASS")
 	quit(0)

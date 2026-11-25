@@ -11,9 +11,11 @@ An independent coin-op repair shop in the Afterhours district keeps games alive 
 | Patch Day 2077 | Quarterly Vision | Real-time grid repair | Fix bugs faster than the roadmap adds them |
 | Annual Warfare 19 | Recurrence Media | Timed target gallery with free reloads | Identical sequels and premium reloads |
 | Day-One DLC | Partition Publishing | Three-stage sliding puzzle | Complete game split into artificial packs |
+| Open World Checklist | Icon Avalanche | Timed map-icon routing | Filler and map clutter |
+| Battle Pass Hero | Retention Systems | Timed command sequences across six seasons | FOMO and engagement metrics |
 | Indie Dev Simulator | Two Friends & A Laptop | Eight-week studio management strategy | Tiny teams competing with big marketing budgets |
 
-Six cabinets now have playable screens and deterministic bounded simulation. Annual Warfare uses a timed 3×3 gallery with four-round magazines, streak bonuses and protected fan targets; Day-One DLC is a three-stage sliding puzzle with a 36-move budget per stage. All content is free in practice. Patch Day uses a 4×3 grid with expiring bug deadlines and three server lives; Indie Dev uses eight player-driven weeks, balancing features, bug debt, energy and community support. The cult-classic finish requires quality ≥9, bug debt ≤2 and fans ≥3. Pilot uses a deliberately simple original graphic style; not the final cabinet visual quality.
+Eight cabinets now have playable screens and deterministic bounded simulation. Annual Warfare uses a timed 3×3 gallery with four-round magazines, streak bonuses and protected fan targets; Day-One DLC is a three-stage sliding puzzle with a 36-move budget per stage. All content is free in practice. Patch Day uses a 4×3 grid with expiring bug deadlines and three server lives; Indie Dev uses eight player-driven weeks, balancing features, bug debt, energy and community support. The cult-classic finish requires quality ≥9, bug debt ≤2 and fans ≥3. Pilot uses a deliberately simple original graphic style; not the final cabinet visual quality.
 
 ## Run the pilot
 From repo root: `godot --path . res://scenes/arcade_pilot.tscn`.
@@ -45,3 +47,6 @@ The in-city vertical slice adds INSERT COIN as a fixed legacy-transition venue i
 The games are free practice during this isolated pilot. Celebrate bug reporters, fan artists, friends, speedrunners and players who waited patiently. No real studio allegations or copied assets. Rest is a positive strategic action in Indie Dev, not a punishment.
 
 The six-cabinet layout preserves the original four positions; two more are near the entrance sides, with no extra live viewports. Both extra titles have original SVG art. Controller/native validation remains required.
+
+## Complete eight-cabinet lineup
+Open World Checklist uses a 5×3 city grid, three icon types and bounded waves; route planning and full-map bonuses reward exploration efficiency. Battle Pass Hero uses six short command-sequence seasons with three lives; wrong commands reset only the combo and the full game remains free. Two original cabinet skins occupy the rear side positions, preserving entry and central aisle. All eight cabinets now share the same ID catalog and have physical marquee labels. Native readability and frame pacing still require validation.

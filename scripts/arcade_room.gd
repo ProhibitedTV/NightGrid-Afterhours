@@ -8,7 +8,9 @@ const ROOK_LINES := [
 	"We kept the old cabinets offline. They still work.",
 	"Play what you love. You don't owe a publisher your evenings.",
 	"Those four friends on the warfare cabinet? They've been a squad for ten years.",
-	"Every tile in the puzzle is included. Radical business model, I know."
+	"Every tile in the puzzle is included. Radical business model, I know.",
+	"Somebody cleared the whole map, then spent an hour just watching the sunset. That's a good game.",
+	"If the season ends before you finish, come back whenever. We don't track attendance."
 ]
 var cabinets: Array[Cabinet] = []
 var _line_index := 0
@@ -18,8 +20,8 @@ func _ready() -> void:
 		var cabinet := Cabinet.new()
 		cabinet.configure(Cabinet.IDS[i])
 		cabinet.name = Cabinet.IDS[i]
-		var left := i < 2 or i == 4
-		var depth := 4.2 if i >= 4 else (-2.2 if i % 2 == 0 else 1.0)
+		var left := i < 2 or i == 4 or i == 6
+		var depth := -5.4 if i >= 6 else (4.2 if i >= 4 else (-2.2 if i % 2 == 0 else 1.0))
 		cabinet.position = Vector3(-5.6 if left else 5.6,0.0,depth)
 		cabinet.rotation.y = PI / 2.0 if left else -PI / 2.0
 		add_child(cabinet)
