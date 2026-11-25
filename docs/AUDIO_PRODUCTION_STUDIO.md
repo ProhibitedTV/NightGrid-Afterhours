@@ -179,3 +179,10 @@ Default SFX device is CPU; opt into CUDA with --sfx-device cuda. SFX candidates 
 ## Integration checkpoint
 
 At main revision 73216c8, the seven pinned spoken script constants match the catalog. CI now checks the actual local opening script for drift; adding more dialogue still requires extending the catalog. No recordings have been baked or approved in the repository by this integration. Do not claim fully voiced gameplay until runtime triggers and strict published coverage pass.
+
+
+## Street personality content foundation
+
+The audio authoring catalog now includes 57 original street utterances (18 incidental, 18 contextual, nine exchange beats and twelve optional player replies), across six original street voice designs. Together with the 27 corporate lines and 37 existing effects, this is 121 authored cues. The canonical street data lives in scripts/street_satire.gd and is checked against the manifest. This content-only integration deliberately does not change the live pedestrian director, pool, menu or world behavior: those changes remain in the separate gameplay integration PR #317 pending Godot and Windows checks. No recordings or native gameplay evidence are claimed.
+
+Render the whole catalog using the existing bake-all command, or select a character, e.g. `python tools/voice/anubis.py bake --character nothing_happens`. Existing corporate specifications and cast locks are unchanged. Keep listening review and publish gates enabled. Street playback is not yet enabled by this content commit.
