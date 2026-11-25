@@ -8,15 +8,15 @@ An independent coin-op repair shop in the Afterhours district keeps games alive 
 |---|---|---|---|
 | Grand Delay Auto VI | Milestone Mirage | Three-lane driving, collect feature drops and avoid paywalls | Overhype, long waits, editions and nickel-and-diming |
 | Claw & Compliance | Committee Interactive | Lane-based brawler, intercept audit drones | Corporate focus-group design and endless approvals |
-| Patch Day 2077 | Quarterly Vision | Future twin-stick survival | Fix bugs faster than the roadmap adds them |
+| Patch Day 2077 | Quarterly Vision | Real-time grid repair | Fix bugs faster than the roadmap adds them |
 | Annual Warfare 19 | Recurrence Media | Future light-gun target gallery | Identical sequels and premium reloads |
-| Indie Dev Simulator | Two Friends & A Laptop | Future time-management game | Tiny teams competing with big marketing budgets |
+| Indie Dev Simulator | Two Friends & A Laptop | Eight-week studio management strategy | Tiny teams competing with big marketing budgets |
 
-The first two have a playable isolated screen and deterministic bounded simulation; the remaining three are concepts only. Pilot uses a deliberately simple original graphic style; not the final cabinet visual quality.
+Four cabinets now have playable isolated screens and deterministic bounded simulation. Annual Warfare remains a concept. Patch Day uses a 4×3 grid with expiring bug deadlines and three server lives; Indie Dev uses eight player-driven weeks, balancing features, bug debt, energy and community support. The cult-classic finish requires quality ≥9, bug debt ≤2 and fans ≥3. Pilot uses a deliberately simple original graphic style; not the final cabinet visual quality.
 
 ## Run the pilot
 From repo root: `godot --path . res://scenes/arcade_pilot.tscn`.
-Use left/right arrows or D-pad; Enter/A to start and strike, Escape/B to abandon or return. Default Godot UI mappings provide keyboard/controller support; native controller testing remains required. Escape/B from selection emits exit_requested for a future owner; when running standalone close the window to quit. Best scores last only for the screen instance.
+Use left/right arrows or D-pad (all four directions for Patch Day); Enter/A to start, strike, repair or commit a studio week, Escape/B to abandon or return. Default Godot UI mappings provide keyboard/controller support; native controller testing remains required. Escape/B from selection emits exit_requested for a future owner; when running standalone close the window to quit. Best scores last only for the screen instance.
 
 Headless: `godot --headless --path . --script res://tests/arcade_smoke.gd`.
 
@@ -39,3 +39,6 @@ Self-own poster: "AFTERHOURS: early access to your own bad decisions."
 
 ## Integration boundary
 This branch does not add a world location, modify the main game scene, charge cash, save high scores, or grant rewards. The pilot is a reusable isolated scene; integration and production art are separate follow-up slices.
+
+## Player-first writing rule
+The games are free practice during this isolated pilot. Celebrate bug reporters, fan artists, friends, speedrunners and players who waited patiently. No real studio allegations or copied assets. Rest is a positive strategic action in Indie Dev, not a punishment.

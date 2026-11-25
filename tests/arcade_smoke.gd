@@ -1,5 +1,6 @@
 extends SceneTree
 const Round = preload("res://scripts/arcade_round.gd")
+const Alt = preload("res://scripts/arcade_alt_round.gd")
 func _initialize() -> void:
 	call_deferred("_verify")
 
@@ -51,6 +52,41 @@ func _verify() -> void:
 		b.advance()
 	if not check(b.lives == 2, "paywall damage"):
 		return
+	var patch := Alt.new()
+	if not check(patch.start("patch_day") and patch.strike() and patch.score == 150 and not patch.strike(), "patch repairs exactly once"):
+		return
+	patch.steer(999)
+	patch.vertical(-999)
+	if not check(patch.cursor == Vector2i(2, 0), "grid movement bounded per action"):
+		return
+	while not patch.finished:
+		patch.advance()
+		if not patch.bugs.is_empty():
+			patch.cursor = patch.bugs.keys()[0]
+			patch.strike()
+	if not check(patch.result()["cleared"] and patch.step == Alt.PATCH_STEPS and patch.lives == 3, "repair all bugs to clear"):
+		return
+	patch.start("patch_day")
+	while not patch.finished:
+		patch.advance()
+	if not check(not patch.result()["cleared"] and patch.lives == 0, "unrepaired bugs crash servers"):
+		return
+	var indie := Alt.new()
+	indie.start("indie_dev")
+	for action in [0, 0, 1, 2, 0, 1, 3, 2]:
+		indie.choice = action
+		if not check(indie.strike(), "studio action affordable"):
+			return
+	if not check(indie.result()["cleared"] and indie.step == Alt.WEEKS and indie.debt == 0, "balanced studio strategy wins"):
+		return
+	var ending := indie.result()
+	if not check(not indie.strike() and indie.result() == ending, "studio ending cannot be replayed for points"):
+		return
+	indie.start("indie_dev")
+	for i in range(3):
+		indie.strike()
+	if not check(not indie.strike() and indie.step == 3 and indie.energy == 0, "burnout action rejected without advancing week"):
+		return
 	var screen := preload("res://scenes/arcade_pilot.tscn").instantiate()
 	root.add_child(screen)
 	await process_frame
@@ -61,6 +97,16 @@ func _verify() -> void:
 		return
 	screen._show_selection()
 	if not check(not screen.is_processing(), "abandoned round stops ticking"):
+		return
+	screen.selection = 3
+	screen._start_round()
+	if not check(screen.state == "play" and not screen.is_processing() and screen.round.game_id == "indie_dev", "turn-based cabinet has no background timer"):
+		return
+	for i in range(Alt.WEEKS):
+		screen.round.choice = 2
+		screen.round.strike()
+	screen._finish_if_needed()
+	if not check(screen.state == "result" and screen.best.has("indie_dev"), "turn-based result reaches scoreboard"):
 		return
 	screen.queue_free()
 	print("ARCADE_SMOKE: PASS")
