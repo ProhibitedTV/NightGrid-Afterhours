@@ -76,7 +76,9 @@ func _ready() -> void:
 	_solid("SouthWall",Vector3(0,1.75,10),Vector3(17,3.5,.25),wall)
 	_solid("WestWall",Vector3(-8.5,1.75,0),Vector3(.25,3.5,20),wall)
 	_solid("EastWall",Vector3(8.5,1.75,0),Vector3(.25,3.5,20),wall)
-	_solid("ExecutivePartition",Vector3(0,1.5,-3.8),Vector3(.18,3.0,6.8),wall)
+	# Leave a physical turning vestibule behind the security gate.
+	var partition_length: float=Arrival.PARTITION_FAR_Z-Arrival.PARTITION_NEAR_Z
+	_solid("ExecutivePartition",Vector3(0,1.5,Arrival.PARTITION_NEAR_Z+partition_length*.5),Vector3(.18,3.0,partition_length),wall)
 	_build_lobby(desk,accent,screen)
 	_build_office_details(desk,accent,screen)
 	_build_breakroom(desk,accent)

@@ -436,7 +436,27 @@ func _verify() -> void:
 	if not str(propaganda.get_node("QuarterlyRecord/Headline").text).contains("$14.8 BILLION") or not str(propaganda.get_node("HealthRenewal/Headline").text).contains("24%") or not str(propaganda.get_node("HealthRenewal/FinePrint").text).contains("$231"):
 		_fail("Profit celebration and increased health premium must be actual in-world text")
 		return
-	var montage=preload("res://scripts/synaxis_arrival.gd").new()
+	var arrival_script=preload("res://scripts/synaxis_arrival.gd")
+	var shots: Array=arrival_script.SHOTS
+	for i in range(shots.size()):
+		var shot: Dictionary=shots[i]
+		if float(shot["duration"])<=0.0 or (i>0 and shot["from"]!=shots[i-1]["to"]):
+			_fail("Arrival camera cuts must not teleport the player")
+			return
+		var start: Vector3=shot["from"]
+		var end: Vector3=shot["to"]
+		# Sample each route leg against the executive partition expanded by capsule clearance.
+		for step in range(21):
+			var pos := start.lerp(end,float(step)/20.0)
+			if absf(pos.x)<.45 and pos.z>arrival_script.PARTITION_NEAR_Z-.36 and pos.z<arrival_script.PARTITION_FAR_Z+.36:
+				_fail("Arrival must turn around the partition rather than walk through it")
+				return
+	var partition: MeshInstance3D=office.get_node("ExecutivePartition")
+	var partition_mesh: BoxMesh=partition.mesh
+	if not is_equal_approx(partition.position.z-partition_mesh.size.z*.5,arrival_script.PARTITION_NEAR_Z) or shots[-1]["to"]!=preload("res://scripts/synaxis_office.gd").CUBICLE_POINT:
+		_fail("Arrival route must match the actual partition and playable cubicle")
+		return
+	var montage=arrival_script.new()
 	if not montage.advance(4.8) or not bool(montage.sample()["gate_open"]) or montage.advance(30.0) or not montage.sample().is_empty():
 		_fail("Arrival timeline opens the gate during crossing and terminates on a large frame delta")
 		return

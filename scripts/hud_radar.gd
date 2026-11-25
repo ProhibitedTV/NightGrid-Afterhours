@@ -3,6 +3,7 @@ extends Control
 const Nav = preload("res://scripts/navigation_waypoint.gd")
 const Plan = preload("res://scripts/world_plan.gd")
 const Restrooms = preload("res://scripts/synaxis_restrooms.gd")
+const Arrival = preload("res://scripts/synaxis_arrival.gd")
 const RANGE_METRES = 116.0
 const BORDER = 9.0
 var world_node: Node3D
@@ -185,7 +186,7 @@ func _draw_office() -> void:
 		[Vector2(8.5,-10),Vector2(8.5,10)],
 		[Vector2(-8.5,10),Vector2(8.5,10)],
 		[Vector2(-8.5,-7.65),Vector2(8.5,-7.65)],
-		[Vector2(0,-7.2),Vector2(0,-.4)]
+		[Vector2(0,Arrival.PARTITION_NEAR_Z),Vector2(0,Arrival.PARTITION_FAR_Z)]
 	]:
 		_segment(edge[0],edge[1],wall,2.6)
 	for edge in Restrooms.WALL_EDGES:
