@@ -18,6 +18,8 @@ var _walk_rig:Array[Node3D]=[]
 var _walk_knees:Array[Node3D]=[]
 var _walk_speed:=0.0
 var _walk_phase:=0.0
+var _routine_pose:=""
+var _clipboard:Node3D
 static var _executive_leather: StandardMaterial3D
 
 func configure_staff(data: Dictionary) -> void:
@@ -169,6 +171,42 @@ func enable_walk_rig() -> void:
 		_walk_rig.append(hip)
 		_walk_knees.append(knee)
 
+func enable_routine_props() -> void:
+	if is_instance_valid(_clipboard):
+		return
+	_clipboard=_pivot(_right_hand,"TaskClipboard",Vector3(0,-.09,.11))
+	_box(_clipboard,"Backing",Vector3.ZERO,Vector3(.24,.31,.022),Color("6b5b49"),"FABRIC")
+	_box(_clipboard,"TaskSheet",Vector3(0,0,.016),Vector3(.215,.275,.010),Color("e6e2d6"),"FABRIC")
+	_box(_clipboard,"Clip",Vector3(0,.135,.027),Vector3(.105,.035,.018),Color("77868a"),"METAL")
+	for i in range(5):
+		_box(_clipboard,"TaskLine",Vector3(.025,.085-i*.041,.023),Vector3(.13,.008,.006),Color("647573"),"FABRIC")
+		_box(_clipboard,"TaskCheck",Vector3(-.079,.085-i*.041,.023),Vector3(.017,.017,.006),Color("52867e"),"FABRIC")
+	_clipboard.hide()
+
+func set_routine_pose(pose:String) -> void:
+	_routine_pose=pose
+	if is_instance_valid(_clipboard):
+		_clipboard.visible=pose in ["carry","board"]
+
+func _animate_routine(delta:float,t:float) -> void:
+	if _routine_pose=="board":
+		_right_hand.position.y=lerpf(_right_hand.position.y,-.19,clampf(delta*8.0,0.0,1.0))
+		_right_hand.position.z=.34
+		_right_hand.rotation.x=-.38
+		_head.rotation.x=.09
+		if is_instance_valid(_clipboard):
+			_clipboard.rotation.x=.32
+	elif _routine_pose=="carry":
+		_right_hand.position.y=-.42
+		_right_hand.position.z=.24
+		_right_hand.rotation.x=.15
+		if is_instance_valid(_clipboard):
+			_clipboard.rotation.x=.10
+	elif _routine_pose=="chat":
+		_right_hand.position.y=-.40+.085*maxf(0.0,sin(t*2.0))
+		_right_hand.position.z=.23
+		_right_hand.rotation.x=.08
+
 func set_walk_speed(speed:float) -> void:
 	_walk_speed=clampf(speed,0.0,1.1)
 
@@ -227,3 +265,4 @@ func _process(delta: float) -> void:
 	if _mouth_detail!=null:
 		_mouth_detail.scale.y=.018*(1.0+.25*absf(sin(t*13.0))) if _scene_beat>=0 else .018
 	_animate_walk(delta)
+	_animate_routine(delta,t)

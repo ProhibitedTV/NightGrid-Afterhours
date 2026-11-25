@@ -27,7 +27,18 @@ var _line:=""
 # One short circulation route per department. Clear of desk rows, table
 # collision and the lift landing (x=0,z=5). Faye/other coworker stays put.
 const WALKER=7
-const ROUTE=[Vector3(-3.35,0,6.12),Vector3(-2.0,0,6.12),Vector3(-2.0,0,4.05),Vector3(-4.35,0,4.05),Vector3(-3.35,0,4.05),Vector3(-3.35,0,6.12)]
+const ROUTE=[Vector3(-3.35,0,6.12),Vector3(-2.0,0,6.12),Vector3(-2.0,0,4.05),Vector3(-5.3,0,4.05),Vector3(-7.10,0,4.05),Vector3(-7.10,0,6.8),Vector3(-7.10,0,4.05),Vector3(-2.0,0,4.05),Vector3(-2.0,0,6.12),Vector3(-3.35,0,6.12)]
+const EXCHANGES=[
+	["Sam: Did you update the risk matrix?","Faye: Yes. The risk matrix now requires a risk matrix."],
+	["Jules: Did the client approve the new design?","Dana: They approved the presentation about the design."],
+	["Milo: Are we still testing the old build?","Avery: The new build is waiting for approval to be tested."],
+	["Lee: Did we get the purchase order?","Ellis: We got approval to ask about the purchase order."]
+]
+var _task:="idle"
+var _board_visits:=0
+var _chat_visits:=0
+var _chat_elapsed:=0.0
+var _task_yaw:=0.0
 var _route_index:=1
 var _wait:=0.0
 var _walking:=false
@@ -49,6 +60,7 @@ func _ready() -> void:
 		add_child(actor)
 		_people.append(actor)
 	_people[WALKER].call("enable_walk_rig")
+	_people[WALKER].call("enable_routine_props")
 	set_active(false)
 
 func set_active(active:bool) -> void:
@@ -59,7 +71,9 @@ func set_active(active:bool) -> void:
 	if not _people.is_empty():
 		_people[WALKER].call("set_walk_speed",0.0)
 	if active:
-		_wait=3.0+float(level)*1.1
+		_wait=maxf(_wait,3.0+float(level)*1.1)
+	else:
+		_people[6].call("set_routine_pose","")
 	_last_near=-1
 	_line=""
 	for actor in _people:
@@ -84,6 +98,17 @@ func _process(delta:float) -> void:
 		_wait=maxf(0.0,_wait-step)
 		_walking=false
 		actor.call("set_walk_speed",0.0)
+		if _task in ["board","chat"]:
+			actor.rotation.y=lerp_angle(actor.rotation.y,_task_yaw,clampf(step*6.0,0.0,1.0))
+		if _task=="chat":
+			_chat_elapsed+=step
+			_people[6].call("set_routine_pose","chat")
+			_people[6].call("attend",actor.global_position,true)
+		if _wait<=0.0:
+			_task="carry"
+			actor.call("set_routine_pose","carry")
+			_people[6].call("set_routine_pose","")
+			_people[6].call("attend",Vector3.ZERO,false)
 		return
 	var target:Vector3=ROUTE[_route_index]
 	var offset:=target-actor.position
@@ -94,9 +119,22 @@ func _process(delta:float) -> void:
 		if _route_index>=ROUTE.size():
 			_route_index=1
 			_wait=7.0+float(level)
+			_task="idle"
+			actor.call("set_routine_pose","")
 			actor.rotation.y=YAW[WALKER]
 		elif _route_index==4:
-			_wait=2.5
+			_wait=5.0
+			_task="chat"
+			_task_yaw=0.0
+			_chat_elapsed=0.0
+			_chat_visits+=1
+			actor.call("set_routine_pose","chat")
+		elif _route_index==6:
+			_wait=4.0
+			_task="board"
+			_task_yaw=-PI/2
+			_board_visits+=1
+			actor.call("set_routine_pose","board")
 		_walking=false
 		actor.call("set_walk_speed",0.0)
 		return
@@ -114,6 +152,8 @@ func _process(delta:float) -> void:
 		actor.call("set_walk_speed",0.0)
 		return
 	actor.position=next
+	_task="carry"
+	actor.call("set_routine_pose","carry")
 	_walk_distance+=advance
 	_walking=true
 	actor.call("set_walk_speed",.85)
@@ -141,7 +181,12 @@ func observe(at:Vector3) -> String:
 		_last_near=closest
 		_line="" if closest<0 else str(CHAT[level-1][0 if closest==0 else closest-5])
 	for i in _people.size():
-		_people[i].call("attend",at,i==closest)
+		if i==6 and _task=="chat" and closest<0:
+			_people[i].call("attend",_people[WALKER].global_position,true)
+		else:
+			_people[i].call("attend",at,i==closest)
+	if closest<0 and _task=="chat" and local.distance_to(_people[WALKER].position+Vector3.UP*1.15)<5.0:
+		return str(EXCHANGES[level-1][0 if _chat_elapsed<2.5 else 1])
 	return _line
 
 func stats() -> Dictionary:
@@ -149,4 +194,4 @@ func stats() -> Dictionary:
 	for actor in _people:
 		if actor.process_mode!=Node.PROCESS_MODE_DISABLED:
 			animated+=1
-	return {"people":_people.size(),"animated":animated,"seated":6,"standing":2,"walking":_walking,"walk_distance":_walk_distance,"route_index":_route_index}
+	return {"people":_people.size(),"animated":animated,"seated":6,"standing":2,"walking":_walking,"walk_distance":_walk_distance,"route_index":_route_index,"task":_task,"board_visits":_board_visits,"chat_visits":_chat_visits}

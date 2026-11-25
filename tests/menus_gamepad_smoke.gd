@@ -550,6 +550,13 @@ func _verify() -> void:
 	if walker.position.distance_to(paused_at)>.001 or bool(engineering_people.call("stats")["walking"]):
 		_fail("Walking coworker yields to a nearby visitor")
 		return
+	engineering_people.call("observe",Vector3.INF)
+	for tick in range(600):
+		engineering_people.call("_process",.1)
+	var routine:Dictionary=engineering_people.call("stats")
+	if int(routine["board_visits"])<1 or int(routine["chat_visits"])<1 or walker.get("_clipboard")==null:
+		_fail("Department routine visits the task board and coworker with authored props")
+		return
 	var lab_stats:Dictionary=robotics_lab.call("lab_stats")
 	if int(lab_stats["prototypes"])!=2 or int(lab_stats["barriers"])!=4 or not bool(lab_stats["active"]):
 		_fail("Robotics lab has two articulated display prototypes and a closed collision bay")
