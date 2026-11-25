@@ -7,6 +7,8 @@ const MIN_HEAT = 0.15
 const BRANDISH_TIME = 0.8
 const BRANDISH_REPEAT = 3.0
 const QUIET_DELAY = 8.0
+const HEAT_DECAY_RATE = 0.10
+const REPORT_REASONS = ["BRANDISH", "THEFT", "SHOT"]
 const CIVILIAN_RANGE = 26.0
 const POLICE_RANGE = 42.0
 const MAX_RAYS = 12
@@ -36,7 +38,7 @@ static func report_heat(heat: float, reason: String, officer: bool) -> float:
 	return heat
 
 func report(heat: float, reason: String, where: Vector3, officer: bool) -> float:
-	if not where.is_finite():
+	if not where.is_finite() or reason not in REPORT_REASONS:
 		return heat
 	last_known = where
 	last_reason = reason
@@ -63,17 +65,29 @@ func observe(heat: float, where: Vector3, witness: Dictionary, drawn: bool, delt
 
 func decay(heat: float, delta: float) -> float:
 	if stars(heat) == 0:
-		quiet = 0.0
-		last_known = Vector3.INF
-		last_reason = ""
-		return 0.0
+		return _clear_search()
+	if not is_finite(delta) or delta <= 0.0:
+		return heat
 	if police_seen or (seen and exposure > 0.0):
 		quiet = 0.0
 	else:
-		quiet += delta
-		if quiet >= QUIET_DELAY:
-			heat = maxf(0.0, heat - delta * 0.10)
+		# Only the fraction of this tick AFTER the grace interval counts.
+		# A single long tick and equivalent short ticks must agree.
+		var remaining_grace := maxf(0.0, QUIET_DELAY - quiet)
+		var cooling_seconds := maxf(0.0, delta - remaining_grace)
+		quiet = minf(QUIET_DELAY, quiet + delta)
+		heat = maxf(0.0, heat - cooling_seconds * HEAT_DECAY_RATE)
+		if stars(heat) == 0:
+			return _clear_search()
 	return heat
+
+func _clear_search() -> float:
+	# Preserve live witness/exposure information for WEAPON NOTICED, but
+	# never retain a dispatch destination once the pursuit is cleared.
+	quiet = 0.0
+	last_known = Vector3.INF
+	last_reason = ""
+	return 0.0
 
 func status_text(heat: float) -> String:
 	if stars(heat) == 0:
@@ -92,6 +106,7 @@ func reset() -> void:
 	exposure = 0.0
 	report_cooldown = 0.0
 	last_reason = ""
+	last_ray_count = 0
 
 static func in_view(eye: Vector3, facing: Vector3, target: Vector3, reach: float) -> bool:
 	var gap := target - eye
