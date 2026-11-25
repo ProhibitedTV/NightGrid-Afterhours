@@ -111,5 +111,26 @@ func _initialize()->void:
 	if band_copy.restore(before,bad):
 		quit(1)
 		return
+	if band.complete_band_rehearsal(2) or not band.band_rehearsal_available():
+		quit(1)
+		return
+	rhythm.start(1,"band_rehearsal")
+	if rhythm.pattern.size()!=16 or rhythm.required_hits!=13:
+		quit(1)
+		return
+	for lane in rhythm.pattern:
+		rhythm.advance(rhythm.target_time()-rhythm.elapsed)
+		rhythm.strike(lane)
+	if not rhythm.claim() or rhythm.claim() or not band.complete_band_rehearsal(1) or band.complete_band_rehearsal(1):
+		quit(1)
+		return
+	if not band_copy.restore(before,JSON.parse_string(JSON.stringify(band.snapshot()))) or band_copy.band_rehearsals!=1 or not band_copy.complete_band_rehearsal(2) or band_copy.band_rehearsal_available() or band_copy.complete_band_rehearsal(3) or band_copy.balance!=before or band_copy.street_cred()!=cred:
+		quit(1)
+		return
+	var impossible:=band_copy.snapshot()
+	impossible["band_members"]=["rhea"]
+	if Ledger.valid_snapshot(impossible):
+		quit(1)
+		return
 	print("RHYTHM_REHEARSAL PASS: timing, cancellation, once-only claims, sequence and atomic payout")
 	quit(0)

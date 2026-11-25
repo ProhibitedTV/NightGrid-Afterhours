@@ -502,12 +502,18 @@ func _on_menu_action(action: String) -> void:
 			if not _street_contact_id.is_empty():
 				_cal_pending={"id":_street_contact_id,"action":action}
 			_street_contact_id=""
-		"music_desk_buy","music_desk_busk","music_desk_practice","music_desk_owned","music_desk_recruit","music_desk_leave":
+		"music_desk_buy","music_desk_busk","music_desk_practice","music_desk_owned","music_desk_recruit","music_desk_rehearse","music_desk_leave":
 			_music_desk_action(action)
 		"rhythm_claim":
 			var site:=_music_session_site
 			_music_session_site=""
-			if site=="practice:copper_cup":
+			if site=="band_rehearsal:copper_cup":
+				var sequence:int=game_menu.call("consume_band_rehearsal")
+				if sequence>0 and _busking_reachable("copper_cup") and progression.complete_band_rehearsal(sequence):
+					_notify(progression.band_summary())
+				else:
+					_notify("BAND REHEARSAL / Set not recorded.")
+			elif site=="practice:copper_cup":
 				var sequence:int=game_menu.call("consume_sampler_practice")
 				if sequence>0 and _busking_reachable("copper_cup") and progression.complete_sampler_practice(sequence):
 					_notify(progression.instrument_summary())
@@ -5120,7 +5126,7 @@ func _busking_reachable(site:String)->bool:
 	return player.global_position.distance_to(point)<=5.5
 
 func _open_music_desk()->void:
-	game_menu.call("open_music_desk",{"owned":progression.owns_instrument(Instruments.STARTER),"owned_set":progression.owned_set_unlocked(),"cash":cash,"summary":progression.instrument_summary(),"band":progression.band_summary(),"recruit_rhea":progression.band_recruit_available("rhea")})
+	game_menu.call("open_music_desk",{"owned":progression.owns_instrument(Instruments.STARTER),"owned_set":progression.owned_set_unlocked(),"cash":cash,"summary":progression.instrument_summary(),"band":progression.band_summary(),"recruit_rhea":progression.band_recruit_available("rhea"),"band_rehearse":progression.band_rehearsal_available()})
 
 func _music_desk_action(action:String)->void:
 	if action=="music_desk_leave":
@@ -5129,6 +5135,10 @@ func _music_desk_action(action:String)->void:
 	if _music_session_site!="desk:copper_cup" or game_menu.get("screen")!="music_desk" or not _busking_reachable("copper_cup"):
 		return
 	match action:
+		"music_desk_rehearse":
+			if progression.band_rehearsal_available():
+				_music_session_site="band_rehearsal:copper_cup"
+				game_menu.call("open_band_rehearsal",progression.band_rehearsals+1)
 		"music_desk_recruit":
 			if progression.recruit_band_member("rhea"):
 				_notify("RHEA VALE / "+str(ProgressionLedger.BAND_MEMBERS["rhea"]["line"]))

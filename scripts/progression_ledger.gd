@@ -351,6 +351,17 @@ func complete_sampler_practice(sequence:int)->bool:
 
 const BAND_MEMBERS={"rhea":{"name":"Rhea Vale","role":"Bass","site":"copper_cup","line":"I play low strings and keep time. Heard your opening set."},"milo":{"name":"Milo Static","role":"Synth","site":"dock_nine","line":"I have a battered synth and unfinished ideas. Let's make something weird."}}
 var _band_members: Array[String] = []
+const BAND_REHEARSALS_REQUIRED = 2
+var band_rehearsals := 0
+
+func band_rehearsal_available()->bool:
+	return _band_members.size()==2 and band_rehearsals<BAND_REHEARSALS_REQUIRED
+
+func complete_band_rehearsal(sequence:int)->bool:
+	if not band_rehearsal_available() or sequence!=band_rehearsals+1:
+		return false
+	band_rehearsals=sequence
+	return true
 
 func band_recruit_available(id:String)->bool:
 	return BAND_MEMBERS.has(id) and not _band_members.has(id) and owned_set_unlocked() and street_activity_runs("live_gig")>0 and has_receipt("venue:soundcheck_pass")
@@ -363,7 +374,7 @@ func recruit_band_member(id:String)->bool:
 
 func band_summary()->String:
 	if _band_members.size()==2:
-		return "UNSIGNED TRIO / Rhea Vale: bass / Milo Static: synth"
+		return "UNSIGNED TRIO / Rhea Vale: bass / Milo Static: synth\n"+("REHEARSE AT COPPER CUP / %d of %d"%[band_rehearsals,BAND_REHEARSALS_REQUIRED] if band_rehearsal_available() else "TWO REHEARSALS COMPLETE / Ready for band booking")
 	if not owned_set_unlocked() or street_activity_runs("live_gig")==0:
 		return "BAND / Complete personal sampler practice and a Blue Hour opening set to meet collaborators."
 	var names:Array[String]=[]
@@ -383,7 +394,7 @@ func snapshot() -> Dictionary:
 	ids.sort()
 	var instruments:Array=_instruments.keys()
 	instruments.sort()
-	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "owned_pieces":owned_piece_ids(), "clothing_slots":clothing_slots.duplicate(), "saved_looks":_saved_looks.duplicate(true), "bitcoin_sats":bitcoin_sats, "synaxis_contact":synaxis_contact, "cal_quest":cal_quest, "street_activity_runs":_street_cred.snapshot(), "instruments":instruments, "sampler_practice":sampler_practice,"band_members":_band_members.duplicate()}
+	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "owned_pieces":owned_piece_ids(), "clothing_slots":clothing_slots.duplicate(), "saved_looks":_saved_looks.duplicate(true), "bitcoin_sats":bitcoin_sats, "synaxis_contact":synaxis_contact, "cal_quest":cal_quest, "street_activity_runs":_street_cred.snapshot(), "instruments":instruments, "sampler_practice":sampler_practice,"band_members":_band_members.duplicate(),"band_rehearsals":band_rehearsals}
 
 static func valid_snapshot(value: Variant) -> bool:
 	if not value is Dictionary:
@@ -422,6 +433,9 @@ static func valid_snapshot(value: Variant) -> bool:
 			return false
 		roster_seen[id]=true
 	if not roster.is_empty() and (int(practice)<Instruments.OWNED_SET_PRACTICE or not seen.has("venue:soundcheck_pass") or int(data.get("street_activity_runs",{}).get("live_gig",0))<1):
+		return false
+	var rehearsals:Variant=data.get("band_rehearsals",0)
+	if not valid_cash(rehearsals) or int(rehearsals)>BAND_REHEARSALS_REQUIRED or (int(rehearsals)>0 and roster_seen.size()!=BAND_MEMBERS.size()):
 		return false
 	var cal:Variant=data.get("cal_quest",0)
 	if not valid_cash(cal) or int(cal)>3 or (int(cal)==3)!=seen.has(CAL_RECEIPT):
@@ -526,6 +540,7 @@ func restore(amount: Variant, data: Variant) -> bool:
 		_instruments[id]=true
 	sampler_practice=int(data.get("sampler_practice",0))
 	_band_members.assign(data.get("band_members",[]))
+	band_rehearsals=int(data.get("band_rehearsals",0))
 	_purchased_outfits.clear()
 	for id in data.get("purchased_outfits",[]):
 		_purchased_outfits[id] = true

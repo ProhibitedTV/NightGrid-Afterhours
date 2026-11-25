@@ -13,3 +13,6 @@ After either technical consulting contract, a four-stage evidence investigation 
 
 ## Band recruitment
 After buying and practicing the PocketBeat M3 three times and completing a legitimate Blue Hour opening set, invite Rhea Vale at Copper Cup's music desk and Milo Static at Dock Nine's staffed counter. Both choices cost nothing and award no cash or cred. The bounded roster lives in the existing progression ledger and the Music app reports collaborators. Older saves default to no recruits. Rehearsals, instrument-specific band performance, naming and merchandise remain later slices.
+
+## Band rehearsal
+The recruited trio rehearses at Copper Cup via its existing music desk. Two distinct 16-beat patterns, 13 required hits, 0.72-second beats, 0.20-second hit window. Successful claims at the actual reachable desk record one bounded rehearsal; retries, cancelled sets and duplicates do not count. No cash or cred. Optional roster-validated count survives saves; two rehearsals unlock the next booking slice (not yet implemented). The pads are existing sampler audio, not full band audio or animated NPC performance.
