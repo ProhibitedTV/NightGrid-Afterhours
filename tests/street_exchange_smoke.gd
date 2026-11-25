@@ -102,6 +102,21 @@ func _verify()->void:
 	director.update_street_dialogue(speech,listener,RID(),false,0.1)
 	if not _check((director.get("_exchange") as Dictionary).is_empty() and speech.stats()["active"]=="","leaving street cancels current turn"):
 		return
+	# A direct question selects the canonical reply and keeps the live identity.
+	var contact_listener:=Vector3(0,1.6,-2)
+	director.update_street_dialogue(speech,contact_listener,RID(),true,0.2)
+	var contact:=director.nearby_contact()
+	if not _check(contact.get("lease_id")==first and contact.get("topics",[]).size()==2,"nearby contact and two choices"):
+		return
+	if not _check(director.request_player_reply(first,1) and not director.request_player_reply(first,9),"bounded topic selection"):
+		return
+	director.update_street_dialogue(speech,contact_listener,RID(),true,0.1)
+	speech.tick(0.1,contact_listener)
+	if not _check(speech.stats()["active"]=="street.robot_romantic.talk.2","player choice triggers the exact spatial reply"):
+		return
+	director.update_street_dialogue(speech,contact_listener,RID(),false,0.1)
+	if not _check(speech.stats()["active"]=="" and director.nearby_contact().is_empty(),"leaving cancels direct reply and cached interaction"):
+		return
 	director.shutdown()
 	print("STREET_EXCHANGE PASS: compatible leases, alternating turns, story interruption and context cancellation")
 	quit(0)

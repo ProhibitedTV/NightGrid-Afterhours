@@ -341,7 +341,7 @@ func nearby_contact()->Dictionary:
 	return _contact.duplicate(true)
 
 func request_player_reply(id:String,topic:int)->bool:
-	if not _running or id.is_empty() or topic<0 or topic>1:
+	if not _running or id.is_empty() or topic<0 or topic>1 or _contact.get("lease_id","")!=id:
 		return false
 	_player_request={"id":id,"topic":topic}
 	return true
