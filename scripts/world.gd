@@ -735,6 +735,8 @@ func _start_music(kind: String, site: String) -> bool:
 	_music_start_cred = int(_street_cred()["music"])
 	player.set("input_blocked",true)
 	player.get_node("Visual").call("set_music_prop",true)
+	if kind in ["band","rehearse","encore"]:
+		venue_system.call("show_player_band",site,player.global_position)
 	if not is_instance_valid(_music_audio):
 		_music_audio = AudioStreamPlayer3D.new()
 		_music_audio.name = "LiveBusker"
@@ -759,6 +761,7 @@ func _stop_music() -> void:
 		return
 	music_career.stop()
 	_music_site = ""
+	venue_system.call("hide_player_band")
 	if is_instance_valid(_music_audio):
 		_music_audio.stop()
 	if is_instance_valid(player):

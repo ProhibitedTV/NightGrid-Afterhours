@@ -1,6 +1,7 @@
 extends SceneTree
 const Phone = preload("res://scripts/morrow_phone.gd")
 const Cred = preload("res://scripts/street_cred.gd")
+const InstrumentArt = preload("res://scripts/instrument_art.gd")
 func _initialize() -> void:
 	create_timer(60.0,true,false,true).timeout.connect(func() -> void: _fail("watchdog"))
 	call_deferred("_verify")
@@ -11,6 +12,13 @@ func _verify() -> void:
 	var world = load("res://scenes/main.tscn").instantiate()
 	root.add_child(world)
 	await process_frame
+	for id in InstrumentArt.MODELS:
+		var prop := InstrumentArt.build(id)
+		if prop.mesh==null or prop.mesh.get_surface_count()==0 or prop.material_override!=InstrumentArt.material():
+			prop.free()
+			_fail("Imported instrument mesh or shared wear material missing: "+id)
+			return
+		prop.free()
 	var menu = world.get("game_menu")
 	var original: Dictionary = world.call("_capture_snapshot")
 	var state: Dictionary = world.call("_phone_context")
@@ -294,11 +302,17 @@ func _verify() -> void:
 	actor.global_position = venues.call("venue_position","blue_hour")
 	world.call("_toggle_venue")
 	world.call("_venue_action",3)
+	if not is_instance_valid(venues.get("_active_ensemble")):
+		_fail("Band should populate both musician visuals")
+		return
 	if career.mode!="band":
 		_fail("Blue Hour booking must start at the venue")
 		return
 	for tick in range(240):
 		world.call("_tick_music",.25)
+	if is_instance_valid(venues.get("_active_ensemble")):
+		_fail("Band visuals must clear after performance")
+		return
 	if world.get("cash")!=band_cash+240 or career.can_band_gig(wallet) or not wallet.has_receipt("music:blue_hour_debut"):
 		_fail("Band debut must settle once")
 		return

@@ -7,6 +7,7 @@ const Materials = preload("res://scripts/material_library.gd")
 const WorldPlan = preload("res://scripts/world_plan.gd")
 const VenueAmbience = preload("res://scripts/venue_ambience.gd")
 const MusicCareer = preload("res://scripts/music_career.gd")
+const InstrumentArt = preload("res://scripts/instrument_art.gd")
 const MusicContactVisual = preload("res://scenes/pedestrian_visual.tscn")
 const CELL = 58.0
 const INTERACT_RANGE = 5.5
@@ -49,6 +50,8 @@ var _sign_materials: Dictionary = {}
 var _open_labels: Dictionary = {}
 var _patrons: Dictionary = {}
 var _music_contacts: Dictionary = {}
+var _music_setups: Dictionary = {}
+var _active_ensemble: Node3D
 var _lights: Array[OmniLight3D] = []
 var _focus := Vector3.ZERO
 var _hour := 19.25
@@ -60,6 +63,7 @@ func _ready() -> void:
 	for venue in VENUES:
 		_build_venue(venue)
 	_build_music_contacts()
+	_build_music_setups()
 	for index in range(2):
 		var pool_light := OmniLight3D.new()
 		pool_light.name = "LocalVenueLight_%d" % index
@@ -277,12 +281,81 @@ func _build_music_contacts() -> void:
 			visual.rotation.y = PI
 			contact.add_child(visual)
 			visual.call("set_activity","STOREFRONT")
+			if id=="rhea":
+				InstrumentArt.place(visual,"punk_bass",Vector3(.07,1.08,.24),Vector3(0,0,-29))
+			else:
+				InstrumentArt.place(contact,"portable_synth",Vector3(.45,.82,-.48),Vector3(-90,180,0))
+				_box(contact,Vector3(.45,.39,-.48),Vector3(.55,.77,.25),Color("3d3f49"),"METAL")
 		# An instrument case gives the musician a recognizable street presence.
-		_box(contact,Vector3(.55,.12,0),Vector3(.32,.19,.8),Color("292d35"),"METAL")
-		_box(contact,Vector3(.55,.22,0),Vector3(.29,.025,.73),Color("845d76"))
+		InstrumentArt.place(contact,"road_case",Vector3(.60,.075,.15),Vector3(0,90,0))
+		InstrumentArt.place(contact,"combo_amp",Vector3(-.55,.18,.05),Vector3(0,180,0))
 		var tag := _make_label(contact,str(entry["name"])+" / "+str(entry["role"]),Vector3(0,2.1,0),Color("e6a8cf"),22)
 		tag.visibility_range_end = 12.0
 		_music_contacts[id] = contact
+
+func _build_music_setups() -> void:
+	# Keep displays at existing authored fronts, clear of pedestrian lanes.
+	for id in ["copper_cup","lantern_cup","dock_nine","blue_hour","static_room"]:
+		var anchor: Node3D = _nodes[id]
+		var setup := Node3D.new()
+		setup.name = "MusicSetup_"+id
+		anchor.add_child(setup)
+		_music_setups[id] = setup
+		if id=="copper_cup":
+			_label(setup,"COPPER STRINGS / USED GEAR",Vector3(0,3.45,1.65),Color("e6a8cf"),32)
+			for i in range(2):
+				var model := "acoustic_guitar" if i==0 else "punk_bass"
+				InstrumentArt.place(setup,model,Vector3(-1.0+float(i)*.7,2.10,1.40),Vector3(0,180,0))
+			InstrumentArt.place(setup,"portable_synth",Vector3(1.1,1.86,.12),Vector3(-90,180,0))
+			InstrumentArt.place(setup,"combo_amp",Vector3(2.1,.42,-.58),Vector3(0,180,0))
+			InstrumentArt.place(setup,"road_case",Vector3(-2.1,.32,-.64),Vector3(0,180,0))
+			_label(setup,"ACOUSTIC $85 / ASK INSIDE THE COUNTER",Vector3(0,1.75,-.8),Color("e5ce89"),18)
+		elif id=="lantern_cup":
+			InstrumentArt.place(setup,"combo_amp",Vector3(3.1,.40,.8),Vector3(0,180,0))
+			InstrumentArt.place(setup,"mic_stand",Vector3(2.8,.71,.65),Vector3(0,180,0))
+			InstrumentArt.place(setup,"road_case",Vector3(3.0,.28,.15),Vector3(0,180,0))
+		else:
+			# Backline sits on the existing frontage; not an interior stage yet.
+			InstrumentArt.place(setup,"combo_amp",Vector3(-2.85,.46,.42),Vector3(0,180,0))
+			InstrumentArt.place(setup,"mic_stand",Vector3(0,.75,.1),Vector3(0,180,0))
+			InstrumentArt.place(setup,"road_case",Vector3(2.6,.33,.65),Vector3(0,180,0))
+			InstrumentArt.place(setup,"punk_bass",Vector3(-2.10,.75,.78),Vector3(0,180,-9))
+			InstrumentArt.place(setup,"portable_synth",Vector3(1.75,1.05,.65),Vector3(-90,180,0))
+			_box(setup,Vector3(1.75,.61,.65),Vector3(.65,.85,.35),Color("30363d"),"METAL")
+
+func show_player_band(site: String, at: Vector3) -> void:
+	hide_player_band()
+	if not _nodes.has(site):
+		return
+	_active_ensemble = Node3D.new()
+	_active_ensemble.name = "LiveEnsemble"
+	add_child(_active_ensemble)
+	_active_ensemble.global_position = at-Vector3.UP
+	for id in MusicCareer.MEMBERS:
+		var model_path := "res://assets/models/nightgrid/pedestrians/casual-walker.glb" if id=="rhea" else "res://assets/models/nightgrid/pedestrians/hiker.glb"
+		var model := load(model_path) as PackedScene
+		if model==null:
+			continue
+		var visual := MusicContactVisual.instantiate() as Node3D
+		visual.name = id
+		visual.call("set_pedestrian_model",model)
+		visual.call("set_pedestrian_style",2 if id=="rhea" else 5)
+		visual.position = Vector3(-1.25 if id=="rhea" else 1.25,0,0)
+		visual.rotation.y = PI
+		_active_ensemble.add_child(visual)
+		visual.call("set_activity","SOCIALIZE")
+		if id=="rhea":
+			InstrumentArt.place(visual,"punk_bass",Vector3(.06,1.08,.25),Vector3(0,0,-32))
+			InstrumentArt.place(_active_ensemble,"combo_amp",Vector3(-1.8,.17,.45),Vector3(0,180,0))
+		else:
+			InstrumentArt.place(_active_ensemble,"portable_synth",Vector3(1.25,.91,-.38),Vector3(-90,180,0))
+			_box(_active_ensemble,Vector3(1.25,.45,-.38),Vector3(.60,.87,.34),Color("363e47"),"METAL")
+
+func hide_player_band() -> void:
+	if is_instance_valid(_active_ensemble):
+		_active_ensemble.hide()
+		_active_ensemble.queue_free()
+		_active_ensemble = null
 
 func music_contact_position(id: String) -> Vector3:
 	var contact: Node3D = _music_contacts.get(id)
@@ -474,7 +547,7 @@ func _refresh() -> void:
 	var darkness := _night_factor()
 	for id in _music_contacts:
 		var contact: Node3D = _music_contacts[id]
-		var visible_now := is_open(MusicCareer.MEMBERS[id]["site"]) and contact.global_position.distance_squared_to(_focus)<55.0*55.0
+		var visible_now := not is_instance_valid(_active_ensemble) and is_open(MusicCareer.MEMBERS[id]["site"]) and contact.global_position.distance_squared_to(_focus)<55.0*55.0
 		contact.visible = visible_now
 		contact.process_mode = Node.PROCESS_MODE_INHERIT if visible_now else Node.PROCESS_MODE_DISABLED
 	var nearby: Array[Dictionary] = []

@@ -5,6 +5,7 @@ const Materials = preload("res://scripts/material_library.gd")
 const ProductArt = preload("res://scripts/consumable_prop.gd")
 const DeliveryBag = preload("res://scripts/quotadrop_bag.gd")
 var _meal_bag: Node3D
+const InstrumentArt = preload("res://scripts/instrument_art.gd")
 var _guitar: Node3D
 var _music_pose := false
 var _meal_bag_carried := false
@@ -183,27 +184,8 @@ func set_meal_bag(carried: bool) -> void:
 # collision body. Animation rig refinement is deliberately separate.
 func set_music_prop(active: bool) -> void:
 	if active and not is_instance_valid(_guitar):
-		_guitar = Node3D.new()
+		_guitar = InstrumentArt.place(self,"acoustic_guitar",Vector3(.06,1.08,.25),Vector3(0,0,-32),0.0)
 		_guitar.name = "AcousticGuitar"
-		add_child(_guitar)
-		_guitar.position = Vector3(0.06,1.08,0.25)
-		_guitar.rotation.z = -0.55
-		var wood := Color("b37745")
-		for spec in [[Vector3(0,-.11,0),Vector3(.32,.38,.10)],[Vector3(0,.12,0),Vector3(.24,.27,.10)]]:
-			var part := MeshInstance3D.new()
-			var body := SphereMesh.new()
-			body.radius = .5
-			body.height = 1.0
-			part.mesh = body
-			part.scale = spec[1]
-			part.position = spec[0]
-			part.material_override = Materials.surface("WOOD",wood)
-			_guitar.add_child(part)
-		_equipment_part(_guitar,Vector3(0,.40,0),Vector3(.055,.48,.055),Color("52392b"))
-		_equipment_part(_guitar,Vector3(0,.66,0),Vector3(.10,.14,.055),Color("6e4730"))
-		_equipment_part(_guitar,Vector3(0,-.12,.055),Vector3(.16,.035,.018),Color("49362b"))
-		for i in range(6):
-			_equipment_part(_guitar,Vector3((i-2.5)*.007,.25,.058),Vector3(.002,.73,.002),Color("c0bcb2"))
 	if is_instance_valid(_guitar):
 		_guitar.visible = active
 	_music_pose = active
