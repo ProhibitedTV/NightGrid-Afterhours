@@ -94,9 +94,10 @@ func _input(event: InputEvent) -> void:
 	if not visible:
 		return
 	if event is InputEventMouseMotion:
-		_pad = false
+		if _pad:
+			_pad = false
+			queue_redraw()
 		_pointer(get_global_transform_with_canvas().affine_inverse() * (event as InputEventMouseMotion).position)
-		queue_redraw()
 	elif event is InputEventMouseButton and event.is_pressed():
 		var mouse := event as InputEventMouseButton
 		_pad = false
