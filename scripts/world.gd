@@ -73,6 +73,21 @@ const StarterHome = preload("res://scripts/starter_home.gd")
 var _home_panel := false
 var _storage_upgrade_quote := false
 var _wardrobe_panel := false
+var _clothing_retail := false
+var _retail_id:=""
+var _retail_stock:Array=[]
+var _retail_day:=0
+var _fitting_yaw:=0.0
+var _fitting_rotation:=0.0
+var _fitting_zoom:=0.0
+var _fitting_compare:=false
+var _wardrobe_category:="ALL"
+var _look_index:=0
+var _look_save_pending:=false
+var _wardrobe_controls:HBoxContainer
+var _wardrobe_category_label:Label
+var _wardrobe_compare_button:Button
+const ClothingStore = preload("res://scripts/clothing_store.gd")
 var _wardrobe_index := 0
 var _wardrobe_quote_id := ""
 var _wardrobe_tender := "USD"
@@ -438,6 +453,14 @@ func _build_world_audio() -> void:
 		float(options.get("sfx_volume", 0.75)))
 
 func _on_menu_action(action: String) -> void:
+	if action.begins_with("fashion_waypoint:"):
+		var id:=action.trim_prefix("fashion_waypoint:")
+		if ClothingStore.STORES.has(id):
+			var entry:=ClothingStore.entry(id)
+			set_navigation_waypoint(Vector2(entry.x,entry.z))
+			_notify("Route set to "+str(ClothingStore.STORES[id]["name"]))
+		game_menu.call("open_journal",_journal_context())
+		return
 	match action:
 		"cal_accept","cal_complete":
 			if not _street_contact_id.is_empty():
@@ -626,6 +649,7 @@ func _journal_context() -> Dictionary:
 		"courier_can_restart": carrying,
 		"story_objective": story_mission.journal(),
 		"conditioning": courier_mission.conditioning_text(),
+		"clothing_store": ClothingStore.directory(), "fashion_locations": ClothingStore.IDS.duplicate(),
 		"outfit": "OUTFIT: %s / %s" % [Wardrobe.ITEMS[progression.outfit_id]["name"],Wardrobe.ITEMS[progression.outfit_id]["rarity"]],
 		"bitcoin_sats": progression.bitcoin_sats,
 		"story_can_navigate": story_mission.status != "complete",
@@ -684,6 +708,36 @@ func _input(event: InputEvent) -> void:
 		gamepad_active = false
 	if game_menu != null and game_menu.call("is_open"):
 		return
+	if _wardrobe_panel and venue_panel.visible:
+		# Route venue shortcuts before GUI focus can consume controller A.
+		if event is InputEventKey and event.echo:
+			get_viewport().set_input_as_handled()
+			return
+		for index in range(3):
+			if event.is_action_pressed(["service_one","service_two","service_three"][index]):
+				_venue_action(index+1)
+				get_viewport().set_input_as_handled()
+				return
+		if event.is_action_pressed("game_back"):
+			_close_venue()
+			get_viewport().set_input_as_handled()
+			return
+		if event.is_action_pressed("interior_toggle") or event.is_action_pressed("transit_toggle"):
+			_cycle_wardrobe_category(-1 if event.is_action_pressed("interior_toggle") else 1)
+			get_viewport().set_input_as_handled()
+			return
+		if event.is_action_pressed("use_supply"):
+			_toggle_fitting_compare()
+			get_viewport().set_input_as_handled()
+			return
+		if _clothing_retail and event is InputEventMouseMotion and event.button_mask & MOUSE_BUTTON_MASK_RIGHT:
+			_fitting_rotation=wrapf(_fitting_rotation+event.relative.x*.012,-PI,PI)
+			get_viewport().set_input_as_handled()
+			return
+		if _clothing_retail and event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
+			_fitting_zoom=clampf(_fitting_zoom+(.12 if event.button_index==MOUSE_BUTTON_WHEEL_UP else -.12),0.0,1.0)
+			get_viewport().set_input_as_handled()
+			return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		if _cinder_cockpit and _can_use_cinder_view():
 			_adjust_cockpit_look(Vector2(-event.relative.x, event.relative.y * (-1.0 if invert_look_y else 1.0) * .625) * mouse_sensitivity)
@@ -918,6 +972,9 @@ func _process(delta: float) -> void:
 	if in_physical_room:
 		interior_id = str(physical_room.get("physical_venue_id"))
 		interior_kind = str((venue_system.call("venue_by_id",interior_id) as Dictionary).get("kind",""))
+		if not str(physical_room.get("clothing_store_id")).is_empty():
+			interior_id=str(physical_room.get("clothing_store_id"))
+			interior_kind=str(ClothingStore.THEMES[interior_id]["music"]).to_upper()
 	if indoors and str(interiors.call("active_site_group")) == "VENUE":
 		interior_kind = str((venue_system.call("venue_by_id", interior_id) as Dictionary).get("kind", ""))
 	if is_instance_valid(nightgrid_fm):
@@ -980,6 +1037,10 @@ func _process(delta: float) -> void:
 		var menu_position: Vector3
 		if is_instance_valid(_vending_machine):
 			menu_position = _vending_machine.global_position if city_details.call("nearby_vending",player.global_position) == _vending_machine else Vector3.INF
+		elif _wardrobe_panel:
+			var wardrobe_lot:Node3D=city_details.call("nearby_walk_in",player.global_position)
+			var reachable:bool=is_instance_valid(wardrobe_lot) and (wardrobe_lot.get("clothing_store_id")==_retail_id and wardrobe_lot.call("clothing_reachable",player.global_position) if _clothing_retail else progression.owns_home() and wardrobe_lot.call("home_action",player.global_position)=="wardrobe")
+			menu_position=player.global_position if reachable else Vector3.INF
 		elif _repair_panel:
 			menu_position = repair.counter_position() if repair != null else Vector3.INF
 		elif indoors:
@@ -1166,6 +1227,22 @@ func _toggle_cinder_view() -> void:
 
 func _update_camera(delta: float, teleport: bool = false) -> void:
 	if camera == null or not is_instance_valid(player):
+		return
+	if _wardrobe_panel and _clothing_retail and venue_panel.visible:
+		var visual:Node3D=player.get_node("Visual")
+		var stick:=GameInput.look_vector()
+		_fitting_rotation=wrapf(_fitting_rotation+stick.x*delta*2.2,-PI,PI)
+		_fitting_zoom=clampf(_fitting_zoom-stick.y*delta*.8,0.0,1.0)
+		var patch_view:=false
+		if _wardrobe_category!="LOOKS" and _wardrobe_index>=0 and _wardrobe_index<Wardrobe.browse_ids().size():
+			var selected:String=Wardrobe.browse_ids()[_wardrobe_index]
+			patch_view=Wardrobe.reset_slot(selected)=="patch" or (Wardrobe.piece_valid(selected) and Wardrobe.PIECES[selected]["slot"]=="patch")
+		visual.rotation.y=PI/2+_fitting_rotation+(PI if patch_view else 0.0)
+		var focus:=player.global_position+Vector3.UP*lerpf(.03,.58,_fitting_zoom)
+		var offset:=Vector3(2.25,.26,1.05)*lerpf(1.0,.53,_fitting_zoom)
+		camera.global_position=_camera_clearance(focus,focus+offset)
+		if camera.global_position.distance_squared_to(focus)>.001:
+			camera.look_at(focus,Vector3.UP)
 		return
 	if _cinder_cockpit and _can_use_cinder_view():
 		var coach := current_car.get_node("RoadCarVisual/Coachwork") as Node3D
@@ -2021,7 +2098,7 @@ func _capture_snapshot() -> Dictionary:
 		"player_position": [saved_at.x, saved_at.y, saved_at.z],
 		"camera_yaw": yaw, "cash": cash, "progression": progression.snapshot(), "health": health, "heat": heat,
 		"deliveries": deliveries, "carrying": carrying, "story_mission": story_mission.snapshot(),
-		"hour": day_night.get("hour"), "cars": stored_cars,
+		"hour": day_night.get("hour"), "day_index":day_night.get("day_index"), "cars": stored_cars,
 		"occupied_car": cars.find(current_car),
 		"traffic": traffic.call("snapshot"), "rail": rail.call("snapshot"),
 		"signal_elapsed": signal_controller.get("elapsed"),
@@ -2060,7 +2137,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 		return
 	var saved_visual: Node3D = player.get("visual")
 	if is_instance_valid(saved_visual):
-		saved_visual.call("set_outfit",progression.outfit_id)
+		saved_visual.call("set_look",progression.outfit_id,progression.clothing_slots)
 	_cinder_cockpit = false
 	_cockpit_look = Vector2.ZERO
 	# Geometry is already reconstructed from the saved immutable seed.
@@ -2132,6 +2209,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 		elif saved_transit == "TRAIN":
 			_board_transit(rail.get_node("MorrowLineTrain"), "TRAIN", false)
 			_rail_platform_rider = bool(data.get("rail_platform_rider", false))
+	day_night.set("day_index",int(data.get("day_index",0)))
 	day_night.call("set_hour", float(data.get("hour", 19.25)))
 	venue_system.call("set_hour", float(day_night.get("hour")))
 	civic_services.call("set_hour", float(day_night.get("hour")))
@@ -2368,6 +2446,27 @@ func _toggle_interaction() -> void:
 			_notify("Approach the service counter.")
 		return
 	var physical_lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+	if is_instance_valid(physical_lot) and not str(physical_lot.get("clothing_store_id")).is_empty():
+		if physical_lot.call("clothing_reachable",player.global_position):
+			_clothing_retail=true
+			_retail_id=str(physical_lot.get("clothing_store_id"))
+			_retail_day=int(day_night.get("day_index"))
+			_retail_stock=ClothingStore.stock_for_day(_retail_id,_retail_day)
+			_fitting_yaw=player.get_node("Visual").rotation.y
+			_fitting_rotation=0.0
+			_fitting_zoom=0.0
+			_fitting_compare=false
+			_wardrobe_category="ALL"
+			_wardrobe_panel=true
+			_wardrobe_index=Wardrobe.browse_ids().find(progression.outfit_id if progression.outfit_id in _retail_stock else "dispatch")
+			var greeting:String=physical_lot.call("clothing_greeting")
+			if not greeting.is_empty():
+				_notify(greeting)
+			_show_venue_dialogue()
+			_update_venue_panel()
+		else:
+			_notify(str(ClothingStore.STORES[physical_lot.get("clothing_store_id")]["name"])+": approach the fitting and checkout counter.")
+		return
 	if is_instance_valid(physical_lot) and not str(physical_lot.get("home_id")).is_empty():
 		if not progression.owns_home():
 			_notify("Complete Mara’s contact mission first.")
@@ -2387,6 +2486,7 @@ func _toggle_interaction() -> void:
 				_show_venue_dialogue()
 				_update_venue_panel()
 			"wardrobe":
+				_wardrobe_category="ALL"
 				_wardrobe_panel = true
 				_wardrobe_index = Wardrobe.IDS.find(progression.outfit_id)
 				_show_venue_dialogue()
@@ -2863,7 +2963,20 @@ func _close_venue() -> void:
 	_sale_offer_id = ""
 	_home_panel = false
 	_storage_upgrade_quote = false
+	if _wardrobe_panel and is_instance_valid(player):
+		player.get_node("Visual").call("set_look",progression.outfit_id,progression.clothing_slots)
+		if _clothing_retail:
+			player.get_node("Visual").rotation.y=_fitting_yaw
 	_wardrobe_panel = false
+	_clothing_retail=false
+	_retail_id=""
+	_retail_stock.clear()
+	_fitting_compare=false
+	_wardrobe_category="ALL"
+	_look_index=0
+	_look_save_pending=false
+	if is_instance_valid(_wardrobe_controls):
+		_wardrobe_controls.hide()
 	_wardrobe_quote_id = ""
 	_wardrobe_tender = "USD"
 	_exchange_panel = false
@@ -2882,6 +2995,142 @@ func _close_venue() -> void:
 		player.set("input_blocked", false)
 	if game_menu == null or not game_menu.call("is_open"):
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+func _wardrobe_visible_ids() -> Array:
+	var result:Array=[]
+	for id in Wardrobe.category_ids(_wardrobe_category):
+		if _wardrobe_category=="OWNED":
+			if _clothing_owned(id):
+				result.append(id)
+			continue
+		var available:bool=(id in _retail_stock or id in Wardrobe.RESET_IDS) if _clothing_retail else (id not in ClothingStore.EXCLUSIVE or _clothing_owned(id))
+		if not available:
+			continue
+		if _wardrobe_category in ["AFFORDABLE","UNOWNED"]:
+			if _clothing_owned(id):
+				continue
+			var cost:=int(Wardrobe.listing(id)["price"])
+			if _wardrobe_category=="AFFORDABLE" and not progression.can_pay(cost,"USD") and not progression.can_pay(cost,"BTC"):
+				continue
+		result.append(id)
+	return result
+
+func _cycle_wardrobe_category(direction:int) -> void:
+	if not _wardrobe_panel or not _wardrobe_quote_id.is_empty():
+		return
+	var index:=Wardrobe.CATEGORIES.find(_wardrobe_category)
+	_wardrobe_category=Wardrobe.CATEGORIES[posmod(index+direction,Wardrobe.CATEGORIES.size())]
+	player.get_node("Visual").call("set_look",progression.outfit_id,progression.clothing_slots)
+	_fitting_rotation=0.0
+	_fitting_zoom=0.0
+	_look_save_pending=false
+	_look_index=0
+	var visible_ids:=_wardrobe_visible_ids()
+	if not visible_ids.is_empty():
+		_wardrobe_index=Wardrobe.browse_ids().find(visible_ids[0])
+	_fitting_compare=false
+	_update_venue_panel()
+
+func _toggle_fitting_compare() -> void:
+	if _wardrobe_panel and _wardrobe_category=="LOOKS":
+		_save_fitting_look()
+		return
+	if not _wardrobe_panel or not _clothing_retail:
+		return
+	_fitting_compare=not _fitting_compare
+	_update_venue_panel()
+
+func _wardrobe_session_valid() -> bool:
+	if not _wardrobe_panel or not is_instance_valid(player) or not venue_panel.visible or current_car!=null or current_transit!=null:
+		return false
+	var lot:Node3D=city_details.call("nearby_walk_in",player.global_position)
+	if not is_instance_valid(lot):
+		return false
+	if _clothing_retail:
+		return lot.get("clothing_store_id")==_retail_id and lot.call("clothing_reachable",player.global_position)
+	return progression.owns_home() and lot.call("home_action",player.global_position)=="wardrobe"
+
+func _save_fitting_look() -> void:
+	if not _wardrobe_session_valid() or _wardrobe_category!="LOOKS":
+		return
+	var id:String=ProgressionLedger.LOOK_IDS[_look_index]
+	if not progression.saved_look(id).is_empty() and not _look_save_pending:
+		_look_save_pending=true
+		_update_venue_panel()
+		return
+	if progression.save_look(id,_clothing_retail):
+		_notify("Saved current outfit to Look %d." % (_look_index+1))
+	_look_save_pending=false
+	_update_venue_panel()
+
+func _update_saved_looks() -> void:
+	var id:String=ProgressionLedger.LOOK_IDS[_look_index]
+	var look:Dictionary=progression.saved_look(id)
+	var visual:Node3D=player.get_node("Visual")
+	var preview_ok:=true
+	if look.is_empty():
+		visual.call("set_look",progression.outfit_id,progression.clothing_slots)
+	else:
+		preview_ok=bool(visual.call("set_look",look["outfit"],look["slots"]))
+	_wardrobe_controls.show()
+	_wardrobe_category_label.text="LOOKS / %d of %d" % [_look_index+1,ProgressionLedger.LOOK_IDS.size()]
+	for button in _wardrobe_controls.get_children():
+		if button is Button:
+			button.disabled=false
+	_wardrobe_compare_button.show()
+	_wardrobe_compare_button.text="R / ↓ CONFIRM REPLACE" if _look_save_pending else "R / ↓ SAVE CURRENT"
+	var info:="Empty slot" if look.is_empty() else str(Wardrobe.ITEMS[look["outfit"]]["name"])
+	if not look.is_empty():
+		for slot in Wardrobe.SLOTS:
+			if look["slots"].has(slot):
+				info+=" / "+str(Wardrobe.PIECES[look["slots"][slot]]["name"])
+	venue_label.text="PERSONAL LOOK %d\n%s\n%s" % [_look_index+1,info,"Confirm replacement with your committed look." if _look_save_pending else "Save the look you are wearing or equip this saved combination. No charge."]
+	venue_service_button.show()
+	venue_service_button.text="1 / A  •  PREVIOUS"
+	venue_service_button.disabled=_look_index==0
+	venue_job_button.show()
+	venue_job_button.text="2 / X  •  NEXT"
+	venue_job_button.disabled=_look_index==ProgressionLedger.LOOK_IDS.size()-1
+	venue_talk_button.show()
+	venue_talk_button.text="3 / Y  •  EQUIP LOOK"
+	venue_talk_button.disabled=look.is_empty() or not preview_ok
+
+func _step_wardrobe(direction:int) -> void:
+	var visible_ids:=_wardrobe_visible_ids()
+	if visible_ids.is_empty():
+		return
+	var current:String=Wardrobe.browse_ids()[_wardrobe_index]
+	var index:=visible_ids.find(current)
+	_wardrobe_index=Wardrobe.browse_ids().find(visible_ids[clampi(index+direction,0,visible_ids.size()-1)])
+	_fitting_compare=false
+	_fitting_rotation=0.0
+	_fitting_zoom=0.0
+
+func _clothing_owned(id:String) -> bool:
+	if not Wardrobe.reset_slot(id).is_empty():
+		return true
+	return progression.owns_piece(id) if Wardrobe.piece_valid(id) else progression.owns_outfit(id)
+
+func _clothing_selected(id:String) -> bool:
+	var slot:=Wardrobe.reset_slot(id)
+	if not slot.is_empty():
+		return not progression.clothing_slots.has(slot)
+	if Wardrobe.piece_valid(id):
+		return progression.clothing_slots.get(Wardrobe.PIECES[id]["slot"],"")==id
+	return progression.outfit_id==id and progression.clothing_slots.is_empty()
+
+func _preview_clothing(id:String) -> bool:
+	var visual:Node3D=player.get_node("Visual")
+	var reset:=Wardrobe.reset_slot(id)
+	if not reset.is_empty():
+		var slots:Dictionary=progression.clothing_slots.duplicate()
+		slots.erase(reset)
+		return visual.call("set_look",progression.outfit_id,slots)
+	if Wardrobe.piece_valid(id):
+		var slots:Dictionary=progression.clothing_slots.duplicate()
+		slots[Wardrobe.PIECES[id]["slot"]]=id
+		return visual.call("set_look",progression.outfit_id,slots)
+	return visual.call("set_look",id,{})
 
 func _update_venue_panel() -> void:
 	if _tenancy_panel:
@@ -2906,9 +3155,49 @@ func _update_venue_panel() -> void:
 		venue_talk_button.hide()
 		return
 	if _wardrobe_panel:
-		var id: String = _wardrobe_quote_id if not _wardrobe_quote_id.is_empty() else Wardrobe.IDS[_wardrobe_index]
-		var item: Dictionary = Wardrobe.ITEMS[id]
-		var price := Wardrobe.price(id)
+		if _wardrobe_category=="LOOKS":
+			_update_saved_looks()
+			return
+		var id: String = _wardrobe_quote_id if not _wardrobe_quote_id.is_empty() else Wardrobe.browse_ids()[_wardrobe_index]
+		var item: Dictionary = Wardrobe.listing(id)
+		var price:=int(item["price"])
+		var visible_ids:=_wardrobe_visible_ids()
+		if visible_ids.is_empty() and _wardrobe_quote_id.is_empty():
+			player.get_node("Visual").call("set_look",progression.outfit_id,progression.clothing_slots)
+			_wardrobe_controls.show()
+			_wardrobe_category_label.text=_wardrobe_category+" / 0 items"
+			_wardrobe_compare_button.hide()
+			for button in _wardrobe_controls.get_children():
+				if button is Button:
+					button.disabled=false
+			venue_label.text="NO MATCHING CLOTHING\n"+("No unowned items fit either wallet balance." if _wardrobe_category=="AFFORDABLE" else "Nothing available in this category.")+"\nChange category to continue browsing."
+			venue_service_button.show()
+			venue_job_button.show()
+			venue_talk_button.show()
+			venue_service_button.text="1 / A  •  PREVIOUS"
+			venue_job_button.text="2 / X  •  NEXT"
+			venue_talk_button.text="3 / Y  •  SELECT"
+			venue_service_button.disabled=true
+			venue_job_button.disabled=true
+			venue_talk_button.disabled=true
+			return
+		var visible_index:=visible_ids.find(id)
+		if visible_index<0 and _wardrobe_quote_id.is_empty() and not visible_ids.is_empty():
+			id=visible_ids[0]
+			_wardrobe_index=Wardrobe.browse_ids().find(id)
+			item=Wardrobe.listing(id)
+			price=int(item["price"])
+			visible_index=0
+		var preview_ok:=true
+		if _clothing_retail:
+			preview_ok=bool(player.get_node("Visual").call("set_look",progression.outfit_id,progression.clothing_slots)) if _fitting_compare else _preview_clothing(id)
+		_wardrobe_controls.show()
+		_wardrobe_category_label.text=_wardrobe_category+"  /  "+str(visible_index+1)+" of "+str(visible_ids.size())+("  •  DROP "+str(_retail_day%3+1) if _retail_id==ClothingStore.THRIFT else "")
+		_wardrobe_compare_button.visible=_clothing_retail
+		_wardrobe_compare_button.text="R / ↓  PREVIEW" if _fitting_compare else "R / ↓  COMPARE"
+		for button in _wardrobe_controls.get_children():
+			if button is Button and button!=_wardrobe_compare_button:
+				button.disabled=not _wardrobe_quote_id.is_empty()
 		venue_service_button.show()
 		venue_talk_button.show()
 		if not _wardrobe_quote_id.is_empty():
@@ -2920,17 +3209,20 @@ func _update_venue_panel() -> void:
 			venue_job_button.text = "2 / X  •  SWITCH USD / BTC"
 			venue_job_button.disabled = false
 			venue_talk_button.text = "3 / Y  •  CONFIRM PURCHASE"
-			venue_talk_button.disabled = not progression.can_pay(price,_wardrobe_tender) or progression.owns_outfit(id)
+			venue_talk_button.disabled = visible_index<0 or not preview_ok or not progression.can_pay(price,_wardrobe_tender) or _clothing_owned(id)
 			return
-		var owned := progression.owns_outfit(id)
-		venue_label.text = "WARDROBE / %d of %d\n%s / %s\n%s  |  CASH $%d\nWearing: %s" % [_wardrobe_index+1,Wardrobe.IDS.size(),item["name"],item["rarity"],"OWNED" if owned else "$%d / %d sats" % [price,Economy.sats_for_usd(price)],cash,Wardrobe.ITEMS[progression.outfit_id]["name"]]
+		var owned := _clothing_owned(id)
+		venue_label.text = (str(ClothingStore.STORES[_retail_id]["name"])+" / FITTING" if _clothing_retail else "WARDROBE")+"\n%s  ·  %s\n%s   |   CASH $%d\n%s" % [item["name"],item["type"]+" / "+item["rarity"],"EQUIPPED" if _clothing_selected(id) else ("OWNED" if owned else "$%d / %d sats" % [price,Economy.sats_for_usd(price)]),cash,"CURRENT LOOK" if _fitting_compare else ("TRY-ON ONLY • Right stick / drag RMB to rotate • zoom with stick / wheel" if _clothing_retail else "Wearing: "+str(Wardrobe.ITEMS[progression.outfit_id]["name"]))]
+		venue_label.text+="\n"+str(item.get("detail",""))
 		venue_service_button.text = "1 / A  •  PREVIOUS"
-		venue_service_button.disabled = _wardrobe_index == 0
+		venue_service_button.disabled = visible_index<=0
 		venue_job_button.show()
 		venue_job_button.text = "2 / X  •  NEXT"
-		venue_job_button.disabled = _wardrobe_index == Wardrobe.IDS.size()-1
-		venue_talk_button.text = "3 / Y  •  EQUIP" if owned else "3 / Y  •  REVIEW PURCHASE"
-		venue_talk_button.disabled = id == progression.outfit_id or (not owned and not progression.can_pay(price,"USD") and not progression.can_pay(price,"BTC"))
+		venue_job_button.disabled = visible_index>=visible_ids.size()-1
+		venue_talk_button.text = ("3 / Y  •  REMOVE / RESTORE" if not Wardrobe.reset_slot(id).is_empty() else "3 / Y  •  EQUIP") if owned else "3 / Y  •  REVIEW PURCHASE"
+		if _clothing_retail and Wardrobe.piece_valid(id) and Wardrobe.PIECES[id]["slot"]=="patch":
+			venue_label.text+="\nBACKPACK ART / "+("CURRENT PATCH" if _fitting_compare else "ROTATE TO INSPECT")
+		venue_talk_button.disabled = not preview_ok or _clothing_selected(id) or (not owned and not progression.can_pay(price,"USD") and not progression.can_pay(price,"BTC"))
 		return
 	if _garage_panel:
 		venue_label.text = "LANTERN GARAGE / RECOVERY\nDrive into either marked bay and leave your car there. Recovery $75; damage retained."
@@ -3108,10 +3400,23 @@ func _venue_action(option: int) -> void:
 		return
 	if _wardrobe_panel:
 		var lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
-		if not venue_panel.visible or not is_instance_valid(lot) or lot.call("home_action",player.global_position) != "wardrobe" or not progression.owns_home() or current_car != null or current_transit != null:
+		var retail_ok:bool=is_instance_valid(lot) and _clothing_retail and lot.get("clothing_store_id")==_retail_id and lot.call("clothing_reachable",player.global_position)
+		var home_ok:bool=is_instance_valid(lot) and not _clothing_retail and progression.owns_home() and lot.call("home_action",player.global_position)=="wardrobe"
+		if not venue_panel.visible or not (retail_ok or home_ok) or current_car != null or current_transit != null:
 			_close_venue()
 			return
 		var visual := player.get_node("Visual")
+		if _wardrobe_category=="LOOKS":
+			_look_save_pending=false
+			if option in [1,2]:
+				_look_index=clampi(_look_index+(-1 if option==1 else 1),0,ProgressionLedger.LOOK_IDS.size()-1)
+			elif option==3:
+				var look_id:String=ProgressionLedger.LOOK_IDS[_look_index]
+				var look:Dictionary=progression.saved_look(look_id)
+				if not look.is_empty() and visual.call("set_look",look["outfit"],look["slots"]) and progression.equip_look(look_id,retail_ok):
+					_notify("Equipped personal look %d." % (_look_index+1))
+			_update_venue_panel()
+			return
 		if not _wardrobe_quote_id.is_empty():
 			if option == 1:
 				_wardrobe_quote_id = ""
@@ -3120,22 +3425,32 @@ func _venue_action(option: int) -> void:
 			elif option == 3:
 				var id := _wardrobe_quote_id
 				_wardrobe_quote_id = ""
-				if int(visual.call("wardrobe_surface_count")) > 0 and progression.buy_outfit(id,_wardrobe_tender):
-					_notify("Purchased " + str(Wardrobe.ITEMS[id]["name"]) + ". Ready to equip.")
+				if id in _wardrobe_visible_ids() and _preview_clothing(id) and int(visual.call("wardrobe_surface_count"))>0 and (progression.buy_piece(id,_wardrobe_tender,retail_ok) if Wardrobe.piece_valid(id) else progression.buy_outfit(id,_wardrobe_tender,retail_ok)):
+					_notify("Purchased "+str(Wardrobe.listing(id)["name"])+". Ready to equip."+(" "+str(lot.call("clothing_remark",true)) if retail_ok else ""))
+					if _wardrobe_category in ["AFFORDABLE","UNOWNED"]:
+						_wardrobe_category="OWNED"
+						_wardrobe_index=Wardrobe.browse_ids().find(id)
 				else:
 					_notify("Purchase unavailable. No payment taken.")
 		elif option == 1:
-			_wardrobe_index = maxi(0,_wardrobe_index-1)
+			_step_wardrobe(-1)
 		elif option == 2:
-			_wardrobe_index = mini(Wardrobe.IDS.size()-1,_wardrobe_index+1)
+			_step_wardrobe(1)
 		elif option == 3:
-			var id: String = Wardrobe.IDS[_wardrobe_index]
-			if progression.owns_outfit(id):
-				if visual.call("set_outfit",id) and progression.select_outfit(id):
-					_notify("Outfit: " + str(Wardrobe.ITEMS[id]["name"]))
-			elif progression.can_pay(Wardrobe.price(id),"USD") or progression.can_pay(Wardrobe.price(id),"BTC"):
-				_wardrobe_tender = "USD" if progression.can_pay(Wardrobe.price(id),"USD") else "BTC"
-				_wardrobe_quote_id = id
+			var id:String=Wardrobe.browse_ids()[_wardrobe_index]
+			if id not in _wardrobe_visible_ids():
+				return
+			var price:=int(Wardrobe.listing(id)["price"])
+			_fitting_compare=false
+			if _clothing_owned(id):
+				if _preview_clothing(id):
+					var reset:=Wardrobe.reset_slot(id)
+					var changed:bool=progression.clear_piece(reset,retail_ok) if not reset.is_empty() else (progression.select_piece(id,retail_ok) if Wardrobe.piece_valid(id) else progression.select_outfit(id,retail_ok))
+					if changed:
+						_notify("Appearance: "+str(Wardrobe.listing(id)["name"]))
+			elif progression.can_pay(price,"USD") or progression.can_pay(price,"BTC"):
+				_wardrobe_tender="USD" if progression.can_pay(price,"USD") else "BTC"
+				_wardrobe_quote_id=id
 		_update_venue_panel()
 		return
 	if _garage_panel:
@@ -3475,6 +3790,25 @@ func _build_hud() -> void:
 	var dialogue_layout := VBoxContainer.new()
 	dialogue_layout.add_theme_constant_override("separation", 7)
 	venue_panel.add_child(dialogue_layout)
+	_wardrobe_controls=HBoxContainer.new()
+	_wardrobe_controls.name="FittingCategories"
+	_wardrobe_controls.hide()
+	dialogue_layout.add_child(_wardrobe_controls)
+	var previous_category:=Button.new()
+	previous_category.text="H / LB  ‹"
+	previous_category.pressed.connect(func()->void: _cycle_wardrobe_category(-1))
+	_wardrobe_controls.add_child(previous_category)
+	_wardrobe_category_label=Label.new()
+	_wardrobe_category_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	_wardrobe_category_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	_wardrobe_controls.add_child(_wardrobe_category_label)
+	var next_category:=Button.new()
+	next_category.text="›  F / RB"
+	next_category.pressed.connect(func()->void: _cycle_wardrobe_category(1))
+	_wardrobe_controls.add_child(next_category)
+	_wardrobe_compare_button=Button.new()
+	_wardrobe_compare_button.pressed.connect(_toggle_fitting_compare)
+	_wardrobe_controls.add_child(_wardrobe_compare_button)
 	dialogue_layout.add_child(venue_label)
 	var action_row := HBoxContainer.new()
 	action_row.add_theme_constant_override("separation", 7)
@@ -3656,6 +3990,8 @@ func _update_hud() -> void:
 		if physical_lot != null and not str(physical_lot.get("home_id")).is_empty():
 			var home_action := str(physical_lot.call("home_action",player.global_position))
 			prompts.append("HOME / " + (interact_key + " " + home_action.capitalize() if progression.owns_home() and not home_action.is_empty() else ("Unit 01" if progression.owns_home() else "Locked — tenancy payment required")))
+		if physical_lot != null and physical_lot.call("clothing_reachable",player.global_position):
+			prompts.append("%s Browse %s clothing" % [interact_key,ClothingStore.STORES[physical_lot.get("clothing_store_id")]["name"]])
 		if physical_lot != null and physical_lot.call("service_reachable",player.global_position):
 			prompts.append("%s Order at HELIX ESPRESSO" % interact_key)
 		if physical_lot != null and physical_lot.call("doorway_reachable",player.global_position):

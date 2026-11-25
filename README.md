@@ -39,3 +39,8 @@ See [Offline SFX authoring](docs/SFX_AUTHORING.md) for the optional local Stable
 
 ### Unified audio production
 See [Anubis audio studio](docs/AUDIO_PRODUCTION_STUDIO.md) for dialogue, NPC choices, SFX and ambience. Neural processing is development-only; game assets require review.
+
+### Fashion and personal style (development)
+Six physical stores with distinct inventories, clerks, lighting, signage and NightGrid FM playlists: Threadline, Quay Standard, Vesper Line, Nocturne, Obscura and Second Signal. Open the journal's fashion directory to set a waypoint. At the counter, browse with 1/2/3 or A/X/Y, H/F or LB/RB for categories, right stick or right mouse drag to rotate and wheel/stick to zoom. Review USD or fictional BTC purchases, equip individual garments/accessories, collect original backpack art and save three personal looks. Second Signal rotates affordable stock daily. Try-ons never change ownership; closing the panel restores the committed look. Most garments are existing rig-compatible material variants. The offline fitted geometry pilot is not published to gameplay yet.
+
+See [character customization](docs/CHARACTER_CUSTOMIZATION.md) and [garment authoring](docs/THREADLINE_ASSET_AUTHORING.md). Native route, input, visual quality, and performance verification remain pending.

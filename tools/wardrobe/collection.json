@@ -1,0 +1,243 @@
+{
+  "schema": 1,
+  "source": "ara3d@0.13.0",
+  "source_revision": "9d3b9f9933cbeb9529630a270ffc7fe01bd05511",
+  "base": "assets/models/nightgrid/courier/appearance.json",
+  "axes": {
+    "top": [
+      {
+        "id": "tee",
+        "settings": {
+          "top": "oversized_tee",
+          "jacket": "none"
+        },
+        "styles": {
+          "oversized_tee": {
+            "color": "#e0d9cc"
+          }
+        },
+        "materials": [
+          "tee|t-shirt|shirt"
+        ]
+      },
+      {
+        "id": "racer",
+        "settings": {
+          "top": "racer_casual_shirt",
+          "jacket": "racing_jacket_long"
+        },
+        "styles": {
+          "racer_casual_shirt": {
+            "color": "#34363a"
+          },
+          "racing_jacket_long": {
+            "color": "#282e35",
+            "color2": "#87705c"
+          }
+        },
+        "materials": [
+          "racing|racer",
+          "jacket"
+        ]
+      }
+    ],
+    "bottom": [
+      {
+        "id": "denim",
+        "settings": {
+          "bottom": "baggy_jeans"
+        },
+        "styles": {
+          "baggy_jeans": {
+            "color": "#445571"
+          }
+        },
+        "materials": [
+          "jean|denim"
+        ]
+      },
+      {
+        "id": "cargo",
+        "settings": {
+          "bottom": "cargo_pants"
+        },
+        "styles": {
+          "cargo_pants": {
+            "color": "#555b48"
+          }
+        },
+        "materials": [
+          "cargo"
+        ]
+      }
+    ],
+    "shoe": [
+      {
+        "id": "trainer",
+        "settings": {
+          "shoes": "sneakers"
+        },
+        "styles": {},
+        "materials": [
+          "sneaker|trainer|shoe"
+        ]
+      },
+      {
+        "id": "boot",
+        "settings": {
+          "shoes": "combat_boots"
+        },
+        "styles": {},
+        "materials": [
+          "boot"
+        ]
+      }
+    ]
+  },
+  "common": {
+    "outfit": "none",
+    "accessories": [],
+    "carry": "none",
+    "hat": "none"
+  },
+  "limits": {
+    "max_bytes": 18000000,
+    "max_vertices": 120000,
+    "max_variants": 12,
+    "max_collection_variants": 8
+  },
+  "collections": {
+    "matrix": {
+      "retailers": [
+        "vesper_threadline",
+        "second_signal"
+      ]
+    },
+    "tailored": {
+      "retailers": [
+        "vesper_line",
+        "obscura"
+      ]
+    },
+    "technical": {
+      "retailers": [
+        "quay_standard",
+        "nocturne"
+      ]
+    }
+  },
+  "curated": [
+    {
+      "id": "vesper_meridian_suit",
+      "collection": "tailored",
+      "settings": {
+        "outfit": "set_suit_tie",
+        "top": "suit_shirt_tie",
+        "jacket": "suit_jacket",
+        "bottom": "suit_trousers",
+        "shoes": "oxfords"
+      },
+      "styles": {
+        "set_suit_tie": {
+          "pattern": "suiting",
+          "color": "#343d52",
+          "color2": "#505b70"
+        },
+        "suit_shirt_tie": {
+          "pattern": "solid",
+          "color": "#e9e6df",
+          "color2": "#7d4353"
+        }
+      },
+      "materials": [
+        "suit",
+        "shirt|tie",
+        "oxford|shoe"
+      ]
+    },
+    {
+      "id": "obscura_monolith_suit",
+      "collection": "tailored",
+      "settings": {
+        "outfit": "set_suit_tie",
+        "top": "suit_shirt_tie",
+        "jacket": "suit_jacket",
+        "bottom": "suit_trousers",
+        "shoes": "oxfords"
+      },
+      "styles": {
+        "set_suit_tie": {
+          "pattern": "suiting",
+          "color": "#202229",
+          "color2": "#393c42"
+        },
+        "suit_shirt_tie": {
+          "pattern": "solid",
+          "color": "#b8b9bc",
+          "color2": "#24262c"
+        }
+      },
+      "materials": [
+        "suit",
+        "shirt|tie",
+        "oxford|shoe"
+      ]
+    },
+    {
+      "id": "quay_forge_utility",
+      "collection": "technical",
+      "settings": {
+        "outfit": "none",
+        "top": "techwear_jacket",
+        "jacket": "none",
+        "bottom": "cargo_pants",
+        "shoes": "combat_boots"
+      },
+      "styles": {
+        "techwear_jacket": {
+          "pattern": "techwear",
+          "color": "#57594d",
+          "color2": "#b08754"
+        },
+        "cargo_pants": {
+          "pattern": "khaki",
+          "color": "#3b413c",
+          "color2": "#555a49"
+        }
+      },
+      "materials": [
+        "jacket",
+        "cargo",
+        "boot"
+      ]
+    },
+    {
+      "id": "nocturne_afterimage_utility",
+      "collection": "technical",
+      "settings": {
+        "outfit": "none",
+        "top": "techwear_jacket",
+        "jacket": "none",
+        "bottom": "cargo_pants",
+        "shoes": "sneakers"
+      },
+      "styles": {
+        "techwear_jacket": {
+          "pattern": "techwear",
+          "color": "#202838",
+          "color2": "#5b9da8"
+        },
+        "cargo_pants": {
+          "pattern": "khaki",
+          "color": "#292e3b",
+          "color2": "#45576c"
+        }
+      },
+      "materials": [
+        "jacket",
+        "cargo",
+        "sneaker|trainer|shoe"
+      ]
+    }
+  ]
+}

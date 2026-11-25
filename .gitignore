@@ -10,3 +10,6 @@ dist/
 .venv/
 __pycache__/
 *.py[cod]
+
+# Generated fitted donors are review artifacts, never committed game assets.
+/assets/models/nightgrid/wardrobe_candidates/

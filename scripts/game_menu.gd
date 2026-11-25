@@ -1,4 +1,5 @@
 extends CanvasLayer
+const FashionStores=preload("res://scripts/clothing_store.gd")
 const AudioMix = preload("res://scripts/audio_mix.gd")
 const MinimapScript = preload("res://scripts/minimap.gd")
 const CityFoley = preload("res://scripts/city_foley.gd")
@@ -479,6 +480,12 @@ func _render() -> void:
 			_label(col, str(_journal_data.get("owned_vehicles", "VEHICLE TITLES: None")), 16, Color("c4d6da"))
 			_label(col, str(_journal_data.get("conditioning", "")), 16, Ui.ACCENT)
 			_label(col, str(_journal_data.get("outfit", "")), 16, Ui.ACCENT)
+			if _journal_data.has("fashion_locations"):
+				_title(col,"FASHION DIRECTORY",18,Color("f0d1a0"))
+				for id in _journal_data["fashion_locations"]:
+					if FashionStores.STORES.has(id):
+						var site:Dictionary=FashionStores.STORES[id]
+						_button(col,"fashion_"+id,"%s / %s" % [site["name"],site["district"]],"fashion_waypoint:"+id)
 			_label(col, "BTC WALLET: %d sats" % int(_journal_data.get("bitcoin_sats",0)), 16, Ui.ACCENT)
 			if not str(_journal_data.get("synaxis_site","")).is_empty():
 				_label(col,str(_journal_data["synaxis_site"]),16,Ui.MUTED)
