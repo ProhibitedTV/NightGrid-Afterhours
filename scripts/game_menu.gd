@@ -41,6 +41,7 @@ var _world: Node3D
 var _journal_data: Dictionary = {}
 var _opening_stage := 0
 var _opening_report := ""
+var _opening_exit := ""
 var settings: Dictionary = DEFAULT_SETTINGS.duplicate(true)
 var _root: Control
 var _screen_nodes: Array[Control] = []
@@ -96,6 +97,7 @@ func open_title() -> void:
 func open_opening() -> void:
 	_opening_stage = 0
 	_opening_report = ""
+	_opening_exit = ""
 	_open("opening")
 
 func open_pause() -> void:
@@ -243,7 +245,7 @@ func _render() -> void:
 			_button(col, "quit", "QUIT TO DESKTOP", "quit")
 		"opening":
 			_title(col, Opening.EMPLOYER + " / 2036", 21, Ui.AMBER)
-			_label(col, "CHAPTER ONE / EXECUTIVE PRIVILEGE  •  %d/5" % (_opening_stage+1), 16, Ui.MUTED)
+			_label(col, "CHAPTER ONE / EXECUTIVE PRIVILEGE  •  %d/6" % (_opening_stage+1), 16, Ui.MUTED)
 			match _opening_stage:
 				0:
 					_title(col, "ONE LAST TICKET", 29, Ui.TEXT)
@@ -258,9 +260,9 @@ func _render() -> void:
 				2:
 					_title(col, "A PERSONNEL MATTER", 29, Ui.TEXT)
 					_label(col, Opening.CONFERENCE, 17, Color("cbd8e3"))
-				_label(col, "INCOMING CALL / MANDARIN", 16, Ui.AMBER)
-				_label(col, Opening.CALL_SUBTITLES, 17, Ui.TEXT)
-				_label(col, Opening.CONFERENCE_END, 17, Color("cbd8e3"))
+					_label(col, "INCOMING CALL / MANDARIN", 16, Ui.AMBER)
+					_label(col, Opening.CALL_SUBTITLES, 17, Ui.TEXT)
+					_label(col, Opening.CONFERENCE_END, 17, Color("cbd8e3"))
 					_button(col, "opening_security", "REPORT THE INCIDENT TO SECURITY", "opening_security")
 					_button(col, "opening_legal", "ASK LEGAL TO PRESERVE THE AUDIT", "opening_legal")
 				3:
@@ -269,6 +271,12 @@ func _render() -> void:
 					_label(col, "Company share price: record high. Employee access: revoked.", 16, Ui.AMBER)
 					_button(col, "opening_read_notice", "OPEN PEOPLE OPERATIONS NOTICE", "opening_read_notice")
 				4:
+					_title(col, "WE VALUE YOUR FEEDBACK", 29, Ui.TEXT)
+					_label(col, Opening.OFFBOARDING, 17, Color("cbd8e3"))
+					_button(col, "opening_exit_accept", "SUBMIT EXIT FEEDBACK", "opening_exit_accept")
+					_button(col, "opening_exit_decline", "DECLINE EXIT INTERVIEW", "opening_exit_decline")
+				5:
+					_label(col, Opening.EXIT_ACCEPT if _opening_exit == "opening_exit_accept" else Opening.EXIT_DECLINE, 16, Ui.MUTED)
 					_title(col, Opening.HEADLINE, 29, Color("e3a39b"))
 					_label(col, Opening.NOTICE, 17, Color("cbd8e3"))
 					_divider(col)
@@ -328,6 +336,8 @@ func _render() -> void:
 			_title(col, "ACTIVE DELIVERIES", 18, Color("f0d1a0"))
 			if not str(_journal_data.get("opening_goal","")).is_empty():
 				_label(col, str(_journal_data["opening_goal"]), 17, Ui.AMBER)
+			if not str(_journal_data.get("platform_notice","")).is_empty():
+				_label(col, str(_journal_data["platform_notice"]), 16, Ui.MUTED)
 			_label(col, str(_journal_data.get("main_objective", "Explore Morrow Bay")),
 				17, Color("e1ebef"))
 			_button(col, "restart_courier", "ABANDON PACKAGE / RETRY ROUTE", "restart_courier", bool(_journal_data.get("courier_can_restart", false)))
@@ -537,8 +547,13 @@ func _choice(action: String) -> void:
 			if screen == "opening" and _opening_stage == 3:
 				_opening_stage = 4
 				_render()
-		"opening_accept":
+		"opening_exit_accept", "opening_exit_decline":
 			if screen == "opening" and _opening_stage == 4:
+				_opening_exit = action
+				_opening_stage = 5
+				_render()
+		"opening_accept":
+			if screen == "opening" and _opening_stage == 5:
 				hide_for_game()
 				action_requested.emit("accept_opening")
 		"resume":

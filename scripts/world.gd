@@ -486,6 +486,7 @@ func _journal_context() -> Dictionary:
 		"district": district if landmark.is_empty() else "%s / %s" % [district, landmark],
 		"clock": day_night.call("clock_string"),
 		"seed": session.get("world_seed"),
+		"platform_notice": Opening.app_notice(deliveries) if courier_mission.gig_economy else "",
 		"opening_goal": "QUOTADROP / POD DEPOSIT: $%d of $%d saved" % [mini(cash,StarterHome.move_in_price()),StarterHome.move_in_price()] if courier_mission.gig_economy and not progression.owns_home() else "",
 		"main_objective": "%s  •  STEP %d/%d  •  %dm  •  $%d" % [objective["title"], objective["step"], objective["total_steps"], remaining, objective["reward"]],
 		"courier_can_restart": carrying,

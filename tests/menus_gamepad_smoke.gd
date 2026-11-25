@@ -398,6 +398,17 @@ func _verify() -> void:
 		_fail("Security escalation has its own response")
 		return
 	menu.call("_choice","opening_read_notice")
+	if not (menu.call("get_buttons") as Dictionary).has("opening_exit_accept") or not (menu.call("get_buttons") as Dictionary).has("opening_exit_decline"):
+		_fail("Exit interview presents both feedback choices")
+		return
+	menu.call("_choice","opening_accept")
+	if not menu.call("is_open") or world.get("cash")!=before_severance:
+		_fail("Cannot collect severance before offboarding")
+		return
+	menu.call("_choice","opening_exit_decline")
+	if menu.get("_opening_exit")!="opening_exit_decline":
+		_fail("Declining exit interview has distinct response")
+		return
 	if not (menu.call("get_buttons") as Dictionary).has("opening_accept"):
 		_fail("Final notice must expose QuotaDrop acceptance")
 		return
