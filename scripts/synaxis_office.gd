@@ -27,6 +27,8 @@ const Radar = preload("res://scripts/hud_radar.gd")
 const Arrival = preload("res://scripts/synaxis_arrival.gd")
 const Restrooms = preload("res://scripts/synaxis_restrooms.gd")
 const Workfloor = preload("res://scripts/synaxis_workfloor.gd")
+const ExecutiveFloor = preload("res://scripts/synaxis_executive_floor.gd")
+var _executive_floor: Node3D
 var _workfloors: Array[Node3D]=[]
 var _active_floor:=0
 var _restrooms: Node3D
@@ -74,7 +76,7 @@ func _ready() -> void:
 	Brand.wall_logo(self,"EntranceBrand",Vector3(0,3.12,-10.17),PI,2.15)
 	_sign("PUBLIC LOBBY",Vector3(0,2.65,-10.17),.0045).rotation.y = PI
 	# Fixed upper-floor shell, not a second generic building intersecting the office.
-	_solid("TowerCore",Vector3(0,34.30,0),Vector3(17,32.10,20),_material("glass",Color("354c60")))
+	_solid("TowerCore",Vector3(0,36.125,0),Vector3(17,28.45,20),_material("glass",Color("354c60")))
 	_build_workfloor_shell(wall,floor_mat)
 	for floor in range(12):
 		var y := 5.4+float(floor)*3.65
@@ -163,7 +165,7 @@ func _ready() -> void:
 		light.hide()
 
 func _build_workfloor_shell(wall: Material,floor_mat: Material) -> void:
-	for level in range(1,Workfloor.FLOOR_COUNT+1):
+	for level in range(1,ExecutiveFloor.FLOOR+1):
 		var base:=level*Workfloor.FLOOR_HEIGHT
 		# Ground ceiling already serves as level 1's floor slab.
 		if level>1:
@@ -186,6 +188,13 @@ func _ensure_workfloors() -> void:
 		deck.position.y=level*Workfloor.FLOOR_HEIGHT
 		add_child(deck)
 		_workfloors.append(deck)
+	_executive_floor=ExecutiveFloor.new()
+	_executive_floor.name="ExecutiveFloor"
+	_executive_floor.position.y=ExecutiveFloor.FLOOR*Workfloor.FLOOR_HEIGHT
+	add_child(_executive_floor)
+
+func executive_floor_stats() -> Dictionary:
+	return _executive_floor.call("executive_stats") if is_instance_valid(_executive_floor) else {}
 
 func workfloor_stats() -> Array[Dictionary]:
 	var results: Array[Dictionary]=[]
@@ -194,12 +203,14 @@ func workfloor_stats() -> Array[Dictionary]:
 	return results
 
 func _select_floor(level: int) -> void:
-	_active_floor=clampi(level,0,Workfloor.FLOOR_COUNT)
+	_active_floor=clampi(level,0,ExecutiveFloor.FLOOR)
 	for child in get_children():
 		if child is OmniLight3D:
 			child.visible=_prologue_active and _active_floor==0
 	for i in _workfloors.size():
 		_workfloors[i].call("set_occupied",_prologue_active and _active_floor==i+1)
+	if is_instance_valid(_executive_floor):
+		_executive_floor.call("set_occupied",_prologue_active and _active_floor==ExecutiveFloor.FLOOR)
 	_target_sign.visible=_prologue_active and _active_floor==0
 
 func lift_direction(at: Vector3) -> int:
@@ -208,7 +219,7 @@ func lift_direction(at: Vector3) -> int:
 	var local:=to_local(at)
 	if absf(local.y-(_active_floor*Workfloor.FLOOR_HEIGHT+1.15))>.8:
 		return 0
-	if _active_floor<Workfloor.FLOOR_COUNT and Vector2(local.x,local.z).distance_to(Workfloor.LIFT+Vector2(-.9,0))<.73:
+	if _active_floor<ExecutiveFloor.FLOOR and Vector2(local.x,local.z).distance_to(Workfloor.LIFT+Vector2(-.9,0))<.73:
 		return 1
 	if _active_floor>0 and Vector2(local.x,local.z).distance_to(Workfloor.LIFT+Vector2(.9,0))<.73:
 		return -1
@@ -663,7 +674,12 @@ func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 	var goal: Vector3=POINTS[stage]
 	_radar.call("set_office_state",Vector2(local.x,local.z),Vector2(goal.x,goal.z) if _active_floor==0 else Workfloor.LIFT,_active_floor)
 	if _active_floor>0:
-		_hint.text="SYNAXIS / LEVEL %d / %s\nReturn to ground floor for: %s" % [_active_floor+1,Workfloor.DEPARTMENTS[_active_floor-1],TITLES[stage]]
+		var department: String=ExecutiveFloor.TITLE if _active_floor==ExecutiveFloor.FLOOR else Workfloor.DEPARTMENTS[_active_floor-1]
+		_hint.text="SYNAXIS / LEVEL %d / %s\nReturn to ground floor for: %s" % [_active_floor+1,department,TITLES[stage]]
+		if _active_floor==ExecutiveFloor.FLOOR and is_instance_valid(_executive_floor):
+			var executive_line: String=_executive_floor.call("staff_remark",at,stage)
+			if not executive_line.is_empty():
+				_hint.text+="\n"+executive_line
 		var direction:=lift_direction(at)
 		if direction!=0:
 			_hint.text+="\n"+("X" if gamepad else "G")+" / LIFT "+("UP" if direction>0 else "DOWN")

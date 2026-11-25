@@ -134,6 +134,9 @@ func _ready() -> void:
 	_box(_badge,"BadgeStripe",Vector3(0,.047,.012),Vector3(.095,.029,.008),Color("277e83"),"FABRIC")
 	_box(_badge,"BadgePortrait",Vector3(-.025,-.008,.012),Vector3(.032,.048,.008),_skin_color,"FABRIC")
 	_box(_badge,"BadgeText",Vector3(.019,-.014,.012),Vector3(.039,.013,.008),Color("37454d"),"FABRIC")
+	if outfit=="executive" or outfit=="hr":
+		_box(_torso,"ExecutivePocketSquare",Vector3(.19,.24,.25),Vector3(.10,.042,.018),Color("e2d9c8"),"FABRIC")
+		_box(_right_hand,"ExecutiveWatch",Vector3(0,.08,.06),Vector3(.069,.047,.025),Color("b69a66"),"METAL")
 	if outfit=="security":
 		_box(_torso,"RadioBody",Vector3(.25,.21,.24),Vector3(.10,.19,.045),Color("202a32"),"FABRIC")
 		_box(_torso,"RadioAntenna",Vector3(.28,.35,.24),Vector3(.018,.16,.018),Color("202a32"),"METAL")

@@ -498,18 +498,30 @@ func _verify() -> void:
 	if desk_total<100:
 		_fail("HQ needs at least 100 dedicated workstations")
 		return
-	for level in range(1,5):
+	for level in range(1,6):
 		player.global_position=office.to_global(Vector3(-.9,(level-1)*3.65+1.15,5))
 		world.call("_opening_interact")
 		if int(office.get("_active_floor"))!=level or absf(office.to_local(player.global_position).y-(level*3.65+1.15))>.01:
 			_fail("Lift travels to actual upper floor elevations")
 			return
-	for level in range(4,0,-1):
+	var leadership_stats: Dictionary=office.call("executive_floor_stats")
+	if int(leadership_stats.get("executives",0))!=7 or not bool(leadership_stats.get("occupied",false)) or int(leadership_stats.get("colliders",0))<10:
+		_fail("Executive level must have seven distinct staff and physical luxury furniture")
+		return
+	var leadership: Node3D=office.get_node("ExecutiveFloor")
+	var hr_line: String=leadership.call("staff_remark",leadership.to_global(Vector3(-5.6,1.15,3.65)),-2)
+	if not hr_line.contains("Blaire Sterling") or not hr_line.contains("whole self") or leadership.call("staff_remark",leadership.to_global(Vector3(-5.6,1.15,3.65)),4)==hr_line:
+		_fail("HR slogans vary with mission phase and actual proximity")
+		return
+	for level in range(5,0,-1):
 		player.global_position=office.to_global(Vector3(.9,level*3.65+1.15,5))
 		world.call("_opening_interact")
 		if int(office.get("_active_floor"))!=level-1:
 			_fail("Lift returns to the ground-floor tutorial")
 			return
+	if bool(office.call("executive_floor_stats")["occupied"]):
+		_fail("Executive actors and local lamps deactivate away from their floor")
+		return
 	if int(office.call("objective_stage",0))!=-2 or menu.call("is_open") or world.get("cash")!=before_severance:
 		_fail("Office exploration does not advance the mission or alter the wallet")
 		return

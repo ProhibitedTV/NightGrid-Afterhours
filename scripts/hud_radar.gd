@@ -13,6 +13,7 @@ var _radius := 0.0
 var _scale := 1.0
 var _origin := Vector2.ZERO
 const Workfloor = preload("res://scripts/synaxis_workfloor.gd")
+const ExecutiveFloor = preload("res://scripts/synaxis_executive_floor.gd")
 var _office_floor:=0
 var _office_mode := false
 var _office_actor := Vector2.ZERO
@@ -185,8 +186,14 @@ func _draw_office() -> void:
 	if _office_floor>0:
 		for edge in [[Vector2(-8.5,-10),Vector2(8.5,-10)],[Vector2(8.5,-10),Vector2(8.5,10)],[Vector2(8.5,10),Vector2(-8.5,10)],[Vector2(-8.5,10),Vector2(-8.5,-10)]]:
 			_segment(edge[0],edge[1],wall,2.6)
-		for desk in Workfloor.desk_positions():
-			_segment(desk-Vector2(.85,0),desk+Vector2(.85,0),Color("52616e"),3.5)
+		if _office_floor==ExecutiveFloor.FLOOR:
+			for edge in ExecutiveFloor.WALL_EDGES:
+				_segment(edge[0],edge[1],wall,2.6)
+			for edge in ExecutiveFloor.FURNITURE_EDGES:
+				_segment(edge[0],edge[1],Color("ad9065"),4.0)
+		else:
+			for desk in Workfloor.desk_positions():
+				_segment(desk-Vector2(.85,0),desk+Vector2(.85,0),Color("52616e"),3.5)
 		_target(_office_target,Color("ffba56"),true)
 		draw_circle(_center,5.0,Color("e7edf0"),true,-1.0,true)
 		return
