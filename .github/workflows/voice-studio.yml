@@ -3,11 +3,13 @@ on:
   pull_request:
     paths:
       - 'tools/voice/**'
+      - 'assets/audio/voiced/**'
       - '.github/workflows/voice-studio.yml'
   push:
     branches: [main]
     paths:
       - 'tools/voice/**'
+      - 'assets/audio/voiced/**'
       - '.github/workflows/voice-studio.yml'
   workflow_dispatch:
 permissions:
@@ -24,3 +26,5 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: python -m unittest discover -s tools/voice -v
       - run: python tools/voice/studio.py list
+
+      - run: python tools/voice/production.py verify-library
