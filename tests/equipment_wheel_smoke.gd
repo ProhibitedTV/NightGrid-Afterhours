@@ -39,12 +39,26 @@ func _verify() -> void:
 	if not wheel.visible or not paused or int(wheel.get("selected")) != 1:
 		_fail("C must open a modal preview of the equipped weapon")
 		return
+	if wheel.call("index_for_direction", Vector2.INF) != -1 or wheel.call("index_for_direction", Vector2.ZERO) != -1:
+		_fail("Nonfinite and neutral directions must not select a slot")
+		return
 	if wheel.call("index_for_direction", Vector2.UP) != 0 or wheel.call("index_for_direction", Vector2(1, 0.5)) != 1 or wheel.call("index_for_direction", Vector2(-1, 0.5)) != 2:
 		_fail("Radial direction selection incorrect")
 		return
 	wheel.call("_input", _key(KEY_3))
 	if int(wheel.get("selected")) != 2 or kit.snapshot() != before:
 		_fail("Preview must not mutate equipment or ammo")
+		return
+	# Animation is visual only; selection and ammo are already deterministic.
+	wheel.call("_process", 0.07)
+	var weights: PackedFloat32Array = wheel.get("_selection_weights")
+	if weights[2] <= 0.0 or weights[2] >= 1.0 or not is_equal_approx(weights[1] + weights[2], 1.0):
+		_fail("Selection highlight must interpolate between slots")
+		return
+	wheel.call("_process", 0.14)
+	weights = wheel.get("_selection_weights")
+	if not is_equal_approx(weights[2], 1.0) or not is_zero_approx(weights[1]) or kit.snapshot() != before:
+		_fail("Selection highlight must settle without modifying live equipment")
 		return
 	if world.call("_fire_weapon"):
 		_fail("Paused selector must block firing")
@@ -54,6 +68,10 @@ func _verify() -> void:
 		_fail("Cancel must preserve equipment and ammo")
 		return
 	world.call("_unhandled_input", _pad(JOY_BUTTON_RIGHT_STICK))
+	weights = wheel.get("_selection_weights")
+	if not is_equal_approx(weights[1], 1.0) or not is_zero_approx(weights[2]):
+		_fail("Reopening must restore equipped highlight instead of stale preview")
+		return
 	wheel.call("_input", _pad(JOY_BUTTON_DPAD_RIGHT))
 	wheel.call("_input", _pad(JOY_BUTTON_A))
 	if paused or wheel.visible or kit.equipped != "arc" or kit.ammo != before["ammo"] or kit.reserve != before["reserve"] or not bool(world.get("_fire_held")):
@@ -68,12 +86,12 @@ func _verify() -> void:
 	var mouse := InputEventMouseButton.new()
 	mouse.button_index = MOUSE_BUTTON_LEFT
 	mouse.pressed = true
-	mouse.position = center
+	mouse.position = wheel.get_global_transform_with_canvas() * center
 	wheel.call("_input", mouse)
 	if not wheel.visible:
 		_fail("Middle dead zone must not commit a choice")
 		return
-	mouse.position = center + Vector2.UP * float(wheel.call("_radius")) * 0.72
+	mouse.position = wheel.get_global_transform_with_canvas() * (center + Vector2.UP * float(wheel.call("_radius")) * 0.72)
 	wheel.call("_input", mouse)
 	if paused or wheel.visible or kit.equipped != "holstered":
 		_fail("Mouse click in top segment should holster")
