@@ -1,0 +1,45 @@
+# Threadline fitted garment geometry pilot
+
+Authoring-only matrix: oversized tee vs long racing jacket over racer shirt, baggy denim vs cargo pants, sneakers vs combat boots. Eight combinations share the exact protagonist base profile, with default scarf, gloves and backpack removed. The combinations are fitted as a whole because body masking and joint weights differ with clothing coverage. This is the first bounded geometry experiment, not a claim of unrestricted mesh mixing.
+
+Run from repository root (Node 24, Python 3.11, pinned Ara package):
+```bash
+python tools/wardrobe/author.py list
+python tools/wardrobe/author.py prepare
+python tools/wardrobe/author.py build --id tee_denim_trainer
+python tools/wardrobe/author.py verify --id tee_denim_trainer
+```
+The workflow builds all eight candidates and runs Godot import and live-rig smoke. The GLB validator checks embedded assets, joint order, hierarchy, rest transforms, inverse bind matrices, weighted attributes, expected materials and size limits. It records provenance and SHA-256, never marks a candidate reviewed. Material names are strict provisional acceptance patterns and may require reconciliation with pinned exporter output. Candidate artifacts are not published to the game automatically.
+
+Native review: inspect body coverage, elbows, armpits, neck, waist, crotch, shoes and camera at idle, walk/run, sit, drive, aim and door interaction. Reject clipping, skin holes, misplaced footwear, animation drift, excessive memory or changed character appearance. Then decide whether to publish fitted combinations or extract shared compatible garment/body masks. No runtime inference, asset download, new skeleton or animation controller. Existing colorway wardrobe remains playable while candidates are reviewed.
+
+Source and licensing: same pinned Ara/MakeHuman lineage as assets/models/nightgrid/courier/SOURCE.md; verify source/license for each garment before promotion. Document current source, model/profile hashes and genuine captures. No binary assets generated in this commit.
+
+The offline structural gate additionally verifies every four-influence joint index and weight vector: legal joint range, finite and nonnegative weights, normalized integer encoding where applicable, and sum within 0.015 of unity. Structural acceptance is not a substitute for visual fit. No new fitted binaries are claimed by this increment.
+
+## Native review station
+
+After generating and importing candidates, run a real native Godot window from the repo root:
+
+```bash
+godot --path . --import --quit
+godot --path . --script res://tools/wardrobe/review_station.gd -- res://assets/models/nightgrid/wardrobe_candidates/tee_denim_trainer/Morrow_Courier.glb --capture-dir=user://wardrobe-review
+```
+
+Provide additional candidate paths after `--` to cycle them with N/P. Arrow keys orbit and change the six live animation clips, B compares the original courier, +/- zooms, F10 records a genuine viewport PNG with pose and candidate ID. This isolated development scene never writes saves or installs gameplay garments. It rejects incompatible imported skin bind names, indices and poses, and the automated candidate smoke now checks actual pose existence and samples four phases per clip. Native visual review is still required; the screenshots are evidence only when actually captured. Do not publish candidate GLBs or list them for sale based solely on this harness.
+
+## District garment collection expansion
+
+The eight stable streetwear candidate IDs remain. Four curated review-only profiles now cover tailoring and technical fashion using existing suit and technical jacket profile keys: Vesper Meridian suit, Obscura Monolith suit, Quay Forge utility and Nocturne Afterimage utility. The first pair share the suit/tie/oxford silhouette; the second pair use technical jackets, cargo trousers and either combat boots or sneakers. The manifest associates collections with intended retailers, not runtime entitlements.
+
+`python tools/wardrobe/author.py list --collection tailored` lists the tailored candidates. Use `prepare`, `build` or `verify` with the same collection flag. CI shards the three collections (8 / 2 / 2) independently and produces separate artifacts. Verification rejects mismatched profiles, duplicate or unsafe IDs and exceeded budgets. No GLB output or successful native import is claimed by this change.
+
+## Explicit review handoff
+
+`python tools/wardrobe/release.py stage --id tee_denim_trainer --review path/to/review.json --evidence path/to/captures` stages one manually approved candidate under `dist/wardrobe-approved/`. It reruns structural validation against the current base rig, verifies the exact candidate/profile/base hashes, requires an explicit reviewer and license notes, checks seven manual fit/provenance fields and verifies one hashed PNG per required pose. It never creates an approval itself. PNG and hash checks establish file consistency, not authenticity or visual quality. The staged manifest explicitly sets gameplay_enabled=false. A separate reviewed integration commit must map the asset to catalog and runtime behavior, including backpack patch policy, before sale. Candidate and staging directories must remain untracked; the Windows export preset excludes candidate assets and the review tool. Standard preflight runs offline unit tests and the checkout gate without external generation.
+
+Review record fields: schema=1, id, sha256, base_sha256, profile_sha256, reviewer, decision=approved, license_notes, checks (body_coverage, joint_clipping, hair_clearance, footwear, vehicle_clearance, camera_clearance, license; all true only after review), captures (pose, file, sha256 for idle, walk, run, sit, drive_car, aim). No example approval is supplied to avoid accidentally approving a candidate.
+
+### Capture-to-review draft
+
+The review station now embeds the candidate GLB hash prefix, pose, candidate/baseline state and capture timestamp in the filename. Baseline and old-asset captures are excluded from draft collection. Use `python tools/wardrobe/release.py draft --id tee_denim_trainer --review review.json --evidence path/to/captures` to collect matching captures and write a pending review with all checkboxes false. The file is created exclusively (existing reviews are never overwritten). A human must complete the checks, license notes, reviewer and decision before staging. The stage gate checks filename binding and hashes, but does not claim to authenticate a screenshot independently.

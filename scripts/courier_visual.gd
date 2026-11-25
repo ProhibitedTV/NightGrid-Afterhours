@@ -8,6 +8,41 @@ const TerrainFeet = preload("res://scripts/courier_terrain_feet.gd")
 const Posture = preload("res://scripts/courier_posture.gd")
 const Reach = preload("res://scripts/courier_reach.gd")
 const GAIT_LOOPS = [&"walk",&"run",&"walk_back",&"strafe_left",&"strafe_right",&"aim_walk",&"aim_run",&"aim_left",&"aim_right"]
+const DeliveryBag = preload("res://scripts/quotadrop_bag.gd")
+var _meal_bag: Node3D
+var _meal_bag_carried := false
+const Wardrobe = preload("res://scripts/wardrobe_catalog.gd")
+var outfit_id := Wardrobe.DEFAULT
+var clothing_slots:Dictionary={}
+var _piece_materials:Dictionary={}
+var _patch_surfaces:Array[Dictionary]=[]
+var _patch_materials:Dictionary={}
+const PATCH_TEXTURES={
+	"patch_deadcarrier":preload("res://assets/textures/fashion/patch_deadcarrier.svg"),
+	"patch_voltage":preload("res://assets/textures/fashion/patch_voltage.svg"),
+	"patch_ghostshift":preload("res://assets/textures/fashion/patch_ghostshift.svg"),
+	"patch_nightgrid":preload("res://assets/textures/fashion/patch_nightgrid.svg"),
+	"patch_rustchoir":preload("res://assets/textures/fashion/patch_rustchoir.svg"),
+	"patch_nullrent":preload("res://assets/textures/fashion/patch_nullrent.svg"),
+	"patch_scrapangel":preload("res://assets/textures/fashion/patch_scrapangel.svg"),
+	"patch_afterunion":preload("res://assets/textures/fashion/patch_afterunion.svg"),
+	"patch_blackrelay":preload("res://assets/textures/fashion/patch_blackrelay.svg"),
+	"patch_laserwake":preload("res://assets/textures/fashion/patch_laserwake.svg"),
+	"patch_citybus":preload("res://assets/textures/fashion/patch_citybus.svg"),
+	"patch_dockrat":preload("res://assets/textures/fashion/patch_dockrat.svg")
+}
+const Accessories=preload("res://scripts/wardrobe_accessories.gd")
+var _accessories:Dictionary={}
+var _wardrobe_surfaces: Array[Dictionary] = []
+var _wardrobe_materials: Dictionary = {}
+var _corporate_mesh: MeshInstance3D
+var _street_mesh: Mesh
+var _street_skin: Skin
+var corporate_attire := false
+const CORPORATE_MODEL_DIR = "res://assets/models/nightgrid/courier/"
+
+static func corporate_model_path() -> String:
+	return CORPORATE_MODEL_DIR + "synaxis_suit.glb"
 const FOOT_OFFSET = -0.95
 const DRIVER_SEAT = Vector3(-0.52, -0.23, -0.43)
 const LOOPS = [&"idle", &"walk", &"run", &"walk_back", &"strafe_left", &"strafe_right",
@@ -43,6 +78,7 @@ const FOOD_ACTIONS = [&"purchase_item",&"drink_item",&"eat_item"]
 func _ready() -> void:
 	var courier := Model.instantiate()
 	add_child(courier)
+	_cache_wardrobe_surfaces(courier)
 	skeleton = courier.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
 	animations = courier.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
 	animations.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS
@@ -74,6 +110,165 @@ func _ready() -> void:
 	_reach.call("configure")
 	_play(&"idle", 0.0)
 	set_physics_process(false)
+
+func _cache_wardrobe_surfaces(model: Node3D) -> void:
+	for child in model.find_children("*","MeshInstance3D",true,false):
+		var mesh := child as MeshInstance3D
+		if mesh.skin == null or mesh.mesh == null:
+			continue
+		for index in mesh.mesh.get_surface_count():
+			var material := mesh.mesh.surface_get_material(index) as StandardMaterial3D
+			if material == null:
+				continue
+			if material.resource_name.to_lower().contains("morrow dispatch woven patch"):
+				_patch_surfaces.append({"mesh":mesh,"surface":index,"material":material})
+				continue
+			var slot := Wardrobe.garment_slot(material.resource_name)
+			if not slot.is_empty():
+				_wardrobe_surfaces.append({"mesh":mesh,"surface":index,"material":material,"slot":slot})
+
+func set_outfit(id: String) -> bool:
+	return set_look(id,{})
+
+func set_look(id:String,slots:Dictionary) -> bool:
+	if corporate_attire or not Wardrobe.valid_id(id) or not Wardrobe.valid_slots(slots) or _wardrobe_surfaces.is_empty():
+		return false
+	if slots.has("patch") and (_patch_surfaces.is_empty() or not PATCH_TEXTURES.has(slots["patch"])):
+		return false
+	if id==outfit_id and slots==clothing_slots:
+		return true
+	for slot in ["glasses","watch","hat"]:
+		var item_id:String=str(slots.get(slot,""))
+		if not item_id.is_empty() and not _accessories.has(item_id):
+			var attachment:=Accessories.build(skeleton,item_id)
+			if attachment==null:
+				return false
+			attachment.hide()
+			_accessories[item_id]=attachment
+	if id!=Wardrobe.DEFAULT and not _wardrobe_materials.has(id):
+		var variants:Array[StandardMaterial3D]=[]
+		for entry in _wardrobe_surfaces:
+			var original:StandardMaterial3D=entry["material"]
+			var variant:=original.duplicate() as StandardMaterial3D
+			variant.albedo_color=original.albedo_color*Wardrobe.ITEMS[id][entry["slot"]]
+			variant.roughness=clampf(original.roughness*float(Wardrobe.ITEMS[id]["finish"]),.2,1.0)
+			variants.append(variant)
+		_wardrobe_materials[id]=variants
+	for index in _wardrobe_surfaces.size():
+		var entry:Dictionary=_wardrobe_surfaces[index]
+		var mesh:MeshInstance3D=entry["mesh"]
+		var override:Material=null if id==Wardrobe.DEFAULT else _wardrobe_materials[id][index]
+		var piece_id:String=str(slots.get(entry["slot"],""))
+		if not piece_id.is_empty():
+			var key:="%s:%d" % [piece_id,index]
+			if not _piece_materials.has(key):
+				var original:StandardMaterial3D=entry["material"]
+				var variant:=original.duplicate() as StandardMaterial3D
+				var piece:Dictionary=Wardrobe.PIECES[piece_id]
+				variant.albedo_color=original.albedo_color*piece["tint"]
+				variant.roughness=clampf(original.roughness*float(piece["finish"]),.2,1.0)
+				_piece_materials[key]=variant
+			override=_piece_materials[key]
+		mesh.set_surface_override_material(entry["surface"],override)
+	var patch_id:String=slots.get("patch","")
+	for entry in _patch_surfaces:
+		var mesh:MeshInstance3D=entry["mesh"]
+		var surface:int=entry["surface"]
+		var patch:Material=null
+		if not patch_id.is_empty():
+			var key:="%s:%d:%d" % [patch_id,mesh.get_instance_id(),surface]
+			if not _patch_materials.has(key):
+				var original:StandardMaterial3D=entry["material"]
+				var variant:=original.duplicate() as StandardMaterial3D
+				variant.albedo_texture=PATCH_TEXTURES[patch_id]
+				variant.albedo_color=Color.WHITE
+				_patch_materials[key]=variant
+			patch=_patch_materials[key]
+		mesh.set_surface_override_material(surface,patch)
+	for item_id in _accessories:
+		_accessories[item_id].visible=slots.get(Wardrobe.PIECES[item_id]["slot"],"")==item_id
+	outfit_id=id
+	clothing_slots=slots.duplicate()
+	return true
+
+# Swap only the weighted clothing/body mesh; keep the live rig, equipment and animation player.
+# The optional candidate is generated by the pinned authoring workflow.
+func set_corporate_attire(active: bool) -> bool:
+	if active == corporate_attire:
+		return true
+	if not active:
+		_corporate_mesh.mesh = _street_mesh
+		_corporate_mesh.skin = _street_skin
+		corporate_attire = false
+		var selected := outfit_id
+		outfit_id = ""
+		set_look(selected,clothing_slots)
+		_corporate_mesh = null
+		_street_mesh = null
+		_street_skin = null
+		return true
+	var path := corporate_model_path()
+	if not ResourceLoader.exists(path, "PackedScene") or skeleton == null:
+		return false
+	var packed := ResourceLoader.load(path, "PackedScene") as PackedScene
+	if packed == null:
+		return false
+	var candidate := packed.instantiate()
+	var rigs := candidate.find_children("*","Skeleton3D",true,false)
+	var donor_rig: Skeleton3D = rigs[0] if rigs.size()==1 else null
+	var donor: MeshInstance3D
+	for child in candidate.find_children("*","MeshInstance3D",true,false):
+		if child.skin != null:
+			donor = child
+			break
+	var target: MeshInstance3D
+	for child in find_children("*","MeshInstance3D",true,false):
+		if child.skin != null:
+			target = child
+			break
+	var compatible := donor_rig != null and donor != null and target != null and donor.mesh != null
+	if compatible:
+		compatible = donor_rig.get_bone_count()==skeleton.get_bone_count()
+	if compatible:
+		for i in skeleton.get_bone_count():
+			if donor_rig.get_bone_name(i)!=skeleton.get_bone_name(i) or donor_rig.get_bone_parent(i)!=skeleton.get_bone_parent(i) or not donor_rig.get_bone_rest(i).is_equal_approx(skeleton.get_bone_rest(i)):
+				compatible=false
+				break
+	if not compatible:
+		candidate.free()
+		return false
+	_corporate_mesh=target
+	_street_mesh=target.mesh
+	_street_skin=target.skin
+	for i in target.mesh.get_surface_count():
+		target.set_surface_override_material(i,null)
+	target.mesh=donor.mesh
+	target.skin=donor.skin
+	candidate.free()
+	corporate_attire=true
+	for item_id in _accessories:
+		_accessories[item_id].hide()
+	return true
+
+func wardrobe_surface_count() -> int:
+	return _wardrobe_surfaces.size()
+
+# Presentation only; the courier director remains the sole order owner.
+# Instantiate once on first successful pickup, then reuse on subsequent orders.
+func set_meal_bag(carried: bool) -> void:
+	_meal_bag_carried = carried
+	if carried and not is_instance_valid(_meal_bag):
+		if skeleton == null or skeleton.find_bone("LeftHand") < 0:
+			return
+		var hand := BoneAttachment3D.new()
+		hand.name = "LeftHandDelivery"
+		hand.bone_name = "LeftHand"
+		skeleton.add_child(hand)
+		_meal_bag = DeliveryBag.build()
+		hand.add_child(_meal_bag)
+		_meal_bag.position = Vector3(0,.04,.02)
+	if is_instance_valid(_meal_bag):
+		_meal_bag.visible = carried and not _seat
 
 func _prepare_library() -> void:
 	for clip in LOOPS:
@@ -244,6 +439,7 @@ func sit_in_vehicle(car: Node3D, play_entry: bool, ground_y: float) -> void:
 	if is_instance_valid(_reach):
 		_reach.call("reset")
 	reset_terrain()
+	set_meal_bag(_meal_bag_carried)
 	_clear_product()
 	_horizontal = Vector3.ZERO
 	_reset_gait()
@@ -275,6 +471,7 @@ func return_to_player(player: Node3D) -> void:
 	if is_instance_valid(_reach):
 		_reach.call("reset")
 	reset_terrain()
+	set_meal_bag(_meal_bag_carried)
 	_clear_product()
 	_reset_gait()
 	_grounded = true

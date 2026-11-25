@@ -1,8 +1,23 @@
 extends CanvasLayer
+const FashionStores=preload("res://scripts/clothing_store.gd")
 const AudioMix = preload("res://scripts/audio_mix.gd")
 const MinimapScript = preload("res://scripts/minimap.gd")
 const CityFoley = preload("res://scripts/city_foley.gd")
 const Ui = preload("res://scripts/ui_style.gd")
+const Rhythm=preload("res://scripts/rhythm_rehearsal.gd")
+var _rhythm=Rhythm.new()
+var _rhythm_sequence:=0
+var _rhythm_focus_set:=false
+var _music_desk:Dictionary={}
+const Instruments=preload("res://scripts/instrument_catalog.gd")
+const PocketBeat=preload("res://assets/instruments/pocketbeat_m3.glb")
+var _rhythm_status:Label
+var _rhythm_meter:ProgressBar
+var _rhythm_claim:Button
+var _rhythm_player:AudioStreamPlayer
+const PAD_CLIPS=[preload("res://assets/audio/rehearsal/kick.wav"),preload("res://assets/audio/rehearsal/clap.wav"),preload("res://assets/audio/rehearsal/hat.wav")]
+const Opening = preload("res://scripts/opening_story.gd")
+const SynaxisBrand = preload("res://scripts/synaxis_brand.gd")
 ## Keyboard/mouse/controller-friendly menu layer. It remains interactive while
 ## the 3D SceneTree is paused; all buttons use Godot's built-in focus navigation.
 signal action_requested(action: String)
@@ -38,6 +53,17 @@ var _confirmation_origin := "pause"
 var _has_save := false
 var _world: Node3D
 var _journal_data: Dictionary = {}
+var _opening_stage := 0
+var _opening_report := ""
+var _opening_exit := ""
+var _physical_opening := false
+var _briefing_beat := 0
+var _breakroom_choice := ""
+const ParkingDialogue=preload("res://scripts/synaxis_parking_dialogue.gd")
+var _guard_topic:=""
+var _guard_former:=false
+const Restrooms = preload("res://scripts/synaxis_restrooms.gd")
+var _restroom_id := ""
 var settings: Dictionary = DEFAULT_SETTINGS.duplicate(true)
 var _root: Control
 var _screen_nodes: Array[Control] = []
@@ -67,6 +93,11 @@ func _ready() -> void:
 	_ui_click.stream = CityFoley.sound("UI")
 	_ui_click.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(_ui_click)
+	_rhythm_player=AudioStreamPlayer.new()
+	_rhythm_player.bus=AudioMix.MUSIC
+	_rhythm_player.process_mode=Node.PROCESS_MODE_ALWAYS
+	_rhythm_player.volume_db=-8.0
+	add_child(_rhythm_player)
 	visible = false
 
 func set_world_node(world: Node3D) -> void:
@@ -90,6 +121,50 @@ func is_open() -> bool:
 func open_title() -> void:
 	_open("title")
 
+func open_opening(physical: bool = false) -> void:
+	_physical_opening = physical
+	_opening_stage = 0
+	_briefing_beat = 0
+	_opening_report = ""
+	_opening_exit = ""
+	if physical:
+		hide_for_game()
+	else:
+		_open("opening")
+
+func open_restroom(id: String) -> void:
+	if id not in [Restrooms.MEN,Restrooms.WOMEN]:
+		return
+	_restroom_id=id
+	_open("restroom")
+
+var _street_contact:Dictionary={}
+
+func open_street_contact(contact:Dictionary)->void:
+	if contact.get("topics",[]).size()!=2:
+		return
+	_street_contact=contact.duplicate(true)
+	_open("street_contact")
+
+func open_parking_guard(former:bool) -> void:
+	_guard_former=former
+	_guard_topic=""
+	_open("parking_guard")
+
+func open_breakroom() -> void:
+	_breakroom_choice=""
+	_open("breakroom")
+
+func open_opening_stage() -> void:
+	_open("opening")
+
+func _opening_next_location() -> void:
+	if _physical_opening:
+		hide_for_game()
+		action_requested.emit("opening_walk")
+	else:
+		_render()
+
 func open_pause() -> void:
 	_open("pause")
 
@@ -106,6 +181,9 @@ func confirm_new_game() -> void:
 	_open("confirm_new")
 
 func hide_for_game() -> void:
+	if screen=="blue_hour_set":
+		_rhythm_player.stop()
+		_rhythm.cancel()
 	screen = "hidden"
 	visible = false
 	get_tree().paused = false
@@ -140,6 +218,18 @@ func _unhandled_input(event: InputEvent) -> void:
 				_open(_confirmation_origin)
 			"pause":
 				hide_for_game()
+			"restroom":
+				_choice("restroom_leave")
+			"breakroom":
+				_choice("breakroom_leave")
+			"parking_guard":
+				_choice("guard_leave")
+			"street_contact":
+				_choice("street_leave")
+			"blue_hour_set":
+				_choice("rhythm_cancel")
+			"music_desk":
+				_choice("music_desk_leave")
 			_:
 				pass
 		get_viewport().set_input_as_handled()
@@ -187,25 +277,28 @@ func _render() -> void:
 	_buttons.clear()
 	_focus_order.clear()
 	_first_focus = null
+	var staged := screen in ["breakroom","restroom","parking_guard","street_contact"] or (screen=="opening" and _physical_opening and _opening_stage in [2,4])
 	var shade := ColorRect.new()
 	shade.name = "Scrim"
-	shade.color = Color(0.028, 0.045, 0.060, 0.94)
+	shade.color = Color(0.028, 0.045, 0.060, .12 if staged else .94)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(shade)
 	var center := CenterContainer.new()
 	center.name = "Center"
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if staged:
+		center.anchor_left = .5
 	_root.add_child(center)
 	var panel := PanelContainer.new()
 	panel.name = "MenuPanel"
-	panel.custom_minimum_size = Vector2(760.0, 0.0)
+	panel.custom_minimum_size = Vector2(500.0 if staged else 760.0, 0.0)
 	panel.add_theme_stylebox_override("panel", Ui.card(0.99, 26))
 	center.add_child(panel)
 	var shell := VBoxContainer.new()
 	shell.add_theme_constant_override("separation", 16)
 	panel.add_child(shell)
 	_label(shell, "MORROW BAY   /   NIGHT SHIFT", 16, Ui.AMBER)
-	_title(shell, "NIGHTGRID: AFTERHOURS", 40, Ui.TEXT)
+	_title(shell, "EXECUTIVE PRIVILEGE" if staged else "NIGHTGRID: AFTERHOURS", 26 if staged else 40, Ui.TEXT)
 	_divider(shell)
 	_body_scroll = ScrollContainer.new()
 	_body_scroll.name = "MenuScroll"
@@ -227,12 +320,111 @@ func _render() -> void:
 				_button(col, "continue", "CONTINUE SAVED GAME", "load")
 				_button(col, "play", "ENTER CURRENT SESSION", "play")
 			else:
-				_button(col, "play", "ENTER MORROW BAY", "play")
+				_button(col, "play", "BEGIN YOUR NEXT CHAPTER", "play")
 				_button(col, "continue", "CONTINUE  •  NO SAVE FOUND", "load", false)
 			_button(col, "new", "NEW WORLD / NEW SEED", "new")
 			_button(col, "settings", "SETTINGS", "settings")
 			_button(col, "controls", "CONTROLS & GAMEPAD", "controls")
 			_button(col, "quit", "QUIT TO DESKTOP", "quit")
+		"restroom":
+			SynaxisBrand.ui_lockup(col)
+			_title(col,"AIR QUALITY INCIDENT" if _restroom_id==Restrooms.MEN else "FACILITIES / REQUIRED TRAINING",23,Ui.AMBER)
+			_label(col,Restrooms.MEN_DIALOGUE if _restroom_id==Restrooms.MEN else Restrooms.WOMEN_DIALOGUE,16,Ui.TEXT)
+			_button(col,"restroom_leave","BACK TO WORK","restroom_leave")
+		"music_desk":
+			_title(col,"COPPER CUP / MUSIC CONSIGNMENT",24,Ui.AMBER)
+			_pocketbeat_preview(col)
+			_label(col,"Hal has a refurbished PocketBeat M3 sampler on the counter. Loaners are still free.",16,Ui.TEXT)
+			_label(col,str(_music_desk.get("summary","")),16,Ui.ACCENT)
+			_label(col,"CASH $%d"%int(_music_desk.get("cash",0)),16,Ui.MUTED)
+			_button(col,"music_desk_busk","BORROW SAMPLER / BUSK","music_desk_busk")
+			_button(col,"music_desk_buy","BUY POCKETBEAT M3 / $40","music_desk_buy",not bool(_music_desk.get("owned",false)) and int(_music_desk.get("cash",0))>=Instruments.price(Instruments.STARTER))
+			_button(col,"music_desk_practice","PRACTICE OWNED SAMPLER","music_desk_practice",bool(_music_desk.get("owned",false)))
+			_button(col,"music_desk_owned","PERSONAL SET / $14 +4 STREET CRED","music_desk_owned",bool(_music_desk.get("owned_set",false)))
+			_button(col,"music_desk_leave","LEAVE","music_desk_leave")
+		"blue_hour_set":
+			_render_rhythm(col)
+		"street_contact":
+			_title(col,str(_street_contact["name"]).to_upper(),23,Ui.AMBER)
+			_label(col,str(_street_contact["role"]),16,Ui.MUTED)
+			for i in range(2):
+				var key:="street_reply_%d"%i
+				_button(col,key,str(_street_contact["topics"][i]["question"]),key)
+			match int(_street_contact.get("cal_quest",-1)):
+				0: _button(col,"cal_accept","HELP WITH THE ANNIVERSARY GIFT","cal_accept")
+				1: _label(col,"The prepaid gift is at Moon Noodles.",15,Ui.MUTED)
+				2: _button(col,"cal_complete","HAND OVER THE HEAT SINK","cal_complete")
+				3: _label(col,"Compatibility Patch / Completed",15,Ui.MUTED)
+			_button(col,"street_leave","SEE YOU AROUND","street_leave")
+		"parking_guard":
+			SynaxisBrand.ui_lockup(col)
+			_title(col,"MARCUS VALE / PARKING SECURITY",23,Ui.AMBER)
+			if _guard_topic.is_empty():
+				_label(col,ParkingDialogue.greeting(_guard_former),16,Ui.TEXT)
+				for topic in ParkingDialogue.TOPICS:
+					if ParkingDialogue.available(topic,_guard_former):
+						_button(col,topic,str(ParkingDialogue.TOPICS[topic]["question"]),topic)
+			else:
+				_label(col,str(ParkingDialogue.TOPICS[_guard_topic]["question"]),16,Ui.MUTED)
+				_label(col,ParkingDialogue.reply(_guard_topic,_guard_former),17,Ui.TEXT)
+				_button(col,"guard_back","ASK SOMETHING ELSE","guard_back")
+			_button(col,"guard_leave","SEE YOU AROUND","guard_leave")
+		"breakroom":
+			SynaxisBrand.ui_lockup(col)
+			_title(col,Opening.BREAKROOM_TITLE,23,Ui.AMBER)
+			if _breakroom_choice.is_empty():
+				_label(col,Opening.BREAKROOM_PARTY,16,Ui.TEXT)
+				_button(col,"breakroom_photo","JOIN THE CORPORATE PHOTO","breakroom_photo")
+				_button(col,"breakroom_decline","SKIP THE PHOTO","breakroom_decline")
+			else:
+				_label(col,Opening.BREAKROOM_PHOTO if _breakroom_choice=="breakroom_photo" else Opening.BREAKROOM_DECLINE,17,Ui.TEXT)
+				_button(col,"breakroom_leave","BACK TO WORK","breakroom_leave")
+		"opening":
+			SynaxisBrand.ui_lockup(col)
+			_label(col, "OMNISYSTEMS / INTERNAL USE ONLY / 2036", 14, SynaxisBrand.AQUA)
+			_label(col, "CHAPTER ONE / EXECUTIVE PRIVILEGE  •  %d/6" % (_opening_stage+1), 16, Ui.MUTED)
+			match _opening_stage:
+				0:
+					_title(col, "ONE LAST TICKET", 29, Ui.TEXT)
+					_label(col, Opening.TICKET, 17, Color("cbd8e3"))
+					_label(col, "Eli: The override came from the executive floor. Your job is to establish who accessed the IP and whether they were authorized.", 16, Ui.MUTED)
+					_button(col, "opening_inspect", "REVIEW ACCESS ALERT", "opening_inspect")
+				1:
+					_title(col, "EXECUTIVE EXCEPTION", 29, Ui.TEXT)
+					_label(col, Opening.AUDIT, 17, Color("cbd8e3"))
+					_label(col, "The security policy applies to everyone. Except, apparently, the people who wrote it.", 16, Ui.MUTED)
+					_button(col, "opening_brief", "ATTEND EXECUTIVE BRIEFING", "opening_brief")
+				2:
+					_title(col, "A PERSONNEL MATTER", 29, Ui.TEXT)
+					match _briefing_beat:
+						0:
+							_label(col, Opening.CONFERENCE, 17, Color("cbd8e3"))
+							_button(col, "opening_phone", "WAIT FOR THE CALL", "opening_phone")
+						1:
+							_label(col, "INCOMING CALL / MANDARIN", 16, Ui.AMBER)
+							_label(col, Opening.CALL_SUBTITLES, 17, Ui.TEXT)
+							_button(col, "opening_hangup", "CONTINUE BRIEFING", "opening_hangup")
+						2:
+							_label(col, Opening.CONFERENCE_END, 17, Color("cbd8e3"))
+							_button(col, "opening_security", "ESCALATE TO SECURITY DIRECTOR", "opening_security")
+							_button(col, "opening_legal", "ASK LEGAL TO PRESERVE AUDIT", "opening_legal")
+				3:
+					_title(col, "YOUR CONCERN HAS BEEN RECEIVED", 29, Ui.TEXT)
+					_label(col, Opening.REPORT_RESPONSE if _opening_report == "opening_security" else Opening.LEGAL_RESPONSE, 17, Color("cbd8e3"))
+					_label(col, "Company share price: record high. Employee access: revoked.", 16, Ui.AMBER)
+					_button(col, "opening_read_notice", "OPEN PEOPLE OPERATIONS NOTICE", "opening_read_notice")
+				4:
+					_title(col, "WE VALUE YOUR FEEDBACK", 29, Ui.TEXT)
+					_label(col, Opening.OFFBOARDING, 17, Color("cbd8e3"))
+					_button(col, "opening_exit_accept", "SUBMIT EXIT FEEDBACK", "opening_exit_accept")
+					_button(col, "opening_exit_decline", "DECLINE EXIT INTERVIEW", "opening_exit_decline")
+				5:
+					_label(col, Opening.EXIT_ACCEPT if _opening_exit == "opening_exit_accept" else Opening.EXIT_DECLINE, 16, Ui.MUTED)
+					_title(col, Opening.HEADLINE, 29, Color("e3a39b"))
+					_label(col, Opening.NOTICE, 17, Color("cbd8e3"))
+					_divider(col)
+					_label(col, Opening.OFFER, 17, Ui.TEXT)
+					_button(col, "opening_accept", "ACCEPT TERMS / RETURN COMPANY PROPERTY" if _physical_opening else "ACCEPT TERMS / START DELIVERING", "opening_accept")
 		"pause":
 			_title(col, "PAUSED / SAFE MOMENT", 22, Color("f0dfcd"))
 			_button(col, "resume", "RESUME GAME", "resume")
@@ -285,15 +477,68 @@ func _render() -> void:
 				"  |  WORLD SEED  " + str(_journal_data.get("seed", "-")), 16, Color("bdcddd"))
 			_divider(col)
 			_title(col, "ACTIVE DELIVERIES", 18, Color("f0d1a0"))
+			if not str(_journal_data.get("opening_goal","")).is_empty():
+				_label(col, str(_journal_data["opening_goal"]), 17, Ui.AMBER)
+			if not str(_journal_data.get("platform_notice","")).is_empty():
+				_label(col, str(_journal_data["platform_notice"]), 16, Ui.MUTED)
 			_label(col, str(_journal_data.get("main_objective", "Explore Morrow Bay")),
 				17, Color("e1ebef"))
+			_button(col, "restart_courier", "ABANDON PACKAGE / RETRY ROUTE", "restart_courier", bool(_journal_data.get("courier_can_restart", false)))
+			_label(col, str(_journal_data.get("story_objective", "")), 16, Ui.ACCENT)
+			if bool(_journal_data.get("story_can_navigate", false)):
+				_button(col, "story_waypoint", "SET WAYPOINT TO CONTACT OBJECTIVE", "story_waypoint")
+			if bool(_journal_data.get("story_can_abandon", false)):
+				_button(col, "abandon_story", "ABANDON CONTACT MISSION", "abandon_story")
 			_label(col, str(_journal_data.get("venue_job", "No local contacts")),
 				16, Color("bfced5"))
 			_label(col, str(_journal_data.get("civic_job", "No freight work")),
 				16, Color("bfced5"))
+			if not str(_journal_data.get("cal_quest","")).is_empty():
+				_label(col,str(_journal_data["cal_quest"]),16,Ui.ACCENT)
+				if bool(_journal_data.get("cal_can_navigate",false)):
+					_button(col,"cal_waypoint","SET COMPATIBILITY PATCH WAYPOINT","cal_waypoint")
+			_divider(col)
+			_title(col,"REPUTATION / STREET CRED",18,Ui.AMBER)
+			_label(col,str(_journal_data.get("street_cred_summary","STREET CRED 0 / UNKNOWN")),16,Ui.ACCENT)
+			var cred:Dictionary=_journal_data.get("street_cred",{})
+			if int(cred.get("next",0))>int(cred.get("floor",0)):
+				var bar:=ProgressBar.new()
+				bar.min_value=float(cred.get("floor",0))
+				bar.max_value=float(cred["next"])
+				bar.value=float(cred.get("points",0))
+				bar.show_percentage=false
+				bar.custom_minimum_size=Vector2(0,12)
+				col.add_child(bar)
+			_label(col,str(_journal_data.get("instrument_status","")),16,Ui.ACCENT)
+			_label(col,str(_journal_data.get("busking_status","")),16,Ui.ACCENT)
+			_button(col,"busking_waypoint","SET STREET MUSIC WAYPOINT","busking_waypoint")
+			_label(col,str(_journal_data.get("music_contact","")),16,Ui.ACCENT)
+			if bool(_journal_data.get("music_can_navigate",false)):
+				_button(col,"music_waypoint","SET UNDERGROUND MUSIC CONTACT WAYPOINT","music_waypoint")
+			for source in _journal_data.get("street_cred_sources",[]):
+				_label(col,"%s  /  +%d earned"%[str(source["name"]),int(source["points"])],14,Ui.MUTED)
 			_divider(col)
 			_title(col, "INVENTORY / STATUS", 18, Color("f0d1a0"))
 			_label(col, str(_journal_data.get("weapons", "No equipment data")), 16, Ui.ACCENT)
+			_label(col, str(_journal_data.get("owned_vehicles", "VEHICLE TITLES: None")), 16, Color("c4d6da"))
+			_label(col, str(_journal_data.get("conditioning", "")), 16, Ui.ACCENT)
+			_label(col, str(_journal_data.get("outfit", "")), 16, Ui.ACCENT)
+			if _journal_data.has("fashion_locations"):
+				_title(col,"FASHION DIRECTORY",18,Color("f0d1a0"))
+				for id in _journal_data["fashion_locations"]:
+					if FashionStores.STORES.has(id):
+						var site:Dictionary=FashionStores.STORES[id]
+						_button(col,"fashion_"+id,"%s / %s" % [site["name"],site["district"]],"fashion_waypoint:"+id)
+			_label(col, "BTC WALLET: %d sats" % int(_journal_data.get("bitcoin_sats",0)), 16, Ui.ACCENT)
+			if not str(_journal_data.get("synaxis_site","")).is_empty():
+				_label(col,str(_journal_data["synaxis_site"]),16,Ui.MUTED)
+				_button(col,"synaxis_waypoint","SET WAYPOINT TO SYNAXIS HQ","synaxis_waypoint")
+			_label(col, str(_journal_data.get("home_text", "")), 16, Ui.ACCENT)
+			if bool(_journal_data.get("home_can_navigate", false)):
+				_button(col, "home_waypoint", "SET WAYPOINT TO POD", "home_waypoint")
+			if bool(_journal_data.get("home_owned", false)):
+				_label(col, str(_journal_data.get("garage_text", "")), 16, Ui.ACCENT)
+				_button(col, "garage_waypoint", "SET WAYPOINT TO GARAGE", "garage_waypoint")
 			_label(col, "%s  |  %d POLICE LOCATIONS" % [str(_journal_data.get("dispatch", "DISPATCH")), int(_journal_data.get("stations", 0))], 16, Color("77a7e0"))
 			_label(col, "CASH  $%d     HEALTH  %d     HEAT  %.1f" % [
 				int(_journal_data.get("cash", 0)), int(_journal_data.get("health", 100)),
@@ -456,7 +701,91 @@ func _choice(action: String) -> void:
 		_ui_click.volume_db = -80.0 if float(settings.get("sfx_volume", 0.75)) <= 0.0 else linear_to_db(float(settings.get("sfx_volume", 0.75))) - 11.0
 		_ui_click.play()
 	match action:
-		"play", "resume":
+		"play":
+			if screen == "title" and not _has_save:
+				action_requested.emit("begin_opening")
+			else:
+				hide_for_game()
+		"music_desk_buy","music_desk_busk","music_desk_practice","music_desk_owned":
+			if screen=="music_desk":
+				action_requested.emit(action)
+		"music_desk_leave":
+			if screen=="music_desk":
+				hide_for_game()
+				action_requested.emit(action)
+		"rhythm_pad_0","rhythm_pad_1","rhythm_pad_2":
+			if screen=="blue_hour_set":
+				_rhythm_strike(int(action.right(1)))
+		"rhythm_claim":
+			if screen=="blue_hour_set" and _rhythm.passed():
+				action_requested.emit("rhythm_claim")
+				hide_for_game()
+		"rhythm_cancel":
+			if screen=="blue_hour_set":
+				hide_for_game()
+				action_requested.emit("rhythm_cancel")
+		"street_reply_0","street_reply_1","street_leave","cal_accept","cal_complete":
+			if screen=="street_contact":
+				_street_contact={}
+				hide_for_game()
+				action_requested.emit(action)
+		"guard_r9", "guard_parking", "guard_robots", "guard_access", "guard_shift", "guard_layoff":
+			if screen=="parking_guard" and ParkingDialogue.available(action,_guard_former):
+				_guard_topic=action
+				_render()
+		"guard_back":
+			if screen=="parking_guard":
+				_guard_topic=""
+				_render()
+		"guard_leave":
+			if screen=="parking_guard":
+				hide_for_game()
+				action_requested.emit("guard_leave")
+		"breakroom_photo", "breakroom_decline":
+			if screen=="breakroom" and _breakroom_choice.is_empty():
+				_breakroom_choice=action
+				_render()
+		"restroom_leave":
+			if screen=="restroom":
+				hide_for_game()
+				action_requested.emit("restroom_leave")
+		"breakroom_leave":
+			if screen=="breakroom":
+				hide_for_game()
+				action_requested.emit("breakroom_leave")
+		"opening_inspect":
+			if screen == "opening" and _opening_stage == 0:
+				_opening_stage = 1
+				_render()
+		"opening_brief":
+			if screen == "opening" and _opening_stage == 1:
+				_opening_stage = 2
+				_opening_next_location()
+		"opening_phone", "opening_hangup":
+			if screen == "opening" and _opening_stage == 2 and ((action=="opening_phone" and _briefing_beat==0) or (action=="opening_hangup" and _briefing_beat==1)):
+				_briefing_beat += 1
+				if _physical_opening:
+					action_requested.emit("opening_camera")
+				_render()
+		"opening_security", "opening_legal":
+			if screen == "opening" and _opening_stage == 2 and _briefing_beat == 2:
+				_opening_report = action
+				_opening_stage = 3
+				_render()
+		"opening_read_notice":
+			if screen == "opening" and _opening_stage == 3:
+				_opening_stage = 4
+				_opening_next_location()
+		"opening_exit_accept", "opening_exit_decline":
+			if screen == "opening" and _opening_stage == 4:
+				_opening_exit = action
+				_opening_stage = 5
+				_opening_next_location()
+		"opening_accept":
+			if screen == "opening" and _opening_stage == 5:
+				hide_for_game()
+				action_requested.emit("accept_opening")
+		"resume":
 			hide_for_game()
 		"settings":
 			open_settings()
@@ -466,6 +795,8 @@ func _choice(action: String) -> void:
 			open_map()
 		"journal":
 			action_requested.emit("journal")
+		"restart_courier", "abandon_story", "home_waypoint", "garage_waypoint", "story_waypoint", "synaxis_waypoint", "cal_waypoint", "music_waypoint", "busking_waypoint":
+			action_requested.emit(action)
 		"back":
 			_open(_back_screen)
 		"new":
@@ -486,3 +817,141 @@ func _choice(action: String) -> void:
 			open_title()
 		"quit":
 			get_tree().quit()
+
+func open_blue_hour_set(sequence:int)->void:
+	_open_music_set(sequence,"live_gig")
+
+func open_busking_set(sequence:int)->void:
+	_open_music_set(sequence,"busking")
+
+func open_music_desk(data:Dictionary)->void:
+	_music_desk=data.duplicate()
+	_open("music_desk")
+
+func open_sampler_practice(sequence:int)->void:
+	_open_music_set(sequence,"practice")
+
+func consume_sampler_practice()->int:
+	if screen=="blue_hour_set" and _rhythm.mode=="practice" and _rhythm.claim():
+		return _rhythm_sequence
+	return 0
+
+func _open_music_set(sequence:int,source:String)->void:
+	_rhythm_sequence=sequence
+	_rhythm_focus_set=false
+	_rhythm.start(sequence,source)
+	_open("blue_hour_set")
+
+func open_owned_sampler_set(sequence:int)->void:
+	_open_music_set(sequence,"owned_busking")
+
+func consume_owned_sampler_set()->int:
+	if screen=="blue_hour_set" and _rhythm.mode=="owned_busking" and _rhythm.claim():
+		return _rhythm_sequence
+	return 0
+
+func consume_busking_result()->int:
+	if screen=="blue_hour_set" and _rhythm.mode=="busking" and _rhythm.claim():
+		return _rhythm_sequence
+	return 0
+
+func consume_blue_hour_result()->int:
+	if screen=="blue_hour_set" and _rhythm.mode=="live_gig" and _rhythm.claim():
+		return _rhythm_sequence
+	return 0
+
+func _render_rhythm(col:VBoxContainer)->void:
+	var street:bool=_rhythm.mode=="busking"
+	var practice:bool=_rhythm.mode=="practice"
+	var owned:bool=_rhythm.mode=="owned_busking"
+	_title(col,"POCKETBEAT M3 / PERSONAL SET" if owned else ("POCKETBEAT M3 / PRACTICE" if practice else ("STREET SAMPLER / BUSKING" if street else "BLUE HOUR / OPENING SET")),24,Ui.AMBER)
+	_label(col,("Play your own sampler for the neighborhood." if owned else ("Practice your own sampler. No cash or reputation reward." if practice else ("Borrow the neighborhood loaner sampler." if street else "Borrow Rae's three-pad sampler.")))+" Hit the indicated pad in the timing window. %d of %d required."%[_rhythm.required_hits,_rhythm.pattern.size()],16,Ui.TEXT)
+	_label(col,"1 / A: kick   2 / X: clap   3 / Y: hat",16,Ui.MUTED)
+	_rhythm_status=Label.new()
+	_rhythm_status.add_theme_font_size_override("font_size",22)
+	col.add_child(_rhythm_status)
+	_rhythm_meter=ProgressBar.new()
+	_rhythm_meter.max_value=1.0
+	_rhythm_meter.show_percentage=false
+	col.add_child(_rhythm_meter)
+	for lane in range(3):
+		var key:="rhythm_pad_%d"%lane
+		_button(col,key,["1 / A  KICK","2 / X  CLAP","3 / Y  HI-HAT"][lane],key)
+	_button(col,"rhythm_claim","COLLECT $14 / +4 STREET CRED" if owned else ("RECORD PRACTICE SET" if practice else ("COLLECT $8 / +4 STREET CRED" if street else "COLLECT $45 / +12 STREET CRED")),"rhythm_claim",false)
+	_rhythm_claim=_buttons["rhythm_claim"]
+	_button(col,"rhythm_cancel","LEAVE SET","rhythm_cancel")
+	_refresh_rhythm()
+
+func _process(delta:float)->void:
+	if screen!="blue_hour_set":
+		return
+	_rhythm.advance(delta)
+	_refresh_rhythm()
+
+func _input(event:InputEvent)->void:
+	if screen!="blue_hour_set" or _rhythm.finished or not event.is_pressed() or event.is_echo():
+		return
+	for lane in range(3):
+		if event.is_action_pressed(["service_one","service_two","service_three"][lane]):
+			_rhythm_strike(lane)
+			get_viewport().set_input_as_handled()
+			return
+
+func _rhythm_strike(lane:int)->void:
+	if _rhythm.finished:
+		return
+	_rhythm_player.stream=PAD_CLIPS[lane]
+	_rhythm_player.play()
+	_rhythm.strike(lane)
+	_refresh_rhythm()
+
+func _refresh_rhythm()->void:
+	if not is_instance_valid(_rhythm_status) or not is_instance_valid(_rhythm_meter) or not is_instance_valid(_rhythm_claim):
+		return
+	if _rhythm.finished:
+		_rhythm_status.text="%s / %d of %d correct"%["SET COMPLETE" if _rhythm.passed() else "TRY ANOTHER SET",_rhythm.hits,_rhythm.pattern.size()]
+		_rhythm_meter.value=0.0
+		_rhythm_claim.disabled=not _rhythm.passed()
+		if _rhythm.passed() and not _rhythm_focus_set:
+			_rhythm_focus_set=true
+			_rhythm_claim.grab_focus()
+		return
+	var remaining:float=_rhythm.target_time()-_rhythm.elapsed
+	var lane:int=_rhythm.pattern[_rhythm.index]
+	var window:bool=absf(remaining)<=_rhythm.hit_window
+	_rhythm_status.text="%s / %s / %d of %d  •  %d hits"%[["KICK","CLAP","HI-HAT"][lane],"HIT NOW" if window else "READY %.1fs"%maxf(0.0,remaining),_rhythm.index+1,_rhythm.pattern.size(),_rhythm.hits]
+	_rhythm_status.modulate=Ui.ACCENT if window else Ui.TEXT
+	_rhythm_meter.value=clampf(1.0-maxf(0.0,remaining)/_rhythm.beat_seconds,0.0,1.0)
+
+## Isolated static model preview; render one frame, no continuous extra camera.
+func _pocketbeat_preview(col:VBoxContainer)->void:
+	var frame:=SubViewportContainer.new()
+	frame.name="PocketBeatPreview"
+	frame.custom_minimum_size=Vector2(360,160)
+	frame.stretch=true
+	frame.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	col.add_child(frame)
+	var viewport:=SubViewport.new()
+	viewport.size=Vector2i(480,192)
+	viewport.own_world_3d=true
+	viewport.transparent_bg=true
+	viewport.render_target_update_mode=SubViewport.UPDATE_ONCE
+	frame.add_child(viewport)
+	var model:=PocketBeat.instantiate() as Node3D
+	viewport.add_child(model)
+	var cam:=Camera3D.new()
+	cam.projection=Camera3D.PROJECTION_ORTHOGONAL
+	cam.size=0.29
+	cam.position=Vector3(0.21,0.26,0.27)
+	viewport.add_child(cam)
+	cam.look_at(Vector3(0,0.028,0),Vector3.UP)
+	cam.current=true
+	var key:=DirectionalLight3D.new()
+	key.rotation_degrees=Vector3(-48,-32,0)
+	key.light_energy=1.5
+	viewport.add_child(key)
+	var fill:=DirectionalLight3D.new()
+	fill.rotation_degrees=Vector3(-32,145,0)
+	fill.light_energy=0.85
+	fill.light_color=Color("a0d6ee")
+	viewport.add_child(fill)

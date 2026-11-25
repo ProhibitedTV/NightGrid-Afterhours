@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "characters": {
+    "jetson": {
+      "direction": "Original mature male voice, low-mid register, polished and restrained executive confidence, subtle dry irony."
+    },
+    "lin": {
+      "direction": "Original adult female voice, precise and controlled, conversational bilingual English and Mandarin."
+    },
+    "player": {
+      "direction": "Original adult male voice, natural conversational American English, restrained tired disbelief."
+    },
+    "hr": {
+      "direction": "Original adult voice, bright polished professional delivery, unnervingly cheerful."
+    },
+    "dispatcher": {
+      "direction": "Original adult voice, concise calm public service radio delivery."
+    }
+  },
+  "lines": [
+    {
+      "id": "synaxis.jetson.blinds",
+      "character": "jetson",
+      "language": "English",
+      "text": "At Synaxis, transparency is one of our core values. Please close the blinds.",
+      "direction": "Confident, with a small pause before the last sentence."
+    },
+    {
+      "id": "synaxis.lin.customer",
+      "character": "lin",
+      "language": "English",
+      "text": "It's a very senior customer.",
+      "direction": "Quick, composed deflection."
+    },
+    {
+      "id": "synaxis.lin.call",
+      "character": "lin",
+      "language": "Chinese",
+      "text": "上校，解放军那边收到资料了吗？",
+      "caption": "Colonel, did the People's Liberation Army receive the files?",
+      "direction": "Quiet, private telephone conversation."
+    },
+    {
+      "id": "synaxis.player.colonel",
+      "character": "player",
+      "language": "English",
+      "text": "Did you just say colonel?",
+      "direction": "Quiet disbelief, no theatrical exaggeration."
+    },
+    {
+      "id": "synaxis.hr.replacement",
+      "character": "hr",
+      "language": "English",
+      "text": "We are not replacing you with AI. We are replacing your position with a more scalable version of your contribution.",
+      "direction": "Warm and polished, without a hint of irony."
+    },
+    {
+      "id": "mbpd.audition.clear",
+      "character": "dispatcher",
+      "language": "English",
+      "text": "Control to all units. Incident cleared.",
+      "direction": "Steady short radio announcement; dry recording."
+    }
+  ]
+}
