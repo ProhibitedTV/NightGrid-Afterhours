@@ -19,6 +19,8 @@ const GIG_ORDERS = [
 	{"id":"gig:bao_grid","vendor":"neon_bao","customer":"power_annex","meal":"Bao dinner","recipient":"Grid Annex Four / Lin","base":13,"tip":5}
 ]
 var _gig_routes: Array[Dictionary] = []
+# Declining rotates offers without incrementing paid delivery progress.
+var offer_offset := 0
 
 func configure_gig_routes(venues: Node, civic: Node) -> bool:
 	var routes: Array[Dictionary] = []
@@ -37,7 +39,7 @@ func configure_gig_routes(venues: Node, civic: Node) -> bool:
 
 func _route() -> Dictionary:
 	if gig_economy and not _gig_routes.is_empty():
-		return _gig_routes[completed_runs % _gig_routes.size()]
+		return _gig_routes[(completed_runs + offer_offset) % _gig_routes.size()]
 	return ROUTES[completed_runs % ROUTES.size()]
 
 const OBJECTIVES = [
@@ -79,6 +81,18 @@ func restore(runs: Variant, carrying: Variant) -> bool:
 	completed_runs = int(runs)
 	step = 1 if carrying else 0
 	return true
+
+func can_decline_offer() -> bool:
+	return gig_economy and step == 0 and _gig_routes.size() > 1
+
+func decline_offer() -> bool:
+	if not can_decline_offer():
+		return false
+	offer_offset = (offer_offset + 1) % _gig_routes.size()
+	return true
+
+func restore_offer_offset(value: Variant) -> void:
+	offer_offset = int(value) if valid_run_count(value) and int(value) < GIG_ORDERS.size() else 0
 
 func has_package() -> bool:
 	return step == 1

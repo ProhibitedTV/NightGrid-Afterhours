@@ -473,6 +473,9 @@ func _build_world_audio() -> void:
 		float(options.get("sfx_volume", 0.75)))
 
 func _on_menu_action(action: String) -> void:
+	if action == "phone_work_decline":
+		_phone_decline_order()
+		return
 	if action.begins_with("phone_route_"):
 		_phone_route(action)
 		return
@@ -795,6 +798,7 @@ func _phone_context() -> Dictionary:
 		"clock":day_night.call("clock_string"), "gig":courier_mission.gig_economy,
 		"offboarded":progression.has_receipt(Opening.RECEIPT), "order":courier_mission.objective()["title"],
 		"carrying":carrying, "payout":courier_mission.payout(), "deliveries":deliveries,
+		"can_decline_order":courier_mission.can_decline_offer(),
 		"cash":cash, "bitcoin_sats":progression.bitcoin_sats, "story":story_mission.journal(),
 		"home_owned":progression.owns_home(), "home_access":progression.has_receipt(StarterHome.ACCESS_RECEIPT),
 		"deposit":StarterHome.move_in_price(), "notice":Opening.app_notice(deliveries),
@@ -807,6 +811,18 @@ func _phone_context() -> Dictionary:
 		"rail_name":"%d m away (direct)" % roundi(origin.distance_to(rail_point)) if rail_point.is_finite() else "Unavailable",
 		"bus_name":"%d m away (direct)" % roundi(origin.distance_to(bus_point)) if bus_point.is_finite() else "Unavailable"
 	}
+
+func _phone_decline_order() -> void:
+	if not phone_available() or game_menu.get("screen") != "phone" or game_menu.get("_phone_app") != "work":
+		return
+	var old_target := Vector2(mission_position.x,mission_position.z)
+	if not courier_mission.decline_offer():
+		return
+	_refresh_courier_target()
+	# Keep unrelated player waypoints. Replace only a route pointing at the old offer.
+	if navigation_waypoint != null and old_target.distance_to(navigation_waypoint) < 5.0:
+		set_navigation_waypoint(Vector2(mission_position.x,mission_position.z))
+	game_menu.call("refresh_phone",_phone_context())
 
 func _phone_route(action: String) -> void:
 	if not phone_available() or game_menu.get("screen") != "phone":
@@ -2400,6 +2416,7 @@ func _capture_snapshot() -> Dictionary:
 		"player_position": [saved_at.x, saved_at.y, saved_at.z],
 		"camera_yaw": yaw, "cash": cash, "progression": progression.snapshot(), "health": health, "heat": heat,
 		"deliveries": deliveries, "carrying": carrying, "story_mission": story_mission.snapshot(),
+		"courier_offer_offset": courier_mission.offer_offset,
 		"hour": day_night.get("hour"), "day_index":day_night.get("day_index"), "cars": stored_cars,
 		"occupied_car": cars.find(current_car),
 		"traffic": traffic.call("snapshot"), "rail": rail.call("snapshot"),
@@ -2476,6 +2493,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 			wanted.last_known = p
 	courier_mission.gig_economy = progression.has_receipt(Opening.RECEIPT)
 	courier_mission.restore(data.get("deliveries", 0), data.get("carrying", false))
+	courier_mission.restore_offer_offset(data.get("courier_offer_offset",0))
 	player.call("set_courier_conditioning",courier_mission.conditioning_rank())
 	story_mission.restore(data.get("story_mission", StoryMission.new().snapshot()))
 	yaw = float(data.get("camera_yaw", 0.0))

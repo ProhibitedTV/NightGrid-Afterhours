@@ -59,6 +59,25 @@ func _verify() -> void:
 		gig.advance("deliver",gig.target(),gig_wallet)
 	if not check(gig.completed_runs==6 and gig_wallet.balance==141,"six starter deliveries use the inflation-adjusted catalog"):
 		return
+	var first_route: String = gig.objective()["route_id"]
+	var earned: int = gig_wallet.balance
+	if not check(gig.decline_offer() and gig.objective()["route_id"] != first_route and gig.completed_runs == 6 and gig_wallet.balance == earned, "decline changes only offer"):
+		return
+	var offset: int = gig.offer_offset
+	var changed_route: String = gig.objective()["route_id"]
+	gig.advance("collect",gig.target(),gig_wallet)
+	if not check(not gig.can_decline_offer() and not gig.decline_offer() and gig.objective()["route_id"] == changed_route, "cannot decline collected cargo"):
+		return
+	var gig_copy := Director.new()
+	gig_copy.gig_economy = true
+	gig_copy.configure_gig_routes(venues,civic)
+	gig_copy.restore(6,true)
+	gig_copy.restore_offer_offset(offset)
+	if not check(gig_copy.target() == gig.target() and gig_copy.has_package(), "declined route survives carrying save"):
+		return
+	gig_copy.restore_offer_offset(99)
+	if not check(gig_copy.offer_offset == 0 and not job.decline_offer(), "invalid offset and legacy route guards"):
+		return
 	venues.free()
 	civic.free()
 	var story := Story.new()
