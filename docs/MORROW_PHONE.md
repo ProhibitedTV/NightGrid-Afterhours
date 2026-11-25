@@ -68,3 +68,7 @@ Once the trio is recruited, Music offers six permanent authored stage names; unn
 ## Off Grid Records
 
 After Static Room headline, the physical indoor counter offers a confirmable DIY pressing of 12 tapes for $60 (36 stock maximum). The release is *After the Last Shift*; no label ownership or contract is required. A completed Blue Hour resident set sells up to four stocked tapes at $12 each, in a separate wallet credit transaction; if credit fails, stock is unchanged. No automatic passive sales, no cash for cancelled performances. Phone shows stock, sold units and gross merch revenue, and the venue flyers announce the release. Bounded batch/sales counters reconstruct inventory and validate against showcase and paid residency history. Original cassette art appears on the label desk. This does not yet include wearable band shirts, recorded player-specific songs or dynamic fans. CI/native validation pending.
+
+## Main integration
+
+Merged the independent general StreetCred ledger from main without replacing it. `scene_reputation.gd` derives the music/community/underground progression gates from successful activities and receipts. Successful music busks and live bookings also settle the existing global ledger's monotonic `busking`/`live_gig` counters; cancelled sets and rehearsals do not. Journal displays both systems distinctly; the phone shows global summary alongside scene scores. Main's street conversations, Cal favor, arcade/voice changes and their smoke checks remain present. Runtime acceptance pending.

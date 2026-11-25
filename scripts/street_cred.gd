@@ -1,46 +1,98 @@
 extends RefCounted
-## Scene reputation is a read-only projection of successful gameplay, not cash,
-## purchases, elapsed time or a second mutable XP ledger.
-const MAX_CRED = 100
-const SCENES = ["music","community","underground"]
-const LABELS = {"music":"Music scene","community":"Community","underground":"Underground"}
-const COMMUNITY_RECEIPTS = ["civic:cold_chain","civic:lifeline","civic:after_sparks","civic:grid_audit","technical:crane_interlock","technical:grid_telemetry","venue:midnight_thermos","venue:last_shift_recipe"]
-const UNDERGROUND_RECEIPTS = ["venue:dead_frequency","venue:glass_invoice","investigation:paper_city"]
+## One-time neighborhood favors derive cred from existing settlement receipts.
+## Repeatable activities use a bounded, monotonic completed-run count per source.
+## A caller must verify successful gameplay before invoking settle_run.
+const FAVOR_POINTS={
+	"street:compatibility_patch":25,
+	"venue:midnight_thermos":15,
+	"venue:dead_frequency":25,
+	"venue:glass_invoice":20,
+	"venue:last_shift_recipe":20}
+const FAVOR_NAMES={
+	"street:compatibility_patch":"Compatibility Patch",
+	"venue:midnight_thermos":"The Midnight Thermos",
+	"venue:dead_frequency":"Dead Frequency",
+	"venue:glass_invoice":"The Glass Invoice",
+	"venue:last_shift_recipe":"Last Shift Recipe"}
+const RUN_POINTS={"busking":4,"live_gig":12,"skate_session":3}
+const MAX_RUNS=100000
+const MAX_CRED=10000
+const RANKS=[
+	{"at":0,"name":"Unknown"},
+	{"at":25,"name":"Local Face"},
+	{"at":100,"name":"Recognized"},
+	{"at":250,"name":"Neighborhood Name"},
+	{"at":500,"name":"Underground Regular"},
+	{"at":1000,"name":"Street Legend"}]
+var _runs:Dictionary={}
 
-static func scores(wallet: RefCounted, career: RefCounted) -> Dictionary:
-	var music := 3*mini(int(career.get("completed_sets")),MAX_CRED)+4*mini(int(career.get("encores")),MAX_CRED)
-	if wallet.call("has_receipt","music:dock_nine_debut"):
-		music += 16
-	if wallet.call("has_receipt","music:blue_hour_debut"):
-		music += 30
-	if wallet.call("has_receipt","music:static_room_showcase"):
-		music += 20
-	var community := 0
-	for id in COMMUNITY_RECEIPTS:
-		if wallet.call("has_receipt",id):
-			community += 12
-	var underground := 0
-	for id in UNDERGROUND_RECEIPTS:
-		if wallet.call("has_receipt",id):
-			underground += 40 if id=="investigation:paper_city" else 20
-	return {"music":mini(music,MAX_CRED),"community":mini(community,MAX_CRED),"underground":mini(underground,MAX_CRED)}
+static func valid_runs(value:Variant)->bool:
+	if not value is Dictionary or value.size()>RUN_POINTS.size():
+		return false
+	for id in value:
+		if not id is String or not RUN_POINTS.has(id):
+			return false
+		var n:Variant=value[id]
+		if not (n is int or n is float) or not is_finite(float(n)) or float(n)<0.0 or float(n)>MAX_RUNS or floor(float(n))!=float(n):
+			return false
+	return true
 
-static func rank(score: int) -> String:
-	if score>=85:
-		return "Scene icon"
-	if score>=50:
-		return "Respected"
-	if score>=20:
-		return "Recognized"
-	if score>0:
-		return "New face"
-	return "Unknown"
+func restore(value:Variant)->bool:
+	if not valid_runs(value):
+		return false
+	_runs.clear()
+	for id in value:
+		_runs[id]=int(value[id])
+	return true
 
-static func summary(scores_now: Dictionary) -> String:
-	var parts := PackedStringArray()
-	for id in SCENES:
-		parts.append("%s %d / %s" % [LABELS[id],scores_now.get(id,0),rank(int(scores_now.get(id,0)))])
-	return "  •  ".join(parts)
+func snapshot()->Dictionary:
+	return _runs.duplicate()
 
-static func community_price(price: int, scores_now: Dictionary) -> int:
-	return maxi(0,price-floori(price*.10)) if int(scores_now.get("community",0))>=20 else price
+func completed_runs(source:String)->int:
+	return int(_runs.get(source,0))
+
+func settle_run(source:String,sequence:int)->bool:
+	if not RUN_POINTS.has(source) or sequence<1 or sequence>MAX_RUNS or sequence!=completed_runs(source)+1:
+		return false
+	_runs[source]=sequence
+	return true
+
+func total(receipts:Dictionary)->int:
+	var points:=0
+	for id in FAVOR_POINTS:
+		if receipts.has(id):
+			points+=int(FAVOR_POINTS[id])
+	for id in _runs:
+		points+=int(_runs[id])*int(RUN_POINTS[id])
+	return mini(points,MAX_CRED)
+
+static func rank(points:int)->Dictionary:
+	var value:=clampi(points,0,MAX_CRED)
+	var current:Dictionary=RANKS[0]
+	var next:Dictionary={}
+	for row in RANKS:
+		if int(row["at"])<=value:
+			current=row
+		else:
+			next=row
+			break
+	return {"points":value,"name":current["name"],"floor":current["at"],"next":next.get("at",0),"next_name":next.get("name","")}
+
+func summary(receipts:Dictionary)->String:
+	var info:=rank(total(receipts))
+	var result:="STREET CRED %d / %s"%[info["points"],str(info["name"]).to_upper()]
+	if int(info["next"])>0:
+		result+="  •  %d to %s"%[int(info["next"])-int(info["points"]),str(info["next_name"])]
+	return result
+
+## Fixed-size source summary; no unbounded activity history.
+func earned_sources(receipts:Dictionary)->Array[Dictionary]:
+	var result:Array[Dictionary]=[]
+	for id in FAVOR_POINTS:
+		if receipts.has(id):
+			result.append({"name":FAVOR_NAMES[id],"points":FAVOR_POINTS[id]})
+	for id in RUN_POINTS:
+		var count:=completed_runs(id)
+		if count>0:
+			result.append({"name":str(id).replace("_"," ").capitalize(),"points":count*int(RUN_POINTS[id]),"runs":count})
+	return result

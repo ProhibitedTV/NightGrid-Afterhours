@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'scripts/opening_story.gd'
+      - 'scripts/street_satire.gd'
       - 'tools/voice/**'
       - 'tools/audio/**'
       - 'assets/audio/voiced/**'
@@ -10,6 +11,8 @@ on:
   push:
     branches: [main]
     paths:
+      - 'scripts/opening_story.gd'
+      - 'scripts/street_satire.gd'
       - 'tools/voice/**'
       - 'tools/audio/**'
       - 'assets/audio/voiced/**'

@@ -2,7 +2,7 @@ extends RefCounted
 const MusicCareer = preload("res://scripts/music_career.gd")
 ## Read-only presentation model. World actions are dispatched by the existing
 ## menu/world adapter; no duplicated wallet, delivery, property or save state.
-const StreetCred = preload("res://scripts/street_cred.gd")
+const StreetCred = preload("res://scripts/scene_reputation.gd")
 const APPS = [
 	{"id":"work","name":"QuotaDrop","mark":"QD","color":"ffbb80"},
 	{"id":"wallet","name":"Wallet","mark":"$","color":"81e0d4"},
@@ -70,6 +70,7 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 				})
 		"cred":
 			subtitle = "Reputation belongs to the streets, not your wallet."
+			rows.append({"label":"Citywide reputation","value":str(state.get("global_street_cred","STREET CRED 0 / UNKNOWN"))})
 			var scores_now: Dictionary = state.get("street_cred",{})
 			for scene in StreetCred.SCENES:
 				var score := int(scores_now.get(scene,0))

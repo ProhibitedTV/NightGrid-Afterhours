@@ -1,6 +1,6 @@
 extends SceneTree
 const Phone = preload("res://scripts/morrow_phone.gd")
-const Cred = preload("res://scripts/street_cred.gd")
+const Cred = preload("res://scripts/scene_reputation.gd")
 const InstrumentArt = preload("res://scripts/instrument_art.gd")
 func _initialize() -> void:
 	create_timer(60.0,true,false,true).timeout.connect(func() -> void: _fail("watchdog"))
