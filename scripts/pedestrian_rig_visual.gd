@@ -12,6 +12,7 @@ const PALETTE = [
 	Color("3b4754"),Color("4e5149"),Color("564746"),
 	Color("465b5c"),Color("645747"),Color("494554")
 ]
+const MusicPose = preload("res://scripts/music_performance_pose.gd")
 const START_SPEED = 0.23
 const STOP_SPEED = 0.12
 const TRANSITION = 0.18
@@ -27,6 +28,9 @@ var _style := 0
 var _model: PackedScene
 var _activity := "WALK"
 var _animation_elapsed := 0.0
+var _music_role := ""
+var _music_phase := 0.0
+var _music_arms: Array[Dictionary] = []
 static var _materials_by_source := {}
 static var _street_surface_by_source := {}
 
@@ -136,11 +140,22 @@ func set_locomotion(speed: float) -> void:
 func set_activity(activity: String) -> void:
 	_activity = activity
 
+func set_music_role(role: String) -> void:
+	_music_role = role if role in MusicPose.ROLES else ""
+	_music_phase = 0.0
+	_music_arms.clear()
+	if not _music_role.is_empty() and is_instance_valid(_skeleton):
+		_music_arms = MusicPose.arms(_skeleton)
+
+func music_pose_ready() -> bool:
+	return _music_arms.size()==2
+
 ## Reset pooled animation so previous occupant's stride is not inherited.
 func reset_pedestrian_visual() -> void:
 	_measured_speed = 0.0
 	_filtered_speed = 0.0
 	_activity = "WALK"
+	set_music_role("")
 	_animation_elapsed = 0.0
 	_walking = false
 	if _valid:
@@ -155,7 +170,7 @@ func _process(delta: float) -> void:
 	var next_walk := _filtered_speed>STOP_SPEED if _walking else _filtered_speed>START_SPEED
 	_walking = next_walk
 	var clip := walk_clip if _walking else idle_clip
-	if not _walking:
+	if not _walking and _music_role.is_empty():
 		if _activity in ["ALERT", "YIELD", "STOREFRONT", "WAIT_CROSSING", "ERRAND", "NIGHT_OUT"] and _player.has_animation(&"look_around"):
 			clip = &"look_around"
 		elif _activity == "SOCIALIZE" and _player.has_animation(&"wave"):
@@ -174,6 +189,9 @@ func _process(delta: float) -> void:
 	_animation_elapsed += delta
 	if _animation_elapsed >= interval:
 		_player.advance(_animation_elapsed)
+		if not _walking and not _music_role.is_empty():
+			_music_phase = fposmod(_music_phase+_animation_elapsed*2.0,1.0)
+			MusicPose.apply(_skeleton,_music_arms,_music_role,_music_phase)
 		_animation_elapsed = 0.0
 
 func animation_state() -> Dictionary:

@@ -19,6 +19,9 @@ const GIG_ORDERS = [
 	{"id":"gig:bao_grid","vendor":"neon_bao","customer":"power_annex","meal":"Bao dinner","recipient":"Grid Annex Four / Lin","base":13,"tip":5}
 ]
 var _gig_routes: Array[Dictionary] = []
+# Bounded offset from completed runs; declining an offer never increments runs.
+var offer_offset := 0
+var on_duty := true
 
 func configure_gig_routes(venues: Node, civic: Node) -> bool:
 	var routes: Array[Dictionary] = []
@@ -37,7 +40,7 @@ func configure_gig_routes(venues: Node, civic: Node) -> bool:
 
 func _route() -> Dictionary:
 	if gig_economy and not _gig_routes.is_empty():
-		return _gig_routes[completed_runs % _gig_routes.size()]
+		return _gig_routes[(completed_runs + offer_offset) % _gig_routes.size()]
 	return ROUTES[completed_runs % ROUTES.size()]
 
 const OBJECTIVES = [
@@ -80,6 +83,23 @@ func restore(runs: Variant, carrying: Variant) -> bool:
 	step = 1 if carrying else 0
 	return true
 
+func decline_offer() -> bool:
+	if not on_duty or not gig_economy or step != 0 or _gig_routes.size() < 2:
+		return false
+	offer_offset = (offer_offset + 1) % _gig_routes.size()
+	return true
+
+func restore_offer_offset(value: Variant) -> void:
+	offer_offset = 0
+	if valid_run_count(value) and int(value) < GIG_ORDERS.size():
+		offer_offset = int(value)
+
+func set_on_duty(value: bool) -> bool:
+	if not gig_economy or (not value and has_package()):
+		return false
+	on_duty = value
+	return true
+
 func has_package() -> bool:
 	return step == 1
 
@@ -116,6 +136,8 @@ func objective() -> Dictionary:
 ## Events must match the current objective ID and the actual target.
 ## Final step pays before mutating the run counter; no per-run receipt growth.
 func advance(event_id: String, at: Vector3, wallet: RefCounted) -> Dictionary:
+	if gig_economy and not on_duty:
+		return {}
 	if event_id != OBJECTIVES[step]["id"] or not at.is_finite() or at.distance_to(target()) >= RADIUS:
 		return {}
 	if step == 0:

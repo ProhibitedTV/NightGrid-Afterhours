@@ -6,7 +6,7 @@ const ID = "story:night_shift_contact"
 const REWARD = 100
 const STEPS = [
 	{"id":"meet_mara","kind":"interact","event":"mara_talk","title":"Meet Mara at Lantern Cup","site":"lantern_cup"},
-	{"id":"first_delivery","kind":"deliver","event":"courier_delivered","title":"Complete a courier delivery","site":""},
+	{"id":"first_delivery","kind":"deliver","event":"courier_delivered","title":"Complete a paid delivery or local/civic contract","site":""},
 	{"id":"report_back","kind":"interact","event":"mara_talk","title":"Report back to Mara at Lantern Cup","site":"lantern_cup"}
 ]
 var status: String = "available"
@@ -26,6 +26,9 @@ func journal() -> String:
 	return "NIGHT SHIFT CONTACT: %d/%d  %s" % [step + 1, STEPS.size(), STEPS[step]["title"]]
 
 func event(event_id: String, wallet: RefCounted) -> String:
+	# The original event ID remains valid for old saves and courier callers.
+	if event_id == "contract_completed":
+		event_id = "courier_delivered"
 	if status == "complete" or event_id != STEPS[step]["event"]:
 		return ""
 	if step == 0:

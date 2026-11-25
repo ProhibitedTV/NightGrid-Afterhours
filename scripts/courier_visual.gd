@@ -5,6 +5,10 @@ const Materials = preload("res://scripts/material_library.gd")
 const ProductArt = preload("res://scripts/consumable_prop.gd")
 const DeliveryBag = preload("res://scripts/quotadrop_bag.gd")
 var _meal_bag: Node3D
+const InstrumentArt = preload("res://scripts/instrument_art.gd")
+var _guitar: Node3D
+var _music_pose := false
+var _music_clip := &"music_strum"
 var _meal_bag_carried := false
 const Wardrobe = preload("res://scripts/wardrobe_catalog.gd")
 var outfit_id := Wardrobe.DEFAULT
@@ -54,6 +58,9 @@ func _ready() -> void:
 		_courier_library = animations.get_animation_library(&"").duplicate(true) as AnimationLibrary
 		_prepare_library()
 		_prepare_product_clips()
+		_prepare_music_clip()
+		_prepare_music_clip("punk_bass",&"music_bass")
+		_prepare_music_clip("portable_synth",&"music_synth")
 	animations.remove_animation_library(&"")
 	animations.add_animation_library(&"", _courier_library)
 	animations.animation_finished.connect(_finish_action)
@@ -175,6 +182,89 @@ func set_meal_bag(carried: bool) -> void:
 		_meal_bag.position = Vector3(0,.04,.02)
 	if is_instance_valid(_meal_bag):
 		_meal_bag.visible = carried and not _seat
+
+# Lightweight original prop, attached to the character rather than a world
+# collision body. Animation rig refinement is deliberately separate.
+func set_music_prop(active: bool, id: String = "acoustic_guitar") -> void:
+	if active:
+		if not InstrumentArt.MODELS.has(id):
+			id = "acoustic_guitar"
+		if not is_instance_valid(_guitar):
+			_guitar = InstrumentArt.place(self,id,Vector3(.06,1.08,.25),Vector3(0,0,-32),0.0)
+			_guitar.name = "AcousticGuitar"
+		var prop := _guitar as MeshInstance3D
+		prop.mesh = InstrumentArt.MODELS[id]
+		prop.position = Vector3(0,.98,.35) if id=="portable_synth" else Vector3(.06,1.08,.25)
+		prop.rotation_degrees = Vector3(-90,0,0) if id=="portable_synth" else Vector3(0,0,-32)
+		_music_clip = &"music_synth" if id=="portable_synth" else (&"music_bass" if id=="punk_bass" else &"music_strum")
+	if is_instance_valid(_guitar):
+		_guitar.visible = active
+	_music_pose = active
+	if active:
+		_clear_product()
+		_action = &""
+		_weapon_display.hide()
+		_play(_music_clip,.20)
+	else:
+		_horizontal = Vector3.ZERO
+		_choose_pose()
+
+# Authored loop on the existing weighted rig. Arm targets are defined in the
+# rest skeleton's coordinate space; the right hand oscillates over the body.
+func _prepare_music_clip(id: String = "acoustic_guitar", clip: StringName = &"music_strum") -> void:
+	var motion := _courier_library.get_animation(&"idle").duplicate(true) as Animation
+	motion.loop_mode = Animation.LOOP_LINEAR
+	var hips := skeleton.find_bone("Hips")
+	if hips >= 0:
+		var center := skeleton.get_bone_global_rest(hips).origin
+		for side in ["Left","Right"]:
+			var arm := skeleton.find_bone(side+"Arm")
+			var fore := skeleton.find_bone(side+"ForeArm")
+			var wrist := skeleton.find_bone(side+"Hand")
+			if mini(arm,mini(fore,wrist))<0:
+				continue
+			var shoulder := skeleton.get_bone_global_rest(arm)
+			var elbow := skeleton.get_bone_global_rest(fore)
+			var hand := skeleton.get_bone_global_rest(wrist)
+			var sign_x := 1.0 if shoulder.origin.x>=center.x else -1.0
+			var target := center+Vector3(sign_x*.23,.22,.29) if side=="Left" else center+Vector3(0,.13,.32)
+			var other := target if side=="Left" else target+Vector3(.025,.085,0)
+			if id=="punk_bass":
+				target += Vector3(sign_x*.03,.035,0)
+				other = target+Vector3(.012,.025,0)
+			elif id=="portable_synth":
+				target = center+Vector3(sign_x*.18,-.02,.34)
+				other = target+Vector3(.035,.025,0)
+			var first := _music_arm_pose(shoulder,elbow,hand,skeleton.get_bone_global_rest(skeleton.get_bone_parent(arm)).basis,target,sign_x)
+			var second := _music_arm_pose(shoulder,elbow,hand,skeleton.get_bone_global_rest(skeleton.get_bone_parent(arm)).basis,other,sign_x)
+			var names := [side+"Arm",side+"ForeArm",side+"Hand"]
+			for track in motion.get_track_count():
+				if motion.track_get_type(track)!=Animation.TYPE_ROTATION_3D:
+					continue
+				var index := names.find(str(motion.track_get_path(track).get_subname(0)))
+				if index<0:
+					continue
+				while motion.track_get_key_count(track)>0:
+					motion.track_remove_key(track,0)
+				for frame in range(9):
+					var pose: Quaternion = first[index] if frame%2==0 else second[index]
+					motion.rotation_track_insert_key(track,motion.length*float(frame)/8.0,pose)
+	_courier_library.add_animation(clip,motion)
+
+func _music_arm_pose(shoulder: Transform3D,elbow: Transform3D,hand: Transform3D,parent_basis: Basis,target: Vector3,sign_x: float) -> Array[Quaternion]:
+	var reach := target-shoulder.origin
+	var a := shoulder.origin.distance_to(elbow.origin)
+	var b := elbow.origin.distance_to(hand.origin)
+	var length := clampf(reach.length(),absf(a-b)+.001,a+b-.001)
+	var axis := reach.normalized()
+	var bend := Vector3(sign_x,-.75,0)
+	bend = (bend-axis*bend.dot(axis)).normalized()
+	var along := (a*a-b*b+length*length)/(2.0*length)
+	var joint := shoulder.origin+axis*along+bend*sqrt(maxf(0.0,a*a-along*along))
+	var final := shoulder.origin+axis*length
+	var upper_basis := Basis(Quaternion((elbow.origin-shoulder.origin).normalized(),(joint-shoulder.origin).normalized()))*shoulder.basis
+	var fore_basis := Basis(Quaternion((hand.origin-elbow.origin).normalized(),(final-joint).normalized()))*elbow.basis
+	return [(parent_basis.inverse()*upper_basis).get_rotation_quaternion(),(upper_basis.inverse()*fore_basis).get_rotation_quaternion(),(fore_basis.inverse()*hand.basis).get_rotation_quaternion()]
 
 func _prepare_library() -> void:
 	for clip in LOOPS:
@@ -358,6 +448,9 @@ func _finish_action(clip: StringName) -> void:
 	_choose_pose()
 
 func _choose_pose() -> void:
+	if _music_pose:
+		_play(_music_clip,.20)
+		return
 	if _action != &"":
 		return
 	if _seat:

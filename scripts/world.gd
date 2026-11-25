@@ -180,6 +180,27 @@ var mouse_sensitivity := 0.0032
 var stick_sensitivity := 2.6
 var invert_look_y := false
 var civic_selected_id := ""
+const TechnicalContracts = preload("res://scripts/technical_contracts.gd")
+var _technical_case_open := false
+var _technical_feedback := ""
+const IndependentInvestigation = preload("res://scripts/independent_investigation.gd")
+var investigation := IndependentInvestigation.new()
+var _investigation_open := false
+var _investigation_feedback := ""
+const MusicCareer = preload("res://scripts/music_career.gd")
+const StreetCred = preload("res://scripts/scene_reputation.gd")
+const BuskerTrack = preload("res://assets/audio/music/busker_demo.wav")
+const BandTrack = preload("res://assets/audio/music/band_demo.wav")
+const BassTrack = preload("res://assets/audio/music/bass_demo.wav")
+const SynthTrack = preload("res://assets/audio/music/synth_demo.wav")
+var music_career := MusicCareer.new()
+var _music_audio: AudioStreamPlayer3D
+var _music_site := ""
+var _music_start_cred := 0
+var _music_shop_open := false
+var _music_shop_index := 0
+var _music_shop_quote := false
+var _music_merch_quote := false
 var civic_job_active := ""
 var civic_job_completed: Array[String] = []
 var civic_intel: Array[String] = []
@@ -438,6 +459,35 @@ func _build_world_audio() -> void:
 		float(options.get("sfx_volume", 0.75)))
 
 func _on_menu_action(action: String) -> void:
+	if action.begins_with("phone_band_name:"):
+		var choice := action.trim_prefix("phone_band_name:")
+		if phone_available() and game_menu.get("screen")=="phone" and game_menu.get("_phone_app")=="music" and choice.is_valid_int() and music_career.choose_band_name(int(choice)):
+			_sync_band_promotion()
+			game_menu.call("refresh_phone",_phone_context())
+		return
+	if action.begins_with("phone_music_equip:"):
+		if phone_available() and game_menu.get("screen")=="phone" and game_menu.get("_phone_app")=="music" and music_career.equip(action.trim_prefix("phone_music_equip:")):
+			game_menu.call("refresh_phone",_phone_context())
+		return
+	if action.begins_with("phone_music_recruit:"):
+		if phone_available() and game_menu.get("screen") == "phone" and game_menu.get("_phone_app") == "music":
+			var id := action.trim_prefix("phone_music_recruit:")
+			if venue_system.call("music_contact_near",id,player.global_position) and not interiors.call("is_inside") and music_career.recruit(id,progression):
+				game_menu.call("refresh_phone",_phone_context())
+		return
+	if action.begins_with("phone_route_music_contact:"):
+		_phone_route(action)
+		return
+	if action in ["phone_music_play","phone_music_rehearse"]:
+		if phone_available() and game_menu.get("screen") == "phone" and game_menu.get("_phone_app") == "music":
+			var site := _music_near_spot()
+			if not site.is_empty():
+				game_menu.call("hide_for_game")
+				_start_music("rehearse" if action=="phone_music_rehearse" else "busk",site)
+		return
+	if action.begins_with("phone_route_contract:"):
+		_phone_route(action)
+		return
 	match action:
 		"cal_accept","cal_complete":
 			if not _street_contact_id.is_empty():
@@ -484,6 +534,14 @@ func _on_menu_action(action: String) -> void:
 			_new_game()
 		"journal":
 			game_menu.call("open_journal", _journal_context())
+		"phone":
+			_open_phone(true)
+		"phone_decline_offer":
+			_phone_decline_offer()
+		"phone_toggle_duty":
+			_phone_toggle_duty()
+		"phone_route_order", "phone_route_mara", "phone_route_home", "phone_route_rail", "phone_route_bus", "phone_route_music_shop", "phone_route_music_gig", "phone_route_music_band", "phone_route_music_showcase":
+			_phone_route(action)
 		"restart_courier":
 			if courier_mission.restart():
 				_refresh_courier_target()
@@ -605,8 +663,279 @@ func _story_target() -> Vector3:
 	if story_mission.status == "complete":
 		return Vector3.INF
 	if story_mission.step == 1:
-		return mission_position
+		if not courier_mission.gig_economy or courier_mission.on_duty:
+			return mission_position
+		var listings := _phone_workboard()
+		for listing in listings:
+			if listing["active"]:
+				var point: Vector2 = listing["position"]
+				return Vector3(point.x,0,point.y)
+		for listing in listings:
+			if listing["open"]:
+				var point: Vector2 = listing["position"]
+				return Vector3(point.x,0,point.y)
+		if not listings.is_empty():
+			var point: Vector2 = listings[0]["position"]
+			return Vector3(point.x,0,point.y)
 	return venue_system.call("venue_position", "lantern_cup")
+
+func phone_available() -> bool:
+	return music_career.mode.is_empty() and is_instance_valid(player) and not is_instance_valid(_opening_office) and current_car == null and current_transit == null and not venue_panel.visible and not equipment_wheel.visible
+
+func _open_phone(from_pause: bool) -> void:
+	if not phone_available():
+		_notify("Use your phone on foot, outside an active conversation.")
+		return
+	game_menu.call("open_phone", _phone_context(), from_pause)
+
+func _phone_nearest(points: Array, origin: Vector2) -> Vector2:
+	var best := Vector2.INF
+	var distance := INF
+	for point in points:
+		if not point is Vector2 or not point.is_finite():
+			continue
+		var gap: float = origin.distance_to(point)
+		if gap < distance:
+			distance = gap
+			best = point
+	return best
+
+func _phone_transit() -> Dictionary:
+	var outside: Vector3 = interiors.get("exterior_position") if interiors.call("is_inside") else player.global_position
+	var origin := Vector2(outside.x, outside.z)
+	return {"origin":origin, "rail":_phone_nearest(rail.call("get_map_stations"),origin), "bus":_phone_nearest(traffic.call("get_map_stops"),origin)}
+
+# Existing authored contracts remain the authority for offers, receipts, and payouts.
+# Phone browsing only exposes a destination; acceptance happens at the counter.
+func _phone_workboard() -> Array[Dictionary]:
+	var listings: Array[Dictionary] = []
+	for category in ["local","civic"]:
+		var local := category == "local"
+		var active: String = venue_job_active if local else civic_job_active
+		var completed: Array[String] = venue_job_completed if local else civic_job_completed
+		var service: Node = venue_system if local else civic_services
+		var catalog: Array = VenueSystemScript.SIDE_JOBS if local else CivicServicesScript.WORK_ORDERS
+		for job in catalog:
+			var id: String = job["id"]
+			if completed.has(id) or progression.has_receipt(("venue:" if local else "civic:")+id):
+				continue
+			if not active.is_empty() and id != active:
+				continue
+			var site: String = job["to"] if id == active else job["from"]
+			var record: Dictionary = service.call("venue_by_id" if local else "site_by_id",site)
+			if record.is_empty():
+				continue
+			var position: Vector3 = service.call("venue_position" if local else "position_for",site)
+			if not position.is_finite():
+				continue
+			listings.append({
+				"id":category+":"+id,"category":"Private contact" if local else "Civic contract",
+				"title":job["title"],"brief":job["brief"],"reward":job["reward"],
+				"site":record["name"],"open":service.call("is_open",site),
+				"active":id == active,"position":Vector2(position.x,position.z)
+			})
+	for site in TechnicalContracts.CASES:
+		if not TechnicalContracts.available(site,progression):
+			continue
+		var job: Dictionary = TechnicalContracts.CASES[site]
+		var record: Dictionary = civic_services.call("site_by_id",site)
+		if record.is_empty():
+			continue
+		var point: Vector3 = civic_services.call("position_for",site)
+		listings.append({"id":job["id"],"category":"Technical consulting","title":job["title"],"brief":job["brief"],"reward":job["reward"],"site":record["name"],"open":civic_services.call("is_open",site),"active":false,"position":Vector2(point.x,point.z)})
+	var lead := investigation.current(progression)
+	if not lead.is_empty():
+		var site: String = lead["site"]
+		var record: Dictionary = civic_services.call("site_by_id",site)
+		if not record.is_empty():
+			var point: Vector3 = civic_services.call("position_for",site)
+			listings.append({"id":IndependentInvestigation.ID,"category":"Independent investigation","title":IndependentInvestigation.TITLE,"brief":lead["title"],"reward":IndependentInvestigation.REWARD,"site":record["name"],"open":civic_services.call("is_open",site),"active":investigation.stage>0,"action_label":"Follow lead","position":Vector2(point.x,point.z)})
+	return listings
+
+func _music_near_spot() -> String:
+	if current_car != null or current_transit != null:
+		return ""
+	if interiors.call("is_inside"):
+		return str(interiors.call("active_site_id")) if interiors.call("music_stage_reachable",player.global_position) else ""
+	for site in MusicCareer.SPOTS:
+		var point: Vector3 = venue_system.call("venue_position",site)
+		if player.global_position.distance_to(point) <= 5.0:
+			return site
+	return ""
+
+func _music_counter_reachable(site: String) -> bool:
+	if not venue_panel.visible or venue_selected_id!=site or current_car!=null or current_transit!=null or not venue_system.call("is_open",site):
+		return false
+	if interiors.call("is_inside"):
+		return interiors.call("active_site_group")=="VENUE" and interiors.call("active_site_id")==site and interiors.call("counter_reachable",player.global_position)
+	return _music_near_spot()==site
+
+func _start_music(kind: String, site: String) -> bool:
+	if kind=="showcase" and (site!=MusicCareer.SHOWCASE_SITE or not interiors.call("is_inside") or not venue_system.call("is_open",site)):
+		return false
+	if interiors.call("is_inside") and kind=="busk":
+		return false
+	if (kind=="rehearse" and site!=MusicCareer.SHOP) or (kind in ["band","encore"] and (site!=MusicCareer.BAND_SITE or not venue_system.call("is_open",site))) or (kind=="gig" and (site!=MusicCareer.GIG or not venue_system.call("is_open",site))):
+		return false
+	if site.is_empty() or _music_near_spot() != site or venue_panel.visible or heat > .01 or carrying or not music_career.start(kind,progression):
+		_notify("Music: need an instrument, safe public spot and no carried order. Rest between sets.")
+		return false
+	suspend_weapon()
+	_music_site = site
+	_music_start_cred = int(_street_cred()["music"])
+	venue_system.call("set_player_performing",true,site,player.global_position)
+	player.set("input_blocked",true)
+	if interiors.call("is_inside"):
+		player.get_node("Visual").rotation.y = 0.0
+	player.get_node("Visual").call("set_music_prop",true,music_career.equipped)
+	if kind in ["band","rehearse","encore","showcase"]:
+		venue_system.call("show_player_band",site,player.global_position,bool(interiors.call("is_inside")))
+	if not is_instance_valid(_music_audio):
+		_music_audio = AudioStreamPlayer3D.new()
+		_music_audio.name = "LiveBusker"
+		_music_audio.bus = AudioMix.MUSIC
+		_music_audio.max_distance = 22.0
+		_music_audio.unit_size = 4.0
+		player.add_child(_music_audio)
+	var source: AudioStreamWAV = BandTrack if kind in ["band","rehearse","encore","showcase"] else (BassTrack if music_career.equipped=="punk_bass" else (SynthTrack if music_career.equipped=="portable_synth" else BuskerTrack))
+	var loop := source.duplicate() as AudioStreamWAV
+	loop.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	loop.loop_begin = 0
+	loop.loop_end = roundi(loop.get_length()*loop.mix_rate)
+	_music_audio.stream = loop
+	var prefs: Dictionary = game_menu.call("get_settings")
+	_music_audio.volume_db = -80.0 if float(prefs.get("music_volume",.65))<=0.0 else linear_to_db(float(prefs.get("music_volume",.65)))-12.0
+	_music_audio.play()
+	_notify("Playing a live set. G / X or Esc / Start to stop.")
+	return true
+
+func _stop_music() -> void:
+	if music_career.mode.is_empty() and _music_site.is_empty():
+		return
+	music_career.stop()
+	_music_site = ""
+	venue_system.call("hide_player_band")
+	venue_system.call("set_player_performing",false)
+	if is_instance_valid(_music_audio):
+		_music_audio.stop()
+	if is_instance_valid(player):
+		player.set("input_blocked",false)
+		player.get_node("Visual").call("set_music_prop",false)
+
+func _tick_music(delta: float) -> void:
+	if not music_career.mode.is_empty() and (_music_near_spot()!=_music_site or heat>.01 or health<=0.0):
+		_stop_music()
+		return
+	var result := music_career.tick(delta,progression)
+	if not result.is_empty():
+		_stop_music()
+		_sync_band_promotion()
+		if result["paid"] and result["kind"]!="rehearse":
+			var source := "busking" if result["kind"]=="busk" else "live_gig"
+			progression.settle_street_activity(source,progression.street_activity_runs(source)+1)
+		if result["kind"]=="rehearse":
+			_notify("Rehearsal complete. %d / 2 for Blue Hour debut." % music_career.rehearsals)
+		else:
+			var gain := int(_street_cred()["music"])-_music_start_cred
+			var message := "Set complete. +$%d / +%d music cred." % [int(result["amount"]),gain] if result["paid"] else "Set complete. Wallet cannot accept payment."
+			if int(result.get("merch_units",0))>0:
+				message += " Sold %d tapes (+$%d)." % [int(result["merch_units"]),int(result["merch_cash"])]
+			_notify(message)
+
+func _music_contacts_context() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	if not progression.has_receipt(MusicCareer.GIG_RECEIPT):
+		return result
+	for id in MusicCareer.MEMBERS:
+		var entry: Dictionary = MusicCareer.MEMBERS[id]
+		result.append({"id":id,"name":entry["name"],"role":entry["role"],"site":venue_system.call("venue_by_id",entry["site"])["name"],"line":entry["line"],"joined":music_career.members.has(id),"near":not interiors.call("is_inside") and venue_system.call("music_contact_near",id,player.global_position)})
+	return result
+
+func _street_cred() -> Dictionary:
+	return StreetCred.scores(progression,music_career)
+
+func _sync_band_promotion() -> void:
+	if is_instance_valid(venue_system):
+		venue_system.call("set_band_promotion",music_career.display_band_name(),progression.has_receipt(MusicCareer.BAND_RECEIPT),music_career.can_showcase(progression),progression.has_receipt(MusicCareer.SHOWCASE_RECEIPT),music_career.tape_batches>0)
+
+func _phone_context() -> Dictionary:
+	var transit := _phone_transit()
+	var origin: Vector2 = transit["origin"]
+	var rail_point: Vector2 = transit["rail"]
+	var bus_point: Vector2 = transit["bus"]
+	return {
+		"clock":day_night.call("clock_string"), "gig":courier_mission.gig_economy, "on_duty":courier_mission.on_duty,
+		"offboarded":progression.has_receipt(Opening.RECEIPT), "order":courier_mission.objective()["title"],
+		"carrying":carrying, "payout":courier_mission.payout(), "deliveries":deliveries,
+		"cash":cash, "bitcoin_sats":progression.bitcoin_sats, "story":story_mission.journal(),
+		"home_owned":progression.owns_home(), "home_access":progression.has_receipt(StarterHome.ACCESS_RECEIPT),
+		"deposit":StarterHome.move_in_price(), "notice":Opening.app_notice(deliveries),
+		"street_cred":_street_cred(),"global_street_cred":progression.street_cred_summary(),"music_encore":music_career.can_encore(progression),"workboard":_phone_workboard(), "music_owned":music_career.owned,"music_gear":music_career.gear_context(), "music_sets":music_career.completed_sets,
+		"music_near":not interiors.call("is_inside") and not _music_near_spot().is_empty(), "music_gig":music_career.can_gig(progression), "music_cooldown":music_career.cooldown>0.0,
+		"music_tape_stock":music_career.tape_stock(),"music_tapes_sold":music_career.tapes_sold,"music_released":music_career.tape_batches>0,"music_band_name":music_career.band_name,"music_showcase":music_career.can_showcase(progression),"music_showcase_done":progression.has_receipt(MusicCareer.SHOWCASE_RECEIPT),"music_encores":music_career.encores,"music_contacts":_music_contacts_context(),"music_rehearsals":music_career.rehearsals,"music_band_ready":music_career.band_ready(),"music_rehearsal_near":_music_near_spot()==MusicCareer.SHOP,"music_band_gig":music_career.can_band_gig(progression),"music_band_done":progression.has_receipt(MusicCareer.BAND_RECEIPT),
+		"rail_available":rail_point.is_finite(), "bus_available":bus_point.is_finite(),
+		"rail_name":"%d m away (direct)" % roundi(origin.distance_to(rail_point)) if rail_point.is_finite() else "Unavailable",
+		"bus_name":"%d m away (direct)" % roundi(origin.distance_to(bus_point)) if bus_point.is_finite() else "Unavailable"
+	}
+
+func _phone_toggle_duty() -> void:
+	if not phone_available() or game_menu.get("screen") != "phone" or game_menu.get("_phone_app") != "work":
+		return
+	if courier_mission.set_on_duty(not courier_mission.on_duty):
+		if not courier_mission.on_duty and navigation_waypoint != null and (navigation_waypoint as Vector2).distance_to(Vector2(mission_position.x,mission_position.z)) < 12.0:
+			clear_navigation_waypoint()
+		_refresh_courier_target()
+		game_menu.call("refresh_phone",_phone_context())
+
+func _phone_decline_offer() -> void:
+	if not phone_available() or game_menu.get("screen") != "phone" or game_menu.get("_phone_app") != "work":
+		return
+	var old_target := Vector2(mission_position.x,mission_position.z)
+	if courier_mission.decline_offer():
+		_refresh_courier_target()
+		if navigation_waypoint != null and (navigation_waypoint as Vector2).distance_to(old_target) < 12.0:
+			clear_navigation_waypoint()
+		game_menu.call("refresh_phone",_phone_context())
+
+func _phone_route(action: String) -> void:
+	if not phone_available() or game_menu.get("screen") != "phone":
+		return
+	var destination := Vector2.INF
+	if action.begins_with("phone_route_contract:"):
+		if game_menu.get("_phone_app") != "opportunities":
+			return
+		var id := action.trim_prefix("phone_route_contract:")
+		for listing in _phone_workboard():
+			if listing["id"] == id:
+				destination = listing["position"]
+				break
+	if action.begins_with("phone_route_music_contact:") and game_menu.get("_phone_app")=="music" and progression.has_receipt(MusicCareer.GIG_RECEIPT):
+		var id := action.trim_prefix("phone_route_music_contact:")
+		var point: Vector3 = venue_system.call("music_contact_position",id)
+		if point.is_finite() and MusicCareer.MEMBERS.has(id):
+			destination = Vector2(point.x,point.z)
+	match action:
+		"phone_route_order":
+			if courier_mission.gig_economy and courier_mission.on_duty:
+				destination = Vector2(mission_position.x,mission_position.z)
+		"phone_route_mara":
+			var p: Vector3 = venue_system.call("venue_position","lantern_cup")
+			destination = Vector2(p.x,p.z)
+		"phone_route_home":
+			var p := StarterHome.entry()
+			destination = Vector2(p.x,p.z)
+		"phone_route_music_shop", "phone_route_music_gig", "phone_route_music_band", "phone_route_music_showcase":
+			var site := MusicCareer.SHOWCASE_SITE if action=="phone_route_music_showcase" else (MusicCareer.SHOP if action == "phone_route_music_shop" else (MusicCareer.BAND_SITE if action=="phone_route_music_band" else MusicCareer.GIG))
+			var p: Vector3 = venue_system.call("venue_position",site)
+			destination = Vector2(p.x,p.z)
+		"phone_route_rail":
+			destination = _phone_transit()["rail"]
+		"phone_route_bus":
+			destination = _phone_transit()["bus"]
+	if destination.is_finite():
+		set_navigation_waypoint(destination)
+		game_menu.call("hide_for_game")
+		_notify("Phone: route set.")
 
 func _journal_context() -> Dictionary:
 	var outside: Vector3 = interiors.get("exterior_position") if interiors.call("is_inside") else _actor().global_position
@@ -621,8 +950,8 @@ func _journal_context() -> Dictionary:
 		"seed": session.get("world_seed"),
 		"platform_notice": Opening.app_notice(deliveries) if courier_mission.gig_economy else "",
 		"synaxis_site": "SYNAXIS HQ / Glassline / Access revoked" if progression.has_receipt(Opening.RECEIPT) else "",
-		"opening_goal": "QUOTADROP / POD DEPOSIT: $%d of $%d saved" % [mini(cash,StarterHome.move_in_price()),StarterHome.move_in_price()] if courier_mission.gig_economy and not progression.owns_home() else "",
-		"main_objective": "%s  •  STEP %d/%d  •  %dm  •  $%d" % [objective["title"], objective["step"], objective["total_steps"], remaining, objective["reward"]],
+		"opening_goal": "LANTERN COURT / POD DEPOSIT: $%d of $%d saved" % [mini(cash,StarterHome.move_in_price()),StarterHome.move_in_price()] if courier_mission.gig_economy and not progression.owns_home() else "",
+		"main_objective": "Free roam / QuotaDrop offline" if courier_mission.gig_economy and not courier_mission.on_duty else "%s  •  STEP %d/%d  •  %dm  •  $%d" % [objective["title"], objective["step"], objective["total_steps"], remaining, objective["reward"]],
 		"courier_can_restart": carrying,
 		"story_objective": story_mission.journal(),
 		"conditioning": courier_mission.conditioning_text(),
@@ -637,6 +966,8 @@ func _journal_context() -> Dictionary:
 		"street_cred_sources":progression.street_cred_sources(),
 		"cal_can_navigate":_cal_target().is_finite(),
 		"civic_job": _civic_job_text(),
+		"investigation": investigation.journal(progression),
+		"scene_reputation":StreetCred.summary(_street_cred()),
 		"cash": cash, "health": health, "heat": heat,
 		"owned_vehicles": _owned_vehicle_text(),
 		"home_owned": progression.owns_home(),
@@ -656,6 +987,8 @@ func _journal_context() -> Dictionary:
 	}
 
 func _apply_game_settings(options: Dictionary) -> void:
+	if is_instance_valid(venue_system):
+		venue_system.call("set_music_volume",float(options.get("music_volume",.65)))
 	mouse_sensitivity = clampf(float(options.get("mouse_sensitivity", 0.0032)), 0.001, 0.010)
 	stick_sensitivity = clampf(float(options.get("stick_sensitivity", 2.6)), 0.5, 5.0)
 	invert_look_y = bool(options.get("invert_look_y", false))
@@ -704,6 +1037,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.is_action_pressed("interact") or (_opening_office.call("arrival_active") and event.is_action_pressed("game_pause")):
 			_opening_interact()
 		return
+	if not music_career.mode.is_empty():
+		if event.is_action_pressed("interact") or event.is_action_pressed("game_pause") or event.is_action_pressed("game_back"):
+			_stop_music()
+			_notify("Performance ended.")
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("game_pause"):
 		if venue_panel.visible:
 			_close_venue()
@@ -719,6 +1058,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		if venue_panel.visible:
 			_close_venue()
 		game_menu.call("open_map")
+	elif event.is_action_pressed("phone_open"):
+		_open_phone(false)
 	elif event.is_action_pressed("journal_open"):
 		if venue_panel.visible:
 			_close_venue()
@@ -1020,6 +1361,7 @@ func _physics_process(delta: float) -> void:
 		var upstairs: bool = _active_station_lift.get("going_up")
 		_active_station_lift = null
 		_leave_transit(landing, "M-Line platform. Board a stopped train." if upstairs else "Back at street level.")
+	_tick_music(delta)
 	var actor := _actor()
 	var indoors: bool = interiors.call("is_inside")
 	if _pooled_traffic_enabled:
@@ -1366,6 +1708,8 @@ func _advance_mission() -> void:
 
 func _refresh_courier_target() -> void:
 	_set_mission_target(courier_mission.target() - Vector3.UP * 0.2, carrying)
+	if is_instance_valid(marker):
+		marker.visible = not courier_mission.gig_economy or courier_mission.on_duty
 	if is_instance_valid(player):
 		var visual: Node3D = player.get("visual")
 		if is_instance_valid(visual):
@@ -1632,6 +1976,7 @@ func _spawn_police() -> void:
 
 func _respawn() -> void:
 	_cancel_street_interactions()
+	_stop_music()
 	_log_playtest("respawn", {"health": health, "reason": "fall_or_boundary_or_damage"})
 	_close_venue()
 	weapons.holster()
@@ -1796,6 +2141,7 @@ func _build_world_systems() -> void:
 	venue_system.name = "SocialVenues"
 	add_child(venue_system)
 	venue_system.call("set_hour", float(day_night.get("hour")))
+	venue_system.call("set_music_volume",float(game_menu.call("get_settings").get("music_volume",.65)) if is_instance_valid(game_menu) else .65)
 	civic_services = CivicServicesScript.new()
 	civic_services.name = "CivicServices"
 	add_child(civic_services)
@@ -2020,7 +2366,7 @@ func _capture_snapshot() -> Dictionary:
 	var state := {
 		"player_position": [saved_at.x, saved_at.y, saved_at.z],
 		"camera_yaw": yaw, "cash": cash, "progression": progression.snapshot(), "health": health, "heat": heat,
-		"deliveries": deliveries, "carrying": carrying, "story_mission": story_mission.snapshot(),
+		"deliveries": deliveries, "carrying": carrying, "courier_offer_offset": courier_mission.offer_offset, "courier_on_duty": courier_mission.on_duty, "investigation_stage": investigation.stage, "music_career":music_career.snapshot(), "story_mission": story_mission.snapshot(),
 		"hour": day_night.get("hour"), "cars": stored_cars,
 		"occupied_car": cars.find(current_car),
 		"traffic": traffic.call("snapshot"), "rail": rail.call("snapshot"),
@@ -2095,6 +2441,13 @@ func _apply_snapshot(data: Dictionary) -> void:
 			wanted.last_known = p
 	courier_mission.gig_economy = progression.has_receipt(Opening.RECEIPT)
 	courier_mission.restore(data.get("deliveries", 0), data.get("carrying", false))
+	courier_mission.restore_offer_offset(data.get("courier_offer_offset", 0))
+	courier_mission.on_duty = bool(data.get("courier_on_duty", true)) or carrying
+	investigation.restore(int(data.get("investigation_stage",0)),progression)
+	_stop_music()
+	music_career.restore(data.get("music_career",{}))
+	progression.reconcile_music_activity(music_career.completed_sets,music_career.completed_live_bookings(progression))
+	_sync_band_promotion()
 	player.call("set_courier_conditioning",courier_mission.conditioning_rank())
 	story_mission.restore(data.get("story_mission", StoryMission.new().snapshot()))
 	yaw = float(data.get("camera_yaw", 0.0))
@@ -2305,6 +2658,22 @@ func _toggle_interaction() -> void:
 	if venue_panel.visible:
 		_close_venue()
 		return
+	if interiors.call("is_inside") and interiors.call("music_stage_reachable",player.global_position):
+		var site := str(interiors.call("active_site_id"))
+		var kind := ""
+		if site==MusicCareer.SHOP and music_career.band_ready():
+			kind = "rehearse"
+		elif site==MusicCareer.GIG and music_career.can_gig(progression):
+			kind = "gig"
+		elif site==MusicCareer.BAND_SITE:
+			kind = "band" if music_career.can_band_gig(progression) else ("encore" if music_career.can_encore(progression) else "")
+		elif site==MusicCareer.SHOWCASE_SITE and music_career.can_showcase(progression):
+			kind = "showcase"
+		if kind.is_empty() or not venue_system.call("is_open",site):
+			_notify("Stage unavailable. Check Music for your next booking or rehearsal.")
+		else:
+			_start_music(kind,site)
+		return
 	if interiors.call("is_inside"):
 		# Mara's collectible, one-time shift note is a real world interaction,
 		# available only beside the flagship café booth. Reuse the already
@@ -2345,7 +2714,7 @@ func _toggle_interaction() -> void:
 		return
 	if _synaxis_access_notice():
 		return
-	if courier_mission.gig_economy and player.global_position.distance_to(mission_position) < CourierMission.RADIUS:
+	if courier_mission.gig_economy and courier_mission.on_duty and player.global_position.distance_to(mission_position) < CourierMission.RADIUS:
 		_advance_mission()
 		return
 	var garage: Node3D = city_details.call("starter_garage",player.global_position)
@@ -2685,6 +3054,12 @@ func _repair_nearby_vehicle(price: int) -> void:
 func _update_civic_panel() -> void:
 	if civic_selected_id.is_empty() or venue_label == null:
 		return
+	if _investigation_open:
+		_update_investigation_panel()
+		return
+	if _technical_case_open:
+		_update_technical_panel()
+		return
 	# This fourth menu action must never leak into another venue or service.
 	if venue_talk_button != null:
 		venue_talk_button.visible = false
@@ -2721,6 +3096,126 @@ func _update_civic_panel() -> void:
 			(civic_job_active.is_empty() and not civic_job_completed.has(str(offered["id"]))))
 		venue_job_button.disabled = not opened or not available
 		venue_job_button.text = "2 / X  •  WORK ORDER"
+	if venue_talk_button != null and TechnicalContracts.available(civic_selected_id,progression):
+		venue_talk_button.show()
+		venue_talk_button.disabled = not opened
+		venue_talk_button.text = "3 / Y  •  DIAGNOSTIC CONTRACT"
+
+	# The investigation uses different counters from the repair contracts.
+	var lead := investigation.current(progression)
+	if venue_talk_button != null and not lead.is_empty() and lead["site"] == civic_selected_id:
+		venue_talk_button.show()
+		venue_talk_button.disabled = not opened
+		venue_talk_button.text = "3 / Y  •  THE PAPER CITY"
+
+func _investigation_reachable() -> bool:
+	var lead := investigation.current(progression)
+	if lead.is_empty() or lead["site"] != civic_selected_id or not venue_panel.visible or current_car != null or current_transit != null or not civic_services.call("is_open",civic_selected_id):
+		return false
+	if interiors.call("is_inside"):
+		return interiors.call("active_site_group") == "CIVIC" and interiors.call("active_site_id") == civic_selected_id and interiors.call("counter_reachable",player.global_position)
+	var point: Vector3 = civic_services.call("position_for",civic_selected_id)
+	return player.global_position.distance_to(point) <= CivicServicesScript.VISIT_RADIUS
+
+func _update_investigation_panel() -> void:
+	if not _investigation_reachable():
+		_investigation_open = false
+		_investigation_feedback = ""
+		_update_civic_panel()
+		return
+	var lead := investigation.current(progression)
+	var final: bool = investigation.stage == IndependentInvestigation.STAGES.size()-1
+	venue_label.text = "%s / %d of %d\n%s\n%s" % [IndependentInvestigation.TITLE,investigation.stage+1,IndependentInvestigation.STAGES.size(),lead["title"],lead["line"]]
+	if not _investigation_feedback.is_empty():
+		venue_label.text += "\n" + _investigation_feedback
+	venue_service_button.show()
+	venue_service_button.disabled = false
+	venue_service_button.text = "1 / A  •  Report conflicting records" if final else "1 / A  •  Record lead"
+	venue_job_button.visible = final
+	venue_job_button.disabled = not final
+	venue_job_button.text = "2 / X  •  Accuse a specific executive"
+	venue_talk_button.show()
+	venue_talk_button.disabled = false
+	venue_talk_button.text = "3 / Y  •  BACK"
+
+func _investigation_action(option: int) -> void:
+	if not _investigation_reachable():
+		_close_venue()
+		return
+	if option == 3:
+		_investigation_open = false
+		_investigation_feedback = ""
+		venue_job_button.show()
+		_update_civic_panel()
+		return
+	if option != 1 and (option != 2 or investigation.stage != IndependentInvestigation.STAGES.size()-1):
+		return
+	var result := investigation.advance(civic_selected_id,option-1,progression)
+	match result["status"]:
+		"advanced","complete":
+			if result["status"] == "complete":
+				story_mission.event("contract_completed",progression)
+				_notify("INVESTIGATION COMPLETE +$%d: %s" % [result["reward"],result["message"]])
+			else:
+				_notify(str(result["message"]))
+			_close_venue()
+		"incorrect","blocked":
+			_investigation_feedback = str(result["message"])
+			_update_investigation_panel()
+
+func _technical_reachable() -> bool:
+	if not venue_panel.visible or current_car != null or current_transit != null or not TechnicalContracts.available(civic_selected_id,progression):
+		return false
+	if not civic_services.call("is_open",civic_selected_id):
+		return false
+	if interiors.call("is_inside"):
+		return interiors.call("active_site_group") == "CIVIC" and interiors.call("active_site_id") == civic_selected_id and interiors.call("counter_reachable",player.global_position)
+	var point: Vector3 = civic_services.call("position_for",civic_selected_id)
+	return player.global_position.distance_to(point) <= CivicServicesScript.VISIT_RADIUS
+
+func _update_technical_panel() -> void:
+	if not _technical_reachable():
+		_technical_case_open = false
+		_technical_feedback = ""
+		_update_civic_panel()
+		return
+	var job: Dictionary = TechnicalContracts.CASES[civic_selected_id]
+	venue_label.text = "%s / TECHNICAL CONTRACT  +$%d\n%s\nDIAGNOSTIC REPORT\n%s" % [job["title"],job["reward"],job["brief"],job["evidence"]]
+	if not _technical_feedback.is_empty():
+		venue_label.text += "\n" + _technical_feedback
+	venue_service_button.show()
+	venue_service_button.disabled = false
+	venue_service_button.text = "1 / A  •  " + str(job["options"][0])
+	venue_job_button.show()
+	venue_job_button.disabled = false
+	venue_job_button.text = "2 / X  •  " + str(job["options"][1])
+	venue_talk_button.show()
+	venue_talk_button.disabled = false
+	venue_talk_button.text = "3 / Y  •  BACK"
+
+func _technical_action(option: int) -> void:
+	if not _technical_reachable():
+		_close_venue()
+		return
+	if option == 3:
+		_technical_case_open = false
+		_technical_feedback = ""
+		_update_civic_panel()
+		return
+	if option not in [1,2]:
+		return
+	var result := TechnicalContracts.resolve(civic_selected_id,option-1,progression)
+	match result["status"]:
+		"incorrect":
+			_technical_feedback = str(result["message"])
+		"complete":
+			_technical_case_open = false
+			_technical_feedback = ""
+			var referral := story_mission.event("contract_completed",progression) == "delivered"
+			_notify("TECHNICAL CONTRACT +$%d: %s%s" % [result["reward"],result["message"]," Report back to Mara." if referral else ""])
+		"blocked":
+			_technical_feedback = "Wallet cannot accept payment. No repair recorded."
+	_update_civic_panel()
 
 func _civic_action(option: int) -> void:
 	if not venue_panel.visible or civic_selected_id.is_empty():
@@ -2728,6 +3223,22 @@ func _civic_action(option: int) -> void:
 	var site: Dictionary = civic_services.call("site_by_id", civic_selected_id)
 	if site.is_empty() or not civic_services.call("is_open", civic_selected_id):
 		_notify("This public service is not open right now.")
+		return
+	if _investigation_open:
+		_investigation_action(option)
+		return
+	if option == 3 and _investigation_reachable():
+		_investigation_open = true
+		_investigation_feedback = ""
+		_update_investigation_panel()
+		return
+	if _technical_case_open:
+		_technical_action(option)
+		return
+	if option == 3 and _technical_reachable():
+		_technical_case_open = true
+		_technical_feedback = ""
+		_update_technical_panel()
 		return
 	var kind: String = site["kind"]
 	if option == 1:
@@ -2805,6 +3316,8 @@ func _civic_action(option: int) -> void:
 			civic_job_completed.append(civic_job_active)
 			civic_job_active = ""
 			_notify("WORK ORDER COMPLETE +$%d: %s" % [int(active["reward"]), str(active["ending"])])
+			if story_mission.event("contract_completed",progression) == "delivered":
+				_notify("Work order complete +$%d. Report back to Mara." % int(active["reward"]))
 	_update_civic_panel()
 
 func _civic_job_text() -> String:
@@ -2850,6 +3363,14 @@ func _show_venue_dialogue() -> void:
 		venue_service_button.call_deferred("grab_focus")
 
 func _close_venue() -> void:
+	_music_merch_quote = false
+	_music_shop_open = false
+	_music_shop_quote = false
+	_music_shop_index = 0
+	_investigation_open = false
+	_investigation_feedback = ""
+	_technical_case_open = false
+	_technical_feedback = ""
 	if interiors != null:
 		interiors.call("set_mara_attention", false)
 	mara_dialogue_line = ""
@@ -2884,6 +3405,12 @@ func _close_venue() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _update_venue_panel() -> void:
+	if _music_merch_quote:
+		_update_merch_quote()
+		return
+	if _music_shop_open:
+		_update_music_shop()
+		return
 	if _tenancy_panel:
 		var price := StarterHome.move_in_price()
 		venue_label.text = "LANTERN COURT / CAPSULE TENANCY\nInitial deposit $%d  |  CASH $%d\nStarter rental access. [1 / A] Cancel  [3 / Y] Confirm" % [price,cash]
@@ -3037,13 +3564,20 @@ func _update_venue_panel() -> void:
 	var body := "%s | %s | %s (%s)\n%s: %s\n" % [
 		str(venue["name"]), str(venue["kind"]), status, hours_text,
 		str(venue["host"]), str(venue["flavor"])]
+	var cred := _street_cred()
+	if venue_selected_id in MusicCareer.SPOTS and int(cred["music"])>=20:
+		body += "\n%s: Good to see a familiar face from the local music scene." % str(venue["host"])
+	if venue_selected_id in ["ink_tonic","static_room","afterimage"] and int(cred["underground"])>=20:
+		body += "\nWord travels. People here respect independent work."
+	if str(venue["kind"]) in ["CAFE","STALL"] and int(cred["community"])>=20:
+		body += "\nNeighborhood regular: 10%% service discount."
 	var is_mara := venue_selected_id == "lantern_cup" and bool(interiors.call("is_inside"))
 	if is_mara:
 		var introduction := str(interiors.call("mara_greeting", _mara_context()))
 		body += "\n" + (mara_dialogue_line if not mara_dialogue_line.is_empty() else introduction)
 		body += "\n[3 / Y] TALK TO MARA"
 	if open_now:
-		body += "[1 / A] %s  $%d   " % [str(venue["item"]), int(venue["price"])]
+		body += "[1 / A] %s  $%d   " % [str(venue["item"]), _venue_service_price(venue)]
 		if venue_job_active.is_empty():
 			var offer: Dictionary = venue_system.call("job_from", venue_selected_id)
 			if not offer.is_empty() and not venue_job_completed.has(str(offer["id"])):
@@ -3069,6 +3603,93 @@ func _update_venue_panel() -> void:
 	if venue_talk_button != null:
 		venue_talk_button.visible = is_mara
 		venue_talk_button.disabled = not is_mara
+		if venue_selected_id == MusicCareer.SHOP:
+			venue_talk_button.show()
+			venue_talk_button.disabled = not open_now
+			venue_talk_button.text = "3 / Y  •  BROWSE COPPER STRINGS"
+		elif venue_selected_id == MusicCareer.GIG and music_career.can_gig(progression):
+			venue_talk_button.show()
+			venue_talk_button.disabled = not open_now
+			venue_talk_button.text = "3 / Y  •  PLAY DEBUT SET $95"
+		elif venue_selected_id == MusicCareer.BAND_SITE and music_career.can_band_gig(progression):
+			venue_talk_button.show()
+			venue_talk_button.disabled = not open_now
+			venue_talk_button.text = "3 / Y  •  BAND DEBUT $%d" % MusicCareer.BAND_PAY
+		elif venue_selected_id == MusicCareer.BAND_SITE and music_career.can_encore(progression):
+			venue_talk_button.show()
+			venue_talk_button.disabled = not open_now or music_career.cooldown>0.0
+			venue_talk_button.text = "3 / Y  •  RESIDENT SET $%d" % MusicCareer.ENCORE_PAY
+		elif venue_selected_id==MusicCareer.SHOWCASE_SITE and music_career.can_showcase(progression):
+			venue_talk_button.show()
+			venue_talk_button.disabled = not open_now
+			venue_talk_button.text = "3 / Y  •  SHOWCASE DETAILS"
+		elif venue_selected_id==MusicCareer.SHOWCASE_SITE and progression.has_receipt(MusicCareer.SHOWCASE_RECEIPT) and interiors.call("is_inside"):
+			venue_talk_button.show()
+			venue_talk_button.disabled = not open_now or not music_career.can_press_tapes(progression) or cash<MusicCareer.TAPE_COST
+			venue_talk_button.text = "3 / Y  •  OFF GRID RECORDS"
+
+func _update_merch_quote() -> void:
+	venue_label.text = "%s / DIY PRESSING\n%s — %s\n12 tapes for $60. Sell for $12 each at paid resident gigs.\nIn stock: %d / %d  •  CASH $%d" % [MusicCareer.LABEL_NAME,music_career.display_band_name(),MusicCareer.RELEASE_NAME,music_career.tape_stock(),MusicCareer.MAX_TAPE_STOCK,cash]
+	venue_service_button.show()
+	venue_service_button.text = "1 / A  •  CANCEL"
+	venue_service_button.disabled = false
+	venue_job_button.hide()
+	venue_talk_button.show()
+	venue_talk_button.text = "3 / Y  •  PRESS 12 TAPES"
+	venue_talk_button.disabled = not music_career.can_press_tapes(progression) or cash<MusicCareer.TAPE_COST
+
+func _update_music_shop() -> void:
+	var id: String = MusicCareer.GEAR_IDS[_music_shop_index]
+	var item: Dictionary = MusicCareer.GEAR[id]
+	var owned := music_career.gear.has(id)
+	var price := int(item["price"])
+	venue_label.text = "COPPER STRINGS / %d of %d\n%s\n%s\n%s  •  CASH $%d" % [_music_shop_index+1,MusicCareer.GEAR_IDS.size(),item["name"],item["style"],"OWNED" if owned else "$%d" % price,cash]
+	for button in [venue_service_button,venue_job_button,venue_talk_button]:
+		button.show()
+	if _music_shop_quote:
+		venue_label.text += "\nConfirm purchase for $%d. Equipment is permanent." % price
+		venue_service_button.text = "1 / A  •  CANCEL"
+		venue_service_button.disabled = false
+		venue_job_button.hide()
+		venue_talk_button.text = "3 / Y  •  CONFIRM PURCHASE"
+		venue_talk_button.disabled = owned or cash<price
+		return
+	venue_service_button.text = "1 / A  •  PREVIOUS / BACK"
+	venue_service_button.disabled = false
+	venue_job_button.text = "2 / X  •  NEXT"
+	venue_job_button.disabled = _music_shop_index==MusicCareer.GEAR_IDS.size()-1
+	venue_talk_button.text = "3 / Y  •  EQUIPPED" if music_career.equipped==id else ("3 / Y  •  EQUIP" if owned else "3 / Y  •  REVIEW PURCHASE")
+	venue_talk_button.disabled = music_career.equipped==id or (not owned and cash<price)
+
+func _music_shop_action(option: int) -> void:
+	if not _music_counter_reachable(MusicCareer.SHOP):
+		_close_venue()
+		return
+	var id: String = MusicCareer.GEAR_IDS[_music_shop_index]
+	if _music_shop_quote:
+		if option==1:
+			_music_shop_quote = false
+		elif option==3:
+			_music_shop_quote = false
+			if music_career.buy_gear(id,progression):
+				_notify("Purchased and equipped "+str(MusicCareer.GEAR[id]["name"]))
+	elif option==1:
+		if _music_shop_index==0:
+			_music_shop_open = false
+		else:
+			_music_shop_index -= 1
+	elif option==2:
+		_music_shop_index = mini(_music_shop_index+1,MusicCareer.GEAR_IDS.size()-1)
+	elif option==3:
+		if music_career.gear.has(id):
+			music_career.equip(id)
+		elif cash>=int(MusicCareer.GEAR[id]["price"]):
+			_music_shop_quote = true
+	_update_venue_panel()
+
+func _venue_service_price(venue: Dictionary) -> int:
+	var price := int(venue["price"])
+	return StreetCred.community_price(price,_street_cred()) if str(venue["kind"]) in ["CAFE","STALL"] else price
 
 func _mara_context() -> Dictionary:
 	return {
@@ -3080,6 +3701,22 @@ func _mara_context() -> Dictionary:
 	}
 
 func _venue_action(option: int) -> void:
+	if _music_merch_quote:
+		if not _music_counter_reachable(MusicCareer.SHOWCASE_SITE) or not interiors.call("is_inside"):
+			_close_venue()
+			return
+		if option==1:
+			_music_merch_quote = false
+		elif option==3:
+			_music_merch_quote = false
+			if music_career.press_tapes(progression):
+				_sync_band_promotion()
+				_notify("Off Grid Records: 12 tapes pressed. Sell them at paid resident gigs.")
+		_update_venue_panel()
+		return
+	if _music_shop_open:
+		_music_shop_action(option)
+		return
 	if _tenancy_panel:
 		var lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
 		if not venue_panel.visible or not is_instance_valid(lot) or lot.get("home_id") != StarterHome.ID or not lot.call("doorway_reachable",player.global_position) or current_car != null or current_transit != null:
@@ -3092,7 +3729,7 @@ func _venue_action(option: int) -> void:
 				_close_venue()
 				_notify("Deposit accepted. Sleep Pod 01 is unlocked.")
 			else:
-				_notify("Payment declined. Earn more from courier contracts.")
+				_notify("Payment declined. Earn more from paid work.")
 		return
 	if _exchange_panel:
 		var lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
@@ -3221,6 +3858,42 @@ func _venue_action(option: int) -> void:
 	if venue.is_empty():
 		_close_venue()
 		return
+	if option == 3 and venue_selected_id == MusicCareer.SHOP and _music_counter_reachable(MusicCareer.SHOP):
+		_music_shop_open = true
+		_music_shop_index = 0
+		_music_shop_quote = false
+		_update_venue_panel()
+		return
+	if option == 3 and venue_selected_id == MusicCareer.GIG and music_career.can_gig(progression) and _music_counter_reachable(MusicCareer.GIG):
+		_close_venue()
+		if interiors.call("is_inside"):
+			_notify("Booking ready. Walk to the lit stage and press G / X.")
+		else:
+			_start_music("gig",MusicCareer.GIG)
+		return
+	if option == 3 and venue_selected_id == MusicCareer.BAND_SITE and music_career.can_band_gig(progression) and _music_counter_reachable(MusicCareer.BAND_SITE):
+		_close_venue()
+		if interiors.call("is_inside"):
+			_notify("Booking ready. Walk to the lit stage and press G / X.")
+		else:
+			_start_music("band",MusicCareer.BAND_SITE)
+		return
+	if option == 3 and venue_selected_id == MusicCareer.BAND_SITE and music_career.can_encore(progression) and _music_counter_reachable(MusicCareer.BAND_SITE):
+		_close_venue()
+		if interiors.call("is_inside"):
+			_notify("Booking ready. Walk to the lit stage and press G / X.")
+		else:
+			_start_music("encore",MusicCareer.BAND_SITE)
+		return
+	if option==3 and venue_selected_id==MusicCareer.SHOWCASE_SITE and music_career.can_showcase(progression):
+		_close_venue()
+		_notify("Static Room: $480 headline showcase. Enter and play at the lit indoor stage.")
+		return
+	if option==3 and venue_selected_id==MusicCareer.SHOWCASE_SITE and progression.has_receipt(MusicCareer.SHOWCASE_RECEIPT) and interiors.call("is_inside") and _music_counter_reachable(MusicCareer.SHOWCASE_SITE):
+		if music_career.can_press_tapes(progression) and cash>=MusicCareer.TAPE_COST:
+			_music_merch_quote = true
+			_update_venue_panel()
+		return
 	# Dialogue is no-cost and remains accessible even near closing time.
 	if option == 3:
 		if venue_selected_id == "lantern_cup" and interiors.call("is_inside"):
@@ -3231,7 +3904,7 @@ func _venue_action(option: int) -> void:
 			if interiors.call("active_site_id") == "lantern_cup" and interiors.call("counter_reachable", player.global_position):
 				match story_mission.event("mara_talk", progression):
 					"started":
-						mara_dialogue_line = "Mara: I need someone who knows these streets. Finish a courier run, then come tell me how it went."
+						mara_dialogue_line = "Mara: I need someone who knows these streets. Finish a delivery or a paid local or civic contract, then come tell me how it went."
 						_notify("NIGHT SHIFT CONTACT / New mission")
 					"complete":
 						mara_dialogue_line = "Mara: You made it back. Here’s a hundred for the referral. Lantern Court has a sleep pod available. Scrape together the deposit and pay at the entrance. It’s not much, but it locks."
@@ -3245,7 +3918,7 @@ func _venue_action(option: int) -> void:
 		_update_venue_panel()
 		return
 	if option == 1:
-		var price := int(venue["price"])
+		var price := _venue_service_price(venue)
 		var service: Dictionary = venue_system.call("service_effect", str(venue["kind"]))
 		var healing := float(service.get("heal", 0.0))
 		var cover := float(service.get("heat", 0.0))
@@ -3299,6 +3972,8 @@ func _venue_action(option: int) -> void:
 			venue_job_completed.append(venue_job_active)
 			venue_job_active = ""
 			_notify("SIDE JOB COMPLETE +$%d • +%d STREET CRED: %s" % [int(contract["reward"]),progression.street_cred()-previous_cred,str(contract["ending"])])
+			if story_mission.event("contract_completed",progression) == "delivered":
+				_notify("Side job complete +$%d. Report back to Mara." % int(contract["reward"]))
 	_update_venue_panel()
 
 func _venue_job_text() -> String:
@@ -3587,8 +4262,8 @@ func _update_hud() -> void:
 	hud_health.value = health
 	hud_stamina.value = float(player.get("stamina"))
 	hud_label.text += "\nSTAMINA %d  •  %d snacks" % [ceili(float(player.get("stamina"))),Consumables.count(consumable_inventory)]
-	hud_objective.text = "%s  /  %dm" % [mission, distance]
-	if courier_mission.gig_economy and current_car == null and current_transit == null and not interiors.call("is_inside") and player.global_position.distance_to(mission_position) < CourierMission.RADIUS:
+	hud_objective.text = "FREE ROAM / QuotaDrop offline" if courier_mission.gig_economy and not courier_mission.on_duty else "%s  /  %dm" % [mission, distance]
+	if courier_mission.gig_economy and courier_mission.on_duty and current_car == null and current_transit == null and not interiors.call("is_inside") and player.global_position.distance_to(mission_position) < CourierMission.RADIUS:
 		hud_objective.text += "  /  " + ("X" if gamepad_active else "G") + (" HAND OFF" if carrying else " COLLECT ORDER")
 	hud_objective.modulate = Ui.ACCENT if carrying else Ui.AMBER
 	hud_navigation.visible = navigation_waypoint != null
@@ -3602,6 +4277,11 @@ func _update_hud() -> void:
 		jobs.append(_venue_job_text())
 	if not civic_job_active.is_empty():
 		jobs.append(_civic_job_text())
+	var investigation_note := investigation.journal(progression)
+	if not investigation_note.is_empty():
+		jobs.append(investigation_note)
+	if not music_career.mode.is_empty():
+		jobs.append("LIVE SET / %ds  •  %d listeners  •  G / X stop" % [int(music_career.elapsed),int(venue_system.call("music_audience_count"))])
 	if progression.cal_quest in [1,2]:
 		jobs.append(_cal_objective())
 	if progression.street_cred()>0:
@@ -3764,7 +4444,7 @@ func suspend_weapon() -> void:
 		_reticle.hide()
 
 func _can_use_weapon() -> bool:
-	return is_instance_valid(player) and is_instance_valid(venue_panel) and not venue_panel.visible and current_car == null and current_transit == null and not interiors.call("is_inside") and not get_tree().paused and (game_menu == null or not game_menu.call("is_open"))
+	return music_career.mode.is_empty() and is_instance_valid(player) and is_instance_valid(venue_panel) and not venue_panel.visible and current_car == null and current_transit == null and not interiors.call("is_inside") and not get_tree().paused and (game_menu == null or not game_menu.call("is_open"))
 
 func _play_weapon_sound(kind: String) -> void:
 	player.call("play_visual_action", &"reload" if kind == "RELOAD" else &"fire")
@@ -3913,6 +4593,7 @@ func get_map_state() -> Dictionary:
 		"player": Vector2(map_actor.x, map_actor.z),
 		"player_heading": Vector2(heading.x, heading.z),
 		"mission": Vector2(mission_position.x, mission_position.z),
+		"mission_active": not courier_mission.gig_economy or courier_mission.on_duty,
 		"waypoint_active": navigation_waypoint != null,
 		"waypoint": Vector2.ZERO if navigation_waypoint == null else navigation_waypoint,
 		"street_route": _navigation_route(Vector2(map_actor.x, map_actor.z)),

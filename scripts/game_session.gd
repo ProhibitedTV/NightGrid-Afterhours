@@ -15,6 +15,7 @@ var opening_pending := false
 var world_manifest: Dictionary = {}
 const WorldPlan = preload("res://scripts/world_plan.gd")
 const ProgressionLedger = preload("res://scripts/progression_ledger.gd")
+const MusicCareer = preload("res://scripts/music_career.gd")
 const CourierMission = preload("res://scripts/courier_mission.gd")
 const StoryMission = preload("res://scripts/story_mission.gd")
 
@@ -70,11 +71,40 @@ func is_valid_snapshot(value: Variant) -> bool:
 		return false
 	if not data["carrying"] is bool or not CourierMission.valid_run_count(data["deliveries"]):
 		return false
+	if data.has("courier_on_duty") and (not data["courier_on_duty"] is bool or (data["carrying"] and not data["courier_on_duty"])):
+		return false
+	if data.has("courier_offer_offset") and not _whole_number(data["courier_offer_offset"], 0, CourierMission.GIG_ORDERS.size() - 1):
+		return false
 	if not ProgressionLedger.valid_cash(data["cash"]):
 		return false
 	if data.has("progression") and not ProgressionLedger.valid_snapshot(data["progression"]):
 		return false
 	var paid: Array = data.get("progression", {}).get("receipts", [])
+	if data.has("music_career") and not MusicCareer.valid_snapshot(data["music_career"]):
+		return false
+	if paid.has(MusicCareer.GIG_RECEIPT) and (not data.has("music_career") or int(data["music_career"]["sets"])<3):
+		return false
+	if data.has("music_career"):
+		var music: Dictionary = data["music_career"]
+		if int(music.get("tape_batches",0))>0 and not paid.has(MusicCareer.SHOWCASE_RECEIPT):
+			return false
+		if paid.has(MusicCareer.SHOWCASE_RECEIPT) and (not paid.has(MusicCareer.BAND_RECEIPT) or int(music.get("encores",0))<2 or 46+3*int(music.get("sets",0))+4*int(music.get("encores",0))<65):
+			return false
+		if int(music.get("encores",0))>0 and not paid.has(MusicCareer.BAND_RECEIPT):
+			return false
+		if not music.get("members",[]).is_empty() and not paid.has(MusicCareer.GIG_RECEIPT):
+			return false
+		if paid.has(MusicCareer.BAND_RECEIPT) and (not paid.has(MusicCareer.GIG_RECEIPT) or int(music.get("rehearsals",0))<2 or music.get("members",[]).size()!=MusicCareer.MEMBERS.size()):
+			return false
+	elif paid.has(MusicCareer.BAND_RECEIPT) or paid.has(MusicCareer.SHOWCASE_RECEIPT):
+		return false
+	var case_stage: Variant = data.get("investigation_stage",0)
+	if not _whole_number(case_stage,0,4):
+		return false
+	if (int(case_stage) == 4) != paid.has("investigation:paper_city"):
+		return false
+	if int(case_stage) > 0 and not (paid.has("technical:crane_interlock") or paid.has("technical:grid_telemetry")):
+		return false
 	if data.has("story_mission"):
 		if not StoryMission.valid_snapshot(data["story_mission"]):
 			return false

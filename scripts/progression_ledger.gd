@@ -227,6 +227,16 @@ func street_activity_runs(source:String)->int:
 func settle_street_activity(source:String,sequence:int)->bool:
 	return _street_cred.settle_run(source,sequence)
 
+## Migrate pre-integration music saves from the already validated career
+## counters without replaying a potentially unbounded number of settlements.
+func reconcile_music_activity(busks: int, gigs: int) -> bool:
+	if busks<0 or gigs<0:
+		return false
+	var runs: Dictionary = _street_cred.snapshot()
+	runs["busking"] = maxi(int(runs.get("busking",0)),mini(busks,StreetCred.MAX_RUNS))
+	runs["live_gig"] = maxi(int(runs.get("live_gig",0)),mini(gigs,StreetCred.MAX_RUNS))
+	return _street_cred.restore(runs)
+
 func snapshot() -> Dictionary:
 	var ids: Array = _receipts.keys()
 	ids.sort()
