@@ -113,6 +113,16 @@ func _check_horizon_camera() -> void:
 	await _wait_ticks(5)
 	world.call("_snap_camera")
 	var camera: Camera3D = world.get("camera")
+	var garden := city.find_child("HorizonCommonsGarden",true,false) as Node3D
+	_expect(garden != null,"Horizon Commons garden must exist at its real streamed address")
+	if garden != null:
+		_expect(garden.find_children("RaisedBed_*","Node3D",false,false).size()==4 and garden.find_children("GardenBench_*","Node3D",false,false).size()==4 and garden.find_children("GardenWayfinding_*","Node3D",false,false).size()==2,"Four physical beds, four benches and two mounted signs")
+		for child in garden.get_children():
+			if str(child.name).begins_with("RaisedBed_"):
+				var at:Vector3=child.global_position
+				var wall:Node3D=_ray(at+Vector3(0,.4,-2),at+Vector3(0,.4,0))
+				_expect(wall!=null and garden.is_ancestor_of(wall),"Raised planter wall must stop physical contact")
+		_expect(_ray(garden.global_position+Vector3(0,1,-14),garden.global_position+Vector3(0,1,5))==null,"Central garden path remains clear")
 	var roof := _ray(Vector3(203, 3.0, 42), Vector3(203, 6.0, 42))
 	_expect(roof is StaticBody3D, "The Horizon Commons roof must have its visible collision")
 	var focus := Vector3(214.12, 2.60, 38.0)

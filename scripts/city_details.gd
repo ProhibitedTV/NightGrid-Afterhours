@@ -14,6 +14,7 @@ const BrickwaterRepair = preload("res://scripts/brickwater_storefront.gd")
 const BrickwaterSigns = preload("res://scripts/brickwater_business_frontage.gd")
 const StreamProfile = preload("res://scripts/streaming_profile.gd")
 const MarketCarton = preload("res://scripts/market_carton.gd")
+const HorizonGarden = preload("res://scripts/horizon_commons_garden.gd")
 const MarketCounter = preload("res://scripts/market_counter.gd")
 const WalkInLot = preload("res://scripts/walk_in_lot.gd")
 const ClothingStore = preload("res://scripts/clothing_store.gd")
@@ -903,8 +904,12 @@ func _build_landmark(center: Vector3, name: String) -> void:
 		"HORIZON COMMONS":
 			label_color = Color("a8dfa6")
 			# Public green and walk-through health pavilion.
-			_detail(center + Vector3(0.0, 0.19, 0.0), Vector3(36.0, 0.11, 5.0), Color("a4a28e"))
-			_detail(center + Vector3(0.0, 0.19, 0.0), Vector3(5.0, 0.11, 36.0), Color("a4a28e"))
+			_detail(center + Vector3(0.0, 0.19, 0.0), Vector3(36.0, 0.11, 5.0), Color("a4a28e"), false, "PAVERS")
+			_detail(center + Vector3(0.0, 0.19, 0.0), Vector3(5.0, 0.11, 36.0), Color("a4a28e"), false, "PAVERS")
+			var garden := HorizonGarden.new()
+			garden.name = "HorizonCommonsGarden"
+			garden.position = center
+			_active_chunk.add_child(garden)
 			for x in [-13.0, 13.0]:
 				for z in [-12.0, 12.0]:
 					_detail(center + Vector3(x, 0.19, z), Vector3(5.5, 0.13, 5.4), Color("4d8068"))
