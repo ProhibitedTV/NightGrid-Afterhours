@@ -2,6 +2,8 @@ extends RefCounted
 ## Deterministic three-pad rehearsal. One input attempt per authored beat.
 ## Delta is elapsed real UI time, independent of paused world physics.
 const PATTERNS=[[0,1,0,2,0,1,2,1,0,2,1,2],[0,2,1,0,1,2,0,0,2,1,2,0],[1,0,2,1,0,2,2,0,1,2,0,1]]
+const BAND_PATTERNS=[[0,1,2,0,2,1,0,1,2,2,0,1,2,0,1,2],[2,0,1,2,0,0,1,2,1,0,2,1,1,2,0,2]]
+const DEBUT_PATTERNS=[[0,1,2,0,2,1,0,0,1,2,1,0,2,1,2,0,1,0,2,2,1,0,1,2]]
 const BEAT=0.80
 const LEAD=2.0
 const WINDOW=0.23
@@ -25,13 +27,15 @@ var consumed:=false
 var feedback:="GET READY"
 
 func start(sequence:int,source:String="live_gig")->void:
-	mode=source if source in ["busking","practice","owned_busking"] else "live_gig"
+	mode=source if source in ["busking","practice","owned_busking","band_rehearsal","band_debut"] else "live_gig"
+	var band:=mode=="band_rehearsal"
+	var debut:=mode=="band_debut"
 	var street:=mode in ["busking","practice"]
 	var owned:=mode=="owned_busking"
-	var patterns:=OWNED_PATTERNS if owned else (BUSKING_PATTERNS if street else PATTERNS)
-	beat_seconds=0.85 if owned else (1.0 if street else BEAT)
-	hit_window=0.25 if owned else (0.30 if street else WINDOW)
-	required_hits=8 if owned else (6 if street else PASS_HITS)
+	var patterns:=DEBUT_PATTERNS if debut else BAND_PATTERNS if band else (OWNED_PATTERNS if owned else (BUSKING_PATTERNS if street else PATTERNS))
+	beat_seconds=0.65 if debut else 0.72 if band else (0.85 if owned else (1.0 if street else BEAT))
+	hit_window=0.18 if debut else 0.20 if band else (0.25 if owned else (0.30 if street else WINDOW))
+	required_hits=20 if debut else 13 if band else (8 if owned else (6 if street else PASS_HITS))
 	pattern=patterns[posmod(sequence-1,patterns.size())].duplicate()
 	elapsed=0.0
 	hits=0

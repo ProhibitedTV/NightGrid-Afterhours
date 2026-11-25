@@ -349,6 +349,49 @@ func complete_sampler_practice(sequence:int)->bool:
 	sampler_practice=sequence
 	return true
 
+const BAND_MEMBERS={"rhea":{"name":"Rhea Vale","role":"Bass","site":"copper_cup","line":"I play low strings and keep time. Heard your opening set."},"milo":{"name":"Milo Static","role":"Synth","site":"dock_nine","line":"I have a battered synth and unfinished ideas. Let's make something weird."}}
+var _band_members: Array[String] = []
+const BAND_REHEARSALS_REQUIRED = 2
+const BAND_DEBUT_RECEIPT = "music:blue_hour_debut"
+const BAND_DEBUT_PAY = 240
+
+func band_debut_available()->bool:
+	return _band_members.size()==2 and band_rehearsals==BAND_REHEARSALS_REQUIRED and has_receipt("venue:soundcheck_pass") and not has_receipt(BAND_DEBUT_RECEIPT)
+
+func settle_band_debut()->bool:
+	return band_debut_available() and credit_once(BAND_DEBUT_RECEIPT,BAND_DEBUT_PAY)
+
+var band_rehearsals := 0
+
+func band_rehearsal_available()->bool:
+	return _band_members.size()==2 and band_rehearsals<BAND_REHEARSALS_REQUIRED
+
+func complete_band_rehearsal(sequence:int)->bool:
+	if not band_rehearsal_available() or sequence!=band_rehearsals+1:
+		return false
+	band_rehearsals=sequence
+	return true
+
+func band_recruit_available(id:String)->bool:
+	return BAND_MEMBERS.has(id) and not _band_members.has(id) and owned_set_unlocked() and street_activity_runs("live_gig")>0 and has_receipt("venue:soundcheck_pass")
+
+func recruit_band_member(id:String)->bool:
+	if not band_recruit_available(id):
+		return false
+	_band_members.append(id)
+	return true
+
+func band_summary()->String:
+	if _band_members.size()==2:
+		return "UNSIGNED TRIO / Rhea Vale: bass / Milo Static: synth\n"+("REHEARSE AT COPPER CUP / %d of %d"%[band_rehearsals,BAND_REHEARSALS_REQUIRED] if band_rehearsal_available() else ("BLUE HOUR / Trio debut complete" if has_receipt(BAND_DEBUT_RECEIPT) else "BLUE HOUR / Trio debut available • $240"))
+	if not owned_set_unlocked() or street_activity_runs("live_gig")==0:
+		return "BAND / Complete personal sampler practice and a Blue Hour opening set to meet collaborators."
+	var names:Array[String]=[]
+	for id in BAND_MEMBERS:
+		if not _band_members.has(id):
+			names.append(str(BAND_MEMBERS[id]["name"])+" at "+("Copper Cup" if id=="rhea" else "Dock Nine"))
+	return "BAND / Meet "+", ".join(names)+" (%d/2 recruited)"%_band_members.size()
+
 func instrument_summary()->String:
 	if not owns_instrument(Instruments.STARTER):
 		return "INSTRUMENT / Loaners available; PocketBeat M3 $40 at Copper Cup"
@@ -360,7 +403,7 @@ func snapshot() -> Dictionary:
 	ids.sort()
 	var instruments:Array=_instruments.keys()
 	instruments.sort()
-	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "owned_pieces":owned_piece_ids(), "clothing_slots":clothing_slots.duplicate(), "saved_looks":_saved_looks.duplicate(true), "bitcoin_sats":bitcoin_sats, "synaxis_contact":synaxis_contact, "cal_quest":cal_quest, "street_activity_runs":_street_cred.snapshot(), "instruments":instruments, "sampler_practice":sampler_practice}
+	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "owned_pieces":owned_piece_ids(), "clothing_slots":clothing_slots.duplicate(), "saved_looks":_saved_looks.duplicate(true), "bitcoin_sats":bitcoin_sats, "synaxis_contact":synaxis_contact, "cal_quest":cal_quest, "street_activity_runs":_street_cred.snapshot(), "instruments":instruments, "sampler_practice":sampler_practice,"band_members":_band_members.duplicate(),"band_rehearsals":band_rehearsals}
 
 static func valid_snapshot(value: Variant) -> bool:
 	if not value is Dictionary:
@@ -389,6 +432,21 @@ static func valid_snapshot(value: Variant) -> bool:
 	if not valid_cash(practice) or int(practice)>Instruments.MAX_PRACTICE or (int(practice)>0 and not instrument_seen.has(Instruments.STARTER)):
 		return false
 	if not StreetCred.valid_runs(data.get("street_activity_runs",{})):
+		return false
+	var roster:Variant=data.get("band_members",[])
+	if not roster is Array or roster.size()>BAND_MEMBERS.size():
+		return false
+	var roster_seen:Dictionary={}
+	for id in roster:
+		if not id is String or not BAND_MEMBERS.has(id) or roster_seen.has(id):
+			return false
+		roster_seen[id]=true
+	if not roster.is_empty() and (int(practice)<Instruments.OWNED_SET_PRACTICE or not seen.has("venue:soundcheck_pass") or int(data.get("street_activity_runs",{}).get("live_gig",0))<1):
+		return false
+	var rehearsals:Variant=data.get("band_rehearsals",0)
+	if not valid_cash(rehearsals) or int(rehearsals)>BAND_REHEARSALS_REQUIRED or (int(rehearsals)>0 and roster_seen.size()!=BAND_MEMBERS.size()):
+		return false
+	if seen.has(BAND_DEBUT_RECEIPT) and (int(rehearsals)!=BAND_REHEARSALS_REQUIRED or roster_seen.size()!=BAND_MEMBERS.size()):
 		return false
 	var cal:Variant=data.get("cal_quest",0)
 	if not valid_cash(cal) or int(cal)>3 or (int(cal)==3)!=seen.has(CAL_RECEIPT):
@@ -492,6 +550,8 @@ func restore(amount: Variant, data: Variant) -> bool:
 	for id in data.get("instruments",[]):
 		_instruments[id]=true
 	sampler_practice=int(data.get("sampler_practice",0))
+	_band_members.assign(data.get("band_members",[]))
+	band_rehearsals=int(data.get("band_rehearsals",0))
 	_purchased_outfits.clear()
 	for id in data.get("purchased_outfits",[]):
 		_purchased_outfits[id] = true

@@ -13,3 +13,12 @@ After either technical consulting contract, a four-stage evidence investigation 
 
 ## Off-duty mode
 Go off duty before collecting cargo to hide the delivery beacon, radar/map pin, route action and pickup prompt. Resume the same offer from QuotaDrop without payment or progression changes. An active carried order must be delivered or abandoned first. The optional boolean save field defaults to on duty for old saves; carried orders cannot be restored off duty. The story journal directs the player to resume QuotaDrop instead of routing to an inactive delivery.
+
+## Band recruitment
+After buying and practicing the PocketBeat M3 three times and completing a legitimate Blue Hour opening set, invite Rhea Vale at Copper Cup's music desk and Milo Static at Dock Nine's staffed counter. Both choices cost nothing and award no cash or cred. The bounded roster lives in the existing progression ledger and the Music app reports collaborators. Older saves default to no recruits. Rehearsals, instrument-specific band performance, naming and merchandise remain later slices.
+
+## Band rehearsal
+The recruited trio rehearses at Copper Cup via its existing music desk. Two distinct 16-beat patterns, 13 required hits, 0.72-second beats, 0.20-second hit window. Successful claims at the actual reachable desk record one bounded rehearsal; retries, cancelled sets and duplicates do not count. No cash or cred. Optional roster-validated count survives saves; two rehearsals unlock the next booking slice (not yet implemented). The pads are existing sampler audio, not full band audio or animated NPC performance.
+
+## First paid trio booking
+After recruiting both collaborators and passing two rehearsals, the Blue Hour counter offers the one-time $240 trio debut. A distinct 24-beat pattern requires 20 correct hits at 0.65-second spacing and a 0.18-second hit window. A successful rhythm claim at the reachable open venue settles exactly one payout and 30 Street Cred via the existing receipt ledger. A full wallet rejects settlement without consuming the booking. Solo opening sets return after debut; encore/showcase and merch are not yet implemented. The pads remain sampler cues, not a full mixed band performance or animated stage.
