@@ -59,7 +59,7 @@ func _verify()->void:
 		return
 	var population:Variant=director.get("_population")
 	population.restore({"phases":{first:0.25,second:0.25}})
-	var pool:Node=director.get("_pool")
+	var pool=director.get("_pool")
 	var allow:=func(_row:Dictionary)->bool: return true
 	await physics_frame
 	if not _check(pool.activate(population,first,0.0,allow) and pool.activate(population,second,0.0,allow),"two real physical leases"):
