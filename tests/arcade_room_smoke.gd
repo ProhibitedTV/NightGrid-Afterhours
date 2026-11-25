@@ -1,5 +1,6 @@
 extends SceneTree
 const Room = preload("res://scripts/arcade_room.gd")
+const KeyArt = preload("res://scripts/arcade_key_art.gd")
 func _initialize() -> void:
 	call_deferred("_verify")
 
@@ -16,6 +17,16 @@ func _verify() -> void:
 	if not check(room.cabinets.size() == 10, "ten cabinets"):
 		return
 	for cabinet in room.cabinets:
+		var texture: Texture2D = KeyArt.texture(cabinet.game_id)
+		var poster := room.get_node_or_null("GamePoster_"+cabinet.game_id+"/Print") as MeshInstance3D
+		if not check(texture != null and poster != null and (poster.material_override as StandardMaterial3D).albedo_texture == texture, "poster shares catalog texture"):
+			return
+		var dims: Vector2 = (poster.mesh as QuadMesh).size
+		if not check(dims.x <= 1.001 and dims.y <= 1.301 and absf(dims.aspect()-texture.get_size().aspect()) < .001, "aspect correct bounded poster"):
+			return
+		var crt := cabinet.get_node("CRTAttract") as MeshInstance3D
+		if not check((crt.material_override as ShaderMaterial).get_shader_parameter("art") == texture, "shared CRT texture"):
+			return
 		var front: Vector3 = cabinet.to_global(Vector3(0,1.1,1.0))
 		var back: Vector3 = cabinet.to_global(Vector3(0,1.1,-1.0))
 		if not check(room.cabinet_near(front) == cabinet.game_id and room.cabinet_near(back).is_empty(), "front-only interaction " + str(cabinet.game_id)):
