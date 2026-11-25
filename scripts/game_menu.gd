@@ -631,6 +631,9 @@ func _render() -> void:
 				16, Color("bfced5"))
 			_label(col, str(_journal_data.get("civic_job", "No freight work")),
 				16, Color("bfced5"))
+			var investigation_note: String = str(_journal_data.get("investigation",""))
+			if not investigation_note.is_empty():
+				_label(col, investigation_note, 16, Ui.ACCENT)
 			if not str(_journal_data.get("cal_quest","")).is_empty():
 				_label(col,str(_journal_data["cal_quest"]),16,Ui.ACCENT)
 				if bool(_journal_data.get("cal_can_navigate",false)):

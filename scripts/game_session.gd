@@ -17,6 +17,7 @@ const WorldPlan = preload("res://scripts/world_plan.gd")
 const ProgressionLedger = preload("res://scripts/progression_ledger.gd")
 const CourierMission = preload("res://scripts/courier_mission.gd")
 const StoryMission = preload("res://scripts/story_mission.gd")
+const IndependentInvestigation = preload("res://scripts/independent_investigation.gd")
 const ArcadeScores = preload("res://scripts/arcade_scores.gd")
 
 func start_new_game() -> int:
@@ -81,6 +82,13 @@ func is_valid_snapshot(value: Variant) -> bool:
 	if data.has("progression") and not ProgressionLedger.valid_snapshot(data["progression"]):
 		return false
 	var paid: Array = data.get("progression", {}).get("receipts", [])
+	var case_stage: Variant = data.get("investigation_stage",0)
+	if not _whole_number(case_stage,0,IndependentInvestigation.STAGES.size()):
+		return false
+	if (int(case_stage) == IndependentInvestigation.STAGES.size()) != paid.has(IndependentInvestigation.ID):
+		return false
+	if int(case_stage) > 0 and not (paid.has("technical:crane_interlock") or paid.has("technical:grid_telemetry")):
+		return false
 	if data.has("story_mission"):
 		if not StoryMission.valid_snapshot(data["story_mission"]):
 			return false
