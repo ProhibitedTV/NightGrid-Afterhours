@@ -430,6 +430,9 @@ func _build_world_audio() -> void:
 		float(options.get("sfx_volume", 0.75)))
 
 func _on_menu_action(action: String) -> void:
+	if action.begins_with("phone_route_contract:"):
+		_phone_route(action)
+		return
 	match action:
 		"begin_opening":
 			if not progression.has_receipt(Opening.RECEIPT):
@@ -589,7 +592,20 @@ func _story_target() -> Vector3:
 	if story_mission.status == "complete":
 		return Vector3.INF
 	if story_mission.step == 1:
-		return mission_position
+		if not courier_mission.gig_economy or courier_mission.on_duty:
+			return mission_position
+		var listings := _phone_workboard()
+		for listing in listings:
+			if listing["active"]:
+				var point: Vector2 = listing["position"]
+				return Vector3(point.x,0,point.y)
+		for listing in listings:
+			if listing["open"]:
+				var point: Vector2 = listing["position"]
+				return Vector3(point.x,0,point.y)
+		if not listings.is_empty():
+			var point: Vector2 = listings[0]["position"]
+			return Vector3(point.x,0,point.y)
 	return venue_system.call("venue_position", "lantern_cup")
 
 func phone_available() -> bool:
@@ -618,6 +634,37 @@ func _phone_transit() -> Dictionary:
 	var origin := Vector2(outside.x, outside.z)
 	return {"origin":origin, "rail":_phone_nearest(rail.call("get_map_stations"),origin), "bus":_phone_nearest(traffic.call("get_map_stops"),origin)}
 
+# Existing authored contracts remain the authority for offers, receipts, and payouts.
+# Phone browsing only exposes a destination; acceptance happens at the counter.
+func _phone_workboard() -> Array[Dictionary]:
+	var listings: Array[Dictionary] = []
+	for category in ["local","civic"]:
+		var local := category == "local"
+		var active: String = venue_job_active if local else civic_job_active
+		var completed: Array[String] = venue_job_completed if local else civic_job_completed
+		var service: Node = venue_system if local else civic_services
+		var catalog: Array = VenueSystemScript.SIDE_JOBS if local else CivicServicesScript.WORK_ORDERS
+		for job in catalog:
+			var id: String = job["id"]
+			if completed.has(id) or progression.has_receipt(("venue:" if local else "civic:")+id):
+				continue
+			if not active.is_empty() and id != active:
+				continue
+			var site: String = job["to"] if id == active else job["from"]
+			var record: Dictionary = service.call("venue_by_id" if local else "site_by_id",site)
+			if record.is_empty():
+				continue
+			var position: Vector3 = service.call("venue_position" if local else "position_for",site)
+			if not position.is_finite():
+				continue
+			listings.append({
+				"id":category+":"+id,"category":"Private contact" if local else "Civic contract",
+				"title":job["title"],"brief":job["brief"],"reward":job["reward"],
+				"site":record["name"],"open":service.call("is_open",site),
+				"active":id == active,"position":Vector2(position.x,position.z)
+			})
+	return listings
+
 func _phone_context() -> Dictionary:
 	var transit := _phone_transit()
 	var origin: Vector2 = transit["origin"]
@@ -630,6 +677,7 @@ func _phone_context() -> Dictionary:
 		"cash":cash, "bitcoin_sats":progression.bitcoin_sats, "story":story_mission.journal(),
 		"home_owned":progression.owns_home(), "home_access":progression.has_receipt(StarterHome.ACCESS_RECEIPT),
 		"deposit":StarterHome.move_in_price(), "notice":Opening.app_notice(deliveries),
+		"workboard":_phone_workboard(),
 		"rail_available":rail_point.is_finite(), "bus_available":bus_point.is_finite(),
 		"rail_name":"%d m away (direct)" % roundi(origin.distance_to(rail_point)) if rail_point.is_finite() else "Unavailable",
 		"bus_name":"%d m away (direct)" % roundi(origin.distance_to(bus_point)) if bus_point.is_finite() else "Unavailable"
@@ -658,6 +706,14 @@ func _phone_route(action: String) -> void:
 	if not phone_available() or game_menu.get("screen") != "phone":
 		return
 	var destination := Vector2.INF
+	if action.begins_with("phone_route_contract:"):
+		if game_menu.get("_phone_app") != "opportunities":
+			return
+		var id := action.trim_prefix("phone_route_contract:")
+		for listing in _phone_workboard():
+			if listing["id"] == id:
+				destination = listing["position"]
+				break
 	match action:
 		"phone_route_order":
 			if courier_mission.gig_economy and courier_mission.on_duty:
@@ -690,7 +746,7 @@ func _journal_context() -> Dictionary:
 		"seed": session.get("world_seed"),
 		"platform_notice": Opening.app_notice(deliveries) if courier_mission.gig_economy else "",
 		"synaxis_site": "SYNAXIS HQ / Glassline / Access revoked" if progression.has_receipt(Opening.RECEIPT) else "",
-		"opening_goal": "QUOTADROP / POD DEPOSIT: $%d of $%d saved" % [mini(cash,StarterHome.move_in_price()),StarterHome.move_in_price()] if courier_mission.gig_economy and not progression.owns_home() else "",
+		"opening_goal": "LANTERN COURT / POD DEPOSIT: $%d of $%d saved" % [mini(cash,StarterHome.move_in_price()),StarterHome.move_in_price()] if courier_mission.gig_economy and not progression.owns_home() else "",
 		"main_objective": "Free roam / QuotaDrop offline" if courier_mission.gig_economy and not courier_mission.on_duty else "%s  •  STEP %d/%d  •  %dm  •  $%d" % [objective["title"], objective["step"], objective["total_steps"], remaining, objective["reward"]],
 		"courier_can_restart": carrying,
 		"story_objective": story_mission.journal(),
@@ -2852,6 +2908,8 @@ func _civic_action(option: int) -> void:
 			civic_job_completed.append(civic_job_active)
 			civic_job_active = ""
 			_notify("WORK ORDER COMPLETE +$%d: %s" % [int(active["reward"]), str(active["ending"])])
+			if story_mission.event("contract_completed",progression) == "delivered":
+				_notify("Work order complete +$%d. Report back to Mara." % int(active["reward"]))
 	_update_civic_panel()
 
 func _civic_job_text() -> String:
@@ -3278,7 +3336,7 @@ func _venue_action(option: int) -> void:
 			if interiors.call("active_site_id") == "lantern_cup" and interiors.call("counter_reachable", player.global_position):
 				match story_mission.event("mara_talk", progression):
 					"started":
-						mara_dialogue_line = "Mara: I need someone who knows these streets. Finish a courier run, then come tell me how it went."
+						mara_dialogue_line = "Mara: I need someone who knows these streets. Finish a delivery or a paid local or civic contract, then come tell me how it went."
 						_notify("NIGHT SHIFT CONTACT / New mission")
 					"complete":
 						mara_dialogue_line = "Mara: You made it back. Here’s a hundred for the referral. Lantern Court has a sleep pod available. Scrape together the deposit and pay at the entrance. It’s not much, but it locks."
@@ -3345,6 +3403,8 @@ func _venue_action(option: int) -> void:
 			venue_job_completed.append(venue_job_active)
 			venue_job_active = ""
 			_notify("SIDE JOB COMPLETE +$%d: %s" % [int(contract["reward"]), str(contract["ending"])])
+			if story_mission.event("contract_completed",progression) == "delivered":
+				_notify("Side job complete +$%d. Report back to Mara." % int(contract["reward"]))
 	_update_venue_panel()
 
 func _venue_job_text() -> String:
