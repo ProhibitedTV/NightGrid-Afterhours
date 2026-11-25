@@ -76,6 +76,40 @@ for entry in featured:
         issues.append(f"Featured image does not match verified Windows capture: {rel}")
 if visible == 0 and "docs/screenshots/skyboxes/GALLERY.md" not in readme:
     issues.append("README must link at least one verified playable gameplay gallery")
+# Verify historical reconciliation archives without mixing them with the
+# current visitor-facing captures or the original nine-image baseline.
+import re
+for folder, count, manifest_name in (
+    ("archive-20261121", 33, "capture-manifest.json"),
+    ("road-wheel-comparison", 9, "capture-manifest.json"),
+    ("brickwater-review-archive", 7, "camera-manifest.json"),
+):
+    archive = IMAGES / folder
+    rec = json.loads((archive / manifest_name).read_text(encoding="utf-8"))
+    provenance = json.loads((archive / "provenance.json").read_text(encoding="utf-8"))
+    records = rec.get("images", {s["file"]: s for s in rec.get("shots", [])})
+    links = re.findall(r"!\[[^\]]*\]\((\d{2}-[a-z0-9-]+\.png)\)", (archive / "GALLERY.md").read_text(encoding="utf-8"))
+    names = set(records)
+    if len(names) != count or set(links) != names or len(links) != count or names != {p.name for p in archive.glob("*.png")} or names != set(provenance["images"]):
+        issues.append(f"Archive set mismatch: {folder}")
+        continue
+    if provenance["rendered_source_revision"] != rec["source_revision"]:
+        issues.append(f"Archive revision mismatch: {folder}")
+    hashes = set()
+    for name in sorted(names):
+        payload = (archive / name).read_bytes()
+        record = records[name]
+        p = provenance["images"][name]
+        sha = hashlib.sha256(payload).hexdigest()
+        blob = hashlib.sha1(f"blob {len(payload)}\0".encode() + payload).hexdigest()
+        if not payload.startswith(PNG_HEADER) or payload[12:16] != b"IHDR" or not payload.endswith(b"IEND\xaeB\x60\x82") or len(payload) < 16000:
+            issues.append(f"Invalid archive PNG: {folder}/{name}")
+        elif min(struct.unpack(">II", payload[16:24])) < 600:
+            issues.append(f"Archive PNG too small: {folder}/{name}")
+        if sha != record["sha256"] or sha != p["recorded_sha256"] or blob != p["git_blob_sha"] or len(payload) != record["bytes"] or len(payload) != p["bytes"] or sha in hashes:
+            issues.append(f"Archive content mismatch: {folder}/{name}")
+        hashes.add(sha)
+    print(f"Archive checked: {folder} ({count} frames)")
 if issues:
     print("Screenshot preflight failed:\\n" + "\\n".join(f" - {i}" for i in issues))
     sys.exit(1)
