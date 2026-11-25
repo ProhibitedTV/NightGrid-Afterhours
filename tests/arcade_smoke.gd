@@ -1,5 +1,7 @@
 extends SceneTree
 const Track = preload("res://scripts/grand_delay_track.gd")
+const Garage = preload("res://scripts/grand_delay_garage.gd")
+const Rivals = preload("res://scripts/grand_delay_rivals.gd")
 const Race = preload("res://scripts/grand_delay_race.gd")
 const Round = preload("res://scripts/arcade_round.gd")
 const Alt = preload("res://scripts/arcade_alt_round.gd")
@@ -180,6 +182,43 @@ func _verify() -> void:
 		return
 	race.start("grand_delay")
 	if not check(race.drift_count==0 and race.drift_awards.is_empty() and not race.shoulder, "replay clears driving state"):
+		return
+	# All cars are selectable, all have authored speed/grip differences, no unlocks.
+	var top_speeds: Array[float] = []
+	for index in range(Garage.CARS.size()):
+		race.start("grand_delay",index,false)
+		race.countdown=0.0
+		race.course.clear()
+		race.objects.clear()
+		for i in range(400):
+			race.advance(true)
+		top_speeds.append(race.speed)
+	if not check(top_speeds[1]>top_speeds[0] and top_speeds[0]>top_speeds[2] and Garage.spec(2)["grip"]>Garage.spec(1)["grip"], "distinct vehicle performance"):
+		return
+	race.start("grand_delay",1,true)
+	if not check(race.rivals.size()==3 and race.race_place()==4 and race.car_index==1, "competitive starting grid"):
+		return
+	race.countdown=0.0
+	for i in range(120):
+		race.advance(true)
+	if not check(float(race.rivals[0]["z"])>12.0 and float(race.rivals[0]["speed"])>0.0, "rivals advance under own acceleration"):
+		return
+	# Exact finish ordering and contact cooldown isolated from the traffic model.
+	var grid = Rivals.new_grid()
+	grid[0]["finish"]=48.0
+	grid[1]["finish"]=51.0
+	if not check(Rivals.place(grid,Race.LENGTH,50.0)==2, "finish-time ordering"):
+		return
+	race.rivals[0]["z"]=race.distance
+	race.rivals[0]["x"]=race.position_x
+	var before_contact: float = race.speed
+	var before_lives: int = race.lives
+	race._rival_contact()
+	race._rival_contact()
+	if not check(race.rival_contacts==1 and race.speed<before_contact and race.lives==before_lives, "rival contact is a bounded speed penalty"):
+		return
+	race.start("grand_delay")
+	if not check(race.rivals.is_empty() and race.car_index==0 and race.rival_contacts==0, "solo replay clears competition"):
 		return
 	var patch := Alt.new()
 	if not check(patch.start("patch_day") and patch.strike() and patch.score == 150 and not patch.strike(), "patch repairs exactly once"):

@@ -7,6 +7,9 @@ const ExtraRound = preload("res://scripts/arcade_extra_round.gd")
 const SeasonRound = preload("res://scripts/arcade_season_round.gd")
 const ClassicRound = preload("res://scripts/arcade_classic_round.gd")
 const Race = preload("res://scripts/grand_delay_race.gd")
+const Garage = preload("res://scripts/grand_delay_garage.gd")
+var race_car := 0
+var race_competitive := true
 const RaceAudio = preload("res://scripts/grand_delay_audio.gd")
 var race_audio: Node
 const DeluxeView = preload("res://scripts/arcade_grand_delay_view.gd")
@@ -63,13 +66,17 @@ func _unhandled_input(event: InputEvent) -> void:
 		var direction := -1 if event.is_action_pressed("ui_left") else 1
 		if state == "select" and locked_cabinet.is_empty():
 			selection = posmod(selection + direction, Round.IDS.size())
+		elif state == "select" and locked_cabinet == "grand_delay":
+			race_competitive = not race_competitive
 		elif state == "play" and not round is ClassicRound and not round is Race:
 			var before := Vector2i(round.score,round.lives)
 			round.steer(direction)
 			_feedback_cue(before)
 			_finish_if_needed()
 	elif event.is_action_pressed("ui_up") or event.is_action_pressed("ui_down"):
-		if state == "play" and (round is AltRound or round is ExtraRound or round is SeasonRound):
+		if state == "select" and Round.IDS[selection] == "grand_delay":
+			race_car = posmod(race_car + (1 if event.is_action_pressed("ui_down") else -1),Garage.CARS.size())
+		elif state == "play" and (round is AltRound or round is ExtraRound or round is SeasonRound):
 			var before := Vector2i(round.score,round.lives)
 			round.vertical(-1 if event.is_action_pressed("ui_up") else 1)
 			_feedback_cue(before)
@@ -116,7 +123,8 @@ func _start_round() -> void:
 		round = AltRound.new()
 	else:
 		round = Round.new()
-	if not round.start(id):
+	var started: bool = round.start(id,race_car,race_competitive) if round is Race else round.start(id)
+	if not started:
 		return
 	state = "play"
 	deluxe_lane = 1.0

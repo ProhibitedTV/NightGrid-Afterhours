@@ -1,6 +1,8 @@
 extends RefCounted
 ## Deterministic fixed-step arcade driving. World distances are meters; x is road width in lanes.
 const Track = preload("res://scripts/grand_delay_track.gd")
+const Garage = preload("res://scripts/grand_delay_garage.gd")
+const Rivals = preload("res://scripts/grand_delay_rivals.gd")
 const DT = 1.0/60.0
 const LENGTH = 3600.0
 const DISTRICT_LENGTH = 1200.0
@@ -53,11 +55,23 @@ var drift_awards: Array[int] = []
 var drift_count = 0
 var drift_points = 0
 var shoulder = false
+var car_index = 0
+var competitive = false
+var rivals: Array[Dictionary] = []
+var finish_place = 0
+var rival_contacts = 0
+var rival_cooldown = 0.0
 
-func start(id: String) -> bool:
+func start(id: String, selected_car: int = 0, race_rivals: bool = false) -> bool:
 	if id != "grand_delay":
 		return false
 	game_id = id
+	car_index = clampi(selected_car,0,Garage.CARS.size()-1)
+	competitive = race_rivals
+	rivals = Rivals.new_grid() if competitive else []
+	finish_place = 0
+	rival_contacts = 0
+	rival_cooldown = 0.0
 	score = 0
 	lives = 3
 	finished = false
@@ -188,20 +202,23 @@ func advance(throttle: bool = false, brake: bool = false) -> void:
 		drift_time += DT
 	elif drifting:
 		_finish_drift(not shoulder and invulnerable<=0.0)
-	var target = (49.0 if drifting else 28.0) if brake else (76.0 if throttle else 53.0)
+	var car = Garage.spec(car_index)
+	var target = (49.0 if drifting else 28.0) if brake else (float(car["top"]) if throttle else float(car["top"])*53.0/76.0)
 	if nitro_left > 0.0 and not brake:
-		target = 98.0
+		target = float(car["boost"])
 	# Curves exert outward load proportional to speed. Feathering brake allows
 	# a controlled slide; shoulders reduce top speed but never steal a life.
 	if shoulder:
 		target = minf(target,39.0)
-	speed = move_toward(speed,target,(48.0 if drifting else (85.0 if brake else (35.0 if nitro_left>0.0 else 24.0)))*DT)
-	var desired = steering*(2.3+speed*.009) - bend*.38*pow(speed/76.0,2.0)
-	lateral_velocity = move_toward(lateral_velocity,desired,(7.0 if drifting else 12.0)*DT)
+	speed = move_toward(speed,target,(48.0 if drifting else (float(car["brake"]) if brake else (35.0 if nitro_left>0.0 else float(car["accel"]))))*DT)
+	var grip: float = car["grip"]
+	var desired = steering*(2.3+speed*.009)*grip - bend*.38*pow(speed/76.0,2.0)/grip
+	lateral_velocity = move_toward(lateral_velocity,desired,(7.0 if drifting else 12.0)*grip*DT)
 	position_x = clampf(position_x+lateral_velocity*DT,-.10,2.10)
 	shoulder = position_x < -.065 or position_x > 2.065
 	if shoulder and drifting:
 		_finish_drift(false)
+	var old_distance = distance
 	distance = minf(LENGTH,distance+speed*DT)
 	_spawn_visible()
 	for i in range(objects.size()-1,-1,-1):
@@ -210,6 +227,9 @@ func advance(throttle: bool = false, brake: bool = false) -> void:
 		if float(item["z"]) <= distance:
 			_hit(item,absf(position_x-float(item["x"])))
 			objects.remove_at(i)
+	if competitive:
+		Rivals.advance(rivals,objects,course,DT,race_time)
+		_rival_contact()
 	var new_district = mini(2,floori(distance/DISTRICT_LENGTH))
 	if new_district > district:
 		district = new_district
@@ -224,12 +244,36 @@ func advance(throttle: bool = false, brake: bool = false) -> void:
 	elif distance >= LENGTH:
 		cleared = true
 		finished = true
+		var finish_time = race_time-DT+clampf((LENGTH-old_distance)/maxf(speed,.01),0.0,DT)
+		finish_place = Rivals.place(rivals,LENGTH,finish_time) if competitive else 0
 		splits.append(race_time)
 		_add_points(300+floori(remaining)*5+lives*50)
+		if competitive:
+			_add_points([400,250,100,0][finish_place-1])
 		_message("GOLD MASTER / THANK YOU FOR PLAYING")
 	elif remaining <= 0.0:
 		finished = true
 		_message("TIME OUT / RELEASE POSTPONED")
+
+func _rival_contact() -> void:
+	rival_cooldown = maxf(0.0,rival_cooldown-DT)
+	if rival_cooldown>0.0:
+		return
+	for driver in rivals:
+		if float(driver["finish"])>=0.0:
+			continue
+		if absf(float(driver["z"])-distance)<7.0 and absf(float(driver["x"])-position_x)<.29:
+			rival_contacts += 1
+			rival_cooldown = 1.15
+			speed *= .82
+			driver["speed"] = float(driver["speed"])*.94
+			_finish_drift(false)
+			streak = 0
+			_message("RIVAL CONTACT / KEEP IT CLEAN")
+			return
+
+func race_place() -> int:
+	return finish_place if finish_place>0 else Rivals.place(rivals,distance)
 
 func _finish_drift(clean: bool) -> void:
 	if clean and drift_time >= .25 and drift_bend>=0 and not drift_awards.has(drift_bend):
@@ -244,7 +288,7 @@ func _finish_drift(clean: bool) -> void:
 	drift_bend = -1
 
 func result() -> Dictionary:
-	return {"game_id":game_id,"score":score,"lives":lives,"finished":finished,"cleared":cleared,"time":race_time,"distance":distance,"pickups":pickups,"near_misses":near_misses,"overtakes":overtakes,"collisions":collisions,"best_streak":best_streak,"splits":splits.duplicate(),"drifts":drift_count,"drift_points":drift_points}
+	return {"game_id":game_id,"score":score,"lives":lives,"finished":finished,"cleared":cleared,"time":race_time,"distance":distance,"pickups":pickups,"near_misses":near_misses,"overtakes":overtakes,"collisions":collisions,"best_streak":best_streak,"splits":splits.duplicate(),"drifts":drift_count,"drift_points":drift_points,"car":car_index,"competitive":competitive,"place":finish_place,"rival_contacts":rival_contacts}
 
 func grade() -> String:
 	if not cleared:

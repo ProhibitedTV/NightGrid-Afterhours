@@ -1,5 +1,6 @@
 extends Node
 ## Two original seamless mono loops. Updated only by the active race modal.
+const Garage = preload("res://scripts/grand_delay_garage.gd")
 const EngineLoop = preload("res://assets/arcade/audio/grand_delay_engine.wav")
 const TireLoop = preload("res://assets/arcade/audio/grand_delay_tires.wav")
 const AudioMix = preload("res://scripts/audio_mix.gd")
@@ -33,7 +34,7 @@ func start_race() -> void:
 
 func update_race(race, delta: float) -> void:
 	var rpm = clampf(race.speed/98.0,0.0,1.0)
-	var pitch = .72+rpm*1.30
+	var pitch = (.72+rpm*1.30)*float(Garage.spec(race.car_index)["pitch"])
 	if race.nitro_left>0.0:
 		pitch += .14
 	engine.pitch_scale = move_toward(engine.pitch_scale,pitch,delta*3.0)
