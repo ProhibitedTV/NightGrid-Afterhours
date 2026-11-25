@@ -65,6 +65,8 @@ const VEHICLE_COLORS = [
 const CourierMission = preload("res://scripts/courier_mission.gd")
 const StoryMission = preload("res://scripts/story_mission.gd")
 const Opening = preload("res://scripts/opening_story.gd")
+const OpeningOffice = preload("res://scripts/synaxis_office.gd")
+var _opening_office: Node3D
 const StarterHome = preload("res://scripts/starter_home.gd")
 var _home_panel := false
 var _storage_upgrade_quote := false
@@ -277,7 +279,7 @@ func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	if bool(session.get("opening_pending")) and restore.is_empty():
 		session.set("opening_pending",false)
-		game_menu.call("open_opening")
+		_start_opening_office()
 	elif DisplayServer.get_name() != "headless" and not bool(session.get("boot_menu_shown")):
 		session.set("boot_menu_shown", true)
 		game_menu.call("open_title")
@@ -423,9 +425,12 @@ func _on_menu_action(action: String) -> void:
 	match action:
 		"begin_opening":
 			if not progression.has_receipt(Opening.RECEIPT):
-				game_menu.call("open_opening")
+				_start_opening_office()
 			else:
 				game_menu.call("hide_for_game")
+		"opening_walk":
+			if is_instance_valid(_opening_office):
+				_opening_office.call("set_stage",int(game_menu.get("_opening_stage")))
 		"accept_opening":
 			_accept_opening()
 		"save":
@@ -461,8 +466,47 @@ func _on_menu_action(action: String) -> void:
 				_notify("Contact mission abandoned. Speak to Mara to retry.")
 			game_menu.call("open_journal", _journal_context())
 
+func _start_opening_office() -> void:
+	if is_instance_valid(_opening_office) or progression.has_receipt(Opening.RECEIPT):
+		return
+	_opening_office = OpeningOffice.new()
+	_opening_office.name = "SynaxisExecutiveFloor"
+	_opening_office.position = OpeningOffice.ORIGIN
+	add_child(_opening_office)
+	player.global_position = _opening_office.to_global(OpeningOffice.START)
+	player.velocity = Vector3.ZERO
+	yaw = 0.0
+	player.set("camera_yaw",yaw)
+	get_node("HUD").hide()
+	marker.hide()
+	game_menu.call("open_opening",true)
+	_snap_camera()
+
+func _opening_interact() -> void:
+	if not is_instance_valid(_opening_office) or game_menu.call("is_open"):
+		return
+	var stage := int(game_menu.get("_opening_stage"))
+	if _opening_office.call("reachable",stage,player.global_position):
+		game_menu.call("open_opening_stage")
+
+func _finish_opening_office() -> void:
+	if not is_instance_valid(_opening_office):
+		return
+	var old := _opening_office
+	_opening_office = null
+	old.hide()
+	old.queue_free()
+	player.global_position = PLAYER_START
+	player.velocity = Vector3.ZERO
+	player.call("restore_stamina",100.0)
+	get_node("HUD").show()
+	marker.show()
+	city_details.call("set_focus",player.global_position)
+	_snap_camera()
+
 func _accept_opening() -> void:
 	if progression.credit_once(Opening.RECEIPT,Opening.SEVERANCE):
+		_finish_opening_office()
 		courier_mission.gig_economy = true
 		_refresh_courier_target()
 		_notify("SYNAXIS: $75 severance credited. QUOTADROP: Your first delivery is ready. Earn your pod deposit.")
@@ -560,6 +604,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.echo:
 		return
 	if not event.is_pressed():
+		return
+	if is_instance_valid(_opening_office):
+		if event.is_action_pressed("interact"):
+			_opening_interact()
 		return
 	if event.is_action_pressed("game_pause"):
 		if venue_panel.visible:
@@ -727,6 +775,14 @@ func _capture_playtest_frame() -> void:
 func _process(delta: float) -> void:
 	if not is_instance_valid(player):
 		return
+	if is_instance_valid(_opening_office):
+		var look := GameInput.look_vector()
+		yaw -= look.x * stick_sensitivity * delta
+		pitch = clampf(pitch+look.y*stick_sensitivity*delta*(-1.0 if invert_look_y else 1.0),.20,.85)
+		player.set("camera_yaw",yaw)
+		_update_camera(delta)
+		_opening_office.call("update_prompt",int(game_menu.get("_opening_stage")),player.global_position,gamepad_active)
+		return
 	var actor := _actor()
 	if current_car != null and current_car.get("model_id") == RoadCars.R9:
 		current_car.set("road_wetness", day_night.call("surface_film"))
@@ -834,6 +890,12 @@ func _physics_process(delta: float) -> void:
 	# Gameplay mission/heat/damage timers are fixed-tick, not render-tick.
 	if not is_instance_valid(player):
 		return
+	if is_instance_valid(_opening_office):
+		if player.global_position.y < OpeningOffice.ORIGIN.y-2.0:
+			player.global_position = _opening_office.to_global(OpeningOffice.START)
+			player.velocity = Vector3.ZERO
+			_snap_camera()
+		return
 	if _active_station_lift != null and not bool(_active_station_lift.get("travelling")):
 		var landing: Vector3 = _active_station_lift.call("destination")
 		var upstairs: bool = _active_station_lift.get("going_up")
@@ -926,7 +988,7 @@ func _camera_focus() -> Vector3:
 		1.65 if current_car != null or current_transit != null else 1.45)
 
 func _camera_goal() -> Vector3:
-	var distance := (3.0 if interiors.call("is_inside") else
+	var distance := (3.0 if is_instance_valid(_opening_office) or interiors.call("is_inside") else
 		(21.0 if transit_kind == "TRAIN" else
 		(15.0 if transit_kind == "BUS" else
 		(13.0 if current_car != null else 7.5))))

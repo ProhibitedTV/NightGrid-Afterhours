@@ -42,6 +42,7 @@ var _journal_data: Dictionary = {}
 var _opening_stage := 0
 var _opening_report := ""
 var _opening_exit := ""
+var _physical_opening := false
 var settings: Dictionary = DEFAULT_SETTINGS.duplicate(true)
 var _root: Control
 var _screen_nodes: Array[Control] = []
@@ -94,11 +95,25 @@ func is_open() -> bool:
 func open_title() -> void:
 	_open("title")
 
-func open_opening() -> void:
+func open_opening(physical: bool = false) -> void:
+	_physical_opening = physical
 	_opening_stage = 0
 	_opening_report = ""
 	_opening_exit = ""
+	if physical:
+		hide_for_game()
+	else:
+		_open("opening")
+
+func open_opening_stage() -> void:
 	_open("opening")
+
+func _opening_next_location() -> void:
+	if _physical_opening:
+		hide_for_game()
+		action_requested.emit("opening_walk")
+	else:
+		_render()
 
 func open_pause() -> void:
 	_open("pause")
@@ -537,7 +552,7 @@ func _choice(action: String) -> void:
 		"opening_brief":
 			if screen == "opening" and _opening_stage == 1:
 				_opening_stage = 2
-				_render()
+				_opening_next_location()
 		"opening_security", "opening_legal":
 			if screen == "opening" and _opening_stage == 2:
 				_opening_report = action
@@ -546,12 +561,12 @@ func _choice(action: String) -> void:
 		"opening_read_notice":
 			if screen == "opening" and _opening_stage == 3:
 				_opening_stage = 4
-				_render()
+				_opening_next_location()
 		"opening_exit_accept", "opening_exit_decline":
 			if screen == "opening" and _opening_stage == 4:
 				_opening_exit = action
 				_opening_stage = 5
-				_render()
+				_opening_next_location()
 		"opening_accept":
 			if screen == "opening" and _opening_stage == 5:
 				hide_for_game()

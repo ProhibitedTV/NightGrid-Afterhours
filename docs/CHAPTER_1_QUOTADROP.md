@@ -19,3 +19,7 @@ Longer-term arc: precarious work, making rent, saving for a cheap car, earning i
 ## Satire continuity
 
 The internal ticket has a zero budget and impossible deadline, compliance dashboards remain green under executive override, HR demands the employee train their AI replacement, and the gig platform uses the same institutional doublespeak. Six rotating journal notices are derived from completed deliveries without any new persistence, timers, or changes to compensation. Avoid slapstick accents and stereotyped characterization; the player should recognize how these systems absolve management and transfer risk to workers.
+
+## Physical opening set
+
+New sessions construct one isolated collision-backed office floor, reuse the main player and camera, and require walking to the IT desk, executive office, HR and reception before the corresponding dialogue. The city gameplay adapter is suspended during the prologue; no save is permitted mid-office through gameplay inputs. On acceptance, the temporary office is released and the player returns to the street with the existing one-time severance. This is a first original blockout with furniture and signs, not final architectural art or character cinematics. Tests exercise the physical checkpoint gates and return to city. Native visual and navigation review remain required.

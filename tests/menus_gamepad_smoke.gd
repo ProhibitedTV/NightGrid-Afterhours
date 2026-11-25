@@ -390,14 +390,31 @@ func _verify() -> void:
 	if menu.get("_opening_report")!="opening_legal" or not (menu.call("get_buttons") as Dictionary).has("opening_read_notice"):
 		_fail("Legal escalation has its own response")
 		return
-	menu.call("open_opening")
+	world.call("_start_opening_office")
+	var office: Node3D = world.get("_opening_office")
+	if not is_instance_valid(office) or office.find_children("*","CollisionShape3D",true,false).size()<10:
+		_fail("Physical office must have real enclosed collision geometry")
+		return
+	world.call("_opening_interact")
+	if menu.call("is_open"):
+		_fail("Cannot interact with office workstation remotely")
+		return
+	player.global_position = office.call("point",0)
+	world.call("_opening_interact")
 	menu.call("_choice","opening_inspect")
 	menu.call("_choice","opening_brief")
+	if menu.call("is_open"):
+		_fail("Executive briefing requires walking to office")
+		return
+	player.global_position = office.call("point",2)
+	world.call("_opening_interact")
 	menu.call("_choice","opening_security")
 	if menu.get("_opening_report")!="opening_security":
 		_fail("Security escalation has its own response")
 		return
 	menu.call("_choice","opening_read_notice")
+	player.global_position = office.call("point",4)
+	world.call("_opening_interact")
 	if not (menu.call("get_buttons") as Dictionary).has("opening_exit_accept") or not (menu.call("get_buttons") as Dictionary).has("opening_exit_decline"):
 		_fail("Exit interview presents both feedback choices")
 		return
@@ -406,6 +423,8 @@ func _verify() -> void:
 		_fail("Cannot collect severance before offboarding")
 		return
 	menu.call("_choice","opening_exit_decline")
+	player.global_position = office.call("point",5)
+	world.call("_opening_interact")
 	if menu.get("_opening_exit")!="opening_exit_decline":
 		_fail("Declining exit interview has distinct response")
 		return
@@ -414,6 +433,9 @@ func _verify() -> void:
 		return
 	menu.call("_choice","opening_accept")
 	world.call("_accept_opening")
+	if world.get("_opening_office")!=null or player.global_position.distance_to(Vector3(0,1.15,6))>.01:
+		_fail("Office exit cleans up and returns existing player to city")
+		return
 	if world.get("cash") != before_severance+75 or not world.get("courier_mission").gig_economy or menu.call("is_open"):
 		_fail("Opening credits severance once and enables real QuotaDrop work")
 		return
