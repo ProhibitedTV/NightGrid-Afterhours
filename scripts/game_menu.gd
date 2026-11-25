@@ -4,6 +4,18 @@ const AudioMix = preload("res://scripts/audio_mix.gd")
 const MinimapScript = preload("res://scripts/minimap.gd")
 const CityFoley = preload("res://scripts/city_foley.gd")
 const Ui = preload("res://scripts/ui_style.gd")
+const Rhythm=preload("res://scripts/rhythm_rehearsal.gd")
+var _rhythm=Rhythm.new()
+var _rhythm_sequence:=0
+var _rhythm_focus_set:=false
+var _music_desk:Dictionary={}
+const Instruments=preload("res://scripts/instrument_catalog.gd")
+const PocketBeat=preload("res://assets/instruments/pocketbeat_m3.glb")
+var _rhythm_status:Label
+var _rhythm_meter:ProgressBar
+var _rhythm_claim:Button
+var _rhythm_player:AudioStreamPlayer
+const PAD_CLIPS=[preload("res://assets/audio/rehearsal/kick.wav"),preload("res://assets/audio/rehearsal/clap.wav"),preload("res://assets/audio/rehearsal/hat.wav")]
 const Opening = preload("res://scripts/opening_story.gd")
 const SynaxisBrand = preload("res://scripts/synaxis_brand.gd")
 ## Keyboard/mouse/controller-friendly menu layer. It remains interactive while
@@ -81,6 +93,11 @@ func _ready() -> void:
 	_ui_click.stream = CityFoley.sound("UI")
 	_ui_click.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(_ui_click)
+	_rhythm_player=AudioStreamPlayer.new()
+	_rhythm_player.bus=AudioMix.MUSIC
+	_rhythm_player.process_mode=Node.PROCESS_MODE_ALWAYS
+	_rhythm_player.volume_db=-8.0
+	add_child(_rhythm_player)
 	visible = false
 
 func set_world_node(world: Node3D) -> void:
@@ -164,6 +181,9 @@ func confirm_new_game() -> void:
 	_open("confirm_new")
 
 func hide_for_game() -> void:
+	if screen=="blue_hour_set":
+		_rhythm_player.stop()
+		_rhythm.cancel()
 	screen = "hidden"
 	visible = false
 	get_tree().paused = false
@@ -206,6 +226,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				_choice("guard_leave")
 			"street_contact":
 				_choice("street_leave")
+			"blue_hour_set":
+				_choice("rhythm_cancel")
+			"music_desk":
+				_choice("music_desk_leave")
 			_:
 				pass
 		get_viewport().set_input_as_handled()
@@ -307,6 +331,19 @@ func _render() -> void:
 			_title(col,"AIR QUALITY INCIDENT" if _restroom_id==Restrooms.MEN else "FACILITIES / REQUIRED TRAINING",23,Ui.AMBER)
 			_label(col,Restrooms.MEN_DIALOGUE if _restroom_id==Restrooms.MEN else Restrooms.WOMEN_DIALOGUE,16,Ui.TEXT)
 			_button(col,"restroom_leave","BACK TO WORK","restroom_leave")
+		"music_desk":
+			_title(col,"COPPER CUP / MUSIC CONSIGNMENT",24,Ui.AMBER)
+			_pocketbeat_preview(col)
+			_label(col,"Hal has a refurbished PocketBeat M3 sampler on the counter. Loaners are still free.",16,Ui.TEXT)
+			_label(col,str(_music_desk.get("summary","")),16,Ui.ACCENT)
+			_label(col,"CASH $%d"%int(_music_desk.get("cash",0)),16,Ui.MUTED)
+			_button(col,"music_desk_busk","BORROW SAMPLER / BUSK","music_desk_busk")
+			_button(col,"music_desk_buy","BUY POCKETBEAT M3 / $40","music_desk_buy",not bool(_music_desk.get("owned",false)) and int(_music_desk.get("cash",0))>=Instruments.price(Instruments.STARTER))
+			_button(col,"music_desk_practice","PRACTICE OWNED SAMPLER","music_desk_practice",bool(_music_desk.get("owned",false)))
+			_button(col,"music_desk_owned","PERSONAL SET / $14 +4 STREET CRED","music_desk_owned",bool(_music_desk.get("owned_set",false)))
+			_button(col,"music_desk_leave","LEAVE","music_desk_leave")
+		"blue_hour_set":
+			_render_rhythm(col)
 		"street_contact":
 			_title(col,str(_street_contact["name"]).to_upper(),23,Ui.AMBER)
 			_label(col,str(_street_contact["role"]),16,Ui.MUTED)
@@ -472,6 +509,12 @@ func _render() -> void:
 				bar.show_percentage=false
 				bar.custom_minimum_size=Vector2(0,12)
 				col.add_child(bar)
+			_label(col,str(_journal_data.get("instrument_status","")),16,Ui.ACCENT)
+			_label(col,str(_journal_data.get("busking_status","")),16,Ui.ACCENT)
+			_button(col,"busking_waypoint","SET STREET MUSIC WAYPOINT","busking_waypoint")
+			_label(col,str(_journal_data.get("music_contact","")),16,Ui.ACCENT)
+			if bool(_journal_data.get("music_can_navigate",false)):
+				_button(col,"music_waypoint","SET UNDERGROUND MUSIC CONTACT WAYPOINT","music_waypoint")
 			for source in _journal_data.get("street_cred_sources",[]):
 				_label(col,"%s  /  +%d earned"%[str(source["name"]),int(source["points"])],14,Ui.MUTED)
 			_divider(col)
@@ -663,6 +706,24 @@ func _choice(action: String) -> void:
 				action_requested.emit("begin_opening")
 			else:
 				hide_for_game()
+		"music_desk_buy","music_desk_busk","music_desk_practice","music_desk_owned":
+			if screen=="music_desk":
+				action_requested.emit(action)
+		"music_desk_leave":
+			if screen=="music_desk":
+				hide_for_game()
+				action_requested.emit(action)
+		"rhythm_pad_0","rhythm_pad_1","rhythm_pad_2":
+			if screen=="blue_hour_set":
+				_rhythm_strike(int(action.right(1)))
+		"rhythm_claim":
+			if screen=="blue_hour_set" and _rhythm.passed():
+				action_requested.emit("rhythm_claim")
+				hide_for_game()
+		"rhythm_cancel":
+			if screen=="blue_hour_set":
+				hide_for_game()
+				action_requested.emit("rhythm_cancel")
 		"street_reply_0","street_reply_1","street_leave","cal_accept","cal_complete":
 			if screen=="street_contact":
 				_street_contact={}
@@ -734,7 +795,7 @@ func _choice(action: String) -> void:
 			open_map()
 		"journal":
 			action_requested.emit("journal")
-		"restart_courier", "abandon_story", "home_waypoint", "garage_waypoint", "story_waypoint", "synaxis_waypoint", "cal_waypoint":
+		"restart_courier", "abandon_story", "home_waypoint", "garage_waypoint", "story_waypoint", "synaxis_waypoint", "cal_waypoint", "music_waypoint", "busking_waypoint":
 			action_requested.emit(action)
 		"back":
 			_open(_back_screen)
@@ -756,3 +817,141 @@ func _choice(action: String) -> void:
 			open_title()
 		"quit":
 			get_tree().quit()
+
+func open_blue_hour_set(sequence:int)->void:
+	_open_music_set(sequence,"live_gig")
+
+func open_busking_set(sequence:int)->void:
+	_open_music_set(sequence,"busking")
+
+func open_music_desk(data:Dictionary)->void:
+	_music_desk=data.duplicate()
+	_open("music_desk")
+
+func open_sampler_practice(sequence:int)->void:
+	_open_music_set(sequence,"practice")
+
+func consume_sampler_practice()->int:
+	if screen=="blue_hour_set" and _rhythm.mode=="practice" and _rhythm.claim():
+		return _rhythm_sequence
+	return 0
+
+func _open_music_set(sequence:int,source:String)->void:
+	_rhythm_sequence=sequence
+	_rhythm_focus_set=false
+	_rhythm.start(sequence,source)
+	_open("blue_hour_set")
+
+func open_owned_sampler_set(sequence:int)->void:
+	_open_music_set(sequence,"owned_busking")
+
+func consume_owned_sampler_set()->int:
+	if screen=="blue_hour_set" and _rhythm.mode=="owned_busking" and _rhythm.claim():
+		return _rhythm_sequence
+	return 0
+
+func consume_busking_result()->int:
+	if screen=="blue_hour_set" and _rhythm.mode=="busking" and _rhythm.claim():
+		return _rhythm_sequence
+	return 0
+
+func consume_blue_hour_result()->int:
+	if screen=="blue_hour_set" and _rhythm.mode=="live_gig" and _rhythm.claim():
+		return _rhythm_sequence
+	return 0
+
+func _render_rhythm(col:VBoxContainer)->void:
+	var street:=_rhythm.mode=="busking"
+	var practice:=_rhythm.mode=="practice"
+	var owned:=_rhythm.mode=="owned_busking"
+	_title(col,"POCKETBEAT M3 / PERSONAL SET" if owned else ("POCKETBEAT M3 / PRACTICE" if practice else ("STREET SAMPLER / BUSKING" if street else "BLUE HOUR / OPENING SET")),24,Ui.AMBER)
+	_label(col,("Play your own sampler for the neighborhood." if owned else ("Practice your own sampler. No cash or reputation reward." if practice else ("Borrow the neighborhood loaner sampler." if street else "Borrow Rae's three-pad sampler.")))+" Hit the indicated pad in the timing window. %d of %d required."%[_rhythm.required_hits,_rhythm.pattern.size()],16,Ui.TEXT)
+	_label(col,"1 / A: kick   2 / X: clap   3 / Y: hat",16,Ui.MUTED)
+	_rhythm_status=Label.new()
+	_rhythm_status.add_theme_font_size_override("font_size",22)
+	col.add_child(_rhythm_status)
+	_rhythm_meter=ProgressBar.new()
+	_rhythm_meter.max_value=1.0
+	_rhythm_meter.show_percentage=false
+	col.add_child(_rhythm_meter)
+	for lane in range(3):
+		var key:="rhythm_pad_%d"%lane
+		_button(col,key,["1 / A  KICK","2 / X  CLAP","3 / Y  HI-HAT"][lane],key)
+	_button(col,"rhythm_claim","COLLECT $14 / +4 STREET CRED" if owned else ("RECORD PRACTICE SET" if practice else ("COLLECT $8 / +4 STREET CRED" if street else "COLLECT $45 / +12 STREET CRED")),"rhythm_claim",false)
+	_rhythm_claim=_buttons["rhythm_claim"]
+	_button(col,"rhythm_cancel","LEAVE SET","rhythm_cancel")
+	_refresh_rhythm()
+
+func _process(delta:float)->void:
+	if screen!="blue_hour_set":
+		return
+	_rhythm.advance(delta)
+	_refresh_rhythm()
+
+func _input(event:InputEvent)->void:
+	if screen!="blue_hour_set" or _rhythm.finished or not event.is_pressed() or event.is_echo():
+		return
+	for lane in range(3):
+		if event.is_action_pressed(["service_one","service_two","service_three"][lane]):
+			_rhythm_strike(lane)
+			get_viewport().set_input_as_handled()
+			return
+
+func _rhythm_strike(lane:int)->void:
+	if _rhythm.finished:
+		return
+	_rhythm_player.stream=PAD_CLIPS[lane]
+	_rhythm_player.play()
+	_rhythm.strike(lane)
+	_refresh_rhythm()
+
+func _refresh_rhythm()->void:
+	if not is_instance_valid(_rhythm_status) or not is_instance_valid(_rhythm_meter) or not is_instance_valid(_rhythm_claim):
+		return
+	if _rhythm.finished:
+		_rhythm_status.text="%s / %d of %d correct"%["SET COMPLETE" if _rhythm.passed() else "TRY ANOTHER SET",_rhythm.hits,_rhythm.pattern.size()]
+		_rhythm_meter.value=0.0
+		_rhythm_claim.disabled=not _rhythm.passed()
+		if _rhythm.passed() and not _rhythm_focus_set:
+			_rhythm_focus_set=true
+			_rhythm_claim.grab_focus()
+		return
+	var remaining:=_rhythm.target_time()-_rhythm.elapsed
+	var lane:int=_rhythm.pattern[_rhythm.index]
+	var window:=absf(remaining)<=_rhythm.hit_window
+	_rhythm_status.text="%s / %s / %d of %d  •  %d hits"%[["KICK","CLAP","HI-HAT"][lane],"HIT NOW" if window else "READY %.1fs"%maxf(0.0,remaining),_rhythm.index+1,_rhythm.pattern.size(),_rhythm.hits]
+	_rhythm_status.modulate=Ui.ACCENT if window else Ui.TEXT
+	_rhythm_meter.value=clampf(1.0-maxf(0.0,remaining)/_rhythm.beat_seconds,0.0,1.0)
+
+## Isolated static model preview; render one frame, no continuous extra camera.
+func _pocketbeat_preview(col:VBoxContainer)->void:
+	var frame:=SubViewportContainer.new()
+	frame.name="PocketBeatPreview"
+	frame.custom_minimum_size=Vector2(360,160)
+	frame.stretch=true
+	frame.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	col.add_child(frame)
+	var viewport:=SubViewport.new()
+	viewport.size=Vector2i(480,192)
+	viewport.own_world_3d=true
+	viewport.transparent_bg=true
+	viewport.render_target_update_mode=SubViewport.UPDATE_ONCE
+	frame.add_child(viewport)
+	var model:=PocketBeat.instantiate() as Node3D
+	viewport.add_child(model)
+	var cam:=Camera3D.new()
+	cam.projection=Camera3D.PROJECTION_ORTHOGONAL
+	cam.size=0.29
+	cam.position=Vector3(0.21,0.26,0.27)
+	viewport.add_child(cam)
+	cam.look_at(Vector3(0,0.028,0),Vector3.UP)
+	cam.current=true
+	var key:=DirectionalLight3D.new()
+	key.rotation_degrees=Vector3(-48,-32,0)
+	key.light_energy=1.5
+	viewport.add_child(key)
+	var fill:=DirectionalLight3D.new()
+	fill.rotation_degrees=Vector3(-32,145,0)
+	fill.light_energy=0.85
+	fill.light_color=Color("a0d6ee")
+	viewport.add_child(fill)

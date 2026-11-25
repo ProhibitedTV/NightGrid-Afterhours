@@ -1,5 +1,13 @@
 extends Node3D
 const AudioMix = preload("res://scripts/audio_mix.gd")
+const Satire=preload("res://scripts/street_satire.gd")
+const SOUNDCHECK="soundcheck_pass"
+const MUSIC_REPUTATION=100
+const PocketBeat=preload("res://assets/instruments/pocketbeat_m3.glb")
+var _sampler_display:Node3D
+const Breaker=preload("res://assets/instruments/ironwake_breaker_g6.glb")
+const Dredge=preload("res://assets/instruments/ironwake_dredge_b4.glb")
+var _string_display:Node3D
 ## Morrow Bay's authored social hubs: fixed addresses, opening hours, readable
 ## streetfront set dressing, services and four directed side-story contracts.
 ## The seed never changes a venue's address, contact or narrative identity.
@@ -33,7 +41,8 @@ const SIDE_JOBS = [
 	{"id": "glass_invoice", "title": "THE GLASS INVOICE", "from": "afterimage", "to": "dock_nine", "reward": 230,
 		"brief": "A private receipt shows who is buying the district's power rights.", "ending": "Old Ren files the invoice where the corporation cannot rewrite it."},
 	{"id": "last_shift_recipe", "title": "LAST SHIFT RECIPE", "from": "furnace_skewers", "to": "neon_bao", "reward": 150,
-		"brief": "Nell wants Jun to try her late father's recipe before the market closes.", "ending": "Jun puts the recipe on the menu. The old district lives another night."}
+		"brief": "Nell wants Jun to try her late father's recipe before the market closes.", "ending": "Jun puts the recipe on the menu. The old district lives another night."},
+	{"id":"soundcheck_pass","title":"SOUNDCHECK PASS","from":"static_room","to":"blue_hour","reward":125,"min_cred":MUSIC_REPUTATION}
 ]
 
 const KIND_COLOR = {
@@ -107,13 +116,13 @@ func venue_by_id(venue_id: String) -> Dictionary:
 func job_by_id(job_id: String) -> Dictionary:
 	for job in SIDE_JOBS:
 		if str(job["id"]) == job_id:
-			return job
+			return _job_details(job)
 	return {}
 
 func job_from(venue_id: String) -> Dictionary:
 	for job in SIDE_JOBS:
 		if str(job["from"]) == venue_id:
-			return job
+			return _job_details(job)
 	return {}
 
 func venue_position(venue_id: String) -> Vector3:
@@ -228,6 +237,13 @@ func _build_venue(venue: Dictionary) -> void:
 			# Physical Helix lobby replaces the visual-only sidewalk counter.
 			if venue_id != "helix_espresso":
 				_build_cafe(front, accent, neon)
+			if venue_id=="copper_cup":
+				_sampler_display=PocketBeat.instantiate() as Node3D
+				_sampler_display.name="PocketBeatConsignment"
+				_sampler_display.position=Vector3(0.45,1.676,0.57)
+				_sampler_display.rotation.y=deg_to_rad(12.0)
+				front.add_child(_sampler_display)
+				_build_ironwake_display(front)
 			if venue_id == "lantern_cup":
 				_build_lantern_cup_streetfront(front, accent, neon)
 		"BAR":
@@ -433,6 +449,10 @@ func _night_factor() -> float:
 	return 0.0
 
 func _refresh() -> void:
+	if is_instance_valid(_sampler_display):
+		_sampler_display.visible=is_open("copper_cup") and venue_position("copper_cup").distance_squared_to(_focus)<35.0*35.0
+	if is_instance_valid(_string_display):
+		_string_display.visible=is_open("copper_cup") and venue_position("copper_cup").distance_squared_to(_focus)<25.0*25.0
 	var darkness := _night_factor()
 	var nearby: Array[Dictionary] = []
 	for pin in _map_pins:
@@ -471,3 +491,27 @@ func _refresh() -> void:
 			lamp.light_energy = 0.75 * darkness
 		else:
 			lamp.light_energy = 0.0
+
+func job_unlocked(job:Dictionary,cred:int)->bool:
+	return not job.is_empty() and cred>=int(job.get("min_cred",0))
+
+static func _job_details(job:Dictionary)->Dictionary:
+	var result:=job.duplicate()
+	if result["id"]==SOUNDCHECK:
+		for beat in ["brief","ending"]:
+			result[beat]=Satire.venue_job_line(SOUNDCHECK,beat)["text"]
+	return result
+
+## Static consignment wall display, not player inventory. Meter-scale imported
+## assets share existing frontage lighting; no new collision or processing.
+func _build_ironwake_display(front:Node3D)->void:
+	_string_display=Node3D.new()
+	_string_display.name="IronwakeConsignment"
+	front.add_child(_string_display)
+	for i in range(2):
+		var model:Node3D=(Breaker if i==0 else Dredge).instantiate() as Node3D
+		model.name="BreakerG6" if i==0 else "DredgeB4"
+		model.position=Vector3(3.05+float(i)*0.64,0.88,1.91)
+		model.rotation.y=PI
+		_string_display.add_child(model)
+	_label(_string_display,"IRONWAKE / DISPLAY ONLY",Vector3(3.37,2.18,1.77),Color("b9a48d"),15)

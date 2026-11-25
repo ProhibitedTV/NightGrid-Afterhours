@@ -14,6 +14,10 @@ const CAL_RECEIPT="street:compatibility_patch"
 const CAL_REWARD=85
 var cal_quest:int=0 # 0 offered, 1 accepted, 2 collected, 3 completed
 const StreetCred=preload("res://scripts/street_cred.gd")
+const Rhythm=preload("res://scripts/rhythm_rehearsal.gd")
+const Instruments=preload("res://scripts/instrument_catalog.gd")
+var _instruments:Dictionary={}
+var sampler_practice:=0
 var _street_cred=StreetCred.new()
 
 var balance: int = 0
@@ -290,10 +294,58 @@ func street_activity_runs(source:String)->int:
 func settle_street_activity(source:String,sequence:int)->bool:
 	return _street_cred.settle_run(source,sequence)
 
+## Atomic, catalog-priced repeatable set settlement. No caller-selected cash.
+func settle_blue_hour_set(sequence:int)->bool:
+	if not has_receipt("venue:soundcheck_pass") or balance>MAX_CASH-Rhythm.REWARD:
+		return false
+	if not _street_cred.settle_run("live_gig",sequence):
+		return false
+	balance+=Rhythm.REWARD
+	return true
+
+## The loaner street sampler has no contact or ownership prerequisite.
+func settle_busking_set(sequence:int)->bool:
+	if balance>MAX_CASH-Rhythm.BUSKING_REWARD or not _street_cred.settle_run("busking",sequence):
+		return false
+	balance+=Rhythm.BUSKING_REWARD
+	return true
+
+func owned_set_unlocked()->bool:
+	return owns_instrument(Instruments.STARTER) and sampler_practice>=Instruments.OWNED_SET_PRACTICE
+
+func settle_owned_sampler_set(sequence:int)->bool:
+	if not owned_set_unlocked() or balance>MAX_CASH-Rhythm.OWNED_REWARD or not _street_cred.settle_run("busking",sequence):
+		return false
+	balance+=Rhythm.OWNED_REWARD
+	return true
+
+func owns_instrument(id:String)->bool:
+	return Instruments.valid_id(id) and _instruments.has(id)
+
+func buy_instrument(id:String)->bool:
+	if not Instruments.valid_id(id) or owns_instrument(id) or not spend(Instruments.price(id)):
+		return false
+	_instruments[id]=true
+	return true
+
+func complete_sampler_practice(sequence:int)->bool:
+	if not owns_instrument(Instruments.STARTER) or sequence!=sampler_practice+1 or sequence>Instruments.MAX_PRACTICE:
+		return false
+	sampler_practice=sequence
+	return true
+
+func instrument_summary()->String:
+	if not owns_instrument(Instruments.STARTER):
+		return "INSTRUMENT / Loaners available; PocketBeat M3 $40 at Copper Cup"
+	var info:=Instruments.skill(sampler_practice)
+	return "POCKETBEAT M3 / %s • %d practice sets"%[info["name"],sampler_practice]+(" / PERSONAL SET UNLOCKED" if owned_set_unlocked() else " / %d to personal set"%maxi(0,Instruments.OWNED_SET_PRACTICE-sampler_practice))
+
 func snapshot() -> Dictionary:
 	var ids: Array = _receipts.keys()
 	ids.sort()
-	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "owned_pieces":owned_piece_ids(), "clothing_slots":clothing_slots.duplicate(), "saved_looks":_saved_looks.duplicate(true), "bitcoin_sats":bitcoin_sats, "cal_quest":cal_quest, "street_activity_runs":_street_cred.snapshot()}
+	var instruments:Array=_instruments.keys()
+	instruments.sort()
+	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "owned_pieces":owned_piece_ids(), "clothing_slots":clothing_slots.duplicate(), "saved_looks":_saved_looks.duplicate(true), "bitcoin_sats":bitcoin_sats, "cal_quest":cal_quest, "street_activity_runs":_street_cred.snapshot(), "instruments":instruments, "sampler_practice":sampler_practice}
 
 static func valid_snapshot(value: Variant) -> bool:
 	if not value is Dictionary:
@@ -310,6 +362,17 @@ static func valid_snapshot(value: Variant) -> bool:
 		if not valid_id(id) or seen.has(id):
 			return false
 		seen[id] = true
+	var instruments:Variant=data.get("instruments",[])
+	if not instruments is Array or instruments.size()>Instruments.ITEMS.size():
+		return false
+	var instrument_seen:Dictionary={}
+	for id in instruments:
+		if not Instruments.valid_id(id) or instrument_seen.has(id):
+			return false
+		instrument_seen[id]=true
+	var practice:Variant=data.get("sampler_practice",0)
+	if not valid_cash(practice) or int(practice)>Instruments.MAX_PRACTICE or (int(practice)>0 and not instrument_seen.has(Instruments.STARTER)):
+		return false
 	if not StreetCred.valid_runs(data.get("street_activity_runs",{})):
 		return false
 	var cal:Variant=data.get("cal_quest",0)
@@ -406,6 +469,10 @@ func restore(amount: Variant, data: Variant) -> bool:
 		_owned_pieces[id]=true
 	cal_quest=int(data.get("cal_quest",0))
 	_street_cred.restore(data.get("street_activity_runs",{}))
+	_instruments.clear()
+	for id in data.get("instruments",[]):
+		_instruments[id]=true
+	sampler_practice=int(data.get("sampler_practice",0))
 	_purchased_outfits.clear()
 	for id in data.get("purchased_outfits",[]):
 		_purchased_outfits[id] = true
