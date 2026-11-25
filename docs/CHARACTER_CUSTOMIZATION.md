@@ -67,3 +67,7 @@ Eight original 256px vector patch designs extend the weighted backpack slot to 1
 ## Retail browsing improvements
 
 AFFORDABLE and UNOWNED categories filter the physical shop stock, exclude owned items and reset actions, and account for either USD or BTC without combining wallets. Home continues to hide retailer exclusives until owned. Empty categories restore the committed appearance, disable checkout and navigation, and leave category controls usable. A quote still revalidates availability and tender before payment. Added walk-in smoke coverage for empty and BTC-funded filters. No save format changes.
+
+## Original authored mesh assets
+
+Eight original baked glTF files under `assets/models/nightgrid/fashion/`: cap, beanie, bucket, fedora, display jacket, cargo trousers, tee and boot. Geometry includes stitched panel seams, visor curvature, knit ribs, brim shaping, fedora crown dent, jacket pockets/zipper/cuffs, cargo pockets and hems, tee pocket/collar and boot tread/laces. Four material groups are reused with retailer colors. Hats replace procedural primitive assemblies on the live Head attachment and shelf samples; display garments replace the primitive rack silhouettes. Tee and boot are explicitly unpriced decorative samples, not wearable purchases. No external asset source or runtime generator. All models are original project-authored geometry; native mesh import, scale, clearance, and visual fit remain to be verified. Weighted body garment binaries are not available through the text-only connector and are not claimed here.

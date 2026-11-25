@@ -1,4 +1,5 @@
 extends RefCounted
+const FashionMeshes=preload("res://scripts/fashion_meshes.gd")
 ## Authored original low-poly accessory geometry. No extra skeleton or collision.
 ## Use the same skeleton-space rest axes as the courier's existing food poses.
 const STYLES={
@@ -230,60 +231,7 @@ static func display_hat(id:String) -> Node3D:
 	_hat(root,style)
 	return root
 
-static func _hat_band(root:Node3D,id:String,at:Vector3,top:float,bottom:float,height:float,mat:Material,depth:float=1.0) -> void:
-	var node:=MeshInstance3D.new()
-	node.name=id
-	var mesh:=CylinderMesh.new()
-	mesh.top_radius=top
-	mesh.bottom_radius=bottom
-	mesh.height=height
-	mesh.radial_segments=24
-	mesh.rings=0
-	node.mesh=mesh
-	node.position=at
-	node.scale.z=depth
-	node.material_override=mat
-	node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	root.add_child(node)
-
-static func _hat_dome(root:Node3D,id:String,at:Vector3,radius:float,height:float,mat:Material,depth:float=1.0) -> void:
-	var node:=MeshInstance3D.new()
-	node.name=id
-	var mesh:=SphereMesh.new()
-	mesh.radius=radius
-	mesh.height=height
-	mesh.radial_segments=24
-	mesh.rings=10
-	mesh.is_hemisphere=true
-	node.mesh=mesh
-	node.position=at
-	node.scale.z=depth
-	node.material_override=mat
-	node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	root.add_child(node)
-
 static func _hat(root:Node3D,style:Dictionary) -> void:
-	var cloth:=_material(Color(style["primary"]),0.0,.92)
-	var trim:=_material(Color(style["secondary"]),0.0,.86)
-	match style["shape"]:
-		"cap":
-			_hat_dome(root,"PanelCrown",Vector3(0,.025,0),.101,.115,cloth,1.10)
-			_hat_band(root,"CrownBand",Vector3(0,.010,0),.101,.101,.022,cloth,1.10)
-			_hat_band(root,"Visor",Vector3(0,.004,.101),.095,.095,.009,trim,.74)
-			_box(root,"Clasp",Vector3(0,.012,-.111),Vector3(.028,.011,.004),trim)
-		"beanie":
-			_hat_dome(root,"KnitCrown",Vector3(0,.026,0),.105,.137,cloth,1.08)
-			_hat_band(root,"FoldedCuff",Vector3(0,.006,0),.105,.103,.039,trim,1.08)
-			for i in range(24):
-				var angle:=TAU*float(i)/24.0
-				var seam:=Vector3(sin(angle)*.103,.006,cos(angle)*.111)
-				_box(root,"CuffRib",seam,Vector3(.003,.031,.003),cloth)
-		"bucket":
-			_hat_band(root,"TaperedCrown",Vector3(0,.054,0),.087,.102,.105,cloth,1.08)
-			_hat_band(root,"SlopedBrim",Vector3(0,.002,0),.105,.144,.035,trim,1.08)
-			_hat_band(root,"BrimEdge",Vector3(0,-.016,0),.145,.145,.006,cloth,1.08)
-		"fedora":
-			_hat_band(root,"Crown",Vector3(0,.056,0),.087,.102,.109,cloth,1.10)
-			_hat_band(root,"Ribbon",Vector3(0,.017,0),.101,.103,.025,trim,1.10)
-			_hat_band(root,"Brim",Vector3(0,-.001,0),.147,.147,.012,cloth,1.12)
-			_box(root,"RibbonKnot",Vector3(.097,.017,0),Vector3(.012,.023,.032),trim)
+	var mesh:=FashionMeshes.build(str(style["shape"]),Color(style["primary"]),Color(style["secondary"]))
+	if mesh!=null:
+		root.add_child(mesh)

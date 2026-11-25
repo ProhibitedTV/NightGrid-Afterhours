@@ -33,6 +33,7 @@ const ShopClerk=preload("res://scripts/synaxis_staff.gd")
 const ClothingStore = preload("res://scripts/clothing_store.gd")
 const Wardrobe = preload("res://scripts/wardrobe_catalog.gd")
 const FashionAccessories=preload("res://scripts/wardrobe_accessories.gd")
+const FashionMeshes=preload("res://scripts/fashion_meshes.gd")
 var door: AnimatableBody3D
 var _lamp: OmniLight3D
 var _pending_visuals: Dictionary = {}
@@ -152,9 +153,6 @@ func dress(district: String, accent: Color, variant: int) -> void:
 			_section("Furnishing",Vector3(x,1.0 if tall else .52,z),Vector3(1.65,2.0 if tall else 1.04,1.45 if office else 1.9),counter)
 			_visual("Worktop",Vector3(x,2.04 if tall else 1.07,z),Vector3(1.72,.10,2.0),_mat(accent.darkened(.52)))
 	# Low-cost luminous fixtures; a single local light follows the player.
-			var listing:=Wardrobe.listing(id)
-			_shop_label("$%d" % listing["price"],Vector3(2.79,1.04,at.z),.002,-PI/2)
-		fixture_index+=1
 	for z in [2.3,6.1,10.7,14.5]:
 		_visual("CeilingFixture",Vector3(0,ROOM_HEIGHT-.13,z),Vector3(3.0,.12,.42),_mat(Color("d8dad2"),true))
 
@@ -199,14 +197,12 @@ func dress_clothing_store(store_id:String=ClothingStore.ID) -> void:
 			var at:=Vector3(3.48,1.15,z-.48+float(i)*.48)
 			for layer in range(3):
 				_visual("Worktop",Vector3(at.x,1.00+float(layer)*.065,at.z),Vector3(.60,.058,.36),_mat(tint.darkened(.24+float(layer)*.06)))
-			var cloth:=_mat(tint.darkened(.25))
-			if Wardrobe.piece_valid(id) and item["slot"]=="pants":
-				_visual("Worktop",Vector3(4.04,1.80,at.z),Vector3(.13,.18,.34),cloth)
-				for leg in [-.085,.085]:
-					_visual("Worktop",Vector3(4.04,1.49,at.z+leg),Vector3(.12,.48,.15),cloth)
-			else:
-				_visual("Worktop",Vector3(4.04,1.58,at.z),Vector3(.15,.62,.35),cloth)
-				_visual("Worktop",Vector3(4.04,1.74,at.z),Vector3(.16,.23,.45),cloth)
+			var shape:="display_cargo" if Wardrobe.piece_valid(id) and item["slot"]=="pants" else "display_jacket"
+			var garment:=FashionMeshes.build(shape,tint.darkened(.25),tint.darkened(.44),.72)
+			if garment!=null:
+				garment.position=Vector3(4.04,1.57,at.z)
+				garment.rotation.y=-PI/2
+				add_child(garment)
 			var listing:=Wardrobe.listing(id)
 			_shop_label("$%d" % listing["price"],Vector3(2.79,1.04,at.z),.002,-PI/2)
 		fixture_index+=1
@@ -228,6 +224,19 @@ func dress_clothing_store(store_id:String=ClothingStore.ID) -> void:
 	_shop_label(str(store["style"])+" / COLLECTION EXAMPLES",Vector3(3.45,2.25,2.6),.003,PI)
 	_dress_retail_feature(store_id,theme,black,oak,brass)
 	_dress_headwear(store["stock"],oak)
+	# Unpriced samples for future fitted releases; not checkout inventory.
+	var sample_tee:=FashionMeshes.build("display_tee",Color(theme["coat"]),Color(theme["trim"]),.65)
+	if sample_tee!=null:
+		sample_tee.position=Vector3(4.12,2.40,9.2)
+		sample_tee.rotation.y=-PI/2
+		add_child(sample_tee)
+		_shop_label("COLLECTION SAMPLE",Vector3(4.0,2.05,9.2),.002,-PI/2)
+	var sample_boot:=FashionMeshes.build("display_boot",Color(theme["base"]),Color(theme["trim"]),.85)
+	if sample_boot!=null:
+		sample_boot.position=Vector3(3.90,1.00,11.80)
+		sample_boot.rotation.y=-PI/2
+		add_child(sample_boot)
+
 	_dress_patch_display(store["stock"],black)
 	_flush_interior_visuals()
 	_clothing_clerk=ShopClerk.new()
