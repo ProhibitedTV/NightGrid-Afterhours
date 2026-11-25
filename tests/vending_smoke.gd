@@ -27,6 +27,17 @@ func _verify() -> void:
 	restored.set_balance(Ledger.MAX_CASH)
 	if not check(not restored.credit_once("story:overflow", 1) and not restored.has_receipt("story:overflow"), "overflow has no receipt"):
 		return
+	var title_wallet := Ledger.new()
+	title_wallet.set_balance(600)
+	if not check(not title_wallet.buy_vehicle("unknown") and not title_wallet.buy_vehicle("street:cinder_01") and title_wallet.balance == 600, "unknown and unaffordable title rollback"):
+		return
+	if not check(title_wallet.buy_vehicle("street:kestrel_01") and not title_wallet.buy_vehicle("street:kestrel_01") and title_wallet.balance == 100, "registered title exactly once"):
+		return
+	var title_copy := Ledger.new()
+	if not check(title_copy.restore(100, JSON.parse_string(JSON.stringify(title_wallet.snapshot()))) and title_copy.owns_vehicle("street:kestrel_01"), "stable title ID round trip"):
+		return
+	if not check(not title_copy.restore(0, {"version":1,"receipts":[],"owned_vehicles":["street:kestrel_01","street:kestrel_01"]}) and title_copy.balance == 100 and title_copy.owns_vehicle("street:kestrel_01"), "duplicate title save rejected atomically"):
+		return
 	var world := (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	root.add_child(world)
 	await process_frame

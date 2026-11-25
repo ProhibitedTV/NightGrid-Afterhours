@@ -5,9 +5,11 @@ const VERSION = 1
 const MAX_CASH = 1000000000
 const MAX_RECEIPTS = 4096
 const MAX_ID_LENGTH = 96
+const RoadCars = preload("res://scripts/road_car_catalog.gd")
 
 var balance: int = 0
 var _receipts: Dictionary = {}
+var _owned_vehicles: Dictionary = {}
 
 static func valid_cash(value: Variant) -> bool:
 	if not (value is int or value is float):
@@ -59,10 +61,27 @@ func credit_once(id: String, amount: int) -> bool:
 	_receipts[id] = true
 	return true
 
+func owns_vehicle(id: String) -> bool:
+	return _owned_vehicles.has(id)
+
+func owned_vehicle_ids() -> Array:
+	var ids: Array = _owned_vehicles.keys()
+	ids.sort()
+	return ids
+
+## Catalog owns price; caller cannot choose it. Validate before debit.
+func buy_vehicle(id: String) -> bool:
+	if not RoadCars.TITLES.has(id) or owns_vehicle(id):
+		return false
+	if not spend(int(RoadCars.TITLES[id]["price"])):
+		return false
+	_owned_vehicles[id] = true
+	return true
+
 func snapshot() -> Dictionary:
 	var ids: Array = _receipts.keys()
 	ids.sort()
-	return {"version": VERSION, "receipts": ids}
+	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids()}
 
 static func valid_snapshot(value: Variant) -> bool:
 	if not value is Dictionary:
@@ -79,6 +98,14 @@ static func valid_snapshot(value: Variant) -> bool:
 		if not valid_id(id) or seen.has(id):
 			return false
 		seen[id] = true
+	var owned: Variant = data.get("owned_vehicles", [])
+	if not owned is Array or owned.size() > RoadCars.TITLES.size():
+		return false
+	seen.clear()
+	for id in owned:
+		if not valid_id(id) or not RoadCars.TITLES.has(id) or seen.has(id):
+			return false
+		seen[id] = true
 	return true
 
 ## Validate first, then replace state as a unit. Empty optional data is only
@@ -89,6 +116,10 @@ func restore(amount: Variant, data: Variant) -> bool:
 	var next: Dictionary = {}
 	for id in data["receipts"]:
 		next[id] = true
+	var titles: Dictionary = {}
+	for id in data.get("owned_vehicles", []):
+		titles[id] = true
 	balance = int(amount)
 	_receipts = next
+	_owned_vehicles = titles
 	return true

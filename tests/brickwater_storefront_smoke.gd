@@ -96,6 +96,24 @@ func _run() -> void:
 	world.call("_venue_action", 1)
 	if not _expect(float(car.get("condition")) >= 99.9 and world.get("cash") == cash - Shop.PRICE, "the counter charges once and calls the current repair mechanic"):
 		return
+	var ledger = world.get("progression")
+	var vehicle_id := str(car.get_meta("vehicle_id", ""))
+	var before_title: int = world.get("cash")
+	world.call("_venue_action", 2)
+	if not _expect(not ledger.owns_vehicle(vehicle_id) and world.get("cash") == before_title, "unaffordable title rejected without debit"):
+		return
+	world.set("cash", 600)
+	world.call("_venue_action", 2)
+	world.call("_venue_action", 2)
+	if not _expect(ledger.owns_vehicle(vehicle_id) and world.get("cash") == 100 and world.get("cars").size() == 12, "actual counter registers one existing car once"):
+		return
+	var owned_save: Dictionary = session.call("make_snapshot", world.call("_capture_snapshot"))
+	if not _expect(session.call("is_valid_snapshot", owned_save), "registered title is valid save data"):
+		return
+	ledger.restore(0, {"version":1,"receipts":[]})
+	world.call("_apply_snapshot", owned_save)
+	if not _expect(ledger.owns_vehicle(vehicle_id) and world.get("cash") == 100 and world.get("cars").size() == 12, "title and balance restore without spawning a second car"):
+		return
 	world.call("_close_venue")
 	player.global_position = shop.to_global(Vector3(-1.42, 0.95, 0))
 	player.velocity = Vector3.ZERO

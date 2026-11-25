@@ -434,6 +434,7 @@ func _journal_context() -> Dictionary:
 		"venue_job": _venue_job_text(),
 		"civic_job": _civic_job_text(),
 		"cash": cash, "health": health, "heat": heat,
+		"owned_vehicles": _owned_vehicle_text(),
 		"weapons": weapons.inventory_text(),
 		"dispatch": dispatch.status(),
 		"ambient_civic_open": ambient_civic.open_count(),
@@ -1012,7 +1013,9 @@ func _toggle_car() -> void:
 	player.collision_layer = 0
 	player.collision_mask = 0
 	player.call("show_vehicle_rider", current_car, true)
-	if not current_car.has_meta("claimed"):
+	if progression.owns_vehicle(str(current_car.get_meta("vehicle_id", ""))):
+		_notify("Your vehicle. Drive with WASD; Space is the handbrake.")
+	elif not current_car.has_meta("claimed"):
 		current_car.set_meta("claimed", true)
 		# Capture the entry position before the player is hidden. Resolve the
 		# witness query in the next physics tick, not an input callback.
@@ -1576,6 +1579,7 @@ func _spawn_traffic() -> void:
 		var color: Color = RoadCars.R9_PAID_PARKING_SLOTS.get(i, VEHICLE_COLORS[i % VEHICLE_COLORS.size()])
 		var car := _create_car(parked[i], color, false, model_id)
 		car.rotation.y = PI if i % 2 == 1 else 0.0
+		car.set_meta("vehicle_id", RoadCars.PARKED_IDS[i])
 		cars.append(car)
 
 func _build_transport() -> void:
@@ -2098,6 +2102,37 @@ func _civic_service_text(site: Dictionary) -> String:
 func _repair_storefront() -> BrickwaterRepair:
 	return city_details.call("repair_storefront") as BrickwaterRepair
 
+func _owned_vehicle_text() -> String:
+	var names: Array[String] = []
+	for id in progression.owned_vehicle_ids():
+		names.append(str(RoadCars.TITLES[id]["name"]))
+	return "VEHICLE TITLES: " + ("None" if names.is_empty() else ", ".join(names))
+
+# Actual nearby stationary pilot stock only; no new spawn or remote purchase.
+func _nearby_title_candidate() -> CharacterBody3D:
+	var selected: CharacterBody3D
+	var nearest := 18.0
+	for car in cars:
+		var id := str(car.get_meta("vehicle_id", ""))
+		if not RoadCars.TITLES.has(id) or progression.owns_vehicle(id) or bool(car.get("occupied")) or int(car.call("speed_kph")) > 1:
+			continue
+		var distance := car.global_position.distance_to(player.global_position)
+		if distance < nearest:
+			selected = car
+			nearest = distance
+	return selected
+
+func _purchase_nearby_title() -> void:
+	var car := _nearby_title_candidate()
+	if car == null:
+		_notify("Park eligible stock near the counter: Kestrel S6 or Cinder R9.")
+		return
+	var id := str(car.get_meta("vehicle_id"))
+	if not progression.buy_vehicle(id):
+		_notify("Not enough cash for this vehicle title.")
+		return
+	_notify("TITLE REGISTERED: %s. This vehicle is yours." % RoadCars.TITLES[id]["name"])
+
 func _repair_nearby_vehicle(price: int) -> void:
 	var selected_car: CharacterBody3D
 	var nearest := 18.0
@@ -2322,7 +2357,15 @@ func _update_venue_panel() -> void:
 		venue_label.text = "NIGHT SHIFT REPAIRS\nLeave the vehicle outside and bring the keys to the counter.\n[1 / A] Repair parked vehicle  $%d\n[G / B] Close   |   CASH $%d" % [BrickwaterRepair.PRICE, cash]
 		venue_service_button.text = "1 / A  •  REPAIR"
 		venue_service_button.disabled = false
-		venue_job_button.hide()
+		var candidate := _nearby_title_candidate()
+		venue_job_button.show()
+		venue_job_button.disabled = candidate == null
+		venue_job_button.text = "2 / X  •  REGISTER VEHICLE TITLE"
+		if candidate != null:
+			var title: Dictionary = RoadCars.TITLES[str(candidate.get_meta("vehicle_id"))]
+			venue_job_button.text = "2 / X  •  BUY %s TITLE  $%d" % [title["name"], title["price"]]
+			venue_job_button.disabled = cash < int(title["price"])
+		venue_label.text += "\nTitle desk: bring eligible parked stock to the shop."
 		venue_talk_button.hide()
 		return
 	if not civic_selected_id.is_empty():
@@ -2404,8 +2447,11 @@ func _venue_action(option: int) -> void:
 		return
 	if _repair_panel:
 		var repair := _repair_storefront()
-		if option == 1 and repair != null and repair.counter_reachable(player.global_position):
-			_repair_nearby_vehicle(BrickwaterRepair.PRICE)
+		if venue_panel.visible and repair != null and repair.counter_reachable(player.global_position):
+			if option == 1:
+				_repair_nearby_vehicle(BrickwaterRepair.PRICE)
+			elif option == 2:
+				_purchase_nearby_title()
 			_update_venue_panel()
 		return
 	if not civic_selected_id.is_empty():
