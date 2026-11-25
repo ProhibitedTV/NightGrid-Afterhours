@@ -674,6 +674,14 @@ func _verify() -> void:
 		_fail("Guard answers selected question and supports returning to topic list")
 		return
 	menu.call("_choice","guard_back")
+	menu.call("_choice","guard_shift")
+	if world.get("progression").synaxis_contact!=1 or menu.get("_guard_contact")!=1:
+		_fail("Talking about Marcus's history establishes a real persistent contact")
+		return
+	menu.call("_choice","guard_back")
+	if (menu.call("get_buttons") as Dictionary).has("guard_followup"):
+		_fail("Post-dismissal check-in must remain locked during employment")
+		return
 	menu.call("_choice","guard_leave")
 	if menu.call("is_open") or menu.get("_opening_stage")!=0 or world.get("cash")!=before_severance:
 		_fail("Guard dialogue is optional and cannot advance the opening or change cash")
@@ -890,6 +898,19 @@ func _verify() -> void:
 	if menu.get("_guard_topic")!="guard_layoff" or not guard_data.reply("guard_layoff",true).contains("access-revocation"):
 		_fail("Former employee can ask about dismissal without restoring access")
 		return
+	menu.call("_choice","guard_back")
+	if not (menu.call("get_buttons") as Dictionary).has("guard_followup") or not str(world.call("_journal_context")["synaxis_contact"]).contains("A FAMILIAR FACE"):
+		_fail("Former employee with introduction receives optional check-in")
+		return
+	menu.call("_choice","guard_followup")
+	if world.get("progression").synaxis_contact!=2 or world.get("cash")!=before_severance+75:
+		_fail("Check-in completes without granting money or access")
+		return
+	menu.call("_choice","guard_back")
+	menu.call("_choice","guard_followup")
+	if world.get("progression").synaxis_contact!=2:
+		_fail("Repeated check-in is idempotent")
+		return
 	menu.call("_choice","guard_leave")
 	world.call("_update_hud")
 	if not str(world.get("hud_prompt").text).contains("Talk to Marcus Vale"):
@@ -919,9 +940,13 @@ func _verify() -> void:
 		_fail("Collected meal must appear as the actual reusable held bag")
 		return
 	var opening_save: Dictionary = world.call("_capture_snapshot")
+	if int(opening_save["progression"].get("synaxis_contact",0))!=2:
+		_fail("Contact completion must serialize")
+		return
+	world.get("progression").synaxis_contact=0
 	world.get("courier_mission").gig_economy = false
 	world.call("_apply_snapshot",opening_save)
-	if not world.get("courier_mission").gig_economy or world.get("cash") != before_severance+75:
+	if not world.get("courier_mission").gig_economy or world.get("cash") != before_severance+75 or world.get("progression").synaxis_contact!=2:
 		_fail("Opening economy survives save restore")
 		return
 	if not bag.visible or courier_visual.get("_meal_bag")!=bag:
