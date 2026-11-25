@@ -510,8 +510,9 @@ func _opening_interact() -> void:
 		_opening_office.call("finish_arrival",player,camera)
 		_snap_camera()
 		return
+	if _opening_office.call("lift_active"):
+		return
 	if _opening_office.call("try_lift",player):
-		_snap_camera()
 		return
 	if _opening_office.call("parking_guard_reachable",player.global_position):
 		game_menu.call("open_parking_guard",false)
@@ -831,6 +832,10 @@ func _process(delta: float) -> void:
 			if not _opening_office.call("tick_arrival",delta,player,camera):
 				_snap_camera()
 			return
+		if _opening_office.call("lift_active"):
+			if _opening_office.call("tick_lift",delta,player):
+				_snap_camera()
+			return
 		var look := GameInput.look_vector()
 		yaw -= look.x * stick_sensitivity * delta
 		pitch = clampf(pitch+look.y*stick_sensitivity*delta*(-1.0 if invert_look_y else 1.0),.20,.85)
@@ -953,6 +958,8 @@ func _physics_process(delta: float) -> void:
 	if not is_instance_valid(player):
 		return
 	if is_instance_valid(_opening_office):
+		if _opening_office.call("lift_active"):
+			return
 		if player.global_position.y < float(_opening_office.call("recovery_floor")):
 			player.global_position = _opening_office.call("recovery_position")
 			player.velocity = Vector3.ZERO

@@ -40,6 +40,9 @@ var _active_floor:=0
 const GeneratedAudio=preload("res://scripts/synaxis_generated_audio.gd")
 var _ground_ambience:AudioStreamPlayer3D
 var _lift_audio:AudioStreamPlayer3D
+const LiftTransition=preload("res://scripts/synaxis_lift_transition.gd")
+var _lift_transition:CanvasLayer
+var _lift_target:=0
 var _restrooms: Node3D
 const CUBICLE_POINT = Vector3(4.5,1.15,2.95)
 var _arrival: RefCounted
@@ -179,6 +182,9 @@ func _ready() -> void:
 	_ground_ambience=GeneratedAudio.emitter(self,"office_air",Vector3(0,1,1),-22.0,16.0,true)
 	_lift_audio=GeneratedAudio.emitter(self,"lift_chime",Vector3(0,1.2,5),-13.0,8.0)
 	_build_arrival_canvas()
+	_lift_transition=LiftTransition.new()
+	_lift_transition.name="LiftTransition"
+	add_child(_lift_transition)
 	set_stage(0)
 	_target_sign.hide()
 	_intro_canvas.hide()
@@ -288,7 +294,7 @@ func _select_floor(level: int) -> void:
 	_target_sign.visible=_prologue_active and absf(_target_sign.position.y-2.30-_active_floor*Workfloor.FLOOR_HEIGHT)<.1
 
 func lift_direction(at: Vector3) -> int:
-	if not _prologue_active or _arrival!=null:
+	if not _prologue_active or _arrival!=null or lift_active():
 		return 0
 	var local:=to_local(at)
 	if absf(local.y-(_active_floor*Workfloor.FLOOR_HEIGHT+1.15))>.8:
@@ -319,14 +325,36 @@ func try_lift(player: CharacterBody3D) -> bool:
 	var direction:=lift_direction(player.global_position)
 	if direction==0:
 		return false
-	var destination:=lift_destination(direction)
-	_select_floor(destination)
-	player.global_position=to_global(Vector3(0,_active_floor*Workfloor.FLOOR_HEIGHT+1.15,Workfloor.LIFT.y))
+	_lift_target=lift_destination(direction)
+	player.set("input_blocked",true)
 	player.velocity=Vector3.ZERO
-	if is_instance_valid(_lift_audio):
-		_lift_audio.position.y=_active_floor*Workfloor.FLOOR_HEIGHT+1.2
-		_lift_audio.play()
+	_intro_canvas.hide()
+	_lift_transition.call("begin",_active_floor,_lift_target,floor_title(_lift_target))
 	return true
+
+func lift_active() -> bool:
+	return is_instance_valid(_lift_transition) and bool(_lift_transition.get("active"))
+
+# Returns true only on the frame in which the hidden relocation occurs.
+func tick_lift(delta:float,player:CharacterBody3D) -> bool:
+	if not lift_active():
+		return false
+	_lift_transition.call("advance",delta)
+	var moved:=false
+	if _lift_transition.call("transfer_ready"):
+		_select_floor(_lift_target)
+		player.global_position=to_global(Vector3(0,_active_floor*Workfloor.FLOOR_HEIGHT+1.15,Workfloor.LIFT.y))
+		player.velocity=Vector3.ZERO
+		_lift_transition.set("transferred",true)
+		moved=true
+		if is_instance_valid(_lift_audio):
+			_lift_audio.position.y=_active_floor*Workfloor.FLOOR_HEIGHT+1.2
+			_lift_audio.play()
+	if _lift_transition.call("complete"):
+		_lift_transition.call("reset")
+		player.set("input_blocked",false)
+		_intro_canvas.show()
+	return moved
 
 func recovery_floor() -> float:
 	return global_position.y+_active_floor*Workfloor.FLOOR_HEIGHT-2.0
@@ -459,6 +487,8 @@ func begin_prologue() -> void:
 
 func finish_prologue() -> void:
 	_prologue_active=false
+	if is_instance_valid(_lift_transition):
+		_lift_transition.call("reset")
 	_set_staff_exit(false)
 	_select_floor(0)
 	_restrooms.call("end_visit")
