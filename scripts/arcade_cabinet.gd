@@ -71,9 +71,7 @@ func _ready() -> void:
 	var side := QuadMesh.new()
 	side.size = Vector2(.60,.77)
 	for sign in [-1,1]:
-		var panel_mat: Material = screens[game_id]
-		if game_id == "grand_delay":
-			panel_mat = _printed(ART[game_id])
+		var panel_mat: Material = _printed(ART[game_id])
 		var panel := _mesh("SideArt",side,Vector3(sign*.419,1.48,-.08),panel_mat)
 		panel.rotation.y = sign * PI / 2.0
 	var marquee := Label3D.new()
@@ -97,6 +95,8 @@ func _ready() -> void:
 	if game_id == "grand_delay":
 		marquee.hide()
 		_deluxe_details()
+	else:
+		_union_details(accent)
 	_collision(Vector3(0,1.10,.03),Vector3(.87,2.16,.85))
 	_collision(Vector3(0,1.04,.43),Vector3(.84,.15,.24))
 
@@ -251,3 +251,34 @@ func set_deluxe_controls(lane: float, pulse: float) -> void:
 		_deluxe_wheel.rotation.y = (clampf(lane,0.0,2.0)-1.0)*.68
 	if is_instance_valid(_deluxe_button):
 		_deluxe_button.position.y = 1.14-clampf(pulse,0.0,1.0)*.014
+
+# Common restoration pass for the nine remaining machines: no active lights,
+# input polling or per-cabinet viewport. Printed trim stays physically lit.
+func _union_details(accent: Color) -> void:
+	var metal := _mat(Color("899ca3"),.62)
+	var rubber := _mat(Color("111923"),.0)
+	var lit := StandardMaterial3D.new()
+	lit.albedo_color = accent
+	lit.emission_enabled = true
+	lit.emission = accent
+	lit.emission_energy_multiplier = .40
+	for x in [-.385,.385]:
+		_box("MarqueeEdge",Vector3(x,2.05,.273),Vector3(.018,.145,.025),lit)
+		_box("BezelRail",Vector3(x,1.52,.29),Vector3(.018,.76,.025),metal)
+	_box("KickGuard",Vector3(0,.18,.415),Vector3(.73,.10,.025),rubber)
+	_box("CoinReturnRecess",Vector3(0,.48,.427),Vector3(.15,.06,.03),rubber)
+	_box("CoinReturnLip",Vector3(0,.45,.448),Vector3(.15,.012,.03),metal)
+	_cylinder("JoystickCollar",Vector3(-.22,1.127,.36),.057,.018,rubber)
+	for n in range(3):
+		_cylinder("ButtonRing",Vector3(.04+n*.105,1.116,.36),.043,.009,metal)
+	_box("FreePlayIndicator",Vector3(.27,.66,.421),Vector3(.065,.021,.014),lit)
+	_deluxe_label("FreePlayLegend","FREE PLAY",Vector3(.27,.62,.429),accent,12,.001)
+	_deluxe_label("UnionSerial","ICU-%03d / OFFLINE" % (IDS.find(game_id)+1),Vector3(0,.91,.404),Color("c8bba4"),14,.001)
+	var legend := "MOVE / ACTION"
+	if game_id=="starline_patrol":
+		legend = "PILOT / FIRE"
+	elif game_id=="neon_rebound":
+		legend = "PADDLE / LAUNCH"
+	elif game_id=="day_one_dlc":
+		legend = "SLIDE / NO DLC"
+	_deluxe_label("ControlLegend",legend,Vector3(0,1.043,.566),accent,15,.0014)

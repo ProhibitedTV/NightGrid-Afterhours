@@ -18,6 +18,8 @@ var deluxe_lane := 1.0
 var deluxe_pulse := 0.0
 var deluxe_cabinet: Node3D
 const Scores = preload("res://scripts/arcade_scores.gd")
+const CabinetArt = preload("res://scripts/arcade_cabinet.gd")
+const Guide = preload("res://scripts/arcade_play_guide.gd")
 const AudioMix = preload("res://scripts/audio_mix.gd")
 const CUES = {
 	"start": preload("res://assets/arcade/audio/start.wav"),
@@ -35,6 +37,7 @@ var elapsed := 0.0
 var best: Dictionary = {}
 var locked_cabinet := ""
 var new_record := false
+var old_best := 0
 
 func configure_cabinet(id: String, previous_best: Dictionary) -> bool:
 	if not Round.IDS.has(id):
@@ -130,6 +133,7 @@ func _start_round() -> void:
 	deluxe_lane = 1.0
 	deluxe_pulse = 0.0
 	new_record = false
+	old_best = int(best.get(id,0))
 	_play_cue("start")
 	if round is Race:
 		race_audio.call("start_race")
@@ -241,12 +245,16 @@ func _draw() -> void:
 	_line(str(info["title"]), Vector2(32, 89), accent, 30)
 	_line(str(info["studio"]) + "  /  " + str(info["tagline"]), Vector2(32, 117), Color("e0e6e9"), 17)
 	if state == "select":
-		_line(str(info["instructions"]), Vector2(32, 190), Color.WHITE, 18)
-		_line("NEIGHBORHOOD LEADERBOARD", Vector2(32, 230), accent, 20)
+		draw_texture_rect(CabinetArt.ART[id],Rect2(32,141,145,180),false)
+		_line(str(Guide.TIPS[id][0]), Vector2(195, 163), Color.WHITE, 17)
+		_line(str(Guide.TIPS[id][1]), Vector2(195, 186), accent, 16)
+		_line("NEIGHBORHOOD LEADERBOARD", Vector2(195, 223), accent, 18)
 		var board: Array = Scores.board(id,best)
 		for i in range(board.size()):
 			var record: Array = board[i]
-			_line("%d.  %s   %06d" % [i+1,record[0],record[1]], Vector2(32+(i%2)*355,257+floori(float(i)/2.0)*27), accent if record[0] == "YOU" else Color.WHITE, 18)
+			_line("%d.  %s   %06d" % [i+1,record[0],record[1]], Vector2(195+(i%2)*275,250+floori(float(i)/2.0)*27), accent if record[0] == "YOU" else Color.WHITE, 18)
+		var level := Scores.mastery_level(id,int(best.get(id,0)))
+		_line("MASTERY %d / 3    /    ALL CONTENT INCLUDED" % level,Vector2(195,305),accent,16)
 		_line("<  SELECT CABINET  >  %d / %d" % [selection + 1, Round.IDS.size()] if locked_cabinet.is_empty() else "FREE PRACTICE / NO SERVER REQUIRED", Vector2(32, 325), accent, 22)
 		_line("ENTER / A  PLAY     ESC / B  EXIT", Vector2(32, 428), Color.WHITE, 18)
 	elif state == "result":
@@ -262,6 +270,7 @@ func _draw() -> void:
 		if round is AltRound or round is ExtraRound or round is SeasonRound or round is ClassicRound:
 			joke = round.feedback
 		_line(joke, Vector2(32, 308), accent, 19)
+		_line("MASTERY %d / 3   •   NEXT: %05d" % [Scores.mastery_level(id,int(best.get(id,0))),int(Scores.MASTERY[id][mini(2,Scores.mastery_level(id,int(best.get(id,0))))])],Vector2(32,382),Color("e9c283"),16)
 		_line("ENTER / A  CABINETS     ESC / B  BACK", Vector2(32, 428), Color.WHITE, 18)
 	elif id == "patch_day":
 		_draw_patch(accent)

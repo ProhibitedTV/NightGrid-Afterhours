@@ -27,6 +27,37 @@ const CIRCUIT = [
 	{"id":"battle_pass_hero","goal":900,"rival":"NYX","title":"FREE TIME"}
 ]
 
+# Independent mastery board: legacy eight circuit stamps never move.
+const MASTERY = {
+	"grand_delay":[800,1800,2600],"claw_compliance":[400,800,1200],
+	"patch_day":[650,1200,1800],"indie_dev":[700,1300,1700],
+	"annual_warfare":[900,2200,4000],"day_one_dlc":[800,1500,2200],
+	"open_world_checklist":[700,1500,2300],"battle_pass_hero":[600,1050,1500],
+	"starline_patrol":[1200,3200,6100],"neon_rebound":[700,2200,4100]
+}
+
+static func mastery_level(id: String, score: int) -> int:
+	var level := 0
+	for goal in MASTERY.get(id,[]):
+		if score >= int(goal):
+			level += 1
+	return level
+
+static func mastery_rows(scores: Dictionary) -> Array:
+	var rows := []
+	for id in Catalog.IDS:
+		var best := int(scores.get(id,0))
+		var level := mastery_level(id,best)
+		var goals: Array = MASTERY[id]
+		rows.append({"id":id,"best":best,"level":level,"next":int(goals[mini(level,2)]),"gold":level==3})
+	return rows
+
+static func mastery_total(scores: Dictionary) -> int:
+	var total := 0
+	for row in mastery_rows(scores):
+		total += int(row["level"])
+	return total
+
 static func circuit_rows(scores: Dictionary) -> Array:
 	var rows := []
 	for challenge in CIRCUIT:

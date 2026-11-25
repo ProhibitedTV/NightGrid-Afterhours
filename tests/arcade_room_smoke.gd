@@ -22,6 +22,9 @@ func _verify() -> void:
 			return
 		if not check(cabinet.get_node_or_null("MarqueeTitle") != null and cabinet.get_node_or_null("ServiceSticker") != null, "cabinet marquee and service sticker"):
 			return
+		if cabinet.game_id!="grand_delay":
+			if not check(cabinet.get_node_or_null("CoinReturnRecess")!=null and cabinet.get_node_or_null("FreePlayIndicator")!=null and cabinet.get_node_or_null("ControlLegend")!=null,"restored cabinet physical details"):
+				return
 		var shapes := 0
 		for child in cabinet.get_children():
 			if child is CollisionShape3D:
