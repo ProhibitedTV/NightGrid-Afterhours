@@ -307,6 +307,8 @@ jobs:
         run: godot --headless --path . --script res://tests/crane_gear_gltf_smoke.gd
       - name: Validate permanent venues, opening hours and side quests
         run: godot --headless --path . --script res://tests/venues_smoke.gd
+      - name: Arcade cabinet pilot smoke
+        run: timeout 30s godot --headless --path . --script res://tests/arcade_smoke.gd
       - name: Validate NightGrid FM soundtrack catalog, radio and packaged tracks
         run: godot --headless --path . --script res://tests/nightgrid_fm_smoke.gd
       - name: Validate original city soundscapes, footfalls and volume settings
