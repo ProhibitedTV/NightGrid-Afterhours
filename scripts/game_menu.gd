@@ -802,9 +802,11 @@ func _choice(action: String) -> void:
 		return
 	match action:
 		"phone_back":
-			_phone_back()
+			if screen == "phone":
+				_phone_back()
 		"phone":
-			action_requested.emit("phone")
+			if screen == "pause":
+				action_requested.emit("phone")
 		"play":
 			if screen == "title" and not _has_save:
 				action_requested.emit("begin_opening")

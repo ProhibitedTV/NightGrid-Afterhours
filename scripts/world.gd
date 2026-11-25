@@ -4437,9 +4437,11 @@ func set_navigation_waypoint(point: Vector2) -> Vector2:
 	for pin in civic_services.call("get_map_pins"):
 		var p: Vector3 = civic_services.call("position_for", str(pin["id"]))
 		candidates.append(Vector2(p.x, p.z))
+	var hotel_entry := StarterHome.entry()
+	candidates.append(Vector2(hotel_entry.x,hotel_entry.z))
 	if progression.owns_home():
-		for entry in [StarterHome.entry(),StarterGarage.entry()]:
-			candidates.append(Vector2(entry.x,entry.z))
+		var garage_entry := StarterGarage.entry()
+		candidates.append(Vector2(garage_entry.x,garage_entry.z))
 	for candidate in candidates:
 		var gap := point.distance_to(candidate)
 		if gap <= distance and Nav.valid(candidate):
