@@ -40,3 +40,7 @@ The two new close views use the actual four-bus/25-car fleet rather than a separ
 ## Historical road and wheel comparison
 
 [View nine original matched-camera frames](road-wheel-comparison/GALLERY.md) preserved from PR #122. This historical Mesa comparison is separate from the current baseline, 33-frame archive, and native Windows captures. It does not demonstrate the performance of the later integrated MultiMesh implementation.
+
+## Historical Brickwater alley review
+
+[Seven matched alley and street-detail captures](brickwater-review-archive/GALLERY.md) from PR #157. The preserved camera manifest documents the original software OpenGL render; the newer integrated Brickwater build still needs native visual and performance review.
