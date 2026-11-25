@@ -91,6 +91,13 @@ jobs:
           set -o pipefail
           godot --headless --path . --import --quit 2>&1 | tee /tmp/nightgrid-import.log
           if grep -Eq 'SCRIPT ERROR:|p_image->is_compressed\(\)|Cannot generate mipmaps from compressed image formats' /tmp/nightgrid-import.log; then exit 1; fi
+      - name: Verify transactional save replacement and rollback
+        timeout-minutes: 1
+        run: |
+          set -o pipefail
+          timeout 30s godot --headless --path . --script res://tests/atomic_save_smoke.gd 2>&1 | tee /tmp/nightgrid-atomic-save.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-atomic-save.log; then exit 1; fi
+          grep -q "ATOMIC_SAVE PASS:" /tmp/nightgrid-atomic-save.log
       - name: Verify seamless physical building entry, collision and save
         timeout-minutes: 3
         run: |
@@ -98,6 +105,13 @@ jobs:
           timeout 150s godot --headless --path . --script res://tests/walk_in_lot_smoke.gd 2>&1 | tee /tmp/nightgrid-walk-in.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-walk-in.log; then exit 1; fi
           grep -q "WALK_IN_LOT PASS:" /tmp/nightgrid-walk-in.log
+      - name: Validate physical garage title grant and recovery clearance
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/starter_garage_smoke.gd 2>&1 | tee /tmp/nightgrid-garage.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-garage.log; then exit 1; fi
+          grep -q "GARAGE_SMOKE PASS:" /tmp/nightgrid-garage.log
       - name: Validate real vending purchases, stamina and save migration
         timeout-minutes: 2
         run: |
@@ -128,6 +142,13 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/hud_radar_smoke.gd 2>&1 | tee /tmp/nightgrid-radar.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-radar.log; then exit 1; fi
+      - name: Validate courier mission state and transactional reward progression
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/courier_mission_smoke.gd 2>&1 | tee /tmp/nightgrid-courier-mission.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-courier-mission.log; then exit 1; fi
+          grep -q "COURIER_MISSION PASS:" /tmp/nightgrid-courier-mission.log
       - name: Validate main menus, saved settings and controller action contexts
         timeout-minutes: 2
         run: |

@@ -287,6 +287,12 @@ func _render() -> void:
 			_title(col, "ACTIVE DELIVERIES", 18, Color("f0d1a0"))
 			_label(col, str(_journal_data.get("main_objective", "Explore Morrow Bay")),
 				17, Color("e1ebef"))
+			_button(col, "restart_courier", "ABANDON PACKAGE / RETRY ROUTE", "restart_courier", bool(_journal_data.get("courier_can_restart", false)))
+			_label(col, str(_journal_data.get("story_objective", "")), 16, Ui.ACCENT)
+			if bool(_journal_data.get("story_can_navigate", false)):
+				_button(col, "story_waypoint", "SET WAYPOINT TO CONTACT OBJECTIVE", "story_waypoint")
+			if bool(_journal_data.get("story_can_abandon", false)):
+				_button(col, "abandon_story", "ABANDON CONTACT MISSION", "abandon_story")
 			_label(col, str(_journal_data.get("venue_job", "No local contacts")),
 				16, Color("bfced5"))
 			_label(col, str(_journal_data.get("civic_job", "No freight work")),
@@ -294,6 +300,12 @@ func _render() -> void:
 			_divider(col)
 			_title(col, "INVENTORY / STATUS", 18, Color("f0d1a0"))
 			_label(col, str(_journal_data.get("weapons", "No equipment data")), 16, Ui.ACCENT)
+			_label(col, str(_journal_data.get("owned_vehicles", "VEHICLE TITLES: None")), 16, Color("c4d6da"))
+			_label(col, str(_journal_data.get("home_text", "")), 16, Ui.ACCENT)
+			if bool(_journal_data.get("home_owned", false)):
+				_button(col, "home_waypoint", "SET WAYPOINT TO HOME", "home_waypoint")
+				_label(col, str(_journal_data.get("garage_text", "")), 16, Ui.ACCENT)
+				_button(col, "garage_waypoint", "SET WAYPOINT TO GARAGE", "garage_waypoint")
 			_label(col, "%s  |  %d POLICE LOCATIONS" % [str(_journal_data.get("dispatch", "DISPATCH")), int(_journal_data.get("stations", 0))], 16, Color("77a7e0"))
 			_label(col, "CASH  $%d     HEALTH  %d     HEAT  %.1f" % [
 				int(_journal_data.get("cash", 0)), int(_journal_data.get("health", 100)),
@@ -466,6 +478,8 @@ func _choice(action: String) -> void:
 			open_map()
 		"journal":
 			action_requested.emit("journal")
+		"restart_courier", "abandon_story", "home_waypoint", "garage_waypoint", "story_waypoint":
+			action_requested.emit(action)
 		"back":
 			_open(_back_screen)
 		"new":

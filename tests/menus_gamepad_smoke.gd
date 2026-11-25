@@ -316,6 +316,50 @@ func _verify() -> void:
 	if paused or menu.call("is_open"):
 		_fail("Game cannot resume from controller pause")
 		return
+	# The fresh opening contact is discoverable without knowing the city.
+	menu.call("open_pause")
+	menu.call("open_journal", world.call("_journal_context"))
+	var contact: Button = menu.call("get_buttons").get("story_waypoint")
+	if contact == null or contact.disabled or contact.focus_mode != Control.FOCUS_ALL:
+		_fail("Opening contact waypoint is unavailable to controller")
+		return
+	menu.call("_choice","story_waypoint")
+	if not str(world.call("navigation_text")).contains("LANTERN CUP"):
+		_fail("Contact waypoint does not resolve to Mara’s real entrance")
+		return
+	menu.call("hide_for_game")
+	# Exercise the actual world courier adapter and journal action.
+	var director = world.get("courier_mission")
+	var initial_cash: int = world.get("cash")
+	var initial_runs: int = world.get("deliveries")
+	player.global_position = director.target()
+	world.call("_advance_mission")
+	if not bool(world.get("carrying")):
+		_fail("Real world pickup did not advance mission director")
+		return
+	var mid_route: Dictionary = world.call("_capture_snapshot")
+	var dropoff: Vector3 = director.target()
+	menu.call("open_pause")
+	menu.call("open_journal", world.call("_journal_context"))
+	var restart_button: Button = menu.call("get_buttons").get("restart_courier")
+	if restart_button == null or restart_button.disabled:
+		_fail("Journal did not expose controller-focusable restart")
+		return
+	menu.call("_choice", "restart_courier")
+	if bool(world.get("carrying")) or int(world.get("cash")) != initial_cash or int(world.get("deliveries")) != initial_runs:
+		_fail("Restart mutated wallet or run count")
+		return
+	world.call("_apply_snapshot", mid_route)
+	if not bool(world.get("carrying")) or director.target() != dropoff:
+		_fail("Mid-mission world restore did not restore objective")
+		return
+	player.global_position = dropoff
+	world.call("_advance_mission")
+	world.call("_advance_mission")
+	if int(world.get("deliveries")) != initial_runs + 1 or int(world.get("cash")) != initial_cash + 250 + 50 * mini(initial_runs,8):
+		_fail("Real mission reward was not paid exactly once")
+		return
+	menu.call("hide_for_game")
 	print("MENU_GAMEPAD_SMOKE PASS: action_count=", input_spec.ACTIONS.size(),
 		" / settings saved / pause & focus / controller context / title confirmation")
 	quit(0)

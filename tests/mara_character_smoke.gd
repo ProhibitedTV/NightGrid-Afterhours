@@ -132,6 +132,9 @@ func _verify() -> void:
 	if absf(float(mara.call("get_performance_state")["head_yaw"])) < 0.02:
 		_fail("Mara's head is not tracking a patron at the counter")
 		return
+	if world.get("story_mission").status != "active" or world.get("story_mission").step != 1:
+		_fail("Speaking to Mara did not start authored contact mission")
+		return
 	# Purchase retains original fixed-price gameplay and triggers a sleeve/
 	# hand rig gesture. A denied transaction must not animate a new sale.
 	world.call("_venue_action", 1)
@@ -166,6 +169,9 @@ func _verify() -> void:
 	if not (world.get("civic_intel") as Array).has("lantern_cup_shift_notes"):
 		_fail("Discovered shift note missing on reload")
 		return
+	if world.get("story_mission").status != "active" or world.get("story_mission").step != 1:
+		_fail("Contact mission progress lost during real interior save restore")
+		return
 	var restored_mara: Node3D = rooms.call("get_mara_character")
 	if restored_mara == null or restored_mara == mara or int(rooms.call("get_mara_stats")["face_details"]) < 20:
 		_fail("Save restore must recreate Mara instead of serializing live nodes")
@@ -186,6 +192,39 @@ func _verify() -> void:
 	if rooms.call("get_mara_character") != null:
 		_fail("Character should not stay resident after streaming out")
 		return
+	# Complete the existing courier loop, then return to the real contact.
+	var courier = world.get("courier_mission")
+	if courier.has_package():
+		courier.restart()
+		world.call("_refresh_courier_target")
+	player.global_position = courier.target()
+	world.call("_advance_mission")
+	player.global_position = courier.target()
+	world.call("_advance_mission")
+	if world.get("story_mission").step != 2 or world.call("_story_target") != exterior:
+		_fail("Real courier delivery did not advance the contact chain to Mara’s address")
+		return
+	player.global_position = exterior
+	world.call("_toggle_interior")
+	player.global_position = rooms.call("get_counter_point") + Vector3(0.0, 0.0, 2.0)
+	world.call("_toggle_interaction")
+	var before_bonus: int = world.get("cash")
+	world.call("_venue_action", 3)
+	world.call("_venue_action", 3)
+	if world.get("story_mission").status != "complete" or int(world.get("cash")) != before_bonus + 100:
+		_fail("Contact completion bonus must pay exactly once")
+		return
+	var complete: Dictionary = session.call("make_snapshot", world.call("_capture_snapshot"))
+	if not session.call("is_valid_snapshot", complete):
+		_fail("Completed contact mission produced an invalid save")
+		return
+	complete["story_mission"]["step"] = 1
+	if session.call("is_valid_snapshot", complete):
+		_fail("Inconsistent completed mission state was accepted")
+		return
+	world.call("_close_venue")
+	player.global_position = rooms.call("get_entry_point")
+	world.call("_toggle_interior")
 	# Use an unmigrated café to verify isolation of the legacy room archetype.
 	player.global_position = venues.call("venue_position", "copper_cup")
 	world.call("_toggle_interior")

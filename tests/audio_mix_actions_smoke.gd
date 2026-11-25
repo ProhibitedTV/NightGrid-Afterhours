@@ -135,7 +135,11 @@ func _verify() -> void:
 		_fail("Door sound does not follow its physical source")
 		return
 	# Real courier delivery and vehicle entry/exit must call the shared director.
+	var courier = game.get("courier_mission")
+	var courier_player: CharacterBody3D = game.get("player")
+	courier_player.global_position = courier.target()
 	game.call("_advance_mission")
+	courier_player.global_position = courier.target()
 	game.call("_advance_mission")
 	if _count(director) != origin + 3:
 		_fail("Delivery objective transitions did not trigger pickup and completion cues")

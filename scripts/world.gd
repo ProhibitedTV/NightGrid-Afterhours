@@ -62,14 +62,12 @@ const VEHICLE_COLORS = [
 	Color("f04e59"), Color("40b1ff"), Color("e9bf51"),
 	Color("9b75e7"), Color("dedee0"), Color("58c99e")
 ]
-const PICKUPS = [
-	Vector3(-116.0, 0.0, 0.0), Vector3(58.0, 0.0, -116.0),
-	Vector3(116.0, 0.0, 58.0), Vector3(-58.0, 0.0, 116.0)
-]
-const DROPOFFS = [
-	Vector3(116.0, 0.0, 116.0), Vector3(-116.0, 0.0, 58.0),
-	Vector3(0.0, 0.0, -116.0), Vector3(116.0, 0.0, -58.0)
-]
+const CourierMission = preload("res://scripts/courier_mission.gd")
+const StoryMission = preload("res://scripts/story_mission.gd")
+const StarterHome = preload("res://scripts/starter_home.gd")
+var _home_panel := false
+const StarterGarage = preload("res://scripts/starter_garage.gd")
+var _garage_panel := false
 
 var rng := RandomNumberGenerator.new()
 var player: CharacterBody3D
@@ -198,8 +196,15 @@ var cash: int:
 		progression.set_balance(value)
 var health := 100.0
 var heat := 0.0
-var deliveries := 0
-var carrying := false
+var courier_mission := CourierMission.new()
+var story_mission := StoryMission.new()
+# Compatibility accessors for HUD and existing save fields.
+var deliveries: int:
+	get:
+		return courier_mission.completed_runs
+var carrying: bool:
+	get:
+		return courier_mission.has_package()
 var mission_position := Vector3.ZERO
 var notification := "Welcome to the night shift. Find a car and pick up the package."
 var notification_time := 8.0
@@ -248,7 +253,7 @@ func _ready() -> void:
 	add_child(police_radio)
 	var restore: Dictionary = session.call("take_pending_restore")
 	if restore.is_empty():
-		_set_mission_target(PICKUPS[0], false)
+		_refresh_courier_target()
 	else:
 		_apply_snapshot(restore)
 		if current_transit == null:
@@ -405,22 +410,62 @@ func _on_menu_action(action: String) -> void:
 			_new_game()
 		"journal":
 			game_menu.call("open_journal", _journal_context())
+		"restart_courier":
+			if courier_mission.restart():
+				_refresh_courier_target()
+				_notify("Package abandoned. Return to the pickup to retry.")
+			game_menu.call("open_journal", _journal_context())
+		"story_waypoint":
+			if story_mission.status != "complete":
+				var target := _story_target()
+				set_navigation_waypoint(Vector2(target.x,target.z))
+			game_menu.call("open_journal", _journal_context())
+		"garage_waypoint":
+			if progression.owns_home():
+				var entry := StarterGarage.entry()
+				set_navigation_waypoint(Vector2(entry.x,entry.z))
+			game_menu.call("open_journal", _journal_context())
+		"home_waypoint":
+			if progression.owns_home():
+				var entry := StarterHome.entry()
+				set_navigation_waypoint(Vector2(entry.x, entry.z))
+			game_menu.call("open_journal", _journal_context())
+		"abandon_story":
+			if story_mission.interrupt("abandoned"):
+				_notify("Contact mission abandoned. Speak to Mara to retry.")
+			game_menu.call("open_journal", _journal_context())
+
+# Resolve from existing venue/route contracts, never save another position.
+func _story_target() -> Vector3:
+	if story_mission.status == "complete":
+		return Vector3.INF
+	if story_mission.step == 1:
+		return mission_position
+	return venue_system.call("venue_position", "lantern_cup")
 
 func _journal_context() -> Dictionary:
 	var outside: Vector3 = interiors.get("exterior_position") if interiors.call("is_inside") else _actor().global_position
 	var district: String = city_details.call("get_district_at", outside)
 	var landmark: String = city_details.call("get_nearby_landmark", outside)
-	var objective := "Deliver package" if carrying else "Collect courier package"
+	var objective: Dictionary = courier_mission.objective()
 	var remaining := roundi(outside.distance_to(mission_position))
 	var loaded: Dictionary = city_details.call("get_streaming_stats")
 	return {
 		"district": district if landmark.is_empty() else "%s / %s" % [district, landmark],
 		"clock": day_night.call("clock_string"),
 		"seed": session.get("world_seed"),
-		"main_objective": "%s  •  %dm" % [objective, remaining],
+		"main_objective": "%s  •  STEP %d/%d  •  %dm  •  $%d" % [objective["title"], objective["step"], objective["total_steps"], remaining, objective["reward"]],
+		"courier_can_restart": carrying,
+		"story_objective": story_mission.journal(),
+		"story_can_navigate": story_mission.status != "complete",
+		"story_can_abandon": story_mission.status == "active",
 		"venue_job": _venue_job_text(),
 		"civic_job": _civic_job_text(),
 		"cash": cash, "health": health, "heat": heat,
+		"owned_vehicles": _owned_vehicle_text(),
+		"home_owned": progression.owns_home(),
+		"garage_text": "GARAGE: Two reserved bays / recovery desk" if progression.owns_home() else "GARAGE: Locked services",
+		"home_text": "HOME: %s / %d stored provisions" % [StarterHome.NAME,progression.home_supplies] if progression.owns_home() else "HOME: Complete Mara’s contact mission to unlock.",
 		"weapons": weapons.inventory_text(),
 		"dispatch": dispatch.status(),
 		"ambient_civic_open": ambient_civic.open_count(),
@@ -560,7 +605,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			frame_time_recorder.end_capture()
 			var exported: String = frame_time_recorder.export_csv()
 			var transitions: String = frame_time_recorder.export_vehicle_trace(exported)
-			_log_playtest("frame_trace_saved", {"path": exported, "vehicle_transitions":transitions,"frames": frame_time_recorder.captured_frames()})
+			_log_playtest("frame_trace_saved", {"path": exported, "vehicle_transitions":transitions,"frames":frame_time_recorder.captured_frames()})
 			_notify("Drive trace saved: " + exported if not exported.is_empty() else "Drive trace export failed.")
 		else:
 			var stream_start: Dictionary = city_details.call("get_streaming_stats")
@@ -771,7 +816,7 @@ func _physics_process(delta: float) -> void:
 	StreamProfile.accumulate(started, "world_pedestrians")
 	started = StreamProfile.begin()
 	_update_combat(delta)
-	if not indoors and current_transit == null and actor.global_position.distance_to(mission_position) < 5.3:
+	if not indoors and current_transit == null and actor.global_position.distance_to(mission_position) < CourierMission.RADIUS:
 		_advance_mission()
 	if (actor.global_position.y < -15.0 or not indoors and
 			(absf(actor.global_position.x) > 390.0 or absf(actor.global_position.z) > 390.0)):
@@ -1015,7 +1060,9 @@ func _toggle_car() -> void:
 	frame_time_recorder.mark_vehicle_stage(entry_trace,"occupancy_capsule_visibility")
 	player.call("show_vehicle_rider", current_car, true)
 	frame_time_recorder.mark_vehicle_stage(entry_trace,"rig_reparent_animation")
-	if not current_car.has_meta("claimed"):
+	if progression.owns_vehicle(str(current_car.get_meta("vehicle_id", ""))):
+		_notify("Your vehicle. Drive with WASD; Space is the handbrake.")
+	elif not current_car.has_meta("claimed"):
 		current_car.set_meta("claimed", true)
 		# Capture the entry position before the player is hidden. Resolve the
 		# witness query in the next physics tick, not an input callback.
@@ -1061,21 +1108,24 @@ func _clear_car_exit(car: CharacterBody3D) -> Vector3:
 	return Vector3.INF
 
 func _advance_mission() -> void:
-	if not carrying:
-		carrying = true
-		world_audio.call("play_event", "PICKUP", _actor().global_position)
-		_set_mission_target(DROPOFFS[deliveries % DROPOFFS.size()], true)
-		_notify("Package secured! Follow the cyan beacon.")
-	else:
-		var payout := 250 + 50 * mini(deliveries, 8)
-		if not progression.credit(payout):
-			_notify("Wallet is full. Spend some cash before delivering.")
-			return
-		carrying = false
-		world_audio.call("play_event", "DELIVERY", _actor().global_position)
-		deliveries += 1
-		_set_mission_target(PICKUPS[deliveries % PICKUPS.size()], false)
-		_notify("Delivery done! +$%d. Next pickup marked in amber." % payout)
+	var event_id: String = courier_mission.objective()["id"]
+	var result := courier_mission.advance(event_id, _actor().global_position, progression)
+	match result.get("event", ""):
+		"collected":
+			world_audio.call("play_event", "PICKUP", _actor().global_position)
+			_refresh_courier_target()
+			_notify("Package secured! Follow the cyan beacon.")
+		"delivered":
+			world_audio.call("play_event", "DELIVERY", _actor().global_position)
+			_refresh_courier_target()
+			_notify("Delivery done! +$%d. Next pickup marked in amber." % int(result["reward"]))
+			if story_mission.event("courier_delivered", progression) == "delivered":
+				_notify("Delivery done! +$%d. Report back to Mara at Lantern Cup." % int(result["reward"]))
+		"blocked":
+			_notify("Cannot settle delivery. Check wallet capacity.")
+
+func _refresh_courier_target() -> void:
+	_set_mission_target(courier_mission.target() - Vector3.UP * 0.2, carrying)
 
 func _set_mission_target(pos: Vector3, has_package: bool) -> void:
 	mission_position = pos + Vector3.UP * 0.2
@@ -1362,6 +1412,7 @@ func _respawn() -> void:
 	heat = 0.0
 	wanted.reset()
 	_pending_theft = null
+	var failed_story := story_mission.interrupt("failed")
 	progression.charge_up_to(100)
 	for officer in officers + returning_units:
 		if is_instance_valid(officer):
@@ -1371,7 +1422,7 @@ func _respawn() -> void:
 	dispatch.update_case(Vector3.INF, 0)
 	city_details.call("set_focus", player.global_position)
 	_snap_camera()
-	_notify("Back at the safehouse. Medical and towing fee: up to $100.")
+	_notify("Back at the safehouse. Medical and towing fee: up to $100." + (" Contact mission failed; speak to Mara to retry." if failed_story else ""))
 
 func _notify(message: String) -> void:
 	notification = message
@@ -1577,6 +1628,7 @@ func _spawn_traffic() -> void:
 		var color: Color = RoadCars.R9_PAID_PARKING_SLOTS.get(i, VEHICLE_COLORS[i % VEHICLE_COLORS.size()])
 		var car := _create_car(parked[i], color, false, model_id)
 		car.rotation.y = PI if i % 2 == 1 else 0.0
+		car.set_meta("vehicle_id", RoadCars.PARKED_IDS[i])
 		cars.append(car)
 
 func _build_transport() -> void:
@@ -1718,7 +1770,7 @@ func _capture_snapshot() -> Dictionary:
 	var state := {
 		"player_position": [saved_at.x, saved_at.y, saved_at.z],
 		"camera_yaw": yaw, "cash": cash, "progression": progression.snapshot(), "health": health, "heat": heat,
-		"deliveries": deliveries, "carrying": carrying,
+		"deliveries": deliveries, "carrying": carrying, "story_mission": story_mission.snapshot(),
 		"hour": day_night.get("hour"), "cars": stored_cars,
 		"occupied_car": cars.find(current_car),
 		"traffic": traffic.call("snapshot"), "rail": rail.call("snapshot"),
@@ -1781,8 +1833,8 @@ func _apply_snapshot(data: Dictionary) -> void:
 		var p := Vector3(float(last[0]), float(last[1]), float(last[2]))
 		if p.is_finite() and absf(p.x) <= 390.0 and absf(p.z) <= 390.0 and absf(p.y) <= 25.0 and heat >= Wanted.MIN_HEAT:
 			wanted.last_known = p
-	deliveries = maxi(0, int(data.get("deliveries", 0)))
-	carrying = bool(data.get("carrying", false))
+	courier_mission.restore(data.get("deliveries", 0), data.get("carrying", false))
+	story_mission.restore(data.get("story_mission", StoryMission.new().snapshot()))
 	yaw = float(data.get("camera_yaw", 0.0))
 	var position_data: Array = data["player_position"]
 	player.global_position = Vector3(float(position_data[0]), float(position_data[1]), float(position_data[2]))
@@ -1874,7 +1926,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 		var repair := _repair_storefront()
 		if repair != null and (repair.contains(player.global_position) or repair.door_reachable(player.global_position)):
 			repair.door.restore_open(data.get("night_shift_door_open", false) == true or repair.overlaps_threshold(player.global_position))
-	_set_mission_target(DROPOFFS[deliveries % DROPOFFS.size()] if carrying else PICKUPS[deliveries % PICKUPS.size()], carrying)
+	_refresh_courier_target()
 	_snap_camera()
 	_log_playtest("save_restored", {"seed": int(session.get("world_seed"))})
 	_notify("Save loaded. Seed %d; Morrow Bay restored." % int(session.get("world_seed")))
@@ -1913,6 +1965,9 @@ func _toggle_interior() -> void:
 	var venue: Dictionary = venue_system.call("nearest_venue", player.global_position)
 	var civic: Dictionary = civic_services.call("nearest_site", player.global_position)
 	var physical_lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+	if is_instance_valid(physical_lot) and not str(physical_lot.get("home_id")).is_empty() and not progression.owns_home() and not physical_lot.call("contains",player.global_position):
+		_notify("Locked residence. Speak to Mara at Lantern Cup.")
+		return
 	# Migrated café has no remote-room entry. Approach the actual hinge.
 	if str(venue.get("id","")) == "helix_espresso":
 		venue = {}
@@ -1993,6 +2048,15 @@ func _toggle_interaction() -> void:
 	if current_car != null or current_transit != null:
 		_notify("Get out of the vehicle before interacting with neighborhood businesses.")
 		return
+	var garage: Node3D = city_details.call("starter_garage",player.global_position)
+	if is_instance_valid(garage) and garage.call("desk_reachable",player.global_position):
+		if not progression.owns_home():
+			_notify("Garage services unlock after Mara’s contact mission.")
+			return
+		_garage_panel = true
+		_show_venue_dialogue()
+		_update_venue_panel()
+		return
 	var repair := _repair_storefront()
 	if repair != null and repair.contains(player.global_position):
 		if repair.counter_reachable(player.global_position):
@@ -2004,6 +2068,27 @@ func _toggle_interaction() -> void:
 			_notify("Approach the service counter.")
 		return
 	var physical_lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+	if is_instance_valid(physical_lot) and not str(physical_lot.get("home_id")).is_empty():
+		if not progression.owns_home():
+			_notify("Complete Mara’s contact mission first.")
+			return
+		match str(physical_lot.call("home_action",player.global_position)):
+			"rest":
+				if heat > 0.01:
+					_notify("Lose police attention before resting.")
+				else:
+					health = 100.0
+					player.call("restore_stamina",100.0)
+					_notify("Rested at home. Health and stamina restored.")
+			"save":
+				_save_game()
+			"storage":
+				_home_panel = true
+				_show_venue_dialogue()
+				_update_venue_panel()
+			_:
+				_notify("At home: approach the bed, desk or storage cabinet.")
+		return
 	if is_instance_valid(physical_lot) and not str(physical_lot.get("physical_venue_id")).is_empty():
 		if physical_lot.call("service_reachable",player.global_position):
 			venue_selected_id = str(physical_lot.get("physical_venue_id"))
@@ -2098,6 +2183,87 @@ func _civic_service_text(site: Dictionary) -> String:
 
 func _repair_storefront() -> BrickwaterRepair:
 	return city_details.call("repair_storefront") as BrickwaterRepair
+
+func _recover_garage_vehicle(garage: Node3D,index: int) -> void:
+	# Explicit recovery service only. Never spawn another vehicle or move an
+	# occupied one; test clearance before changing money or ownership.
+	var id: String = StarterGarage.IDS[index]
+	var owned := progression.owns_vehicle(id)
+	if not owned and index != 0:
+		_notify("Register the Cinder title at Night Shift Repairs first.")
+		return
+	if heat > 0.01:
+		_notify("Lose police attention before requesting recovery.")
+		return
+	var car: CharacterBody3D
+	for candidate in cars:
+		if str(candidate.get_meta("vehicle_id","")) == id:
+			car = candidate
+			break
+	if not is_instance_valid(car) or car.get("occupied") or absf(float(car.get("speed"))) > .5:
+		_notify("Vehicle unavailable for recovery.")
+		return
+	if garage.call("parked_at",car.global_position,index):
+		if not owned:
+			progression.grant_starter_vehicle()
+		_notify("Vehicle already parked in its bay.")
+		return
+	var collider := car.get_node("CollisionShape3D") as CollisionShape3D
+	var box := collider.shape as BoxShape3D
+	var bay: Vector3 = garage.call("bay_point",index)
+	var target := bay + Vector3.UP*(box.size.y*.5-collider.position.y+.05)
+	var query := PhysicsShapeQueryParameters3D.new()
+	var clearance := BoxShape3D.new()
+	clearance.size = box.size + Vector3(.45,0,.45)
+	query.shape = clearance
+	query.transform = Transform3D(Basis.IDENTITY,target+collider.position)
+	query.exclude = [car.get_rid()]
+	query.collision_mask = car.collision_mask
+	if not get_world_3d().direct_space_state.intersect_shape(query,1).is_empty():
+		_notify("Recovery bay blocked. Clear it before requesting the vehicle.")
+		return
+	if owned:
+		if not progression.spend(StarterGarage.RECOVERY_FEE):
+			_notify("Not enough cash for recovery.")
+			return
+	elif not progression.grant_starter_vehicle():
+		return
+	car.global_position = target
+	car.rotation.y = 0.0
+	car.velocity = Vector3.ZERO
+	car.set("speed",0.0)
+	_notify("Vehicle returned to its reserved bay." if owned else "Starter Kestrel registered and parked. It’s yours.")
+
+func _owned_vehicle_text() -> String:
+	var names: Array[String] = []
+	for id in progression.owned_vehicle_ids():
+		names.append(str(RoadCars.TITLES[id]["name"]))
+	return "VEHICLE TITLES: " + ("None" if names.is_empty() else ", ".join(names))
+
+# Actual nearby stationary pilot stock only; no new spawn or remote purchase.
+func _nearby_title_candidate() -> CharacterBody3D:
+	var selected: CharacterBody3D
+	var nearest := 18.0
+	for car in cars:
+		var id := str(car.get_meta("vehicle_id", ""))
+		if not RoadCars.TITLES.has(id) or progression.owns_vehicle(id) or bool(car.get("occupied")) or int(car.call("speed_kph")) > 1:
+			continue
+		var distance := car.global_position.distance_to(player.global_position)
+		if distance < nearest:
+			selected = car
+			nearest = distance
+	return selected
+
+func _purchase_nearby_title() -> void:
+	var car := _nearby_title_candidate()
+	if car == null:
+		_notify("Park eligible stock near the counter: Kestrel S6 or Cinder R9.")
+		return
+	var id := str(car.get_meta("vehicle_id"))
+	if not progression.buy_vehicle(id):
+		_notify("Not enough cash for this vehicle title.")
+		return
+	_notify("TITLE REGISTERED: %s. This vehicle is yours." % RoadCars.TITLES[id]["name"])
 
 func _repair_nearby_vehicle(price: int) -> void:
 	var selected_car: CharacterBody3D
@@ -2290,6 +2456,8 @@ func _close_venue() -> void:
 		venue_talk_button.visible = false
 	venue_selected_id = ""
 	_repair_panel = false
+	_home_panel = false
+	_garage_panel = false
 	_vending_machine = null
 	for button in [venue_service_button,venue_job_button,venue_talk_button]:
 		if is_instance_valid(button):
@@ -2305,6 +2473,26 @@ func _close_venue() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _update_venue_panel() -> void:
+	if _garage_panel:
+		venue_label.text = "LANTERN GARAGE / RECOVERY\nDrive into either marked bay and leave your car there. Recovery $75; damage retained."
+		var buttons := [venue_service_button,venue_job_button]
+		for i in range(2):
+			var id: String = StarterGarage.IDS[i]
+			var owned := progression.owns_vehicle(id)
+			buttons[i].show()
+			buttons[i].text = "%d / %s  •  %s" % [i+1,"A" if i==0 else "X",("RECOVER " + str(RoadCars.TITLES[id]["name"])) if owned else ("CLAIM STARTER KESTREL" if i==0 else "CINDER TITLE REQUIRED")]
+			buttons[i].disabled = (not owned and i!=0) or (owned and cash<StarterGarage.RECOVERY_FEE)
+		venue_talk_button.hide()
+		return
+	if _home_panel:
+		venue_label.text = "HOME STORAGE / %d of %d provisions\nCarrying %d / 99" % [progression.home_supplies,StarterHome.MAX_STORAGE,ration_packs]
+		venue_service_button.text = "1 / A  •  STORE ONE"
+		venue_service_button.disabled = ration_packs <= 0 or progression.home_supplies >= StarterHome.MAX_STORAGE
+		venue_job_button.show()
+		venue_job_button.text = "2 / X  •  TAKE ONE"
+		venue_job_button.disabled = ration_packs >= 99 or progression.home_supplies <= 0
+		venue_talk_button.hide()
+		return
 	if is_instance_valid(_vending_machine):
 		var items: Array = _vending_machine.get_meta("items",[])
 		var body := "NIGHTGRID / 24H  •  VENDING\nCASH $%d  |  PACK %d/%d\n" % [cash,Consumables.count(consumable_inventory),Consumables.MAX_ITEMS]
@@ -2323,7 +2511,15 @@ func _update_venue_panel() -> void:
 		venue_label.text = "NIGHT SHIFT REPAIRS\nLeave the vehicle outside and bring the keys to the counter.\n[1 / A] Repair parked vehicle  $%d\n[G / B] Close   |   CASH $%d" % [BrickwaterRepair.PRICE, cash]
 		venue_service_button.text = "1 / A  •  REPAIR"
 		venue_service_button.disabled = false
-		venue_job_button.hide()
+		var candidate := _nearby_title_candidate()
+		venue_job_button.show()
+		venue_job_button.disabled = candidate == null
+		venue_job_button.text = "2 / X  •  REGISTER VEHICLE TITLE"
+		if candidate != null:
+			var title: Dictionary = RoadCars.TITLES[str(candidate.get_meta("vehicle_id"))]
+			venue_job_button.text = "2 / X  •  BUY %s TITLE  $%d" % [title["name"], title["price"]]
+			venue_job_button.disabled = cash < int(title["price"])
+		venue_label.text += "\nTitle desk: bring eligible parked stock to the shop."
 		venue_talk_button.hide()
 		return
 	if not civic_selected_id.is_empty():
@@ -2383,6 +2579,26 @@ func _mara_context() -> Dictionary:
 	}
 
 func _venue_action(option: int) -> void:
+	if _garage_panel:
+		var garage: Node3D = city_details.call("starter_garage",player.global_position)
+		if not venue_panel.visible or not is_instance_valid(garage) or not garage.call("desk_reachable",player.global_position) or not progression.owns_home():
+			_close_venue()
+			return
+		if option in [1,2]:
+			_recover_garage_vehicle(garage,option-1)
+		_update_venue_panel()
+		return
+	if _home_panel:
+		var lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+		if not venue_panel.visible or not is_instance_valid(lot) or lot.call("home_action",player.global_position) != "storage" or not progression.owns_home():
+			_close_venue()
+			return
+		if option == 1:
+			ration_packs -= progression.deposit_supply(ration_packs)
+		elif option == 2:
+			ration_packs += progression.withdraw_supply(ration_packs)
+		_update_venue_panel()
+		return
 	if is_instance_valid(_vending_machine):
 		if not venue_panel.visible or city_details.call("nearby_vending",player.global_position) != _vending_machine or current_car != null or current_transit != null:
 			_close_venue()
@@ -2405,8 +2621,11 @@ func _venue_action(option: int) -> void:
 		return
 	if _repair_panel:
 		var repair := _repair_storefront()
-		if option == 1 and repair != null and repair.counter_reachable(player.global_position):
-			_repair_nearby_vehicle(BrickwaterRepair.PRICE)
+		if venue_panel.visible and repair != null and repair.counter_reachable(player.global_position):
+			if option == 1:
+				_repair_nearby_vehicle(BrickwaterRepair.PRICE)
+			elif option == 2:
+				_purchase_nearby_title()
 			_update_venue_panel()
 		return
 	if not civic_selected_id.is_empty():
@@ -2425,6 +2644,16 @@ func _venue_action(option: int) -> void:
 			if not response.is_empty():
 				mara_dialogue_line = str(response["line"])
 				_notify("MARA / " + str(response["topic"]))
+			if interiors.call("active_site_id") == "lantern_cup" and interiors.call("counter_reachable", player.global_position):
+				match story_mission.event("mara_talk", progression):
+					"started":
+						mara_dialogue_line = "Mara: I need someone who knows these streets. Finish a courier run, then come tell me how it went."
+						_notify("NIGHT SHIFT CONTACT / New mission")
+					"complete":
+						mara_dialogue_line = "Mara: You made it back. Keep the extra hundred. Unit 01 next door is yours to use. The key’s at the entrance."
+						_notify("NIGHT SHIFT CONTACT COMPLETE +$%d" % StoryMission.REWARD)
+					"blocked":
+						_notify("Wallet full. Speak to Mara again after spending some cash.")
 			_update_venue_panel()
 		return
 	if not bool(venue_system.call("is_open", venue_selected_id)):
@@ -2741,7 +2970,7 @@ func _update_hud() -> void:
 		_wanted_label.text += "\n" + dispatch.status()
 	_wanted_label.visible = tier > 0 or weapons.equipped != "holstered"
 	_wanted_label.modulate = Ui.DANGER if wanted.police_seen and tier > 0 else Ui.AMBER
-	var mission := "DELIVER PACKAGE" if carrying else "PICK UP PACKAGE"
+	var mission: String = courier_mission.objective()["hud"]
 	var distance := roundi(outdoors.distance_to(mission_position))
 	var message := notification if notification_time > 0.0 else ""
 	if performance_overlay:
@@ -2767,6 +2996,8 @@ func _update_hud() -> void:
 	hud_navigation.visible = navigation_waypoint != null
 	hud_navigation.text = navigation_text() if navigation_waypoint != null else ""
 	var jobs: Array[String] = []
+	if story_mission.status != "complete":
+		jobs.append(story_mission.journal())
 	if not venue_job_active.is_empty():
 		jobs.append(_venue_job_text())
 	if not civic_job_active.is_empty():
@@ -2804,6 +3035,9 @@ func _update_hud() -> void:
 			if not local_regular.is_empty():
 				prompts.append("%s  Chat with %s" % [interact_key, str(local_regular["name"])])
 	else:
+		var garage: Node3D = city_details.call("starter_garage",player.global_position)
+		if is_instance_valid(garage) and garage.call("desk_reachable",player.global_position):
+			prompts.append("%s  LANTERN GARAGE / RECOVERY" % interact_key)
 		var near: Dictionary = venue_system.call("nearest_venue", player.global_position)
 		if not near.is_empty():
 			var accessible := "OPEN" if venue_system.call("is_open", str(near["id"])) else "CLOSED"
@@ -2813,6 +3047,9 @@ func _update_hud() -> void:
 			var availability := "OPEN" if civic_services.call("is_open", str(nearby_service["id"])) else "CLOSED"
 			prompts.append("%s  %s (%s)   •   %s Enter" % [interact_key, str(nearby_service["name"]), availability, enter_key])
 		var physical_lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+		if physical_lot != null and not str(physical_lot.get("home_id")).is_empty():
+			var home_action := str(physical_lot.call("home_action",player.global_position))
+			prompts.append("HOME / " + (interact_key + " " + home_action.capitalize() if progression.owns_home() and not home_action.is_empty() else ("Unit 01" if progression.owns_home() else "Locked — meet Mara")))
 		if physical_lot != null and physical_lot.call("service_reachable",player.global_position):
 			prompts.append("%s Order at HELIX ESPRESSO" % interact_key)
 		if physical_lot != null and physical_lot.call("doorway_reachable",player.global_position):
@@ -2852,6 +3089,9 @@ func set_navigation_waypoint(point: Vector2) -> Vector2:
 	for pin in civic_services.call("get_map_pins"):
 		var p: Vector3 = civic_services.call("position_for", str(pin["id"]))
 		candidates.append(Vector2(p.x, p.z))
+	if progression.owns_home():
+		for entry in [StarterHome.entry(),StarterGarage.entry()]:
+			candidates.append(Vector2(entry.x,entry.z))
 	for candidate in candidates:
 		var gap := point.distance_to(candidate)
 		if gap <= distance and Nav.valid(candidate):
@@ -3021,6 +3261,13 @@ func navigation_text() -> String:
 		if destination.distance_to(Vector2(p.x, p.z)) < 0.1:
 			label = str(civic_services.call("site_by_id", str(pin["id"]))["name"])
 			break
+	if progression.owns_home():
+		var home := StarterHome.entry()
+		var garage := StarterGarage.entry()
+		if destination.distance_to(Vector2(home.x,home.z)) < .1:
+			label = StarterHome.NAME
+		elif destination.distance_to(Vector2(garage.x,garage.z)) < .1:
+			label = StarterGarage.NAME
 	var route := _navigation_route(origin)
 	var line := "WAYPOINT  %s  •  %dm direct" % [label, roundi(origin.distance_to(destination))]
 	if route.is_empty():
