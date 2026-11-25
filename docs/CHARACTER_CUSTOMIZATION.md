@@ -51,3 +51,7 @@ Direct wardrobe service input dispatch prevents GUI focus consuming controller p
 | nocturne | Nocturne / Afterimage; Nocturne / Eclipse; Nocturne / Ember | Afterimage jacket; Eclipse trousers; Ember jacket |
 | obscura | Obscura / Archivist; Obscura / Porcelain; Obscura / Monolith | Archivist jacket; Porcelain trousers; Monolith jacket |
 | second_signal | Second Signal / Overprint; Second Signal / Scrapyard; Second Signal / Deadstock | Overprint jacket; Scrapyard trousers; Deadstock jacket |
+
+## Accessory collection and main integration
+
+12 new exclusive accessory IDs, two per retailer. Six eyewear styles include original round and wide lens geometry; six watches include round analog-style dials and compact digital faces, with distinct colors and materials. The existing Head/LeftHand attachment transforms and per-ID cache are reused. No collision or additional animation skeleton. Catalog now has 35 outfits and 49 individual cosmetics (84 total); Second Signal's two new accessories are permanent staples. Native lens transparency, fitting, occlusion and wrist/hand pose checks remain mandatory. Preflight adds an actual rig attachment/reuse smoke for all 16 eyewear/watch IDs. The street-cred smoke now verifies coexistence of fashion and street progression in one save. Main was reconciled with a two-parent merge preserving both systems.

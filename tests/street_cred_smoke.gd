@@ -21,9 +21,14 @@ func _initialize()->void:
 		return
 	if not _check(p.settle_street_activity("busking",1) and not p.settle_street_activity("busking",1) and p.settle_street_activity("live_gig",1) and p.settle_street_activity("skate_session",1) and p.street_cred()==44 and p.balance==105,"separate monotonic activity credits"):
 		return
+	# Fashion and street progression must coexist in the same save transaction.
+	p.set_balance(1000)
+	if not _check(p.buy_piece("glasses_metro","USD",true) and p.select_piece("glasses_metro",true) and p.save_look("look_1",true),"fashion and street ledger"):
+		return
+	p.set_balance(105)
 	var saved:=p.snapshot()
 	var q:=Ledger.new()
-	if not _check(q.restore(p.balance,JSON.parse_string(JSON.stringify(saved))) and q.street_cred()==44 and q.street_activity_runs("busking")==1,"save round trip"):
+	if not _check(q.restore(p.balance,JSON.parse_string(JSON.stringify(saved))) and q.street_cred()==44 and q.street_activity_runs("busking")==1 and q.owns_piece("glasses_metro") and q.clothing_slots.get("glasses")=="glasses_metro" and q.saved_look("look_1").get("slots",{}).get("glasses")=="glasses_metro","save round trip"):
 		return
 	saved.erase("street_activity_runs")
 	if not _check(q.restore(105,saved) and q.street_cred()==25,"legacy completed favor derives cred"):

@@ -61,7 +61,7 @@ static func garment_slot(name: String) -> String:
 # stable slot/item identities, with a separate validated visual asset contract.
 const SLOTS=["jacket","pants","glasses","watch","patch"]
 const RESET_IDS=["reset_jacket","reset_pants","reset_glasses","reset_watch","reset_patch"]
-const PIECE_IDS=["jacket_ash","jacket_oxide","jacket_midnight","pants_charcoal","pants_sand","pants_teal","glasses_night","glasses_clear","watch_shift","watch_brass","jacket_ink","jacket_patch","jacket_signal","pants_salvage","pants_indigo","patch_deadcarrier","patch_voltage","patch_ghostshift","patch_nightgrid","jacket_concrete","pants_olive","jacket_copper","jacket_breakwater","pants_forge","jacket_silt","jacket_meridian","pants_pearl","jacket_oxblood","jacket_afterimage","pants_eclipse","jacket_ember","jacket_archivist","pants_porcelain","jacket_monolith","jacket_overprint","pants_scrapyard","jacket_deadstock"]
+const PIECE_IDS=["jacket_ash","jacket_oxide","jacket_midnight","pants_charcoal","pants_sand","pants_teal","glasses_night","glasses_clear","watch_shift","watch_brass","jacket_ink","jacket_patch","jacket_signal","pants_salvage","pants_indigo","patch_deadcarrier","patch_voltage","patch_ghostshift","patch_nightgrid","jacket_concrete","pants_olive","jacket_copper","jacket_breakwater","pants_forge","jacket_silt","jacket_meridian","pants_pearl","jacket_oxblood","jacket_afterimage","pants_eclipse","jacket_ember","jacket_archivist","pants_porcelain","jacket_monolith","jacket_overprint","pants_scrapyard","jacket_deadstock","glasses_metro","watch_commute","glasses_harbor","watch_tide","glasses_meridian","watch_ink","glasses_afterimage","watch_pulse","glasses_porcelain","watch_monolith","glasses_deadstock","watch_salvage"]
 const PIECES={
 	"jacket_ash":{"name":"Ash work jacket","slot":"jacket","price":18,"tint":Color(.73,.77,.79),"finish":1.0},
 	"jacket_oxide":{"name":"Oxide street jacket","slot":"jacket","price":32,"tint":Color(1.0,.53,.38),"finish":.9},
@@ -99,7 +99,19 @@ const PIECES={
 	"jacket_monolith":{"name":"Monolith jacket","slot":"jacket","price":1180,"tint":Color(.35,.39,.46),"finish":0.58,"detail":"Graphite signature finish"},
 	"jacket_overprint":{"name":"Overprint jacket","slot":"jacket","price":8,"tint":Color(.79,.46,.58),"finish":1,"detail":"Faded rose thrift color"},
 	"pants_scrapyard":{"name":"Scrapyard trousers","slot":"pants","price":7,"tint":Color(.57,.60,.50),"finish":1,"detail":"Earthy surplus colors"},
-	"jacket_deadstock":{"name":"Deadstock jacket","slot":"jacket","price":12,"tint":Color(.46,.65,.83),"finish":0.95,"detail":"Washed blue thrift finish"}
+	"jacket_deadstock":{"name":"Deadstock jacket","slot":"jacket","price":12,"tint":Color(.46,.65,.83),"finish":0.95,"detail":"Washed blue thrift finish"},
+	"glasses_metro":{"name":"Metro amber frames","slot":"glasses","price":27,"detail":"Amber round lenses / copper frames"},
+	"watch_commute":{"name":"Commute digital","slot":"watch","price":32,"detail":"Compact red display / rubber band"},
+	"glasses_harbor":{"name":"Harbor safety frames","slot":"glasses","price":34,"detail":"Broad smoked lenses / teal frame"},
+	"watch_tide":{"name":"Tide shift chronometer","slot":"watch","price":64,"detail":"Round steel dial / olive band"},
+	"glasses_meridian":{"name":"Meridian wire frames","slot":"glasses","price":95,"detail":"Round clear lenses / silver frame"},
+	"watch_ink":{"name":"Ink dress watch","slot":"watch","price":145,"detail":"Round dark dial / navy band"},
+	"glasses_afterimage":{"name":"Afterimage visor frames","slot":"glasses","price":120,"detail":"Wide violet tinted lenses"},
+	"watch_pulse":{"name":"Pulse club watch","slot":"watch","price":210,"detail":"Wide digital face / violet accents"},
+	"glasses_porcelain":{"name":"Porcelain signature frames","slot":"glasses","price":390,"detail":"Ivory frame / pale smoke lenses"},
+	"watch_monolith":{"name":"Monolith signature watch","slot":"watch","price":720,"detail":"Round graphite case / gold markers"},
+	"glasses_deadstock":{"name":"Deadstock aviator rounds","slot":"glasses","price":12,"detail":"Reclaimed amber lens / bronze frame"},
+	"watch_salvage":{"name":"Salvage digital watch","slot":"watch","price":9,"detail":"Scuffed olive band / green display"}
 }
 
 static func piece_valid(id:Variant) -> bool:
