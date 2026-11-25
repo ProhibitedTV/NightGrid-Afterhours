@@ -121,6 +121,25 @@ func _verify() -> void:
 			break
 	if not check(race.cleared and race.distance==Race.LENGTH and race.splits.size()==3 and race.race_time<60.0,"three checkpoint sprint is winnable"):
 		return
+	# Full authored course: steer from visible objects only, without changing course,
+	# score, speed, invulnerability or object positions.
+	race.start("grand_delay")
+	for i in range(6000):
+		var closest: Dictionary = {}
+		for item in race.objects:
+			if closest.is_empty() or float(item["z"]) < float(closest["z"]):
+				closest = item
+		var target: float = 1.0
+		if not closest.is_empty():
+			target = float(closest["x"])
+			if closest["kind"] != "feature":
+				target += -.47 if target >= 2.0 else .47
+		race.steer(clampf((target-race.position_x)*4.0,-1.0,1.0))
+		race.advance(true)
+		if race.finished:
+			break
+	if not check(race.cleared and race.lives==3 and race.pickups>=9 and race.near_misses>=5 and race.score>2000,"full authored course clear with steering and real traffic"):
+		return
 	var final_race = race.result()
 	race.advance()
 	if not check(race.result()==final_race,"race result immutable"):

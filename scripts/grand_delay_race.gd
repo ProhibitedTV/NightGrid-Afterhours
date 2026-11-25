@@ -164,7 +164,6 @@ func advance(throttle: bool = false, brake: bool = false) -> void:
 	var desired = steering*(2.3+speed*.009)
 	lateral_velocity = move_toward(lateral_velocity,desired,12.0*DT)
 	position_x = clampf(position_x+lateral_velocity*DT,-.10,2.10)
-	var previous = distance
 	distance = minf(LENGTH,distance+speed*DT)
 	_spawn_visible()
 	for i in range(objects.size()-1,-1,-1):
@@ -196,3 +195,14 @@ func advance(throttle: bool = false, brake: bool = false) -> void:
 
 func result() -> Dictionary:
 	return {"game_id":game_id,"score":score,"lives":lives,"finished":finished,"cleared":cleared,"time":race_time,"distance":distance,"pickups":pickups,"near_misses":near_misses,"overtakes":overtakes,"collisions":collisions,"best_streak":best_streak,"splits":splits.duplicate()}
+
+func grade() -> String:
+	if not cleared:
+		return "D"
+	if collisions==0 and race_time<52.0 and pickups>=9:
+		return "S"
+	if race_time<58.0 and lives>=2:
+		return "A"
+	if lives>=2:
+		return "B"
+	return "C"

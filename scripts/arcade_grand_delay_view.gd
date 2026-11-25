@@ -27,7 +27,7 @@ func render(c, visual_lane: float, button_pulse: float) -> void:
 		c.draw_texture_rect(Art,Rect2(33,92,220,275),false)
 		panel(c,Rect2(270,92,497,275),Color("182738"),Color("425a67"))
 		if c.state == "select":
-			label(c,"THE EVENTUAL EDITION / OFFLINE BUILD 1.0",286,116,GOLD,16)
+			label(c,"THE EVENTUAL EDITION / OFFLINE BUILD 1.1",286,116,GOLD,16)
 			label(c,"Three districts. Beat the checkpoint clock.",286,143,PAPER,16)
 			label(c,"Hold UP to accelerate / DOWN to brake.",286,171,TEAL,18)
 			label(c,"Collect 3 features for nitro. Avoid traffic.",286,195,PAPER,16)
@@ -40,13 +40,15 @@ func render(c, visual_lane: float, button_pulse: float) -> void:
 			if c.locked_cabinet.is_empty():
 				label(c,"LEFT / RIGHT  CABINETS",505,344,PAPER,15)
 		else:
-			label(c,"GOLD MASTER!" if c.round.result()["cleared"] else "RELEASE POSTPONED",286,142,TEAL if c.round.result()["cleared"] else PINK,30)
+			label(c,"GOLD MASTER / RANK "+c.round.grade() if c.round.result()["cleared"] else "RELEASE POSTPONED",286,142,TEAL if c.round.result()["cleared"] else PINK,27)
 			label(c,"FINAL SCORE     %06d" % c.round.score,286,188,PAPER,24)
 			label(c,"PERSONAL BEST  %06d" % int(c.best.get("grand_delay",0)),286,223,GOLD,20)
 			label(c,"NEW LOCAL RECORD" if c.new_record else "THANK YOU FOR PLAYING",286,255,TEAL,19)
 			label(c,"%04dm   %.1fs   %d features   %d near misses" % [int(c.round.distance),c.round.race_time,c.round.pickups,c.round.near_misses],286,289,PAPER,16)
 			label(c,"BEST COMBO %d  /  CONTACTS %d" % [c.round.best_streak,c.round.collisions],286,314,GOLD,15)
 			label(c,"ENTER / A  REPLAY MENU",286,344,TEAL,19)
+			if c.round.cleared:
+				label(c,"S TARGET: 52s / CLEAN / 9+",510,344,GOLD,14)
 	_deck(c,visual_lane if c.state == "play" else 1.0,button_pulse)
 
 func _drive(c) -> void:
