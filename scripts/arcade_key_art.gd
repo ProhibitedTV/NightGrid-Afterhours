@@ -14,7 +14,7 @@ const ART = {
 	"starline_patrol": preload("res://assets/arcade/starline_patrol.svg"),
 	"neon_rebound": preload("res://assets/arcade/neon_rebound.svg")
 }
-const ROOT := "res://assets/arcade/key_art/"
+const ROOT = "res:" + "//assets/arcade/key_art/"
 static var _cache: Dictionary = {}
 
 static func texture(id: String) -> Texture2D:
