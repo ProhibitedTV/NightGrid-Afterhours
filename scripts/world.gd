@@ -27,6 +27,7 @@ const AmbientCivicLedger = preload("res://scripts/ambient_civic_ledger.gd")
 const CivicPatrolService = preload("res://scripts/civic_patrol_service.gd")
 const PoliceRadio = preload("res://scripts/police_radio.gd")
 const DialogueDirector = preload("res://scripts/dialogue_director.gd")
+const StreetSatire = preload("res://scripts/street_satire.gd")
 const EquipmentWheel = preload("res://scripts/equipment_wheel.gd")
 const Reticle = preload("res://scripts/weapon_reticle.gd")
 const CombatFoley = preload("res://scripts/city_foley.gd")
@@ -277,6 +278,8 @@ func _ready() -> void:
 	dialogue_director.name = "DialogueDirector"
 	add_child(dialogue_director)
 	dialogue_director.connect("caption_changed", _show_dialogue_caption)
+	for line in StreetSatire.LINES:
+		dialogue_director.call("prewarm",str(line["id"]))
 	var restore: Dictionary = session.call("take_pending_restore")
 	if restore.is_empty():
 		_refresh_courier_target()
@@ -500,6 +503,8 @@ func _start_opening_office() -> void:
 		# Fail safely to the accessible dialogue rather than strand a new game.
 		game_menu.call("open_opening")
 		return
+	if is_instance_valid(dialogue_director):
+		dialogue_director.call("cancel_all")
 	_opening_office.call("begin_prologue")
 	player.get("visual").call("set_corporate_attire",true)
 	player.global_position = _opening_office.to_global(OpeningOffice.START)
@@ -1057,6 +1062,8 @@ func _update_pedestrians(delta: float, actor: Node3D, indoors: bool) -> void:
 	var street_mode := not indoors and current_transit == null and is_instance_valid(camera)
 	pedestrians.call("tick", delta, actor.global_position, camera, not street_mode,
 		occupied, float(day_night.get("hour")), signal_controller)
+	if is_instance_valid(dialogue_director):
+		pedestrians.call("update_street_dialogue",dialogue_director,actor.global_position+Vector3.UP*1.6,player.get_rid(),street_mode and current_car==null,delta)
 	_pedestrian_scan += delta
 	if not street_mode or _pedestrian_scan < 0.18:
 		return

@@ -53,6 +53,19 @@ def validate_catalog(path, source=None):
                     raise ValueError("Caption speaker mismatch")
                 line["caption"] = cap[len("Lin Xue: "):]
             expected[ident] = line
+    # Runtime GDScript literal is the canonical ambient street source.
+    # Use the actual checked-out script for both snapshot and live validation.
+    street_path=studio.ROOT/"scripts/street_satire.gd"
+    raw=street_path.read_text(encoding="utf-8")
+    match=re.search(r"^const LINES = (\[.*?\])\nconst CAST =",raw,re.M|re.S)
+    if not match:
+        raise ValueError("Missing canonical street dialogue array")
+    street=json.loads(match[1])
+    for row in street:
+        ident=row["id"]
+        if ident in expected or not ident.startswith("street."):
+            raise ValueError("Duplicate or invalid street line")
+        expected[ident]={"id":ident,"character":row["character"],"language":"English","text":row["text"]}
     if set(expected) != set(specs):
         raise ValueError("Catalog coverage differs from spoken script")
     for ident, fields in expected.items():

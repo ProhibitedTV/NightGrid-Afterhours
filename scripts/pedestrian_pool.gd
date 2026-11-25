@@ -4,6 +4,7 @@ extends Node3D
 ## actual ground height and one physics-tick call.
 const Population = preload("res://scripts/sidewalk_population.gd")
 const Routines = preload("res://scripts/civilian_routines.gd")
+const Satire = preload("res://scripts/street_satire.gd")
 const RADIUS = 0.32
 const HEIGHT = 1.8
 const YIELD_SECONDS = 1.2
@@ -112,7 +113,8 @@ func activate(population, id: String, ground_y: float, allowed: Callable) -> boo
 			"arrival":sample.get("arrival", ""), "signal":sample.get("signal", Vector3i.ZERO),
 			"social":0.0,"social_cooldown":0.0,"social_facing":Vector3.ZERO,
 			"routine":sample.get("routine",{}),"intent":"RESTING","dwell_state":"RESTING",
-			"alert_facing":Vector3.ZERO,"alert_cooldown":0.0,"retreat":0.0}
+			"alert_facing":Vector3.ZERO,"alert_cooldown":0.0,"retreat":0.0,
+			"bark_index":posmod(id.hash(),3),"bark_cooldown":0.0}
 		body.collision_layer = 1
 		body.collision_mask = 1
 		body.process_mode = Node.PROCESS_MODE_INHERIT
@@ -164,6 +166,7 @@ func step(delta: float, signals: Node = null, hour: float = -1.0) -> void:
 		lease["alert"] = maxf(0.0, float(lease["alert"]) - delta)
 		lease["alert_cooldown"] = maxf(0.0, float(lease["alert_cooldown"]) - delta)
 		lease["retreat"] = maxf(0.0, float(lease["retreat"]) - delta)
+		lease["bark_cooldown"] = maxf(0.0,float(lease["bark_cooldown"])-delta)
 		lease["hold"] = maxf(0.0, float(lease["hold"]) - delta)
 		lease["social"] = maxf(0.0, float(lease["social"]) - delta)
 		lease["social_cooldown"] = maxf(0.0, float(lease["social_cooldown"]) - delta)
@@ -365,3 +368,37 @@ func capture_active(population) -> bool:
 		if not population.capture_live(id,body.global_position,lease["heading"]):
 			ok = false
 	return ok
+
+## At most one local calm speaker selected per global cooldown, with real LOS.
+func street_bark(space:PhysicsDirectSpaceState3D, listener:Vector3, listener_rid:RID) -> Dictionary:
+	var nearest: String = ""
+	var best := 8.0*8.0
+	for id in _leases:
+		var lease:Dictionary=_leases[id]
+		if not _bark_calm(lease) or float(lease["bark_cooldown"])>0.0:
+			continue
+		var body:=_slots[int(lease["slot"])]
+		var eye:=body.global_position+Vector3.UP*1.6
+		var distance:=eye.distance_squared_to(listener)
+		if distance>best or distance<1.0:
+			continue
+		var ignored:Array[RID]=[body.get_rid(),listener_rid]
+		if not space.intersect_ray(PhysicsRayQueryParameters3D.create(eye,listener,1,ignored)).is_empty():
+			continue
+		best=distance
+		nearest=id
+	if nearest.is_empty():
+		return {}
+	var chosen:Dictionary=_leases[nearest]
+	var line:Dictionary=Satire.line_for(nearest,int(chosen["bark_index"]))
+	chosen["bark_index"]=posmod(int(chosen["bark_index"])+1,3)
+	chosen["bark_cooldown"]=75.0
+	line["speaker"]=_slots[int(chosen["slot"])]
+	line["lease_id"]=nearest
+	return line
+
+static func _bark_calm(lease:Dictionary) -> bool:
+	return float(lease["alert"])<=0.0 and float(lease["retreat"])<=0.0 and lease["state"] in ["WALK","RESTING","BREAK","NIGHT_OUT","ERRAND","STOREFRONT","SOCIALIZE","WAIT_CROSSING"]
+
+func street_bark_valid(id:String) -> bool:
+	return _leases.has(id) and _bark_calm(_leases[id])

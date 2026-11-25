@@ -22,6 +22,8 @@ var _activation_count := 0
 var _release_count := 0
 var _failed_activation := 0
 var _pending_release := 0
+var _street_clock := 12.0
+var _street_lease := ""
 
 func configure(city: Node, seed_value: int, links: Array[Dictionary], approved_visual: PackedScene,
 		capacity: int = Pop.MAX_ACTIVE, models: Array[PackedScene] = []) -> bool:
@@ -191,3 +193,27 @@ func shutdown() -> void:
 
 func _exit_tree() -> void:
 	shutdown()
+
+## Transient ambient dialogue only; no mission, wallet or wanted changes.
+func update_street_dialogue(dialogue:Node, listener:Vector3, listener_rid:RID, allowed:bool, delta:float) -> void:
+	if not _running or not is_instance_valid(dialogue):
+		return
+	if not _street_lease.is_empty() and (not allowed or not bool(_pool.call("street_bark_valid",_street_lease))):
+		dialogue.call("cancel_scope","street:"+_street_lease)
+		_street_lease=""
+	if not allowed:
+		return
+	_street_clock=maxf(0.0,_street_clock-delta)
+	if _street_clock>0.0:
+		return
+	_street_clock=1.0
+	var speech:Dictionary=dialogue.call("stats")
+	if not str(speech["active"]).is_empty() or int(speech["pending"])>0:
+		return
+	var bark:Dictionary=_pool.call("street_bark",get_world_3d().direct_space_state,listener,listener_rid)
+	if bark.is_empty():
+		return
+	var lease_id:=str(bark["lease_id"])
+	if dialogue.call("enqueue",str(bark["id"]),str(bark["text"]),0,bark["speaker"],"street:"+lease_id):
+		_street_lease=lease_id
+		_street_clock=24.0
