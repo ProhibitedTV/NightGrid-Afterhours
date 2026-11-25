@@ -322,6 +322,9 @@ func _log_playtest(name: String, details: Dictionary = {}) -> void:
 		"indoors": indoors,
 		"mode": "car" if current_car != null else ("transit_" + transit_kind.to_lower() if current_transit != null else "on_foot")
 	}
+	if is_instance_valid(_opening_office):
+		context["chapter"]=_opening_diagnostic_context()
+		context["indoors"]=_inside_opening_hq()
 	if current_car != null:
 		context["speed_kph"] = current_car.call("speed_kph")
 	if name == "manual_marker":
@@ -671,6 +674,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if not event.is_pressed():
 		return
+	if _handle_playtest_diagnostic(event):
+		get_viewport().set_input_as_handled()
+		return
 	if is_instance_valid(_opening_office):
 		if event.is_action_pressed("interact") or (_opening_office.call("arrival_active") and event.is_action_pressed("game_pause")):
 			_opening_interact()
@@ -748,26 +754,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("toggle_fps"):
 		performance_overlay = not performance_overlay
 		performance_label.visible = performance_overlay
-	elif event.is_action_pressed("playtest_mark"):
-		_log_playtest("manual_marker", {"note": "Player pressed F7 after noticing an issue"})
-		playtest_logger.flush()
-		_notify("Playtest marker saved: " + playtest_logger.get_log_path() if playtest_logger.is_active() else "Playtest logging unavailable.")
-	elif event.is_action_pressed("record_frame_trace"):
-		if frame_time_recorder.recording or frame_time_recorder.capture_full:
-			frame_time_recorder.end_capture()
-			var exported: String = frame_time_recorder.export_csv()
-			var transitions: String = frame_time_recorder.export_vehicle_trace(exported)
-			_log_playtest("frame_trace_saved", {"path": exported, "vehicle_transitions":transitions,"frames":frame_time_recorder.captured_frames()})
-			_notify("Drive trace saved: " + exported if not exported.is_empty() else "Drive trace export failed.")
-		else:
-			var stream_start: Dictionary = city_details.call("get_streaming_stats")
-			frame_time_recorder.begin_capture(int(stream_start["loads"]),
-				int(stream_start.get("stage_steps", 0)), int(stream_start.get("total_build_usec", 0)))
-			_log_playtest("frame_trace_started")
-			_notify("Drive trace recording. Press F8 again to save a CSV.")
-	elif event.is_action_pressed("capture_playtest_frame"):
-		if not _capturing_evidence:
-			call_deferred("_capture_playtest_frame")
 	elif event.is_action_pressed("compare_render_look"):
 		var profile: String = str(day_night.call("cycle_render_profile"))
 		_log_playtest("render_profile_switched", {"render_profile": profile})
@@ -779,6 +765,31 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	get_viewport().set_input_as_handled()
 
+func _handle_playtest_diagnostic(event:InputEvent) -> bool:
+	if event.is_action_pressed("playtest_mark"):
+		_log_playtest("manual_marker", {"note": "Player pressed F7 after noticing an issue"})
+		playtest_logger.flush()
+		_notify("Playtest marker saved: " + playtest_logger.get_log_path() if playtest_logger.is_active() else "Playtest logging unavailable.")
+	elif event.is_action_pressed("record_frame_trace"):
+		if frame_time_recorder.recording or frame_time_recorder.capture_full:
+			frame_time_recorder.end_capture()
+			var exported: String = frame_time_recorder.export_csv()
+			var transitions: String = frame_time_recorder.export_vehicle_trace(exported)
+			_log_playtest("frame_trace_saved", {"path": exported, "vehicle_transitions":transitions,"frames":frame_time_recorder.captured_frames()})
+			_notify("Frame trace saved: " + exported if not exported.is_empty() else "Frame trace export failed.")
+		else:
+			var stream_start: Dictionary = city_details.call("get_streaming_stats")
+			frame_time_recorder.begin_capture(int(stream_start["loads"]),
+				int(stream_start.get("stage_steps", 0)), int(stream_start.get("total_build_usec", 0)))
+			_log_playtest("frame_trace_started")
+			_notify("Frame trace recording. Press F8 again to save a CSV.")
+	elif event.is_action_pressed("capture_playtest_frame"):
+		if not _capturing_evidence:
+			call_deferred("_capture_playtest_frame")
+	else:
+		return false
+	return true
+
 ## F10 produces a genuine rendered viewport frame without HUD, plus an
 ## adjacent JSON record with exact camera pose, game world, settings and
 ## measured rolling frame intervals. No world teleport or save mutation.
@@ -787,7 +798,15 @@ func _capture_playtest_frame() -> void:
 		return
 	if game_menu != null and game_menu.call("is_open"):
 		return
+	var office_capture:=is_instance_valid(_opening_office)
+	if office_capture and (_opening_office.call("arrival_active") or _opening_office.call("lift_active")):
+		print("F10: capture after the arrival or lift transition.")
+		return
 	_capturing_evidence = true
+	var office_layer:CanvasLayer=_opening_office.get("_intro_canvas") if office_capture else null
+	var office_was_visible:=is_instance_valid(office_layer) and office_layer.visible
+	if is_instance_valid(office_layer):
+		office_layer.hide()
 	var hud_layer := get_node_or_null("HUD") as CanvasLayer
 	var hud_was_visible := hud_layer != null and hud_layer.visible
 	if hud_layer != null:
@@ -799,6 +818,8 @@ func _capture_playtest_frame() -> void:
 	var framebuffer := get_viewport().get_texture().get_image()
 	if hud_layer != null:
 		hud_layer.visible = hud_was_visible
+	if is_instance_valid(office_layer) and is_instance_valid(_opening_office) and not _opening_office.call("lift_active"):
+		office_layer.visible=office_was_visible
 	if framebuffer == null or framebuffer.is_empty():
 		_capturing_evidence = false
 		_notify("F10 capture failed: renderer returned no framebuffer.")
@@ -814,7 +835,9 @@ func _capture_playtest_frame() -> void:
 		"world_seed": int(session.get("world_seed")),
 		"game_clock": str(day_night.call("clock_string")),
 		"district": str(city_details.call("get_district_at", outdoor_position)),
-		"indoors": bool(interiors.call("is_inside")),
+		"indoors": bool(interiors.call("is_inside")) or _inside_opening_hq(),
+		"chapter_context": _opening_diagnostic_context(),
+		"build_revision": BuildInfo.REVISION,
 		"motion_context": motion,
 		"graphic_settings": game_menu.call("get_settings"),
 		"render_profile": str(day_night.call("get_render_profile")),
@@ -838,10 +861,24 @@ func _capture_playtest_frame() -> void:
 		_log_playtest("screenshot_failed", {"error": str(result.get("error", "unknown error"))})
 		_notify("F10 capture failed: " + str(result.get("error", "unknown error")))
 
+func _inside_opening_hq() -> bool:
+	if not is_instance_valid(_opening_office):
+		return false
+	var local:=_opening_office.to_local(player.global_position)
+	return absf(local.x)<8.5 and absf(local.z)<10.0
+
+func _opening_diagnostic_context() -> Dictionary:
+	if not is_instance_valid(_opening_office):
+		return {}
+	return {"site":"synaxis_hq","floor":int(_opening_office.get("_active_floor")),"stage":int(_opening_office.call("objective_stage",int(game_menu.get("_opening_stage")))),"arrival":bool(_opening_office.call("arrival_active")),"lift":bool(_opening_office.call("lift_active")),"offboarding":bool(_opening_office.call("exit_active"))}
+
 func _process(delta: float) -> void:
 	if not is_instance_valid(player):
 		return
 	if is_instance_valid(_opening_office):
+		var opening_stream:Dictionary=city_details.call("get_streaming_stats")
+		frame_time_recorder.sample_frame(delta,opening_stream,player.global_position,false)
+		playtest_logger.sample_frame(delta,opening_stream,player.global_position,"synaxis_opening")
 		if _opening_office.call("arrival_active"):
 			if not _opening_office.call("tick_arrival",delta,player,camera):
 				_snap_camera()
