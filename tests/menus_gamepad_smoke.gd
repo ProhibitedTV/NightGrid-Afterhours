@@ -494,6 +494,11 @@ func _verify() -> void:
 		if employee.get_node_or_null("BreathingTorso/SynaxisEmployeeBadge")==null or str(employee.get("display_name")).is_empty():
 			_fail("Each employee has physical department attire and an identity")
 			return
+	var founder: Node3D=staff["jetson_wang"]
+	var jacket: MeshInstance3D=founder.get_node_or_null("BreathingTorso/JacketSilhouette")
+	if founder.get("outfit")!="executive_leather" or jacket==null or not jacket.material_override.normal_enabled or founder.get_node_or_null("BreathingTorso/MainZipperTrack")==null or founder.get_node_or_null("BreathingTorso/TieBlade")!=null:
+		_fail("Jetson has signature textured leather outerwear, zipper details and no tie")
+		return
 	var mika: Node3D=staff["mika"]
 	var staff_line: String=office.call("update_staff_attention",-2,mika.global_position+Vector3.UP*1.15)
 	if not staff_line.contains("Mika Torres") or not mika.call("get_staff_state")["attention"]:

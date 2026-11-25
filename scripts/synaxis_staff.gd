@@ -14,6 +14,7 @@ var _badge: Node3D
 var _mouth_detail: Node3D
 var _skin_color := Color.WHITE
 var _coat_color := Color.WHITE
+static var _executive_leather: StandardMaterial3D
 
 func configure_staff(data: Dictionary) -> void:
 	configure(data)
@@ -27,11 +28,57 @@ func configure_staff(data: Dictionary) -> void:
 	scale=Vector3(float(data.get("width",.78)),float(data.get("height",.91)),.82)
 
 func _mat(kind: String,color: Color) -> StandardMaterial3D:
+	if outfit=="executive_leather" and (kind=="LEATHER" or (kind=="FABRIC" and color==JACKETS[palette])):
+		return _leather_material()
 	if kind=="SKIN" and color==SKINS[palette]:
 		color=_skin_color
 	if kind=="FABRIC" and color==JACKETS[palette]:
 		color=_coat_color
 	return super._mat(kind,color)
+
+static func _leather_material() -> StandardMaterial3D:
+	if _executive_leather==null:
+		var mat:=StandardMaterial3D.new()
+		mat.albedo_color=Color("202125")
+		mat.roughness=.47
+		mat.metallic=0.0
+		# Fine matte grain, shared by all jacket pieces, generated once.
+		var grain:=FastNoiseLite.new()
+		grain.seed=307
+		grain.frequency=.38
+		var texture:=NoiseTexture2D.new()
+		texture.width=128
+		texture.height=128
+		texture.seamless=true
+		texture.as_normal_map=true
+		texture.bump_strength=1.1
+		texture.noise=grain
+		mat.normal_enabled=true
+		mat.normal_texture=texture
+		mat.normal_scale=.30
+		_executive_leather=mat
+	return _executive_leather
+
+func _build_executive_leather() -> void:
+	var edge:=Color("34343a")
+	var hardware:=Color("909397")
+	var shirt:=Color("252b34")
+	_box(_torso,"ExecutiveOpenNeck",Vector3(0,.31,.236),Vector3(.145,.12,.035),shirt,"FABRIC")
+	for side in [-1.0,1.0]:
+		var fold:=_box(_torso,"LeatherCollar",Vector3(side*.12,.28,.238),Vector3(.095,.24,.038),edge,"LEATHER")
+		fold.rotation.z=side*.42
+		var seam:=_box(_torso,"FrontPanelSeam",Vector3(side*.19,-.095,.211),Vector3(.012,.43,.018),edge,"FABRIC")
+		seam.rotation.z=side*.08
+		var pocket:=_box(_torso,"ZippedWeltPocket",Vector3(side*.20,-.17,.225),Vector3(.14,.023,.018),hardware,"METAL")
+		pocket.rotation.z=side*.19
+		_box(_torso,"PocketZipperPull",Vector3(side*.245,-.183,.242),Vector3(.022,.042,.011),hardware,"METAL")
+		var shoulder:=_ellipsoid(_torso,"LeatherShoulderPanel",Vector3(side*.33,.235,.015),Vector3(.25,.17,.31),edge,"LEATHER")
+		shoulder.rotation.z=-side*.22
+	_box(_torso,"MainZipperTrack",Vector3(0,-.175,.231),Vector3(.021,.31,.017),hardware,"METAL")
+	_box(_torso,"MainZipperPull",Vector3(.015,-.02,.246),Vector3(.028,.058,.015),hardware,"METAL")
+	_box(_torso,"JacketHem",Vector3(0,-.36,.115),Vector3(.48,.055,.20),edge,"LEATHER")
+	# A distinctive small fictional executive pin, not a real company logo.
+	_box(_torso,"FounderPin",Vector3(-.165,.20,.262),Vector3(.046,.027,.016),Color("76b6b0"),"METAL")
 
 func _ready() -> void:
 	super._ready()
@@ -67,9 +114,11 @@ func _ready() -> void:
 	if glasses:
 		_box(_head,"SpectacleBridge",Vector3(0,.045,.238),Vector3(.107,.012,.016),Color("303239"),"METAL")
 	_mouth_detail=_head.get_node_or_null("Mouth")
-	var shirt:=Color("d9dbd6") if outfit!="security" else Color("8295a3")
+	var shirt:=Color("252b34") if outfit=="executive_leather" else (Color("d9dbd6") if outfit!="security" else Color("8295a3"))
 	_box(_torso,"ShirtFront",Vector3(0,.12,.205),Vector3(.20,.49,.036),shirt,"FABRIC")
-	if outfit in ["executive","hr","security","supervisor"]:
+	if outfit=="executive_leather":
+		_build_executive_leather()
+	elif outfit in ["executive","hr","security","supervisor"]:
 		for side in [-1.0,1.0]:
 			var lapel:=_box(_torso,"NotchLapel",Vector3(side*.13,.12,.231),Vector3(.09,.42,.026),_coat_color.lightened(.10),"FABRIC")
 			lapel.rotation.z=side*.30
@@ -127,5 +176,9 @@ func _process(delta: float) -> void:
 		if _scene_beat>=0:
 			_right_hand.position.y=-.40+(.14 if _scene_beat==2 else .06)*absf(sin(t*2.1))
 			_head.rotation.x=.045 if _scene_beat==2 else -.025
+			if outfit=="executive_leather" and _scene_beat==1:
+				# Briefly look toward the assistant, then hold an uneasy silence.
+				_head.rotation.y=lerpf(_head.rotation.y,.38,clampf(delta*3.0,0.0,1.0))
+				_right_hand.position.y=-.40
 	if _mouth_detail!=null:
 		_mouth_detail.scale.y=.018*(1.0+.25*absf(sin(t*13.0))) if _scene_beat>=0 else .018

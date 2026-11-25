@@ -68,3 +68,6 @@ The protagonist is a Corporate IP Security Analyst, not general IT support. The 
 
 ### Synaxis cast pass
 Eight named staff plus Lin Xue have authored identities, anchored department roles, individual clothing, grooming and accessories, idle gesture variations, and short nonmodal proximity remarks that change with the investigation. CEO and HR gestures follow dialogue beats. These are detailed interim articulated NPC models, not final scanned or weighted human assets. No pathfinding or VO yet. Staff retire on offboarding; the headquarters remains. The existing arrival smoke-test variable shadowing error was corrected.
+
+### Jetson Wang — fictional founder wardrobe
+Jetson has a signature near-black leather jacket, open-neck charcoal shirt, zippered welt pockets, metallic hardware, shoulder panels, leather grain normal texture and an original founder pin. He is deliberately distinct from the suit-and-tie protagonist. His original face and identity remain fictional; the costume is a broad tech-founder satire, not an exact likeness or a claim about an actual executive. Native material, fit and framing review remain pending.

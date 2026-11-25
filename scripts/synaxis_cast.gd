@@ -1,7 +1,7 @@
 extends RefCounted
 ## Authored staff anchors and short nonmodal office remarks. No procedural identity.
 const STAFF = [
-	{"id":"jetson_wang","name":"Jetson Wang","role":"Chief Executive Officer","activity":"CHAT","seated":true,"palette":2,"position":Vector3(5,0,-6.65),"yaw":0.0,"outfit":"executive","hair":"silver","glasses":false,"coat":"27303d","height":.94,"width":.84,"phase":1.2},
+	{"id":"jetson_wang","name":"Jetson Wang","role":"Chief Executive Officer","activity":"CHAT","seated":true,"palette":2,"position":Vector3(5,0,-6.65),"yaw":0.0,"outfit":"executive_leather","hair":"silver","glasses":false,"coat":"202125","height":.94,"width":.84,"phase":1.2},
 	{"id":"people_ops","name":"Dana Mercer","role":"People Experience partner","activity":"TYPE","seated":true,"palette":4,"position":Vector3(-5,0,-6.65),"yaw":0.0,"outfit":"hr","hair":"bun","glasses":true,"coat":"514454","height":.88,"width":.74,"phase":2.1},
 	{"id":"dev","name":"Dev Rao","role":"Platform engineer","activity":"SIP","seated":false,"palette":1,"position":Vector3(-5.35,0,9.18),"yaw":PI,"outfit":"office","hair":"dark","glasses":true,"coat":"4e6570","height":.91,"width":.76,"phase":.7},
 	{"id":"rina","name":"Rina Vale","role":"QA analyst","activity":"CHAT","seated":false,"palette":3,"position":Vector3(-3.1,0,9.18),"yaw":PI,"outfit":"office","hair":"bun","glasses":false,"coat":"695a69","height":.85,"width":.72,"phase":3.4},
@@ -17,7 +17,7 @@ const REMARKS = {
 	"rina":["The benefits renewal is on the noticeboard. Have you seen it?","They want a photo before lunch. Of course they do.","I saw your meeting disappear from the calendar."],
 	"reception":["Good morning. Your badge is active.","Executive Affairs called. They're expecting you.","I'm sorry. They told me to prepare the exit paperwork."],
 	"security":["Badge reader's been temperamental all week.","Stay on the employee side, please.","I'm just following the access list."],
-	"jetson_wang":["Good morning.","My office is expecting you.","Let's keep this within the executive team."],
+	"jetson_wang":["Good morning. Remember: move fast, audit later.","My office is expecting you.","Let's keep this within the executive team."],
 	"people_ops":["Have a productive shift.","I'll send the revised benefits notice.","Please take a seat. This won't take long."]
 }
 
