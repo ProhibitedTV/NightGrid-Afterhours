@@ -36,3 +36,6 @@ Made with **Godot 4.7.2**. [Developer notes](docs/DEVELOPMENT.md) · [Roadmap](h
 
 ### Environmental sound authoring
 See [Offline SFX authoring](docs/SFX_AUTHORING.md) for the optional local Stable Audio 3 pipeline and review process.
+
+### Unified audio production
+See [Anubis audio studio](docs/AUDIO_PRODUCTION_STUDIO.md) for dialogue, NPC choices, SFX and ambience. Neural processing is development-only; game assets require review.
