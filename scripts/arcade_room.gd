@@ -8,7 +8,7 @@ const ROOK_LINES := [
 	"We kept the old cabinets offline. They still work.",
 	"Play what you love. You don't owe a publisher your evenings."
 ]
-var cabinets: Array[StaticBody3D] = []
+var cabinets: Array[Cabinet] = []
 var _line_index := 0
 
 func _ready() -> void:
