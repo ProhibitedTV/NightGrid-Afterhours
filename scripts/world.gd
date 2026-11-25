@@ -174,6 +174,7 @@ var _arcade_layer: CanvasLayer
 var _arcade_best: Dictionary = {}
 const ArcadeScreen = preload("res://scenes/arcade_pilot.tscn")
 const ArcadeScores = preload("res://scripts/arcade_scores.gd")
+const ArcadeCircuit = preload("res://scripts/arcade_circuit_board.gd")
 var nightgrid_fm: Node
 var world_audio: Node
 var frame_time_recorder = FrameTimeRecorder.new()
@@ -2234,6 +2235,20 @@ func _open_arcade(id: String) -> bool:
 	if not screen.call("configure_cabinet", id, _arcade_best):
 		screen.free()
 		return false
+	screen.connect("score_recorded", _record_arcade_score)
+	return _present_arcade_overlay(screen)
+
+func _open_arcade_circuit() -> bool:
+	if is_instance_valid(_arcade_layer) or get_tree().paused or current_car != null or current_transit != null:
+		return false
+	if not interiors.call("arcade_circuit_near",player.global_position):
+		return false
+	var screen := ArcadeCircuit.new()
+	screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	screen.configure(_arcade_best)
+	return _present_arcade_overlay(screen)
+
+func _present_arcade_overlay(screen: Control) -> bool:
 	_arcade_layer = CanvasLayer.new()
 	_arcade_layer.name = "ArcadeModal"
 	_arcade_layer.layer = 100
@@ -2241,7 +2256,6 @@ func _open_arcade(id: String) -> bool:
 	add_child(_arcade_layer)
 	_arcade_layer.add_child(screen)
 	screen.connect("exit_requested", _close_arcade)
-	screen.connect("score_recorded", _record_arcade_score)
 	suspend_weapon()
 	player.set("input_blocked", true)
 	player.velocity = Vector3.ZERO
@@ -2250,7 +2264,11 @@ func _open_arcade(id: String) -> bool:
 	return true
 
 func _record_arcade_score(id: String, value: int) -> void:
-	ArcadeScores.record(_arcade_best,id,value)
+	var before := ArcadeScores.circuit_count(_arcade_best)
+	if ArcadeScores.record(_arcade_best,id,value):
+		var after := ArcadeScores.circuit_count(_arcade_best)
+		if after > before:
+			_notify("ROOK: Local Legend! All eight stamps earned." if after == 8 else "ROOK: Circuit stamp earned. %d/8." % after)
 
 func _close_arcade() -> void:
 	if not is_instance_valid(_arcade_layer):
@@ -2363,6 +2381,8 @@ func _toggle_interaction() -> void:
 			var cabinet_id := str(interiors.call("arcade_cabinet_near", player.global_position))
 			if not cabinet_id.is_empty():
 				_open_arcade(cabinet_id)
+			elif interiors.call("arcade_circuit_near",player.global_position):
+				_open_arcade_circuit()
 			else:
 				var exhibit: Dictionary = interiors.call("arcade_exhibit_near",player.global_position)
 				if not exhibit.is_empty():
@@ -3711,6 +3731,8 @@ func _update_hud() -> void:
 			var cabinet_id := str(interiors.call("arcade_cabinet_near", player.global_position))
 			if not cabinet_id.is_empty():
 				prompts.append("%s  Play %s (free)" % [interact_key, cabinet_id.replace("_", " ").capitalize()])
+			elif interiors.call("arcade_circuit_near",player.global_position):
+				prompts.append("%s  Rook's circuit (%d/8)" % [interact_key,ArcadeScores.circuit_count(_arcade_best)])
 			else:
 				var exhibit: Dictionary = interiors.call("arcade_exhibit_near",player.global_position)
 				var regular: Dictionary = interiors.call("arcade_regular_near",player.global_position)

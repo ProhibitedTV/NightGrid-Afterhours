@@ -6,6 +6,8 @@ const Dressing = preload("res://scripts/arcade_dressing.gd")
 const Heritage = preload("res://scripts/arcade_heritage.gd")
 var heritage: Node3D
 const CARPET = preload("res://assets/arcade/carpet_tile.svg")
+const CIRCUIT_ART = preload("res://assets/arcade/circuit_poster.svg")
+const CIRCUIT_POINT := Vector3(0,1.15,-3.35)
 var dressing: Node3D
 const ROOK_LINES := [
 	"The devs aren't the problem. The boardroom is.",
@@ -18,7 +20,8 @@ const ROOK_LINES := [
 	"If the season ends before you finish, come back whenever. We don't track attendance.",
 	"Go read the archive by the entrance. The people who made games worth loving deserve their flowers.",
 	"The apology trophy is fake. The cartridge shelf is the real treasure.",
-	"Games are a medium, not a monthly invoice."
+	"Games are a medium, not a monthly invoice.",
+	"Try my circuit. Eight little challenges, no expiry date. You play when you feel like it."
 ]
 var cabinets: Array[Cabinet] = []
 var _line_index := 0
@@ -57,6 +60,20 @@ func _ready() -> void:
 	heritage = Heritage.new()
 	heritage.name = "GameCultureArchive"
 	add_child(heritage)
+	var poster := MeshInstance3D.new()
+	poster.name = "CircuitPoster"
+	var quad := QuadMesh.new()
+	quad.size = Vector2(1.55,.97)
+	poster.mesh = quad
+	var poster_mat := StandardMaterial3D.new()
+	poster_mat.albedo_texture = CIRCUIT_ART
+	poster_mat.roughness = .9
+	poster.material_override = poster_mat
+	poster.position = Vector3(0,1.05,-4.96)
+	add_child(poster)
+
+func circuit_near(at: Vector3) -> bool:
+	return to_local(at).distance_to(CIRCUIT_POINT) < .8
 
 func exhibit_near(at: Vector3) -> Dictionary:
 	return heritage.call("exhibit_near",at) if is_instance_valid(heritage) else {}

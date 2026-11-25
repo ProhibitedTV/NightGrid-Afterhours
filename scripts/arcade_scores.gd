@@ -13,6 +13,34 @@ const RIVALS := {
 	"battle_pass_hero": [["NYX",1560],["MARA",1300],["ROOK",1000]]
 }
 
+# Designed to be reachable by ordinary play, with no daily attendance requirement.
+const CIRCUIT := [
+	{"id":"grand_delay","goal":800,"rival":"JET","title":"ROAD TRIP"},
+	{"id":"claw_compliance","goal":600,"rival":"NYX","title":"NO COMMITTEE"},
+	{"id":"patch_day","goal":1000,"rival":"EV","title":"HOTFIX HERO"},
+	{"id":"indie_dev","goal":1000,"rival":"HAL","title":"SHIP IT"},
+	{"id":"annual_warfare","goal":1800,"rival":"ASH","title":"OLD SQUAD"},
+	{"id":"day_one_dlc","goal":1400,"rival":"EV","title":"COMPLETE EDITION"},
+	{"id":"open_world_checklist","goal":1000,"rival":"JET","title":"TOUCH GRASS"},
+	{"id":"battle_pass_hero","goal":900,"rival":"NYX","title":"FREE TIME"}
+]
+
+static func circuit_rows(scores: Dictionary) -> Array:
+	var rows := []
+	for challenge in CIRCUIT:
+		var row: Dictionary = challenge.duplicate()
+		row["best"] = int(scores.get(row["id"],0))
+		row["earned"] = row["best"] >= row["goal"]
+		rows.append(row)
+	return rows
+
+static func circuit_count(scores: Dictionary) -> int:
+	var count := 0
+	for row in circuit_rows(scores):
+		if row["earned"]:
+			count += 1
+	return count
+
 static func valid(value: Variant) -> bool:
 	if not value is Dictionary or value.size() > Catalog.IDS.size():
 		return false

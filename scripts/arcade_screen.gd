@@ -175,6 +175,10 @@ func _draw() -> void:
 		_line("SCORE  %06d  /  BEST  %06d" % [round.score, int(best.get(id, 0))], Vector2(32, 245), Color.WHITE, 24)
 		if new_record:
 			_line("NEW PERSONAL BEST!", Vector2(32, 275), accent, 19)
+		for row in Scores.circuit_rows(best):
+			if row["id"] == id and row["earned"]:
+				_line("CIRCUIT STAMP: "+str(row["title"]),Vector2(32,345),Color("69d8c2"),17)
+				break
 		var joke := "Next-gen features sold separately." if id == "grand_delay" else "Your combat performance is pending stakeholder approval."
 		if round is AltRound or round is ExtraRound or round is SeasonRound:
 			joke = round.feedback

@@ -34,6 +34,8 @@ func _verify() -> void:
 	await process_frame
 	if not check(rooms.restore(snap,site) and rooms.active_site_id() == "insert_coin", "legacy room save restore"):
 		return
+	if not check(rooms.arcade_circuit_near(Room.ORIGIN+Vector3(0,1.15,-3.35)) and not rooms.arcade_circuit_near(entry), "circuit board proximity"):
+		return
 	var highs := {}
 	if not check(Scores.record(highs,"patch_day",150) and not Scores.record(highs,"patch_day",149) and not Scores.record(highs,"missing",500) and not Scores.record(highs,"patch_day",20001), "score settlement monotonic and bounded"):
 		return
@@ -42,6 +44,22 @@ func _verify() -> void:
 		return
 	if not check(Scores.board("patch_day",restored_highs).size() == 4 and Scores.board("patch_day",restored_highs)[3][0] == "YOU", "local board order"):
 		return
+	var stamps := {}
+	if not check(Scores.circuit_count(stamps) == 0 and Scores.circuit_rows(stamps).size() == 8, "empty circuit"):
+		return
+	for challenge in Scores.CIRCUIT:
+		Scores.record(stamps,challenge["id"],challenge["goal"]-1)
+	if not check(Scores.circuit_count(stamps) == 0, "threshold minus one does not earn stamp"):
+		return
+	for challenge in Scores.CIRCUIT:
+		Scores.record(stamps,challenge["id"],challenge["goal"])
+	if not check(Scores.circuit_count(stamps) == 8 and Scores.circuit_count(Scores.normalized(JSON.parse_string(JSON.stringify(stamps)))) == 8, "eight stamps survive save roundtrip"):
+		return
+	var board := preload("res://scripts/arcade_circuit_board.gd").new()
+	board.configure(stamps)
+	if not check(board.count == 8 and board.rows.size() == 8, "read-only circuit board"):
+		return
+	board.free()
 	var session := Session.new()
 	var snapshot := session.make_snapshot({"player_position":[0,1,0],"cash":0,"health":100,"deliveries":0,"carrying":false,"hour":19,"cars":[],"traffic":{},"rail":{}})
 	if not check(session.is_valid_snapshot(snapshot), "old saves need no score field"):

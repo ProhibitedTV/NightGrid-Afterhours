@@ -52,6 +52,12 @@ func arcade_cabinet_near(at: Vector3) -> String:
 	var kit := _room.get_node_or_null("ArcadeRoom")
 	return str(kit.call("cabinet_near", at)) if kit != null else ""
 
+func arcade_circuit_near(at: Vector3) -> bool:
+	if active_id != "insert_coin" or _room == null:
+		return false
+	var kit := _room.get_node_or_null("ArcadeRoom")
+	return bool(kit.call("circuit_near",at)) if kit != null else false
+
 func arcade_exhibit_near(at: Vector3) -> Dictionary:
 	if active_id != "insert_coin" or _room == null:
 		return {}
