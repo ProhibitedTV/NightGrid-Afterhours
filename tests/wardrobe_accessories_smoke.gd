@@ -2,6 +2,7 @@ extends SceneTree
 const Catalog=preload("res://scripts/wardrobe_catalog.gd")
 const Access=preload("res://scripts/wardrobe_accessories.gd")
 const Visual=preload("res://scripts/courier_visual.gd")
+const Ledger=preload("res://scripts/progression_ledger.gd")
 
 func _initialize() -> void:
 	call_deferred("_verify")
@@ -46,6 +47,20 @@ func _verify()->void:
 			return
 	mixed.erase("hat")
 	if not check(actor.set_look(Catalog.DEFAULT,mixed) and not attached["hat_thread_cap"].visible and attached["glasses_metro"].visible and attached["watch_commute"].visible,"remove only headwear"):
+		return
+	var p:=Ledger.new()
+	p.set_balance(100)
+	if not check(p.buy_piece("hat_thread_cap","USD",true) and p.select_piece("hat_thread_cap",true) and p.save_look("look_1",true),"purchase headwear and save preset"):
+		return
+	var saved:=p.snapshot()
+	var restored:=Ledger.new()
+	if not check(restored.restore(p.balance,saved) and restored.owns_piece("hat_thread_cap") and restored.clothing_slots.get("hat")=="hat_thread_cap","headwear ownership round trip"):
+		return
+	if not check(restored.clear_piece("hat",true) and restored.owns_piece("hat_thread_cap") and restored.equip_look("look_1",true) and restored.clothing_slots.get("hat")=="hat_thread_cap","remove and equip owned preset"):
+		return
+	var invalid:=saved.duplicate(true)
+	invalid["clothing_slots"]["hat"]="glasses_metro"
+	if not check(not restored.restore(999,invalid) and restored.balance==p.balance and restored.clothing_slots.get("hat")=="hat_thread_cap","reject invalid hat slot atomically"):
 		return
 	print("WARDROBE_ACCESSORIES PASS: ",count," fitted accessory IDs; native visual fit pending")
 	quit(0)
