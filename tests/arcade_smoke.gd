@@ -3,6 +3,7 @@ const Round = preload("res://scripts/arcade_round.gd")
 const Alt = preload("res://scripts/arcade_alt_round.gd")
 const Extra = preload("res://scripts/arcade_extra_round.gd")
 const Season = preload("res://scripts/arcade_season_round.gd")
+const Classic = preload("res://scripts/arcade_classic_round.gd")
 func _initialize() -> void:
 	call_deferred("_verify")
 
@@ -146,6 +147,44 @@ func _verify() -> void:
 	while not pass_game.finished:
 		pass_game.advance()
 	if not check(pass_game.lives == 0 and not pass_game.result()["cleared"], "missed seasons terminate"):
+		return
+	var classic := Classic.new()
+	classic.start("starline_patrol")
+	if not check(classic.enemies.size() == 21 and classic.strike() and not classic.strike(), "shooter wave and fire cooldown"):
+		return
+	classic.shots.clear()
+	classic.shots.append(classic.enemies[0]+Vector2(0,Classic.SHOT_SPEED*Classic.DT))
+	classic.advance()
+	if not check(classic.score == 100 and classic.enemies.size() == 20, "projectile removes exactly one enemy"):
+		return
+	classic.enemies.clear()
+	classic.advance()
+	if not check(classic.wave == 2 and classic.enemies.size() == 21, "next shooter wave"):
+		return
+	classic.start("neon_rebound")
+	classic.steer(-1)
+	for i in range(100):
+		classic.advance()
+	if not check(classic.player_x == Classic.PADDLE_HALF and not classic.launched and classic.strike(), "bounded paddle and explicit launch"):
+		return
+	classic.ball = Vector2(classic.player_x,Classic.SHIP_Y-9)
+	classic.velocity = Vector2(0,180)
+	classic.advance()
+	if not check(classic.velocity.y < 0 and classic.lives == 3, "paddle returns ball"):
+		return
+	classic.ball = Vector2(35,39)
+	classic.velocity = Vector2(0,-180)
+	classic.advance()
+	if not check(classic.score == 50 and classic.bricks.size() == 39, "brick collision awards once"):
+		return
+	classic.ball = Vector2(300,Classic.HEIGHT+10)
+	classic.velocity = Vector2(0,180)
+	classic.advance()
+	if not check(classic.lives == 2 and not classic.launched, "lost ball resets to paddle"):
+		return
+	classic.step = Classic.MAX_TICKS-1
+	classic.advance()
+	if not check(classic.finished, "bounded classic session"):
 		return
 	var screen := preload("res://scenes/arcade_pilot.tscn").instantiate()
 	root.add_child(screen)

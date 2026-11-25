@@ -5,6 +5,7 @@ const Round = preload("res://scripts/arcade_round.gd")
 const AltRound = preload("res://scripts/arcade_alt_round.gd")
 const ExtraRound = preload("res://scripts/arcade_extra_round.gd")
 const SeasonRound = preload("res://scripts/arcade_season_round.gd")
+const ClassicRound = preload("res://scripts/arcade_classic_round.gd")
 const Scores = preload("res://scripts/arcade_scores.gd")
 const AudioMix = preload("res://scripts/audio_mix.gd")
 const CUES := {
@@ -54,7 +55,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		var direction := -1 if event.is_action_pressed("ui_left") else 1
 		if state == "select" and locked_cabinet.is_empty():
 			selection = posmod(selection + direction, Round.IDS.size())
-		elif state == "play":
+		elif state == "play" and not round is ClassicRound:
 			var before := Vector2i(round.score,round.lives)
 			round.steer(direction)
 			_feedback_cue(before)
@@ -89,7 +90,9 @@ func _show_selection() -> void:
 
 func _start_round() -> void:
 	var id: String = Round.IDS[selection]
-	if id == "open_world_checklist" or id == "battle_pass_hero":
+	if id == "starline_patrol" or id == "neon_rebound":
+		round = ClassicRound.new()
+	elif id == "open_world_checklist" or id == "battle_pass_hero":
 		round = SeasonRound.new()
 	elif id == "annual_warfare" or id == "day_one_dlc":
 		round = ExtraRound.new()
@@ -107,6 +110,9 @@ func _start_round() -> void:
 	queue_redraw()
 
 func _process(delta: float) -> void:
+	if round is ClassicRound:
+		_process_classic(delta)
+		return
 	var interval := AltRound.PATCH_SECONDS if round.game_id == "patch_day" else Round.STEP_SECONDS
 	if round.game_id == "annual_warfare":
 		interval = ExtraRound.GALLERY_SECONDS
@@ -123,6 +129,22 @@ func _process(delta: float) -> void:
 		_feedback_cue(before)
 		_finish_if_needed()
 		queue_redraw()
+
+func _process_classic(delta: float) -> void:
+	# Bounded catch-up. Only the one active cabinet runs these fixed steps.
+	elapsed += minf(delta,ClassicRound.DT*4)
+	round.steer(int(Input.is_action_pressed("ui_right"))-int(Input.is_action_pressed("ui_left")))
+	var before := Vector2i(round.score,round.lives)
+	for i in range(4):
+		if elapsed < ClassicRound.DT or round.finished:
+			break
+		elapsed -= ClassicRound.DT
+		if round.game_id == "starline_patrol" and Input.is_action_pressed("ui_accept"):
+			round.strike()
+		round.advance()
+	_feedback_cue(before)
+	_finish_if_needed()
+	queue_redraw()
 
 func _finish_if_needed() -> void:
 	if state == "play" and round.finished:
@@ -180,7 +202,7 @@ func _draw() -> void:
 				_line("CIRCUIT STAMP: "+str(row["title"]),Vector2(32,345),Color("69d8c2"),17)
 				break
 		var joke := "Next-gen features sold separately." if id == "grand_delay" else "Your combat performance is pending stakeholder approval."
-		if round is AltRound or round is ExtraRound or round is SeasonRound:
+		if round is AltRound or round is ExtraRound or round is SeasonRound or round is ClassicRound:
 			joke = round.feedback
 		_line(joke, Vector2(32, 308), accent, 19)
 		_line("ENTER / A  CABINETS     ESC / B  BACK", Vector2(32, 428), Color.WHITE, 18)
@@ -194,6 +216,8 @@ func _draw() -> void:
 		_draw_checklist(accent)
 	elif id == "battle_pass_hero":
 		_draw_season(accent)
+	elif round is ClassicRound:
+		_draw_classic(accent)
 	else:
 		_line("SCORE %06d  |  LIFE %d  |  WAVE %02d/%02d" % [round.score, round.lives, round.step, Round.ROUND_STEPS], Vector2(32, 150), Color.WHITE, 18)
 		for n in range(Round.LANES):
@@ -312,4 +336,34 @@ func _draw_season(accent: Color) -> void:
 		_line(SeasonRound.COMMANDS[round.chain[i]],at+Vector2(14,44),Color("69d8c2") if done else Color.WHITE,22)
 	_line(round.feedback,Vector2(32,391),accent,17)
 	_line("ARROWS / D-PAD + ENTER / A MATCH COMMANDS",Vector2(32,428),Color.WHITE,16)
+	_line("ESC / B ABANDON",Vector2(570,428),Color("a0b0ba"),16)
+
+func _draw_classic(accent: Color) -> void:
+	var origin := Vector2(100,156)
+	var area := Rect2(origin,Vector2(ClassicRound.WIDTH,ClassicRound.HEIGHT))
+	draw_rect(area,Color("090f18"))
+	draw_rect(area,Color("344655"),false,1.0)
+	_line("SCORE %06d   /   LIVES %d   /   WAVE %d" % [round.score,round.lives,round.wave],Vector2(100,146),accent,16)
+	if round.game_id == "starline_patrol":
+		for n in range(32):
+			draw_circle(origin+Vector2(posmod(n*137+29,590)+5,posmod(n*71+19,240)+5),1.0,Color("46566b"))
+		for enemy in round.enemies:
+			var at: Vector2 = origin+enemy
+			draw_colored_polygon(PackedVector2Array([at+Vector2(-13,6),at+Vector2(-8,-7),at+Vector2(8,-7),at+Vector2(13,6),at]),Color("e7a0b3"))
+		for shot in round.shots:
+			draw_rect(Rect2(origin+shot-Vector2(2,5),Vector2(4,10)),accent)
+		for shot in round.enemy_shots:
+			draw_circle(origin+shot,3.0,Color("f1cd82"))
+		var ship := origin+Vector2(round.player_x,ClassicRound.SHIP_Y)
+		draw_colored_polygon(PackedVector2Array([ship+Vector2(-13,8),ship+Vector2(0,-11),ship+Vector2(13,8),ship+Vector2(0,3)]),accent)
+	else:
+		for brick in round.bricks:
+			var bounds: Rect2 = brick
+			var tint := Color("e79e6a") if bounds.position.y < 50 else Color("72d7cf")
+			draw_rect(Rect2(origin+bounds.position,bounds.size),tint)
+		draw_rect(Rect2(origin+Vector2(round.player_x-ClassicRound.PADDLE_HALF,ClassicRound.SHIP_Y),Vector2(ClassicRound.PADDLE_HALF*2,7)),accent)
+		draw_circle(origin+round.ball,ClassicRound.BALL_RADIUS,Color.WHITE)
+		if not round.launched:
+			_line("ENTER / A LAUNCH",Vector2(310,310),accent,18)
+	_line("HOLD LEFT / RIGHT   ENTER / A FIRE OR LAUNCH",Vector2(32,428),Color.WHITE,16)
 	_line("ESC / B ABANDON",Vector2(570,428),Color("a0b0ba"),16)

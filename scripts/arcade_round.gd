@@ -8,9 +8,11 @@ const GAMES := {
 	"annual_warfare": {"title":"ANNUAL WARFARE 19", "studio":"Recurrence Media", "tagline":"Same war. Different price.", "instructions":"Aim at recurring bots. Spare the fan targets. Reload for free.", "color":"a5ca82"},
 	"day_one_dlc": {"title":"DAY-ONE DLC", "studio":"Partition Publishing", "tagline":"Some assembly required.", "instructions":"Slide the empty space to put all eight base-game tiles in order.", "color":"ed9db5"},
 	"open_world_checklist": {"title":"OPEN WORLD CHECKLIST", "studio":"Icon Avalanche", "tagline":"Discover 900 things to do. Enjoy three.", "instructions":"Clear map icons before the next wave arrives. Towers are worth more.", "color":"80bce9"},
-	"battle_pass_hero": {"title":"BATTLE PASS HERO", "studio":"Retention Systems", "tagline":"Your free time is our KPI.", "instructions":"Match the command sequence before the season resets. Earn your glove.", "color":"e6a1ef"}
+	"battle_pass_hero": {"title":"BATTLE PASS HERO", "studio":"Retention Systems", "tagline":"Your free time is our KPI.", "instructions":"Match the command sequence before the season resets. Earn your glove.", "color":"e6a1ef"},
+	"starline_patrol": {"title":"STARLINE PATROL", "studio":"Rook's Restoration Series", "tagline":"One ship. One more try.", "instructions":"Hold left/right to pilot. Hold fire to clear three alien waves.", "color":"72d7cf"},
+	"neon_rebound": {"title":"NEON REBOUND", "studio":"Rook's Restoration Series", "tagline":"Good physics. No fine print.", "instructions":"Move the paddle, launch the ball, and clear two walls of bricks.", "color":"f2a96b"}
 }
-const IDS := ["grand_delay", "claw_compliance", "patch_day", "indie_dev", "annual_warfare", "day_one_dlc", "open_world_checklist", "battle_pass_hero"]
+const IDS := ["grand_delay", "claw_compliance", "patch_day", "indie_dev", "annual_warfare", "day_one_dlc", "open_world_checklist", "battle_pass_hero", "starline_patrol", "neon_rebound"]
 const LANES := 3
 const END_ROW := 5
 const ROUND_STEPS := 32

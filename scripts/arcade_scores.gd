@@ -10,7 +10,9 @@ const RIVALS := {
 	"annual_warfare": [["ASH",4400],["JET",2600],["ROOK",1300]],
 	"day_one_dlc": [["EV",2100],["ROOK",1900],["MARA",1500]],
 	"open_world_checklist": [["JET",2300],["HAL",1700],["ROOK",1200]],
-	"battle_pass_hero": [["NYX",1560],["MARA",1300],["ROOK",1000]]
+	"battle_pass_hero": [["NYX",1560],["MARA",1300],["ROOK",1000]],
+	"starline_patrol": [["ROOK",6100],["NYX",4500],["ASH",2400]],
+	"neon_rebound": [["EV",4100],["ROOK",3300],["HAL",1800]]
 }
 
 # Designed to be reachable by ordinary play, with no daily attendance requirement.

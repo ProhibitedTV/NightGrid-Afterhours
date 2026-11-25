@@ -13,7 +13,7 @@ func _verify() -> void:
 	var room := Room.new()
 	root.add_child(room)
 	await process_frame
-	if not check(room.cabinets.size() == 8, "eight cabinets"):
+	if not check(room.cabinets.size() == 10, "ten cabinets"):
 		return
 	for cabinet in room.cabinets:
 		var front: Vector3 = cabinet.to_global(Vector3(0,1.1,1.0))
@@ -58,6 +58,8 @@ func _verify() -> void:
 		if not check(archive.get_node_or_null(str(exhibit["id"])+"/Illustration") != null, "exhibit has artwork"):
 			return
 	if not check(room.exhibit_near(Vector3(0,1.1,5.8)).is_empty(), "entry not consumed by archive"):
+		return
+	if not check(room.cabinet_near(Vector3(-2.0,1.1,4.5)) == "starline_patrol" and room.cabinet_near(Vector3(2.0,1.1,4.5)) == "neon_rebound", "restored cabinet approach"):
 		return
 	var first := room.rook_line()
 	for i in range(Room.ROOK_LINES.size()-1):

@@ -21,7 +21,9 @@ const ROOK_LINES := [
 	"Go read the archive by the entrance. The people who made games worth loving deserve their flowers.",
 	"The apology trophy is fake. The cartridge shelf is the real treasure.",
 	"Games are a medium, not a monthly invoice.",
-	"Try my circuit. Eight little challenges, no expiry date. You play when you feel like it."
+	"Try my circuit. Eight little challenges, no expiry date. You play when you feel like it.",
+	"Those two classics by the entrance? No satire. Just games worth keeping alive.",
+	"People learned physics from bouncing a ball off a paddle. Never needed a premium edition."
 ]
 var cabinets: Array[Cabinet] = []
 var _line_index := 0
@@ -35,6 +37,10 @@ func _ready() -> void:
 		var depth := -5.4 if i >= 6 else (4.2 if i >= 4 else (-2.2 if i % 2 == 0 else 1.0))
 		cabinet.position = Vector3(-5.6 if left else 5.6,0.0,depth)
 		cabinet.rotation.y = PI / 2.0 if left else -PI / 2.0
+		if i >= 8:
+			# Two restored machines flank the entry aisle, facing into the room.
+			cabinet.position = Vector3(-2.0 if i == 8 else 2.0,0,5.5)
+			cabinet.rotation.y = PI
 		add_child(cabinet)
 		cabinets.append(cabinet)
 	_sign("INSERT COIN",Vector3(0,3.8,-7.9),Color("72d7cf"),56)

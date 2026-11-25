@@ -10,10 +10,12 @@ const ART := {
 	"annual_warfare": preload("res://assets/arcade/annual_warfare.svg"),
 	"day_one_dlc": preload("res://assets/arcade/day_one_dlc.svg"),
 	"open_world_checklist": preload("res://assets/arcade/open_world_checklist.svg"),
-	"battle_pass_hero": preload("res://assets/arcade/battle_pass_hero.svg")
+	"battle_pass_hero": preload("res://assets/arcade/battle_pass_hero.svg"),
+	"starline_patrol": preload("res://assets/arcade/starline_patrol.svg"),
+	"neon_rebound": preload("res://assets/arcade/neon_rebound.svg")
 }
-const TINTS := {"grand_delay": "69d8c2", "claw_compliance": "efb169", "patch_day": "c4a2f3", "indie_dev": "f1cd82", "annual_warfare": "a5ca82", "day_one_dlc": "ed9db5", "open_world_checklist": "80bce9", "battle_pass_hero": "e6a1ef"}
-const SERVICE_STICKERS := {"grand_delay":"RELEASE DATE: TBA", "claw_compliance":"APPROVED BY 12 COMMITTEES", "patch_day":"HOTFIX HOTLINE", "indie_dev":"MADE WITH WEEKENDS OFF", "annual_warfare":"RELOADS ARE FREE", "day_one_dlc":"ALL PARTS INCLUDED", "open_world_checklist":"SOCK NOT INCLUDED", "battle_pass_hero":"NO ATTENDANCE TRACKING"}
+const TINTS := {"grand_delay": "69d8c2", "claw_compliance": "efb169", "patch_day": "c4a2f3", "indie_dev": "f1cd82", "annual_warfare": "a5ca82", "day_one_dlc": "ed9db5", "open_world_checklist": "80bce9", "battle_pass_hero": "e6a1ef", "starline_patrol": "72d7cf", "neon_rebound": "f2a96b"}
+const SERVICE_STICKERS := {"grand_delay":"RELEASE DATE: TBA", "claw_compliance":"APPROVED BY 12 COMMITTEES", "patch_day":"HOTFIX HOTLINE", "indie_dev":"MADE WITH WEEKENDS OFF", "annual_warfare":"RELOADS ARE FREE", "day_one_dlc":"ALL PARTS INCLUDED", "open_world_checklist":"SOCK NOT INCLUDED", "battle_pass_hero":"NO ATTENDANCE TRACKING", "starline_patrol":"RESTORED BY ROOK", "neon_rebound":"ORIGINAL BOARD / FREE PLAY"}
 const CRT = preload("res://assets/arcade/attract_crt.gdshader")
 var game_id := "grand_delay"
 static var materials: Dictionary = {}
