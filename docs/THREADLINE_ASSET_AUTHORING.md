@@ -16,3 +16,14 @@ Native review: inspect body coverage, elbows, armpits, neck, waist, crotch, shoe
 Source and licensing: same pinned Ara/MakeHuman lineage as assets/models/nightgrid/courier/SOURCE.md; verify source/license for each garment before promotion. Document current source, model/profile hashes and genuine captures. No binary assets generated in this commit.
 
 The offline structural gate additionally verifies every four-influence joint index and weight vector: legal joint range, finite and nonnegative weights, normalized integer encoding where applicable, and sum within 0.015 of unity. Structural acceptance is not a substitute for visual fit. No new fitted binaries are claimed by this increment.
+
+## Native review station
+
+After generating and importing candidates, run a real native Godot window from the repo root:
+
+```bash
+godot --path . --import --quit
+godot --path . --script res://tools/wardrobe/review_station.gd -- res://assets/models/nightgrid/wardrobe_candidates/tee_denim_trainer/Morrow_Courier.glb --capture-dir=user://wardrobe-review
+```
+
+Provide additional candidate paths after `--` to cycle them with N/P. Arrow keys orbit and change the six live animation clips, B compares the original courier, +/- zooms, F10 records a genuine viewport PNG with pose and candidate ID. This isolated development scene never writes saves or installs gameplay garments. It rejects incompatible imported skin bind names, indices and poses, and the automated candidate smoke now checks actual pose existence and samples four phases per clip. Native visual review is still required; the screenshots are evidence only when actually captured. Do not publish candidate GLBs or list them for sale based solely on this harness.

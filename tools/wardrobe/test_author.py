@@ -37,6 +37,12 @@ class WeightValidation(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"Unnormalized"):
             self.verify(weights=(0.1,0.1,0.1,0.1))
 
+    def test_mismatched_counts(self):
+        doc,raw,attrs=fixture()
+        doc["accessors"][1]["count"]=2
+        with self.assertRaises(ValueError):
+            validate_weights(doc,raw,attrs,4)
+
     def test_integer_encoding(self):
         doc,raw,attrs=fixture(weights=(64,64,64,63),integer=True)
         doc["accessors"][1]["normalized"]=False

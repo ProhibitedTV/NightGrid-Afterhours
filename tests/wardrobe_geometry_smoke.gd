@@ -26,7 +26,7 @@ func _verify() -> void:
 		quit(1)
 		return
 	for path in paths:
-		var donor:=Geometry.extract(rig,load(path) as PackedScene)
+		var donor:=Geometry.review_donor(rig,target,load(path) as PackedScene)
 		if donor.is_empty():
 			push_error("WARDROBE: incompatible imported candidate "+path)
 			quit(1)
@@ -34,8 +34,18 @@ func _verify() -> void:
 		target.mesh=donor["mesh"]
 		target.skin=donor["skin"]
 		for pose in ["idle","walk","run","sit","drive_car","aim"]:
+			if not animation.has_animation(pose):
+				push_error("WARDROBE: missing live pose "+pose)
+				quit(1)
+				return
 			animation.play(pose)
-			animation.advance(.15)
+			var duration:float=animation.get_animation(pose).length
+			for phase in [0.0,.25,.5,.75]:
+				animation.seek(duration*phase,true)
+				if not target.global_transform.is_finite() or not rig.get_bone_global_pose(0).is_finite():
+					push_error("WARDROBE: nonfinite live transform "+pose)
+					quit(1)
+					return
 			if actor.skeleton!=rig or actor.animations!=animation or not target.visible:
 				push_error("WARDROBE: live rig changed")
 				quit(1)

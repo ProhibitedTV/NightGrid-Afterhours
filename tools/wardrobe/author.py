@@ -58,6 +58,7 @@ def validate_weights(doc, binary, attrs, joint_count):
     scale={5121:255,5123:65535,5126:1}[wa["componentType"]]
     joints=struct.iter_unpack("<4"+jf,accessor_bytes(doc,binary,attrs["JOINTS_0"]))
     weights=struct.iter_unpack("<4"+wf,accessor_bytes(doc,binary,attrs["WEIGHTS_0"]))
+    require(ja["count"]==wa["count"],"Joint and weight counts differ")
     for j,w in zip(joints,weights):
         require(all(0<=v<joint_count for v in j),"Joint index outside rig")
         normalized=[v/scale for v in w]
