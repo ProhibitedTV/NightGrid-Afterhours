@@ -186,6 +186,8 @@ func home_action_point(action: String) -> Vector3:
 			return to_global(Vector3(3.55,1.15,7.45))
 		"wardrobe":
 			return to_global(Vector3(3.55,1.15,4.55))
+		"exchange":
+			return to_global(Vector3(-2.1,1.15,5.0))
 		"save":
 			return to_global(Vector3(-2.1,1.15,2.8))
 	return Vector3.INF
@@ -193,7 +195,7 @@ func home_action_point(action: String) -> Vector3:
 func home_action(at: Vector3) -> String:
 	if home_id.is_empty() or not contains(at):
 		return ""
-	for action in ["rest","storage","wardrobe","save"]:
+	for action in ["rest","storage","wardrobe","exchange","save"]:
 		if at.distance_to(home_action_point(action)) < 1.1:
 			return action
 	return ""

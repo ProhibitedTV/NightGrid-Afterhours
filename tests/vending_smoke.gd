@@ -73,12 +73,19 @@ func _verify() -> void:
 	closet.credit_once("story:night_shift_contact",100)
 	if not check(not closet.buy_outfit("obscura_signature") and not closet.select_outfit("vesper_tailored") and closet.balance==600,"unaffordable and unowned refused"):
 		return
-	if not check(closet.buy_outfit("vesper_tailored") and not closet.buy_outfit("vesper_tailored") and closet.select_outfit("vesper_tailored") and closet.balance==200,"rare title paid once"):
+	if not check(closet.buy_outfit("vesper_tailored") and not closet.buy_outfit("vesper_tailored") and closet.select_outfit("vesper_tailored") and closet.balance==197,"rare title paid once"):
 		return
 	var closet_copy := Ledger.new()
-	if not check(closet_copy.restore(200,JSON.parse_string(JSON.stringify(closet.snapshot()))) and closet_copy.outfit_id=="vesper_tailored","premium outfit persists"):
+	if not check(closet_copy.restore(197,JSON.parse_string(JSON.stringify(closet.snapshot()))) and closet_copy.outfit_id=="vesper_tailored","premium outfit persists"):
 		return
-	if not check(not closet_copy.restore(0,{"version":1,"receipts":["story:night_shift_contact"],"outfit_id":"vesper_tailored"}) and closet_copy.balance==200,"unowned equipped premium rejected"):
+	if not check(not closet_copy.restore(0,{"version":1,"receipts":["story:night_shift_contact"],"outfit_id":"vesper_tailored"}) and closet_copy.balance==197,"unowned equipped premium rejected"):
+		return
+	closet.set_balance(100)
+	if not check(closet.exchange_bitcoin(true) and closet.balance==0 and closet.bitcoin_sats==39200 and not closet.exchange_bitcoin(false),"fee and insufficient BTC rollback"):
+		return
+	if not check(closet.buy_outfit("tideline","BTC") and closet.bitcoin_sats==20400 and not closet.buy_outfit("tideline","BTC"),"BTC pays real catalog price once"):
+		return
+	if not check(not closet_copy.restore(0,{"version":1,"receipts":[],"bitcoin_sats":-1}),"invalid BTC balance rejected"):
 		return
 	var world := (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	root.add_child(world)

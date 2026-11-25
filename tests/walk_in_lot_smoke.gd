@@ -274,21 +274,43 @@ func _verify() -> void:
 	world.call("_toggle_interaction")
 	world.call("_venue_action",2)
 	world.call("_venue_action",3)
-	if not check(ledger.outfit_id=="tideline" and player.get_node("Visual").get("outfit_id")=="tideline" and world.get("cash")==0,"wardrobe applies free original colorway"):
+	if not check(ledger.outfit_id=="dispatch" and not ledger.owns_outfit("tideline") and world.get("cash")==0,"common clothing is not free"):
 		return
-	world.set("cash",400)
+	world.set("cash",47)
+	world.call("_venue_action",3)
+	world.call("_venue_action",3)
+	world.call("_venue_action",3)
+	if not check(ledger.outfit_id=="tideline" and player.get_node("Visual").get("outfit_id")=="tideline" and world.get("cash")==0,"paid common colorway"):
+		return
+	world.set("cash",403)
 	for i in range(3):
 		world.call("_venue_action",2)
 	world.call("_venue_action",3)
-	if not check(world.get("_wardrobe_quote_id")=="vesper_tailored" and world.get("cash")==400,"rare wardrobe purchase review"):
+	if not check(world.get("_wardrobe_quote_id")=="vesper_tailored" and world.get("cash")==403,"rare wardrobe purchase review"):
 		return
 	world.call("_venue_action",1)
-	if not check(not ledger.owns_outfit("vesper_tailored") and world.get("cash")==400,"cancel cosmetic purchase"):
+	if not check(not ledger.owns_outfit("vesper_tailored") and world.get("cash")==403,"cancel cosmetic purchase"):
 		return
 	world.call("_venue_action",3)
 	world.call("_venue_action",3)
 	world.call("_venue_action",3)
 	if not check(ledger.owns_outfit("vesper_tailored") and ledger.outfit_id=="vesper_tailored" and world.get("cash")==0,"rare item paid once and equipped"):
+		return
+	world.call("_close_venue")
+	player.global_position = home.call("home_action_point","exchange")
+	world.set("cash",100)
+	world.call("_toggle_interaction")
+	world.call("_venue_action",1)
+	if not check(ledger.bitcoin_sats==39200 and world.get("cash")==0,"real exchange action charges fee"):
+		return
+	world.call("_close_venue")
+	player.global_position = home.call("home_action_point","wardrobe")
+	world.call("_toggle_interaction")
+	world.call("_venue_action",1)
+	world.call("_venue_action",1)
+	world.call("_venue_action",3)
+	world.call("_venue_action",3)
+	if not check(ledger.owns_outfit("rustline") and ledger.bitcoin_sats==15200 and world.get("cash")==0,"paid common clothing with BTC"):
 		return
 	world.call("_close_venue")
 	player.global_position = home.call("home_action_point","storage")
@@ -302,7 +324,7 @@ func _verify() -> void:
 	player.get_node("Visual").call("set_outfit","dispatch")
 	world.set("ration_packs",0)
 	world.call("_apply_snapshot",home_save)
-	if not check(ledger.home_supplies==1 and ledger.owns_home() and ledger.home_capacity()==Home.EXPANDED_STORAGE and ledger.outfit_id=="vesper_tailored" and ledger.owns_outfit("vesper_tailored") and player.get_node("Visual").get("outfit_id")=="vesper_tailored" and world.get("ration_packs")==2 and player.global_position.distance_to(home.call("home_action_point","storage"))<.1,"home entitlement and stash round trip"):
+	if not check(ledger.home_supplies==1 and ledger.owns_home() and ledger.home_capacity()==Home.EXPANDED_STORAGE and ledger.outfit_id=="vesper_tailored" and ledger.owns_outfit("vesper_tailored") and ledger.owns_outfit("rustline") and ledger.bitcoin_sats==15200 and player.get_node("Visual").get("outfit_id")=="vesper_tailored" and world.get("ration_packs")==2 and player.global_position.distance_to(home.call("home_action_point","storage"))<.1,"home entitlement and stash round trip"):
 		return
 	print("WALK_IN_LOT PASS: physical doors, multiple rooms, upper floor ascent/descent, bounded walls, streamed finish, world-coordinate restore and exit")
 	quit(0)
