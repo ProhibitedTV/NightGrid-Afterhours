@@ -519,9 +519,6 @@ func _opening_interact() -> void:
 	if not _opening_office.call("errand_complete"):
 		if _opening_office.call("try_errand",player):
 			return
-		# Optional exploration remains available even before the folder handoff.
-		if not _opening_office.call("breakroom_reachable",player.global_position):
-			return
 	var stage := int(game_menu.get("_opening_stage"))
 	if _opening_office.call("breakroom_reachable",player.global_position) and not bool(_opening_office.get("_breakroom_seen")):
 		_opening_office.call("breakroom_camera",camera)
@@ -531,6 +528,13 @@ func _opening_interact() -> void:
 		if stage in [2,4]:
 			_opening_office.call("dialogue_camera",camera,stage,int(game_menu.get("_briefing_beat")))
 		game_menu.call("open_opening_stage")
+		return
+	# Optional interviews are subordinate to lift, folder, and main objective
+	# interactions, and never mutate the main opening stage or economy.
+	var objective: int = _opening_office.call("objective_stage",stage)
+	var interview: Dictionary = _opening_office.call("interview_at",player.global_position,objective)
+	if not interview.is_empty():
+		game_menu.call("open_staff_interview",interview)
 
 func _finish_opening_office() -> void:
 	if not is_instance_valid(_opening_office):
