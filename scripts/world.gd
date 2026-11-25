@@ -512,6 +512,9 @@ func _opening_interact() -> void:
 		return
 	if _opening_office.call("lift_active"):
 		return
+	if _opening_office.call("exit_active"):
+		_opening_office.call("try_exit_step",player)
+		return
 	if _opening_office.call("try_lift",player):
 		return
 	if _opening_office.call("try_office_service",player.global_position):
@@ -552,6 +555,13 @@ func _finish_opening_office() -> void:
 	_snap_camera()
 
 func _accept_opening() -> void:
+	if is_instance_valid(_opening_office):
+		if not _opening_office.call("exit_active"):
+			if int(game_menu.get("_opening_stage"))==5:
+				_opening_office.call("begin_exit",player.global_position)
+			return
+		if not _opening_office.call("exit_ready",player.global_position):
+			return
 	if progression.credit_once(Opening.RECEIPT,Opening.SEVERANCE):
 		_finish_opening_office()
 		courier_mission.gig_economy = true
@@ -838,6 +848,11 @@ func _process(delta: float) -> void:
 		player.set("camera_yaw",yaw)
 		_update_camera(delta)
 		_opening_office.call("update_prompt",int(_opening_office.call("objective_stage",int(game_menu.get("_opening_stage")))),player.global_position,gamepad_active)
+		if _opening_office.call("exit_ready",player.global_position):
+			_accept_opening()
+			return
+		if _opening_office.call("exit_active"):
+			return
 		if not game_menu.call("is_open"):
 			var restroom := str(_opening_office.call("restroom_encounter",player.global_position))
 			if not restroom.is_empty():

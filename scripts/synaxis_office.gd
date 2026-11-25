@@ -55,14 +55,17 @@ var _errand_phase := 0
 var _arrival_fov := 68.0
 var _gate_open := false
 var _desk_beat_played := false
+var _exit_phase:=0
+var _returned_kit:Node3D
+var _personal_bag:Node3D
 var _assistant: Node3D
 var _ceo: Node3D
 var _hr: Node3D
 const START = Vector3(0,1.15,7)
 const BREAKROOM_POINT = Vector3(-4.2,1.15,6.85)
 var _breakroom_seen := false
-const POINTS = {-2:CUBICLE_POINT,-1:Vector3(-5,1.15-Workfloor.FLOOR_HEIGHT,4),0:Vector3(-5,1.15-Workfloor.FLOOR_HEIGHT,4),2:ExecutiveFloor.CEO_GOAL+Vector3.UP*ExecutiveFloor.BASE,4:ExecutiveFloor.HR_GOAL+Vector3.UP*ExecutiveFloor.BASE,5:Vector3(5,1.15,5)}
-const TITLES = {-2:"CORPORATE IP SECURITY / COLLECT THE FOLDER",-1:"B1 IT DEPARTMENT / DROP OFF THE FOLDER",0:"B1 IT DESK / REVIEW THE ALERT",2:"EXECUTIVE OFFICE / ATTEND BRIEFING",4:"PEOPLE EXPERIENCE / EXIT INTERVIEW",5:"RECEPTION / COLLECT FINAL NOTICE"}
+const POINTS = {-2:CUBICLE_POINT,-1:Vector3(-5,1.15-Workfloor.FLOOR_HEIGHT,4),0:Vector3(-5,1.15-Workfloor.FLOOR_HEIGHT,4),2:ExecutiveFloor.CEO_GOAL+Vector3.UP*ExecutiveFloor.BASE,4:ExecutiveFloor.HR_GOAL+Vector3.UP*ExecutiveFloor.BASE,5:Vector3(5,1.15,5),6:Vector3(5,1.15,5),7:CUBICLE_POINT,8:Vector3(0,1.15,-12.32)}
+const TITLES = {-2:"CORPORATE IP SECURITY / COLLECT THE FOLDER",-1:"B1 IT DEPARTMENT / DROP OFF THE FOLDER",0:"B1 IT DESK / REVIEW THE ALERT",2:"EXECUTIVE OFFICE / ATTEND BRIEFING",4:"PEOPLE EXPERIENCE / EXIT INTERVIEW",5:"RECEPTION / COLLECT FINAL NOTICE",6:"RECEPTION / RETURN LAPTOP AND BADGE",7:"DESK 04 / COLLECT PERSONAL BELONGINGS",8:"EXIT / LEAVE SYNAXIS"}
 var _target_sign: Label3D
 var _hint: Label
 var _mat: Dictionary = {}
@@ -136,6 +139,7 @@ func _ready() -> void:
 	_folder_desk.position = Vector3(4.05,1.10,1.93)
 	add_child(_folder_desk)
 	_folder_desk.hide()
+	_build_exit_props(desk,accent,screen)
 	_visual("ExitBox",Vector3(5,1.25,6.5),Vector3(.42,.34,.4),_material("cardboard",Color("a88a63")))
 	for z in [-7.5,-2.5,2.5,7.5]:
 		_visual("CeilingStrip",Vector3(0,3.28,z),Vector3(12,.055,.18),_material("light",Color("c9dfdf"),true))
@@ -190,6 +194,69 @@ func _ready() -> void:
 	# Ground-floor furniture and collision remain; stage lighting is local.
 	for light in find_children("*","OmniLight3D",true,false):
 		light.hide()
+
+func _build_exit_props(desk:Material,accent:Material,screen:Material) -> void:
+	_returned_kit=Node3D.new()
+	_returned_kit.name="ReturnedCompanyEquipment"
+	_returned_kit.position=Vector3(4.55,1.10,6.34)
+	add_child(_returned_kit)
+	# Meshes authored here, parented to the return tray for atomic visibility.
+	_exit_prop(_returned_kit,"LaptopBase",Vector3.ZERO,Vector3(.32,.034,.23),desk)
+	_exit_prop(_returned_kit,"LaptopLid",Vector3(0,.027,0),Vector3(.32,.018,.23),accent)
+	_exit_prop(_returned_kit,"Badge",Vector3(.27,.016,0),Vector3(.10,.025,.072),accent)
+	_exit_prop(_returned_kit,"BadgeStripe",Vector3(.27,.030,-.023),Vector3(.095,.005,.02),screen)
+	_returned_kit.hide()
+	_personal_bag=Node3D.new()
+	_personal_bag.name="PersonalBelongings"
+	_personal_bag.position=Vector3(4.84,1.12,1.84)
+	add_child(_personal_bag)
+	var cloth:=_material("personal_bag",Color("5b5d60"))
+	_exit_prop(_personal_bag,"FoldedClothing",Vector3.ZERO,Vector3(.32,.14,.25),cloth)
+	_exit_prop(_personal_bag,"FoldedShirt",Vector3(0,.075,0),Vector3(.29,.05,.22),accent)
+	_exit_prop(_personal_bag,"PersonalNotebook",Vector3(-.20,-.035,0),Vector3(.13,.025,.19),desk)
+	_personal_bag.hide()
+
+func _exit_prop(parent:Node3D,id:String,at:Vector3,size:Vector3,mat:Material) -> void:
+	var instance:=MeshInstance3D.new()
+	instance.name=id
+	var mesh:=BoxMesh.new()
+	mesh.size=size
+	instance.mesh=mesh
+	instance.material_override=mat
+	instance.position=at
+	parent.add_child(instance)
+
+func begin_exit(at:Vector3) -> bool:
+	if not _prologue_active or _exit_phase!=0 or not reachable(5,at):
+		return false
+	_exit_phase=1
+	_set_staff_exit(false)
+	set_stage(6)
+	return true
+
+func exit_active() -> bool:
+	return _exit_phase>0
+
+func exit_ready(at:Vector3) -> bool:
+	return _exit_phase==3 and at.is_finite() and at.distance_to(point(8))<1.8
+
+func try_exit_step(player:CharacterBody3D) -> bool:
+	if _exit_phase==1 and reachable(6,player.global_position):
+		_returned_kit.show()
+		_personal_bag.show()
+		_exit_phase=2
+		player.call("play_visual_action",&"interact")
+		set_stage(7)
+		return true
+	if _exit_phase==2 and reachable(7,player.global_position):
+		_personal_bag.hide()
+		player.get("visual").call("set_corporate_attire",false)
+		player.call("play_visual_action",&"interact")
+		_exit_phase=3
+		_set_gate_open(true)
+		set_stage(8)
+		return true
+	return false
 
 func _build_workfloor_shell(wall: Material,floor_mat: Material) -> void:
 	for level in range(1,Workfloor.FLOOR_COUNT+1):
@@ -293,7 +360,7 @@ func _select_floor(level: int) -> void:
 	_target_sign.visible=_prologue_active and absf(_target_sign.position.y-2.30-_active_floor*Workfloor.FLOOR_HEIGHT)<.1
 
 func lift_direction(at: Vector3) -> int:
-	if not _prologue_active or _arrival!=null or lift_active():
+	if not _prologue_active or _arrival!=null or lift_active() or exit_active():
 		return 0
 	var local:=to_local(at)
 	if absf(local.y-(_active_floor*Workfloor.FLOOR_HEIGHT+1.15))>.8:
@@ -476,6 +543,9 @@ func _set_staff_exit(open:bool) -> void:
 
 func begin_prologue() -> void:
 	_prologue_active=true
+	_exit_phase=0
+	_returned_kit.hide()
+	_personal_bag.hide()
 	_set_staff_exit(true)
 	_restrooms.call("begin_visit")
 	_errand_phase=0
@@ -492,6 +562,9 @@ func begin_prologue() -> void:
 
 func finish_prologue() -> void:
 	_prologue_active=false
+	_exit_phase=0
+	_returned_kit.hide()
+	_personal_bag.hide()
 	if is_instance_valid(_lift_transition):
 		_lift_transition.call("reset")
 	_set_staff_exit(false)
@@ -727,6 +800,8 @@ func finish_arrival(player: Node3D,camera: Camera3D) -> void:
 	set_stage(-2)
 
 func objective_stage(story_stage: int) -> int:
+	if _exit_phase>0:
+		return 5+_exit_phase
 	return -2 if _errand_phase==0 else (-1 if _errand_phase==1 else story_stage)
 
 func errand_complete() -> bool:
@@ -884,6 +959,14 @@ func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 			_hint.text+="\n"+("X" if gamepad else "G")+" / LIFT TO "+floor_title(lift_destination(direction))
 		return
 	_hint.text = "SYNAXIS / EXECUTIVE PRIVILEGE\n%s" % TITLES[stage]
+	if _exit_phase>0:
+		match _exit_phase:
+			1: _hint.text+="\nNina: Laptop and badge on the desk, please."
+			2: _hint.text+="\nNina: Your personal clothes are back at desk 04."
+			3: _hint.text+="\nSecurity: The front gate is open. Please proceed to the street."
+		if _exit_phase<3 and reachable(stage,at):
+			_hint.text+="\n"+("X / INTERACT" if gamepad else "G / INTERACT")
+		return
 	if stage==-2:
 		_hint.text += "\nMika: Take the sealed access-control request to Eli in IT."
 	elif stage==-1:

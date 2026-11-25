@@ -364,7 +364,7 @@ func _render() -> void:
 					_label(col, Opening.NOTICE, 17, Color("cbd8e3"))
 					_divider(col)
 					_label(col, Opening.OFFER, 17, Ui.TEXT)
-					_button(col, "opening_accept", "ACCEPT TERMS / START DELIVERING", "opening_accept")
+					_button(col, "opening_accept", "ACCEPT TERMS / RETURN COMPANY PROPERTY" if _physical_opening else "ACCEPT TERMS / START DELIVERING", "opening_accept")
 		"pause":
 			_title(col, "PAUSED / SAFE MOMENT", 22, Color("f0dfcd"))
 			_button(col, "resume", "RESUME GAME", "resume")

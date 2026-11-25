@@ -870,8 +870,30 @@ func _verify() -> void:
 		_fail("Final notice must expose QuotaDrop acceptance")
 		return
 	menu.call("_choice","opening_accept")
-	world.call("_accept_opening")
 	var headquarters = preload("res://scripts/synaxis_office.gd")
+	if not office.call("exit_active") or office.call("objective_stage",5)!=6 or world.get("cash")!=before_severance:
+		_fail("Final notice starts physical property return without crediting severance")
+		return
+	world.call("_accept_opening")
+	if world.get("cash")!=before_severance:
+		_fail("Cannot bypass equipment return")
+		return
+	world.call("_opening_interact")
+	if office.call("objective_stage",5)!=7 or not office.get("_returned_kit").visible or not office.get("_personal_bag").visible:
+		_fail("Equipment return visibly deposits company property and makes personal belongings available")
+		return
+	player.global_position=office.call("point",7)
+	world.call("_opening_interact")
+	if office.call("objective_stage",5)!=8 or opening_visual.get("corporate_attire") or not bool(office.get("_gate_open")):
+		_fail("Collecting belongings restores clothing and opens the public exit")
+		return
+	world.call("_accept_opening")
+	if world.get("cash")!=before_severance:
+		_fail("Severance remains pending until the player walks outside")
+		return
+	player.global_position=office.call("point",8)
+	world.call("_accept_opening")
+	world.call("_accept_opening")
 	if world.get("_opening_office")!=null or player.global_position.distance_to(headquarters.ENTRY)>.01 or world.get("city_details").call("synaxis_headquarters")!=office:
 		_fail("Office exit retains the real headquarters and places player at public entrance")
 		return
