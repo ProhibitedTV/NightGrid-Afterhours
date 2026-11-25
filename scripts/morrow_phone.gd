@@ -61,7 +61,7 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 			if listings.is_empty():
 				rows.append({"label":"No contracts remaining","value":"Explore the city or return to QuotaDrop for repeatable income."})
 			for listing in listings:
-				var status := "Turn in" if listing["active"] else "Ask about contract"
+				var status: String = "Turn in" if bool(listing["active"]) else "Ask about contract"
 				rows.append({
 					"label":"%s · $%d" % [listing["title"],int(listing["reward"])],
 					"value":"%s / %s / %s\n%s" % [listing["category"],listing["site"],"Open" if listing["open"] else "Closed",listing["brief"]],
@@ -81,7 +81,7 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 		"music":
 			subtitle = "Morrow Bay music scene"
 			for item in state.get("music_gear",[]):
-				var row := {"label":item["name"],"value":("Equipped" if item["equipped"] else ("Owned" if item["owned"] else "$%d · Copper Strings" % int(item["price"])))+" / "+str(item["style"])}
+				var row: Dictionary = {"label":item["name"],"value":("Equipped" if item["equipped"] else ("Owned" if item["owned"] else "$%d · Copper Strings" % int(item["price"])))+" / "+str(item["style"])}
 				if item["owned"] and not item["equipped"]:
 					row["action"] = "phone_music_equip:"+str(item["id"])
 					row["action_label"] = "Equip instrument"
@@ -95,10 +95,10 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 				rows.append({"label":"Debut booking","value":"Dock Nine Social · $95 · counter or indoor stage"})
 				actions.append({"label":"Route to Dock Nine","action":"phone_route_music_gig"})
 			for member in state.get("music_contacts",[]):
-				var id: String = member["id"]
-				var row := {"label":"%s / %s" % [member["name"],member["role"]],"value":"Band member" if member["joined"] else "%s — %s" % [member["site"],member["line"]]}
+				var member_id: String = str(member["id"])
+				var row: Dictionary = {"label":"%s / %s" % [member["name"],member["role"]],"value":"Band member" if member["joined"] else "%s — %s" % [member["site"],member["line"]]}
 				if not member["joined"]:
-					row["action"] = "phone_music_recruit:"+id if member["near"] else "phone_route_music_contact:"+id
+					row["action"] = "phone_music_recruit:"+member_id if bool(member["near"]) else "phone_route_music_contact:"+member_id
 					row["action_label"] = "Invite to band" if member["near"] else "Meet musician"
 				rows.append(row)
 			if state.get("music_band_ready",false):
@@ -126,7 +126,7 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 				rows.append({"label":"Off Grid Records","value":"DIY tapes: 12 for $60 at the indoor counter. No label contract required."})
 				rows.append({"label":MusicCareer.RELEASE_NAME,"value":"%d in stock · %d sold · $%d gross merch sales" % [int(state.get("music_tape_stock",0)),int(state.get("music_tapes_sold",0)),int(state.get("music_tapes_sold",0))*MusicCareer.TAPE_PRICE] if state.get("music_released",false) else "Press your first independent release."})
 				actions.append({"label":"Route to Off Grid Records","action":"phone_route_music_showcase"})
-			elif state.get("music_band_done",false):
+			elif bool(state.get("music_band_done",false)) and not bool(state.get("music_encore",false)):
 				rows.append({"label":"Next tier","value":"65 music cred + two resident sets (%d/2)" % int(state.get("music_encores",0))})
 		"wallet":
 			subtitle = "Available funds"

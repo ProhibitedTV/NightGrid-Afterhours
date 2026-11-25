@@ -602,7 +602,7 @@ func _wire_focus() -> void:
 		item.focus_previous = item.get_path_to(prev)
 		item.focus_next = item.get_path_to(next)
 	if screen == "phone" and _phone_app.is_empty() and _focus_order.size() == Phone.APPS.size()+1:
-		var count := Phone.APPS.size()
+		var count: int = Phone.APPS.size()
 		for i in range(count):
 			var item := _focus_order[i]
 			item.focus_neighbor_left = item.get_path_to(_focus_order[i-1] if i%2 == 1 else item)
@@ -645,8 +645,8 @@ func _render_phone(col: VBoxContainer) -> void:
 				_first_focus = app_button
 		_button(col, "phone_back", "Put phone away" if not _phone_from_pause else "Back to pause", "phone_back")
 		return
-	var entry := Phone.app(_phone_app)
-	var view := Phone.view(_phone_app,_phone_data)
+	var entry: Dictionary = Phone.app(_phone_app)
+	var view: Dictionary = Phone.view(_phone_app,_phone_data)
 	_title(col,str(entry["name"]),28,Color(entry["color"]))
 	_label(col,str(view["subtitle"]),16,Ui.MUTED)
 	_divider(col)
