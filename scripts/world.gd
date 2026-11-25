@@ -3128,16 +3128,16 @@ func _build_hud() -> void:
 	var backing := PanelContainer.new()
 	backing.name = "PlayerStatus"
 	backing.position = Vector2(24.0, 24.0)
-	backing.custom_minimum_size = Vector2(420.0, 0.0)
+	backing.custom_minimum_size = Vector2(390.0, 0.0)
 	backing.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	backing.theme = Ui.make_theme()
-	backing.add_theme_stylebox_override("panel", Ui.card(0.88))
+	backing.add_theme_stylebox_override("panel", Ui.card(0.84, 12))
 	ui.add_child(backing)
 	var stack := VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 7)
+	stack.add_theme_constant_override("separation", 5)
 	backing.add_child(stack)
-	hud_location = _hud_text(stack, "Location", 17, Ui.AMBER)
-	hud_label = _hud_text(stack, "PlayerVitals", 20, Ui.TEXT)
+	hud_location = _hud_text(stack, "Location", 15, Ui.AMBER)
+	hud_label = _hud_text(stack, "PlayerVitals", 17, Ui.TEXT)
 	_wanted_label = _hud_text(stack, "WantedStatus", 17, Ui.AMBER)
 	hud_health = ProgressBar.new()
 	hud_health.name = "HealthBar"
@@ -3145,8 +3145,8 @@ func _build_hud() -> void:
 	hud_health.show_percentage = false
 	hud_health.custom_minimum_size.y = 6
 	hud_health.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hud_health.add_theme_stylebox_override("background", Ui.button_style(Color("29363e"), Color("29363e")))
-	hud_health.add_theme_stylebox_override("fill", Ui.button_style(Ui.ACCENT, Ui.ACCENT))
+	hud_health.add_theme_stylebox_override("background", Ui.meter(Color("29363e")))
+	hud_health.add_theme_stylebox_override("fill", Ui.meter(Ui.ACCENT))
 	stack.add_child(hud_health)
 	hud_stamina = ProgressBar.new()
 	hud_stamina.name = "StaminaBar"
@@ -3154,26 +3154,27 @@ func _build_hud() -> void:
 	hud_stamina.show_percentage = false
 	hud_stamina.custom_minimum_size.y = 5
 	hud_stamina.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hud_stamina.add_theme_stylebox_override("background",Ui.button_style(Color("29363e"),Color("29363e")))
-	hud_stamina.add_theme_stylebox_override("fill",Ui.button_style(Color("e1b96a"),Color("e1b96a")))
+	hud_stamina.add_theme_stylebox_override("background",Ui.meter(Color("29363e")))
+	hud_stamina.add_theme_stylebox_override("fill",Ui.meter(Ui.AMBER))
 	stack.add_child(hud_stamina)
 	var rule := HSeparator.new()
 	stack.add_child(rule)
 	_hud_text(stack, "ObjectiveHeading", 15, Ui.MUTED).text = "CURRENT OBJECTIVE"
-	hud_objective = _hud_text(stack, "Objective", 25, Ui.ACCENT)
+	hud_objective = _hud_text(stack, "Objective", 21, Ui.ACCENT)
 	hud_navigation = _hud_text(stack, "Waypoint", 18, Nav.COLOR)
 	hud_navigation.hide()
-	hud_jobs = _hud_text(stack, "ActiveContracts", 17, Ui.TEXT)
-	var center_notice := _hud_card(ui, "NotificationCard", 0.5, 0.0, Vector4(-410, 24, 410, 92))
+	hud_jobs = _hud_text(stack, "ActiveContracts", 15, Ui.MUTED)
+	var center_notice := _hud_card(ui, "NotificationCard", 1.0, 0.0, Vector4(-434, 24, -24, 92))
 	hud_notice_card = center_notice
-	hud_notice = _hud_text(center_notice, "Notice", 21, Ui.TEXT)
+	hud_notice = _hud_text(center_notice, "Notice", 18, Ui.TEXT)
 	hud_notice.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hud_notice_card.hide()
-	hud_prompt_card = _hud_card(ui, "ContextCard", 0.5, 1.0, Vector4(-460, -152, 460, -24))
-	hud_prompt = _hud_text(hud_prompt_card, "ContextActions", 19, Ui.TEXT)
+	hud_prompt_card = _hud_card(ui, "ContextCard", 0.5, 1.0, Vector4(-320, -112, 320, -24))
+	hud_prompt_card.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	hud_prompt = _hud_text(hud_prompt_card, "ContextActions", 16, Ui.TEXT)
 	hud_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_weapon_card = _hud_card(ui, "WeaponCard", 1.0, 1.0, Vector4(-342, -142, -24, -24))
-	_weapon_label = _hud_text(_weapon_card, "WeaponAmmo", 20, Ui.TEXT)
+	_weapon_card = _hud_card(ui, "WeaponCard", 1.0, 1.0, Vector4(-302, -112, -24, -24))
+	_weapon_label = _hud_text(_weapon_card, "WeaponAmmo", 18, Ui.TEXT)
 	_weapon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_weapon_card.hide()
 	_radio_card = _hud_card(ui, "PoliceRadioCard", 1.0, 0.0, Vector4(-402, 278, -24, 362))
@@ -3296,7 +3297,7 @@ func _hud_card(layer: CanvasLayer, node_name: String, ax: float, ay: float, boun
 	panel.offset_right = bounds.z
 	panel.offset_bottom = bounds.w
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_theme_stylebox_override("panel", Ui.card(0.92))
+	panel.add_theme_stylebox_override("panel", Ui.card(0.86, 10))
 	layer.add_child(panel)
 	return panel
 
@@ -3316,9 +3317,9 @@ func _update_hud() -> void:
 	var wanted_text := "★".repeat(tier) + "☆".repeat(5 - tier)
 	_wanted_label.text = "%s  •  %s" % [wanted.status_text(heat), "%d RESPONSE UNIT%s" % [officers.size(), "" if officers.size() == 1 else "S"]]
 	if tier > 0:
-		_wanted_label.text += "\n" + dispatch.status()
+		_wanted_label.text = wanted_text + "  " + _wanted_label.text + "\n" + dispatch.status()
 	_wanted_label.visible = tier > 0 or weapons.equipped != "holstered"
-	_wanted_label.modulate = Ui.DANGER if wanted.police_seen and tier > 0 else Ui.AMBER
+	_wanted_label.add_theme_color_override("font_color", Ui.DANGER if wanted.police_seen and tier > 0 else Ui.AMBER)
 	var active_order := courier_mission.objective()
 	var mission: String = active_order["hud"]
 	var distance := roundi(outdoors.distance_to(mission_position))
@@ -3337,14 +3338,14 @@ func _update_hud() -> void:
 			int(stream.get("pending_blocks", 0)), float(stream.get("last_build_usec", 0)) / 1000.0,
 			float(stream.get("peak_build_usec", 0)) / 1000.0, capture_status]
 	hud_location.text = "%s   /   %s" % [local_name, clock]
-	hud_label.text = "$%d    HEALTH %d    HEAT %s\n%s  •  %d deliveries  •  %d supplies" % [cash, ceili(health), wanted_text, vehicle_text, deliveries, ration_packs]
+	hud_label.text = "$%d  ·  %s\nHealth %d  ·  Stamina %d" % [cash, vehicle_text, ceili(health), ceili(float(player.get("stamina")))]
 	hud_health.value = health
 	hud_stamina.value = float(player.get("stamina"))
-	hud_label.text += "\nSTAMINA %d  •  %d snacks" % [ceili(float(player.get("stamina"))),Consumables.count(consumable_inventory)]
+	hud_label.text += "\n%d deliveries  ·  %d supplies  ·  %d snacks" % [deliveries, ration_packs, Consumables.count(consumable_inventory)]
 	hud_objective.text = "%s  /  %dm" % [mission, distance]
 	if courier_mission.gig_economy and current_car == null and current_transit == null and not interiors.call("is_inside") and player.global_position.distance_to(mission_position) < CourierMission.RADIUS:
 		hud_objective.text += "  /  " + ("X" if gamepad_active else "G") + (" HAND OFF" if carrying else " COLLECT ORDER")
-	hud_objective.modulate = Ui.ACCENT if carrying else Ui.AMBER
+	hud_objective.add_theme_color_override("font_color", Ui.ACCENT if carrying else Ui.AMBER)
 	hud_navigation.visible = navigation_waypoint != null
 	hud_navigation.text = navigation_text() if navigation_waypoint != null else ""
 	var jobs: Array[String] = []
@@ -3418,6 +3419,8 @@ func _update_hud() -> void:
 	prompts.append(utility)
 	hud_prompt.text = "\n".join(prompts)
 	hud_prompt_card.visible = not venue_panel.visible
+	# Reflow upward for long contextual text without covering the bottom inset.
+	hud_prompt_card.reset_size()
 	if venue_panel.visible:
 		_update_venue_panel()
 
