@@ -72,3 +72,5 @@ After Static Room headline, the physical indoor counter offers a confirmable DIY
 ## Main integration
 
 Merged the independent general StreetCred ledger from main without replacing it. `scene_reputation.gd` derives the music/community/underground progression gates from successful activities and receipts. Successful music busks and live bookings also settle the existing global ledger's monotonic `busking`/`live_gig` counters; cancelled sets and rehearsals do not. Journal displays both systems distinctly; the phone shows global summary alongside scene scores. Main's street conversations, Cal favor, arcade/voice changes and their smoke checks remain present. Runtime acceptance pending.
+
+Legacy branch saves migrate their validated music counters and booking receipts into the citywide ledger with bounded maxima; no replay loop and no duplicate cash. Integration smoke checks general activity settlement separately from scene-specific score and checks migration idempotence.

@@ -98,6 +98,13 @@ func choose_band_name(id: int) -> bool:
 	band_name = BAND_NAMES[id]
 	return true
 
+func completed_live_bookings(wallet: RefCounted) -> int:
+	var count := encores
+	for receipt in [GIG_RECEIPT,BAND_RECEIPT,SHOWCASE_RECEIPT]:
+		if wallet.call("has_receipt",receipt):
+			count += 1
+	return count
+
 func tape_stock() -> int:
 	return tape_batches*TAPE_BATCH-tapes_sold
 

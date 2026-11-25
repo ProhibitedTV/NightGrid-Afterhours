@@ -349,6 +349,9 @@ func _verify() -> void:
 	if Cred.community_price(18,{"community":19})!=18 or Cred.community_price(18,{"community":20})!=17 or Cred.rank(85)!="Scene icon":
 		_fail("Street cred tier and price boundaries must agree")
 		return
+	if wallet.street_activity_runs("busking")!=3 or wallet.street_activity_runs("live_gig")!=2:
+		_fail("Citywide music activity must settle only on completed paid sets")
+		return
 	var cred: Dictionary = world.call("_street_cred")
 	if cred["music"]!=55 or cred["community"]!=12 or cred["underground"]!=40 or not career.can_encore(wallet):
 		_fail("Cred must derive from successful performances, technical work and investigation")
@@ -527,6 +530,11 @@ func _verify() -> void:
 	career.restore(career.snapshot())
 	if career.tape_stock()!=8 or career.tapes_sold!=4:
 		_fail("Merch stock and sales must survive restore")
+		return
+	var global_cred: int = wallet.street_cred()
+	var saved_runs: Dictionary = wallet.snapshot()
+	if not wallet.reconcile_music_activity(career.completed_sets,career.completed_live_bookings(wallet)) or wallet.street_cred()!=global_cred or wallet.snapshot()!=saved_runs:
+		_fail("Music activity migration must be idempotent")
 		return
 	world.set("current_car",world.get("cars")[0])
 	if world.call("phone_available"):

@@ -2446,6 +2446,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 	investigation.restore(int(data.get("investigation_stage",0)),progression)
 	_stop_music()
 	music_career.restore(data.get("music_career",{}))
+	progression.reconcile_music_activity(music_career.completed_sets,music_career.completed_live_bookings(progression))
 	_sync_band_promotion()
 	player.call("set_courier_conditioning",courier_mission.conditioning_rank())
 	story_mission.restore(data.get("story_mission", StoryMission.new().snapshot()))
