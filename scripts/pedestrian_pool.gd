@@ -114,7 +114,8 @@ func activate(population, id: String, ground_y: float, allowed: Callable) -> boo
 			"social":0.0,"social_cooldown":0.0,"social_facing":Vector3.ZERO,
 			"routine":sample.get("routine",{}),"intent":"RESTING","dwell_state":"RESTING",
 			"alert_facing":Vector3.ZERO,"alert_cooldown":0.0,"retreat":0.0,
-			"bark_index":posmod(id.hash(),3),"bark_cooldown":0.0}
+			"bark_index":posmod(id.hash(),3),"bark_cooldown":0.0,
+			"context":"","context_ttl":0.0,"context_cooldown":0.0}
 		body.collision_layer = 1
 		body.collision_mask = 1
 		body.process_mode = Node.PROCESS_MODE_INHERIT
@@ -167,6 +168,10 @@ func step(delta: float, signals: Node = null, hour: float = -1.0) -> void:
 		lease["alert_cooldown"] = maxf(0.0, float(lease["alert_cooldown"]) - delta)
 		lease["retreat"] = maxf(0.0, float(lease["retreat"]) - delta)
 		lease["bark_cooldown"] = maxf(0.0,float(lease["bark_cooldown"])-delta)
+		lease["context_ttl"] = maxf(0.0,float(lease["context_ttl"])-delta)
+		lease["context_cooldown"] = maxf(0.0,float(lease["context_cooldown"])-delta)
+		if float(lease["context_ttl"])<=0.0:
+			lease["context"]=""
 		lease["hold"] = maxf(0.0, float(lease["hold"]) - delta)
 		lease["social"] = maxf(0.0, float(lease["social"]) - delta)
 		lease["social_cooldown"] = maxf(0.0, float(lease["social_cooldown"]) - delta)
@@ -247,6 +252,7 @@ func react_to_incident(space: PhysicsDirectSpaceState3D, at: Vector3, radius: fl
 		exclude.append(body.get_rid())
 		if space.intersect_ray(PhysicsRayQueryParameters3D.create(eye, at, 1, exclude)).is_empty():
 			lease["alert"] = 0.65 if urgent else 2.6
+			_remember_context(lease,"urgent" if urgent else "incident")
 			lease["alert_cooldown"] = ALERT_COOLDOWN
 			lease["social"] = 0.0
 			lease["hold"] = 0.0
@@ -260,6 +266,7 @@ func react_to_incident(space: PhysicsDirectSpaceState3D, at: Vector3, radius: fl
 				lease["retreat"] = 3.8
 
 func react_to_traffic(vehicles: Array[CharacterBody3D]) -> void:
+	var space:=get_world_3d().direct_space_state
 	for id in _leases:
 		var lease: Dictionary = _leases[id]
 		var body := _slots[int(lease["slot"])]
@@ -274,7 +281,16 @@ func react_to_traffic(vehicles: Array[CharacterBody3D]) -> void:
 				continue
 			var leading := offset.dot(velocity / speed)
 			if leading > -0.8 and leading < 1.1 * speed and (offset - velocity / speed * leading).length() < 2.25:
+				# Reject vehicles on other floors or behind solid geometry.
+				if absf(body.global_position.y-vehicle.global_position.y)>2.0:
+					continue
+				var exclude:Array[RID]=[body.get_rid(),vehicle.get_rid()]
+				var eye:=body.global_position+Vector3.UP*1.4
+				var target:=vehicle.global_position+Vector3.UP*0.8
+				if not space.intersect_ray(PhysicsRayQueryParameters3D.create(eye,target,1,exclude)).is_empty():
+					continue
 				lease["alert"] = maxf(float(lease["alert"]), 0.65)
+				_remember_context(lease,"traffic")
 				break
 
 func socialize_nearby(space: PhysicsDirectSpaceState3D) -> void:
@@ -373,14 +389,16 @@ func capture_active(population) -> bool:
 func street_bark(space:PhysicsDirectSpaceState3D, listener:Vector3, listener_rid:RID) -> Dictionary:
 	var nearest: String = ""
 	var best := 8.0*8.0
+	var best_context:=false
 	for id in _leases:
 		var lease:Dictionary=_leases[id]
-		if not _bark_calm(lease) or float(lease["bark_cooldown"])>0.0:
+		var contextual:=float(lease["context_ttl"])>0.0 and float(lease["context_cooldown"])<=0.0
+		if not _bark_calm(lease) or (not contextual and (best_context or float(lease["bark_cooldown"])>0.0)):
 			continue
 		var body:=_slots[int(lease["slot"])]
 		var eye:=body.global_position+Vector3.UP*1.6
 		var distance:=eye.distance_squared_to(listener)
-		if distance>best or distance<1.0:
+		if distance>8.0*8.0 or distance<1.0 or (contextual==best_context and distance>best):
 			continue
 		var ignored:Array[RID]=[body.get_rid()]
 		if listener_rid.is_valid():
@@ -388,12 +406,19 @@ func street_bark(space:PhysicsDirectSpaceState3D, listener:Vector3, listener_rid
 		if not space.intersect_ray(PhysicsRayQueryParameters3D.create(eye,listener,1,ignored)).is_empty():
 			continue
 		best=distance
+		best_context=contextual
 		nearest=id
 	if nearest.is_empty():
 		return {}
 	var chosen:Dictionary=_leases[nearest]
-	var line:Dictionary=Satire.line_for(nearest,int(chosen["bark_index"]))
-	chosen["bark_index"]=posmod(int(chosen["bark_index"])+1,3)
+	var line:Dictionary=Satire.contextual_line(nearest,str(chosen["context"])) if best_context else {}
+	if not line.is_empty():
+		chosen["context"]=""
+		chosen["context_ttl"]=0.0
+		chosen["context_cooldown"]=60.0
+	else:
+		line=Satire.line_for(nearest,int(chosen["bark_index"]))
+		chosen["bark_index"]=posmod(int(chosen["bark_index"])+1,3)
 	chosen["bark_cooldown"]=75.0
 	line["speaker"]=_slots[int(chosen["slot"])]
 	line["lease_id"]=nearest
@@ -404,3 +429,14 @@ static func _bark_calm(lease:Dictionary) -> bool:
 
 func street_bark_valid(id:String) -> bool:
 	return _leases.has(id) and _bark_calm(_leases[id])
+
+## One bounded recent event per lease. Keep more urgent context over traffic.
+static func _remember_context(lease:Dictionary,context:String) -> void:
+	if float(lease["context_cooldown"])>0.0:
+		return
+	var previous:=str(lease["context"])
+	var priority:Dictionary={"":0,"traffic":1,"incident":2,"urgent":3}
+	if int(priority.get(context,0))<int(priority.get(previous,0)):
+		return
+	lease["context"]=context
+	lease["context_ttl"]=28.0
