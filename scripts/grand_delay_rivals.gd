@@ -37,14 +37,14 @@ static func advance(grid: Array[Dictionary], obstacles: Array[Dictionary], cours
 			var gap = float(item["z"])-z
 			if gap>0.0 and gap<nearest and absf(float(item["x"])-target)<.52:
 				nearest = gap
-				target = 1.35 if float(item["x"])<1.0 else .45
+				target = 1.35 if float(item["x"])<1.0 else (.65 if float(item["x"])>1.0 else (0.3 if x<1.0 else 1.7))
 		for item in obstacles:
 			if item["kind"]!="traffic":
 				continue
 			var gap = float(item["z"])-z
 			if gap>0.0 and gap<nearest and absf(float(item["x"])-target)<.52:
 				nearest = gap
-				target = 1.50 if float(item["x"])<1.0 else .50
+				target = 1.50 if float(item["x"])<1.0 else (.50 if float(item["x"])>1.0 else (0.3 if x<1.0 else 1.7))
 				if gap<36.0 and absf(float(item["x"])-x)<.40:
 					target_speed = minf(target_speed,45.0)
 		driver["x"] = move_toward(x,target,1.20*float(driver["grip"])*dt)

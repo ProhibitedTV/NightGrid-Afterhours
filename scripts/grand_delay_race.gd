@@ -68,7 +68,9 @@ func start(id: String, selected_car: int = 0, race_rivals: bool = false) -> bool
 	game_id = id
 	car_index = clampi(selected_car,0,Garage.CARS.size()-1)
 	competitive = race_rivals
-	rivals = Rivals.new_grid() if competitive else []
+	rivals.clear()
+	if competitive:
+		rivals = Rivals.new_grid()
 	finish_place = 0
 	rival_contacts = 0
 	rival_cooldown = 0.0
@@ -219,7 +221,8 @@ func advance(throttle: bool = false, brake: bool = false) -> void:
 	if shoulder and drifting:
 		_finish_drift(false)
 	var old_distance = distance
-	distance = minf(LENGTH,distance+speed*DT)
+	var crossing_speed = speed
+	distance = minf(LENGTH,distance+crossing_speed*DT)
 	_spawn_visible()
 	for i in range(objects.size()-1,-1,-1):
 		var item: Dictionary = objects[i]
@@ -244,7 +247,7 @@ func advance(throttle: bool = false, brake: bool = false) -> void:
 	elif distance >= LENGTH:
 		cleared = true
 		finished = true
-		var finish_time = race_time-DT+clampf((LENGTH-old_distance)/maxf(speed,.01),0.0,DT)
+		var finish_time = race_time-DT+clampf((LENGTH-old_distance)/maxf(crossing_speed,.01),0.0,DT)
 		finish_place = Rivals.place(rivals,LENGTH,finish_time) if competitive else 0
 		splits.append(race_time)
 		_add_points(300+floori(remaining)*5+lives*50)
@@ -293,7 +296,7 @@ func result() -> Dictionary:
 func grade() -> String:
 	if not cleared:
 		return "D"
-	if collisions==0 and race_time<52.0 and pickups>=9:
+	if collisions==0 and rival_contacts==0 and race_time<52.0 and pickups>=9:
 		return "S"
 	if race_time<58.0 and lives>=2:
 		return "A"

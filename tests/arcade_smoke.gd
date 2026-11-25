@@ -204,11 +204,20 @@ func _verify() -> void:
 	if not check(float(race.rivals[0]["z"])>12.0 and float(race.rivals[0]["speed"])>0.0, "rivals advance under own acceleration"):
 		return
 	# Exact finish ordering and contact cooldown isolated from the traffic model.
+	var ai_grid = Rivals.new_grid()
+	var ai_time = 0.0
+	for i in range(4200):
+		ai_time += Race.DT
+		Rivals.advance(ai_grid,race.objects,race.course,Race.DT,ai_time)
+	for driver in ai_grid:
+		if not check(float(driver["finish"])>40.0 and float(driver["finish"])<65.0 and float(driver["z"])==Race.LENGTH, "each rival completes the full sprint"):
+			return
 	var grid = Rivals.new_grid()
 	grid[0]["finish"]=48.0
 	grid[1]["finish"]=51.0
 	if not check(Rivals.place(grid,Race.LENGTH,50.0)==2, "finish-time ordering"):
 		return
+	race.rival_cooldown=0.0
 	race.rivals[0]["z"]=race.distance
 	race.rivals[0]["x"]=race.position_x
 	var before_contact: float = race.speed
@@ -219,6 +228,29 @@ func _verify() -> void:
 		return
 	race.start("grand_delay")
 	if not check(race.rivals.is_empty() and race.car_index==0 and race.rival_contacts==0, "solo replay clears competition"):
+		return
+	# Complete competitive run through the same public controls. Do not require a
+	# perfect finish here: it is a regression for mode settlement, not tuning.
+	race.start("grand_delay",1,true)
+	for i in range(6000):
+		var next: Dictionary = {}
+		for item in race.objects:
+			if next.is_empty() or float(item["z"])<float(next["z"]):
+				next=item
+		var lane_target = 1.0
+		if not next.is_empty():
+			lane_target=float(next["x"])
+			if next["kind"]!="feature":
+				lane_target+=-.47 if lane_target>=2.0 else .47
+		race.steer(clampf((lane_target-race.position_x)*4.0,-1.0,1.0))
+		race.advance(true)
+		if race.finished:
+			break
+	if not check(race.finished and race.cleared and race.finish_place>=1 and race.finish_place<=4 and race.score<=Race.MAX_SCORE, "competitive sprint settles bounded final position"):
+		return
+	var competitive_result = race.result()
+	race.advance(true)
+	if not check(race.result()==competitive_result, "competitive finish remains immutable"):
 		return
 	var patch := Alt.new()
 	if not check(patch.start("patch_day") and patch.strike() and patch.score == 150 and not patch.strike(), "patch repairs exactly once"):

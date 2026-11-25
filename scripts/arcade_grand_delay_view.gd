@@ -47,7 +47,7 @@ func render(c, visual_lane: float, button_pulse: float) -> void:
 				label(c,"LEFT / RIGHT  CABINETS",505,344,PAPER,15)
 			else:
 				label(c,"LEFT / RIGHT  MODE",505,344,PAPER,15)
-			label(c,"ALL CARS INCLUDED / NO DELUXE TAX",286,319,PAPER,13)
+			label(c,"3 FEATURES = NITRO / ALL CARS INCLUDED",286,319,PAPER,13)
 		else:
 			label(c,"GOLD MASTER / RANK "+c.round.grade() if c.round.result()["cleared"] else "RELEASE POSTPONED",286,142,TEAL if c.round.result()["cleared"] else PINK,27)
 			label(c,"FINAL SCORE     %06d" % c.round.score,286,188,PAPER,24)
@@ -56,7 +56,7 @@ func render(c, visual_lane: float, button_pulse: float) -> void:
 			label(c,"%04dm   %.1fs   %d features   %d near misses" % [int(c.round.distance),c.round.race_time,c.round.pickups,c.round.near_misses],286,289,PAPER,16)
 			label(c,"COMBO %d / CONTACTS %d / DRIFTS %d" % [c.round.best_streak,c.round.collisions+c.round.rival_contacts,c.round.drift_count],286,314,GOLD,15)
 			if c.round.competitive:
-				label(c,"PLACE %d/4" % c.round.race_place(),645,223,TEAL,16)
+				label(c,"PLACE %d/4" % c.round.race_place() if c.round.cleared else "DNF",645,223,TEAL,16)
 			label(c,"ENTER / A  REPLAY MENU",286,344,TEAL,19)
 			if c.round.cleared:
 				label(c,"S TARGET: 52s / CLEAN / 9+",510,344,GOLD,14)
