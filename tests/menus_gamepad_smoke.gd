@@ -378,6 +378,19 @@ func _verify() -> void:
 	if world.get("cash") != before_severance+75 or not world.get("courier_mission").gig_economy or menu.call("is_open"):
 		_fail("Opening credits severance once and enables real QuotaDrop work")
 		return
+	var order = world.get("courier_mission")
+	var restaurants: Node = world.get("venue_system")
+	restaurants.call("set_hour",5.0)
+	player.global_position = order.target()
+	world.call("_toggle_interaction")
+	if order.has_package():
+		_fail("Closed kitchen cannot hand over a new order")
+		return
+	restaurants.call("set_hour",19.25)
+	world.call("_toggle_interaction")
+	if not order.has_package():
+		_fail("Explicit on-foot pickup at actual restaurant")
+		return
 	var opening_save: Dictionary = world.call("_capture_snapshot")
 	world.get("courier_mission").gig_economy = false
 	world.call("_apply_snapshot",opening_save)

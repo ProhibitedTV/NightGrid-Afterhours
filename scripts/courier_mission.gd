@@ -8,6 +8,38 @@ const ROUTES = [
 	{"id":"courier:central_north","pickup":Vector3(116,0,58),"dropoff":Vector3(0,0,-116)},
 	{"id":"courier:south_east","pickup":Vector3(-58,0,116),"dropoff":Vector3(116,0,-58)}
 ]
+# Stable restaurant-to-workplace orders. Both endpoints resolve through the
+# existing authored catalogs, not road centers or randomly spawned customers.
+const GIG_ORDERS = [
+	{"id":"gig:moon_freight","vendor":"moon_noodles","customer":"freight_control","meal":"Noodle bowl","recipient":"Freight Control / Cato","base":10,"tip":5},
+	{"id":"gig:furnace_docks","vendor":"furnace_skewers","customer":"cold_storage","meal":"Skewer box","recipient":"Cold Chain 09 / Rook","base":11,"tip":7},
+	{"id":"gig:bao_union","vendor":"neon_bao","customer":"union_supply","meal":"Bao dinner","recipient":"Union Distribution / Edda","base":12,"tip":8},
+	{"id":"gig:moon_clinic","vendor":"moon_noodles","customer":"tide_clinic","meal":"Noodle bowl","recipient":"Tide Clinic / night staff","base":12,"tip":4},
+	{"id":"gig:furnace_fire","vendor":"furnace_skewers","customer":"east_fire","meal":"Skewer box","recipient":"Eastside Fire 4 / Ash","base":12,"tip":6},
+	{"id":"gig:bao_grid","vendor":"neon_bao","customer":"power_annex","meal":"Bao dinner","recipient":"Grid Annex Four / Lin","base":13,"tip":5}
+]
+var _gig_routes: Array[Dictionary] = []
+
+func configure_gig_routes(venues: Node, civic: Node) -> bool:
+	var routes: Array[Dictionary] = []
+	for order in GIG_ORDERS:
+		var vendor: Dictionary = venues.call("venue_by_id",order["vendor"])
+		var customer: Dictionary = civic.call("site_by_id",order["customer"])
+		if vendor.is_empty() or customer.is_empty():
+			return false
+		var route: Dictionary = order.duplicate()
+		route["pickup"] = venues.call("venue_position",order["vendor"])
+		route["dropoff"] = civic.call("position_for",order["customer"])
+		route["vendor_name"] = vendor["name"]
+		routes.append(route)
+	_gig_routes = routes
+	return true
+
+func _route() -> Dictionary:
+	if gig_economy and not _gig_routes.is_empty():
+		return _gig_routes[completed_runs % _gig_routes.size()]
+	return ROUTES[completed_runs % ROUTES.size()]
+
 const OBJECTIVES = [
 	{"id":"collect","kind":"acquire","title":"Collect courier package","hud":"PICK UP PACKAGE","point":"pickup"},
 	{"id":"deliver","kind":"deliver","title":"Deliver package","hud":"DELIVER PACKAGE","point":"dropoff"}
@@ -52,20 +84,29 @@ func has_package() -> bool:
 	return step == 1
 
 func target() -> Vector3:
-	return ROUTES[completed_runs % ROUTES.size()][OBJECTIVES[step]["point"]] + Vector3.UP * 0.2
+	return _route()[OBJECTIVES[step]["point"]] + (Vector3.ZERO if gig_economy and not _gig_routes.is_empty() else Vector3.UP * .2)
 
 func payout() -> int:
 	# Starter meal delivery: estimated 2026 $15–24 net platform payout.
+	if gig_economy and not _gig_routes.is_empty():
+		var order := _route()
+		return Economy.price_2036(int(order["base"])+int(order["tip"]))
 	if gig_economy:
-		return Economy.price_2036(15+mini(completed_runs,9))
+		return Economy.price_2036(15)
 	return 250 + 50 * mini(completed_runs, 8)
 
 func objective() -> Dictionary:
 	var result: Dictionary = OBJECTIVES[step].duplicate()
-	if gig_economy:
-		result["title"] = "QuotaDrop / Collect meal" if step == 0 else "QuotaDrop / Deliver meal"
-		result["hud"] = "QUOTADROP / PICK UP MEAL" if step == 0 else "QUOTADROP / DELIVER MEAL"
-	result["route_id"] = ROUTES[completed_runs % ROUTES.size()]["id"]
+	var route := _route()
+	if gig_economy and not _gig_routes.is_empty():
+		var destination: String = route["vendor_name"] if step == 0 else route["recipient"]
+		result["title"] = "QuotaDrop / %s / %s" % [route["meal"],destination]
+		result["hud"] = "QUOTADROP / " + ("PICKUP: " if step == 0 else "DELIVER: ") + destination
+		result["vendor"] = route["vendor"]
+		result["customer"] = route["customer"]
+		result["base_pay"] = Economy.price_2036(route["base"])
+		result["tip"] = payout()-int(result["base_pay"])
+	result["route_id"] = route["id"]
 	result["run"] = completed_runs + 1
 	result["step"] = step + 1
 	result["total_steps"] = OBJECTIVES.size()

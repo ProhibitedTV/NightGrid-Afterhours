@@ -45,6 +45,12 @@ func _verify() -> void:
 		return
 	var gig := Director.new()
 	gig.gig_economy = true
+	var venues: Node = preload("res://scripts/venue_system.gd").new()
+	var civic: Node = preload("res://scripts/civic_services.gd").new()
+	if not check(gig.configure_gig_routes(venues,civic),"all six authored orders resolve"):
+		return
+	if not check(gig.target()==venues.call("venue_position","moon_noodles"),"first pickup uses canonical storefront"):
+		return
 	var gig_wallet := Wallet.new()
 	if not check(gig.payout()==20 and str(gig.objective()["title"]).contains("QuotaDrop"),"starter gig has realistic paid meal delivery"):
 		return
@@ -53,6 +59,8 @@ func _verify() -> void:
 		gig.advance("deliver",gig.target(),gig_wallet)
 	if not check(gig.completed_runs==6 and gig_wallet.balance==141,"six starter deliveries use the inflation-adjusted catalog"):
 		return
+	venues.free()
+	civic.free()
 	var story := Story.new()
 	if not check(story.event("courier_delivered", wallet).is_empty() and story.event("mara_talk", wallet) == "started", "contact must precede delivery"):
 		return

@@ -853,7 +853,7 @@ func _physics_process(delta: float) -> void:
 	StreamProfile.accumulate(started, "world_pedestrians")
 	started = StreamProfile.begin()
 	_update_combat(delta)
-	if not indoors and current_transit == null and actor.global_position.distance_to(mission_position) < CourierMission.RADIUS:
+	if not courier_mission.gig_economy and not indoors and current_transit == null and actor.global_position.distance_to(mission_position) < CourierMission.RADIUS:
 		_advance_mission()
 	if (actor.global_position.y < -15.0 or not indoors and
 			(absf(actor.global_position.x) > 390.0 or absf(actor.global_position.z) > 390.0)):
@@ -1145,18 +1145,33 @@ func _clear_car_exit(car: CharacterBody3D) -> Vector3:
 	return Vector3.INF
 
 func _advance_mission() -> void:
-	var event_id: String = courier_mission.objective()["id"]
+	var objective := courier_mission.objective()
+	if courier_mission.gig_economy:
+		if current_car != null or current_transit != null or interiors.call("is_inside"):
+			return
+		if not carrying and not venue_system.call("is_open",str(objective.get("vendor",""))):
+			_notify("QuotaDrop: kitchen closed. Return during posted opening hours.")
+			return
+	var event_id: String = objective["id"]
 	var result := courier_mission.advance(event_id, _actor().global_position, progression)
 	match result.get("event", ""):
 		"collected":
 			world_audio.call("play_event", "PICKUP", _actor().global_position)
 			_refresh_courier_target()
-			_notify("Package secured! Follow the cyan beacon.")
+			if courier_mission.gig_economy:
+				player.call("play_visual_action",&"interact")
+				_notify("QuotaDrop: prepaid order collected. Deliver to the customer.")
+			else:
+				_notify("Package secured! Follow the cyan beacon.")
 		"delivered":
 			player.call("set_courier_conditioning",courier_mission.conditioning_rank())
 			world_audio.call("play_event", "DELIVERY", _actor().global_position)
 			_refresh_courier_target()
-			_notify("Delivery done! +$%d. Next pickup marked in amber." % int(result["reward"]))
+			if courier_mission.gig_economy:
+				player.call("play_visual_action",&"interact")
+				_notify("QuotaDrop: delivered. +$%d base + $%d tip. Next order offered." % [objective["base_pay"],objective["tip"]])
+			else:
+				_notify("Delivery done! +$%d. Next pickup marked in amber." % int(result["reward"]))
 			if story_mission.event("courier_delivered", progression) == "delivered":
 				_notify("Delivery done! +$%d. Report back to Mara at Lantern Cup." % int(result["reward"]))
 		"blocked":
@@ -1590,6 +1605,8 @@ func _build_world_systems() -> void:
 	civic_services.name = "CivicServices"
 	add_child(civic_services)
 	civic_services.call("set_hour", float(day_night.get("hour")))
+	if not courier_mission.configure_gig_routes(venue_system,civic_services):
+		push_error("QuotaDrop authored route catalog failed to resolve")
 	interiors = InteriorSystemScript.new()
 	interiors.name = "Interiors"
 	add_child(interiors)
@@ -2097,6 +2114,9 @@ func _toggle_interaction() -> void:
 		return
 	if current_car != null or current_transit != null:
 		_notify("Get out of the vehicle before interacting with neighborhood businesses.")
+		return
+	if courier_mission.gig_economy and player.global_position.distance_to(mission_position) < CourierMission.RADIUS:
+		_advance_mission()
 		return
 	var garage: Node3D = city_details.call("starter_garage",player.global_position)
 	if is_instance_valid(garage) and garage.call("desk_reachable",player.global_position):
@@ -3292,7 +3312,8 @@ func _update_hud() -> void:
 		_wanted_label.text += "\n" + dispatch.status()
 	_wanted_label.visible = tier > 0 or weapons.equipped != "holstered"
 	_wanted_label.modulate = Ui.DANGER if wanted.police_seen and tier > 0 else Ui.AMBER
-	var mission: String = courier_mission.objective()["hud"]
+	var active_order := courier_mission.objective()
+	var mission: String = active_order["hud"]
 	var distance := roundi(outdoors.distance_to(mission_position))
 	var message := notification if notification_time > 0.0 else ""
 	if performance_overlay:
@@ -3314,6 +3335,8 @@ func _update_hud() -> void:
 	hud_stamina.value = float(player.get("stamina"))
 	hud_label.text += "\nSTAMINA %d  •  %d snacks" % [ceili(float(player.get("stamina"))),Consumables.count(consumable_inventory)]
 	hud_objective.text = "%s  /  %dm" % [mission, distance]
+	if courier_mission.gig_economy and current_car == null and current_transit == null and not interiors.call("is_inside") and player.global_position.distance_to(mission_position) < CourierMission.RADIUS:
+		hud_objective.text += "  /  " + ("X" if gamepad_active else "G") + (" HAND OFF" if carrying else " COLLECT ORDER")
 	hud_objective.modulate = Ui.ACCENT if carrying else Ui.AMBER
 	hud_navigation.visible = navigation_waypoint != null
 	hud_navigation.text = navigation_text() if navigation_waypoint != null else ""
