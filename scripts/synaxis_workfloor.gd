@@ -5,6 +5,8 @@ const Rage=preload("res://scripts/synaxis_keyboard_rage.gd")
 const Eggs=preload("res://scripts/synaxis_office_easter_eggs.gd")
 const Robotics=preload("res://scripts/synaxis_robotics_lab.gd")
 const FloorStaff=preload("res://scripts/synaxis_workfloor_staff.gd")
+const Services=preload("res://scripts/synaxis_office_services.gd")
+var _services:Node3D
 const GeneratedAudio=preload("res://scripts/synaxis_generated_audio.gd")
 const FLOOR_COUNT=4
 const FLOOR_HEIGHT=3.65
@@ -72,6 +74,10 @@ func _ready() -> void:
 	_noticeboard(accent)
 	_flush()
 	_office_ambience=GeneratedAudio.emitter(self,"office_air",Vector3(0,1,-1),-22.0,18.0,true)
+	_services=Services.new()
+	_services.name="OfficeServices"
+	_services.level=level
+	add_child(_services)
 	_people=FloorStaff.new()
 	_people.name="DepartmentStaff"
 	_people.level=level
@@ -97,6 +103,8 @@ func get_floor_stats() -> Dictionary:
 
 func set_occupied(active: bool) -> void:
 	GeneratedAudio.activate(_office_ambience,active)
+	if is_instance_valid(_services):
+		_services.call("set_active",active)
 	for lamp in _lights:
 		lamp.visible=active
 	if is_instance_valid(_rage):
@@ -277,8 +285,9 @@ func _shared_area(accent: String) -> void:
 	for x in [-7.85,7.85]:
 		_part("oak",Vector3(x,.53,-.4),Vector3(.68,1.06,1.4))
 		_solid(Vector3(x,.53,-.4),Vector3(.68,1.06,1.4))
-		_part("white",Vector3(x,1.23,-.4),Vector3(.55,.36,.62))
-		_part("black",Vector3(x,1.38,-.4),Vector3(.36,.045,.42))
+		if x>0: # West appliance is owned by OfficeServices.
+			_part("white",Vector3(x,1.23,-.4),Vector3(.55,.36,.62))
+			_part("black",Vector3(x,1.38,-.4),Vector3(.36,.045,.42))
 		if level!=1 or x<0:
 			_plant(Vector3(x,0,8.8),.46)
 	# Soft seating, facing the collaboration tables but away from main paths.

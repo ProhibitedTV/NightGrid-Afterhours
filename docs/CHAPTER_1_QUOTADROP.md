@@ -122,3 +122,6 @@ One of the two standing coworkers per workfloor now follows an authored short ro
 
 ### Purposeful employee routines
 The standing walker on each department now carries a physical clipboard, visits the other standing worker for a five-second two-line exchange, reviews the west task board for four seconds, and returns to their original location. Nearby players can overhear department-specific exchanges or interrupt with existing proximity dialogue; no quest flags change. The board and chat visits are exercised in the smoke test. Native pose alignment, audible dialogue and clearance remain pending; these are authored text exchanges and procedural poses, not voiced or mocap assets.
+
+### Interactive office appliances
+Each workfloor has a collision-backed coffee counter, detailed machine and animated coffee stream, plus an interactive west printer with an animated output sheet and status display. The existing east printer remains decorative. Use the regular interaction action while nearby; repeated input cannot restart a busy appliance. No mission, inventory or wallet effect. Optional approved office_printer and office_coffee WAVs play spatially; no runtime generation. Workfloor deactivation cancels cycles and stops audio. CPU manifest test now expects 37 unique slots. Native fit, sound review and interaction testing remain pending.

@@ -16,7 +16,7 @@ class AuthoringTests(unittest.TestCase):
         assets = data["assets"]
         ids = [x["id"] for x in assets]
         self.assertEqual(len(ids), len(set(ids)))
-        self.assertEqual(len(ids), 36)
+        self.assertEqual(len(ids), 37)
         self.assertTrue(all(x["duration"] > 0 and x["prompt"] for x in assets))
 
     @unittest.skipUnless(shutil.which("ffmpeg"), "FFmpeg required for conversion")

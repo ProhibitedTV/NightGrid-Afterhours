@@ -320,6 +320,12 @@ func floor_title(level:int) -> String:
 		return "14 / EXECUTIVE LEADERSHIP"
 	return "%d / %s" % [level+1,Workfloor.DEPARTMENTS[level-1]]
 
+func try_office_service(at:Vector3) -> bool:
+	if not _prologue_active or _active_floor<1 or _active_floor>Workfloor.FLOOR_COUNT:
+		return false
+	var service:=_workfloors[_active_floor-1].get_node_or_null("OfficeServices")
+	return is_instance_valid(service) and bool(service.call("interact",at))
+
 func try_lift(player: CharacterBody3D) -> bool:
 	var direction:=lift_direction(player.global_position)
 	if direction==0:
@@ -863,6 +869,11 @@ func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 			if not executive_line.is_empty():
 				_hint.text+="\n"+executive_line
 		if _active_floor<=Workfloor.FLOOR_COUNT:
+			var service:=_workfloors[_active_floor-1].get_node_or_null("OfficeServices")
+			if is_instance_valid(service):
+				var service_prompt:=str(service.call("prompt",at))
+				if not service_prompt.is_empty():
+					_hint.text+="\n"+("X" if gamepad else "G")+" / "+service_prompt
 			var worker_line:String=_workfloors[_active_floor-1].call("observe_worker",at)
 			if not worker_line.is_empty():
 				_hint.text+="\n"+worker_line

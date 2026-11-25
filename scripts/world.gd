@@ -514,6 +514,9 @@ func _opening_interact() -> void:
 		return
 	if _opening_office.call("try_lift",player):
 		return
+	if _opening_office.call("try_office_service",player.global_position):
+		player.call("play_visual_action",&"interact")
+		return
 	if _opening_office.call("parking_guard_reachable",player.global_position):
 		game_menu.call("open_parking_guard",false)
 		return
