@@ -732,8 +732,18 @@ func _verify() -> void:
 		_fail("Folder pickup updates objective and removes desk prop")
 		return
 	world.call("_opening_interact")
-	if office.call("errand_complete"):
-		_fail("Folder cannot be handed over remotely")
+	if office.call("errand_complete") or menu.get("screen")!="workstation":
+		_fail("Desk terminal must be optional and cannot hand over folder remotely")
+		return
+	var terminal_data=preload("res://scripts/synaxis_workstation.gd")
+	menu.call("_choice","terminal_access")
+	if menu.get("_terminal_tab")!="access" or terminal_data.page("access",false).has("rows"):
+		_fail("Unverified workstation must not expose restricted access records")
+		return
+	menu.call("_choice","terminal_ticket")
+	menu.call("_choice","terminal_leave")
+	if menu.call("is_open") or int(office.call("objective_stage",0))!=-1:
+		_fail("Leaving cubicle terminal returns to unchanged errand")
 		return
 	player.global_position=office.to_global(Vector3(.9,1.15,5))
 	world.call("_opening_interact")
@@ -753,6 +763,14 @@ func _verify() -> void:
 		return
 	world.call("_opening_interact")
 	menu.call("_choice","opening_inspect")
+	menu.call("_choice","terminal_open")
+	if menu.get("screen")!="workstation" or menu.get("_terminal_tab")!="access" or terminal_data.page("access",true)["rows"].size()!=5:
+		_fail("Verified IT review exposes the three exports and executive exception")
+		return
+	menu.call("_choice","terminal_leave")
+	if menu.get("screen")!="opening" or int(menu.get("_opening_stage"))!=1:
+		_fail("Closing IT terminal preserves review stage")
+		return
 	menu.call("_choice","opening_brief")
 	if menu.call("is_open"):
 		_fail("Executive briefing requires walking to office")
