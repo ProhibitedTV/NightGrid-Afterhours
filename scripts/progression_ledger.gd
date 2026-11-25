@@ -217,6 +217,9 @@ func street_cred_rank()->Dictionary:
 func street_cred_summary()->String:
 	return _street_cred.summary(_receipts)
 
+func street_cred_sources()->Array[Dictionary]:
+	return _street_cred.earned_sources(_receipts)
+
 func street_activity_runs(source:String)->int:
 	return _street_cred.completed_runs(source)
 

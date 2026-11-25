@@ -2,7 +2,18 @@ extends RefCounted
 ## One-time neighborhood favors derive cred from existing settlement receipts.
 ## Repeatable activities use a bounded, monotonic completed-run count per source.
 ## A caller must verify successful gameplay before invoking settle_run.
-const FAVOR_POINTS={"street:compatibility_patch":25}
+const FAVOR_POINTS={
+	"street:compatibility_patch":25,
+	"venue:midnight_thermos":15,
+	"venue:dead_frequency":25,
+	"venue:glass_invoice":20,
+	"venue:last_shift_recipe":20}
+const FAVOR_NAMES={
+	"street:compatibility_patch":"Compatibility Patch",
+	"venue:midnight_thermos":"The Midnight Thermos",
+	"venue:dead_frequency":"Dead Frequency",
+	"venue:glass_invoice":"The Glass Invoice",
+	"venue:last_shift_recipe":"Last Shift Recipe"}
 const RUN_POINTS={"busking":4,"live_gig":12,"skate_session":3}
 const MAX_RUNS=100000
 const MAX_CRED=10000
@@ -72,4 +83,16 @@ func summary(receipts:Dictionary)->String:
 	var result:="STREET CRED %d / %s"%[info["points"],str(info["name"]).to_upper()]
 	if int(info["next"])>0:
 		result+="  •  %d to %s"%[int(info["next"])-int(info["points"]),str(info["next_name"])]
+	return result
+
+## Fixed-size source summary; no unbounded activity history.
+func earned_sources(receipts:Dictionary)->Array[Dictionary]:
+	var result:Array[Dictionary]=[]
+	for id in FAVOR_POINTS:
+		if receipts.has(id):
+			result.append({"name":FAVOR_NAMES[id],"points":FAVOR_POINTS[id]})
+	for id in RUN_POINTS:
+		var count:=completed_runs(id)
+		if count>0:
+			result.append({"name":str(id).replace("_"," ").capitalize(),"points":count*int(RUN_POINTS[id]),"runs":count})
 	return result

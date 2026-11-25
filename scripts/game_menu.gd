@@ -471,6 +471,8 @@ func _render() -> void:
 				bar.show_percentage=false
 				bar.custom_minimum_size=Vector2(0,12)
 				col.add_child(bar)
+			for source in _journal_data.get("street_cred_sources",[]):
+				_label(col,"%s  /  +%d earned"%[str(source["name"]),int(source["points"])],14,Ui.MUTED)
 			_divider(col)
 			_title(col, "INVENTORY / STATUS", 18, Color("f0d1a0"))
 			_label(col, str(_journal_data.get("weapons", "No equipment data")), 16, Ui.ACCENT)

@@ -634,6 +634,7 @@ func _journal_context() -> Dictionary:
 		"cal_quest":_cal_objective(),
 		"street_cred":progression.street_cred_rank(),
 		"street_cred_summary":progression.street_cred_summary(),
+		"street_cred_sources":progression.street_cred_sources(),
 		"cal_can_navigate":_cal_target().is_finite(),
 		"civic_job": _civic_job_text(),
 		"cash": cash, "health": health, "heat": heat,
@@ -3291,12 +3292,13 @@ func _venue_action(option: int) -> void:
 				_notify("Side job already paid.")
 				_update_venue_panel()
 				return
+			var previous_cred:=progression.street_cred()
 			if not progression.credit_once("venue:" + venue_job_active, int(contract["reward"])):
 				_notify("Unable to settle side job. Check wallet capacity.")
 				return
 			venue_job_completed.append(venue_job_active)
 			venue_job_active = ""
-			_notify("SIDE JOB COMPLETE +$%d: %s" % [int(contract["reward"]), str(contract["ending"])])
+			_notify("SIDE JOB COMPLETE +$%d • +%d STREET CRED: %s" % [int(contract["reward"]),progression.street_cred()-previous_cred,str(contract["ending"])])
 	_update_venue_panel()
 
 func _venue_job_text() -> String:

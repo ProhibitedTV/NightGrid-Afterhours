@@ -33,6 +33,22 @@ func _initialize()->void:
 		bad["street_activity_runs"]=invalid
 		if not _check(not q.restore(999,bad) and q.street_cred()==25 and q.balance==105,"invalid save fails atomically"):
 			return
+	# Existing playable social contracts count by exact receipt, including
+	# completed legacy saves; unrelated or invented venue IDs do not.
+	var local:=Ledger.new()
+	for id in ["midnight_thermos","dead_frequency","glass_invoice","last_shift_recipe"]:
+		if not _check(local.credit_once("venue:"+id,10) and not local.credit_once("venue:"+id,10),"existing venue settlement remains idempotent"):
+			return
+	if not _check(local.street_cred()==80 and local.street_cred_sources().size()==4 and local.balance==40,"four existing social contracts award 80 cred"):
+		return
+	if not _check(local.credit_once("venue:unknown",10) and local.street_cred()==80,"unknown receipt does not award reputation"):
+		return
+	if not _check(local.accept_cal_quest() and local.collect_cal_gift() and local.complete_cal_quest() and local.street_cred()==105 and local.street_cred_rank()["name"]=="Recognized","social path reaches second earned rank"):
+		return
+	var old:=local.snapshot()
+	old.erase("street_activity_runs")
+	if not _check(q.restore(local.balance,old) and q.street_cred()==105 and q.street_cred_sources().size()==5,"existing favor receipts migrate without another payout"):
+		return
 	var cap:=Cred.new()
 	if not _check(cap.restore({"live_gig":Cred.MAX_RUNS}) and cap.total({})==Cred.MAX_CRED and Cred.rank(1000)["name"]=="Street Legend" and Cred.rank(1000)["next"]==0,"bounded total and terminal rank"):
 		return
