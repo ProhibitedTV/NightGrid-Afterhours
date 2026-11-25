@@ -1182,6 +1182,15 @@ func open_music_desk(data:Dictionary)->void:
 	_music_desk=data.duplicate()
 	_open("music_desk")
 
+func open_band_booking(sequence:int,source:String)->void:
+	if source in ["band_encore","band_showcase"]:
+		_open_music_set(sequence,source)
+
+func consume_band_booking(source:String)->int:
+	if source in ["band_encore","band_showcase"] and screen=="blue_hour_set" and _rhythm.mode==source and _rhythm.claim():
+		return _rhythm_sequence
+	return 0
+
 func open_band_debut()->void:
 	_open_music_set(1,"band_debut")
 
@@ -1236,8 +1245,10 @@ func _render_rhythm(col:VBoxContainer)->void:
 	var owned:bool=_rhythm.mode=="owned_busking"
 	var band:bool=_rhythm.mode=="band_rehearsal"
 	var debut:bool=_rhythm.mode=="band_debut"
-	_title(col,"BLUE HOUR / TRIO DEBUT" if debut else "UNSIGNED TRIO / REHEARSAL" if band else "POCKETBEAT M3 / PERSONAL SET" if owned else ("POCKETBEAT M3 / PRACTICE" if practice else ("STREET SAMPLER / BUSKING" if street else "BLUE HOUR / OPENING SET")),24,Ui.AMBER)
-	_label(col,("First paid trio booking. Keep the rhythm tight through the whole set." if debut else "Keep the trio in time. Rhea counts in, Milo follows. No cash or cred for rehearsal." if band else "Play your own sampler for the neighborhood." if owned else ("Practice your own sampler. No cash or reputation reward." if practice else ("Borrow the neighborhood loaner sampler." if street else "Borrow Rae's three-pad sampler.")))+" Hit the indicated pad in the timing window. %d of %d required."%[_rhythm.required_hits,_rhythm.pattern.size()],16,Ui.TEXT)
+	var encore:bool=_rhythm.mode=="band_encore"
+	var showcase:bool=_rhythm.mode=="band_showcase"
+	_title(col,"STATIC ROOM / SHOWCASE" if showcase else "BLUE HOUR / TRIO ENCORE" if encore else "BLUE HOUR / TRIO DEBUT" if debut else "UNSIGNED TRIO / REHEARSAL" if band else "POCKETBEAT M3 / PERSONAL SET" if owned else ("POCKETBEAT M3 / PRACTICE" if practice else ("STREET SAMPLER / BUSKING" if street else "BLUE HOUR / OPENING SET")),24,Ui.AMBER)
+	_label(col,("Headline the underground showcase. Keep the trio in sync." if showcase else "Back by demand. Play a different arrangement." if encore else "First paid trio booking. Keep the rhythm tight through the whole set." if debut else "Keep the trio in time. Rhea counts in, Milo follows. No cash or cred for rehearsal." if band else "Play your own sampler for the neighborhood." if owned else ("Practice your own sampler. No cash or reputation reward." if practice else ("Borrow the neighborhood loaner sampler." if street else "Borrow Rae's three-pad sampler.")))+" Hit the indicated pad in the timing window. %d of %d required."%[_rhythm.required_hits,_rhythm.pattern.size()],16,Ui.TEXT)
 	_label(col,"1 / A: kick   2 / X: clap   3 / Y: hat",16,Ui.MUTED)
 	_rhythm_status=Label.new()
 	_rhythm_status.add_theme_font_size_override("font_size",22)
@@ -1249,7 +1260,7 @@ func _render_rhythm(col:VBoxContainer)->void:
 	for lane in range(3):
 		var key:="rhythm_pad_%d"%lane
 		_button(col,key,["1 / A  KICK","2 / X  CLAP","3 / Y  HI-HAT"][lane],key)
-	_button(col,"rhythm_claim","COLLECT $240 / +30 STREET CRED" if debut else "RECORD BAND REHEARSAL" if band else "COLLECT $14 / +4 STREET CRED" if owned else ("RECORD PRACTICE SET" if practice else ("COLLECT $8 / +4 STREET CRED" if street else "COLLECT $45 / +12 STREET CRED")),"rhythm_claim",false)
+	_button(col,"rhythm_claim","COLLECT $480 / +45 STREET CRED" if showcase else "COLLECT $120 / +12 STREET CRED" if encore else "COLLECT $240 / +30 STREET CRED" if debut else "RECORD BAND REHEARSAL" if band else "COLLECT $14 / +4 STREET CRED" if owned else ("RECORD PRACTICE SET" if practice else ("COLLECT $8 / +4 STREET CRED" if street else "COLLECT $45 / +12 STREET CRED")),"rhythm_claim",false)
 	_rhythm_claim=_buttons["rhythm_claim"]
 	_button(col,"rhythm_cancel","LEAVE SET","rhythm_cancel")
 	_refresh_rhythm()
