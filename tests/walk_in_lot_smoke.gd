@@ -403,6 +403,25 @@ func _verify() -> void:
 	world.call("_close_venue")
 	if not check(ledger.owns_piece("glasses_night") and not ledger.clothing_slots.has("glasses") and ledger.clothing_slots.get("watch")=="watch_shift" and ledger.clothing_slots.get("jacket")=="jacket_ash" and not visual.get("_accessories")["glasses_night"].visible and visual.get("_accessories")["watch_shift"].visible and world.get("cash")==200-catalog.piece_price("glasses_night")-catalog.piece_price("watch_shift"),"accessories removable without losing ownership or other slots"):
 		return
+	world.call("_toggle_interaction")
+	world.call("_cycle_wardrobe_category",1)
+	if not check(world.get("_wardrobe_category")=="OUTFITS","category navigation selects outfits"):
+		return
+	world.call("_cycle_wardrobe_category",1)
+	if not check(world.get("_wardrobe_category")=="JACKETS" and catalog.browse_ids()[world.get("_wardrobe_index")]=="jacket_ash","category navigation filters jackets"):
+		return
+	world.call("_venue_action",2)
+	if not check(catalog.browse_ids()[world.get("_wardrobe_index")]=="jacket_oxide","category next advances within jackets"):
+		return
+	world.call("_toggle_fitting_compare")
+	if not check(visual.get("clothing_slots")==ledger.clothing_slots and world.get("_fitting_compare"),"compare restores actual equipped look"):
+		return
+	world.call("_toggle_fitting_compare")
+	if not check(visual.get("clothing_slots").get("jacket")=="jacket_oxide" and ledger.clothing_slots.get("jacket")=="jacket_ash","compare returns to nonpersistent try-on"):
+		return
+	world.call("_close_venue")
+	if not check(visual.get("clothing_slots")==ledger.clothing_slots,"closing fitting restores committed look"):
+		return
 	var retail_save:Dictionary=ledger.snapshot()
 	if not check(fresh.restore(world.get("cash"),retail_save) and fresh.outfit_id=="tideline" and fresh.clothing_slots==ledger.clothing_slots and not fresh.owns_home(),"pre-tenancy wardrobe save round trip"):
 		return

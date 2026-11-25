@@ -78,3 +78,19 @@ static func listing(id:String) -> Dictionary:
 	if not slot.is_empty():
 		return {"name":"Restore base "+slot if slot in ["jacket","pants"] else "Remove "+slot,"rarity":"NO CHARGE","price":0,"type":"RESET"}
 	return {}
+
+const CATEGORIES=["ALL","OUTFITS","JACKETS","TROUSERS","GLASSES","WATCHES"]
+static func category_ids(category:String) -> Array:
+	if category=="ALL":
+		return browse_ids()
+	if category=="OUTFITS":
+		return IDS.duplicate()
+	var slot:String={"JACKETS":"jacket","TROUSERS":"pants","GLASSES":"glasses","WATCHES":"watch"}.get(category,"")
+	var result:Array=[]
+	if slot.is_empty():
+		return result
+	for id in PIECE_IDS:
+		if PIECES[id]["slot"]==slot:
+			result.append(id)
+	result.append("reset_"+slot)
+	return result

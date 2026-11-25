@@ -14,3 +14,6 @@ Ash, Oxide, Midnight jackets; Charcoal, Sand, Deep Teal cargo trousers. Catalog 
 
 ## Accessory pilot
 Four original geometry pieces: smoke shades, clear frames, digital watch and brass watch. Cached bone-attached meshes follow Head and LeftHand, with wrist direction derived from the rig rest pose. No collisions or extra skeletons. Free reset entries restore the base jacket/pants or remove glasses/watch independently; owned items remain in inventory. Corporate attire hides accessories and restores the prior look. Preview failure prevents debit. Fit, lens appearance, wrist clearance and hand interactions still require native visual review; these are authored interim geometry, not validated premium assets.
+
+## Fitting interface pass
+All/outfits/jackets/trousers/glasses/watches category filters; H/F or LB/RB switches categories, existing 1/2/3 or A/X/Y actions browse and confirm, R/D-pad down compares the actual committed look against try-on. Right-stick horizontal or RMB drag rotates the character; vertical stick or mouse wheel zooms. Compare never writes progression; close restores actual clothing and original heading. Wardrobe menus now use their physical counter reachability instead of generic venue coordinates. Existing home-purchase behavior retained for compatibility. Native camera framing and UI input parity await playtest.

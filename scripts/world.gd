@@ -74,6 +74,13 @@ var _storage_upgrade_quote := false
 var _wardrobe_panel := false
 var _clothing_retail := false
 var _fitting_yaw:=0.0
+var _fitting_rotation:=0.0
+var _fitting_zoom:=0.0
+var _fitting_compare:=false
+var _wardrobe_category:="ALL"
+var _wardrobe_controls:HBoxContainer
+var _wardrobe_category_label:Label
+var _wardrobe_compare_button:Button
 const ClothingStore = preload("res://scripts/clothing_store.gd")
 var _wardrobe_index := 0
 var _wardrobe_quote_id := ""
@@ -659,6 +666,23 @@ func _input(event: InputEvent) -> void:
 		gamepad_active = false
 	if game_menu != null and game_menu.call("is_open"):
 		return
+	if _wardrobe_panel and venue_panel.visible:
+		if event.is_action_pressed("interior_toggle") or event.is_action_pressed("transit_toggle"):
+			_cycle_wardrobe_category(-1 if event.is_action_pressed("interior_toggle") else 1)
+			get_viewport().set_input_as_handled()
+			return
+		if event.is_action_pressed("use_supply"):
+			_toggle_fitting_compare()
+			get_viewport().set_input_as_handled()
+			return
+		if _clothing_retail and event is InputEventMouseMotion and event.button_mask & MOUSE_BUTTON_MASK_RIGHT:
+			_fitting_rotation=wrapf(_fitting_rotation+event.relative.x*.012,-PI,PI)
+			get_viewport().set_input_as_handled()
+			return
+		if _clothing_retail and event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
+			_fitting_zoom=clampf(_fitting_zoom+(.12 if event.button_index==MOUSE_BUTTON_WHEEL_UP else -.12),0.0,1.0)
+			get_viewport().set_input_as_handled()
+			return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		if _cinder_cockpit and _can_use_cinder_view():
 			_adjust_cockpit_look(Vector2(-event.relative.x, event.relative.y * (-1.0 if invert_look_y else 1.0) * .625) * mouse_sensitivity)
@@ -955,6 +979,10 @@ func _process(delta: float) -> void:
 		var menu_position: Vector3
 		if is_instance_valid(_vending_machine):
 			menu_position = _vending_machine.global_position if city_details.call("nearby_vending",player.global_position) == _vending_machine else Vector3.INF
+		elif _wardrobe_panel:
+			var wardrobe_lot:Node3D=city_details.call("nearby_walk_in",player.global_position)
+			var reachable:bool=is_instance_valid(wardrobe_lot) and (wardrobe_lot.call("clothing_reachable",player.global_position) if _clothing_retail else progression.owns_home() and wardrobe_lot.call("home_action",player.global_position)=="wardrobe")
+			menu_position=player.global_position if reachable else Vector3.INF
 		elif _repair_panel:
 			menu_position = repair.counter_position() if repair != null else Vector3.INF
 		elif indoors:
@@ -1139,9 +1167,13 @@ func _update_camera(delta: float, teleport: bool = false) -> void:
 		return
 	if _wardrobe_panel and _clothing_retail and venue_panel.visible:
 		var visual:Node3D=player.get_node("Visual")
-		visual.rotation.y=PI/2
-		var focus:=player.global_position+Vector3.UP*.03
-		camera.global_position=_camera_clearance(focus,focus+Vector3(2.25,.26,1.05))
+		var stick:=GameInput.look_vector()
+		_fitting_rotation=wrapf(_fitting_rotation+stick.x*delta*2.2,-PI,PI)
+		_fitting_zoom=clampf(_fitting_zoom-stick.y*delta*.8,0.0,1.0)
+		visual.rotation.y=PI/2+_fitting_rotation
+		var focus:=player.global_position+Vector3.UP*lerpf(.03,.58,_fitting_zoom)
+		var offset:=Vector3(2.25,.26,1.05)*lerpf(1.0,.53,_fitting_zoom)
+		camera.global_position=_camera_clearance(focus,focus+offset)
 		if camera.global_position.distance_squared_to(focus)>.001:
 			camera.look_at(focus,Vector3.UP)
 		return
@@ -2344,6 +2376,10 @@ func _toggle_interaction() -> void:
 		if physical_lot.call("clothing_reachable",player.global_position):
 			_clothing_retail=true
 			_fitting_yaw=player.get_node("Visual").rotation.y
+			_fitting_rotation=0.0
+			_fitting_zoom=0.0
+			_fitting_compare=false
+			_wardrobe_category="ALL"
 			_wardrobe_panel=true
 			_wardrobe_index=Wardrobe.IDS.find(progression.outfit_id)
 			_show_venue_dialogue()
@@ -2370,6 +2406,7 @@ func _toggle_interaction() -> void:
 				_show_venue_dialogue()
 				_update_venue_panel()
 			"wardrobe":
+				_wardrobe_category="ALL"
 				_wardrobe_panel = true
 				_wardrobe_index = Wardrobe.IDS.find(progression.outfit_id)
 				_show_venue_dialogue()
@@ -2840,6 +2877,10 @@ func _close_venue() -> void:
 			player.get_node("Visual").rotation.y=_fitting_yaw
 	_wardrobe_panel = false
 	_clothing_retail=false
+	_fitting_compare=false
+	_wardrobe_category="ALL"
+	if is_instance_valid(_wardrobe_controls):
+		_wardrobe_controls.hide()
 	_wardrobe_quote_id = ""
 	_wardrobe_tender = "USD"
 	_exchange_panel = false
@@ -2858,6 +2899,32 @@ func _close_venue() -> void:
 		player.set("input_blocked", false)
 	if game_menu == null or not game_menu.call("is_open"):
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+func _wardrobe_visible_ids() -> Array:
+	return Wardrobe.category_ids(_wardrobe_category)
+
+func _cycle_wardrobe_category(direction:int) -> void:
+	if not _wardrobe_panel or not _wardrobe_quote_id.is_empty():
+		return
+	var index:=Wardrobe.CATEGORIES.find(_wardrobe_category)
+	_wardrobe_category=Wardrobe.CATEGORIES[posmod(index+direction,Wardrobe.CATEGORIES.size())]
+	var visible_ids:=_wardrobe_visible_ids()
+	_wardrobe_index=Wardrobe.browse_ids().find(visible_ids[0])
+	_fitting_compare=false
+	_update_venue_panel()
+
+func _toggle_fitting_compare() -> void:
+	if not _wardrobe_panel or not _clothing_retail:
+		return
+	_fitting_compare=not _fitting_compare
+	_update_venue_panel()
+
+func _step_wardrobe(direction:int) -> void:
+	var visible_ids:=_wardrobe_visible_ids()
+	var current:String=Wardrobe.browse_ids()[_wardrobe_index]
+	var index:=visible_ids.find(current)
+	_wardrobe_index=Wardrobe.browse_ids().find(visible_ids[clampi(index+direction,0,visible_ids.size()-1)])
+	_fitting_compare=false
 
 func _clothing_owned(id:String) -> bool:
 	if not Wardrobe.reset_slot(id).is_empty():
@@ -2911,8 +2978,18 @@ func _update_venue_panel() -> void:
 		var id: String = _wardrobe_quote_id if not _wardrobe_quote_id.is_empty() else Wardrobe.browse_ids()[_wardrobe_index]
 		var item: Dictionary = Wardrobe.listing(id)
 		var price:=int(item["price"])
+		var visible_ids:=_wardrobe_visible_ids()
+		var visible_index:=visible_ids.find(id)
+		var preview_ok:=true
 		if _clothing_retail:
-			_preview_clothing(id)
+			preview_ok=bool(player.get_node("Visual").call("set_look",progression.outfit_id,progression.clothing_slots)) if _fitting_compare else _preview_clothing(id)
+		_wardrobe_controls.show()
+		_wardrobe_category_label.text=_wardrobe_category+"  /  "+str(visible_index+1)+" of "+str(visible_ids.size())
+		_wardrobe_compare_button.visible=_clothing_retail
+		_wardrobe_compare_button.text="R / ↓  PREVIEW" if _fitting_compare else "R / ↓  COMPARE"
+		for button in _wardrobe_controls.get_children():
+			if button is Button and button!=_wardrobe_compare_button:
+				button.disabled=not _wardrobe_quote_id.is_empty()
 		venue_service_button.show()
 		venue_talk_button.show()
 		if not _wardrobe_quote_id.is_empty():
@@ -2924,17 +3001,17 @@ func _update_venue_panel() -> void:
 			venue_job_button.text = "2 / X  •  SWITCH USD / BTC"
 			venue_job_button.disabled = false
 			venue_talk_button.text = "3 / Y  •  CONFIRM PURCHASE"
-			venue_talk_button.disabled = not progression.can_pay(price,_wardrobe_tender) or _clothing_owned(id)
+			venue_talk_button.disabled = not preview_ok or not progression.can_pay(price,_wardrobe_tender) or _clothing_owned(id)
 			return
 		var owned := _clothing_owned(id)
-		venue_label.text = ("THREADLINE / " if _clothing_retail else "WARDROBE / ")+"%d of %d\n%s / %s\n%s  |  CASH $%d\nWearing: %s" % [_wardrobe_index+1,Wardrobe.browse_ids().size(),item["name"],item["type"]+" / "+item["rarity"],"OWNED" if owned else "$%d / %d sats" % [price,Economy.sats_for_usd(price)],cash,Wardrobe.ITEMS[progression.outfit_id]["name"]]
+		venue_label.text = ("THREADLINE / FITTING" if _clothing_retail else "WARDROBE")+"\n%s  ·  %s\n%s   |   CASH $%d\n%s" % [item["name"],item["type"]+" / "+item["rarity"],"EQUIPPED" if _clothing_selected(id) else ("OWNED" if owned else "$%d / %d sats" % [price,Economy.sats_for_usd(price)]),cash,"CURRENT LOOK" if _fitting_compare else ("TRY-ON ONLY • Right stick / drag RMB to rotate • zoom with stick / wheel" if _clothing_retail else "Wearing: "+str(Wardrobe.ITEMS[progression.outfit_id]["name"]))]
 		venue_service_button.text = "1 / A  •  PREVIOUS"
-		venue_service_button.disabled = _wardrobe_index == 0
+		venue_service_button.disabled = visible_index<=0
 		venue_job_button.show()
 		venue_job_button.text = "2 / X  •  NEXT"
-		venue_job_button.disabled = _wardrobe_index == Wardrobe.browse_ids().size()-1
+		venue_job_button.disabled = visible_index>=visible_ids.size()-1
 		venue_talk_button.text = ("3 / Y  •  REMOVE / RESTORE" if not Wardrobe.reset_slot(id).is_empty() else "3 / Y  •  EQUIP") if owned else "3 / Y  •  REVIEW PURCHASE"
-		venue_talk_button.disabled = _clothing_selected(id) or (not owned and not progression.can_pay(price,"USD") and not progression.can_pay(price,"BTC"))
+		venue_talk_button.disabled = not preview_ok or _clothing_selected(id) or (not owned and not progression.can_pay(price,"USD") and not progression.can_pay(price,"BTC"))
 		return
 	if _garage_panel:
 		venue_label.text = "LANTERN GARAGE / RECOVERY\nDrive into either marked bay and leave your car there. Recovery $75; damage retained."
@@ -3131,12 +3208,13 @@ func _venue_action(option: int) -> void:
 				else:
 					_notify("Purchase unavailable. No payment taken.")
 		elif option == 1:
-			_wardrobe_index = maxi(0,_wardrobe_index-1)
+			_step_wardrobe(-1)
 		elif option == 2:
-			_wardrobe_index = mini(Wardrobe.browse_ids().size()-1,_wardrobe_index+1)
+			_step_wardrobe(1)
 		elif option == 3:
 			var id:String=Wardrobe.browse_ids()[_wardrobe_index]
 			var price:=int(Wardrobe.listing(id)["price"])
+			_fitting_compare=false
 			if _clothing_owned(id):
 				if _preview_clothing(id):
 					var reset:=Wardrobe.reset_slot(id)
@@ -3484,6 +3562,25 @@ func _build_hud() -> void:
 	var dialogue_layout := VBoxContainer.new()
 	dialogue_layout.add_theme_constant_override("separation", 7)
 	venue_panel.add_child(dialogue_layout)
+	_wardrobe_controls=HBoxContainer.new()
+	_wardrobe_controls.name="FittingCategories"
+	_wardrobe_controls.hide()
+	dialogue_layout.add_child(_wardrobe_controls)
+	var previous_category:=Button.new()
+	previous_category.text="H / LB  ‹"
+	previous_category.pressed.connect(func()->void: _cycle_wardrobe_category(-1))
+	_wardrobe_controls.add_child(previous_category)
+	_wardrobe_category_label=Label.new()
+	_wardrobe_category_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	_wardrobe_category_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	_wardrobe_controls.add_child(_wardrobe_category_label)
+	var next_category:=Button.new()
+	next_category.text="›  F / RB"
+	next_category.pressed.connect(func()->void: _cycle_wardrobe_category(1))
+	_wardrobe_controls.add_child(next_category)
+	_wardrobe_compare_button=Button.new()
+	_wardrobe_compare_button.pressed.connect(_toggle_fitting_compare)
+	_wardrobe_controls.add_child(_wardrobe_compare_button)
 	dialogue_layout.add_child(venue_label)
 	var action_row := HBoxContainer.new()
 	action_row.add_theme_constant_override("separation", 7)
