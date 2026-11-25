@@ -147,4 +147,31 @@ python tools/voice/anubis.py bake --id synaxis.conference.01 --seed 311
 python tools/voice/anubis.py status
 ```
 
-Current scope is the 27-line chapter voice catalog. For environmental SFX, the separate corporate branch still owns tools/audio/generate_sfx.py; its model-specific installation and license review remain separate until integration. No claim that this generates the entire future city audio library or runs on Anubis without a first hardware smoke.
+Current scope is the 27-line chapter voice catalog. The environmental SFX authoring files from corporate revision 64dde941 are now also present on this branch; their dependency environment and model-specific license review remain separate. No claim that this generates the entire future city audio library or runs on Anubis without a first hardware smoke.
+
+
+## Unified Anubis SFX + dialogue command
+
+The existing 37-cue SFX catalog (office, city, four footstep surfaces) is included alongside the 27 spoken dialogue lines. Install Stable Audio 3 in its own upstream uv environment rather than modifying the Qwen environment. From the Afterhours-Audio checkout, with the voice venv active:
+
+```bash
+python -m pip install uv
+git clone https://github.com/Stability-AI/stable-audio-3.git ../stable-audio-3
+(cd ../stable-audio-3 && uv sync && git rev-parse HEAD)
+# Review and accept applicable model terms, authenticate if necessary:
+# https://huggingface.co/stabilityai/stable-audio-3-small-sfx
+SFX_CLI="$(realpath ../stable-audio-3/.venv/bin/stable-audio)"
+python tools/voice/anubis.py bake-all --sfx-cli "$SFX_CLI"
+```
+
+This runs all 37 effect candidates first, then the dialogue cast/production/QC workflow. The first SFX invocation may download upstream weights. After cache initialization use HF_HUB_OFFLINE=1 and TRANSFORMERS_OFFLINE=1 for offline reruns; the existing SFX CLI adapter does not yet lock the exact model-weight revision, and a stronger pinning contract is still needed. Retain the upstream commit and model cache provenance; review actual checkpoint license and output terms before publication. The effect adapter checks candidate spec and audio hash on resume, and refuses accidental replacement.
+
+```bash
+python tools/voice/anubis.py sfx-list
+python tools/voice/anubis.py sfx-bake --sfx-id lift_chime --sfx-cli "$SFX_CLI"
+python tools/voice/anubis.py sfx-bake --sfx-group steps --sfx-cli "$SFX_CLI"
+python tools/voice/anubis.py bake --character lin
+python tools/voice/anubis.py bake --id synaxis.conference.01
+```
+
+Default SFX device is CPU; opt into CUDA with --sfx-device cuda. SFX candidates live at dist/sfx-candidates; speech at dist/voice-production. Neither is published by bake-all. The separate SFX script supports explicit reviewed publication and verification; do not use --reviewed until listening and rights review. No runtime model dependencies. The dialogue catalog includes the seven initial scene blocks and breakroom choices, not every later optional NPC interview or guard branch; future authored cues need stable IDs and actual runtime triggers. This is an initial combined 64-cue library, not proof of complete city coverage. Both engines still require the first native Anubis smoke.
