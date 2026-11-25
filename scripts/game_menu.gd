@@ -51,6 +51,8 @@ var _guard_topic:=""
 var _guard_former:=false
 var _interview:Dictionary={}
 var _interview_topic:=-1
+var _investigation_notes:Dictionary={}
+var _notes_origin:="opening"
 const Restrooms = preload("res://scripts/synaxis_restrooms.gd")
 var _restroom_id := ""
 var settings: Dictionary = DEFAULT_SETTINGS.duplicate(true)
@@ -111,6 +113,8 @@ func open_opening(physical: bool = false) -> void:
 	_briefing_beat = 0
 	_opening_report = ""
 	_opening_exit = ""
+	_investigation_notes.clear()
+	_notes_origin="opening"
 	if physical:
 		hide_for_game()
 	else:
@@ -206,6 +210,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				_choice("guard_leave")
 			"staff_interview":
 				_choice("interview_leave")
+			"investigation_notes":
+				_choice("notes_back")
 			_:
 				pass
 		get_viewport().set_input_as_handled()
@@ -307,6 +313,17 @@ func _render() -> void:
 			_title(col,"AIR QUALITY INCIDENT" if _restroom_id==Restrooms.MEN else "FACILITIES / REQUIRED TRAINING",23,Ui.AMBER)
 			_label(col,Restrooms.MEN_DIALOGUE if _restroom_id==Restrooms.MEN else Restrooms.WOMEN_DIALOGUE,16,Ui.TEXT)
 			_button(col,"restroom_leave","BACK TO WORK","restroom_leave")
+		"investigation_notes":
+			SynaxisBrand.ui_lockup(col)
+			_title(col,"PRIVATE INVESTIGATION NOTES",23,Ui.AMBER)
+			_label(col,"Personal notes from conversations. Statements are not verified audit evidence.",15,Ui.MUTED)
+			_button(col,"notes_back","RETURN TO CONVERSATION","notes_back")
+			if _investigation_notes.is_empty():
+				_label(col,"No employee statements recorded.",16,Ui.TEXT)
+			for id in _investigation_notes:
+				var note:Dictionary=_investigation_notes[id]
+				_label(col,str(note["name"])+" / "+str(note["question"]),16,Ui.AMBER)
+				_label(col,str(note["reply"]),16,Ui.TEXT)
 		"staff_interview":
 			SynaxisBrand.ui_lockup(col)
 			_title(col,str(_interview["name"]),23,Ui.AMBER)
@@ -319,6 +336,7 @@ func _render() -> void:
 				_label(col,str(topics[_interview_topic]["question"]),16,Ui.MUTED)
 				_label(col,str(topics[_interview_topic]["reply"]),17,Ui.TEXT)
 				_button(col,"interview_back","ASK SOMETHING ELSE","interview_back")
+			_button(col,"notes_open","REVIEW PRIVATE NOTES (%d)" % _investigation_notes.size(),"notes_open")
 			_button(col,"interview_leave","BACK TO WORK","interview_leave")
 		"parking_guard":
 			SynaxisBrand.ui_lockup(col)
@@ -370,6 +388,8 @@ func _render() -> void:
 							_button(col, "opening_hangup", "CONTINUE BRIEFING", "opening_hangup")
 						2:
 							_label(col, Opening.CONFERENCE_END, 17, Color("cbd8e3"))
+							if not _investigation_notes.is_empty():
+								_button(col,"notes_open","REVIEW PRIVATE NOTES (%d)" % _investigation_notes.size(),"notes_open")
 							_button(col, "opening_security", "ESCALATE TO SECURITY DIRECTOR", "opening_security")
 							_button(col, "opening_legal", "ASK LEGAL TO PRESERVE AUDIT", "opening_legal")
 				3:
@@ -645,7 +665,15 @@ func _choice(action: String) -> void:
 				var index:=int(action.trim_prefix("interview_"))
 				if index>=0 and index<(_interview["topics"] as Array).size():
 					_interview_topic=index
+					_record_interview(index)
 					_render()
+		"notes_open":
+			if screen=="staff_interview" or (screen=="opening" and _opening_stage==2 and _briefing_beat==2):
+				_notes_origin=screen
+				_open("investigation_notes")
+		"notes_back":
+			if screen=="investigation_notes":
+				_open(_notes_origin)
 		"interview_back":
 			if screen=="staff_interview":
 				_interview_topic=-1
@@ -743,3 +771,11 @@ func _choice(action: String) -> void:
 			open_title()
 		"quit":
 			get_tree().quit()
+
+## In-memory optional interview notes; no save schema, rewards or progression.
+func _record_interview(index:int) -> void:
+	var topic:Dictionary=_interview["topics"][index]
+	var id:=str(topic["id"])+":"+str(topic.get("phase","before"))
+	if _investigation_notes.has(id) or _investigation_notes.size()>=28:
+		return
+	_investigation_notes[id]={"name":_interview["name"],"question":topic["question"],"reply":topic["reply"]}
