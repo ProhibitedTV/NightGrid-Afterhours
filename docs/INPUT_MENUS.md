@@ -7,7 +7,7 @@ The game now has proper pause-aware title, pause, settings, controls, city map a
 | Screen | What it does |
 |---|---|
 | Title | Enter Morrow Bay, Continue saved world (disabled if no valid slot exists), New World, Settings, Controls, Quit |
-| Pause (Esc / controller Start) | Resume, Save slot 1, Load, New World confirmation, City Map, Journal, Settings, Controls, Title, Quit |
+| Pause (Esc / controller Start) | Resume, Save at Lantern Court (or route to the hotel), Load, New World confirmation, City Map, Journal, Settings, Controls, Title, Quit |
 | City Map (M / controller View/Select) | Enlarged live 8x8 district map showing player position, pickup/delivery, venue, civic and side-job markers |
 | Journal (Tab or Pause > Journal) | Current district/time/seed, courier objective and distance, active local and freight jobs, currency, supplies, heat, health, deliveries, completed jobs and archive clues |
 | Settings | Master volume, mouse sensitivity, right-stick sensitivity, invert Y, SSR, glow, VSync and F3 overlay visibility |
@@ -15,7 +15,7 @@ The game now has proper pause-aware title, pause, settings, controls, city map a
 | New World confirmation | Warns that unsaved progress will be discarded; the saved slot is not overwritten until another save |
 | Business dialogue | Focusable buttons for service purchase (A/1), contracts (X/2) and close (B/G); moving controls are blocked while dialogue is open |
 
-The first application launch opens Title. Deliberately creating a new world or loading a saved world **does not** force another title screen on reload. F5/F9 shortcuts are retained, but the pause menu also exposes their actions. Esc/Start suspends the SceneTree so traffic, the game clock, physics and pursuit stop while paused. Menu UI runs with `PROCESS_MODE_ALWAYS`. Back returns to the preceding screen; the title screen cannot be accidentally dismissed as if it were a pause menu.
+The first application launch opens Title. Deliberately creating a new world or loading a saved world **does not** force another title screen on reload. F5/F9 shortcuts are retained, but F5 respects the hotel save gate and the pause menu exposes the same actions. Esc/Start suspends the SceneTree so traffic, the game clock, physics and pursuit stop while paused. Menu UI runs with `PROCESS_MODE_ALWAYS`. Back returns to the preceding screen; the title screen cannot be accidentally dismissed as if it were a pause menu.
 
 ### Keyboard and mouse
 
@@ -29,7 +29,7 @@ The first application launch opens Title. Deliberately creating a new world or l
 | Shops | G, 1, 2 | Interact/close, use service, contract |
 | Supplies | R | Consume supply pack while on foot |
 | Menus | Esc, M, Tab | Pause, full city map, journal |
-| Game saves | F5, F9, F6 | Save, load, confirm New World |
+| Game saves | F5, F9, F6 | Save at eligible Lantern Court checkpoint, load, confirm New World |
 | Debug | F3, F4, T, Y | FPS, SSR, advance clock, pause day/night cycle |
 
 ### Standard Xbox/XInput controller layout
@@ -77,3 +77,9 @@ Settings > Interface provides two independent persistent preferences, both enabl
 Validation: expanded radar/menu smoke assertions are included in preflight. Native Windows checks and real screenshots are still required, particularly long radio track names, context stacking, interiors and 720p/ultrawide layout. The HUD still runs on its existing 10 Hz update schedule; no new render pass or measured FPS claim.
 
 The equipment wheel (C / right-stick click) is a paused-world preview with original vector slot marks, an animated selection ring, distinct equipped/preview labels and loaded/reserve information. Selection responds immediately; only the highlight interpolates for 140 ms. Confirm or cancel retains the existing ammunition and trigger-release contracts. The wheel does not render continuously when idle. The HUD framebuffer QA now includes an actual equipment-wheel capture alongside walking, driving and the interactive atlas at three window resolutions; these software captures are not native performance or visual acceptance.
+
+## Property-based saves
+
+Manual save is now a physical world activity rather than a global quick-save. Visit Lantern Court: before renting, use the free checkpoint at the actual exterior entrance (G / controller X, F5 or Pause > Save Progress). No room key or fee is required for this temporary checkpoint. It does not grant tenancy, bed, storage or other residential privileges. After paying the existing deposit, enter the rented capsule and approach its existing save desk; the free entrance checkpoint is no longer available. Resting at the bed remains a separate health/stamina action. Saving requires being on foot, outside other modal interactions, and clear of police heat. If unavailable, Pause explains why and can route to the hotel entrance without changing the active mission. The existing atomic single-slot writer, legacy load compatibility and world snapshot format remain unchanged. There is no autosave, additional save slot, new property type or global pre-tenancy exemption in this pass.
+
+`tests/walk_in_lot_smoke.gd` covers the actual property entitlement and save availability, blocked save requests leaving the slot intact, route-before-tenancy, desk-only eligibility after payment, pause menu enablement and an isolated eligible snapshot write. Real native playtesting is required before claiming acceptance.
