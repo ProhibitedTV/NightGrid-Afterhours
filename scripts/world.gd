@@ -177,6 +177,10 @@ var civic_selected_id := ""
 const TechnicalContracts = preload("res://scripts/technical_contracts.gd")
 var _technical_case_open := false
 var _technical_feedback := ""
+const IndependentInvestigation = preload("res://scripts/independent_investigation.gd")
+var investigation := IndependentInvestigation.new()
+var _investigation_open := false
+var _investigation_feedback := ""
 var civic_job_active := ""
 var civic_job_completed: Array[String] = []
 var civic_intel: Array[String] = []
@@ -675,6 +679,13 @@ func _phone_workboard() -> Array[Dictionary]:
 			continue
 		var point: Vector3 = civic_services.call("position_for",site)
 		listings.append({"id":job["id"],"category":"Technical consulting","title":job["title"],"brief":job["brief"],"reward":job["reward"],"site":record["name"],"open":civic_services.call("is_open",site),"active":false,"position":Vector2(point.x,point.z)})
+	var lead := investigation.current(progression)
+	if not lead.is_empty():
+		var site: String = lead["site"]
+		var record: Dictionary = civic_services.call("site_by_id",site)
+		if not record.is_empty():
+			var point: Vector3 = civic_services.call("position_for",site)
+			listings.append({"id":IndependentInvestigation.ID,"category":"Independent investigation","title":IndependentInvestigation.TITLE,"brief":lead["title"],"reward":IndependentInvestigation.REWARD,"site":record["name"],"open":civic_services.call("is_open",site),"active":investigation.stage>0,"action_label":"Follow lead","position":Vector2(point.x,point.z)})
 	return listings
 
 func _phone_context() -> Dictionary:
@@ -769,6 +780,7 @@ func _journal_context() -> Dictionary:
 		"story_can_abandon": story_mission.status == "active",
 		"venue_job": _venue_job_text(),
 		"civic_job": _civic_job_text(),
+		"investigation": investigation.journal(progression),
 		"cash": cash, "health": health, "heat": heat,
 		"owned_vehicles": _owned_vehicle_text(),
 		"home_owned": progression.owns_home(),
@@ -2150,7 +2162,7 @@ func _capture_snapshot() -> Dictionary:
 	var state := {
 		"player_position": [saved_at.x, saved_at.y, saved_at.z],
 		"camera_yaw": yaw, "cash": cash, "progression": progression.snapshot(), "health": health, "heat": heat,
-		"deliveries": deliveries, "carrying": carrying, "courier_offer_offset": courier_mission.offer_offset, "courier_on_duty": courier_mission.on_duty, "story_mission": story_mission.snapshot(),
+		"deliveries": deliveries, "carrying": carrying, "courier_offer_offset": courier_mission.offer_offset, "courier_on_duty": courier_mission.on_duty, "investigation_stage": investigation.stage, "story_mission": story_mission.snapshot(),
 		"hour": day_night.get("hour"), "cars": stored_cars,
 		"occupied_car": cars.find(current_car),
 		"traffic": traffic.call("snapshot"), "rail": rail.call("snapshot"),
@@ -2222,6 +2234,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 	courier_mission.restore(data.get("deliveries", 0), data.get("carrying", false))
 	courier_mission.restore_offer_offset(data.get("courier_offer_offset", 0))
 	courier_mission.on_duty = bool(data.get("courier_on_duty", true)) or carrying
+	investigation.restore(int(data.get("investigation_stage",0)),progression)
 	player.call("set_courier_conditioning",courier_mission.conditioning_rank())
 	story_mission.restore(data.get("story_mission", StoryMission.new().snapshot()))
 	yaw = float(data.get("camera_yaw", 0.0))
@@ -2800,6 +2813,9 @@ func _repair_nearby_vehicle(price: int) -> void:
 func _update_civic_panel() -> void:
 	if civic_selected_id.is_empty() or venue_label == null:
 		return
+	if _investigation_open:
+		_update_investigation_panel()
+		return
 	if _technical_case_open:
 		_update_technical_panel()
 		return
@@ -2843,6 +2859,68 @@ func _update_civic_panel() -> void:
 		venue_talk_button.show()
 		venue_talk_button.disabled = not opened
 		venue_talk_button.text = "3 / Y  •  DIAGNOSTIC CONTRACT"
+
+	# The investigation uses different counters from the repair contracts.
+	var lead := investigation.current(progression)
+	if venue_talk_button != null and not lead.is_empty() and lead["site"] == civic_selected_id:
+		venue_talk_button.show()
+		venue_talk_button.disabled = not opened
+		venue_talk_button.text = "3 / Y  •  THE PAPER CITY"
+
+func _investigation_reachable() -> bool:
+	var lead := investigation.current(progression)
+	if lead.is_empty() or lead["site"] != civic_selected_id or not venue_panel.visible or current_car != null or current_transit != null or not civic_services.call("is_open",civic_selected_id):
+		return false
+	if interiors.call("is_inside"):
+		return interiors.call("active_site_group") == "CIVIC" and interiors.call("active_site_id") == civic_selected_id and interiors.call("counter_reachable",player.global_position)
+	var point: Vector3 = civic_services.call("position_for",civic_selected_id)
+	return player.global_position.distance_to(point) <= CivicServicesScript.VISIT_RADIUS
+
+func _update_investigation_panel() -> void:
+	if not _investigation_reachable():
+		_investigation_open = false
+		_investigation_feedback = ""
+		_update_civic_panel()
+		return
+	var lead := investigation.current(progression)
+	var final: bool = investigation.stage == IndependentInvestigation.STAGES.size()-1
+	venue_label.text = "%s / %d of %d\n%s\n%s" % [IndependentInvestigation.TITLE,investigation.stage+1,IndependentInvestigation.STAGES.size(),lead["title"],lead["line"]]
+	if not _investigation_feedback.is_empty():
+		venue_label.text += "\n" + _investigation_feedback
+	venue_service_button.show()
+	venue_service_button.disabled = false
+	venue_service_button.text = "1 / A  •  Report conflicting records" if final else "1 / A  •  Record lead"
+	venue_job_button.visible = final
+	venue_job_button.disabled = not final
+	venue_job_button.text = "2 / X  •  Accuse a specific executive"
+	venue_talk_button.show()
+	venue_talk_button.disabled = false
+	venue_talk_button.text = "3 / Y  •  BACK"
+
+func _investigation_action(option: int) -> void:
+	if not _investigation_reachable():
+		_close_venue()
+		return
+	if option == 3:
+		_investigation_open = false
+		_investigation_feedback = ""
+		venue_job_button.show()
+		_update_civic_panel()
+		return
+	if option != 1 and (option != 2 or investigation.stage != IndependentInvestigation.STAGES.size()-1):
+		return
+	var result := investigation.advance(civic_selected_id,option-1,progression)
+	match result["status"]:
+		"advanced","complete":
+			if result["status"] == "complete":
+				story_mission.event("contract_completed",progression)
+				_notify("INVESTIGATION COMPLETE +$%d: %s" % [result["reward"],result["message"]])
+			else:
+				_notify(str(result["message"]))
+			_close_venue()
+		"incorrect","blocked":
+			_investigation_feedback = str(result["message"])
+			_update_investigation_panel()
 
 func _technical_reachable() -> bool:
 	if not venue_panel.visible or current_car != null or current_transit != null or not TechnicalContracts.available(civic_selected_id,progression):
@@ -2904,6 +2982,14 @@ func _civic_action(option: int) -> void:
 	var site: Dictionary = civic_services.call("site_by_id", civic_selected_id)
 	if site.is_empty() or not civic_services.call("is_open", civic_selected_id):
 		_notify("This public service is not open right now.")
+		return
+	if _investigation_open:
+		_investigation_action(option)
+		return
+	if option == 3 and _investigation_reachable():
+		_investigation_open = true
+		_investigation_feedback = ""
+		_update_investigation_panel()
 		return
 	if _technical_case_open:
 		_technical_action(option)
@@ -3036,6 +3122,8 @@ func _show_venue_dialogue() -> void:
 		venue_service_button.call_deferred("grab_focus")
 
 func _close_venue() -> void:
+	_investigation_open = false
+	_investigation_feedback = ""
 	_technical_case_open = false
 	_technical_feedback = ""
 	if interiors != null:
@@ -3791,6 +3879,9 @@ func _update_hud() -> void:
 		jobs.append(_venue_job_text())
 	if not civic_job_active.is_empty():
 		jobs.append(_civic_job_text())
+	var investigation_note := investigation.journal(progression)
+	if not investigation_note.is_empty():
+		jobs.append(investigation_note)
 	hud_jobs.text = "\n".join(jobs)
 	hud_jobs.visible = not jobs.is_empty()
 	hud_notice.text = message
