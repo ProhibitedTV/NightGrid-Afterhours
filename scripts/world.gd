@@ -465,6 +465,8 @@ func _on_menu_action(action: String) -> void:
 			game_menu.call("open_journal", _journal_context())
 		"phone":
 			_open_phone(true)
+		"phone_decline_offer":
+			_phone_decline_offer()
 		"phone_route_order", "phone_route_mara", "phone_route_home", "phone_route_rail", "phone_route_bus":
 			_phone_route(action)
 		"restart_courier":
@@ -630,6 +632,16 @@ func _phone_context() -> Dictionary:
 		"rail_name":"%d m away (direct)" % roundi(origin.distance_to(rail_point)) if rail_point.is_finite() else "Unavailable",
 		"bus_name":"%d m away (direct)" % roundi(origin.distance_to(bus_point)) if bus_point.is_finite() else "Unavailable"
 	}
+
+func _phone_decline_offer() -> void:
+	if not phone_available() or game_menu.get("screen") != "phone" or game_menu.get("_phone_app") != "work":
+		return
+	var old_target := Vector2(mission_position.x,mission_position.z)
+	if courier_mission.decline_offer():
+		_refresh_courier_target()
+		if navigation_waypoint != null and (navigation_waypoint as Vector2).distance_to(old_target) < 12.0:
+			clear_navigation_waypoint()
+		game_menu.call("refresh_phone",_phone_context())
 
 func _phone_route(action: String) -> void:
 	if not phone_available() or game_menu.get("screen") != "phone":
@@ -2057,7 +2069,7 @@ func _capture_snapshot() -> Dictionary:
 	var state := {
 		"player_position": [saved_at.x, saved_at.y, saved_at.z],
 		"camera_yaw": yaw, "cash": cash, "progression": progression.snapshot(), "health": health, "heat": heat,
-		"deliveries": deliveries, "carrying": carrying, "story_mission": story_mission.snapshot(),
+		"deliveries": deliveries, "carrying": carrying, "courier_offer_offset": courier_mission.offer_offset, "story_mission": story_mission.snapshot(),
 		"hour": day_night.get("hour"), "cars": stored_cars,
 		"occupied_car": cars.find(current_car),
 		"traffic": traffic.call("snapshot"), "rail": rail.call("snapshot"),
@@ -2127,6 +2139,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 			wanted.last_known = p
 	courier_mission.gig_economy = progression.has_receipt(Opening.RECEIPT)
 	courier_mission.restore(data.get("deliveries", 0), data.get("carrying", false))
+	courier_mission.restore_offer_offset(data.get("courier_offer_offset", 0))
 	player.call("set_courier_conditioning",courier_mission.conditioning_rank())
 	story_mission.restore(data.get("story_mission", StoryMission.new().snapshot()))
 	yaw = float(data.get("camera_yaw", 0.0))
