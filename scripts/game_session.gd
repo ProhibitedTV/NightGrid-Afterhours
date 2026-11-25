@@ -79,6 +79,13 @@ func is_valid_snapshot(value: Variant) -> bool:
 	if data.has("progression") and not ProgressionLedger.valid_snapshot(data["progression"]):
 		return false
 	var paid: Array = data.get("progression", {}).get("receipts", [])
+	var case_stage: Variant = data.get("investigation_stage",0)
+	if not _whole_number(case_stage,0,4):
+		return false
+	if (int(case_stage) == 4) != paid.has("investigation:paper_city"):
+		return false
+	if int(case_stage) > 0 and not (paid.has("technical:crane_interlock") or paid.has("technical:grid_telemetry")):
+		return false
 	if data.has("story_mission"):
 		if not StoryMission.valid_snapshot(data["story_mission"]):
 			return false
