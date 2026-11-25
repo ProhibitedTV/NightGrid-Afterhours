@@ -230,6 +230,12 @@ jobs:
           timeout 75s godot --headless --path . --script res://tests/technical_contracts_smoke.gd 2>&1 | tee /tmp/nightgrid-technical.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-technical.log; then exit 1; fi
           grep -q "TECHNICAL_CONTRACTS PASS" /tmp/nightgrid-technical.log
+      - name: Validate Paper City investigation and receipt-backed saves
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/paper_city_smoke.gd 2>&1 | tee /tmp/nightgrid-paper-city.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-paper-city.log; then exit 1; fi
+          grep -q "PAPER_CITY PASS" /tmp/nightgrid-paper-city.log
       - name: Validate main menus, saved settings and controller action contexts
         timeout-minutes: 2
         run: |

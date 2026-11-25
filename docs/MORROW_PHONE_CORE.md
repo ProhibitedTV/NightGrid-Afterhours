@@ -8,5 +8,8 @@ Before collecting an order, Decline / next offer cycles through the six authored
 ## Technical consulting
 Workboard lists two optional one-time diagnosis contracts at Crane & Gear and Grid Annex Four. Visit during open hours, examine the fictional evidence and select a repair. Wrong choices do not pay; wallet-capacity failure remains retryable. Completion uses the existing receipt ledger. No additional save schema or remote payout. The Paper City follow-up investigation is not included in this slice.
 
+## The Paper City
+After either technical consulting contract, a four-stage evidence investigation opens at Harbor Reading Room, Southworks Records and Dock Watch. Workboard routes to the current lead and the journal tracks progress. The final choice distinguishes documented inconsistencies from unsupported accusations. The existing ledger pays once; a bounded optional save stage is validated against prerequisites and completion receipt. Legacy saves remain valid.
+
 ## Off-duty mode
 Go off duty before collecting cargo to hide the delivery beacon, radar/map pin, route action and pickup prompt. Resume the same offer from QuotaDrop without payment or progression changes. An active carried order must be delivered or abandoned first. The optional boolean save field defaults to on duty for old saves; carried orders cannot be restored off duty. The story journal directs the player to resume QuotaDrop instead of routing to an inactive delivery.
