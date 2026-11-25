@@ -14,6 +14,7 @@ var _lobby_light: OmniLight3D
 var _lobby_active := false
 var _prologue_active := false
 const Staff = preload("res://scripts/synaxis_staff.gd")
+const Interviews = preload("res://scripts/synaxis_interviews.gd")
 const Cast = preload("res://scripts/synaxis_cast.gd")
 var _staff: Dictionary = {}
 var _near_staff := ""
@@ -797,6 +798,9 @@ func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 			var worker_line:String=_workfloors[_active_floor-1].call("observe_worker",at)
 			if not worker_line.is_empty():
 				_hint.text+="\n"+worker_line
+		var interview:=interview_at(at,stage)
+		if not interview.is_empty() and not reachable(stage,at):
+			_hint.text+="\n"+("X" if gamepad else "G")+" / TALK TO "+str(interview["name"])
 		var direction:=lift_direction(at)
 		if direction!=0:
 			_hint.text+="\n"+("X" if gamepad else "G")+" / LIFT "+("UP" if direction>0 else "DOWN")
@@ -818,3 +822,13 @@ func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 	var remark:=update_staff_attention(stage,at)
 	if not remark.is_empty():
 		_hint.text += "\n"+remark
+
+func interview_at(at:Vector3,stage:int) -> Dictionary:
+	if not _prologue_active or _arrival!=null or not at.is_finite():
+		return {}
+	var id: String=""
+	if _active_floor==ExecutiveFloor.FLOOR and is_instance_valid(_executive_floor):
+		id=str(_executive_floor.call("executive_interview_id",at,stage))
+	elif _active_floor>=1 and _active_floor<=_workfloors.size():
+		id=str(_workfloors[_active_floor-1].call("interview_id",at))
+	return Interviews.conversation(id,stage)
