@@ -17,3 +17,6 @@ Four original geometry pieces: smoke shades, clear frames, digital watch and bra
 
 ## Fitting interface pass
 All/outfits/jackets/trousers/glasses/watches category filters; H/F or LB/RB switches categories, existing 1/2/3 or A/X/Y actions browse and confirm, R/D-pad down compares the actual committed look against try-on. Right-stick horizontal or RMB drag rotates the character; vertical stick or mouse wheel zooms. Compare never writes progression; close restores actual clothing and original heading. Wardrobe menus now use their physical counter reachability instead of generic venue coordinates. Existing home-purchase behavior retained for compatibility. Native camera framing and UI input parity await playtest.
+
+## Shop atmosphere increment
+Threadline has a named shopkeeper, Tess Vale, with a distinct retail tag, greeting on first checkout interaction each visit, and purchase acknowledgment. Existing staff pose rig is reused; animation is disabled and the clerk hidden outside the occupied ground floor. Added countertop POS, payment signage, branded wall and shelf accents and a retail playlist from existing NightGrid tracks. No voice assets, new dynamic lights, or collision changes; native quality remains unverified. The clerk is intentionally static at her station pending better store-specific authored actors.

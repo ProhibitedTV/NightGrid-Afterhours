@@ -917,6 +917,9 @@ func _process(delta: float) -> void:
 	if in_physical_room:
 		interior_id = str(physical_room.get("physical_venue_id"))
 		interior_kind = str((venue_system.call("venue_by_id",interior_id) as Dictionary).get("kind",""))
+		if not str(physical_room.get("clothing_store_id")).is_empty():
+			interior_id=str(physical_room.get("clothing_store_id"))
+			interior_kind="RETAIL"
 	if indoors and str(interiors.call("active_site_group")) == "VENUE":
 		interior_kind = str((venue_system.call("venue_by_id", interior_id) as Dictionary).get("kind", ""))
 	if is_instance_valid(nightgrid_fm):
@@ -2382,6 +2385,9 @@ func _toggle_interaction() -> void:
 			_wardrobe_category="ALL"
 			_wardrobe_panel=true
 			_wardrobe_index=Wardrobe.IDS.find(progression.outfit_id)
+			var greeting:String=physical_lot.call("clothing_greeting")
+			if not greeting.is_empty():
+				_notify(greeting)
 			_show_venue_dialogue()
 			_update_venue_panel()
 		else:
@@ -3204,7 +3210,7 @@ func _venue_action(option: int) -> void:
 				var id := _wardrobe_quote_id
 				_wardrobe_quote_id = ""
 				if _preview_clothing(id) and int(visual.call("wardrobe_surface_count"))>0 and (progression.buy_piece(id,_wardrobe_tender,retail_ok) if Wardrobe.piece_valid(id) else progression.buy_outfit(id,_wardrobe_tender,retail_ok)):
-					_notify("Purchased "+str(Wardrobe.listing(id)["name"])+". Ready to equip.")
+					_notify("Purchased "+str(Wardrobe.listing(id)["name"])+". Ready to equip."+(" "+str(lot.call("clothing_remark",true)) if retail_ok else ""))
 				else:
 					_notify("Purchase unavailable. No payment taken.")
 		elif option == 1:

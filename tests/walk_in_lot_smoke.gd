@@ -346,6 +346,10 @@ func _verify() -> void:
 	if not check(is_instance_valid(store) and store.get("clothing_store_id")==Store.ID,"fixed Threadline physical shop"):
 		return
 	player.global_position=store.call("clothing_counter")
+	store.call("set_local_light",true,player.global_position)
+	var clerk:Node3D=store.get_node("ThreadlineClerk")
+	if not check(clerk.visible and clerk.process_mode!=Node.PROCESS_MODE_DISABLED and clerk.call("get_staff_state")["attention"],"clerk active at checkout"):
+		return
 	world.call("_toggle_interaction")
 	if not check(world.get("_clothing_retail") and world.get("_wardrobe_panel") and not ledger.owns_home(),"retail available before pod"):
 		return
@@ -421,6 +425,9 @@ func _verify() -> void:
 		return
 	world.call("_close_venue")
 	if not check(visual.get("clothing_slots")==ledger.clothing_slots,"closing fitting restores committed look"):
+		return
+	store.call("set_local_light",false,Vector3.INF)
+	if not check(not clerk.visible and clerk.process_mode==Node.PROCESS_MODE_DISABLED,"unoccupied shop pauses clerk"):
 		return
 	var retail_save:Dictionary=ledger.snapshot()
 	if not check(fresh.restore(world.get("cash"),retail_save) and fresh.outfit_id=="tideline" and fresh.clothing_slots==ledger.clothing_slots and not fresh.owns_home(),"pre-tenancy wardrobe save round trip"):

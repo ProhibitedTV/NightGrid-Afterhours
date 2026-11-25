@@ -25,6 +25,11 @@ var _dressed := false
 var physical_venue_id := ""
 var home_id := ""
 var clothing_store_id := ""
+var _clothing_clerk:Node3D
+var _clothing_greeted:=false
+var _clothing_visit:=false
+var _clothing_remark_index:=0
+const ShopClerk=preload("res://scripts/synaxis_staff.gd")
 const ClothingStore = preload("res://scripts/clothing_store.gd")
 const Wardrobe = preload("res://scripts/wardrobe_catalog.gd")
 var door: AnimatableBody3D
@@ -184,12 +189,29 @@ func dress_clothing_store() -> void:
 			_visual("Worktop",Vector3(4.04,1.74,at.z),Vector3(.16,.23,.45),_mat(tint.darkened(.25)))
 	for z in [2.3,6.1,10.7,14.5]:
 		_visual("CeilingFixture",Vector3(0,ROOM_HEIGHT-.13,z),Vector3(2.6,.12,.42),_mat(Color("f4d9b0"),true))
-	# Static poster, no simulated reflection or new skeleton.
+	# Branded sign panels, counter point-of-sale and merchandise tags.
 	_visual("Worktop",Vector3(4.68,2.0,8.2),Vector3(.07,1.1,1.2),black)
+	_visual("Worktop",Vector3(-3.82,1.24,2.25),Vector3(.30,.28,.12),black)
+	_visual("Worktop",Vector3(-3.65,1.23,2.25),Vector3(.018,.20,.09),_mat(Color("90c4b1"),true))
+	_visual("Worktop",Vector3(-3.15,1.14,3.15),Vector3(.22,.028,.16),brass)
+	for z in [2.6,6.3,11.8]:
+		_visual("Worktop",Vector3(2.82,.99,z),Vector3(.045,.12,.65),brass)
+	_shop_label("EVERYDAY. EVERYWHERE.",Vector3(0,2.66,4.1),.003,PI)
+	_shop_label("THREADLINE",Vector3(4.62,2.12,8.2),.003,-PI/2)
+	_shop_label("USD / BTC ACCEPTED",Vector3(-3.50,1.83,2.8),.003,PI)
+	_shop_label("FITTING / LOOK GOOD. FEEL LIKE YOURSELF.",Vector3(3.45,2.25,6.3),.003,-PI/2)
 	_shop_label("THREADLINE / VESPER MARKET",Vector3(0,2.95,4.1),.005,PI)
 	_shop_label("FITTING / CHECKOUT",Vector3(-3.55,2.28,2.8),.004,PI)
 	_shop_label("WORKWEAR / STREET / AFTER DARK",Vector3(3.45,2.25,2.6),.003,PI)
 	_flush_interior_visuals()
+	_clothing_clerk=ShopClerk.new()
+	_clothing_clerk.call("configure_staff",{"id":"tess_threadline","name":"Tess Vale","role":"Threadline shopkeeper","activity":"TYPE","seated":false,"palette":3,"phase":1.4,"outfit":"retail","hair":"bun","glasses":true,"coat":Color("4d4641"),"height":.92,"width":.78})
+	_clothing_clerk.name="ThreadlineClerk"
+	_clothing_clerk.position=Vector3(-4.12,0,2.0)
+	_clothing_clerk.rotation.y=PI/2
+	add_child(_clothing_clerk)
+	_clothing_clerk.process_mode=Node.PROCESS_MODE_DISABLED
+	_clothing_clerk.hide()
 
 func _shop_label(value:String,at:Vector3,pixel:float,yaw:float) -> void:
 	var label:=Label3D.new()
@@ -201,6 +223,20 @@ func _shop_label(value:String,at:Vector3,pixel:float,yaw:float) -> void:
 	label.modulate=Color("f4d9b0")
 	label.outline_size=3
 	add_child(label)
+
+func clothing_greeting() -> String:
+	if _clothing_greeted:
+		return ""
+	_clothing_greeted=true
+	return "Tess: First time at Threadline? Try anything on. You only pay when you decide to keep it."
+
+func clothing_remark(purchased:bool=false) -> String:
+	if purchased:
+		return "Tess: Nice choice. It is yours now. Come back whenever you want to change things up."
+	var lines:Array=["Tess: Good clothes do not have to come with a corporate badge.","Tess: The night-shift colors look better under the streetlights.","Tess: Try the accessories with something you already own."]
+	var line:String=lines[_clothing_remark_index%lines.size()]
+	_clothing_remark_index+=1
+	return line
 
 func clothing_counter() -> Vector3:
 	return to_global(ClothingStore.COUNTER)
@@ -288,6 +324,15 @@ func doorway_reachable(at: Vector3) -> bool:
 	return absf(p.x)<2.0 and absf(p.z)<2.0 and p.y>=-.2 and p.y<2.8
 
 func set_local_light(enabled: bool, at: Vector3 = Vector3.INF) -> void:
+	if is_instance_valid(_clothing_clerk):
+		var occupied:=enabled and at.is_finite() and contains(at) and to_local(at).y<ROOM_HEIGHT
+		if occupied!=_clothing_visit:
+			_clothing_visit=occupied
+			_clothing_clerk.visible=occupied
+			_clothing_clerk.process_mode=Node.PROCESS_MODE_INHERIT if occupied else Node.PROCESS_MODE_DISABLED
+			if not occupied:
+				_clothing_greeted=false
+		_clothing_clerk.call("attend",at,occupied and clothing_reachable(at))
 	if enabled and not is_instance_valid(_lamp):
 		_lamp = OmniLight3D.new()
 		_lamp.name = "NearInteriorLight"
