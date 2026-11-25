@@ -383,6 +383,9 @@ func _render() -> void:
 			_label(col, str(_journal_data.get("conditioning", "")), 16, Ui.ACCENT)
 			_label(col, str(_journal_data.get("outfit", "")), 16, Ui.ACCENT)
 			_label(col, "BTC WALLET: %d sats" % int(_journal_data.get("bitcoin_sats",0)), 16, Ui.ACCENT)
+			if not str(_journal_data.get("synaxis_site","")).is_empty():
+				_label(col,str(_journal_data["synaxis_site"]),16,Ui.MUTED)
+				_button(col,"synaxis_waypoint","SET WAYPOINT TO SYNAXIS HQ","synaxis_waypoint")
 			_label(col, str(_journal_data.get("home_text", "")), 16, Ui.ACCENT)
 			if bool(_journal_data.get("home_can_navigate", false)):
 				_button(col, "home_waypoint", "SET WAYPOINT TO POD", "home_waypoint")
@@ -598,7 +601,7 @@ func _choice(action: String) -> void:
 			open_map()
 		"journal":
 			action_requested.emit("journal")
-		"restart_courier", "abandon_story", "home_waypoint", "garage_waypoint", "story_waypoint":
+		"restart_courier", "abandon_story", "home_waypoint", "garage_waypoint", "story_waypoint", "synaxis_waypoint":
 			action_requested.emit(action)
 		"back":
 			_open(_back_screen)

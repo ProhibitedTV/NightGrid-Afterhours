@@ -452,9 +452,19 @@ func _verify() -> void:
 		_fail("Opening credits severance once and enables real QuotaDrop work")
 		return
 	world.call("_toggle_interior")
-	if not str(world.get("notification")).contains("Badge access revoked") or world.get("_opening_office")!=null:
-		_fail("Former employee cannot re-enter through locked public gate")
+	if not str(world.get("notification")).contains("Public lobby open") or world.get("_opening_office")!=null:
+		_fail("HQ has a public lobby, not a second prologue")
 		return
+	player.global_position=office.to_global(headquarters.LOBBY_CHECKPOINT)
+	world.call("_toggle_interaction")
+	if not str(world.get("notification")).contains("Badge access revoked") or not is_instance_valid(office.get_node_or_null("SecurityGateCollision")):
+		_fail("Restricted office remains physically secured at the public checkpoint")
+		return
+	menu.call("open_journal",world.call("_journal_context"))
+	if not (menu.call("get_buttons") as Dictionary).has("synaxis_waypoint"):
+		_fail("Synaxis has a persistent return waypoint")
+		return
+	menu.call("hide_for_game")
 	var order = world.get("courier_mission")
 	var restaurants: Node = world.get("venue_system")
 	restaurants.call("set_hour",5.0)

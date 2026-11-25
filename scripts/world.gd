@@ -461,6 +461,9 @@ func _on_menu_action(action: String) -> void:
 				var entry := StarterGarage.entry()
 				set_navigation_waypoint(Vector2(entry.x,entry.z))
 			game_menu.call("open_journal", _journal_context())
+		"synaxis_waypoint":
+			set_navigation_waypoint(Vector2(OpeningOffice.ENTRY.x,OpeningOffice.ENTRY.z))
+			game_menu.call("open_journal",_journal_context())
 		"home_waypoint":
 			if progression.has_receipt(StarterHome.ACCESS_RECEIPT):
 				var entry := StarterHome.entry()
@@ -855,6 +858,9 @@ func _process(delta: float) -> void:
 				traversal_velocity = (actor as CharacterBody3D).velocity
 			city_details.call("request_focus", actor.global_position, traversal_velocity)
 		city_details.call("update_walk_in_light", actor.global_position if not indoors and current_car == null and current_transit == null else Vector3.INF)
+		var headquarters: Node3D = city_details.call("synaxis_headquarters")
+		if is_instance_valid(headquarters):
+			headquarters.call("update_public_light",actor.global_position if not indoors and current_car == null and current_transit == null else Vector3.INF)
 		var started := StreamProfile.begin()
 		street_lights.call("set_focus", interiors.get("exterior_position") if indoors else actor.global_position)
 		StreamProfile.end(started, "street_light_focus")
@@ -2073,6 +2079,16 @@ func _apply_snapshot(data: Dictionary) -> void:
 	_log_playtest("save_restored", {"seed": int(session.get("world_seed"))})
 	_notify("Save loaded. Seed %d; Morrow Bay restored." % int(session.get("world_seed")))
 
+func _synaxis_access_notice() -> bool:
+	var hq: Node3D = city_details.call("synaxis_headquarters")
+	if is_instance_valid(hq) and hq.call("public_checkpoint_reachable",player.global_position):
+		_notify("SYNAXIS SECURITY: Badge access revoked. Your concern has been resolved. Authorized visitors only beyond this checkpoint.")
+		return true
+	if OpeningOffice.entrance_reachable(player.global_position):
+		_notify("SYNAXIS: Public lobby open. Badge access revoked for the restricted offices.")
+		return true
+	return false
+
 func _toggle_interior() -> void:
 	if interiors.call("is_inside"):
 		if not interiors.call("exit_reachable", player.global_position):
@@ -2092,8 +2108,7 @@ func _toggle_interior() -> void:
 	if current_car != null or current_transit != null:
 		_notify("Exit your vehicle before entering a building.")
 		return
-	if OpeningOffice.entrance_reachable(player.global_position):
-		_notify("SYNAXIS SECURITY: Badge access revoked. Employees only.")
+	if _synaxis_access_notice():
 		return
 	var repair := _repair_storefront()
 	if repair != null:
@@ -2198,8 +2213,7 @@ func _toggle_interaction() -> void:
 	if current_car != null or current_transit != null:
 		_notify("Get out of the vehicle before interacting with neighborhood businesses.")
 		return
-	if OpeningOffice.entrance_reachable(player.global_position):
-		_notify("SYNAXIS SECURITY: Badge access revoked. Your concern has been resolved.")
+	if _synaxis_access_notice():
 		return
 	if courier_mission.gig_economy and player.global_position.distance_to(mission_position) < CourierMission.RADIUS:
 		_advance_mission()
