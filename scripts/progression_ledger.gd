@@ -247,6 +247,15 @@ func settle_busking_set(sequence:int)->bool:
 	balance+=Rhythm.BUSKING_REWARD
 	return true
 
+func owned_set_unlocked()->bool:
+	return owns_instrument(Instruments.STARTER) and sampler_practice>=Instruments.OWNED_SET_PRACTICE
+
+func settle_owned_sampler_set(sequence:int)->bool:
+	if not owned_set_unlocked() or balance>MAX_CASH-Rhythm.OWNED_REWARD or not _street_cred.settle_run("busking",sequence):
+		return false
+	balance+=Rhythm.OWNED_REWARD
+	return true
+
 func owns_instrument(id:String)->bool:
 	return Instruments.valid_id(id) and _instruments.has(id)
 
@@ -266,7 +275,7 @@ func instrument_summary()->String:
 	if not owns_instrument(Instruments.STARTER):
 		return "INSTRUMENT / Loaners available; PocketBeat M3 $40 at Copper Cup"
 	var info:=Instruments.skill(sampler_practice)
-	return "POCKETBEAT M3 / %s • %d practice sets"%[info["name"],sampler_practice]
+	return "POCKETBEAT M3 / %s • %d practice sets"%[info["name"],sampler_practice]+(" / PERSONAL SET UNLOCKED" if owned_set_unlocked() else " / %d to personal set"%maxi(0,Instruments.OWNED_SET_PRACTICE-sampler_practice))
 
 func snapshot() -> Dictionary:
 	var ids: Array = _receipts.keys()

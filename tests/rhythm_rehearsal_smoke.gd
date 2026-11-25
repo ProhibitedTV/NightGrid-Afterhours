@@ -61,6 +61,16 @@ func _initialize()->void:
 	if rhythm.mode!="practice" or rhythm.pattern.size()!=8:
 		quit(1)
 		return
+	if copy.owned_set_unlocked() or copy.settle_owned_sampler_set(1) or not copy.complete_sampler_practice(2) or not copy.complete_sampler_practice(3) or not copy.owned_set_unlocked():
+		quit(1)
+		return
+	if not copy.settle_owned_sampler_set(1) or copy.settle_busking_set(1) or not copy.settle_busking_set(2) or copy.balance!=22 or copy.street_cred()!=8:
+		quit(1)
+		return
+	rhythm.start(1,"owned_busking")
+	if rhythm.pattern.size()!=10 or rhythm.required_hits!=8 or rhythm.hit_window!=0.25:
+		quit(1)
+		return
 	var p:=Ledger.new()
 	if p.settle_blue_hour_set(1):
 		quit(1)

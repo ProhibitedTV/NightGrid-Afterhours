@@ -8,6 +8,8 @@ const WINDOW=0.23
 const PASS_HITS=9
 const REWARD=45
 const BUSKING_REWARD=8
+const OWNED_REWARD=14
+const OWNED_PATTERNS=[[0,1,2,0,1,0,2,1,0,2],[1,0,2,1,2,0,1,0,2,1],[2,0,1,0,2,1,0,1,2,0]]
 const BUSKING_PATTERNS=[[0,1,0,1,0,2,0,1],[0,2,0,1,0,2,1,0],[1,0,1,2,1,0,2,0]]
 var mode:="live_gig"
 var beat_seconds:=BEAT
@@ -23,12 +25,13 @@ var consumed:=false
 var feedback:="GET READY"
 
 func start(sequence:int,source:String="live_gig")->void:
-	mode=source if source in ["busking","practice"] else "live_gig"
-	var street:=mode!="live_gig"
-	var patterns:=BUSKING_PATTERNS if street else PATTERNS
-	beat_seconds=1.0 if street else BEAT
-	hit_window=0.30 if street else WINDOW
-	required_hits=6 if street else PASS_HITS
+	mode=source if source in ["busking","practice","owned_busking"] else "live_gig"
+	var street:=mode in ["busking","practice"]
+	var owned:=mode=="owned_busking"
+	var patterns:=OWNED_PATTERNS if owned else (BUSKING_PATTERNS if street else PATTERNS)
+	beat_seconds=0.85 if owned else (1.0 if street else BEAT)
+	hit_window=0.25 if owned else (0.30 if street else WINDOW)
+	required_hits=8 if owned else (6 if street else PASS_HITS)
 	pattern=patterns[posmod(sequence-1,patterns.size())].duplicate()
 	elapsed=0.0
 	hits=0

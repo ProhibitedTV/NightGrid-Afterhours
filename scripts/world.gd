@@ -446,7 +446,7 @@ func _on_menu_action(action: String) -> void:
 			if not _street_contact_id.is_empty():
 				_cal_pending={"id":_street_contact_id,"action":action}
 			_street_contact_id=""
-		"music_desk_buy","music_desk_busk","music_desk_practice","music_desk_leave":
+		"music_desk_buy","music_desk_busk","music_desk_practice","music_desk_owned","music_desk_leave":
 			_music_desk_action(action)
 		"rhythm_claim":
 			var site:=_music_session_site
@@ -457,6 +457,12 @@ func _on_menu_action(action: String) -> void:
 					_notify(progression.instrument_summary())
 				else:
 					_notify("PRACTICE / Set not recorded.")
+			elif site=="owned:copper_cup":
+				var sequence:int=game_menu.call("consume_owned_sampler_set")
+				if sequence>0 and _busking_reachable("copper_cup") and progression.settle_owned_sampler_set(sequence):
+					_notify("PERSONAL SET / +$14 • +4 STREET CRED")
+				else:
+					_notify("PERSONAL SET / Not settled.")
 			elif site in BUSKING_SITES:
 				var sequence:int=game_menu.call("consume_busking_result")
 				if sequence>0 and _busking_reachable(site) and progression.settle_busking_set(sequence):
@@ -4136,7 +4142,7 @@ func _busking_reachable(site:String)->bool:
 	return player.global_position.distance_to(point)<=5.5
 
 func _open_music_desk()->void:
-	game_menu.call("open_music_desk",{"owned":progression.owns_instrument(Instruments.STARTER),"cash":cash,"summary":progression.instrument_summary()})
+	game_menu.call("open_music_desk",{"owned":progression.owns_instrument(Instruments.STARTER),"owned_set":progression.owned_set_unlocked(),"cash":cash,"summary":progression.instrument_summary()})
 
 func _music_desk_action(action:String)->void:
 	if action=="music_desk_leave":
@@ -4152,6 +4158,10 @@ func _music_desk_action(action:String)->void:
 		"music_desk_busk":
 			_music_session_site="copper_cup"
 			game_menu.call("open_busking_set",progression.street_activity_runs("busking")+1)
+		"music_desk_owned":
+			if progression.owned_set_unlocked():
+				_music_session_site="owned:copper_cup"
+				game_menu.call("open_owned_sampler_set",progression.street_activity_runs("busking")+1)
 		"music_desk_practice":
 			if progression.owns_instrument(Instruments.STARTER) and progression.sampler_practice<Instruments.MAX_PRACTICE:
 				_music_session_site="practice:copper_cup"

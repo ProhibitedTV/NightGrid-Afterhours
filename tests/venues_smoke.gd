@@ -315,6 +315,29 @@ func _verify() -> void:
 	if paused or busk_ledger.sampler_practice!=1 or busk_ledger.street_cred()!=old_cred or int(world.get("cash"))!=before_instrument-40:
 		_fail("Practice should only grant proficiency")
 		return
+	world.call("_toggle_venue")
+	world.call("_venue_action",3)
+	menu.call("_choice","music_desk_owned")
+	if menu.get("screen")!="music_desk":
+		_fail("Untrained owner bypassed personal set gate")
+		return
+	menu.call("_choice","music_desk_leave")
+	busk_ledger.complete_sampler_practice(2)
+	busk_ledger.complete_sampler_practice(3)
+	world.call("_toggle_venue")
+	world.call("_venue_action",3)
+	menu.call("_choice","music_desk_owned")
+	var personal=menu.get("_rhythm")
+	if personal.mode!="owned_busking":
+		_fail("Steady Hands personal set unavailable")
+		return
+	for lane in personal.pattern:
+		personal.advance(personal.target_time()-personal.elapsed)
+		personal.strike(lane)
+	menu.call("_choice","rhythm_claim")
+	if paused or busk_ledger.street_activity_runs("busking")!=2 or busk_ledger.street_cred()!=old_cred+4 or int(world.get("cash"))!=before_instrument-40+14:
+		_fail("Owned set payout or shared street sequence incorrect")
+		return
 	venues.call("set_hour",4.0)
 	world.call("_toggle_venue")
 	world.call("_venue_action",3)

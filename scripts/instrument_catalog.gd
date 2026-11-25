@@ -4,6 +4,7 @@ extends RefCounted
 const STARTER="pocketbeat_m3"
 const ITEMS={"pocketbeat_m3":{"name":"PocketBeat M3","price":40,"family":"sampler","description":"Refurbished three-pad battery sampler; Copper Cup consignment desk."}}
 const MAX_PRACTICE=1000
+const OWNED_SET_PRACTICE=3
 const SKILL_NAMES=["Beginner","Steady Hands","Pocket Player","Session Ready"]
 const SKILL_THRESHOLDS=[0,3,10,25]
 static func valid_id(id:Variant)->bool:
