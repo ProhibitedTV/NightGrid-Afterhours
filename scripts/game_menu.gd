@@ -287,6 +287,7 @@ func _render() -> void:
 			_title(col, "ACTIVE DELIVERIES", 18, Color("f0d1a0"))
 			_label(col, str(_journal_data.get("main_objective", "Explore Morrow Bay")),
 				17, Color("e1ebef"))
+			_button(col, "restart_courier", "ABANDON PACKAGE / RETRY ROUTE", "restart_courier", bool(_journal_data.get("courier_can_restart", false)))
 			_label(col, str(_journal_data.get("venue_job", "No local contacts")),
 				16, Color("bfced5"))
 			_label(col, str(_journal_data.get("civic_job", "No freight work")),
@@ -466,6 +467,8 @@ func _choice(action: String) -> void:
 			open_map()
 		"journal":
 			action_requested.emit("journal")
+		"restart_courier":
+			action_requested.emit("restart_courier")
 		"back":
 			_open(_back_screen)
 		"new":

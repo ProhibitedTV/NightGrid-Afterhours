@@ -128,6 +128,13 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/hud_radar_smoke.gd 2>&1 | tee /tmp/nightgrid-radar.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-radar.log; then exit 1; fi
+      - name: Validate courier mission state and transactional reward progression
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/courier_mission_smoke.gd 2>&1 | tee /tmp/nightgrid-courier-mission.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-courier-mission.log; then exit 1; fi
+          grep -q "COURIER_MISSION PASS:" /tmp/nightgrid-courier-mission.log
       - name: Validate main menus, saved settings and controller action contexts
         timeout-minutes: 2
         run: |

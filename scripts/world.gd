@@ -62,14 +62,7 @@ const VEHICLE_COLORS = [
 	Color("f04e59"), Color("40b1ff"), Color("e9bf51"),
 	Color("9b75e7"), Color("dedee0"), Color("58c99e")
 ]
-const PICKUPS = [
-	Vector3(-116.0, 0.0, 0.0), Vector3(58.0, 0.0, -116.0),
-	Vector3(116.0, 0.0, 58.0), Vector3(-58.0, 0.0, 116.0)
-]
-const DROPOFFS = [
-	Vector3(116.0, 0.0, 116.0), Vector3(-116.0, 0.0, 58.0),
-	Vector3(0.0, 0.0, -116.0), Vector3(116.0, 0.0, -58.0)
-]
+const CourierMission = preload("res://scripts/courier_mission.gd")
 
 var rng := RandomNumberGenerator.new()
 var player: CharacterBody3D
@@ -198,8 +191,14 @@ var cash: int:
 		progression.set_balance(value)
 var health := 100.0
 var heat := 0.0
-var deliveries := 0
-var carrying := false
+var courier_mission := CourierMission.new()
+# Compatibility accessors for HUD and existing save fields.
+var deliveries: int:
+	get:
+		return courier_mission.completed_runs
+var carrying: bool:
+	get:
+		return courier_mission.has_package()
 var mission_position := Vector3.ZERO
 var notification := "Welcome to the night shift. Find a car and pick up the package."
 var notification_time := 8.0
@@ -248,7 +247,7 @@ func _ready() -> void:
 	add_child(police_radio)
 	var restore: Dictionary = session.call("take_pending_restore")
 	if restore.is_empty():
-		_set_mission_target(PICKUPS[0], false)
+		_refresh_courier_target()
 	else:
 		_apply_snapshot(restore)
 		if current_transit == null:
@@ -405,19 +404,25 @@ func _on_menu_action(action: String) -> void:
 			_new_game()
 		"journal":
 			game_menu.call("open_journal", _journal_context())
+		"restart_courier":
+			if courier_mission.restart():
+				_refresh_courier_target()
+				_notify("Package abandoned. Return to the pickup to retry.")
+			game_menu.call("open_journal", _journal_context())
 
 func _journal_context() -> Dictionary:
 	var outside: Vector3 = interiors.get("exterior_position") if interiors.call("is_inside") else _actor().global_position
 	var district: String = city_details.call("get_district_at", outside)
 	var landmark: String = city_details.call("get_nearby_landmark", outside)
-	var objective := "Deliver package" if carrying else "Collect courier package"
+	var objective: Dictionary = courier_mission.objective()
 	var remaining := roundi(outside.distance_to(mission_position))
 	var loaded: Dictionary = city_details.call("get_streaming_stats")
 	return {
 		"district": district if landmark.is_empty() else "%s / %s" % [district, landmark],
 		"clock": day_night.call("clock_string"),
 		"seed": session.get("world_seed"),
-		"main_objective": "%s  •  %dm" % [objective, remaining],
+		"main_objective": "%s  •  STEP %d/%d  •  %dm  •  $%d" % [objective["title"], objective["step"], objective["total_steps"], remaining, objective["reward"]],
+		"courier_can_restart": carrying,
 		"venue_job": _venue_job_text(),
 		"civic_job": _civic_job_text(),
 		"cash": cash, "health": health, "heat": heat,
@@ -770,7 +775,7 @@ func _physics_process(delta: float) -> void:
 	StreamProfile.accumulate(started, "world_pedestrians")
 	started = StreamProfile.begin()
 	_update_combat(delta)
-	if not indoors and current_transit == null and actor.global_position.distance_to(mission_position) < 5.3:
+	if not indoors and current_transit == null and actor.global_position.distance_to(mission_position) < CourierMission.RADIUS:
 		_advance_mission()
 	if (actor.global_position.y < -15.0 or not indoors and
 			(absf(actor.global_position.x) > 390.0 or absf(actor.global_position.z) > 390.0)):
@@ -1043,21 +1048,22 @@ func _clear_car_exit(car: CharacterBody3D) -> Vector3:
 	return Vector3.INF
 
 func _advance_mission() -> void:
-	if not carrying:
-		carrying = true
-		world_audio.call("play_event", "PICKUP", _actor().global_position)
-		_set_mission_target(DROPOFFS[deliveries % DROPOFFS.size()], true)
-		_notify("Package secured! Follow the cyan beacon.")
-	else:
-		var payout := 250 + 50 * mini(deliveries, 8)
-		if not progression.credit(payout):
-			_notify("Wallet is full. Spend some cash before delivering.")
-			return
-		carrying = false
-		world_audio.call("play_event", "DELIVERY", _actor().global_position)
-		deliveries += 1
-		_set_mission_target(PICKUPS[deliveries % PICKUPS.size()], false)
-		_notify("Delivery done! +$%d. Next pickup marked in amber." % payout)
+	var event_id: String = courier_mission.objective()["id"]
+	var result := courier_mission.advance(event_id, _actor().global_position, progression)
+	match result.get("event", ""):
+		"collected":
+			world_audio.call("play_event", "PICKUP", _actor().global_position)
+			_refresh_courier_target()
+			_notify("Package secured! Follow the cyan beacon.")
+		"delivered":
+			world_audio.call("play_event", "DELIVERY", _actor().global_position)
+			_refresh_courier_target()
+			_notify("Delivery done! +$%d. Next pickup marked in amber." % int(result["reward"]))
+		"blocked":
+			_notify("Cannot settle delivery. Check wallet capacity.")
+
+func _refresh_courier_target() -> void:
+	_set_mission_target(courier_mission.target() - Vector3.UP * 0.2, carrying)
 
 func _set_mission_target(pos: Vector3, has_package: bool) -> void:
 	mission_position = pos + Vector3.UP * 0.2
@@ -1763,8 +1769,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 		var p := Vector3(float(last[0]), float(last[1]), float(last[2]))
 		if p.is_finite() and absf(p.x) <= 390.0 and absf(p.z) <= 390.0 and absf(p.y) <= 25.0 and heat >= Wanted.MIN_HEAT:
 			wanted.last_known = p
-	deliveries = maxi(0, int(data.get("deliveries", 0)))
-	carrying = bool(data.get("carrying", false))
+	courier_mission.restore(data.get("deliveries", 0), data.get("carrying", false))
 	yaw = float(data.get("camera_yaw", 0.0))
 	var position_data: Array = data["player_position"]
 	player.global_position = Vector3(float(position_data[0]), float(position_data[1]), float(position_data[2]))
@@ -1856,7 +1861,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 		var repair := _repair_storefront()
 		if repair != null and (repair.contains(player.global_position) or repair.door_reachable(player.global_position)):
 			repair.door.restore_open(data.get("night_shift_door_open", false) == true or repair.overlaps_threshold(player.global_position))
-	_set_mission_target(DROPOFFS[deliveries % DROPOFFS.size()] if carrying else PICKUPS[deliveries % PICKUPS.size()], carrying)
+	_refresh_courier_target()
 	_snap_camera()
 	_log_playtest("save_restored", {"seed": int(session.get("world_seed"))})
 	_notify("Save loaded. Seed %d; Morrow Bay restored." % int(session.get("world_seed")))
@@ -2723,7 +2728,7 @@ func _update_hud() -> void:
 		_wanted_label.text += "\n" + dispatch.status()
 	_wanted_label.visible = tier > 0 or weapons.equipped != "holstered"
 	_wanted_label.modulate = Ui.DANGER if wanted.police_seen and tier > 0 else Ui.AMBER
-	var mission := "DELIVER PACKAGE" if carrying else "PICK UP PACKAGE"
+	var mission: String = courier_mission.objective()["hud"]
 	var distance := roundi(outdoors.distance_to(mission_position))
 	var message := notification if notification_time > 0.0 else ""
 	if performance_overlay:

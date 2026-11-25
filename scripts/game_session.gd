@@ -13,6 +13,7 @@ var boot_menu_shown := false
 var world_manifest: Dictionary = {}
 const WorldPlan = preload("res://scripts/world_plan.gd")
 const ProgressionLedger = preload("res://scripts/progression_ledger.gd")
+const CourierMission = preload("res://scripts/courier_mission.gd")
 
 func start_new_game() -> int:
 	var old := world_seed
@@ -53,7 +54,7 @@ func is_valid_snapshot(value: Variant) -> bool:
 		return false
 	if not data["cars"] is Array or not data["traffic"] is Dictionary or not data["rail"] is Dictionary:
 		return false
-	if not data["carrying"] is bool:
+	if not data["carrying"] is bool or not CourierMission.valid_run_count(data["deliveries"]):
 		return false
 	if not ProgressionLedger.valid_cash(data["cash"]):
 		return false
