@@ -15,6 +15,7 @@ const UNLOAD_DISTANCE = 120.0
 const MIN_SEPARATION = 2.0
 var _agents: Dictionary = {}
 var _routes: Dictionary = {}
+var _priority_resident:=""
 
 static func block_candidates(ix: int, iz: int) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
@@ -63,6 +64,7 @@ static func balanced_links(links: Array[Dictionary]) -> Array[Dictionary]:
 func configure(seed_value: int, links: Array[Dictionary]) -> void:
 	_agents.clear()
 	_routes.clear()
+	_priority_resident=""
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value ^ 615213
 	for link in balanced_links(links):
@@ -104,7 +106,10 @@ func routine_for(id: String) -> Dictionary:
 	return (_agents[id]["routine"] as Dictionary).duplicate()
 
 func available_at(id: String,hour: float) -> bool:
-	return _agents.has(id) and Routines.eligible(_agents[id]["routine"],str(_routes[id].get("district","")),hour)
+	return _agents.has(id) and (id==_priority_resident or Routines.eligible(_agents[id]["routine"],str(_routes[id].get("district","")),hour))
+
+func prioritize_resident(id:String)->void:
+	_priority_resident=id if _agents.has(id) else ""
 
 func advance(seconds: float, active_ids: Array) -> void:
 	if not is_finite(seconds) or seconds<=0.0:
@@ -173,6 +178,8 @@ func plan_changes(focus: Vector3, camera: Vector3, indoors: bool, active: Dictio
 		entry["distance"] = distance
 		candidates.append(entry)
 	candidates.sort_custom(func(a: Dictionary,b: Dictionary) -> bool:
+		if a["id"]==_priority_resident or b["id"]==_priority_resident:
+			return a["id"]==_priority_resident and b["id"]!=_priority_resident
 		if is_equal_approx(float(a["distance"]),float(b["distance"])):
 			return str(a["id"])<str(b["id"])
 		return float(a["distance"])<float(b["distance"]))

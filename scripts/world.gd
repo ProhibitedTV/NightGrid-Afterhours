@@ -153,6 +153,8 @@ var city_details: Node3D
 var pedestrians: Node3D
 var _pedestrian_scan := 0.0
 var _street_contact_id:=""
+var _cal_pending:Dictionary={}
+const CAL_PICKUP="moon_noodles"
 var city_perimeter: Node3D
 var flora: Node3D
 var day_night: Node
@@ -435,6 +437,15 @@ func _build_world_audio() -> void:
 
 func _on_menu_action(action: String) -> void:
 	match action:
+		"cal_accept","cal_complete":
+			if not _street_contact_id.is_empty():
+				_cal_pending={"id":_street_contact_id,"action":action}
+			_street_contact_id=""
+		"cal_waypoint":
+			var point:=_cal_target()
+			if point.is_finite():
+				set_navigation_waypoint(Vector2(point.x,point.z))
+			game_menu.call("open_journal",_journal_context())
 		"street_reply_0","street_reply_1":
 			if is_instance_valid(pedestrians) and not _street_contact_id.is_empty():
 				pedestrians.call("request_player_reply",_street_contact_id,0 if action=="street_reply_0" else 1)
@@ -620,6 +631,8 @@ func _journal_context() -> Dictionary:
 		"story_can_navigate": story_mission.status != "complete",
 		"story_can_abandon": story_mission.status == "active",
 		"venue_job": _venue_job_text(),
+		"cal_quest":_cal_objective(),
+		"cal_can_navigate":_cal_target().is_finite(),
 		"civic_job": _civic_job_text(),
 		"cash": cash, "health": health, "heat": heat,
 		"owned_vehicles": _owned_vehicle_text(),
@@ -1066,12 +1079,14 @@ func enable_living_streets() -> bool:
 	return true
 
 func _update_pedestrians(delta: float, actor: Node3D, indoors: bool) -> void:
+	pedestrians.call("track_cal_quest",progression.cal_quest in [1,2])
 	var occupied: Array[Vector3] = [actor.global_position]
 	var street_mode := not indoors and current_transit == null and is_instance_valid(camera)
 	pedestrians.call("tick", delta, actor.global_position, camera, not street_mode,
 		occupied, float(day_night.get("hour")), signal_controller)
 	if is_instance_valid(dialogue_director):
 		pedestrians.call("update_street_dialogue",dialogue_director,actor.global_position+Vector3.UP*1.6,player.get_rid(),street_mode and current_car==null and weapons.equipped=="holstered",delta)
+	_resolve_cal_action(street_mode and current_car==null and weapons.equipped=="holstered")
 	_pedestrian_scan += delta
 	if not street_mode or _pedestrian_scan < 0.18:
 		return
@@ -2384,6 +2399,12 @@ func _toggle_interaction() -> void:
 		else:
 			_notify("Walk to the indoor service counter.")
 		return
+	if _cal_pickup_reachable() and progression.collect_cal_gift():
+		_notify("COMPATIBILITY PATCH: Collected Cal\u0027s prepaid anniversary heat sink. Return to Cal Mercer.")
+		var target:=_cal_target()
+		if target.is_finite():
+			set_navigation_waypoint(Vector2(target.x,target.z))
+		return
 	var machine: Node3D = city_details.call("nearby_vending",player.global_position)
 	if is_instance_valid(machine):
 		_vending_machine = machine
@@ -2396,6 +2417,8 @@ func _toggle_interaction() -> void:
 		var contact:Dictionary=pedestrians.call("nearby_contact")
 		if not contact.is_empty():
 			_street_contact_id=str(contact["lease_id"])
+			if pedestrians.call("is_named_cal",_street_contact_id) and progression.has_receipt(Opening.RECEIPT):
+				contact["cal_quest"]=progression.cal_quest
 			game_menu.call("open_street_contact",contact)
 			return
 	if str(shop.get("id","")) == "helix_espresso":
@@ -3572,6 +3595,8 @@ func _update_hud() -> void:
 		jobs.append(_venue_job_text())
 	if not civic_job_active.is_empty():
 		jobs.append(_civic_job_text())
+	if progression.cal_quest in [1,2]:
+		jobs.append(_cal_objective())
 	hud_jobs.text = "\n".join(jobs)
 	hud_jobs.visible = not jobs.is_empty()
 	hud_notice.text = message
@@ -3629,6 +3654,8 @@ func _update_hud() -> void:
 			prompts.append("%s %s building door" % [enter_key,"Close" if leaf.call("is_requested_open") else "Open"])
 		if is_instance_valid(city_details.call("nearby_vending",player.global_position)):
 			prompts.append("%s  Vending machine" % interact_key)
+		if _cal_pickup_reachable():
+			prompts.append("%s  Collect Cal\u0027s prepaid gift" % interact_key)
 		if prompts.is_empty() and is_instance_valid(pedestrians) and weapons.equipped=="holstered":
 			var contact:Dictionary=pedestrians.call("nearby_contact")
 			if not contact.is_empty():
@@ -3899,5 +3926,51 @@ func get_map_state() -> Dictionary:
 
 func _cancel_street_interactions()->void:
 	_street_contact_id=""
+	_cal_pending={}
 	if is_instance_valid(pedestrians) and is_instance_valid(dialogue_director):
 		pedestrians.call("cancel_street_dialogue",dialogue_director)
+
+## Anniversaries are optional; the ledger is the sole reward/state owner.
+func _cal_pickup_reachable()->bool:
+	if progression.cal_quest!=1 or not is_instance_valid(venue_system) or not is_instance_valid(player) or current_car!=null or current_transit!=null or interiors.call("is_inside") or weapons.equipped!="holstered":
+		return false
+	var at:Vector3=venue_system.call("venue_position",CAL_PICKUP)
+	return player.global_position.distance_to(at)<=3.0
+
+func _cal_target()->Vector3:
+	if progression.cal_quest==1 and is_instance_valid(venue_system):
+		return venue_system.call("venue_position",CAL_PICKUP)
+	if progression.cal_quest==2 and is_instance_valid(pedestrians):
+		return pedestrians.call("cal_position")
+	return Vector3.INF
+
+func _cal_objective()->String:
+	match progression.cal_quest:
+		1: return "COMPATIBILITY PATCH / Collect prepaid gift at Moon Noodles"
+		2: return "COMPATIBILITY PATCH / Return heat sink to Cal Mercer (follow his neighborhood waypoint)"
+		3: return "COMPATIBILITY PATCH / Completed"
+	return ""
+
+func _resolve_cal_action(allowed:bool)->void:
+	if _cal_pending.is_empty():
+		return
+	var pending:=_cal_pending
+	_cal_pending={}
+	var id:=str(pending["id"])
+	var listener:Vector3=player.global_position+Vector3.UP*1.6
+	if not allowed or not progression.has_receipt(Opening.RECEIPT) or not pedestrians.call("confirm_cal_contact",id,listener,player.get_rid()):
+		_notify("Cal is no longer within reach. Approach him again.")
+		return
+	var action:="accept" if pending["action"]=="cal_accept" else "complete"
+	var changed:=progression.accept_cal_quest() if action=="accept" else progression.complete_cal_quest()
+	if not changed:
+		_notify("Unable to advance Compatibility Patch.")
+		return
+	var cue:=StreetSatire.cal_quest_line(action)
+	if not is_instance_valid(dialogue_director) or not pedestrians.call("play_cal_quest_line",dialogue_director,id,action,listener,player.get_rid()):
+		_notify(str(cue["text"]))
+	else:
+		_notify("COMPATIBILITY PATCH / Accepted" if action=="accept" else "COMPATIBILITY PATCH / Completed +$85")
+	var target:=_cal_target()
+	if target.is_finite():
+		set_navigation_waypoint(Vector2(target.x,target.z))

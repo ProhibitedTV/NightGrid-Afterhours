@@ -312,6 +312,11 @@ func _render() -> void:
 			for i in range(2):
 				var key:="street_reply_%d"%i
 				_button(col,key,str(_street_contact["topics"][i]["question"]),key)
+			match int(_street_contact.get("cal_quest",-1)):
+				0: _button(col,"cal_accept","HELP WITH THE ANNIVERSARY GIFT","cal_accept")
+				1: _label(col,"The prepaid gift is at Moon Noodles.",15,Ui.MUTED)
+				2: _button(col,"cal_complete","HAND OVER THE HEAT SINK","cal_complete")
+				3: _label(col,"Compatibility Patch / Completed",15,Ui.MUTED)
 			_button(col,"street_leave","SEE YOU AROUND","street_leave")
 		"parking_guard":
 			SynaxisBrand.ui_lockup(col)
@@ -450,6 +455,10 @@ func _render() -> void:
 				16, Color("bfced5"))
 			_label(col, str(_journal_data.get("civic_job", "No freight work")),
 				16, Color("bfced5"))
+			if not str(_journal_data.get("cal_quest","")).is_empty():
+				_label(col,str(_journal_data["cal_quest"]),16,Ui.ACCENT)
+				if bool(_journal_data.get("cal_can_navigate",false)):
+					_button(col,"cal_waypoint","SET COMPATIBILITY PATCH WAYPOINT","cal_waypoint")
 			_divider(col)
 			_title(col, "INVENTORY / STATUS", 18, Color("f0d1a0"))
 			_label(col, str(_journal_data.get("weapons", "No equipment data")), 16, Ui.ACCENT)
@@ -633,7 +642,7 @@ func _choice(action: String) -> void:
 				action_requested.emit("begin_opening")
 			else:
 				hide_for_game()
-		"street_reply_0","street_reply_1","street_leave":
+		"street_reply_0","street_reply_1","street_leave","cal_accept","cal_complete":
 			if screen=="street_contact":
 				_street_contact={}
 				hide_for_game()
@@ -704,7 +713,7 @@ func _choice(action: String) -> void:
 			open_map()
 		"journal":
 			action_requested.emit("journal")
-		"restart_courier", "abandon_story", "home_waypoint", "garage_waypoint", "story_waypoint", "synaxis_waypoint":
+		"restart_courier", "abandon_story", "home_waypoint", "garage_waypoint", "story_waypoint", "synaxis_waypoint", "cal_waypoint":
 			action_requested.emit(action)
 		"back":
 			_open(_back_screen)

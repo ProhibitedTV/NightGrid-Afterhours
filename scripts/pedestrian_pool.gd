@@ -576,3 +576,20 @@ func bark_audible(id:String,space:PhysicsDirectSpaceState3D,listener:Vector3,lis
 
 func player_reply_valid(id:String)->bool:
 	return street_bark_valid(id) and float(_leases[id]["social"])>0.0
+
+func begin_cal_reply(space:PhysicsDirectSpaceState3D,listener:Vector3,listener_rid:RID,id:String,action:String)->Dictionary:
+	if Satire.personality(id)!="robot_romantic" or contact_near(space,listener,listener_rid,id).is_empty():
+		return {}
+	var line:=Satire.cal_quest_line(action)
+	if line.is_empty():
+		return {}
+	var lease:Dictionary=_leases[id]
+	var body:=_slots[int(lease["slot"])]
+	var facing:=body.global_position.direction_to(listener)
+	facing.y=0.0
+	lease["social_facing"]=facing.normalized()
+	lease["social"]=15.0
+	lease["social_cooldown"]=30.0
+	lease["bark_cooldown"]=75.0
+	line["speaker"]=body
+	return line
