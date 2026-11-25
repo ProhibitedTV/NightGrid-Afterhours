@@ -943,6 +943,22 @@ func _verify() -> void:
 	if int(opening_save["progression"].get("synaxis_contact",0))!=2:
 		_fail("Contact completion must serialize")
 		return
+	var contact_ledger=preload("res://scripts/progression_ledger.gd")
+	var legacy_contact:Dictionary=opening_save["progression"].duplicate(true)
+	legacy_contact.erase("synaxis_contact")
+	var restored_contact=contact_ledger.new()
+	if not restored_contact.restore(opening_save["cash"],legacy_contact) or restored_contact.synaxis_contact!=0:
+		_fail("Old progression saves restore with no prior introduction")
+		return
+	legacy_contact["synaxis_contact"]=3
+	if contact_ledger.valid_snapshot(legacy_contact):
+		_fail("Out-of-range contact state must be rejected")
+		return
+	legacy_contact["synaxis_contact"]=2
+	legacy_contact["receipts"].erase(opening.RECEIPT)
+	if contact_ledger.valid_snapshot(legacy_contact):
+		_fail("Check-in completion requires actual severance receipt")
+		return
 	world.get("progression").synaxis_contact=0
 	world.get("courier_mission").gig_economy = false
 	world.call("_apply_snapshot",opening_save)
