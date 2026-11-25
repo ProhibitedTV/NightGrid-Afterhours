@@ -1,0 +1,138 @@
+{
+  "images": {
+    "01-morrow-bay-neon-night.png": {
+      "bytes": 609002,
+      "sha256": "ea9d4ecaabb3083182025cda07f2c30f46d8b7cd26099f186653e1c5890f5db8"
+    },
+    "02-vesper-market-nightlife.png": {
+      "bytes": 800067,
+      "sha256": "dda9ddef89bbe7dec00405437f3ea9368452ed5e4546a75e60b38674749c05db"
+    },
+    "03-m-line-helix-terminal.png": {
+      "bytes": 399848,
+      "sha256": "0fcee73e2e64467c6a567e94e14ff1e7572e2e54b888698bdd140cea04b76884"
+    },
+    "04-horizon-commons-daylight.png": {
+      "bytes": 680099,
+      "sha256": "124c20e0c120bcca094706ac095a71020523697c08c4b990f2b8ba918134b606"
+    },
+    "05-quay-fresh-interior.png": {
+      "bytes": 278388,
+      "sha256": "65b96f32b292afda488fffa6cba945b62aa20219b12117a8bb9f558ba8de71e4"
+    },
+    "06-title-menu.png": {
+      "bytes": 180465,
+      "sha256": "0c954c5e2aab1ddcdfaeec428ad40d88a8a7edb945c5d24789725d9946fafd90"
+    },
+    "07-city-map-menu.png": {
+      "bytes": 150681,
+      "sha256": "57d4fa3e40379e3a8cf68065ce1f4cf5c1fbad89fc984cf122436b911c18c2f7"
+    },
+    "08-city-bus-coachwork.png": {
+      "bytes": 856135,
+      "sha256": "d0f783e4db37fe2560375c97eb6ddd5a99a9e24b0aae6bd2144d0b35414b0347"
+    },
+    "09-civilian-sedan-coachwork.png": {
+      "bytes": 706425,
+      "sha256": "1dffa47cd5ea40a8d8d2d373c6a77f6007ace985da9eeab88e34c8b5ebdc7fa1"
+    },
+    "10-central-exchange-daylight.png": {
+      "bytes": 716623,
+      "sha256": "4634e6957590fd7c2e23b08fbac4f9f19b518cd633aef625a8f3dc4edecae2e4"
+    },
+    "11-brickwater-streetfront.png": {
+      "bytes": 1066061,
+      "sha256": "687371da545744f3fe6670496024c672922b9f299c4854aca5987f7aac7a998e"
+    },
+    "12-afterhours-streetfront.png": {
+      "bytes": 803705,
+      "sha256": "5317eb55374f74d56fe957900eaab97bf955219ec1f3ab5293e54acc473dd3ad"
+    },
+    "13-north-quay-exchange.png": {
+      "bytes": 945406,
+      "sha256": "659ac1ac980778de6e2064b265b724edf272acb0dae970d72a834a4ee3c78468"
+    },
+    "14-pier-nine-depot.png": {
+      "bytes": 818317,
+      "sha256": "5f58ec88a28be7d88b04a6c48d22f8717019d2ae47b734dfe5daf5b50fcb8c4a"
+    },
+    "15-southworks-hall.png": {
+      "bytes": 793984,
+      "sha256": "9b9cf58d667a33b90b7d54fdd550d1e9d4276ab58d060775650c1161bc56252b"
+    },
+    "16-lantern-cup-exterior.png": {
+      "bytes": 692780,
+      "sha256": "098ebdfa88ebc048fb59679413dde6779be023241678d0a5c1f694dbaf9362ca"
+    },
+    "17-prism-club-exterior.png": {
+      "bytes": 672724,
+      "sha256": "9e9acdcafc63738505bc21adc768bef73f01da09a0187c10f1cb85859bd20964"
+    },
+    "18-static-room-exterior.png": {
+      "bytes": 787768,
+      "sha256": "4ef74f6995a3bd40a4b472947b1cbbed62bf72fdba99e69f4f10410ce99d432a"
+    },
+    "19-dock-nine-social.png": {
+      "bytes": 807682,
+      "sha256": "197f0549ac58fbac53569442eb6d16700094ea6eef2eb132e9dae2254c92c78f"
+    },
+    "20-blue-hour-exterior.png": {
+      "bytes": 625069,
+      "sha256": "36a0e24ded15dee1b545b1184720725afd202705ac3503d58724d58d25ccfa92"
+    },
+    "21-helix-espresso.png": {
+      "bytes": 811117,
+      "sha256": "2154381071a2cbfbbbaaf987b9ba9dbd2ad8088e30664fd66ca42ea23e94d048"
+    },
+    "22-neon-bao-streetfood.png": {
+      "bytes": 736374,
+      "sha256": "b054938750dc66d11c15321316497ddcf5b046ff2877b838e7d3169f96bb50fb"
+    },
+    "23-crane-and-gear.png": {
+      "bytes": 941125,
+      "sha256": "7f5dceb5447aa10637fb314254487cfc9ed8b4cd7d8991354afa34ace3c8b98b"
+    },
+    "24-mbpd-dispatch-exterior.png": {
+      "bytes": 562894,
+      "sha256": "29af0c7c732a349b460805cd5ce511b117a682dde1fd59e22ab47d903d65d2e2"
+    },
+    "25-eastside-fire.png": {
+      "bytes": 733611,
+      "sha256": "d255fc946d3b91551d03f2f73543f8618651f52c412c11e5a480c7c2eef6c6c9"
+    },
+    "26-courier-street-view.png": {
+      "bytes": 821099,
+      "sha256": "c15c9176fb3627b2d93af6d8b72b5a0c316c93fd71fd7f4f93c6c0c029dec786"
+    },
+    "27-vesper-player-view.png": {
+      "bytes": 608051,
+      "sha256": "45e111115406995382fd1a2ae0dd0588bf80fff0e9efd340bccc02a6ffa04ae5"
+    },
+    "28-lantern-cup-interior.png": {
+      "bytes": 502934,
+      "sha256": "f3836da238fd9c8961fb0e0401266786bec018d329eb5855ad238c252a70513b"
+    },
+    "29-prism-club-interior.png": {
+      "bytes": 239816,
+      "sha256": "cc98ec4ce85f9eba422c22af0e2a9c708f58cf433f6cc0e78fbe37c9d19759bb"
+    },
+    "30-static-room-interior.png": {
+      "bytes": 240492,
+      "sha256": "95f419137722be7e8b731c53dc484ad5c08e86ad4037d9244d87df2480bef9c6"
+    },
+    "31-mbpd-dispatch-interior.png": {
+      "bytes": 264833,
+      "sha256": "de982bfa0d3bf4046e5ccd5894c16840374d0812abdc3682edf1a192bad2d328"
+    },
+    "32-horizon-health-interior.png": {
+      "bytes": 251615,
+      "sha256": "ab363327395d0a63aa7b111da0d48b7ffd83db37bbce8626918e4e89a88e9911"
+    },
+    "33-crane-and-gear-interior.png": {
+      "bytes": 295216,
+      "sha256": "7102e330582a291a183561b32d3e5f72012f1fbf00fd937ee279958a933f60ad"
+    }
+  },
+  "renderer": "Godot 4.7.2 Mesa software OpenGL Compatibility 1280x720 (NOT Vulkan/RTX)",
+  "source_revision": "f6dd913713d3534b439fca4bae1aef2c63ee065b"
+}

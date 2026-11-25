@@ -31,4 +31,8 @@ The two new close views use the actual four-bus/25-car fleet rather than a separ
 
 ## Native Windows development showcase (unreleased)
 
-[Browse 13 Windows Forward+/Vulkan development captures](development/GALLERY.md) from pending PRs #163, #165 and #166. The original Git screenshot blobs were copied without alteration into `docs/screenshots/development/`; [provenance.json](development/provenance.json) records the exact source commit, path and blob SHA for each image. These are not images from the currently released Beta.7. They are separate from the nine-image Linux Mesa manifest above and from the draft 33-image general gallery in PR #127. Native game/visual review and 60 FPS acceptance remain pending.
+[Browse 13 Windows Forward+/Vulkan development captures](development/GALLERY.md) from pending PRs #163, #165 and #166. The original Git screenshot blobs were copied without alteration into `docs/screenshots/development/`; [provenance.json](development/provenance.json) records the exact source commit, path and blob SHA for each image. These are not images from the currently released Beta.7. They are separate from the nine-image Linux Mesa manifest above and from the [archived 33-image development gallery](archive-20261121/GALLERY.md) originating in PR #127. Native game/visual review and 60 FPS acceptance remain pending.
+
+## Historical 33-frame development gallery
+
+[Browse the archived November 21 capture set](archive-20261121/GALLERY.md). This preserves the original images and manifest from PR #127 without replacing the current nine-frame, native Windows, or skybox showcases. Visual acceptance is pending; the archive is not a capture of current main. The expanded capture automation remains separate from this documentation-only port.
