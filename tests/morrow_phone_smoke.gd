@@ -30,7 +30,7 @@ func _verify() -> void:
 	var buttons: Dictionary = menu.call("get_buttons")
 	for entry in Phone.APPS:
 		var id: String = entry["id"]
-		if not buttons.has("phone_app_"+id) or buttons["phone_app_"+id].focus_mode != Control.FOCUS_ALL:
+		if not buttons.has("phone_app_"+id) or buttons["phone_app_"+id].focus_mode != Control.FOCUS_ALL or buttons["phone_app_"+id].icon == null:
 			_fail("Missing focusable phone app "+id)
 			return
 	menu.call("_choice","phone_app_wallet")
@@ -56,6 +56,32 @@ func _verify() -> void:
 	if menu.get("screen") != "pause" or not paused:
 		_fail("Back must restore pause ownership")
 		return
+	menu.call("hide_for_game")
+	# Route cycling is a real mission operation, not a second phone ledger.
+	var mission = world.get("courier_mission")
+	mission.gig_economy = true
+	var before_offer: String = mission.objective()["route_id"]
+	var before_runs: int = mission.completed_runs
+	var before_cash: int = world.get("cash")
+	world.call("_open_phone",false)
+	menu.call("_choice","phone_app_work")
+	menu.call("_choice","phone_decline_offer")
+	if mission.objective()["route_id"] == before_offer or mission.completed_runs != before_runs or world.get("cash") != before_cash:
+		_fail("Declining must rotate offer without payout or run credit")
+		return
+	var chosen: String = mission.objective()["route_id"]
+	var snapshot: Dictionary = world.call("_capture_snapshot")
+	mission.restore_offer_offset(0)
+	mission.restore_offer_offset(snapshot["courier_offer_offset"])
+	if mission.objective()["route_id"] != chosen:
+		_fail("Offer cursor must survive restoration")
+		return
+	mission.step = 1
+	menu.call("refresh_phone",world.call("_phone_context"))
+	if menu.call("get_buttons").has("phone_decline_offer") or mission.decline_offer():
+		_fail("A carried package cannot be switched")
+		return
+	mission.step = 0
 	menu.call("hide_for_game")
 	world.set("current_car",world.get("cars")[0])
 	if world.call("phone_available"):
