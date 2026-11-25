@@ -556,8 +556,28 @@ func _verify() -> void:
 		engineering_people.call("_process",.1)
 		services.call("_process",.1)
 	var npc_cycles:Dictionary=engineering_people.call("stats")
+	# A full round has a bounded stand-up, alternating speakers and cleanup.
+	var meeting_model=preload("res://scripts/synaxis_department_meeting.gd").new()
+	meeting_model.begin()
+	if meeting_model.speaker()!=6 or not meeting_model.line(1).contains("safety review"):
+		_fail("Stand-up begins with the department-specific agenda")
+		return
+	meeting_model.tick(3.1)
+	if meeting_model.speaker()!=7 or not meeting_model.line(1).contains("human override"):
+		_fail("Stand-up alternates speakers")
+		return
+	meeting_model.tick(6.0)
+	if meeting_model.active or meeting_model.completed!=1:
+		_fail("Stand-up ends without leaving a conversation active")
+		return
 	if int(npc_cycles["print_visits"])<1 or int(npc_cycles["coffee_visits"])<1:
 		_fail("Employee completes shared printer and coffee cycles")
+		return
+	for tick in range(500):
+		engineering_people.call("_process",.1)
+		services.call("_process",.1)
+	if int(engineering_people.call("stats")["meetings_completed"])<1:
+		_fail("Completed appliance round leads to a coordinated department stand-up")
 		return
 	# Reset circulation before testing player-owned cycles independently.
 	engineering_people.call("set_active",false)

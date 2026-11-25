@@ -1,6 +1,9 @@
 extends Node3D
 ## Named background actors using existing seats. No additional physics or mission state.
 const Staff=preload("res://scripts/synaxis_staff.gd")
+const Meeting=preload("res://scripts/synaxis_department_meeting.gd")
+var _meeting:=Meeting.new()
+var _rounds:=0
 const SEATS=[Vector3(-6,0,-6.45),Vector3(0,0,-6.45),Vector3(4,0,-3.80),Vector3(-2,0,.25),Vector3(2,0,.25),Vector3(6,0,2.90),Vector3(-5.3,0,5.65),Vector3(-3.35,0,6.12)]
 const YAW=[0.0,0.0,PI,0.0,0.0,PI,PI/2,-PI/2]
 const NAMES=[
@@ -81,7 +84,9 @@ func set_active(active:bool) -> void:
 	if active:
 		_wait=maxf(_wait,3.0+float(level)*1.1)
 	else:
+		_meeting.reset()
 		_people[6].call("set_routine_pose","")
+		_people[6].rotation.y=YAW[6]
 		_service_site=""
 		_service_started=false
 		_held=""
@@ -98,6 +103,7 @@ func set_active(active:bool) -> void:
 		actor.process_mode=Node.PROCESS_MODE_ALWAYS if active else Node.PROCESS_MODE_DISABLED
 		if not active:
 			actor.call("attend",Vector3.ZERO,false)
+			actor.call("set_scene_beat",-1)
 
 func _process(delta:float) -> void:
 	if not _active:
@@ -110,6 +116,9 @@ func _process(delta:float) -> void:
 		_walking=false
 		actor.call("set_walk_speed",0.0)
 		_wait=maxf(_wait,1.0)
+		return
+	if _meeting.active:
+		_tick_meeting(step)
 		return
 	if not _service_site.is_empty():
 		_tick_service(actor,step)
@@ -138,11 +147,14 @@ func _process(delta:float) -> void:
 		_route_index+=1
 		if _route_index>=ROUTE.size():
 			_route_index=1
+			_rounds+=1
 			_wait=7.0+float(level)
 			_task="idle"
 			_held=""
 			actor.call("set_routine_pose","")
 			actor.rotation.y=YAW[WALKER]
+			_meeting.begin()
+			_task="meeting"
 		elif _route_index==4:
 			_wait=5.0
 			_task="chat"
@@ -183,6 +195,26 @@ func _process(delta:float) -> void:
 	_walk_distance+=advance
 	_walking=true
 	actor.call("set_walk_speed",.85)
+
+func _tick_meeting(step:float) -> void:
+	var a:Node3D=_people[6]
+	var b:Node3D=_people[WALKER]
+	var offset:=b.position-a.position
+	a.rotation.y=lerp_angle(a.rotation.y,atan2(offset.x,offset.z),clampf(step*6.0,0.0,1.0))
+	b.rotation.y=lerp_angle(b.rotation.y,atan2(-offset.x,-offset.z),clampf(step*6.0,0.0,1.0))
+	b.call("set_walk_speed",0.0)
+	_walking=false
+	var speaker:=_meeting.speaker()
+	for i in [6,WALKER]:
+		_people[i].call("set_routine_pose","chat" if i==speaker else "")
+		_people[i].call("set_scene_beat",0 if i==speaker else -1)
+	_meeting.tick(step)
+	if not _meeting.active:
+		for i in [6,WALKER]:
+			_people[i].call("set_scene_beat",-1)
+			_people[i].call("set_routine_pose","")
+		_task="idle"
+		_wait=10.0+float(level)*2.0
 
 func _tick_service(actor:Node3D,step:float) -> void:
 	actor.call("set_walk_speed",0.0)
@@ -248,6 +280,8 @@ func observe(at:Vector3) -> String:
 			_people[i].call("attend",_people[WALKER].global_position,true)
 		else:
 			_people[i].call("attend",at,i==closest)
+	if closest<0 and _meeting.active and local.distance_to(_people[WALKER].position+Vector3.UP*1.15)<5.0:
+		return _meeting.line(level)
 	if closest<0 and _task=="chat" and local.distance_to(_people[WALKER].position+Vector3.UP*1.15)<5.0:
 		return str(EXCHANGES[level-1][0 if _chat_elapsed<2.5 else 1])
 	return _line
@@ -257,4 +291,4 @@ func stats() -> Dictionary:
 	for actor in _people:
 		if actor.process_mode!=Node.PROCESS_MODE_DISABLED:
 			animated+=1
-	return {"people":_people.size(),"animated":animated,"seated":6,"standing":2,"walking":_walking,"walk_distance":_walk_distance,"route_index":_route_index,"task":_task,"board_visits":_board_visits,"chat_visits":_chat_visits,"print_visits":_print_visits,"coffee_visits":_coffee_visits}
+	return {"people":_people.size(),"animated":animated,"seated":6,"standing":2,"walking":_walking,"walk_distance":_walk_distance,"route_index":_route_index,"task":_task,"board_visits":_board_visits,"chat_visits":_chat_visits,"print_visits":_print_visits,"coffee_visits":_coffee_visits,"rounds":_rounds,"meeting":_meeting.active,"meetings_completed":_meeting.completed}

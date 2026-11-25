@@ -6,6 +6,7 @@ const Eggs=preload("res://scripts/synaxis_office_easter_eggs.gd")
 const Robotics=preload("res://scripts/synaxis_robotics_lab.gd")
 const FloorStaff=preload("res://scripts/synaxis_workfloor_staff.gd")
 const Services=preload("res://scripts/synaxis_office_services.gd")
+const DepartmentMeeting=preload("res://scripts/synaxis_department_meeting.gd")
 var _services:Node3D
 const GeneratedAudio=preload("res://scripts/synaxis_generated_audio.gd")
 const FLOOR_COUNT=4
@@ -337,6 +338,10 @@ func _noticeboard(accent:String) -> void:
 	_label("IN PROGRESS",Vector3(-8.12,2.25,6.8),.0016,PI/2)
 	_label("BLOCKED",Vector3(-8.12,2.25,7.62),.0016,PI/2)
 	_label("ALL HANDS / THURSDAY / ATTENDANCE REQUIRED",Vector3(-8.20,1.10,6.8),.002,PI/2)
+	_part("black",Vector3(-8.24,1.87,8.08),Vector3(.05,.72,.98))
+	_label("DAILY STAND-UP",Vector3(-8.20,2.10,8.08),.0021,PI/2)
+	_label(DepartmentMeeting.TITLES[level-1],Vector3(-8.20,1.87,8.08),.0017,PI/2)
+	_label("AFTER EQUIPMENT ROUND",Vector3(-8.20,1.65,8.08),.0014,PI/2)
 	_part("white",Vector3(-4.7,2.00,9.76),Vector3(2.65,1.0,.05))
 	_part("steel",Vector3(-4.7,1.48,9.69),Vector3(2.65,.045,.16))
 	_label("THIS WEEK: ALIGN ON THE ALIGNMENT",Vector3(-4.7,2.29,9.72),.0024,PI)
