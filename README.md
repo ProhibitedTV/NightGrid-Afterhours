@@ -33,3 +33,6 @@ The latest published candidate at this writing is **[Beta.8 RC3](https://github.
 Made with **Godot 4.7.2**. [Developer notes](docs/DEVELOPMENT.md) · [Roadmap](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/197) · [More real game captures](docs/screenshots/development/GALLERY.md)
 
 *This repository does not yet have a general public source license; third-party assets retain their documented licenses.*
+
+### Environmental sound authoring
+See [Offline SFX authoring](docs/SFX_AUTHORING.md) for the optional local Stable Audio 3 pipeline and review process.

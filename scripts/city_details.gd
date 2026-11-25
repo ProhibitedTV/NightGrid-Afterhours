@@ -17,6 +17,7 @@ const MarketCarton = preload("res://scripts/market_carton.gd")
 const WalkInLot = preload("res://scripts/walk_in_lot.gd")
 const StarterHome = preload("res://scripts/starter_home.gd")
 const StarterGarage = preload("res://scripts/starter_garage.gd")
+const SynaxisHQ = preload("res://scripts/synaxis_office.gd")
 ## Seeded city dressing. Static shell collisions + batched decorative geometry.
 ## The four neighborhoods deliberately share road geometry but not street character.
 
@@ -734,6 +735,12 @@ func _build_brickwater_alley(ix: int, iz: int) -> void:
 	alley.configure(-10.5+float(left["width"])*0.5,10.5-float(right["width"])*0.5)
 	_active_chunk.add_child(alley)
 
+func synaxis_headquarters() -> Node3D:
+	var chunk: Node3D = _loaded.get(SynaxisHQ.BLOCK)
+	if chunk == null and _staging.has(SynaxisHQ.BLOCK):
+		chunk = _staging[SynaxisHQ.BLOCK]["node"]
+	return chunk.get_node_or_null("SynaxisHeadquarters") if is_instance_valid(chunk) else null
+
 func starter_garage(at: Vector3) -> Node3D:
 	if not at.is_finite() or _grid_cell(at) != StarterGarage.BLOCK:
 		return null
@@ -938,6 +945,16 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 	var wall := Color(str(profile["wall"]))
 	var surface_kind: String = profile["material"]
 	var front := center.z - depth / 2.0
+	if Vector2i(ix,iz) == SynaxisHQ.BLOCK and which == SynaxisHQ.LOT:
+		if not shell_prebuilt:
+			var headquarters := SynaxisHQ.new()
+			headquarters.name = "SynaxisHeadquarters"
+			headquarters.position = SynaxisHQ.ORIGIN
+			_active_chunk.add_child(headquarters)
+		if not shell_only:
+			_statistics["buildings"] += 1
+			_statistics["storefronts"] += 1
+		return
 	if Vector2i(ix,iz) == StarterGarage.BLOCK and which == StarterGarage.LOT:
 		if not shell_prebuilt:
 			var garage := StarterGarage.new()

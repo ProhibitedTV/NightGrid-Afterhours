@@ -1,0 +1,57 @@
+name: Author Synaxis formalwear
+on:
+  push:
+    branches: [gameplay/synaxis-executive-scandal]
+    paths:
+      - 'assets/models/nightgrid/courier/synaxis_suit_appearance.json'
+      - 'tools/validate_synaxis_suit.py'
+      - '.github/workflows/synaxis-formalwear.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: synaxis-formalwear
+  cancel-in-progress: false
+jobs:
+  suit:
+    if: github.ref == 'refs/heads/gameplay/synaxis-executive-scandal'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Export same protagonist with tailored garments
+        run: |
+          npx --yes ara3d@0.13.0 export --params assets/models/nightgrid/courier/synaxis_suit_appearance.json --out dist/synaxis-suit --animations idle
+          cp dist/synaxis-suit/Morrow_Courier.glb assets/models/nightgrid/courier/synaxis_suit.glb
+          python tools/validate_synaxis_suit.py
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Import and exercise actual opening mission with required suit
+        run: |
+          godot --headless --path . --import --quit
+          NIGHTGRID_REQUIRE_CORPORATE_SUIT=1 godot --headless --path . --script res://tests/menus_gamepad_smoke.gd
+      - uses: actions/upload-artifact@v4
+        with:
+          name: synaxis-formalwear
+          path: |
+            assets/models/nightgrid/courier/synaxis_suit.glb
+            assets/models/nightgrid/courier/synaxis_suit_source.json
+      - name: Commit validated asset to the same feature branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/models/nightgrid/courier/synaxis_suit.glb assets/models/nightgrid/courier/synaxis_suit_source.json
+          if ! git diff --cached --quiet; then
+            git commit -m "assets: validated weighted Synaxis formalwear"
+            git fetch origin "$GITHUB_REF_NAME"
+            git rebase "origin/$GITHUB_REF_NAME"
+            git push origin "HEAD:$GITHUB_REF_NAME"
+          fi
