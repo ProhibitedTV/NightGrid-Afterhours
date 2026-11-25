@@ -1,18 +1,18 @@
 extends RefCounted
 ## Repeatable courier contract. Only the run count and current objective are
 ## mutable; authored route geometry is independent of save and streaming.
-const MAX_RUNS := 1000000
-const ROUTES := [
+const MAX_RUNS = 1000000
+const ROUTES = [
 	{"id":"courier:quay_east","pickup":Vector3(-116,0,0),"dropoff":Vector3(116,0,116)},
 	{"id":"courier:northwest","pickup":Vector3(58,0,-116),"dropoff":Vector3(-116,0,58)},
 	{"id":"courier:central_north","pickup":Vector3(116,0,58),"dropoff":Vector3(0,0,-116)},
 	{"id":"courier:south_east","pickup":Vector3(-58,0,116),"dropoff":Vector3(116,0,-58)}
 ]
-const OBJECTIVES := [
+const OBJECTIVES = [
 	{"id":"collect","kind":"acquire","title":"Collect courier package","hud":"PICK UP PACKAGE","point":"pickup"},
 	{"id":"deliver","kind":"deliver","title":"Deliver package","hud":"DELIVER PACKAGE","point":"dropoff"}
 ]
-const RADIUS := 5.3
+const RADIUS = 5.3
 var completed_runs: int = 0
 var step: int = 0
 

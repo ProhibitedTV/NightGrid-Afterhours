@@ -1,10 +1,10 @@
 extends RefCounted
 ## Session-owned progression wallet. The existing top-level save cash field
 ## is the single serialized balance; receipts are independent of city geometry.
-const VERSION := 1
-const MAX_CASH := 1000000000
-const MAX_RECEIPTS := 4096
-const MAX_ID_LENGTH := 96
+const VERSION = 1
+const MAX_CASH = 1000000000
+const MAX_RECEIPTS = 4096
+const MAX_ID_LENGTH = 96
 
 var balance: int = 0
 var _receipts: Dictionary = {}
