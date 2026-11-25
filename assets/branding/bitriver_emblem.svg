@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e7edf0"/><stop offset="1" stop-color="#8b9da6"/></linearGradient>
+    <linearGradient id="river" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a2f6e5"/><stop offset="1" stop-color="#3aa9aa"/></linearGradient>
+  </defs>
+  <path d="M76 62H335L426 142V224L375 264L426 312V405L375 450H263L213 397H350L367 380V335L293 265H223L277 211H350L367 194V164L306 115H134V397H190L242 450H76Z" fill="url(#steel)"/>
+  <path d="M165 153H290L326 185L274 237H215L160 292V397H134V268L245 157H165Z" fill="url(#river)"/>
+  <path d="M203 285H271L338 350V377H302L203 285Z" fill="#68d5ca"/>
+  <path d="M438 62H451V115H438ZM61 397H48V450H61Z" fill="#d35d86"/>
+</svg>

@@ -97,6 +97,13 @@ jobs:
           set -o pipefail
           godot --headless --path . --import --quit 2>&1 | tee /tmp/nightgrid-import.log
           if grep -Eq 'SCRIPT ERROR:|p_image->is_compressed\(\)|Cannot generate mipmaps from compressed image formats' /tmp/nightgrid-import.log; then exit 1; fi
+      - name: Validate original studio ident and skippable launch handoff
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/studio_intro_smoke.gd 2>&1 | tee /tmp/nightgrid-studio-intro.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-studio-intro.log; then exit 1; fi
+          grep -q "STUDIO_INTRO_SMOKE PASS:" /tmp/nightgrid-studio-intro.log
       - name: Verify transactional save replacement and rollback
         timeout-minutes: 1
         run: |
