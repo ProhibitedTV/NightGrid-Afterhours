@@ -1,6 +1,8 @@
 extends SceneTree
 const Rhythm=preload("res://scripts/rhythm_rehearsal.gd")
 const Ledger=preload("res://scripts/progression_ledger.gd")
+const Art=preload("res://scripts/instrument_art.gd")
+const DEMOS=[preload("res://assets/audio/music/band_demo.wav"),preload("res://assets/audio/music/bass_demo.wav"),preload("res://assets/audio/music/busker_demo.wav"),preload("res://assets/audio/music/synth_demo.wav")]
 func _initialize()->void:
 	var rhythm:=Rhythm.new()
 	rhythm.start(1)
@@ -87,5 +89,19 @@ func _initialize()->void:
 	if restored.settle_blue_hour_set(3) or restored.street_activity_runs("live_gig")!=2:
 		quit(1)
 		return
+	# Reconciled asset library only; existing playable sampler stays unchanged.
+	for id in Art.MODELS:
+		var prop := Art.build(id)
+		if prop.mesh == null or prop.mesh.get_surface_count() < 1 or prop.material_override != Art.material() or not prop.get_aabb().has_volume():
+			prop.free()
+			push_error("Missing or empty authored instrument: "+str(id))
+			quit(1)
+			return
+		prop.free()
+	for demo in DEMOS:
+		if not demo is AudioStreamWAV or demo.get_length() < 1.0:
+			push_error("Missing or empty authored music demo")
+			quit(1)
+			return
 	print("RHYTHM_REHEARSAL PASS: timing, cancellation, once-only claims, sequence and atomic payout")
 	quit(0)
