@@ -28,6 +28,8 @@ const Arrival = preload("res://scripts/synaxis_arrival.gd")
 const Restrooms = preload("res://scripts/synaxis_restrooms.gd")
 const Workfloor = preload("res://scripts/synaxis_workfloor.gd")
 const ExecutiveFloor = preload("res://scripts/synaxis_executive_floor.gd")
+const Basement = preload("res://scripts/synaxis_basement.gd")
+var _basement:Node3D
 var _executive_floor: Node3D
 var _workfloors: Array[Node3D]=[]
 var _active_floor:=0
@@ -50,8 +52,8 @@ var _hr: Node3D
 const START = Vector3(0,1.15,7)
 const BREAKROOM_POINT = Vector3(-4.2,1.15,6.85)
 var _breakroom_seen := false
-const POINTS = {-2:CUBICLE_POINT,-1:Vector3(-5,1.15,4),0:Vector3(-5,1.15,4),2:Vector3(5,1.15,-4),4:Vector3(-5,1.15,-4),5:Vector3(5,1.15,5)}
-const TITLES = {-2:"CORPORATE IP SECURITY / COLLECT THE FOLDER",-1:"IT DEPARTMENT / DROP OFF THE FOLDER",0:"IT DESK / REVIEW THE ALERT",2:"EXECUTIVE OFFICE / ATTEND BRIEFING",4:"PEOPLE EXPERIENCE / EXIT INTERVIEW",5:"RECEPTION / COLLECT FINAL NOTICE"}
+const POINTS = {-2:CUBICLE_POINT,-1:Vector3(-5,1.15-Workfloor.FLOOR_HEIGHT,4),0:Vector3(-5,1.15-Workfloor.FLOOR_HEIGHT,4),2:Vector3(5,1.15,-4),4:Vector3(-5,1.15,-4),5:Vector3(5,1.15,5)}
+const TITLES = {-2:"CORPORATE IP SECURITY / COLLECT THE FOLDER",-1:"B1 IT DEPARTMENT / DROP OFF THE FOLDER",0:"B1 IT DESK / REVIEW THE ALERT",2:"EXECUTIVE OFFICE / ATTEND BRIEFING",4:"PEOPLE EXPERIENCE / EXIT INTERVIEW",5:"RECEPTION / COLLECT FINAL NOTICE"}
 var _target_sign: Label3D
 var _hint: Label
 var _mat: Dictionary = {}
@@ -176,7 +178,12 @@ func _build_workfloor_shell(wall: Material,floor_mat: Material) -> void:
 	for side in [-1.0,1.0]:
 		_visual("GroundLiftPad",Vector3(side*.9,.018,5),Vector3(.78,.016,.82),_material("liftpad",Color("457d79")))
 	_sign("LIFT UP / OFFICE FLOORS",Vector3(-.9,1.85,5.48),.003)
-	_sign("GROUND / LOBBY",Vector3(.9,1.85,5.48),.003)
+	_sign("LIFT DOWN / BASEMENT IT",Vector3(.9,1.85,5.48),.003)
+	var utility:=_material("basement_concrete",Color("637078"))
+	_solid("BasementSlab",Vector3(0,-Workfloor.FLOOR_HEIGHT-.15,0),Vector3(17,.3,20),utility)
+	for side in [-1.0,1.0]:
+		_solid("BasementSide",Vector3(side*8.5,-Workfloor.FLOOR_HEIGHT+1.675,0),Vector3(.25,3.35,20),utility)
+		_solid("BasementEnd",Vector3(0,-Workfloor.FLOOR_HEIGHT+1.675,side*10),Vector3(17,3.35,.25),utility)
 
 func _ensure_workfloors() -> void:
 	if not _workfloors.is_empty():
@@ -188,6 +195,10 @@ func _ensure_workfloors() -> void:
 		deck.position.y=level*Workfloor.FLOOR_HEIGHT
 		add_child(deck)
 		_workfloors.append(deck)
+	_basement=Basement.new()
+	_basement.name="BasementIT"
+	_basement.position.y=-Workfloor.FLOOR_HEIGHT
+	add_child(_basement)
 	_executive_floor=ExecutiveFloor.new()
 	_executive_floor.name="ExecutiveFloor"
 	_executive_floor.position.y=ExecutiveFloor.FLOOR*Workfloor.FLOOR_HEIGHT
@@ -203,7 +214,7 @@ func workfloor_stats() -> Array[Dictionary]:
 	return results
 
 func _select_floor(level: int) -> void:
-	_active_floor=clampi(level,0,ExecutiveFloor.FLOOR)
+	_active_floor=clampi(level,Basement.FLOOR,ExecutiveFloor.FLOOR)
 	for child in get_children():
 		if child is OmniLight3D:
 			child.visible=_prologue_active and _active_floor==0
@@ -211,7 +222,16 @@ func _select_floor(level: int) -> void:
 		_workfloors[i].call("set_occupied",_prologue_active and _active_floor==i+1)
 	if is_instance_valid(_executive_floor):
 		_executive_floor.call("set_occupied",_prologue_active and _active_floor==ExecutiveFloor.FLOOR)
-	_target_sign.visible=_prologue_active and _active_floor==0
+	if is_instance_valid(_basement):
+		_basement.call("set_occupied",_prologue_active and _active_floor==Basement.FLOOR)
+	for id in _staff:
+		var actor:Node3D=_staff[id]
+		var occupied:bool=_prologue_active and _active_floor==(Basement.FLOOR if id=="eli" else 0)
+		actor.visible=occupied
+		actor.process_mode=Node.PROCESS_MODE_ALWAYS if occupied else Node.PROCESS_MODE_DISABLED
+		if not occupied:
+			actor.call("attend",Vector3.ZERO,false)
+	_target_sign.visible=_prologue_active and absf(_target_sign.position.y-2.30-_active_floor*Workfloor.FLOOR_HEIGHT)<.1
 
 func lift_direction(at: Vector3) -> int:
 	if not _prologue_active or _arrival!=null:
@@ -221,7 +241,7 @@ func lift_direction(at: Vector3) -> int:
 		return 0
 	if _active_floor<ExecutiveFloor.FLOOR and Vector2(local.x,local.z).distance_to(Workfloor.LIFT+Vector2(-.9,0))<.73:
 		return 1
-	if _active_floor>0 and Vector2(local.x,local.z).distance_to(Workfloor.LIFT+Vector2(.9,0))<.73:
+	if _active_floor>Basement.FLOOR and Vector2(local.x,local.z).distance_to(Workfloor.LIFT+Vector2(.9,0))<.73:
 		return -1
 	return 0
 
@@ -233,6 +253,12 @@ func try_lift(player: CharacterBody3D) -> bool:
 	player.global_position=to_global(Vector3(0,_active_floor*Workfloor.FLOOR_HEIGHT+1.15,Workfloor.LIFT.y))
 	player.velocity=Vector3.ZERO
 	return true
+
+func recovery_floor() -> float:
+	return global_position.y+_active_floor*Workfloor.FLOOR_HEIGHT-2.0
+
+func recovery_position() -> Vector3:
+	return to_global(CUBICLE_POINT if _active_floor==0 else Vector3(0,_active_floor*Workfloor.FLOOR_HEIGHT+1.15,Workfloor.LIFT.y))
 
 func _build_lobby(desk: Material,accent: Material,screen: Material) -> void:
 	_solid("VisitorKiosk",Vector3(-2.8,.61,-8.65),Vector3(.62,1.22,.44),desk)
@@ -251,13 +277,13 @@ func _build_lobby(desk: Material,accent: Material,screen: Material) -> void:
 	add_child(_lobby_light)
 
 func _build_office_details(desk: Material,accent: Material,screen: Material) -> void:
-	# Original authored IT rack silhouettes, ventilation grilles and monitor banks.
+	# Ground floor former IT alcove is now a records and compliance station.
 	for x in [-7.55,-6.7]:
-		_solid("ITRack",Vector3(x,1.07,.7),Vector3(.72,2.14,.85),desk)
-		for row in range(7):
-			_visual("RackVent",Vector3(x,.35+row*.23,1.14),Vector3(.58,.06,.025),accent)
-			_visual("RackStatus",Vector3(x+.21,.36+row*.23,1.16),Vector3(.035,.04,.02),screen)
-	_sign("SYSTEM HEALTH: GREEN\nEXECUTIVE OVERRIDE ACTIVE",Vector3(-5.55,1.65,2.54),.0018)
+		_solid("RecordsCabinet",Vector3(x,1.07,.7),Vector3(.72,2.14,.85),desk)
+		for row in range(4):
+			_visual("FileDrawer",Vector3(x,.35+row*.50,1.14),Vector3(.63,.43,.035),accent)
+			_visual("FileHandle",Vector3(x,.40+row*.50,1.17),Vector3(.21,.035,.025),desk)
+	_sign("RECORDS / COMPLIANCE\nIT SUPPORT HAS MOVED TO B1",Vector3(-5.55,1.65,2.54),.0018)
 	_sign("EMPLOYEE RETENTION\n100% OF DEPARTURES ARE SUCCESSFUL",Vector3(-8.32,2.36,-3),.005).rotation.y=PI/2
 	_sign("EARNINGS / RECORD QUARTER\nWORKFORCE / OPTIMIZED",Vector3(8.32,2.4,-3.6),.005).rotation.y=-PI/2
 	for x in [-6.4,6.4]:
@@ -621,7 +647,7 @@ func try_errand(player: Node3D) -> bool:
 		_errand_phase=1
 	else:
 		_clear_folder()
-		_folder_desk.position=Vector3(-5.15,1.10,2.88)
+		_folder_desk.position=Vector3(-5.15,1.10-Workfloor.FLOOR_HEIGHT,2.88)
 		_folder_desk.show()
 		_errand_phase=2
 	player.call("play_visual_action",&"interact")
@@ -632,13 +658,17 @@ func point(stage: int) -> Vector3:
 	return to_global(POINTS.get(stage,Vector3.INF))
 
 func reachable(stage: int,at: Vector3) -> bool:
-	return POINTS.has(stage) and at.distance_to(point(stage)) <= 1.8
+	return POINTS.has(stage) and _active_floor==objective_floor(stage) and at.distance_to(point(stage)) <= 1.8
+
+func objective_floor(stage:int) -> int:
+	return Basement.FLOOR if stage in [-1,0] else 0
 
 func set_stage(stage: int) -> void:
 	if not POINTS.has(stage):
 		return
 	_target_sign.position = POINTS[stage]+Vector3.UP*1.15
 	_target_sign.text = TITLES[stage]
+	_target_sign.visible=_prologue_active and _active_floor==objective_floor(stage)
 
 func update_staff_attention(stage: int,at: Vector3) -> String:
 	if not _prologue_active or _arrival!=null or not at.is_finite():
@@ -647,6 +677,8 @@ func update_staff_attention(stage: int,at: Vector3) -> String:
 	var best := 2.25*2.25
 	for id in _staff:
 		var actor: Node3D=_staff[id]
+		if _active_floor!=(Basement.FLOOR if id=="eli" else 0):
+			continue
 		var distance:=actor.global_position.distance_squared_to(at-Vector3.UP*1.15)
 		# Avoid talking through executive partitions or across the locked gate.
 		var local:=to_local(at)
@@ -672,10 +704,22 @@ func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 		return
 	var local := to_local(at)
 	var goal: Vector3=POINTS[stage]
-	_radar.call("set_office_state",Vector2(local.x,local.z),Vector2(goal.x,goal.z) if _active_floor==0 else Workfloor.LIFT,_active_floor)
+	_radar.call("set_office_state",Vector2(local.x,local.z),Vector2(goal.x,goal.z) if _active_floor==objective_floor(stage) else Workfloor.LIFT,_active_floor)
+	if _active_floor==Basement.FLOOR:
+		_hint.text="SYNAXIS / "+Basement.TITLE+"\n"+TITLES[stage]
+		if objective_floor(stage)!=Basement.FLOOR:
+			_hint.text+="\nReturn to ground floor via the lift."
+		elif reachable(stage,at):
+			_hint.text+="\n"+("X / INTERACT" if gamepad else "G / INTERACT")
+		if lift_direction(at)!=0:
+			_hint.text+="\n"+("X" if gamepad else "G")+" / LIFT UP"
+		var eli_line:=update_staff_attention(stage,at)
+		if not eli_line.is_empty():
+			_hint.text+="\n"+eli_line
+		return
 	if _active_floor>0:
 		var department: String=ExecutiveFloor.TITLE if _active_floor==ExecutiveFloor.FLOOR else Workfloor.DEPARTMENTS[_active_floor-1]
-		_hint.text="SYNAXIS / LEVEL %d / %s\nReturn to ground floor for: %s" % [_active_floor+1,department,TITLES[stage]]
+		_hint.text="SYNAXIS / LEVEL %d / %s\nUse the lift for: %s" % [_active_floor+1,department,TITLES[stage]]
 		if _active_floor==ExecutiveFloor.FLOOR and is_instance_valid(_executive_floor):
 			var executive_line: String=_executive_floor.call("staff_remark",at,stage)
 			if not executive_line.is_empty():
@@ -692,13 +736,14 @@ func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 	if stage==-2:
 		_hint.text += "\nMika: Take the sealed access-control request to Eli in IT."
 	elif stage==-1:
-		_hint.text += "\nEli can verify the authorization records across the aisle."
+		_hint.text += "\nTake the lift down to B1. Eli can verify the authorization records."
 	if reachable(stage,at):
 		_hint.text += "\n"+("X / INTERACT" if gamepad else "G / INTERACT")
 	if breakroom_reachable(at) and not _breakroom_seen:
 		_hint.text += "\n" + ("X" if gamepad else "G") + " / OPTIONAL: BREAKROOM PARTY"
-	if lift_direction(at)!=0:
-		_hint.text+="\n"+("X" if gamepad else "G")+" / LIFT UP / WORKFLOORS"
+	var lift:=lift_direction(at)
+	if lift!=0:
+		_hint.text+="\n"+("X" if gamepad else "G")+(" / LIFT UP / WORKFLOORS" if lift>0 else " / LIFT DOWN / BASEMENT IT")
 	var remark:=update_staff_attention(stage,at)
 	if not remark.is_empty():
 		_hint.text += "\n"+remark

@@ -943,8 +943,8 @@ func _physics_process(delta: float) -> void:
 	if not is_instance_valid(player):
 		return
 	if is_instance_valid(_opening_office):
-		if player.global_position.y < OpeningOffice.ORIGIN.y-2.0:
-			player.global_position = _opening_office.to_global(OpeningOffice.CUBICLE_POINT)
+		if player.global_position.y < float(_opening_office.call("recovery_floor")):
+			player.global_position = _opening_office.call("recovery_position")
 			player.velocity = Vector3.ZERO
 			_snap_camera()
 		return

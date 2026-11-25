@@ -658,6 +658,17 @@ func _verify() -> void:
 	if office.call("errand_complete"):
 		_fail("Folder cannot be handed over remotely")
 		return
+	player.global_position=office.to_global(Vector3(.9,1.15,5))
+	world.call("_opening_interact")
+	var basement:Node3D=office.get_node("BasementIT")
+	var bstats:Dictionary=basement.call("basement_stats")
+	if int(office.get("_active_floor"))!=-1 or int(bstats["racks"])!=20 or not bool(bstats["hum"]):
+		_fail("IT handoff requires real basement lift travel, twenty racks and local ambient hum")
+		return
+	world.call("_physics_process",0.0)
+	if int(office.get("_active_floor"))!=-1 or office.to_local(player.global_position).y>0.0:
+		_fail("Basement must not activate the ground-level fall recovery")
+		return
 	player.global_position=office.call("point",-1)
 	world.call("_opening_interact")
 	if not office.call("errand_complete") or not office.get("_folder_desk").visible or world.get("cash")!=before_severance:
@@ -668,6 +679,11 @@ func _verify() -> void:
 	menu.call("_choice","opening_brief")
 	if menu.call("is_open"):
 		_fail("Executive briefing requires walking to office")
+		return
+	player.global_position=office.to_global(Vector3(-.9,1.15-3.65,5))
+	world.call("_opening_interact")
+	if int(office.get("_active_floor"))!=0 or bool(basement.call("basement_stats")["hum"]):
+		_fail("Returning to ground floor stops server-room ambient audio")
 		return
 	player.global_position = office.call("point",2)
 	world.call("_opening_interact")

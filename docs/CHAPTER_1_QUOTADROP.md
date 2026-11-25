@@ -89,3 +89,6 @@ Level 2 retains 28 desks but replaces its east collaboration lounge with a seale
 
 ### Department occupancy and everyday detail
 32 additional named office employees (six seated and two conversation anchors on each workfloor) use existing seats and shared areas. Only the occupied floor shows and animates this background cast. Each department has incidental conversation, varied desk accessories, physical team delivery boards, meeting whiteboards and notice slips. All new furniture details reuse existing material batches. No full navigation or voice audio yet; native visual and performance verification pending.
+
+### Basement infrastructure / B1
+The IT handoff and audit now occur on a real below-grade floor with 20 populated racks, cold aisle markings, overhead cable trays, UPS and cooling cabinets, industrial workbench and hearing/electrical safety signs. Ground IT becomes a compliance records alcove. Lift goes down from ground to B1; minimap and objective marker follow the correct floor. Falling recovery uses active floor elevation. A quiet original looped server-room hum plays only while B1 is occupied. Story tests require actual lift travel and return before executive briefing. Native floor collision, audio and sightline validation pending.

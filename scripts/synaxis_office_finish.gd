@@ -211,15 +211,6 @@ func _workplaces() -> void:
 	_paperwork(Vector3(4.22,1.10,-5.26),.13)
 	_paperwork(Vector3(-4.1,1.10,-5.51),-.09)
 	_paperwork(Vector3(6.15,1.10,6.5),.05)
-	# Cable channels and server rack handles / populated patch panels.
-	for x in [-7.55,-6.7]:
-		for i in range(7):
-			var y := .35+i*.23
-			_part("furniture","black",Vector3(x,y,1.166),Vector3(.34,.035,.012))
-			for port in range(6):
-				_part("furniture","signal" if port%3==0 else "steel",Vector3(x-.14+port*.05,y,1.176),Vector3(.028,.020,.012))
-		for side in [-1.0,1.0]:
-			_part("furniture","trim",Vector3(x+side*.29,1.08,1.16),Vector3(.035,1.87,.035))
 	# Cable raceway along west wall, not across walking lanes.
 	_part("interior","steel",Vector3(-8.30,.32,1.0),Vector3(.09,.15,4.0))
 
