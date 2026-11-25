@@ -60,7 +60,7 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 					"label":"%s · $%d" % [listing["title"],int(listing["reward"])],
 					"value":"%s / %s / %s\n%s" % [listing["category"],listing["site"],"Open" if listing["open"] else "Closed",listing["brief"]],
 					"action":"phone_route_contract:"+str(listing["id"]),
-					"action_label":status+" · navigate"
+					"action_label":str(listing.get("action_label",status))+" · navigate"
 				})
 		"wallet":
 			subtitle = "Available funds"
