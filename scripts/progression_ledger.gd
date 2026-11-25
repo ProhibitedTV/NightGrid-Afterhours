@@ -12,6 +12,7 @@ var balance: int = 0
 var _receipts: Dictionary = {}
 var _owned_vehicles: Dictionary = {}
 var home_supplies: int = 0
+var home_storage_expanded := false
 
 static func valid_cash(value: Variant) -> bool:
 	if not (value is int or value is float):
@@ -100,9 +101,20 @@ func grant_starter_vehicle() -> bool:
 	_owned_vehicles[id] = true
 	return true
 
+func home_capacity() -> int:
+	return StarterHome.EXPANDED_STORAGE if home_storage_expanded else StarterHome.MAX_STORAGE
+
+func expand_home_storage() -> bool:
+	if not owns_home() or home_storage_expanded:
+		return false
+	if not spend(StarterHome.STORAGE_UPGRADE_PRICE):
+		return false
+	home_storage_expanded = true
+	return true
+
 # Return the number actually transferred; caller updates carried count once.
 func deposit_supply(carried: int) -> int:
-	if not owns_home() or carried <= 0 or home_supplies >= StarterHome.MAX_STORAGE:
+	if not owns_home() or carried <= 0 or home_supplies >= home_capacity():
 		return 0
 	home_supplies += 1
 	return 1
@@ -116,7 +128,7 @@ func withdraw_supply(carried: int) -> int:
 func snapshot() -> Dictionary:
 	var ids: Array = _receipts.keys()
 	ids.sort()
-	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies}
+	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded}
 
 static func valid_snapshot(value: Variant) -> bool:
 	if not value is Dictionary:
@@ -133,8 +145,12 @@ static func valid_snapshot(value: Variant) -> bool:
 		if not valid_id(id) or seen.has(id):
 			return false
 		seen[id] = true
+	var expanded: Variant = data.get("home_storage_expanded", false)
+	if not expanded is bool or (expanded and not seen.has(StarterHome.ACCESS_RECEIPT)):
+		return false
+	var limit := StarterHome.EXPANDED_STORAGE if expanded else StarterHome.MAX_STORAGE
 	var stored: Variant = data.get("home_supplies", 0)
-	if not valid_cash(stored) or int(stored) > StarterHome.MAX_STORAGE or (int(stored) > 0 and not seen.has(StarterHome.ACCESS_RECEIPT)):
+	if not valid_cash(stored) or int(stored) > limit or (int(stored) > 0 and not seen.has(StarterHome.ACCESS_RECEIPT)):
 		return false
 	var owned: Variant = data.get("owned_vehicles", [])
 	if not owned is Array or owned.size() > RoadCars.TITLES.size():
@@ -161,4 +177,5 @@ func restore(amount: Variant, data: Variant) -> bool:
 	_receipts = next
 	_owned_vehicles = titles
 	home_supplies = int(data.get("home_supplies",0))
+	home_storage_expanded = data.get("home_storage_expanded",false)
 	return true

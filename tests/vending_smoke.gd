@@ -50,6 +50,22 @@ func _verify() -> void:
 	resale.set_balance(0)
 	if not check(resale.sell_vehicle("street:cinder_01",50.0) and resale.balance==750 and not resale.sell_vehicle("street:cinder_01",50.0),"condition payout exactly once"):
 		return
+	var home := Ledger.new()
+	home.set_balance(500)
+	if not check(not home.expand_home_storage() and home.balance==500,"locked home cannot upgrade"):
+		return
+	home.credit_once("story:night_shift_contact",100)
+	if not check(home.expand_home_storage() and not home.expand_home_storage() and home.balance==250,"single paid upgrade"):
+		return
+	for i in range(61):
+		home.deposit_supply(1)
+	if not check(home.home_supplies==60 and home.home_capacity()==60,"expanded storage remains bounded"):
+		return
+	var home_copy := Ledger.new()
+	if not check(home_copy.restore(250,JSON.parse_string(JSON.stringify(home.snapshot()))) and home_copy.home_capacity()==60 and home_copy.home_supplies==60,"expanded storage JSON round trip"):
+		return
+	if not check(not home_copy.restore(0,{"version":1,"receipts":[],"home_storage_expanded":true}) and not home_copy.restore(0,{"version":1,"receipts":["story:night_shift_contact"],"home_supplies":21}) and home_copy.balance==250,"invalid upgrade and excess base storage rejected"):
+		return
 	var world := (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	root.add_child(world)
 	await process_frame
