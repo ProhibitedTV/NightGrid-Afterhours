@@ -130,6 +130,7 @@ func _draw() -> void:
 				"CAFE": tint = Color("86d3df")
 				"BAR": tint = Color("e5a1a6")
 				"CLUB": tint = Color("e28eec")
+				"ARCADE": tint = Color("72d7cf")
 			_point(location["point"], tint if bool(location["open"]) else tint.darkened(0.65), 2.8)
 		for service in state.get("services", []):
 			var tint := Color("77a7e0") if bool(service.get("station", false)) else Color("a6d0c8")

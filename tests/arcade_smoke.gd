@@ -1,5 +1,9 @@
 extends SceneTree
 const Round = preload("res://scripts/arcade_round.gd")
+const Alt = preload("res://scripts/arcade_alt_round.gd")
+const Extra = preload("res://scripts/arcade_extra_round.gd")
+const Season = preload("res://scripts/arcade_season_round.gd")
+const Classic = preload("res://scripts/arcade_classic_round.gd")
 func _initialize() -> void:
 	call_deferred("_verify")
 
@@ -51,10 +55,141 @@ func _verify() -> void:
 		b.advance()
 	if not check(b.lives == 2, "paywall damage"):
 		return
+	var patch := Alt.new()
+	if not check(patch.start("patch_day") and patch.strike() and patch.score == 150 and not patch.strike(), "patch repairs exactly once"):
+		return
+	patch.steer(999)
+	patch.vertical(-999)
+	if not check(patch.cursor == Vector2i(2, 0), "grid movement bounded per action"):
+		return
+	while not patch.finished:
+		patch.advance()
+		if not patch.bugs.is_empty():
+			patch.cursor = patch.bugs.keys()[0]
+			patch.strike()
+	if not check(patch.result()["cleared"] and patch.step == Alt.PATCH_STEPS and patch.lives == 3, "repair all bugs to clear"):
+		return
+	patch.start("patch_day")
+	while not patch.finished:
+		patch.advance()
+	if not check(not patch.result()["cleared"] and patch.lives == 0, "unrepaired bugs crash servers"):
+		return
+	var indie := Alt.new()
+	indie.start("indie_dev")
+	for action in [0, 0, 1, 2, 0, 1, 3, 2]:
+		indie.choice = action
+		if not check(indie.strike(), "studio action affordable"):
+			return
+	if not check(indie.result()["cleared"] and indie.step == Alt.WEEKS and indie.debt == 0, "balanced studio strategy wins"):
+		return
+	var ending := indie.result()
+	if not check(not indie.strike() and indie.result() == ending, "studio ending cannot be replayed for points"):
+		return
+	indie.start("indie_dev")
+	for i in range(3):
+		indie.strike()
+	if not check(not indie.strike() and indie.step == 3 and indie.energy == 0, "burnout action rejected without advancing week"):
+		return
+	var gallery := Extra.new()
+	gallery.start("annual_warfare")
+	gallery.cursor = gallery.target
+	if not check(gallery.strike() and gallery.score == 100 and gallery.strike() and gallery.score == 100, "target only scores once"):
+		return
+	gallery.cursor = gallery.decoy
+	if not check(gallery.strike() and gallery.lives == 2 and gallery.strike() and gallery.ammo == 0 and gallery.strike() and gallery.ammo == Extra.MAGAZINE, "fan penalty and free reload"):
+		return
+	gallery.start("annual_warfare")
+	while not gallery.finished:
+		if gallery.ammo == 0:
+			gallery.strike()
+		gallery.cursor = gallery.target
+		gallery.strike()
+		gallery.advance()
+	if not check(gallery.result()["cleared"] and gallery.step == Extra.GALLERY_STEPS, "perfect gallery clears"):
+		return
+	var puzzle := Extra.new()
+	puzzle.start("day_one_dlc")
+	for scramble in Extra.SCRAMBLES:
+		for i in range(scramble.size()-1,-1,-1):
+			var delta: Vector2i = -scramble[i]
+			if delta.x != 0:
+				puzzle.steer(delta.x)
+			else:
+				puzzle.vertical(delta.y)
+	if not check(puzzle.result()["cleared"] and puzzle.stage == 3 and puzzle.score > 0, "all puzzle packs solvable"):
+		return
+	var ending_puzzle := puzzle.result()
+	puzzle.steer(1)
+	if not check(puzzle.result() == ending_puzzle, "finished puzzle immutable"):
+		return
+	var checklist := Season.new()
+	checklist.start("open_world_checklist")
+	while not checklist.finished:
+		for cell in checklist.icons.keys():
+			checklist.cursor = cell
+			if not check(checklist.strike() and not checklist.strike(), "map icon scores once"):
+				return
+		checklist.advance()
+	if not check(checklist.result()["cleared"] and checklist.step == Season.CHECK_TICKS, "bounded checklist round"):
+		return
+	var pass_game := Season.new()
+	pass_game.start("battle_pass_hero")
+	if not check(not pass_game._command((pass_game.chain[0]+1)%5) and pass_game.progress == 0, "wrong command resets combo"):
+		return
+	while not pass_game.finished:
+		var commands := pass_game.chain.duplicate()
+		for command in commands:
+			if not check(pass_game._command(command), "season sequence accepted"):
+				return
+	if not check(pass_game.result()["cleared"] and pass_game.completed == Season.SEASONS, "all seasons clear"):
+		return
+	pass_game.start("battle_pass_hero")
+	while not pass_game.finished:
+		pass_game.advance()
+	if not check(pass_game.lives == 0 and not pass_game.result()["cleared"], "missed seasons terminate"):
+		return
+	var classic := Classic.new()
+	classic.start("starline_patrol")
+	if not check(classic.enemies.size() == 21 and classic.strike() and not classic.strike(), "shooter wave and fire cooldown"):
+		return
+	classic.shots.clear()
+	classic.shots.append(classic.enemies[0]+Vector2(0,Classic.SHOT_SPEED*Classic.DT))
+	classic.advance()
+	if not check(classic.score == 100 and classic.enemies.size() == 20, "projectile removes exactly one enemy"):
+		return
+	classic.enemies.clear()
+	classic.advance()
+	if not check(classic.wave == 2 and classic.enemies.size() == 21, "next shooter wave"):
+		return
+	classic.start("neon_rebound")
+	classic.steer(-1)
+	for i in range(100):
+		classic.advance()
+	if not check(classic.player_x == Classic.PADDLE_HALF and not classic.launched and classic.strike(), "bounded paddle and explicit launch"):
+		return
+	classic.ball = Vector2(classic.player_x,Classic.SHIP_Y-9)
+	classic.velocity = Vector2(0,180)
+	classic.advance()
+	if not check(classic.velocity.y < 0 and classic.lives == 3, "paddle returns ball"):
+		return
+	classic.ball = Vector2(35,39)
+	classic.velocity = Vector2(0,-180)
+	classic.advance()
+	if not check(classic.score == 50 and classic.bricks.size() == 39, "brick collision awards once"):
+		return
+	classic.ball = Vector2(300,Classic.HEIGHT+10)
+	classic.velocity = Vector2(0,180)
+	classic.advance()
+	if not check(classic.lives == 2 and not classic.launched, "lost ball resets to paddle"):
+		return
+	classic.step = Classic.MAX_TICKS-1
+	classic.advance()
+	if not check(classic.finished, "bounded classic session"):
+		return
 	var screen := preload("res://scenes/arcade_pilot.tscn").instantiate()
 	root.add_child(screen)
 	await process_frame
-	if not check(screen.state == "select", "cabinet scene loads"):
+	if not check(screen.state == "select" and screen.get_node_or_null("CabinetSpeaker") != null and screen.CUES.size() == 4, "cabinet scene loads with one speaker and four cues"):
 		return
 	screen._start_round()
 	if not check(screen.state == "play" and not screen.round.finished, "screen launches title"):
@@ -62,6 +197,22 @@ func _verify() -> void:
 	screen._show_selection()
 	if not check(not screen.is_processing(), "abandoned round stops ticking"):
 		return
+	screen.selection = 3
+	screen._start_round()
+	if not check(screen.state == "play" and not screen.is_processing() and screen.round.game_id == "indie_dev", "turn-based cabinet has no background timer"):
+		return
+	for i in range(Alt.WEEKS):
+		screen.round.choice = 2
+		screen.round.strike()
+	screen._finish_if_needed()
+	if not check(screen.state == "result" and screen.best.has("indie_dev"), "turn-based result reaches scoreboard"):
+		return
+	for id in Round.IDS:
+		screen._show_selection()
+		screen.selection = Round.IDS.find(id)
+		screen._start_round()
+		if not check(screen.state == "play" and screen.round.game_id == id, "catalog launches " + id):
+			return
 	screen.queue_free()
 	print("ARCADE_SMOKE: PASS")
 	quit(0)

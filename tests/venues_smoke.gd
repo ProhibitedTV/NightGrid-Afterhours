@@ -23,8 +23,8 @@ func _verify() -> void:
 	if venues == null or session == null:
 		_fail("SocialVenues or GameSession is missing")
 		return
-	if int(venues.call("get_venue_count")) != 12 or catalog.SIDE_JOBS.size() != 4:
-		_fail("Expected 12 social hubs and four story contracts")
+	if int(venues.call("get_venue_count")) != 13 or catalog.SIDE_JOBS.size() != 4:
+		_fail("Expected 13 social hubs and four story contracts")
 		return
 	var seen := {}
 	var kind_counts := {}
@@ -75,8 +75,8 @@ func _verify() -> void:
 	if int(venues.call("get_active_light_count")) > 2:
 		_fail("More than the two budgeted local venue lights were enabled")
 		return
-	if int(venues.call("get_soundscape_count")) != 4 or int(venues.call("get_audio_player_count")) != 12:
-		_fail("Four original soundscapes must be assigned to twelve social venues")
+	if int(venues.call("get_soundscape_count")) != 4 or int(venues.call("get_audio_player_count")) != 13:
+		_fail("Four original soundscapes must be assigned to thirteen social venues")
 		return
 	var ambience = load("res://scripts/venue_ambience.gd")
 	for kind in ["STALL", "CAFE", "BAR", "CLUB"]:
@@ -108,7 +108,7 @@ func _verify() -> void:
 		_fail("Auntie Sol's local side job was not accepted")
 		return
 	var map_state: Dictionary = world.call("get_map_state")
-	if not bool(map_state.get("side_quest_active", false)) or (map_state.get("venues", []) as Array).size() != 12:
+	if not bool(map_state.get("side_quest_active", false)) or (map_state.get("venues", []) as Array).size() != 13:
 		_fail("Minimap does not expose side job and discovered venue pins")
 		return
 	world.call("_toggle_venue")

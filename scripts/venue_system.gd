@@ -10,6 +10,7 @@ const CELL = 58.0
 const INTERACT_RANGE = 5.5
 
 const VENUES = [
+	{"id": "insert_coin", "name": "INSERT COIN", "kind": "ARCADE", "ix": 1, "iz": 2, "side": 0, "opens": 14.0, "closes": 3.0, "price": 0, "host": "Rook", "flavor": "Independent games. No shareholders. No server required.", "item": "Free practice"},
 	{"id": "moon_noodles", "name": "MOON NOODLES", "kind": "STALL", "ix": -3, "iz": -3, "side": 0, "opens": 11.0, "closes": 2.0, "price": 16, "host": "Auntie Sol", "flavor": "Steam, star anise and courier gossip.", "item": "Hot noodle bowl"},
 	{"id": "lantern_cup", "name": "LANTERN CUP", "kind": "CAFE", "ix": -2, "iz": -3, "side": 1, "opens": 6.0, "closes": 22.0, "price": 18, "host": "Mara", "flavor": "Half the neighborhood runs on its dark roast.", "item": "Double espresso"},
 	{"id": "ink_tonic", "name": "INK & TONIC", "kind": "BAR", "ix": -1, "iz": -1, "side": 0, "opens": 17.0, "closes": 3.0, "price": 24, "host": "The Archivist", "flavor": "Quiet booths and stories that never reach the police.", "item": "An anonymous introduction"},
@@ -39,7 +40,8 @@ const KIND_COLOR = {
 	"STALL": Color("f6ac68"),
 	"CAFE": Color("85cad0"),
 	"BAR": Color("e2a0a3"),
-	"CLUB": Color("db80e8")
+	"CLUB": Color("db80e8"),
+	"ARCADE": Color("72d7cf")
 }
 
 var _nodes: Dictionary = {}
@@ -247,7 +249,7 @@ func _build_venue(venue: Dictionary) -> void:
 	AudioMix.ensure()
 	audio.bus = AudioMix.OUTSIDE_BEDS
 	audio.position = Vector3(0.0, 1.9, 0.0)
-	audio.stream = VenueAmbience.soundscape(kind)
+	audio.stream = VenueAmbience.soundscape("BAR" if kind == "ARCADE" else kind)
 	audio.max_distance = 28.0
 	audio.unit_size = 5.0
 	audio.volume_db = -17.0 if kind != "CLUB" else -14.5
