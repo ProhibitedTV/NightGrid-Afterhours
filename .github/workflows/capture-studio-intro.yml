@@ -1,7 +1,7 @@
 name: Studio intro framebuffer QA
 on:
   push:
-    branches: [presentation/bitriver-studio-intro]
+    branches: [presentation/bitriver-studio-intro, ui/afterhours-interface-polish]
     paths:
       - 'scripts/studio_intro.gd'
       - 'scenes/studio_intro.tscn'

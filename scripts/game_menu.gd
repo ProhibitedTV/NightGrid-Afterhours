@@ -19,6 +19,7 @@ const PAD_CLIPS=[preload("res://assets/audio/rehearsal/kick.wav"),preload("res:/
 const Opening = preload("res://scripts/opening_story.gd")
 const Phone = preload("res://scripts/morrow_phone.gd")
 const SynaxisBrand = preload("res://scripts/synaxis_brand.gd")
+const Consumables = preload("res://scripts/consumables.gd")
 ## Keyboard/mouse/controller-friendly menu layer. It remains interactive while
 ## the 3D SceneTree is paused; all buttons use Godot's built-in focus navigation.
 signal action_requested(action: String)
@@ -31,7 +32,8 @@ const DEFAULT_SETTINGS = {
 	"stick_sensitivity": 2.6, "invert_look_y": false,
 	"ssr_enabled": true, "glow_enabled": true,
 	"ao_enabled": true, "fog_enabled": true,
-	"vsync_enabled": true, "show_fps": false
+	"vsync_enabled": true, "show_fps": false,
+	"show_control_hints": true, "show_hud_inventory": true
 }
 const HELP_SECTIONS = [
 	{"title": "ON FOOT", "keyboard": "WASD move · Mouse look · Shift sprint · Space jump",
@@ -44,7 +46,7 @@ const HELP_SECTIONS = [
 		"pad": "RT accelerate · LT reverse · Left stick steer · B brake · D-pad Right radio · D-pad Up next · D-pad Left Cinder view"},
 	{"title": "SHOP / CONTACTS", "keyboard": "G interact/close · 1 buy/use · 2 contract · Esc close",
 		"pad": "X interact/contract · A service · B close · D-pad navigate"},
-	{"title": "SYSTEM", "keyboard": "Esc pause · M map · Tab journal · P phone · F5 save · F9 load · F6 new world · F3 FPS · F8 CSV · F10 photo",
+	{"title": "SYSTEM", "keyboard": "Esc pause · M map · Tab journal · P phone · F5 save at hotel · F9 load · F6 new world · F3 FPS · F8 CSV · F10 photo",
 		"pad": "Start pause · View/Select map · B back · Phone/Save/Load/New in pause menu"}
 ]
 
@@ -52,6 +54,7 @@ var screen := "hidden"
 var _back_screen := "pause"
 var _confirmation_origin := "pause"
 var _has_save := false
+var _save_feedback := ""
 var _world: Node3D
 var _journal_data: Dictionary = {}
 var _phone_data: Dictionary = {}
@@ -76,6 +79,7 @@ var _first_focus: Control
 var _ui_click: AudioStreamPlayer
 var _body_scroll: ScrollContainer
 var _body_col: VBoxContainer
+var _menu_panel: PanelContainer
 var _focus_order: Array[Control] = []
 var _last_focus: Dictionary = {}
 
@@ -116,8 +120,16 @@ func open_journal(context: Dictionary) -> void:
 	_back_screen = "pause"
 	_open("journal")
 
+func open_inventory(context: Dictionary) -> void:
+	_journal_data = context.duplicate(true)
+	_back_screen = "pause"
+	_open("inventory")
+
 func set_has_save(value: bool) -> void:
 	_has_save = value
+
+func set_save_feedback(value: String) -> void:
+	_save_feedback = value
 
 func is_open() -> bool:
 	return visible and screen != "hidden"
@@ -190,6 +202,7 @@ func _phone_back() -> void:
 		hide_for_game()
 
 func open_pause() -> void:
+	_save_feedback = ""
 	_open("pause")
 
 func open_settings() -> void:
@@ -242,7 +255,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		match screen:
 			"phone":
 				_phone_back()
-			"settings", "controls", "map", "journal":
+			"settings", "controls", "map", "journal", "inventory":
 				_open(_back_screen)
 			"confirm_new":
 				_open(_confirmation_origin)
@@ -281,7 +294,7 @@ func _normalize() -> void:
 	settings["radio_on"] = bool(settings.get("radio_on", true))
 	settings["mouse_sensitivity"] = clampf(float(settings.get("mouse_sensitivity", 0.0032)), 0.001, 0.010)
 	settings["stick_sensitivity"] = clampf(float(settings.get("stick_sensitivity", 2.6)), 0.5, 5.0)
-	for key in ["invert_look_y", "ssr_enabled", "glow_enabled", "ao_enabled", "fog_enabled", "vsync_enabled", "show_fps"]:
+	for key in ["invert_look_y", "ssr_enabled", "glow_enabled", "ao_enabled", "fog_enabled", "vsync_enabled", "show_fps", "show_control_hints", "show_hud_inventory"]:
 		settings[key] = bool(settings.get(key, DEFAULT_SETTINGS[key]))
 
 func _save_settings() -> void:
@@ -310,7 +323,7 @@ func _render() -> void:
 	var staged := screen in ["breakroom","restroom","parking_guard","street_contact"] or (screen=="opening" and _physical_opening and _opening_stage in [2,4])
 	var shade := ColorRect.new()
 	shade.name = "Scrim"
-	shade.color = Color(0.028, 0.045, 0.060, .36 if screen == "phone" else (.12 if staged else .94))
+	shade.color = Color(0.028, 0.045, 0.060, .36 if screen == "phone" else (.12 if staged else (.94 if screen in ["title", "opening"] else .68)))
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(shade)
 	var center := CenterContainer.new()
@@ -321,14 +334,15 @@ func _render() -> void:
 	_root.add_child(center)
 	var panel := PanelContainer.new()
 	panel.name = "MenuPanel"
+	_menu_panel = panel
 	panel.custom_minimum_size = Vector2(410.0 if screen == "phone" else (500.0 if staged else 760.0), 0.0)
-	panel.add_theme_stylebox_override("panel", Ui.card(0.99, 26))
+	panel.add_theme_stylebox_override("panel", Ui.card(0.97, 22))
 	center.add_child(panel)
 	var shell := VBoxContainer.new()
-	shell.add_theme_constant_override("separation", 16)
+	shell.add_theme_constant_override("separation", 12)
 	panel.add_child(shell)
-	_label(shell, "MORROW MOBILE  ·  " + str(_phone_data.get("clock","--:--")) if screen == "phone" else "MORROW BAY   /   NIGHT SHIFT", 16, Ui.AMBER)
-	_title(shell, "Morrow OS" if screen == "phone" else ("EXECUTIVE PRIVILEGE" if staged else "NIGHTGRID: AFTERHOURS"), 26 if staged or screen == "phone" else 40, Ui.TEXT)
+	_label(shell, "MORROW MOBILE  ·  " + str(_phone_data.get("clock","--:--")) if screen == "phone" else "NIGHTGRID  /  MORROW BAY", 14, Ui.AMBER)
+	_title(shell, "EXECUTIVE PRIVILEGE" if staged else ("AFTERHOURS" if screen == "title" else {"phone": "Morrow OS", "pause": "Paused", "settings": "Settings", "controls": "Controls", "map": "City atlas", "journal": "Journal", "inventory": "Player & inventory", "confirm_new": "New session", "opening": "People operations"}.get(screen, "Afterhours")), 26 if staged or screen == "phone" else 34, Ui.TEXT)
 	_divider(shell)
 	_body_scroll = ScrollContainer.new()
 	_body_scroll.name = "MenuScroll"
@@ -458,20 +472,27 @@ func _render() -> void:
 		"phone":
 			_render_phone(col)
 		"pause":
-			_title(col, "PAUSED / SAFE MOMENT", 22, Color("f0dfcd"))
-			_button(col, "resume", "RESUME GAME", "resume")
-			_button(col, "save", "SAVE WORLD  •  SLOT 1", "save")
-			_button(col, "map", "CITY MAP / DISTRICTS", "map")
-			_button(col, "journal", "JOURNAL / OBJECTIVES", "journal")
-			_button(col, "phone", "SMARTPHONE", "phone", is_instance_valid(_world) and bool(_world.call("phone_available")))
-			_button(col, "load", "LOAD SAVED WORLD", "load", _has_save)
-			_button(col, "new", "NEW WORLD / NEW SEED", "new")
-			_button(col, "settings", "SETTINGS", "settings")
-			_button(col, "controls", "CONTROLS & GAMEPAD", "controls")
-			_button(col, "title", "TITLE SCREEN", "title")
-			_button(col, "quit", "QUIT TO DESKTOP", "quit")
+			_button(col, "resume", "Resume game", "resume")
+			_section_heading(col, "WORLD")
+			_button(col, "map", "City atlas", "map")
+			_button(col, "journal", "Mission journal", "journal")
+			_button(col, "phone", "Smartphone", "phone", is_instance_valid(_world) and bool(_world.call("phone_available")))
+			_button(col, "inventory", "Player & inventory", "inventory")
+			_section_heading(col, "SESSION")
+			var save_info: Dictionary = _world.call("save_availability") if is_instance_valid(_world) else {"allowed": false, "reason": "Visit Lantern Court to save."}
+			var can_save := bool(save_info["allowed"])
+			_button(col, "save", "SAVE PROGRESS" if can_save else "SAVE PROGRESS  /  UNAVAILABLE", "save", can_save)
+			_label(col, _save_feedback if not _save_feedback.is_empty() else str(save_info["reason"]), 15, Ui.ACCENT if can_save else Ui.MUTED)
+			if not can_save:
+				_button(col, "save_waypoint", "ROUTE TO LANTERN COURT", "save_waypoint")
+			_button(col, "load", "Load saved game", "load", _has_save)
+			_button(col, "new", "New session", "new")
+			_section_heading(col, "SYSTEM")
+			_button(col, "settings", "Settings", "settings")
+			_button(col, "controls", "Controls & gamepad", "controls")
+			_button(col, "title", "Title screen", "title")
+			_button(col, "quit", "Quit to desktop", "quit")
 		"settings":
-			_title(col, "Settings", 28, Ui.TEXT)
 			_label(col, "AUDIO", 16, Ui.AMBER)
 			_slider(col, "MASTER VOLUME", "master_volume", 0.0, 1.0, 0.05)
 			_slider(col, "NIGHTGRID FM / MUSIC VOLUME", "music_volume", 0.0, 1.0, 0.05)
@@ -485,6 +506,11 @@ func _render() -> void:
 			_slider(col, "GAMEPAD LOOK", "stick_sensitivity", 0.5, 5.0, 0.1)
 			_check(col, "INVERT LOOK Y", "invert_look_y")
 			_divider(col)
+			_label(col, "INTERFACE", 16, Ui.AMBER)
+			_check(col, "SHOW GENERAL CONTROL REMINDERS", "show_control_hints")
+			_check(col, "SHOW INVENTORY COUNTS IN HUD", "show_hud_inventory")
+			_label(col, "Nearby actions, navigation and health remain visible. Review controls and status from the pause menu.", 14, Ui.MUTED)
+			_divider(col)
 			_label(col, "DISPLAY & PERFORMANCE", 16, Ui.AMBER)
 			_check(col, "SCREEN-SPACE REFLECTIONS", "ssr_enabled")
 			_check(col, "NEON BLOOM", "glow_enabled")
@@ -495,7 +521,6 @@ func _render() -> void:
 			_label(col, "Changes save automatically. Toggle SSR, AO, haze and bloom to profile GPU cost.", 14, Color("90a7ba"))
 			_button(col, "back", "BACK", "back")
 		"controls":
-			_title(col, "CONTROLS / KEYBOARD + PAD", 22, Color("f0dfcd"))
 			for section in HELP_SECTIONS:
 				_label(col, str(section["title"]), 17, Color("87dcd8"))
 				_label(col, "KEYS   " + str(section["keyboard"]), 14, Color("e2dfd6"))
@@ -504,10 +529,8 @@ func _render() -> void:
 			_label(col, "Xbox / XInput layout. Controller support depends on Godot/OS device detection.", 14, Color("9db5c7"))
 			_button(col, "back", "BACK", "back")
 		"journal":
-			_title(col, "JOURNAL / NIGHT-SHIFT LEDGER", 22, Color("f0dfcd"))
 			_label(col, "CURRENT DISTRICT  " + str(_journal_data.get("district", "MORROW BAY")), 18, Color("8ad9d6"))
-			_label(col, "LOCAL TIME  " + str(_journal_data.get("clock", "--:--")) +
-				"  |  WORLD SEED  " + str(_journal_data.get("seed", "-")), 16, Color("bdcddd"))
+			_label(col, "LOCAL TIME  " + str(_journal_data.get("clock", "--:--")), 16, Ui.MUTED)
 			_divider(col)
 			_title(col, "ACTIVE DELIVERIES", 18, Color("f0d1a0"))
 			if not str(_journal_data.get("opening_goal","")).is_empty():
@@ -585,7 +608,12 @@ func _render() -> void:
 			_label(col, "ARCHIVES VISITED  %d     LIVE STREET BLOCKS  %d" % [
 				int(_journal_data.get("archives", 0)), int(_journal_data.get("loaded_blocks", 0))],
 				16, Color("c4d6da"))
-			_button(col, "back", "BACK TO PAUSE", "back")
+			_button(col, "inventory", "Player & inventory", "inventory")
+			_button(col, "back", "Back to pause", "back")
+		"inventory":
+			_render_inventory(col)
+			_button(col, "journal", "Mission journal", "journal")
+			_button(col, "back", "Back to pause", "back")
 		"map":
 			_title(col, "MORROW BAY / CITY ATLAS", 22, Color("f0dfcd"))
 			_label(col, "Player • quests • shops • buses (gold) • M-Line (cyan) • police stations (blue shields)", 15, Color("adc8d2"))
@@ -634,8 +662,12 @@ func _focus_current() -> void:
 func _fit_menu() -> void:
 	if not is_instance_valid(_body_scroll) or not is_instance_valid(_body_col):
 		return
-	var height := get_viewport().get_visible_rect().size.y
-	_body_scroll.custom_minimum_size.y = minf(_body_col.get_combined_minimum_size().y, maxf(140.0, height - 250.0))
+	var viewport_size := get_viewport().get_visible_rect().size
+	if is_instance_valid(_menu_panel):
+		var staged := screen in ["breakroom","restroom","parking_guard","street_contact"] or (screen == "opening" and _physical_opening and _opening_stage in [2,4])
+		var target_width := 500.0 if staged else (840.0 if screen in ["inventory","journal"] else 760.0)
+		_menu_panel.custom_minimum_size.x = minf(target_width, maxf(320.0, viewport_size.x - 64.0))
+	_body_scroll.custom_minimum_size.y = minf(_body_col.get_combined_minimum_size().y, maxf(140.0, viewport_size.y - 200.0))
 
 func _wire_focus() -> void:
 	# Explicit vertical order avoids focus jumping between unrelated rows.
@@ -720,6 +752,80 @@ func _label(parent: VBoxContainer, value: String, font_size: int, tint: Color, b
 		label.add_theme_constant_override("outline_size", 1)
 	parent.add_child(label)
 
+func _section_heading(parent: VBoxContainer, caption: String) -> void:
+	_divider(parent)
+	_label(parent, caption, 14, Ui.AMBER)
+
+func _value_row(parent: VBoxContainer, caption: String, value: String, tint: Color = Ui.TEXT, texture: Texture2D = null) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	parent.add_child(row)
+	if texture != null:
+		var icon := TextureRect.new()
+		icon.texture = texture
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon.custom_minimum_size = Vector2(38, 38)
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		row.add_child(icon)
+	var label := Label.new()
+	label.text = caption
+	label.add_theme_color_override("font_color", Ui.MUTED)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	row.add_child(label)
+	var amount := Label.new()
+	amount.text = value
+	amount.add_theme_color_override("font_color", tint)
+	amount.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	row.add_child(amount)
+
+func _inventory_meter(parent: VBoxContainer, caption: String, value: float, tint: Color) -> void:
+	_value_row(parent, caption, "%d / 100" % ceili(value), tint)
+	var meter := ProgressBar.new()
+	meter.max_value = 100
+	meter.value = value
+	meter.show_percentage = false
+	meter.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	meter.custom_minimum_size.y = 7
+	meter.add_theme_stylebox_override("background", Ui.meter(Color("29363e")))
+	meter.add_theme_stylebox_override("fill", Ui.meter(tint))
+	parent.add_child(meter)
+
+func _render_inventory(col: VBoxContainer) -> void:
+	_section_heading(col, "VITALS & WALLET")
+	_inventory_meter(col, "Health", float(_journal_data.get("health", 100)), Ui.ACCENT)
+	_inventory_meter(col, "Stamina", float(_journal_data.get("stamina", 100)), Ui.AMBER)
+	_value_row(col, "Cash", "$%d" % int(_journal_data.get("cash", 0)), Ui.ACCENT)
+	_value_row(col, "Bitcoin wallet", "%d sats" % int(_journal_data.get("bitcoin_sats", 0)))
+	_value_row(col, "Police heat", "%.1f" % float(_journal_data.get("heat", 0)))
+	_section_heading(col, "CARRIED SUPPLIES")
+	var carried: Dictionary = _journal_data.get("consumables", {})
+	_value_row(col, "Pack capacity", "%d / %d" % [Consumables.count(carried), Consumables.MAX_ITEMS])
+	_value_row(col, "Ration packs", str(_journal_data.get("supplies", 0)))
+	for id in Consumables.ITEMS:
+		var quantity := int(carried.get(id, 0))
+		if quantity > 0:
+			var item: Dictionary = Consumables.ITEMS[id]
+			_value_row(col, str(item["name"]), "×%d" % quantity, Ui.TEXT, Consumables.PRODUCT_ICONS[id])
+	if Consumables.count(carried) == 0:
+		_label(col, "No portable food or drinks.", 15, Ui.MUTED)
+	_label(col, "Use R / D-pad Down while on foot to consume a useful supply.", 14, Ui.MUTED)
+	_section_heading(col, "EQUIPMENT & CONDITIONING")
+	_label(col, str(_journal_data.get("weapons", "No equipment data")), 16, Ui.TEXT)
+	_label(col, str(_journal_data.get("outfit", "")), 16, Ui.TEXT)
+	_label(col, str(_journal_data.get("conditioning", "")), 16, Ui.ACCENT)
+	_section_heading(col, "PROPERTY & VEHICLES")
+	_label(col, str(_journal_data.get("home_text", "")), 16, Ui.TEXT)
+	_button(col, "save_waypoint", "Route to Lantern Court / save point", "save_waypoint")
+	if bool(_journal_data.get("home_owned", false)):
+		_label(col, str(_journal_data.get("garage_text", "")), 16, Ui.TEXT)
+		_button(col, "garage_waypoint", "Route to garage", "garage_waypoint")
+	_label(col, str(_journal_data.get("owned_vehicles", "VEHICLE TITLES: None")), 16, Ui.TEXT)
+	_section_heading(col, "CITY STATUS")
+	_label(col, str(_journal_data.get("dispatch", "DISPATCH")), 16, Ui.MUTED)
+	_value_row(col, "Police locations", str(_journal_data.get("stations", 0)))
+
 func _divider(parent: VBoxContainer) -> void:
 	var line := HSeparator.new()
 	parent.add_child(line)
@@ -732,7 +838,7 @@ func _button(parent: VBoxContainer, key: String, caption: String, action: String
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	button.disabled = not enabled
 	button.focus_mode = Control.FOCUS_ALL
-	button.add_theme_font_size_override("font_size", 18)
+	button.add_theme_font_size_override("font_size", 17)
 	button.pressed.connect(func() -> void: _choice(action))
 	parent.add_child(button)
 	_buttons[key] = button
@@ -899,8 +1005,8 @@ func _choice(action: String) -> void:
 			open_controls()
 		"map":
 			open_map()
-		"journal":
-			action_requested.emit("journal")
+		"journal", "inventory":
+			action_requested.emit(action)
 		"restart_courier", "abandon_story", "home_waypoint", "garage_waypoint", "story_waypoint", "synaxis_waypoint", "cal_waypoint", "music_waypoint", "busking_waypoint":
 			action_requested.emit(action)
 		"back":
@@ -919,6 +1025,8 @@ func _choice(action: String) -> void:
 		"save":
 			action_requested.emit("save")
 			_open("pause")
+		"save_waypoint":
+			action_requested.emit("save_waypoint")
 		"title":
 			open_title()
 		"quit":

@@ -78,6 +78,7 @@ func configure(width: float, height: float, depth: float, wall: Color, kind: Str
 	leaf.material_override = _mat(Color("34434a"))
 	door.add_child(leaf)
 	var handle := MeshInstance3D.new()
+	handle.name = "InteractionHandle"
 	handle.mesh = _unit
 	handle.scale = Vector3(.16,.42,.18)
 	handle.position = Vector3(-size.x+.26,1.13,-.08)
@@ -454,6 +455,11 @@ func service_counter() -> Vector3:
 
 func service_reachable(at: Vector3) -> bool:
 	return not physical_venue_id.is_empty() and contains(at) and at.distance_to(service_counter()) <= 1.65
+
+func door_handle_anchor() -> Vector3:
+	var handle := door.get_node_or_null("InteractionHandle") as Node3D
+	# Match the fitted leaf width if the streamed art is not yet present.
+	return handle.position+Vector3(0,0,-.10) if handle!=null else Vector3(-(DOOR_WIDTH-.08)+.26,1.13,-.18)
 
 func doorway_reachable(at: Vector3) -> bool:
 	var p := to_local(at)

@@ -68,6 +68,9 @@ func configure(style: int, accent: Color) -> void:
 	add_child(display)
 	_build_side_art()
 
+func payment_anchor() -> Vector3:
+	return Vector3(.57,1.19,-.66)
+
 func dispense_feedback() -> void:
 	# Shader instance parameter is local to this cabinet despite shared material.
 	var display := get_node("AnimatedMarquee") as MeshInstance3D

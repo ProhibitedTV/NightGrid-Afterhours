@@ -4,7 +4,7 @@ extends CharacterBody3D
 const WALK_SPEED = 7.5
 const RUN_SPEED = 12.5
 const JUMP_SPEED = 9.0
-const ACCEL = 24.0
+const Locomotion = preload("res://scripts/locomotion_policy.gd")
 const GRAVITY = 24.0
 
 const STAMINA_MAX = 100.0
@@ -66,6 +66,8 @@ func tick_stamina(delta: float, wants_sprint: bool, moving: bool, wants_jump: bo
 
 func _physics_process(delta: float) -> void:
 	if driving or input_blocked:
+		if is_instance_valid(visual):
+			visual.call("reset_terrain")
 		velocity = Vector3.ZERO
 		if driving:
 			tick_stamina(delta,false,false,false)
@@ -76,8 +78,9 @@ func _physics_process(delta: float) -> void:
 	var allowance := tick_stamina(delta,Input.is_action_pressed("sprint"),move_direction.length_squared()>.01,was_grounded and Input.is_action_just_pressed("jump"))
 	var sprinting := allowance.x == 1
 	var speed := RUN_SPEED if sprinting else WALK_SPEED
-	velocity.x = move_toward(velocity.x, move_direction.x * speed, ACCEL * delta)
-	velocity.z = move_toward(velocity.z, move_direction.z * speed, ACCEL * delta)
+	# Keep the verified physical controller contract; visual smoothing must
+	# not change the displacement of a timed traversal or rail approach.
+	velocity = Locomotion.step_velocity(velocity,move_direction*speed,was_grounded,delta)
 	var jumped := allowance.y == 1
 	if was_grounded:
 		if jumped:
@@ -86,14 +89,19 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= GRAVITY * delta
 	# Human mesh faces local +Z (nose/eyes are on +Z). Movement uses -Z
 	# for W; negate neither axis or the player faces the camera while moving.
+	var previous_yaw := visual.rotation.y if visual!=null else 0.0
 	if visual != null and weapon_aiming:
-		visual.rotation.y = lerp_angle(visual.rotation.y, camera_yaw + PI, minf(delta * 18.0, 1.0))
+		visual.rotation.y = Locomotion.step_yaw(visual.rotation.y,camera_yaw+PI,true,delta)
 	elif visual != null and move_direction.length_squared() > 0.01:
-		visual.rotation.y = lerp_angle(visual.rotation.y, visual_yaw_for_motion(move_direction), minf(delta * 12.0, 1.0))
+		visual.rotation.y = Locomotion.step_yaw(visual.rotation.y,visual_yaw_for_motion(move_direction),false,delta)
+	var impact_speed := maxf(0.0,-velocity.y)
 	move_and_slide()
 	if visual != null and visual.has_method("update_motion"):
 		var local_velocity := visual.global_basis.inverse() * get_real_velocity()
-		visual.call("update_motion", local_velocity, is_on_floor(), jumped, not was_grounded and is_on_floor(), sprinting)
+		var turn_rate := angle_difference(previous_yaw,visual.rotation.y)/maxf(delta,.001)
+		visual.call("update_motion", local_velocity, is_on_floor(), jumped, not was_grounded and is_on_floor(), sprinting,delta,impact_speed,turn_rate)
+		visual.call("sample_terrain",self,delta)
+		visual.call("update_posture",get_real_velocity(),turn_rate,delta)
 
 func show_vehicle_rider(vehicle: Node3D, offer_entry: bool) -> void:
 	if visual == null or not visual.has_method("sit_in_vehicle"):

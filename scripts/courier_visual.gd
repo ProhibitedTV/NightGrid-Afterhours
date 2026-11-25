@@ -3,6 +3,11 @@ extends Node3D
 const Model = preload("res://assets/models/nightgrid/courier/morrow_courier.glb")
 const Materials = preload("res://scripts/material_library.gd")
 const ProductArt = preload("res://scripts/consumable_prop.gd")
+const Locomotion = preload("res://scripts/locomotion_policy.gd")
+const TerrainFeet = preload("res://scripts/courier_terrain_feet.gd")
+const Posture = preload("res://scripts/courier_posture.gd")
+const Reach = preload("res://scripts/courier_reach.gd")
+const GAIT_LOOPS = [&"walk",&"run",&"walk_back",&"strafe_left",&"strafe_right",&"aim_walk",&"aim_run",&"aim_left",&"aim_right"]
 const DeliveryBag = preload("res://scripts/quotadrop_bag.gd")
 var _meal_bag: Node3D
 var _meal_bag_carried := false
@@ -53,13 +58,21 @@ var _aiming := false
 var _seat := false
 var _grounded := true
 var _horizontal := Vector3.ZERO
+var _gait_speed := 0.0
+var _gait_running := false
+var _gait_rate := 1.0
+var _moving_gait := false
 var _sprinting := false
+var _pivot_cooldown := 0.0
 var _reverse_playback := false
 var _entry_ground_y := 0.0
 var _driver_seat := DRIVER_SEAT
 var _weapon_display: Node3D
 var _held_product: Node3D
 var _product_hand: BoneAttachment3D
+var _terrain_feet: SkeletonModifier3D
+var _posture: SkeletonModifier3D
+var _reach: SkeletonModifier3D
 const FOOD_ACTIONS = [&"purchase_item",&"drink_item",&"eat_item"]
 
 func _ready() -> void:
@@ -79,6 +92,22 @@ func _ready() -> void:
 	animations.animation_finished.connect(_finish_action)
 	_build_equipment_display()
 	_product_hand = skeleton.get_node("RightHandEquipment")
+	skeleton.modifier_callback_mode_process = Skeleton3D.MODIFIER_CALLBACK_MODE_PROCESS_PHYSICS
+	_terrain_feet = TerrainFeet.new()
+	_terrain_feet.name = "TerrainFeet"
+	_terrain_feet.active = false
+	skeleton.add_child(_terrain_feet)
+	_terrain_feet.call("configure")
+	_posture = Posture.new()
+	_posture.name = "ReactivePosture"
+	_posture.active = false
+	skeleton.add_child(_posture)
+	_posture.call("configure")
+	_reach = Reach.new()
+	_reach.name = "ContextualReach"
+	_reach.active = false
+	skeleton.add_child(_reach)
+	_reach.call("configure")
 	_play(&"idle", 0.0)
 	set_physics_process(false)
 
@@ -336,33 +365,64 @@ func set_weapon_pose(id: String, aiming: bool) -> void:
 	_choose_pose()
 
 func update_motion(local_velocity: Vector3, on_floor: bool, jumped: bool,
-		landed: bool, sprinting: bool) -> void:
+		landed: bool, sprinting: bool, delta: float = 1.0/60.0, impact_speed: float = 9.0, yaw_rate: float = 0.0) -> void:
 	if _seat:
 		return
 	_horizontal = Vector3(local_velocity.x, 0.0, local_velocity.z)
+	_gait_speed = lerpf(_gait_speed,_horizontal.length(),1.0-exp(-18.0*delta))
 	_grounded = on_floor
 	_sprinting = sprinting
+	_pivot_cooldown = maxf(0.0,_pivot_cooldown-delta)
 	if jumped:
 		play_action(&"jump_start")
 	elif landed and current_pose in [&"jump_start", &"jump_air"]:
-		play_action(&"jump_land")
+		play_action(&"jump_land",Locomotion.landing_rate(impact_speed))
 	elif not on_floor and _action not in [&"jump_start", &"alight_car"]:
 		_clear_product()
 		_action = &""
 	elif _horizontal.length_squared() > 1.2 and (_action in [&"interact", &"stand_up", &"alight_car"] or _action in FOOD_ACTIONS):
 		_clear_product()
 		_action = &""
+	elif _action in [&"turn_left",&"turn_right"] and (_horizontal.length()>1.65 or _equipment!="holstered"):
+		_action = &""
+	if _grounded and not landed and not jumped and _action==&"" and _equipment=="holstered" and _pivot_cooldown<=0.0:
+		var pivot := Locomotion.pivot_clip(_horizontal.length(),yaw_rate)
+		if pivot!=&"":
+			_pivot_cooldown = .45
+			play_action(pivot,1.3)
 	_choose_pose()
 
-func play_action(clip: StringName) -> void:
+func sample_terrain(body: CharacterBody3D,delta: float) -> void:
+	if is_instance_valid(_terrain_feet):
+		_terrain_feet.call("sample_ground",body,delta,_grounded and not _seat and _action==&"" and _gait_speed<3.5 and not _aiming)
+
+func update_posture(world_velocity: Vector3,yaw_rate: float,delta: float) -> void:
+	if is_instance_valid(_posture):
+		_posture.call("update_posture",global_basis.inverse()*world_velocity,yaw_rate,delta,_grounded and not _seat and _action==&"" and _equipment=="holstered")
+
+func reset_terrain() -> void:
+	if is_instance_valid(_terrain_feet):
+		_terrain_feet.call("reset")
+	if is_instance_valid(_posture):
+		_posture.call("reset")
+
+func reach_target(target: Node3D,anchor: Vector3,side: int) -> void:
+	if is_instance_valid(_reach) and _grounded and not _seat and _equipment=="holstered" and _action in [&"interact",&"open_door",&"purchase_item"]:
+		_reach.call("begin",target,anchor,side,animations,_action)
+
+func play_action(clip: StringName, rate_override: float = 0.0) -> void:
 	if _seat or (clip == &"interact" and (_horizontal.length_squared() > 0.8 or not _grounded)):
 		return
+	if is_instance_valid(_reach):
+		_reach.call("reset")
 	if clip not in FOOD_ACTIONS:
 		_clear_product()
 	_action = clip
+	if is_instance_valid(_posture):
+		_posture.call("reset")
 	if current_pose == clip:
 		animations.seek(0.0)
-	var rate := 1.85 if clip == &"jump_start" else 1.0
+	var rate := rate_override if rate_override>0.0 else (1.85 if clip == &"jump_start" else 1.0)
 	_play(clip, 0.08, rate)
 	if clip == &"alight_car":
 		# The original gameplay exit chooses a safe curb-side placement. Use
@@ -376,9 +436,13 @@ func sit_in_vehicle(car: Node3D, play_entry: bool, ground_y: float) -> void:
 	position = _driver_seat
 	rotation = Vector3(0.0, PI, 0.0)
 	_seat = true
+	if is_instance_valid(_reach):
+		_reach.call("reset")
+	reset_terrain()
 	set_meal_bag(_meal_bag_carried)
 	_clear_product()
 	_horizontal = Vector3.ZERO
+	_reset_gait()
 	# The combat controller holsters while driving. Forget the last on-foot
 	# pose so re-equipping that item on exit always restores the held prop.
 	_equipment = "holstered"
@@ -404,8 +468,12 @@ func return_to_player(player: Node3D) -> void:
 	position = Vector3.UP * FOOT_OFFSET
 	rotation = Vector3(0.0, facing, 0.0)
 	_seat = false
+	if is_instance_valid(_reach):
+		_reach.call("reset")
+	reset_terrain()
 	set_meal_bag(_meal_bag_carried)
 	_clear_product()
+	_reset_gait()
 	_grounded = true
 	_action = &""
 	_play(&"idle", 0.0)
@@ -414,6 +482,8 @@ func return_to_player(player: Node3D) -> void:
 func _finish_action(clip: StringName) -> void:
 	if clip != _action:
 		return
+	if is_instance_valid(_reach):
+		_reach.call("reset")
 	if clip in FOOD_ACTIONS:
 		_clear_product()
 	_action = &""
@@ -422,23 +492,36 @@ func _finish_action(clip: StringName) -> void:
 		set_physics_process(false)
 	_choose_pose()
 
+func _reset_gait() -> void:
+	_gait_speed = 0.0
+	_pivot_cooldown = 0.0
+	_gait_running = false
+	_gait_rate = 1.0
+	_moving_gait = false
+
 func _choose_pose() -> void:
 	if _action != &"":
 		return
+	if is_instance_valid(_reach) and _reach.active:
+		_reach.call("reset")
 	if _seat:
 		_play(&"drive_car", 0.18)
 		return
 	if not _grounded:
 		_play(&"jump_air", 0.10)
 		return
-	var speed := _horizontal.length()
-	if speed < 0.28:
+	var speed := _gait_speed
+	_moving_gait = speed > (.22 if _moving_gait else .38)
+	if not _moving_gait:
+		_gait_running = false
+		_gait_rate = 1.0
 		var stance := &"idle"
 		if _equipment != "holstered":
 			stance = &"aim" if _aiming else &"weapon_idle"
 		_play(stance, 0.18)
 		return
-	var running := speed > 3.3
+	_gait_running = Locomotion.run_gait(speed,_gait_running)
+	var running := _gait_running
 	var clip := &"run" if running else &"walk"
 	var natural_speed := 4.1 if running else 1.75
 	var playback_direction := 1.0
@@ -458,16 +541,26 @@ func _choose_pose() -> void:
 	elif _horizontal.z < -0.45:
 		clip = &"walk_back"
 		natural_speed = 1.75
-	_play(clip, 0.15, playback_direction * clampf(speed / natural_speed, 0.6, 1.85 if _sprinting else 1.65))
+	var target_rate := clampf(speed/natural_speed,.6,1.85 if _sprinting else 1.65)
+	_gait_rate = lerpf(_gait_rate,target_rate,.22)
+	_play(clip,.20,playback_direction*_gait_rate)
 
 func _play(clip: StringName, blend: float, rate: float = 1.0) -> void:
 	var backward := rate < 0.0
 	animations.speed_scale = absf(rate)
 	if current_pose == clip and backward == _reverse_playback:
 		return
+	var preserve_phase := current_pose in GAIT_LOOPS and clip in GAIT_LOOPS
+	var phase := Locomotion.loop_phase(animations.current_animation_position,animations.current_animation_length) if preserve_phase else 0.0
+	if preserve_phase:
+		# Phase is actual authored clip time, independent of playback direction.
+		phase = Locomotion.contact_phase(current_pose,clip,phase)
 	current_pose = clip
 	_reverse_playback = backward
 	animations.play(clip, blend, -1.0 if backward else 1.0, backward)
+	if preserve_phase:
+		# Align measured left/right contacts while retaining the outgoing fade.
+		animations.seek(phase*animations.get_animation(clip).length,false)
 
 func _build_equipment_display() -> void:
 	var hand := BoneAttachment3D.new()

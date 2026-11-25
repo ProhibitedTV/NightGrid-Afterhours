@@ -27,6 +27,15 @@ func _verify() -> void:
 		return
 	if not check(radar.offset_left==24.0 and radar.offset_bottom==-24.0 and radar.size.is_equal_approx(Vector2(240,240)) and radar.mouse_filter==Control.MOUSE_FILTER_IGNORE,"inset and passive input"):
 		return
+	var status: PanelContainer = world.get_node("HUD/PlayerStatus")
+	var health: ProgressBar = world.get("hud_health")
+	var stamina: ProgressBar = world.get("hud_stamina")
+	var context: PanelContainer = world.get("hud_prompt_card")
+	var notice: PanelContainer = world.get("hud_notice_card")
+	if not check(status.custom_minimum_size.x == 390.0 and health.get_theme_stylebox("fill").get_minimum_size().y == 0.0 and stamina.get_theme_stylebox("fill").get_minimum_size().y == 0.0,"compact status and independent meter style"):
+		return
+	if not check(context.offset_left == -320.0 and context.offset_right == 320.0 and context.offset_bottom == -24.0 and notice.anchor_left == 1.0,"reserved context and notice positions"):
+		return
 	var state: Dictionary = world.call("get_map_state")
 	if not check(state.has("player_heading") and (state["player_heading"] as Vector2).is_finite(),"live actor heading"):
 		return

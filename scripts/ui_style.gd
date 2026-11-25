@@ -13,7 +13,7 @@ static func card(alpha: float = 0.96, padding: int = 16) -> StyleBoxFlat:
 	style.bg_color = Color(INK.r, INK.g, INK.b, alpha)
 	style.border_color = Color("354956")
 	style.set_border_width_all(1)
-	style.border_width_left = 3
+	style.border_width_left = 2
 	style.set_corner_radius_all(4)
 	style.content_margin_left = padding
 	style.content_margin_right = padding
@@ -33,18 +33,29 @@ static func button_style(fill: Color, edge: Color) -> StyleBoxFlat:
 	style.content_margin_bottom = 9
 	return style
 
+# Meters must not inherit the large content margins of interactive buttons.
+static func meter(fill: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = fill
+	style.set_corner_radius_all(2)
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	style.content_margin_top = 0
+	style.content_margin_bottom = 0
+	return style
+
 static func make_theme() -> Theme:
 	var t := Theme.new()
-	t.default_font_size = 19
+	t.default_font_size = 18
 	t.set_color("font_color", "Label", TEXT)
 	t.set_color("font_color", "Button", TEXT)
 	t.set_color("font_hover_color", "Button", TEXT)
-	t.set_color("font_pressed_color", "Button", INK)
+	t.set_color("font_pressed_color", "Button", TEXT)
 	t.set_color("font_focus_color", "Button", ACCENT)
 	t.set_color("font_disabled_color", "Button", Color("83929d"))
 	t.set_stylebox("normal", "Button", button_style(Color("192730"), Color("344752")))
 	t.set_stylebox("hover", "Button", button_style(Color("243940"), ACCENT))
-	t.set_stylebox("pressed", "Button", button_style(ACCENT, ACCENT))
+	t.set_stylebox("pressed", "Button", button_style(Color("304b50"), ACCENT))
 	t.set_stylebox("disabled", "Button", button_style(Color("172027"), Color("25343d")))
 	var focus := button_style(Color(0, 0, 0, 0), ACCENT)
 	focus.set_border_width_all(2)
@@ -54,5 +65,10 @@ static func make_theme() -> Theme:
 	t.set_color("font_color", "CheckButton", TEXT)
 	t.set_color("font_focus_color", "CheckButton", ACCENT)
 	t.set_stylebox("panel", "PanelContainer", card())
-	t.set_stylebox("separator", "HSeparator", button_style(Color("354956"), Color("354956")))
+	var rule := StyleBoxFlat.new()
+	rule.bg_color = Color("354956")
+	rule.content_margin_top = 0.5
+	rule.content_margin_bottom = 0.5
+	t.set_stylebox("separator", "HSeparator", rule)
+	t.set_constant("separation", "HSeparator", 7)
 	return t
