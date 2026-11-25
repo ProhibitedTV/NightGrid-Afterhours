@@ -4,6 +4,7 @@ const MinimapScript = preload("res://scripts/minimap.gd")
 const CityFoley = preload("res://scripts/city_foley.gd")
 const Ui = preload("res://scripts/ui_style.gd")
 const Opening = preload("res://scripts/opening_story.gd")
+const Consumables = preload("res://scripts/consumables.gd")
 ## Keyboard/mouse/controller-friendly menu layer. It remains interactive while
 ## the 3D SceneTree is paused; all buttons use Godot's built-in focus navigation.
 signal action_requested(action: String)
@@ -84,6 +85,11 @@ func open_journal(context: Dictionary) -> void:
 	_back_screen = "pause"
 	_open("journal")
 
+func open_inventory(context: Dictionary) -> void:
+	_journal_data = context.duplicate(true)
+	_back_screen = "pause"
+	_open("inventory")
+
 func set_has_save(value: bool) -> void:
 	_has_save = value
 
@@ -144,7 +150,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("game_pause") or event.is_action_pressed("game_back"):
 		match screen:
-			"settings", "controls", "map", "journal":
+			"settings", "controls", "map", "journal", "inventory":
 				_open(_back_screen)
 			"confirm_new":
 				_open(_confirmation_origin)
@@ -215,7 +221,7 @@ func _render() -> void:
 	shell.add_theme_constant_override("separation", 12)
 	panel.add_child(shell)
 	_label(shell, "NIGHTGRID  /  MORROW BAY", 14, Ui.AMBER)
-	_title(shell, "AFTERHOURS" if screen == "title" else {"pause": "Paused", "settings": "Settings", "controls": "Controls", "map": "City atlas", "journal": "Journal", "confirm_new": "New session", "opening": "People operations"}.get(screen, "Afterhours"), 34, Ui.TEXT)
+	_title(shell, "AFTERHOURS" if screen == "title" else {"pause": "Paused", "settings": "Settings", "controls": "Controls", "map": "City atlas", "journal": "Journal", "inventory": "Player & inventory", "confirm_new": "New session", "opening": "People operations"}.get(screen, "Afterhours"), 34, Ui.TEXT)
 	_divider(shell)
 	_body_scroll = ScrollContainer.new()
 	_body_scroll.name = "MenuScroll"
@@ -251,21 +257,25 @@ func _render() -> void:
 			_label(col, Opening.OFFER, 17, Ui.TEXT)
 			_button(col, "opening_accept", "ACCEPT TERMS / START DELIVERING", "opening_accept")
 		"pause":
-			_button(col, "resume", "RESUME GAME", "resume")
+			_button(col, "resume", "Resume game", "resume")
+			_section_heading(col, "WORLD")
+			_button(col, "map", "City atlas", "map")
+			_button(col, "journal", "Mission journal", "journal")
+			_button(col, "inventory", "Player & inventory", "inventory")
+			_section_heading(col, "SESSION")
 			var save_info: Dictionary = _world.call("save_availability") if is_instance_valid(_world) else {"allowed": false, "reason": "Visit Lantern Court to save."}
 			var can_save := bool(save_info["allowed"])
 			_button(col, "save", "SAVE PROGRESS" if can_save else "SAVE PROGRESS  /  UNAVAILABLE", "save", can_save)
 			_label(col, _save_feedback if not _save_feedback.is_empty() else str(save_info["reason"]), 15, Ui.ACCENT if can_save else Ui.MUTED)
 			if not can_save:
 				_button(col, "save_waypoint", "ROUTE TO LANTERN COURT", "save_waypoint")
-			_button(col, "map", "CITY MAP / DISTRICTS", "map")
-			_button(col, "journal", "JOURNAL / OBJECTIVES", "journal")
-			_button(col, "load", "LOAD SAVED WORLD", "load", _has_save)
-			_button(col, "new", "NEW WORLD / NEW SEED", "new")
-			_button(col, "settings", "SETTINGS", "settings")
-			_button(col, "controls", "CONTROLS & GAMEPAD", "controls")
-			_button(col, "title", "TITLE SCREEN", "title")
-			_button(col, "quit", "QUIT TO DESKTOP", "quit")
+			_button(col, "load", "Load saved game", "load", _has_save)
+			_button(col, "new", "New session", "new")
+			_section_heading(col, "SYSTEM")
+			_button(col, "settings", "Settings", "settings")
+			_button(col, "controls", "Controls & gamepad", "controls")
+			_button(col, "title", "Title screen", "title")
+			_button(col, "quit", "Quit to desktop", "quit")
 		"settings":
 			_label(col, "AUDIO", 16, Ui.AMBER)
 			_slider(col, "MASTER VOLUME", "master_volume", 0.0, 1.0, 0.05)
@@ -304,8 +314,7 @@ func _render() -> void:
 			_button(col, "back", "BACK", "back")
 		"journal":
 			_label(col, "CURRENT DISTRICT  " + str(_journal_data.get("district", "MORROW BAY")), 18, Color("8ad9d6"))
-			_label(col, "LOCAL TIME  " + str(_journal_data.get("clock", "--:--")) +
-				"  |  WORLD SEED  " + str(_journal_data.get("seed", "-")), 16, Color("bdcddd"))
+			_label(col, "LOCAL TIME  " + str(_journal_data.get("clock", "--:--")), 16, Ui.MUTED)
 			_divider(col)
 			_title(col, "ACTIVE DELIVERIES", 18, Color("f0d1a0"))
 			if not str(_journal_data.get("opening_goal","")).is_empty():
@@ -322,33 +331,17 @@ func _render() -> void:
 				16, Color("bfced5"))
 			_label(col, str(_journal_data.get("civic_job", "No freight work")),
 				16, Color("bfced5"))
-			_divider(col)
-			_title(col, "INVENTORY / STATUS", 18, Color("f0d1a0"))
-			_label(col, str(_journal_data.get("weapons", "No equipment data")), 16, Ui.ACCENT)
-			_label(col, str(_journal_data.get("owned_vehicles", "VEHICLE TITLES: None")), 16, Color("c4d6da"))
-			_label(col, str(_journal_data.get("conditioning", "")), 16, Ui.ACCENT)
-			_label(col, str(_journal_data.get("outfit", "")), 16, Ui.ACCENT)
-			_label(col, "BTC WALLET: %d sats" % int(_journal_data.get("bitcoin_sats",0)), 16, Ui.ACCENT)
-			_label(col, str(_journal_data.get("home_text", "")), 16, Ui.ACCENT)
-			if bool(_journal_data.get("home_can_navigate", false)):
-				_button(col, "home_waypoint", "SET WAYPOINT TO POD", "home_waypoint")
-			if bool(_journal_data.get("home_owned", false)):
-				_label(col, str(_journal_data.get("garage_text", "")), 16, Ui.ACCENT)
-				_button(col, "garage_waypoint", "SET WAYPOINT TO GARAGE", "garage_waypoint")
-			_label(col, "%s  |  %d POLICE LOCATIONS" % [str(_journal_data.get("dispatch", "DISPATCH")), int(_journal_data.get("stations", 0))], 16, Color("77a7e0"))
-			_label(col, "CASH  $%d     HEALTH  %d     HEAT  %.1f" % [
-				int(_journal_data.get("cash", 0)), int(_journal_data.get("health", 100)),
-				float(_journal_data.get("heat", 0.0))], 17, Color("e1ebef"))
-			_label(col, "SUPPLY PACKS  %d    COURIER DELIVERIES  %d" % [
-				int(_journal_data.get("supplies", 0)), int(_journal_data.get("deliveries", 0))],
-				17, Color("c4d6da"))
-			_label(col, "LOCAL JOBS COMPLETE  %d     CIVIC JOBS COMPLETE  %d" % [
-				int(_journal_data.get("venue_completed", 0)),
-				int(_journal_data.get("civic_completed", 0))], 16, Color("c4d6da"))
-			_label(col, "ARCHIVES VISITED  %d     LIVE STREET BLOCKS  %d" % [
-				int(_journal_data.get("archives", 0)), int(_journal_data.get("loaded_blocks", 0))],
-				16, Color("c4d6da"))
-			_button(col, "back", "BACK TO PAUSE", "back")
+			_section_heading(col, "COMPLETED WORK")
+			_value_row(col, "Courier deliveries", str(_journal_data.get("deliveries", 0)))
+			_value_row(col, "Local contracts", str(_journal_data.get("venue_completed", 0)))
+			_value_row(col, "Civic contracts", str(_journal_data.get("civic_completed", 0)))
+			_value_row(col, "Archives visited", str(_journal_data.get("archives", 0)))
+			_button(col, "inventory", "Player & inventory", "inventory")
+			_button(col, "back", "Back to pause", "back")
+		"inventory":
+			_render_inventory(col)
+			_button(col, "journal", "Mission journal", "journal")
+			_button(col, "back", "Back to pause", "back")
 		"map":
 			_label(col, "Player • quests • shops • buses (gold) • M-Line (cyan) • police stations (blue shields)", 15, Color("adc8d2"))
 			var atlas := Control.new()
@@ -423,6 +416,78 @@ func _label(parent: VBoxContainer, value: String, font_size: int, tint: Color, b
 	if bold:
 		label.add_theme_constant_override("outline_size", 1)
 	parent.add_child(label)
+
+func _section_heading(parent: VBoxContainer, caption: String) -> void:
+	_divider(parent)
+	_label(parent, caption, 14, Ui.AMBER)
+
+func _value_row(parent: VBoxContainer, caption: String, value: String, tint: Color = Ui.TEXT, texture: Texture2D = null) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	parent.add_child(row)
+	if texture != null:
+		var icon := TextureRect.new()
+		icon.texture = texture
+		icon.custom_minimum_size = Vector2(38, 38)
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		row.add_child(icon)
+	var label := Label.new()
+	label.text = caption
+	label.add_theme_color_override("font_color", Ui.MUTED)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	row.add_child(label)
+	var amount := Label.new()
+	amount.text = value
+	amount.add_theme_color_override("font_color", tint)
+	amount.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	row.add_child(amount)
+
+func _inventory_meter(parent: VBoxContainer, caption: String, value: float, tint: Color) -> void:
+	_value_row(parent, caption, "%d / 100" % ceili(value), tint)
+	var meter := ProgressBar.new()
+	meter.max_value = 100
+	meter.value = value
+	meter.show_percentage = false
+	meter.custom_minimum_size.y = 7
+	meter.add_theme_stylebox_override("background", Ui.meter(Color("29363e")))
+	meter.add_theme_stylebox_override("fill", Ui.meter(tint))
+	parent.add_child(meter)
+
+func _render_inventory(col: VBoxContainer) -> void:
+	_section_heading(col, "VITALS & WALLET")
+	_inventory_meter(col, "Health", float(_journal_data.get("health", 100)), Ui.ACCENT)
+	_inventory_meter(col, "Stamina", float(_journal_data.get("stamina", 100)), Ui.AMBER)
+	_value_row(col, "Cash", "$%d" % int(_journal_data.get("cash", 0)), Ui.ACCENT)
+	_value_row(col, "Bitcoin wallet", "%d sats" % int(_journal_data.get("bitcoin_sats", 0)))
+	_value_row(col, "Police heat", "%.1f" % float(_journal_data.get("heat", 0)))
+	_section_heading(col, "CARRIED SUPPLIES")
+	var carried: Dictionary = _journal_data.get("consumables", {})
+	_value_row(col, "Pack capacity", "%d / %d" % [Consumables.count(carried), Consumables.MAX_ITEMS])
+	_value_row(col, "Ration packs", str(_journal_data.get("supplies", 0)))
+	for id in Consumables.ITEMS:
+		var quantity := int(carried.get(id, 0))
+		if quantity > 0:
+			var item: Dictionary = Consumables.ITEMS[id]
+			_value_row(col, str(item["name"]), "×%d" % quantity, Ui.TEXT, Consumables.PRODUCT_ICONS[id])
+	if Consumables.count(carried) == 0:
+		_label(col, "No portable food or drinks.", 15, Ui.MUTED)
+	_label(col, "Use R / D-pad Down while on foot to consume a useful supply.", 14, Ui.MUTED)
+	_section_heading(col, "EQUIPMENT & CONDITIONING")
+	_label(col, str(_journal_data.get("weapons", "No equipment data")), 16, Ui.TEXT)
+	_label(col, str(_journal_data.get("outfit", "")), 16, Ui.TEXT)
+	_label(col, str(_journal_data.get("conditioning", "")), 16, Ui.ACCENT)
+	_section_heading(col, "PROPERTY & VEHICLES")
+	_label(col, str(_journal_data.get("home_text", "")), 16, Ui.TEXT)
+	_button(col, "save_waypoint", "Route to Lantern Court / save point", "save_waypoint")
+	if bool(_journal_data.get("home_owned", false)):
+		_label(col, str(_journal_data.get("garage_text", "")), 16, Ui.TEXT)
+		_button(col, "garage_waypoint", "Route to garage", "garage_waypoint")
+	_label(col, str(_journal_data.get("owned_vehicles", "VEHICLE TITLES: None")), 16, Ui.TEXT)
+	_section_heading(col, "CITY STATUS")
+	_label(col, str(_journal_data.get("dispatch", "DISPATCH")), 16, Ui.MUTED)
+	_value_row(col, "Police locations", str(_journal_data.get("stations", 0)))
 
 func _divider(parent: VBoxContainer) -> void:
 	var line := HSeparator.new()
@@ -512,8 +577,8 @@ func _choice(action: String) -> void:
 			open_controls()
 		"map":
 			open_map()
-		"journal":
-			action_requested.emit("journal")
+		"journal", "inventory":
+			action_requested.emit(action)
 		"restart_courier", "abandon_story", "home_waypoint", "garage_waypoint", "story_waypoint":
 			action_requested.emit(action)
 		"back":
