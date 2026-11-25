@@ -500,7 +500,34 @@ func _verify() -> void:
 	if world.get("cash")!=headline_cash+480 or career.can_showcase(wallet) or not wallet.has_receipt("music:static_room_showcase"):
 		_fail("Headline must settle once")
 		return
+	var merch_cash: int = world.get("cash")
+	actor.global_position = interior.call("get_counter_point")
+	world.call("_toggle_venue")
+	world.call("_venue_action",3)
+	if not world.get("_music_merch_quote"):
+		_fail("Headline should unlock the physical indie label desk")
+		return
+	world.call("_venue_action",3)
+	if career.tape_stock()!=12 or world.get("cash")!=merch_cash-60:
+		_fail("Pressing must debit exactly once and create stock")
+		return
+	world.call("_close_venue")
 	actor.global_position = interior.call("leave")
+	for tick in range(60):
+		world.call("_tick_music",.25)
+	actor.global_position = venues.call("venue_position","blue_hour")
+	if not world.call("_start_music","encore","blue_hour"):
+		_fail("Resident set should sell stocked merch")
+		return
+	for tick in range(240):
+		world.call("_tick_music",.25)
+	if career.tape_stock()!=8 or career.tapes_sold!=4 or world.get("cash")!=merch_cash-60+120+48:
+		_fail("Merch sale must settle alongside completed residency")
+		return
+	career.restore(career.snapshot())
+	if career.tape_stock()!=8 or career.tapes_sold!=4:
+		_fail("Merch stock and sales must survive restore")
+		return
 	world.set("current_car",world.get("cars")[0])
 	if world.call("phone_available"):
 		_fail("Phone must not open while driving")

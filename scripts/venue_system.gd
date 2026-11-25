@@ -347,7 +347,7 @@ func _build_music_setups() -> void:
 			InstrumentArt.place(setup,"portable_synth",Vector3(1.75,1.05,.65),Vector3(-90,180,0))
 			_box(setup,Vector3(1.75,.61,.65),Vector3(.65,.85,.35),Color("30363d"),"METAL")
 
-func set_band_promotion(name: String, debuted: bool, showcase: bool, headlined: bool) -> void:
+func set_band_promotion(name: String, debuted: bool, showcase: bool, headlined: bool, released: bool = false) -> void:
 	for id in _band_posters:
 		var poster: Label3D = _band_posters[id]
 		poster.visible = debuted
@@ -355,6 +355,8 @@ func set_band_promotion(name: String, debuted: bool, showcase: bool, headlined: 
 			poster.text = "%s\nBLUE HOUR / RESIDENT ACT" % name.to_upper()
 			if showcase or headlined:
 				poster.text = "%s\nSTATIC ROOM / %s" % [name.to_upper(),"HEADLINER" if headlined else "NEXT SHOWCASE"]
+			if released:
+				poster.text = "%s\nAFTER THE LAST SHIFT / OUT NOW" % name.to_upper()
 
 func show_player_band(site: String, at: Vector3, indoor: bool = false) -> void:
 	hide_player_band()

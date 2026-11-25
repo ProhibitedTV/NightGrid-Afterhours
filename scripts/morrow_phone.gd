@@ -122,6 +122,9 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 				actions.append({"label":"Route to Static Room","action":"phone_route_music_showcase"})
 			elif state.get("music_showcase_done",false):
 				rows.append({"label":"Static Room","value":"Headliner showcase completed"})
+				rows.append({"label":"Off Grid Records","value":"DIY tapes: 12 for $60 at the indoor counter. No label contract required."})
+				rows.append({"label":MusicCareer.RELEASE_NAME,"value":"%d in stock · %d sold · $%d gross merch sales" % [int(state.get("music_tape_stock",0)),int(state.get("music_tapes_sold",0)),int(state.get("music_tapes_sold",0))*MusicCareer.TAPE_PRICE] if state.get("music_released",false) else "Press your first independent release."})
+				actions.append({"label":"Route to Off Grid Records","action":"phone_route_music_showcase"})
 			elif state.get("music_band_done",false):
 				rows.append({"label":"Next tier","value":"65 music cred + two resident sets (%d/2)" % int(state.get("music_encores",0))})
 		"wallet":

@@ -194,6 +194,7 @@ var _music_start_cred := 0
 var _music_shop_open := false
 var _music_shop_index := 0
 var _music_shop_quote := false
+var _music_merch_quote := false
 var civic_job_active := ""
 var civic_job_completed: Array[String] = []
 var civic_intel: Array[String] = []
@@ -809,7 +810,10 @@ func _tick_music(delta: float) -> void:
 			_notify("Rehearsal complete. %d / 2 for Blue Hour debut." % music_career.rehearsals)
 		else:
 			var gain := int(_street_cred()["music"])-_music_start_cred
-			_notify("Set complete. +$%d / +%d music cred." % [int(result["amount"]),gain] if result["paid"] else "Set complete. Wallet cannot accept payment.")
+			var message := "Set complete. +$%d / +%d music cred." % [int(result["amount"]),gain] if result["paid"] else "Set complete. Wallet cannot accept payment."
+			if int(result.get("merch_units",0))>0:
+				message += " Sold %d tapes (+$%d)." % [int(result["merch_units"]),int(result["merch_cash"])]
+			_notify(message)
 
 func _music_contacts_context() -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
@@ -825,7 +829,7 @@ func _street_cred() -> Dictionary:
 
 func _sync_band_promotion() -> void:
 	if is_instance_valid(venue_system):
-		venue_system.call("set_band_promotion",music_career.display_band_name(),progression.has_receipt(MusicCareer.BAND_RECEIPT),music_career.can_showcase(progression),progression.has_receipt(MusicCareer.SHOWCASE_RECEIPT))
+		venue_system.call("set_band_promotion",music_career.display_band_name(),progression.has_receipt(MusicCareer.BAND_RECEIPT),music_career.can_showcase(progression),progression.has_receipt(MusicCareer.SHOWCASE_RECEIPT),music_career.tape_batches>0)
 
 func _phone_context() -> Dictionary:
 	var transit := _phone_transit()
@@ -841,7 +845,7 @@ func _phone_context() -> Dictionary:
 		"deposit":StarterHome.move_in_price(), "notice":Opening.app_notice(deliveries),
 		"street_cred":_street_cred(),"music_encore":music_career.can_encore(progression),"workboard":_phone_workboard(), "music_owned":music_career.owned,"music_gear":music_career.gear_context(), "music_sets":music_career.completed_sets,
 		"music_near":not interiors.call("is_inside") and not _music_near_spot().is_empty(), "music_gig":music_career.can_gig(progression), "music_cooldown":music_career.cooldown>0.0,
-		"music_band_name":music_career.band_name,"music_showcase":music_career.can_showcase(progression),"music_showcase_done":progression.has_receipt(MusicCareer.SHOWCASE_RECEIPT),"music_encores":music_career.encores,"music_contacts":_music_contacts_context(),"music_rehearsals":music_career.rehearsals,"music_band_ready":music_career.band_ready(),"music_rehearsal_near":_music_near_spot()==MusicCareer.SHOP,"music_band_gig":music_career.can_band_gig(progression),"music_band_done":progression.has_receipt(MusicCareer.BAND_RECEIPT),
+		"music_tape_stock":music_career.tape_stock(),"music_tapes_sold":music_career.tapes_sold,"music_released":music_career.tape_batches>0,"music_band_name":music_career.band_name,"music_showcase":music_career.can_showcase(progression),"music_showcase_done":progression.has_receipt(MusicCareer.SHOWCASE_RECEIPT),"music_encores":music_career.encores,"music_contacts":_music_contacts_context(),"music_rehearsals":music_career.rehearsals,"music_band_ready":music_career.band_ready(),"music_rehearsal_near":_music_near_spot()==MusicCareer.SHOP,"music_band_gig":music_career.can_band_gig(progression),"music_band_done":progression.has_receipt(MusicCareer.BAND_RECEIPT),
 		"rail_available":rail_point.is_finite(), "bus_available":bus_point.is_finite(),
 		"rail_name":"%d m away (direct)" % roundi(origin.distance_to(rail_point)) if rail_point.is_finite() else "Unavailable",
 		"bus_name":"%d m away (direct)" % roundi(origin.distance_to(bus_point)) if bus_point.is_finite() else "Unavailable"
@@ -3303,6 +3307,7 @@ func _show_venue_dialogue() -> void:
 		venue_service_button.call_deferred("grab_focus")
 
 func _close_venue() -> void:
+	_music_merch_quote = false
 	_music_shop_open = false
 	_music_shop_quote = false
 	_music_shop_index = 0
@@ -3344,6 +3349,9 @@ func _close_venue() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _update_venue_panel() -> void:
+	if _music_merch_quote:
+		_update_merch_quote()
+		return
 	if _music_shop_open:
 		_update_music_shop()
 		return
@@ -3559,6 +3567,20 @@ func _update_venue_panel() -> void:
 			venue_talk_button.show()
 			venue_talk_button.disabled = not open_now
 			venue_talk_button.text = "3 / Y  •  SHOWCASE DETAILS"
+		elif venue_selected_id==MusicCareer.SHOWCASE_SITE and progression.has_receipt(MusicCareer.SHOWCASE_RECEIPT) and interiors.call("is_inside"):
+			venue_talk_button.show()
+			venue_talk_button.disabled = not open_now or not music_career.can_press_tapes(progression) or cash<MusicCareer.TAPE_COST
+			venue_talk_button.text = "3 / Y  •  OFF GRID RECORDS"
+
+func _update_merch_quote() -> void:
+	venue_label.text = "%s / DIY PRESSING\n%s — %s\n12 tapes for $60. Sell for $12 each at paid resident gigs.\nIn stock: %d / %d  •  CASH $%d" % [MusicCareer.LABEL_NAME,music_career.display_band_name(),MusicCareer.RELEASE_NAME,music_career.tape_stock(),MusicCareer.MAX_TAPE_STOCK,cash]
+	venue_service_button.show()
+	venue_service_button.text = "1 / A  •  CANCEL"
+	venue_service_button.disabled = false
+	venue_job_button.hide()
+	venue_talk_button.show()
+	venue_talk_button.text = "3 / Y  •  PRESS 12 TAPES"
+	venue_talk_button.disabled = not music_career.can_press_tapes(progression) or cash<MusicCareer.TAPE_COST
 
 func _update_music_shop() -> void:
 	var id: String = MusicCareer.GEAR_IDS[_music_shop_index]
@@ -3623,6 +3645,19 @@ func _mara_context() -> Dictionary:
 	}
 
 func _venue_action(option: int) -> void:
+	if _music_merch_quote:
+		if not _music_counter_reachable(MusicCareer.SHOWCASE_SITE) or not interiors.call("is_inside"):
+			_close_venue()
+			return
+		if option==1:
+			_music_merch_quote = false
+		elif option==3:
+			_music_merch_quote = false
+			if music_career.press_tapes(progression):
+				_sync_band_promotion()
+				_notify("Off Grid Records: 12 tapes pressed. Sell them at paid resident gigs.")
+		_update_venue_panel()
+		return
 	if _music_shop_open:
 		_music_shop_action(option)
 		return
@@ -3797,6 +3832,11 @@ func _venue_action(option: int) -> void:
 	if option==3 and venue_selected_id==MusicCareer.SHOWCASE_SITE and music_career.can_showcase(progression):
 		_close_venue()
 		_notify("Static Room: $480 headline showcase. Enter and play at the lit indoor stage.")
+		return
+	if option==3 and venue_selected_id==MusicCareer.SHOWCASE_SITE and progression.has_receipt(MusicCareer.SHOWCASE_RECEIPT) and interiors.call("is_inside") and _music_counter_reachable(MusicCareer.SHOWCASE_SITE):
+		if music_career.can_press_tapes(progression) and cash>=MusicCareer.TAPE_COST:
+			_music_merch_quote = true
+			_update_venue_panel()
 		return
 	# Dialogue is no-cost and remains accessible even near closing time.
 	if option == 3:

@@ -5,6 +5,7 @@ const AudioMix = preload("res://scripts/audio_mix.gd")
 ## This is a separate interior space, not a cut-through doorway in building mesh.
 const Materials = preload("res://scripts/material_library.gd")
 const InstrumentArt = preload("res://scripts/instrument_art.gd")
+const TAPE_ART = preload("res://assets/music/textures/label_tape.svg")
 const MUSIC_STAGE_LOCAL = Vector3(-4.35,1.18,-6.75)
 const MUSIC_ROOMS = ["copper_cup","dock_nine","blue_hour","static_room"]
 const VenueAmbience = preload("res://scripts/venue_ambience.gd")
@@ -265,6 +266,8 @@ func _build_music_room(room: Node3D, accent: Color, shop: bool) -> void:
 	var root := Node3D.new()
 	root.name = "CopperStrings" if shop else "LiveMusicStage"
 	room.add_child(root)
+	if active_id=="static_room":
+		_build_label_desk(root)
 	# Floor-level stage: keep the existing central service path and exit clear.
 	_box(root,Vector3(-4.35,.055,-6.75),Vector3(4.45,.07,2.45),Color("382b3d"),false,"WOOD")
 	_box(root,Vector3(-4.35,.105,-5.56),Vector3(4.40,.035,.065),accent)
@@ -300,6 +303,23 @@ func _build_music_room(room: Node3D, accent: Color, shop: bool) -> void:
 		InstrumentArt.place(root,"punk_bass",Vector3(-6.35,.53,-8.15),Vector3(0,0,-9))
 		InstrumentArt.place(root,"combo_amp",Vector3(-2.35,.20,-8.0))
 		InstrumentArt.place(root,"road_case",Vector3(-3.1,.09,-8.06))
+
+func _build_label_desk(root: Node3D) -> void:
+	# A local distro shelf behind the existing counter; no separate economy.
+	_box(root,Vector3(3.75,.68,-7.42),Vector3(1.5,1.25,.65),Color("4b3948"),true,"WOOD")
+	_label(root,"OFF GRID RECORDS / DIY DUPLICATION",Vector3(4.1,2.9,-8.48),Color("e6a8cf"),24,true)
+	var material := StandardMaterial3D.new()
+	material.albedo_texture = TAPE_ART
+	material.roughness = .75
+	for i in range(6):
+		var tape := MeshInstance3D.new()
+		var mesh := QuadMesh.new()
+		mesh.size = Vector2(.12,.08)
+		tape.mesh = mesh
+		tape.material_override = material
+		tape.position = Vector3(3.32+float(i)*.17,1.36,-7.31)
+		root.add_child(tape)
+	_label(root,"NO CONTRACTS / NO MASTERS SOLD",Vector3(4.1,2.12,-8.45),Color("e5ce89"),18,true)
 
 func _stocked_market(room: Node3D, accent: Color) -> void:
 	for x in [-5.3, 5.3]:

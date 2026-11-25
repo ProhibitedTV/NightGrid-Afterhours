@@ -86,6 +86,8 @@ func is_valid_snapshot(value: Variant) -> bool:
 		return false
 	if data.has("music_career"):
 		var music: Dictionary = data["music_career"]
+		if int(music.get("tape_batches",0))>0 and not paid.has(MusicCareer.SHOWCASE_RECEIPT):
+			return false
 		if paid.has(MusicCareer.SHOWCASE_RECEIPT) and (not paid.has(MusicCareer.BAND_RECEIPT) or int(music.get("encores",0))<2 or 46+3*int(music.get("sets",0))+4*int(music.get("encores",0))<65):
 			return false
 		if int(music.get("encores",0))>0 and not paid.has(MusicCareer.BAND_RECEIPT):

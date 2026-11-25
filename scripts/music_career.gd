@@ -23,6 +23,13 @@ const SHOWCASE_SITE = "static_room"
 const SHOWCASE_RECEIPT = "music:static_room_showcase"
 const SHOWCASE_PAY = 480
 const SHOWCASE_SECONDS = 75.0
+const LABEL_NAME = "OFF GRID RECORDS"
+const RELEASE_NAME = "After the Last Shift"
+const TAPE_BATCH = 12
+const TAPE_COST = 60
+const TAPE_PRICE = 12
+const MAX_TAPE_STOCK = 36
+const MAX_BATCHES = 100000
 const BAND_NAMES = ["Signal Rot","Layoff Choir","Dead Air Union","Rust Cathedral","No Future Lease","Static Saints"]
 const StreetCred = preload("res://scripts/street_cred.gd")
 const GIG = "dock_nine"
@@ -41,6 +48,8 @@ var members: Array[String] = []
 var rehearsals := 0
 var encores := 0
 var band_name := ""
+var tape_batches := 0
+var tapes_sold := 0
 
 func buy(wallet: RefCounted) -> bool:
 	return buy_gear("acoustic_guitar",wallet)
@@ -88,6 +97,28 @@ func choose_band_name(id: int) -> bool:
 		return false
 	band_name = BAND_NAMES[id]
 	return true
+
+func tape_stock() -> int:
+	return tape_batches*TAPE_BATCH-tapes_sold
+
+func can_press_tapes(wallet: RefCounted) -> bool:
+	return mode.is_empty() and wallet.call("has_receipt",SHOWCASE_RECEIPT) and tape_batches<MAX_BATCHES and tape_stock()+TAPE_BATCH<=MAX_TAPE_STOCK
+
+func press_tapes(wallet: RefCounted) -> bool:
+	if not can_press_tapes(wallet) or not wallet.call("spend",TAPE_COST):
+		return false
+	tape_batches += 1
+	return true
+
+func _sell_merch(kind: String, wallet: RefCounted) -> int:
+	# Sell only at completed paid band bookings. No idle or offline revenue.
+	if kind not in ["encore","showcase"] or tape_stock()<=0:
+		return 0
+	var units := mini(tape_stock(),4 if kind=="encore" else 8)
+	if not wallet.call("credit",units*TAPE_PRICE):
+		return 0
+	tapes_sold += units
+	return units
 
 func can_showcase(wallet: RefCounted) -> bool:
 	return owned and band_ready() and wallet.call("has_receipt",BAND_RECEIPT) and encores>=2 and int(StreetCred.scores(wallet,self)["music"])>=65 and not wallet.call("has_receipt",SHOWCASE_RECEIPT)
@@ -138,12 +169,13 @@ func tick(delta: float, wallet: RefCounted) -> Dictionary:
 		encores = mini(encores+1,MAX_SETS)
 	if paid and kind=="busk":
 		completed_sets = mini(completed_sets+1,MAX_SETS)
+	var merch_units := _sell_merch(kind,wallet) if paid else 0
 	stop()
 	cooldown = 15.0
-	return {"paid":paid,"amount":amount if paid else 0,"kind":kind}
+	return {"paid":paid,"amount":amount if paid else 0,"kind":kind,"merch_units":merch_units,"merch_cash":merch_units*TAPE_PRICE}
 
 func snapshot() -> Dictionary:
-	return {"owned":owned,"sets":completed_sets,"members":members.duplicate(),"rehearsals":rehearsals,"encores":encores,"gear":gear.duplicate(),"equipped":equipped,"band_name":band_name}
+	return {"owned":owned,"sets":completed_sets,"members":members.duplicate(),"rehearsals":rehearsals,"encores":encores,"gear":gear.duplicate(),"equipped":equipped,"band_name":band_name,"tape_batches":tape_batches,"tapes_sold":tapes_sold}
 
 static func valid_snapshot(data: Variant) -> bool:
 	if not data is Dictionary or not data.get("owned") is bool:
@@ -175,10 +207,20 @@ static func valid_snapshot(data: Variant) -> bool:
 		if not id is String or not MEMBERS.has(id) or seen.has(id):
 			return false
 		seen.append(id)
+	var batches: Variant = data.get("tape_batches",0)
+	var sold: Variant = data.get("tapes_sold",0)
+	if not _whole(batches,MAX_BATCHES) or not _whole(sold,MAX_BATCHES*TAPE_BATCH):
+		return false
+	var stock := int(batches)*TAPE_BATCH-int(sold)
+	if stock<0 or stock>MAX_TAPE_STOCK or (int(batches)>0 and (int(encore_count)<2 or seen.size()!=MEMBERS.size())) or int(sold)>4*int(encore_count):
+		return false
 	var name: Variant = data.get("band_name","")
 	if not name is String or (name!="" and (name not in BAND_NAMES or seen.size()!=MEMBERS.size())):
 		return false
 	return (seen.is_empty() or (data["owned"] and n>=3)) and (count==0 or seen.size()==MEMBERS.size())
+
+static func _whole(value: Variant, maximum: int) -> bool:
+	return (value is int or value is float) and is_finite(float(value)) and floor(float(value))==float(value) and value>=0 and value<=maximum
 
 func restore(data: Variant) -> void:
 	stop()
@@ -191,6 +233,8 @@ func restore(data: Variant) -> void:
 	rehearsals = 0
 	encores = 0
 	band_name = ""
+	tape_batches = 0
+	tapes_sold = 0
 	if valid_snapshot(data):
 		owned = data["owned"]
 		if data.has("gear"):
@@ -204,3 +248,5 @@ func restore(data: Variant) -> void:
 		rehearsals = int(data.get("rehearsals",0))
 		encores = int(data.get("encores",0))
 		band_name = str(data.get("band_name",""))
+		tape_batches = int(data.get("tape_batches",0))
+		tapes_sold = int(data.get("tapes_sold",0))
