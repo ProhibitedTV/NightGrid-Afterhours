@@ -300,3 +300,7 @@ func staff_remark(at: Vector3,stage: int) -> String:
 	for id in _executives:
 		_executives[id].call("attend",at,id==closest)
 	return _remark
+
+func executive_interview_id(at:Vector3,stage:int) -> String:
+	staff_remark(at,stage)
+	return _near if _near in ["cto","legal","cfo"] else ""
