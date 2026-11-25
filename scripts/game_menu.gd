@@ -50,6 +50,7 @@ var _first_focus: Control
 var _ui_click: AudioStreamPlayer
 var _body_scroll: ScrollContainer
 var _body_col: VBoxContainer
+var _menu_panel: PanelContainer
 var _focus_order: Array[Control] = []
 var _last_focus: Dictionary = {}
 
@@ -214,6 +215,7 @@ func _render() -> void:
 	_root.add_child(center)
 	var panel := PanelContainer.new()
 	panel.name = "MenuPanel"
+	_menu_panel = panel
 	panel.custom_minimum_size = Vector2(760.0, 0.0)
 	panel.add_theme_stylebox_override("panel", Ui.card(0.97, 22))
 	center.add_child(panel)
@@ -389,8 +391,10 @@ func _focus_current() -> void:
 func _fit_menu() -> void:
 	if not is_instance_valid(_body_scroll) or not is_instance_valid(_body_col):
 		return
-	var height := get_viewport().get_visible_rect().size.y
-	_body_scroll.custom_minimum_size.y = minf(_body_col.get_combined_minimum_size().y, maxf(140.0, height - 200.0))
+	var viewport_size := get_viewport().get_visible_rect().size
+	if is_instance_valid(_menu_panel):
+		_menu_panel.custom_minimum_size.x = minf(840.0 if screen == "inventory" or screen == "journal" else 760.0, maxf(320.0, viewport_size.x - 64.0))
+	_body_scroll.custom_minimum_size.y = minf(_body_col.get_combined_minimum_size().y, maxf(140.0, viewport_size.y - 200.0))
 
 func _wire_focus() -> void:
 	# Explicit vertical order avoids focus jumping between unrelated rows.
@@ -428,6 +432,7 @@ func _value_row(parent: VBoxContainer, caption: String, value: String, tint: Col
 	if texture != null:
 		var icon := TextureRect.new()
 		icon.texture = texture
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		icon.custom_minimum_size = Vector2(38, 38)
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -450,6 +455,7 @@ func _inventory_meter(parent: VBoxContainer, caption: String, value: float, tint
 	meter.max_value = 100
 	meter.value = value
 	meter.show_percentage = false
+	meter.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	meter.custom_minimum_size.y = 7
 	meter.add_theme_stylebox_override("background", Ui.meter(Color("29363e")))
 	meter.add_theme_stylebox_override("fill", Ui.meter(tint))
