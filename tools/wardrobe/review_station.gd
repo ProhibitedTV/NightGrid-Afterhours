@@ -19,6 +19,7 @@ var status:Label
 var comparing:=false
 var active_donor:Dictionary={}
 var capture_dir:=""
+var candidate_hash:=""
 var busy:=false
 
 func _initialize()->void:
@@ -97,10 +98,13 @@ func _restore()->void:
 func _select_candidate()->void:
 	_restore()
 	active_donor={}
+	candidate_hash=""
 	comparing=false
 	var path:String=candidate_paths[index]
 	if ResourceLoader.exists(path,"PackedScene"):
 		active_donor=Geometry.review_donor(rig,target,load(path) as PackedScene)
+		if not active_donor.is_empty():
+			candidate_hash=FileAccess.get_sha256(path)
 	if active_donor.is_empty():
 		comparing=true
 		push_warning("Rejected or missing candidate: "+path)
@@ -158,7 +162,7 @@ func _input(event:InputEvent)->void:
 	_update_camera()
 
 func _capture()->void:
-	if capture_dir.is_empty() or active_donor.is_empty():
+	if capture_dir.is_empty() or active_donor.is_empty() or candidate_hash.length()!=64:
 		return
 	busy=true
 	await RenderingServer.frame_post_draw
@@ -168,7 +172,7 @@ func _capture()->void:
 		busy=false
 		return
 	var id:String=candidate_paths[index].get_base_dir().get_file()
-	var name:="%s_%s_%s_%d.png" % [id,POSES[pose_index],"base" if comparing else "candidate",Time.get_ticks_msec()]
+	var name:="%s_%s_%s_%s_%d.png" % [id,POSES[pose_index],"base" if comparing else "candidate",candidate_hash.substr(0,12),int(Time.get_unix_time_from_system()*1000)]
 	var error:=root.get_texture().get_image().save_png(folder.path_join(name))
 	if error!=OK:
 		push_warning("Capture failed: "+str(error))

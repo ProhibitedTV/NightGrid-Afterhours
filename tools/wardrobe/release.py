@@ -43,11 +43,44 @@ def review_record(review, evidence, ident, asset_hash, base_hash, profile_hash):
     files=[]
     for c in captures:
         p=file_in(evidence,c["file"])
+        prefix=ident+"_"+c["pose"]+"_candidate_"+asset_hash[:12]+"_"
+        require(p.name.startswith(prefix) and re.fullmatch(r"\d+\.png",p.name[len(prefix):]),"Capture not bound to selected candidate and pose")
         require(p.suffix.lower()==".png" and p.read_bytes()[:8]==b"\x89PNG\r\n\x1a\n","Expected PNG capture")
         require(sha(p)==c.get("sha256"),"Capture hash mismatch")
         require(p.stat().st_size<=20000000,"Capture size budget exceeded")
         files.append(p)
     return files
+
+def draft_record(ident, report, evidence):
+    """Collect candidate-hash-bound screenshots, never approve them."""
+    captures=[]
+    for pose in sorted(POSES):
+        pattern=re.compile(re.escape(ident)+"_"+pose+"_candidate_"+re.escape(report["sha256"][:12])+r"_(\d+)\.png")
+        matches=[]
+        for p in evidence.glob("*.png"):
+            m=pattern.fullmatch(p.name)
+            if m and p.is_file() and not p.is_symlink():
+                matches.append((int(m.group(1)),p))
+        if matches:
+            p=max(matches,key=lambda row:row[0])[1]
+            captures.append({"pose":pose,"file":p.name,"sha256":sha(p)})
+    return {"schema":1,"id":ident,"sha256":report["sha256"],"base_sha256":report["base_sha256"],
+            "profile_sha256":report["profile_sha256"],"reviewer":"","decision":"pending",
+            "license_notes":"","checks":{k:False for k in sorted(CHECKS)},"captures":captures}
+
+def write_draft(ident, candidate_root, evidence, destination):
+    spec=load_json(SPEC)
+    require(ident in candidate_rows(spec),"Unknown candidate")
+    folder=candidate_root/ident
+    report=load_json(file_in(folder,"candidate.json"))
+    require(report.get("id")==ident and report.get("sha256")==sha(file_in(folder,"Morrow_Courier.glb")),"Candidate report does not match model")
+    require(report.get("base_sha256")==sha(BASE) and report.get("profile_sha256")==sha(file_in(folder,"appearance.json")),"Candidate report is stale")
+    require(evidence.is_dir(),"Missing capture directory")
+    record=draft_record(ident,report,evidence)
+    with destination.open("x",encoding="utf-8") as out:
+        json.dump(record,out,indent=2)
+        out.write("\n")
+    print("WARDROBE REVIEW DRAFT",ident,len(record["captures"]),"of",len(POSES),"captures; manual review required")
 
 def stage(ident, candidate_root, review_path, evidence, staging):
     spec=load_json(SPEC)
@@ -91,7 +124,7 @@ def check_checkout():
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action",choices=["check-checkout","stage"])
+    parser.add_argument("action",choices=["check-checkout","draft","stage"])
     parser.add_argument("--id")
     parser.add_argument("--candidate-root",type=Path,default=CANDIDATES)
     parser.add_argument("--review",type=Path)
@@ -100,7 +133,10 @@ def main():
     if args.action=="check-checkout":
         check_checkout()
         return
-    require(args.id and args.review and args.evidence,"Stage requires ID, manual review JSON and evidence directory")
+    require(args.id and args.review and args.evidence,"Requires ID, review JSON path and evidence directory")
+    if args.action=="draft":
+        write_draft(args.id,args.candidate_root,args.evidence,args.review)
+        return
     stage(args.id,args.candidate_root,args.review,args.evidence,STAGING)
 
 if __name__=="__main__":
