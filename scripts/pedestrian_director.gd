@@ -136,7 +136,7 @@ func tick(delta: float, focus: Vector3, camera: Camera3D, indoors: bool, occupie
 	_clock = fposmod(_clock,PLAN_PERIOD)
 	var certified := func(entry: Dictionary) -> bool: return _cert.cached_clear(_city,entry)
 	var allow := func(entry: Dictionary) -> bool:
-		return _pool.call("has_free_style", entry["style"]) and _safety.pedestrian_spawn_allowed(camera,_city,space,entry,certified)
+		return _quest_slot_available(entry) and _safety.pedestrian_spawn_allowed(camera,_city,space,entry,certified)
 	var hidden := func(at: Vector3) -> bool: return _safety.hidden(camera,at,Safety.PEDESTRIAN_RADIUS)
 	var plan: Dictionary = _population.plan_changes(focus,camera.global_position,false,active,occupied,allow,hidden,hour)
 	for id in plan["recycle"]:
@@ -150,6 +150,8 @@ func tick(delta: float, focus: Vector3, camera: Camera3D, indoors: bool, occupie
 		if _leases.size()>=int(_pool.call("capacity")):
 			break
 		var id: String = entry["id"]
+		if not _quest_slot_available(entry):
+			continue
 		var at: Vector3 = entry["position"]
 		if not bool(_city.call("reserve_pedestrian_parcel",id,entry["start"],entry["end"])):
 			_failed_activation += 1
@@ -439,7 +441,23 @@ func cal_position()->Vector3:
 	if active.has(id):
 		return active[id]
 	var sample:Dictionary=_population.sample(id)
-	return sample.get("position",Vector3.INF)
+	if sample.is_empty():
+		return Vector3.INF
+	# An unloaded NPC has no observed physical position. Guide to the
+	# center of his home link rather than a constantly moving guess.
+	var a:Vector3=sample["start"]
+	var b:Vector3=sample["end"]
+	return (a+b)*0.5
+
+func cal_is_live()->bool:
+	return active_positions().has(str(_named_ids.get("robot_romantic","")))
+
+func _quest_slot_available(entry:Dictionary)->bool:
+	var reserved:=-1
+	if not _quest_resident.is_empty() and not _leases.has(_quest_resident) and entry.get("id","")!=_quest_resident:
+		var target:Dictionary=_population.sample(_quest_resident)
+		reserved=int(target.get("style",-1))
+	return bool(_pool.call("can_allocate_style",int(entry["style"]),reserved))
 
 func is_named_cal(id:String)->bool:
 	return not id.is_empty() and _named_ids.get("robot_romantic","")==id

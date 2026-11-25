@@ -74,14 +74,23 @@ func active_positions() -> Dictionary:
 func capacity() -> int:
 	return _slots.size()
 
-func has_free_style(style: int) -> bool:
-	var used := {}
+func free_style_count(style:int)->int:
+	var used:Dictionary={}
 	for lease in _leases.values():
-		used[lease["slot"]] = true
-	for i in range(style % _model_count, _slots.size(), _model_count):
+		used[lease["slot"]]=true
+	var free:=0
+	for i in range(posmod(style,_model_count),_slots.size(),_model_count):
 		if not used.has(i):
-			return true
-	return false
+			free+=1
+	return free
+
+func has_free_style(style:int)->bool:
+	return free_style_count(style)>0
+
+## Reserve the final compatible slot for an absent tracked resident.
+func can_allocate_style(style:int,reserved_style:int=-1)->bool:
+	var free:=free_style_count(style)
+	return free>1 if reserved_style>=0 and posmod(style,_model_count)==posmod(reserved_style,_model_count) else free>0
 
 func activate(population, id: String, ground_y: float, allowed: Callable) -> bool:
 	if population == null or _leases.has(id) or not allowed.is_valid() or not is_finite(ground_y):

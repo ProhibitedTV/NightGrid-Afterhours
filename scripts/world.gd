@@ -154,6 +154,8 @@ var pedestrians: Node3D
 var _pedestrian_scan := 0.0
 var _street_contact_id:=""
 var _cal_pending:Dictionary={}
+var _cal_tracking:=false
+var _cal_nav_clock:=0.0
 const CAL_PICKUP="moon_noodles"
 var city_perimeter: Node3D
 var flora: Node3D
@@ -442,9 +444,7 @@ func _on_menu_action(action: String) -> void:
 				_cal_pending={"id":_street_contact_id,"action":action}
 			_street_contact_id=""
 		"cal_waypoint":
-			var point:=_cal_target()
-			if point.is_finite():
-				set_navigation_waypoint(Vector2(point.x,point.z))
+			_track_cal_waypoint()
 			game_menu.call("open_journal",_journal_context())
 		"street_reply_0","street_reply_1":
 			if is_instance_valid(pedestrians) and not _street_contact_id.is_empty():
@@ -1087,6 +1087,7 @@ func _update_pedestrians(delta: float, actor: Node3D, indoors: bool) -> void:
 	if is_instance_valid(dialogue_director):
 		pedestrians.call("update_street_dialogue",dialogue_director,actor.global_position+Vector3.UP*1.6,player.get_rid(),street_mode and current_car==null and weapons.equipped=="holstered",delta)
 	_resolve_cal_action(street_mode and current_car==null and weapons.equipped=="holstered")
+	_update_cal_navigation(delta)
 	_pedestrian_scan += delta
 	if not street_mode or _pedestrian_scan < 0.18:
 		return
@@ -2062,6 +2063,10 @@ func _apply_snapshot(data: Dictionary) -> void:
 	# Geometry is already reconstructed from the saved immutable seed.
 	if is_instance_valid(nightgrid_fm):
 		nightgrid_fm.call("restore", data.get("nightgrid_radio", {}))
+	# A saved active favor is explicit prior opt-in; do not strand the job
+	# when the next launch omits --living-streets.
+	if progression.cal_quest in [1,2] and not is_instance_valid(pedestrians):
+		enable_living_streets()
 	if is_instance_valid(pedestrians):
 		pedestrians.call("restore", data.get("sidewalk_population", {}))
 	navigation_waypoint = Nav.decode(data.get("navigation_waypoint", []))
@@ -2401,9 +2406,7 @@ func _toggle_interaction() -> void:
 		return
 	if _cal_pickup_reachable() and progression.collect_cal_gift():
 		_notify("COMPATIBILITY PATCH: Collected Cal\u0027s prepaid anniversary heat sink. Return to Cal Mercer.")
-		var target:=_cal_target()
-		if target.is_finite():
-			set_navigation_waypoint(Vector2(target.x,target.z))
+		_track_cal_waypoint()
 		return
 	var machine: Node3D = city_details.call("nearby_vending",player.global_position)
 	if is_instance_valid(machine):
@@ -3681,6 +3684,7 @@ func _venue_job_target() -> Vector3:
 func set_navigation_waypoint(point: Vector2) -> Vector2:
 	if not point.is_finite():
 		return Vector2.ZERO if navigation_waypoint == null else navigation_waypoint
+	_cal_tracking=false
 	point = Nav.clamp_point(point)
 	# Prefer exact, persistent interaction positions when clicking near pins.
 	var selected := point
@@ -3706,6 +3710,7 @@ func set_navigation_waypoint(point: Vector2) -> Vector2:
 	return selected
 
 func clear_navigation_waypoint() -> void:
+	_cal_tracking=false
 	navigation_waypoint = null
 	_route_cache.clear()
 	_route_revision = -1
@@ -3947,7 +3952,12 @@ func _cal_target()->Vector3:
 func _cal_objective()->String:
 	match progression.cal_quest:
 		1: return "COMPATIBILITY PATCH / Collect prepaid gift at Moon Noodles"
-		2: return "COMPATIBILITY PATCH / Return heat sink to Cal Mercer (follow his neighborhood waypoint)"
+		2:
+			if not is_instance_valid(pedestrians):
+				return "COMPATIBILITY PATCH / Living Streets unavailable; relaunch with --living-streets"
+			if not pedestrians.call("cal_is_live"):
+				return "COMPATIBILITY PATCH / Cal's neighborhood; approach from 35–95m with the sidewalk out of view"
+			return "COMPATIBILITY PATCH / Return heat sink to Cal Mercer"
 		3: return "COMPATIBILITY PATCH / Completed"
 	return ""
 
@@ -3971,6 +3981,35 @@ func _resolve_cal_action(allowed:bool)->void:
 		_notify(str(cue["text"]))
 	else:
 		_notify("COMPATIBILITY PATCH / Accepted" if action=="accept" else "COMPATIBILITY PATCH / Completed +$85")
-	var target:=_cal_target()
-	if target.is_finite():
-		set_navigation_waypoint(Vector2(target.x,target.z))
+	if action=="accept":
+		_track_cal_waypoint()
+	elif _cal_tracking:
+		clear_navigation_waypoint()
+
+## Quest-owned waypoints bypass venue snapping; manual map pins keep priority.
+func _track_cal_waypoint()->void:
+	var point:=_cal_target()
+	if not point.is_finite():
+		return
+	_cal_tracking=true
+	_cal_nav_clock=0.0
+	_update_cal_navigation(0.0)
+
+func _update_cal_navigation(delta:float)->void:
+	if not _cal_tracking:
+		return
+	if progression.cal_quest not in [1,2]:
+		clear_navigation_waypoint()
+		return
+	_cal_nav_clock-=delta
+	if _cal_nav_clock>0.0:
+		return
+	_cal_nav_clock=1.0
+	var point:=_cal_target()
+	if not point.is_finite():
+		return
+	var target:=Nav.clamp_point(Vector2(point.x,point.z))
+	if navigation_waypoint==null or target.distance_to(navigation_waypoint)>=4.0:
+		navigation_waypoint=target
+		_route_cache.clear()
+		_route_revision=-1
