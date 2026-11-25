@@ -511,8 +511,6 @@ func _opening_interact() -> void:
 	if _opening_office.call("try_lift",player):
 		_snap_camera()
 		return
-	if int(_opening_office.get("_active_floor"))>0:
-		return
 	if not _opening_office.call("errand_complete"):
 		if _opening_office.call("try_errand",player):
 			return

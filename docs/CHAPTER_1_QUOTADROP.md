@@ -95,3 +95,6 @@ The IT handoff and audit now occur on a real below-grade floor with 20 populated
 
 ### Offline environmental SFX pipeline
 See [SFX authoring](SFX_AUTHORING.md). Stable Audio 3 Small-SFX candidates are generated outside the runtime, converted to mono 48 kHz PCM, loop-crossfaded or faded, and explicitly reviewed before publication. Optional spatial clips are loaded by office floors, B1, robotics, keyboard impact and lift; existing B1 synthetic hum remains a fallback. No generated WAVs are claimed until actual inference and review.
+
+### Founder crown suite
+Executive Leadership is now at the tower crown, level 14 (47.45 m above HQ base), with express lift between the fourth workfloor and the crown; intervening non-playable stories retain the existing shell. Jetson's 58 m² suite exceeds Finance's 48 m² office and opens onto a 20 m² east terrace with solid deck and glass rail collision. Marble monolithic desk, walnut gallery, brass trophies, founder branding, panoramic console and lounge. CTO moves to the former talent desk. Jetson, Lin and Dana relocate upstairs; briefing and termination objectives/cameras move with them, followed by return to reception. Actual transparent glazing and an opening replace the opaque east facade at the crown. Native city sightlines, collision and lighting still require playtesting.

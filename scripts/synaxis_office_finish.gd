@@ -124,6 +124,8 @@ func _facade() -> void:
 				var key := "glass_lit" if (bay+level*3+int(side))%9==0 else ("glass_dark" if (bay+level)%4==0 else "glass")
 				_part("tower",key,Vector3(x,y,side*10.04),Vector3(2.28,3.02,.12))
 			for bay in range(8):
+				if side>0 and level==11:
+					continue # Clear actual crown glazing and balcony sightline.
 				var z := -8.75+bay*2.5
 				var key := "glass_dark" if (bay+level)%5==0 else "glass"
 				_part("tower",key,Vector3(side*8.54,y,z),Vector3(.12,3.02,2.37))
@@ -132,7 +134,7 @@ func _facade() -> void:
 		for bay in range(8):
 			_part("tower","trim",Vector3(-8.4+bay*2.4,27.5,side*10.13),Vector3(.065,43.8,.12))
 		for bay in range(9):
-			_part("tower","trim",Vector3(side*8.63,27.5,-10+bay*2.5),Vector3(.12,43.8,.065))
+			_part("tower","trim",Vector3(side*8.63,26.45,-10+bay*2.5),Vector3(.12,41.9,.065))
 
 func _desk(at: Vector3,width: float,depth: float,finish: String,executive: bool=false) -> void:
 	_part("furniture",finish,at+Vector3(0,1.025,0),Vector3(width,.11,depth))

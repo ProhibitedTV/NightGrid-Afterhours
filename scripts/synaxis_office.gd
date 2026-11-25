@@ -55,7 +55,7 @@ var _hr: Node3D
 const START = Vector3(0,1.15,7)
 const BREAKROOM_POINT = Vector3(-4.2,1.15,6.85)
 var _breakroom_seen := false
-const POINTS = {-2:CUBICLE_POINT,-1:Vector3(-5,1.15-Workfloor.FLOOR_HEIGHT,4),0:Vector3(-5,1.15-Workfloor.FLOOR_HEIGHT,4),2:Vector3(5,1.15,-4),4:Vector3(-5,1.15,-4),5:Vector3(5,1.15,5)}
+const POINTS = {-2:CUBICLE_POINT,-1:Vector3(-5,1.15-Workfloor.FLOOR_HEIGHT,4),0:Vector3(-5,1.15-Workfloor.FLOOR_HEIGHT,4),2:ExecutiveFloor.CEO_GOAL+Vector3.UP*ExecutiveFloor.BASE,4:ExecutiveFloor.HR_GOAL+Vector3.UP*ExecutiveFloor.BASE,5:Vector3(5,1.15,5)}
 const TITLES = {-2:"CORPORATE IP SECURITY / COLLECT THE FOLDER",-1:"B1 IT DEPARTMENT / DROP OFF THE FOLDER",0:"B1 IT DESK / REVIEW THE ALERT",2:"EXECUTIVE OFFICE / ATTEND BRIEFING",4:"PEOPLE EXPERIENCE / EXIT INTERVIEW",5:"RECEPTION / COLLECT FINAL NOTICE"}
 var _target_sign: Label3D
 var _hint: Label
@@ -81,7 +81,7 @@ func _ready() -> void:
 	Brand.wall_logo(self,"EntranceBrand",Vector3(0,3.12,-10.17),PI,2.15)
 	_sign("PUBLIC LOBBY",Vector3(0,2.65,-10.17),.0045).rotation.y = PI
 	# Fixed upper-floor shell, not a second generic building intersecting the office.
-	_solid("TowerCore",Vector3(0,36.125,0),Vector3(17,28.45,20),_material("glass",Color("354c60")))
+	_solid("TowerCore",Vector3(0,32.85,0),Vector3(17,29.2,20),_material("glass",Color("354c60")))
 	_build_workfloor_shell(wall,floor_mat)
 	for floor in range(12):
 		var y := 5.4+float(floor)*3.65
@@ -172,7 +172,7 @@ func _ready() -> void:
 		light.hide()
 
 func _build_workfloor_shell(wall: Material,floor_mat: Material) -> void:
-	for level in range(1,ExecutiveFloor.FLOOR+1):
+	for level in range(1,Workfloor.FLOOR_COUNT+1):
 		var base:=level*Workfloor.FLOOR_HEIGHT
 		# Ground ceiling already serves as level 1's floor slab.
 		if level>1:
@@ -180,6 +180,26 @@ func _build_workfloor_shell(wall: Material,floor_mat: Material) -> void:
 		for side in [-1.0,1.0]:
 			_solid("UpperSide",Vector3(side*8.5,base+1.675,0),Vector3(.25,3.35,20),wall)
 			_solid("UpperEnd",Vector3(0,base+1.675,side*10),Vector3(17,3.35,.25),wall)
+	# Crown suite sits at the top of the retained exterior tower core.
+	var top:=ExecutiveFloor.BASE
+	_solid("CrownSuiteSlab",Vector3(0,top-.15,0),Vector3(17,.3,20),floor_mat)
+	_solid("CrownSuiteCeiling",Vector3(0,top+3.5,0),Vector3(17,.3,20),wall)
+	_solid("CrownWest",Vector3(-8.5,top+1.675,0),Vector3(.25,3.35,20),wall)
+	for side in [-1.0,1.0]:
+		_solid("CrownEnd",Vector3(0,top+1.675,side*10),Vector3(17,3.35,.25),wall)
+	_solid("CrownEastUtility",Vector3(8.5,top+1.675,4.65),Vector3(.25,3.35,10.7),wall)
+	# Real transparent glazing on the skyline side, leaving a full-height terrace doorway.
+	var clear:=StandardMaterial3D.new()
+	clear.albedo_color=Color(.53,.69,.74,.17)
+	clear.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+	clear.roughness=.15
+	for interval in [Vector2(-10,-5),Vector2(-3,-.7)]:
+		var bounds:Vector2=interval
+		_solid("CrownWindow",Vector3(8.5,top+1.675,(bounds.x+bounds.y)*.5),Vector3(.10,3.35,bounds.y-bounds.x),clear)
+	_solid("CrownDoorHeader",Vector3(8.5,top+3.07,-4),Vector3(.25,.56,2),wall)
+	_solid("CrownTerraceSlab",Vector3(9.85,top-.15,-5),Vector3(2.7,.3,7.4),floor_mat)
+	# Outside the terrace extent, retain a barrier to prevent stepping into the void.
+	_collision("CrownCornerGuard",Vector3(8.5,top+1.675,-9.35),Vector3(.10,3.35,1.3))
 	for side in [-1.0,1.0]:
 		_visual("GroundLiftPad",Vector3(side*.9,.018,5),Vector3(.78,.016,.82),_material("liftpad",Color("457d79")))
 	_sign("LIFT UP / OFFICE FLOORS",Vector3(-.9,1.85,5.48),.003)
@@ -232,11 +252,14 @@ func _select_floor(level: int) -> void:
 		_basement.call("set_occupied",_prologue_active and _active_floor==Basement.FLOOR)
 	for id in _staff:
 		var actor:Node3D=_staff[id]
-		var occupied:bool=_prologue_active and _active_floor==(Basement.FLOOR if id=="eli" else 0)
+		var occupied:bool=_prologue_active and _active_floor==staff_floor(id)
 		actor.visible=occupied
 		actor.process_mode=Node.PROCESS_MODE_ALWAYS if occupied else Node.PROCESS_MODE_DISABLED
 		if not occupied:
 			actor.call("attend",Vector3.ZERO,false)
+	if is_instance_valid(_assistant):
+		_assistant.visible=_prologue_active and _active_floor==ExecutiveFloor.FLOOR
+		_assistant.process_mode=Node.PROCESS_MODE_ALWAYS if _assistant.visible else Node.PROCESS_MODE_DISABLED
 	_target_sign.visible=_prologue_active and absf(_target_sign.position.y-2.30-_active_floor*Workfloor.FLOOR_HEIGHT)<.1
 
 func lift_direction(at: Vector3) -> int:
@@ -255,7 +278,12 @@ func try_lift(player: CharacterBody3D) -> bool:
 	var direction:=lift_direction(player.global_position)
 	if direction==0:
 		return false
-	_select_floor(_active_floor+direction)
+	var destination:=_active_floor+direction
+	if direction>0 and _active_floor==Workfloor.FLOOR_COUNT:
+		destination=ExecutiveFloor.FLOOR
+	elif direction<0 and _active_floor==ExecutiveFloor.FLOOR:
+		destination=Workfloor.FLOOR_COUNT
+	_select_floor(destination)
 	player.global_position=to_global(Vector3(0,_active_floor*Workfloor.FLOOR_HEIGHT+1.15,Workfloor.LIFT.y))
 	player.velocity=Vector3.ZERO
 	if is_instance_valid(_lift_audio):
@@ -414,6 +442,10 @@ func _build_cast() -> void:
 		var actor:=Staff.new()
 		actor.configure_staff(spec)
 		actor.position=spec["position"]
+		if spec["id"]=="jetson_wang":
+			actor.position=ExecutiveFloor.CEO_ANCHOR+Vector3.UP*ExecutiveFloor.BASE
+		elif spec["id"]=="people_ops":
+			actor.position=ExecutiveFloor.HR_ANCHOR+Vector3.UP*ExecutiveFloor.BASE
 		actor.rotation.y=float(spec["yaw"])
 		actor.process_mode=Node.PROCESS_MODE_ALWAYS
 		_cast.add_child(actor)
@@ -422,24 +454,24 @@ func _build_cast() -> void:
 	_hr=_staff["people_ops"]
 	_assistant=Assistant.new()
 	_assistant.name="LinXue"
-	_assistant.position=Vector3(7.1,0,-5.8)
+	_assistant.position=ExecutiveFloor.ASSISTANT_ANCHOR+Vector3.UP*ExecutiveFloor.BASE
 	_assistant.scale=Vector3.ONE*.88
 	_assistant.process_mode=Node.PROCESS_MODE_ALWAYS
 	_cast.add_child(_assistant)
-	for sign in [_sign("JETSON WANG / CEO",Vector3(5,2.55,-6.65),.0045),_sign("LIN XUE / EXECUTIVE ASSISTANT",Vector3(7.1,2.35,-5.8),.004),_sign("PEOPLE EXPERIENCE",Vector3(-5,2.55,-6.65),.0045)]:
+	for sign in [_sign("JETSON WANG / CEO",ExecutiveFloor.CEO_ANCHOR+Vector3.UP*(ExecutiveFloor.BASE+2.55),.0045),_sign("LIN XUE / EXECUTIVE ASSISTANT",ExecutiveFloor.ASSISTANT_ANCHOR+Vector3.UP*(ExecutiveFloor.BASE+2.35),.004),_sign("PEOPLE EXPERIENCE",ExecutiveFloor.HR_ANCHOR+Vector3.UP*(ExecutiveFloor.BASE+2.55),.0045)]:
 		sign.reparent(_cast,false)
 
 func dialogue_camera(camera: Camera3D,stage: int,beat: int) -> void:
-	var from := Vector3(4.0,1.85,-2.7)
-	var toward := Vector3(6.4,1.6,-6.25)
+	var from := Vector3(3.2,1.95,-3.85)
+	var toward := ExecutiveFloor.CEO_ANCHOR+Vector3.UP*1.55
 	if stage == 4:
-		from = Vector3(-6.9,1.8,-2.7)
-		toward = Vector3(-4.4,1.55,-6.25)
+		from = Vector3(-7.3,1.85,3.9)
+		toward = ExecutiveFloor.HR_ANCHOR+Vector3.UP*1.55
 	elif beat == 1:
-		from = Vector3(5.6,1.85,-3.7)
-		toward = Vector3(7.1,1.6,-5.8)
-	camera.global_position = to_global(from)
-	camera.look_at(to_global(toward),Vector3.UP)
+		from = Vector3(5.9,1.85,-3.65)
+		toward = ExecutiveFloor.ASSISTANT_ANCHOR+Vector3.UP*1.55
+	camera.global_position = to_global(from+Vector3.UP*ExecutiveFloor.BASE)
+	camera.look_at(to_global(toward+Vector3.UP*ExecutiveFloor.BASE),Vector3.UP)
 	_assistant.call("set_phone_call",stage==2 and beat==1)
 	if is_instance_valid(_ceo):
 		_ceo.call("set_scene_beat",beat if stage==2 else -1)
@@ -670,7 +702,14 @@ func reachable(stage: int,at: Vector3) -> bool:
 	return POINTS.has(stage) and _active_floor==objective_floor(stage) and at.distance_to(point(stage)) <= 1.8
 
 func objective_floor(stage:int) -> int:
+	if stage in [2,4]:
+		return ExecutiveFloor.FLOOR
 	return Basement.FLOOR if stage in [-1,0] else 0
+
+func staff_floor(id:String) -> int:
+	if id in ["jetson_wang","people_ops"]:
+		return ExecutiveFloor.FLOOR
+	return Basement.FLOOR if id=="eli" else 0
 
 func set_stage(stage: int) -> void:
 	if not POINTS.has(stage):
@@ -686,15 +725,15 @@ func update_staff_attention(stage: int,at: Vector3) -> String:
 	var best := 2.25*2.25
 	for id in _staff:
 		var actor: Node3D=_staff[id]
-		if _active_floor!=(Basement.FLOOR if id=="eli" else 0):
+		if _active_floor!=staff_floor(id):
 			continue
 		var distance:=actor.global_position.distance_squared_to(at-Vector3.UP*1.15)
 		# Avoid talking through executive partitions or across the locked gate.
 		var local:=to_local(at)
 		var anchor:=actor.position
-		if (local.z< -7.65)!=(anchor.z< -7.65):
+		if _active_floor==0 and (local.z< -7.65)!=(anchor.z< -7.65):
 			continue
-		if local.z>Arrival.PARTITION_NEAR_Z and local.z<Arrival.PARTITION_FAR_Z and anchor.z>Arrival.PARTITION_NEAR_Z and anchor.z<Arrival.PARTITION_FAR_Z and local.x*anchor.x<0.0:
+		if _active_floor==0 and local.z>Arrival.PARTITION_NEAR_Z and local.z<Arrival.PARTITION_FAR_Z and anchor.z>Arrival.PARTITION_NEAR_Z and anchor.z<Arrival.PARTITION_FAR_Z and local.x*anchor.x<0.0:
 			continue
 		if distance<best:
 			closest=id
@@ -728,9 +767,15 @@ func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 		return
 	if _active_floor>0:
 		var department: String=ExecutiveFloor.TITLE if _active_floor==ExecutiveFloor.FLOOR else Workfloor.DEPARTMENTS[_active_floor-1]
-		_hint.text="SYNAXIS / LEVEL %d / %s\nUse the lift for: %s" % [_active_floor+1,department,TITLES[stage]]
+		_hint.text="SYNAXIS / LEVEL %d / %s\n%s" % [_active_floor+1,department,TITLES[stage]]
+		if reachable(stage,at):
+			_hint.text+="\n"+("X / INTERACT" if gamepad else "G / INTERACT")
+		elif objective_floor(stage)!=_active_floor:
+			_hint.text+="\nUse the lift."
 		if _active_floor==ExecutiveFloor.FLOOR and is_instance_valid(_executive_floor):
 			var executive_line: String=_executive_floor.call("staff_remark",at,stage)
+			if executive_line.is_empty():
+				executive_line=update_staff_attention(stage,at)
 			if not executive_line.is_empty():
 				_hint.text+="\n"+executive_line
 		if _active_floor<=Workfloor.FLOOR_COUNT:

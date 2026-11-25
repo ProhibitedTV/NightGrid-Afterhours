@@ -192,6 +192,8 @@ func _draw_office() -> void:
 				_segment(Vector2(x,-8.34),Vector2(x,-1.46),Color("52616e"),6.0)
 			_segment(Vector2(-6.3,2.55),Vector2(-3.7,2.55),Color("ad9065"),5.0)
 		elif _office_floor==ExecutiveFloor.FLOOR:
+			for edge in ExecutiveFloor.BALCONY_EDGES:
+				_segment(edge[0],edge[1],Color("ad9065"),2.0)
 			for edge in ExecutiveFloor.WALL_EDGES:
 				_segment(edge[0],edge[1],wall,2.6)
 			for edge in ExecutiveFloor.FURNITURE_EDGES:

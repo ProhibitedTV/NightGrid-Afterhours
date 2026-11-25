@@ -498,8 +498,9 @@ func _verify() -> void:
 	if desk_total<100:
 		_fail("HQ needs at least 100 dedicated workstations")
 		return
-	for level in range(1,6):
-		player.global_position=office.to_global(Vector3(-.9,(level-1)*3.65+1.15,5))
+	for level in [1,2,3,4,13]:
+		var previous:int=office.get("_active_floor")
+		player.global_position=office.to_global(Vector3(-.9,previous*3.65+1.15,5))
 		world.call("_opening_interact")
 		if int(office.get("_active_floor"))!=level or absf(office.to_local(player.global_position).y-(level*3.65+1.15))>.01:
 			_fail("Lift travels to actual upper floor elevations")
@@ -572,14 +573,18 @@ func _verify() -> void:
 		_fail("Executive level must have seven distinct staff and physical luxury furniture")
 		return
 	var leadership: Node3D=office.get_node("ExecutiveFloor")
+	if float(leadership_stats["ceo_suite_area"])<=float(leadership_stats["other_office_area"]) or float(leadership_stats["balcony_area"])<19.0 or leadership.position.y<47.0 or office.get_node_or_null("CrownTerraceSlab")==null:
+		_fail("Founder has largest private suite and collision-backed terrace at the tower crown")
+		return
 	var hr_line: String=leadership.call("staff_remark",leadership.to_global(Vector3(-5.6,1.15,3.65)),-2)
 	if not hr_line.contains("Blaire Sterling") or not hr_line.contains("whole self") or leadership.call("staff_remark",leadership.to_global(Vector3(-5.6,1.15,3.65)),4)==hr_line:
 		_fail("HR slogans vary with mission phase and actual proximity")
 		return
-	for level in range(5,0,-1):
-		player.global_position=office.to_global(Vector3(.9,level*3.65+1.15,5))
+	for level in [4,3,2,1,0]:
+		var previous:int=office.get("_active_floor")
+		player.global_position=office.to_global(Vector3(.9,previous*3.65+1.15,5))
 		world.call("_opening_interact")
-		if int(office.get("_active_floor"))!=level-1:
+		if int(office.get("_active_floor"))!=level:
 			_fail("Lift returns to the ground-floor tutorial")
 			return
 	if bool(office.call("executive_floor_stats")["occupied"]):
@@ -685,6 +690,12 @@ func _verify() -> void:
 	if int(office.get("_active_floor"))!=0 or bool(basement.call("basement_stats")["hum"]):
 		_fail("Returning to ground floor stops server-room ambient audio")
 		return
+	for next_floor in [1,2,3,4,13]:
+		player.global_position=office.to_global(Vector3(-.9,int(office.get("_active_floor"))*3.65+1.15,5))
+		world.call("_opening_interact")
+		if int(office.get("_active_floor"))!=next_floor:
+			_fail("Executive briefing requires travelling to the crown")
+			return
 	player.global_position = office.call("point",2)
 	world.call("_opening_interact")
 	menu.call("_choice","opening_phone")
@@ -714,6 +725,12 @@ func _verify() -> void:
 		_fail("Cannot collect severance before offboarding")
 		return
 	menu.call("_choice","opening_exit_decline")
+	for next_floor in [4,3,2,1,0]:
+		player.global_position=office.to_global(Vector3(.9,int(office.get("_active_floor"))*3.65+1.15,5))
+		world.call("_opening_interact")
+		if int(office.get("_active_floor"))!=next_floor:
+			_fail("Offboarding returns through the lift to reception")
+			return
 	player.global_position = office.call("point",5)
 	world.call("_opening_interact")
 	if menu.get("_opening_exit")!="opening_exit_decline":
