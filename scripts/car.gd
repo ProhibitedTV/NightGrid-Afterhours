@@ -227,6 +227,8 @@ func _resolve_contacts(incoming: Vector3) -> bool:
 				light_closing = maxf(light_closing, closing)
 				retained = minf(retained, 0.90)
 				continue
+		if obstacle != null and obstacle.has_method("receive_fixture_impact"):
+			obstacle.call("receive_fixture_impact",closing,-normal,contact.get_position())
 		# A glancing scrape sheds only its into-wall component. A direct
 		# strike loses forward momentum even during the damage cooldown.
 		var incidence := clampf(-incoming.dot(normal) / entry_speed, 0.0, 1.0)
