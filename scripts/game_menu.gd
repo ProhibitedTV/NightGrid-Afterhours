@@ -149,6 +149,11 @@ func open_phone(context: Dictionary, from_pause: bool = false) -> void:
 	_phone_from_pause = from_pause
 	_open("phone")
 
+func refresh_phone(context: Dictionary) -> void:
+	if screen == "phone":
+		_phone_data = context.duplicate(true)
+		_render()
+
 func _phone_back() -> void:
 	if not _phone_app.is_empty():
 		_phone_app = ""
@@ -553,15 +558,42 @@ func _wire_focus() -> void:
 		item.focus_neighbor_bottom = item.get_path_to(next)
 		item.focus_previous = item.get_path_to(prev)
 		item.focus_next = item.get_path_to(next)
+	if screen == "phone" and _phone_app.is_empty() and _focus_order.size() == 7:
+		for i in range(6):
+			var item := _focus_order[i]
+			item.focus_neighbor_left = item.get_path_to(_focus_order[i-1] if i%2 == 1 else item)
+			item.focus_neighbor_right = item.get_path_to(_focus_order[i+1] if i%2 == 0 else item)
+			item.focus_neighbor_top = item.get_path_to(_focus_order[i-2] if i>=2 else _focus_order[6])
+			item.focus_neighbor_bottom = item.get_path_to(_focus_order[i+2] if i<4 else _focus_order[6])
+		_focus_order[6].focus_neighbor_top = _focus_order[6].get_path_to(_focus_order[4])
+		_focus_order[6].focus_neighbor_bottom = _focus_order[6].get_path_to(_focus_order[0])
 
 func _render_phone(col: VBoxContainer) -> void:
 	if _phone_app.is_empty():
 		_label(col, "Your city, connected.", 18, Ui.MUTED)
+		var apps := GridContainer.new()
+		apps.columns = 2
+		apps.add_theme_constant_override("h_separation",10)
+		apps.add_theme_constant_override("v_separation",10)
+		col.add_child(apps)
 		for entry in Phone.APPS:
 			var id: String = entry["id"]
-			_button(col, "phone_app_" + id, "%s    %s" % [entry["mark"], entry["name"]], "phone_app_" + id)
-			var app_button: Button = _buttons["phone_app_" + id]
+			var app_button := Button.new()
+			app_button.name = "Menu_phone_app_" + id
+			app_button.text = "%s\n%s" % [entry["mark"],entry["name"]]
+			app_button.custom_minimum_size = Vector2(0,100)
+			app_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			app_button.add_theme_font_size_override("font_size",20)
 			app_button.add_theme_color_override("font_color",Color(entry["color"]))
+			var tile := Ui.button_style(Color("1b2934"),Color("344752"))
+			tile.set_corner_radius_all(12)
+			app_button.add_theme_stylebox_override("normal",tile)
+			app_button.pressed.connect(_choice.bind("phone_app_"+id))
+			apps.add_child(app_button)
+			_buttons["phone_app_"+id] = app_button
+			_focus_order.append(app_button)
+			if _first_focus == null:
+				_first_focus = app_button
 		_button(col, "phone_back", "Put phone away" if not _phone_from_pause else "Back to pause", "phone_back")
 		return
 	var entry := Phone.app(_phone_app)
@@ -667,7 +699,7 @@ func _choice(action: String) -> void:
 			_phone_app = id
 			_render()
 		return
-	if action.begins_with("phone_route_") and screen == "phone":
+	if (action.begins_with("phone_route_") or action == "phone_decline_offer") and screen == "phone":
 		action_requested.emit(action)
 		return
 	match action:
