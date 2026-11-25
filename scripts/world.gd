@@ -183,6 +183,7 @@ var _investigation_open := false
 var _investigation_feedback := ""
 const MusicCareer = preload("res://scripts/music_career.gd")
 const BuskerTrack = preload("res://assets/audio/music/busker_demo.wav")
+const BandTrack = preload("res://assets/audio/music/band_demo.wav")
 var music_career := MusicCareer.new()
 var _music_audio: AudioStreamPlayer3D
 var _music_site := ""
@@ -734,16 +735,16 @@ func _start_music(kind: String, site: String) -> bool:
 	if not is_instance_valid(_music_audio):
 		_music_audio = AudioStreamPlayer3D.new()
 		_music_audio.name = "LiveBusker"
-		var loop := BuskerTrack.duplicate() as AudioStreamWAV
-		loop.loop_mode = AudioStreamWAV.LOOP_FORWARD
-		loop.loop_begin = 0
-		loop.loop_end = roundi(loop.get_length()*loop.mix_rate)
-		_music_audio.stream = loop
 		_music_audio.bus = AudioMix.MUSIC
 		_music_audio.max_distance = 22.0
 		_music_audio.unit_size = 4.0
 		player.add_child(_music_audio)
-	_music_audio.volume_db = -12.0
+	var source: AudioStreamWAV = BandTrack if kind in ["band","rehearse"] else BuskerTrack
+	var loop := source.duplicate() as AudioStreamWAV
+	loop.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	loop.loop_begin = 0
+	loop.loop_end = roundi(loop.get_length()*loop.mix_rate)
+	_music_audio.stream = loop
 	var prefs: Dictionary = game_menu.call("get_settings")
 	_music_audio.volume_db = -80.0 if float(prefs.get("music_volume",.65))<=0.0 else linear_to_db(float(prefs.get("music_volume",.65)))-12.0
 	_music_audio.play()
