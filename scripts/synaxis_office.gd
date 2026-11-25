@@ -17,6 +17,7 @@ const Patron = preload("res://scripts/lantern_patron.gd")
 const Assistant = preload("res://scripts/synaxis_assistant.gd")
 const Propaganda = preload("res://scripts/synaxis_propaganda.gd")
 const Brand = preload("res://scripts/synaxis_brand.gd")
+const Finish = preload("res://scripts/synaxis_office_finish.gd")
 var _assistant: Node3D
 var _ceo: Node3D
 var _hr: Node3D
@@ -67,13 +68,13 @@ func _ready() -> void:
 	var propaganda := Propaganda.new()
 	propaganda.name="CorporatePropaganda"
 	add_child(propaganda)
-	_solid("Workstation",Vector3(-5,.54,2.55),Vector3(2.6,1.08,.85),desk)
-	_solid("ExecutiveDesk",Vector3(5,.54,-5.4),Vector3(3.8,1.08,1.0),desk)
-	_solid("HRDesk",Vector3(-5,.54,-5.4),Vector3(2.7,1.08,1.0),desk)
-	_solid("ReceptionDesk",Vector3(5,.54,6.5),Vector3(3,1.08,.9),desk)
-	for point in [Vector3(-5,1.37,2.55),Vector3(5,1.37,-5.4),Vector3(-5,1.37,-5.4)]:
-		_visual("Terminal",point,Vector3(.68,.46,.12),screen)
-		_visual("TerminalBase",point-Vector3.UP*.26,Vector3(.44,.07,.3),accent)
+	_collision("Workstation",Vector3(-5,.54,2.55),Vector3(2.6,1.08,.85))
+	_collision("ExecutiveDesk",Vector3(5,.54,-5.4),Vector3(3.8,1.08,1.0))
+	_collision("HRDesk",Vector3(-5,.54,-5.4),Vector3(2.7,1.08,1.0))
+	_collision("ReceptionDesk",Vector3(5,.54,6.5),Vector3(3,1.08,.9))
+	var finish := Finish.new()
+	finish.name = "ArchitecturalFinish"
+	add_child(finish)
 	_visual("ExitBox",Vector3(5,1.25,6.5),Vector3(.42,.34,.4),_material("cardboard",Color("a88a63")))
 	for z in [-7.5,-2.5,2.5,7.5]:
 		_visual("CeilingStrip",Vector3(0,3.28,z),Vector3(12,.055,.18),_material("light",Color("c9dfdf"),true))
@@ -136,10 +137,7 @@ func _build_office_details(desk: Material,accent: Material,screen: Material) -> 
 		for row in range(7):
 			_visual("RackVent",Vector3(x,.35+row*.23,1.14),Vector3(.58,.06,.025),accent)
 			_visual("RackStatus",Vector3(x+.21,.36+row*.23,1.16),Vector3(.035,.04,.02),screen)
-	for x in [-5.7,-4.6]:
-		_visual("ITMonitor",Vector3(x,1.37,2.48),Vector3(.64,.39,.07),desk)
-		_visual("ITMonitorDisplay",Vector3(x,1.37,2.53),Vector3(.58,.33,.015),screen)
-	_sign("SYSTEM HEALTH: GREEN\nEXECUTIVE OVERRIDE ACTIVE",Vector3(-5.1,1.39,2.58),.0025)
+	_sign("SYSTEM HEALTH: GREEN\nEXECUTIVE OVERRIDE ACTIVE",Vector3(-5.55,1.65,2.54),.0018)
 	_sign("EMPLOYEE RETENTION\n100% OF DEPARTURES ARE SUCCESSFUL",Vector3(-8.32,2.36,-3),.005).rotation.y=PI/2
 	_sign("EARNINGS / RECORD QUARTER\nWORKFORCE / OPTIMIZED",Vector3(8.32,2.4,-3.6),.005).rotation.y=-PI/2
 	for x in [-6.4,6.4]:
@@ -148,15 +146,13 @@ func _build_office_details(desk: Material,accent: Material,screen: Material) -> 
 
 func _build_breakroom(desk: Material,accent: Material) -> void:
 	# Furniture is permanent; the short party performance is intro-only.
-	_solid("BreakroomTable",Vector3(-4.2,.47,8.12),Vector3(3.4,.94,1.02),desk)
+	_collision("BreakroomTable",Vector3(-4.2,.47,8.12),Vector3(3.4,.94,1.02))
 	var card:=_material("party_cardboard",Color("c3a880"))
 	var cheese:=_material("party_food",Color("d5aa56"))
 	var paper:=_material("party_paper",Color("eceae1"))
 	_visual("CateringCarton",Vector3(-5.12,1.01,8.12),Vector3(.67,.12,.64),card)
 	_visual("OpenPizzaCarton",Vector3(-4.28,.98,8.12),Vector3(.68,.07,.66),card)
 	_visual("LastTwoSlices",Vector3(-4.28,1.04,8.12),Vector3(.36,.035,.31),cheese)
-	for i in range(3):
-		_visual("PaperCup",Vector3(-3.62+i*.22,1.055,8.10),Vector3(.11,.23,.11),paper)
 	_visual("NapkinStack",Vector3(-2.90,1.00,8.18),Vector3(.22,.09,.22),paper)
 	_visual("PartyBannerBacking",Vector3(-4.2,2.98,9.80),Vector3(4.7,.66,.04),_material("party_navy",Brand.NAVY))
 	Brand.wall_logo(self,"PartyBrand",Vector3(-6.03,2.98,9.765),PI,.72)
@@ -306,6 +302,9 @@ func _visual(id: String,at: Vector3,size: Vector3,mat: Material) -> void:
 
 func _solid(id: String,at: Vector3,size: Vector3,mat: Material) -> void:
 	_visual(id,at,size,mat)
+	_collision(id,at,size)
+
+func _collision(id: String,at: Vector3,size: Vector3) -> void:
 	var body := StaticBody3D.new()
 	body.name = id+"Collision"
 	body.position = at

@@ -1,0 +1,257 @@
+extends Node3D
+## Authored static ground-floor finish and tower curtain wall. Shared primitive
+## meshes are batched by material, primitive and zone; no process or extra lights.
+const PALETTE = {
+	"stone": Color("637078"), "joint": Color("28343b"), "trim": Color("a4aeb1"),
+	"ceiling": Color("aeb8b8"), "steel": Color("465159"), "black": Color("1c242a"),
+	"laminate": Color("68757b"), "walnut": Color("644b3c"), "leather": Color("30353b"),
+	"paper": Color("e5e4d8"), "screen": Color("142a31"), "signal": Color("85c9bc"),
+	"blue": Color("547d9a"), "amber": Color("d5ae63"), "red": Color("b55850"),
+	"porcelain": Color("d8dedb"), "card": Color("ae9169"), "glass": Color("405d70"),
+	"glass_dark": Color("304656"), "glass_lit": Color("6a797e"), "rubber": Color("343a3d"),
+	"food": Color("d9a951")
+}
+var _groups: Dictionary = {}
+var _materials: Dictionary = {}
+var _part_count := 0
+
+func _ready() -> void:
+	_architecture()
+	_facade()
+	_workplaces()
+	_lobby()
+	_breakroom()
+	_flush()
+
+func get_detail_stats() -> Dictionary:
+	return {"parts": _part_count, "batches": get_child_count()}
+
+func _material(key: String) -> StandardMaterial3D:
+	if not _materials.has(key):
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = PALETTE[key]
+		mat.roughness = .84
+		match key:
+			"trim", "steel":
+				mat.metallic = .65
+				mat.roughness = .37
+			"glass", "glass_dark", "glass_lit":
+				mat.metallic = .26
+				mat.roughness = .23
+			"walnut", "laminate", "porcelain":
+				mat.roughness = .48
+			"signal", "amber", "red":
+				mat.emission_enabled = true
+				mat.emission = PALETTE[key]
+				mat.emission_energy_multiplier = .38
+		_materials[key] = mat
+	return _materials[key]
+
+func _part(zone: String,key: String,at: Vector3,size: Vector3,yaw: float=0.0,primitive: String="box") -> void:
+	var id := zone+"_"+key+"_"+primitive
+	if not _groups.has(id):
+		_groups[id] = []
+	var basis := Basis.from_euler(Vector3(0,yaw,0)).scaled_local(size)
+	_groups[id].append(Transform3D(basis,at))
+	_part_count += 1
+
+func _flush() -> void:
+	var box := BoxMesh.new()
+	box.size = Vector3.ONE
+	var cylinder := CylinderMesh.new()
+	cylinder.top_radius = .5
+	cylinder.bottom_radius = .5
+	cylinder.height = 1.0
+	cylinder.radial_segments = 16
+	for id in _groups:
+		var parts: Array = _groups[id]
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = cylinder if str(id).ends_with("_cyl") else box
+		mm.instance_count = parts.size()
+		for i in range(parts.size()):
+			mm.set_instance_transform(i,parts[i])
+		var node := MultiMeshInstance3D.new()
+		node.name = id
+		node.multimesh = mm
+		var key: String = str(id).get_slice("_",1)
+		if str(id).begins_with("tower_glass_") and str(id).get_slice_count("_") == 4:
+			key += "_"+str(id).get_slice("_",2)
+		node.material_override = _material(key)
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(node)
+	_groups.clear()
+
+func _architecture() -> void:
+	# Large-format stone tiles, recessed skirting, suspended acoustic ceiling.
+	# All floor trim is at most 6 mm tall; circulation remains unchanged.
+	for x in range(-8,9):
+		_part("interior","joint",Vector3(x,.003,0),Vector3(.012,.006,19.7))
+	for z in range(-9,10):
+		_part("interior","joint",Vector3(0,.003,z),Vector3(16.7,.006,.012))
+	for side in [-1.0,1.0]:
+		_part("interior","steel",Vector3(side*8.32,.09,0),Vector3(.055,.18,19.7))
+		_part("interior","trim",Vector3(side*8.30,.19,0),Vector3(.06,.025,19.7))
+	_part("interior","steel",Vector3(0,.09,9.82),Vector3(16.7,.18,.05))
+	_part("interior","steel",Vector3(4.9,.09,-9.82),Vector3(7,.18,.05))
+	_part("interior","steel",Vector3(-4.9,.09,-9.82),Vector3(7,.18,.05))
+	for x in range(-7,8,2):
+		for z in range(-9,10,2):
+			_part("interior","ceiling",Vector3(x,3.34,z),Vector3(1.94,.04,1.94))
+	for x in [-6.0,6.0]:
+		for z in [-7.0,-1.0,5.0]:
+			_part("interior","steel",Vector3(x,3.30,z),Vector3(.85,.07,.85))
+			for i in range(7):
+				_part("interior","black",Vector3(x-.33+i*.11,3.258,z),Vector3(.05,.012,.69))
+	for z in [-7.5,-2.5,2.5,7.5]:
+		_part("interior","steel",Vector3(0,3.317,z),Vector3(12.25,.04,.30))
+	# Floor inlay defines the two circulation zones without collision.
+	for x in [-1.55,1.55]:
+		_part("interior","trim",Vector3(x,.007,1.1),Vector3(.035,.008,17.0))
+	# Partition trim and a framed security door, outside the mission paths.
+	for x in [-1.35,1.35]:
+		_part("interior","trim",Vector3(x,1.45,-7.49),Vector3(.08,2.90,.09))
+	_part("interior","trim",Vector3(0,2.85,-7.49),Vector3(2.78,.10,.09))
+
+func _facade() -> void:
+	# Exterior spandrels and individual glazed bays on all four elevations.
+	# Opaque reflective finish: no alpha sorting and no fake interior lights.
+	for level in range(12):
+		var y := 7.18+level*3.65
+		for side in [-1.0,1.0]:
+			for bay in range(7):
+				var x := -7.2+bay*2.4
+				var key := "glass_lit" if (bay+level*3+int(side))%9==0 else ("glass_dark" if (bay+level)%4==0 else "glass")
+				_part("tower",key,Vector3(x,y,side*10.04),Vector3(2.28,3.02,.12))
+			for bay in range(8):
+				var z := -8.75+bay*2.5
+				var key := "glass_dark" if (bay+level)%5==0 else "glass"
+				_part("tower",key,Vector3(side*8.54,y,z),Vector3(.12,3.02,2.37))
+			_part("tower","steel",Vector3(side*8.62,y-1.79,0),Vector3(.15,.35,20.2))
+	for side in [-1.0,1.0]:
+		for bay in range(8):
+			_part("tower","trim",Vector3(-8.4+bay*2.4,27.5,side*10.13),Vector3(.065,43.8,.12))
+		for bay in range(9):
+			_part("tower","trim",Vector3(side*8.63,27.5,-10+bay*2.5),Vector3(.12,43.8,.065))
+
+func _desk(at: Vector3,width: float,depth: float,finish: String,executive: bool=false) -> void:
+	_part("furniture",finish,at+Vector3(0,1.025,0),Vector3(width,.11,depth))
+	_part("furniture","trim",at+Vector3(0,1.05,depth*.5+.008),Vector3(width,.035,.025))
+	for side in [-1.0,1.0]:
+		_part("furniture","steel",at+Vector3(side*(width*.5-.10),.49,0),Vector3(.065,.98,depth-.12))
+		_part("furniture","rubber",at+Vector3(side*(width*.5-.10),.035,0),Vector3(.11,.07,depth-.08))
+	_part("furniture",finish,at+Vector3(0,.57,-depth*.28),Vector3(width-.26,.62,.075))
+	# Locking drawer pedestal with seams and handles, under the existing footprint.
+	var drawer := at+Vector3(width*.5-.36,.49,0)
+	_part("furniture",finish,drawer,Vector3(.48,.92,depth-.15))
+	for y in [.23,.47,.71]:
+		_part("furniture","black",Vector3(drawer.x,y,at.z+depth*.5-.067),Vector3(.44,.013,.018))
+		_part("furniture","trim",Vector3(drawer.x,y+.10,at.z+depth*.5-.045),Vector3(.16,.026,.04))
+	if executive:
+		_part("furniture","walnut",at+Vector3(0,.57,depth*.40),Vector3(width-.20,.80,.09))
+
+func _monitor(at: Vector3,face: float,key: String) -> void:
+	_part("furniture","black",at,Vector3(.71,.43,.065))
+	_part("furniture","screen",at+Vector3(0,0,face*.038),Vector3(.66,.38,.012))
+	_part("furniture","steel",at-Vector3.UP*.27,Vector3(.07,.19,.08))
+	_part("furniture","steel",at-Vector3.UP*.315,Vector3(.37,.04,.23))
+	_part("furniture",key,at+Vector3(0,.145,face*.047),Vector3(.60,.045,.006))
+	for i in range(5):
+		_part("furniture","blue",at+Vector3(-.13,.075-i*.045,face*.047),Vector3(.27-(i%3)*.045,.015,.005))
+		_part("furniture",key,at+Vector3(.16,.075-i*.045,face*.047),Vector3(.17+(i%2)*.06,.015,.005))
+	_part("furniture","signal",at+Vector3(.30,-.195,face*.037),Vector3(.025,.013,.008))
+
+func _keyboard(at: Vector3) -> void:
+	_part("furniture","black",at,Vector3(.43,.035,.155))
+	for row in range(4):
+		for col in range(12):
+			_part("furniture","steel",at+Vector3(-.194+col*.035,.021,-.058+row*.035),Vector3(.027,.009,.026))
+	_part("furniture","rubber",at+Vector3(.33,.003,0),Vector3(.18,.012,.21))
+	_part("furniture","black",at+Vector3(.33,.035,0),Vector3(.08,.055,.13))
+
+func _chair(at: Vector3,face: float,executive: bool=false) -> void:
+	_part("furniture","leather",at+Vector3(0,.57,0),Vector3(.60,.14,.56))
+	_part("furniture","leather",at+Vector3(0,1.04,-face*.27),Vector3(.60,.76 if executive else .61,.13))
+	_part("furniture","steel",at+Vector3(0,.31,0),Vector3(.10,.46,.10),0.0,"cyl")
+	for i in range(5):
+		var angle := float(i)*TAU/5.0
+		var axis := Vector3(sin(angle),0,cos(angle))
+		_part("furniture","steel",at+axis*.18+Vector3.UP*.105,Vector3(.06,.05,.36),angle)
+		_part("furniture","black",at+axis*.35+Vector3.UP*.065,Vector3(.075,.11,.075),0.0,"cyl")
+	for side in [-1.0,1.0]:
+		_part("furniture","steel",at+Vector3(side*.32,.76,0),Vector3(.05,.28,.05))
+		_part("furniture","leather",at+Vector3(side*.32,.91,0),Vector3(.09,.06,.33))
+
+func _paperwork(at: Vector3,yaw: float) -> void:
+	_part("furniture","paper",at,Vector3(.29,.024,.22),yaw)
+	for i in range(4):
+		_part("furniture","paper",at+Vector3(.007*i,.014+i*.002,-.003*i),Vector3(.28,.003,.21),yaw)
+	_part("furniture","blue",at+Vector3(.09,.029,0),Vector3(.13,.008,.012),yaw)
+
+func _workplaces() -> void:
+	_desk(Vector3(-5,0,2.55),2.6,.85,"laminate")
+	_desk(Vector3(5,0,-5.4),3.8,1.0,"walnut",true)
+	_desk(Vector3(-5,0,-5.4),2.7,1.0,"laminate")
+	_desk(Vector3(5,0,6.5),3.0,.9,"laminate")
+	_monitor(Vector3(-5.55,1.39,2.49),1.0,"signal")
+	_monitor(Vector3(-4.77,1.39,2.49),1.0,"amber")
+	_monitor(Vector3(5.85,1.39,-5.46),-1.0,"signal")
+	_monitor(Vector3(-5.55,1.39,-5.46),-1.0,"blue")
+	_monitor(Vector3(4.35,1.39,6.5),1.0,"signal")
+	_keyboard(Vector3(-5.08,1.10,2.81))
+	_keyboard(Vector3(5.8,1.10,-5.72))
+	_keyboard(Vector3(-5.55,1.10,-5.72))
+	_keyboard(Vector3(4.4,1.10,6.76))
+	_chair(Vector3(5,0,-6.65),1.0,true)
+	_chair(Vector3(-5,0,-6.65),1.0)
+	_paperwork(Vector3(4.22,1.10,-5.26),.13)
+	_paperwork(Vector3(-4.1,1.10,-5.51),-.09)
+	_paperwork(Vector3(6.15,1.10,6.5),.05)
+	# Cable channels and server rack handles / populated patch panels.
+	for x in [-7.55,-6.7]:
+		for i in range(7):
+			var y := .35+i*.23
+			_part("furniture","black",Vector3(x,y,1.166),Vector3(.34,.035,.012))
+			for port in range(6):
+				_part("furniture","signal" if port%3==0 else "steel",Vector3(x-.14+port*.05,y,1.176),Vector3(.028,.020,.012))
+		for side in [-1.0,1.0]:
+			_part("furniture","trim",Vector3(x+side*.29,1.08,1.16),Vector3(.035,1.87,.035))
+	# Cable raceway along west wall, not across walking lanes.
+	_part("interior","steel",Vector3(-8.30,.32,1.0),Vector3(.09,.15,4.0))
+
+func _lobby() -> void:
+	# Physical gate is unchanged; stainless skin and recessed reader details.
+	for side in [-1.0,1.0]:
+		_part("interior","steel",Vector3(side*.65,1.36,-7.81),Vector3(1.24,2.62,.035))
+		_part("interior","black",Vector3(side*.65,1.65,-7.835),Vector3(.90,.72,.025))
+		_part("interior","glass",Vector3(side*.65,1.65,-7.854),Vector3(.84,.66,.015))
+		_part("interior","trim",Vector3(side*1.55,1.10,-8.1),Vector3(.26,.045,.28))
+		_part("interior","red",Vector3(side*1.55,1.197,-8.1),Vector3(.11,.012,.13))
+	_part("interior","red",Vector3(0,2.92,-7.80),Vector3(.37,.04,.035))
+	_part("interior","trim",Vector3(-2.8,.61,-8.875),Vector3(.50,.04,.03))
+	_part("interior","black",Vector3(-2.8,.39,-8.881),Vector3(.29,.08,.03))
+	# Public entry threshold and tactile mat edge: flat and non-obstructive.
+	_part("interior","trim",Vector3(0,.008,-9.96),Vector3(2.54,.012,.22))
+	# Flush CCTV mounting plate and cylindrical lens, no surveillance simulation.
+	for x in [-7.8,7.8]:
+		_part("interior","steel",Vector3(x,3.24,-8.0),Vector3(.26,.09,.23))
+		_part("interior","porcelain",Vector3(x,3.09,-8.0),Vector3(.20,.22,.20),0.0,"cyl")
+		_part("interior","black",Vector3(x,2.965,-8.0),Vector3(.11,.045,.11),0.0,"cyl")
+
+func _breakroom() -> void:
+	var at := Vector3(-4.2,0,8.12)
+	_part("furniture","laminate",at+Vector3.UP*.89,Vector3(3.4,.10,1.02))
+	for x in [-1.45,1.45]:
+		for z in [-.39,.39]:
+			_part("furniture","steel",at+Vector3(x,.42,z),Vector3(.07,.84,.07))
+	_part("furniture","steel",at+Vector3(0,.24,0),Vector3(2.92,.06,.06))
+	for i in range(3):
+		var x := -3.62+i*.22
+		_part("furniture","paper",Vector3(x,1.055,8.10),Vector3(.11,.23,.11),0.0,"cyl")
+		_part("furniture","black",Vector3(x,1.172,8.10),Vector3(.096,.008,.096),0.0,"cyl")
+		_part("furniture","card",Vector3(x,1.025,8.10),Vector3(.116,.09,.116),0.0,"cyl")
+	# Raised lid and grease marks on the existing catering carton.
+	_part("furniture","card",Vector3(-4.28,1.22,8.43),Vector3(.68,.42,.035))
+	_part("furniture","paper",Vector3(-4.28,1.22,8.406),Vector3(.54,.30,.008))
+	for i in range(5):
+		_part("furniture","red",Vector3(-4.43+i*.07,1.065,8.11+(i%2)*.08),Vector3(.045,.012,.045),0.0,"cyl")

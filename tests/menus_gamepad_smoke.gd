@@ -397,6 +397,22 @@ func _verify() -> void:
 	if not is_instance_valid(office) or office.find_children("*","CollisionShape3D",true,false).size()<10:
 		_fail("Physical office must have real enclosed collision geometry")
 		return
+	var finish: Node3D = office.get_node_or_null("ArchitecturalFinish")
+	if not is_instance_valid(finish) or finish.is_processing():
+		_fail("Office finish must be a static authored environment")
+		return
+	var detail_stats: Dictionary = finish.call("get_detail_stats")
+	if int(detail_stats["parts"]) < 500 or int(detail_stats["batches"]) > 75:
+		_fail("Office detail must use bounded static material batches")
+		return
+	for batch in finish.get_children():
+		if not batch is MultiMeshInstance3D or batch.multimesh.instance_count <= 0 or batch.material_override == null:
+			_fail("Office finish requires populated shared geometry and materials")
+			return
+	for id in ["WorkstationCollision","ExecutiveDeskCollision","HRDeskCollision","ReceptionDeskCollision","BreakroomTableCollision"]:
+		if not is_instance_valid(office.get_node_or_null(id)):
+			_fail("Furniture art replacement must preserve physical occupancy: "+id)
+			return
 	var propaganda: Node3D=office.get_node_or_null("CorporatePropaganda")
 	if not is_instance_valid(propaganda) or propaganda.get_child_count()!=16:
 		_fail("Sixteen physical corporate propaganda boards must be present")
