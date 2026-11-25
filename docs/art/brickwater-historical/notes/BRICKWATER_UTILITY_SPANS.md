@@ -1,0 +1,5 @@
+# Brickwater utility spans and closed entrances
+
+Part of #144 and #148. Four continuous round cable meshes bridge the actual mounted junction boxes of the existing electrical runs, with varied fixed sag and clearance above 3.7m. 384 triangles per cable, no per-frame mesh generation, no collision in pedestrian or vehicle routes. Two closed service-door assemblies select matched masonry/door components from the already pinned CC0 apartment kit. The original solid building remains backing; shallow collision follows the added facade. They are not functioning access portals. Nearby wall artwork was relocated to avoid overlapping the new fronts.
+
+Fixes the repository structure preflight's flagged const-inference syntax, using ordinary const declarations. The preceding atmosphere revision passed focused validation and Windows build. New regression verifies cable geometry/clearance/anchors, collider depth and ray contact. Native camera review still needs to validate electrical junction alignment, door reveals, signs, wet reflections and performance.

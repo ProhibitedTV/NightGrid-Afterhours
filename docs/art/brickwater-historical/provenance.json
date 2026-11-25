@@ -1,0 +1,142 @@
+{
+  "sources": {
+    "156": "9f4d52ceb8d0084f10c5478a9cd49c02bf4d6a32",
+    "157": "36955f37f58524001a7ae536ee82b94d40918f6b"
+  },
+  "verified_asset_files": 73,
+  "files": [
+    {
+      "path": "unused-art/graffiti_lowline.svg",
+      "source": "assets/models/nightgrid/brickwater_alley/graffiti_lowline.svg",
+      "source_pr": 157,
+      "git_blob_sha": "2515a3c3ff21c584f67479820a24f028200329b9",
+      "bytes": 890
+    },
+    {
+      "path": "unused-art/graffiti_switchyard.svg",
+      "source": "assets/models/nightgrid/brickwater_alley/graffiti_switchyard.svg",
+      "source_pr": 157,
+      "git_blob_sha": "5a8943d1126e582f503c74b5a386f55bb50d064a",
+      "bytes": 1143
+    },
+    {
+      "path": "unused-art/torn_poster.svg",
+      "source": "assets/models/nightgrid/brickwater_alley/torn_poster.svg",
+      "source_pr": 157,
+      "git_blob_sha": "13aead02a94a9115d77df74a2b7a3dff68263529",
+      "bytes": 705
+    },
+    {
+      "path": "notes/BRICKWATER_ALLEY_ART.md",
+      "source": "docs/BRICKWATER_ALLEY_ART.md",
+      "source_pr": 157,
+      "git_blob_sha": "16db621954b116a7743970b9bae77279f0d59676",
+      "bytes": 1832
+    },
+    {
+      "path": "notes/BRICKWATER_ATMOSPHERE_PASS.md",
+      "source": "docs/BRICKWATER_ATMOSPHERE_PASS.md",
+      "source_pr": 157,
+      "git_blob_sha": "d5e136ea5faa11b9afb84f0d9b2cce978ce41981",
+      "bytes": 819
+    },
+    {
+      "path": "notes/BRICKWATER_AUTHORED_SERVICE_PROPS.md",
+      "source": "docs/BRICKWATER_AUTHORED_SERVICE_PROPS.md",
+      "source_pr": 157,
+      "git_blob_sha": "a6b22c4e2bc167eea19fd5e214e837179550234c",
+      "bytes": 1734
+    },
+    {
+      "path": "notes/BRICKWATER_BUSINESS_FRONTAGE.md",
+      "source": "docs/BRICKWATER_BUSINESS_FRONTAGE.md",
+      "source_pr": 157,
+      "git_blob_sha": "e4bec25fd3d31b1166f0c2641909b350bee79230",
+      "bytes": 683
+    },
+    {
+      "path": "notes/BRICKWATER_CAPTURE_GUIDE.md",
+      "source": "docs/BRICKWATER_CAPTURE_GUIDE.md",
+      "source_pr": 157,
+      "git_blob_sha": "7aa6a8b6078e0464ea5a4e0f9676c6e3d049d732",
+      "bytes": 2036
+    },
+    {
+      "path": "notes/BRICKWATER_GRIT_PASS.md",
+      "source": "docs/BRICKWATER_GRIT_PASS.md",
+      "source_pr": 157,
+      "git_blob_sha": "b38f69d6a61560219362a8446f444a03102eaaa9",
+      "bytes": 1536
+    },
+    {
+      "path": "notes/BRICKWATER_RESIDENTIAL_EXPANSION.md",
+      "source": "docs/BRICKWATER_RESIDENTIAL_EXPANSION.md",
+      "source_pr": 157,
+      "git_blob_sha": "3324cd4c501f029aed8b20c5a95934b591baf330",
+      "bytes": 673
+    },
+    {
+      "path": "notes/BRICKWATER_RESIDENTIAL_VENTILATION.md",
+      "source": "docs/BRICKWATER_RESIDENTIAL_VENTILATION.md",
+      "source_pr": 157,
+      "git_blob_sha": "cef607cf11b7ff457a24469da9a6646f329b3669",
+      "bytes": 757
+    },
+    {
+      "path": "notes/BRICKWATER_SURFACE_PASS.md",
+      "source": "docs/BRICKWATER_SURFACE_PASS.md",
+      "source_pr": 157,
+      "git_blob_sha": "65be0a3e9f934475efd3c5d1c5b8d0f50311ae19",
+      "bytes": 1397
+    },
+    {
+      "path": "notes/BRICKWATER_UPPER_ARCHITECTURE.md",
+      "source": "docs/BRICKWATER_UPPER_ARCHITECTURE.md",
+      "source_pr": 157,
+      "git_blob_sha": "4bbfbbb57ebc36beb0d320eefda0ee5aa278e82a",
+      "bytes": 1459
+    },
+    {
+      "path": "notes/BRICKWATER_UTILITY_SPANS.md",
+      "source": "docs/BRICKWATER_UTILITY_SPANS.md",
+      "source_pr": 157,
+      "git_blob_sha": "d1b9ffa494ea11821043af31bc70730a5b2b52ea",
+      "bytes": 1057
+    },
+    {
+      "path": "notes/BRICKWATER_WINDOW_OCCUPANCY.md",
+      "source": "docs/BRICKWATER_WINDOW_OCCUPANCY.md",
+      "source_pr": 157,
+      "git_blob_sha": "9709912a4e46fb5483ab375fc916da475c9d8410",
+      "bytes": 862
+    },
+    {
+      "path": "unused-art/dock9.svg",
+      "source": "assets/models/nightgrid/brickwater_signs/dock9.svg",
+      "source_pr": 156,
+      "git_blob_sha": "a04cae10a01ebe77fcfefb7b795fc9e2a8bef175",
+      "bytes": 1569
+    },
+    {
+      "path": "unused-art/harbor_radio.svg",
+      "source": "assets/models/nightgrid/brickwater_signs/harbor_radio.svg",
+      "source_pr": 156,
+      "git_blob_sha": "645e70980d2bdac063a5375a3ddfda233340c9b7",
+      "bytes": 1317
+    },
+    {
+      "path": "notes/BRICKWATER_CODEX_HANDOFF.md",
+      "source": "docs/BRICKWATER_CODEX_HANDOFF.md",
+      "source_pr": 156,
+      "git_blob_sha": "6f546726bc859e895d957a418aa74b651fb95283",
+      "bytes": 2960
+    },
+    {
+      "path": "notes/BRICKWATER_GOLD_SLICE.md",
+      "source": "docs/BRICKWATER_GOLD_SLICE.md",
+      "source_pr": 156,
+      "git_blob_sha": "e71cefc84471e489ccccf582d0ce905902d46fad",
+      "bytes": 6557
+    }
+  ]
+}

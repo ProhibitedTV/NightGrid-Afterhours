@@ -1,0 +1,3 @@
+# Brickwater residential expansion
+
+Adjacent fixed parcel (-1,1) shares the pilot's pinned apartment mesh kit and authored fire escape. Four bays per side on two floors (48 facade meshes), with a distinct window composition. No duplicate signs, businesses, steam, litter or ground geometry. Built after both lot shells; preserve saved lot profiles, public storefronts and streets. Suppress overlapping legacy windows and west primitive escape. Headless tests verify the actual chunk, meshes, and ground contact. Native acceptance remains required. CI pins headless Ubuntu 22.04 to match successful screenshot environment and avoid missing espeak-ng in ubuntu-latest 26.04.

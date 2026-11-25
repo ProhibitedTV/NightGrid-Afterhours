@@ -1,0 +1,3 @@
+# Brickwater residential ventilation
+
+Six selected condenser assemblies across the two permanent parcels reuse the existing CC0 exterior_aircon_unit (clean/rusted variants) and modular_pipes meshes. Placement selects narrow or offset-small window bays and leaves the frame, escape and walkway clear. Source condenser rear bounds are aligned to the façade, with short pipe runs, wall returns and a source clamp. Three assemblies per block, four mesh instances per assembly, no new lights or dynamic physics. Source geometry and textures are shared rather than duplicated. Test checks source bounds, narrow-window clearance, original PBR material and pipe orientation. Native review must verify the exact visible mounting, service connections and appearance.
