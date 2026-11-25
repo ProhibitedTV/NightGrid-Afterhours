@@ -148,5 +148,34 @@ func _initialize()->void:
 	if Ledger.valid_snapshot(impossible):
 		quit(1)
 		return
+	if band.band_debut_available() or not band_copy.band_debut_available():
+		quit(1)
+		return
+	rhythm.start(1,"band_debut")
+	if rhythm.pattern.size()!=24 or rhythm.required_hits!=20:
+		quit(1)
+		return
+	for lane in rhythm.pattern:
+		rhythm.advance(rhythm.target_time()-rhythm.elapsed)
+		rhythm.strike(lane)
+	if not rhythm.claim() or rhythm.claim():
+		quit(1)
+		return
+	band_copy.set_balance(Ledger.MAX_CASH)
+	if band_copy.settle_band_debut() or not band_copy.band_debut_available():
+		quit(1)
+		return
+	band_copy.set_balance(before)
+	if not band_copy.settle_band_debut() or band_copy.settle_band_debut() or band_copy.balance!=before+240 or band_copy.street_cred()!=cred+30:
+		quit(1)
+		return
+	var debut_save:=band_copy.snapshot()
+	if not band.restore(band_copy.balance,JSON.parse_string(JSON.stringify(debut_save))) or band.band_debut_available():
+		quit(1)
+		return
+	debut_save["band_rehearsals"]=1
+	if Ledger.valid_snapshot(debut_save):
+		quit(1)
+		return
 	print("RHYTHM_REHEARSAL PASS: timing, cancellation, once-only claims, sequence and atomic payout")
 	quit(0)

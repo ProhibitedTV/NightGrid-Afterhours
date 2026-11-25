@@ -352,6 +352,15 @@ func complete_sampler_practice(sequence:int)->bool:
 const BAND_MEMBERS={"rhea":{"name":"Rhea Vale","role":"Bass","site":"copper_cup","line":"I play low strings and keep time. Heard your opening set."},"milo":{"name":"Milo Static","role":"Synth","site":"dock_nine","line":"I have a battered synth and unfinished ideas. Let's make something weird."}}
 var _band_members: Array[String] = []
 const BAND_REHEARSALS_REQUIRED = 2
+const BAND_DEBUT_RECEIPT = "music:blue_hour_debut"
+const BAND_DEBUT_PAY = 240
+
+func band_debut_available()->bool:
+	return _band_members.size()==2 and band_rehearsals==BAND_REHEARSALS_REQUIRED and has_receipt("venue:soundcheck_pass") and not has_receipt(BAND_DEBUT_RECEIPT)
+
+func settle_band_debut()->bool:
+	return band_debut_available() and credit_once(BAND_DEBUT_RECEIPT,BAND_DEBUT_PAY)
+
 var band_rehearsals := 0
 
 func band_rehearsal_available()->bool:
@@ -374,7 +383,7 @@ func recruit_band_member(id:String)->bool:
 
 func band_summary()->String:
 	if _band_members.size()==2:
-		return "UNSIGNED TRIO / Rhea Vale: bass / Milo Static: synth\n"+("REHEARSE AT COPPER CUP / %d of %d"%[band_rehearsals,BAND_REHEARSALS_REQUIRED] if band_rehearsal_available() else "TWO REHEARSALS COMPLETE / Ready for band booking")
+		return "UNSIGNED TRIO / Rhea Vale: bass / Milo Static: synth\n"+("REHEARSE AT COPPER CUP / %d of %d"%[band_rehearsals,BAND_REHEARSALS_REQUIRED] if band_rehearsal_available() else ("BLUE HOUR / Trio debut complete" if has_receipt(BAND_DEBUT_RECEIPT) else "BLUE HOUR / Trio debut available • $240"))
 	if not owned_set_unlocked() or street_activity_runs("live_gig")==0:
 		return "BAND / Complete personal sampler practice and a Blue Hour opening set to meet collaborators."
 	var names:Array[String]=[]
@@ -436,6 +445,8 @@ static func valid_snapshot(value: Variant) -> bool:
 		return false
 	var rehearsals:Variant=data.get("band_rehearsals",0)
 	if not valid_cash(rehearsals) or int(rehearsals)>BAND_REHEARSALS_REQUIRED or (int(rehearsals)>0 and roster_seen.size()!=BAND_MEMBERS.size()):
+		return false
+	if seen.has(BAND_DEBUT_RECEIPT) and (int(rehearsals)!=BAND_REHEARSALS_REQUIRED or roster_seen.size()!=BAND_MEMBERS.size()):
 		return false
 	var cal:Variant=data.get("cal_quest",0)
 	if not valid_cash(cal) or int(cal)>3 or (int(cal)==3)!=seen.has(CAL_RECEIPT):

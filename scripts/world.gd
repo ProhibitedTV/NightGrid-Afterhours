@@ -531,6 +531,12 @@ func _on_menu_action(action: String) -> void:
 					_notify("BUSKING / SET COMPLETE +$8 • +4 STREET CRED")
 				else:
 					_notify("BUSKING / Set not settled.")
+			elif site=="band_debut:blue_hour":
+				var sequence:int=game_menu.call("consume_band_debut")
+				if sequence==1 and _blue_hour_set_reachable() and progression.settle_band_debut():
+					_notify("BLUE HOUR / TRIO DEBUT +$240 • +30 STREET CRED")
+				else:
+					_notify("TRIO DEBUT / Not settled. Retry the booking.")
 			elif site=="blue_hour":
 				var sequence:int=game_menu.call("consume_blue_hour_result")
 				if sequence>0 and _blue_hour_set_reachable() and progression.settle_blue_hour_set(sequence):
@@ -3960,6 +3966,8 @@ func _update_venue_panel() -> void:
 		venue_talk_button.disabled = not is_mara and not (music_set and open_now and _blue_hour_set_reachable()) and not (busk and _busking_reachable(venue_selected_id))
 		venue_talk_button.text="3 / Y  •  PLAY OPENING SET" if music_set else (("3 / Y  •  MUSIC DESK" if venue_selected_id=="copper_cup" else "3 / Y  •  BUSK WITH LOANER SAMPLER") if busk else "3 / Y  •  TALK TO MARA")
 
+		if music_set and progression.band_debut_available():
+			venue_talk_button.text="3 / Y  •  TRIO DEBUT / $240"
 		if recruit:
 			venue_talk_button.disabled=false
 			venue_talk_button.text="3 / Y  •  INVITE MILO STATIC"
@@ -4168,6 +4176,11 @@ func _venue_action(option: int) -> void:
 			game_menu.call("open_busking_set",sequence)
 			return
 		if venue_selected_id=="blue_hour" and _blue_hour_set_reachable():
+			if progression.band_debut_available():
+				_close_venue()
+				_music_session_site="band_debut:blue_hour"
+				game_menu.call("open_band_debut")
+				return
 			var sequence:=progression.street_activity_runs("live_gig")+1
 			_close_venue()
 			_music_session_site="blue_hour"
