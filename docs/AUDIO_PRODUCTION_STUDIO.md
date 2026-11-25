@@ -179,3 +179,7 @@ Default SFX device is CPU; opt into CUDA with --sfx-device cuda. SFX candidates 
 ## Integration checkpoint
 
 At main revision 73216c8, the seven pinned spoken script constants match the catalog. CI now checks the actual local opening script for drift; adding more dialogue still requires extending the catalog. No recordings have been baked or approved in the repository by this integration. Do not claim fully voiced gameplay until runtime triggers and strict published coverage pass.
+
+## Living Streets expansion
+
+The combined catalog now includes 36 street remarks (18 incidental, 18 contextual), six original pedestrian voice identities and the original 27 corporate utterances. `chapter.py` checks the canonical `scripts/street_satire.gd` array alongside the prologue. The existing `bake-all` command covers 63 voice lines and 37 SFX; `bake --character nothing_happens` renders all six remarks for that character, and `bake --id street.nothing_happens.urgent` selects only the urgent-event response. Contextual remarks are eligible only after the actual nearby event and safe recovery, never in the middle of retreat. Existing cast locks remain valid because no previous voice identity or line spec was changed. No generated assets are present yet; review and publish as before.
