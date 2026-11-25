@@ -365,5 +365,5 @@ func _architecture(accent: String) -> void:
 	# Lift call pads are on the floor and have no collision in the landing.
 	for side in [-1.0,1.0]:
 		_part(accent,Vector3(side*.9,.018,5),Vector3(.78,.016,.82))
-	_label("LIFT UP",Vector3(-.9,1.85,5.48),.003)
+	_label("LIFT / EXPRESS TO 14" if level==FLOOR_COUNT else "LIFT UP",Vector3(-.9,1.85,5.48),.003)
 	_label("LIFT DOWN",Vector3(.9,1.85,5.48),.003)

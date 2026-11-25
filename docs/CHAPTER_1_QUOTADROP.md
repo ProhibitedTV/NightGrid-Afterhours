@@ -110,3 +110,6 @@ Marcus Vale stands in the rear reserve access aisle and wears the existing secur
 
 ### Parking security station detail
 A compact collision-backed booth, translucent windows, metal frames, logbook, radio, monitor and nonfunctional camera prop dress Marcus's checkpoint without adding surveillance render passes. Post-prologue HUD displays a local talk prompt (no distant marker). A shift-history question is always available; a dismissal question is unlocked only after severance, without restoring access or altering story/wallet. Tests cover topic gating, actual interaction and HUD prompt. Native clearance and presentation remain unverified.
+
+### Circulation and access integration
+Ground west wall now has a real two-metre staff exit at local z=4.5; during the prologue it is open to the marked exterior walkway and rear parking. After severance it closes and restores collision without reopening the restricted lobby. Floor trim and radar reflect the doorway. Seal the fourth workfloor ceiling gap with a cap slab; add framed crown glazing and a shallow terrace threshold. Lift prompts name the actual next floor, including the express link from level 5 to 14. Structural regression checks cover staff-exit lifecycle and roof cap, but continuous walk-through and native visual review remain necessary.

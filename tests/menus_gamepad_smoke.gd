@@ -605,6 +605,9 @@ func _verify() -> void:
 		if display.is_processing() or display.get_node_or_null("KestrelMonocoque")==null:
 			_fail("Parked commuter displays must use authored models without runtime processing")
 			return
+	if not bool(office.get("_staff_exit_open")) or office.get_node("StaffExitDoor").visible or office.get_node_or_null("WorkfloorCapCollision")==null:
+		_fail("Prologue opens a physical staff exit to the parking area and seals the fourth floor ceiling")
+		return
 	var guard_data=preload("res://scripts/synaxis_parking_dialogue.gd")
 	var guard_position:Vector3=reserved.to_global(guard_data.ANCHOR+Vector3.UP*1.15)
 	if not bool(reserved_stats["guard"]) or not bool(reserved_stats["booth"]) or office.call("parking_guard_reachable",office.to_global(Vector3(0,1.15,0))):
@@ -793,6 +796,9 @@ func _verify() -> void:
 	world.call("_toggle_interaction")
 	if not str(world.get("notification")).contains("Badge access revoked") or not is_instance_valid(office.get_node_or_null("SecurityGateCollision")):
 		_fail("Restricted office remains physically secured at the public checkpoint")
+		return
+	if bool(office.get("_staff_exit_open")) or not office.get_node("StaffExitDoor").visible:
+		_fail("Offboarding revokes the parking-side staff entrance")
 		return
 	player.global_position=guard_position
 	world.call("_toggle_interaction")

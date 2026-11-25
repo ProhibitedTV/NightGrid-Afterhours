@@ -90,8 +90,14 @@ func _architecture() -> void:
 	for z in range(-9,10):
 		_part("interior","joint",Vector3(0,.003,z),Vector3(16.7,.006,.012))
 	for side in [-1.0,1.0]:
-		_part("interior","steel",Vector3(side*8.32,.09,0),Vector3(.055,.18,19.7))
-		_part("interior","trim",Vector3(side*8.30,.19,0),Vector3(.06,.025,19.7))
+		if side<0:
+			for span in [Vector2(-9.85,3.5),Vector2(5.5,9.85)]:
+				var bounds:Vector2=span
+				_part("interior","steel",Vector3(-8.32,.09,(bounds.x+bounds.y)*.5),Vector3(.055,.18,bounds.y-bounds.x))
+				_part("interior","trim",Vector3(-8.30,.19,(bounds.x+bounds.y)*.5),Vector3(.06,.025,bounds.y-bounds.x))
+		else:
+			_part("interior","steel",Vector3(side*8.32,.09,0),Vector3(.055,.18,19.7))
+			_part("interior","trim",Vector3(side*8.30,.19,0),Vector3(.06,.025,19.7))
 	_part("interior","steel",Vector3(0,.09,9.82),Vector3(16.7,.18,.05))
 	_part("interior","steel",Vector3(4.9,.09,-9.82),Vector3(7,.18,.05))
 	_part("interior","steel",Vector3(-4.9,.09,-9.82),Vector3(7,.18,.05))

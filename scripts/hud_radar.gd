@@ -186,7 +186,11 @@ func _draw_office() -> void:
 	var wall := Color("87959d")
 	if _office_floor!=0:
 		for edge in [[Vector2(-8.5,-10),Vector2(8.5,-10)],[Vector2(8.5,-10),Vector2(8.5,10)],[Vector2(8.5,10),Vector2(-8.5,10)],[Vector2(-8.5,10),Vector2(-8.5,-10)]]:
-			_segment(edge[0],edge[1],wall,2.6)
+			if _office_floor==ExecutiveFloor.FLOOR and edge[0]==Vector2(8.5,-10):
+				_segment(Vector2(8.5,-10),Vector2(8.5,-5),wall,2.6)
+				_segment(Vector2(8.5,-3),Vector2(8.5,10),wall,2.6)
+			else:
+				_segment(edge[0],edge[1],wall,2.6)
 		if _office_floor==Basement.FLOOR:
 			for x in Basement.RACK_X:
 				_segment(Vector2(x,-8.34),Vector2(x,-1.46),Color("52616e"),6.0)
@@ -207,7 +211,8 @@ func _draw_office() -> void:
 	for edge in [
 		[Vector2(-8.5,-10),Vector2(-1.3,-10)],
 		[Vector2(1.3,-10),Vector2(8.5,-10)],
-		[Vector2(-8.5,-10),Vector2(-8.5,10)],
+		[Vector2(-8.5,-10),Vector2(-8.5,3.5)],
+		[Vector2(-8.5,5.5),Vector2(-8.5,10)],
 		[Vector2(8.5,-10),Vector2(8.5,10)],
 		[Vector2(-8.5,10),Vector2(8.5,10)],
 		[Vector2(-8.5,-7.65),Vector2(8.5,-7.65)],
