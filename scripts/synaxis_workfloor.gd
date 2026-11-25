@@ -190,7 +190,7 @@ func _plant(at: Vector3,size: float) -> void:
 	_part("soil",at+Vector3.UP*size*.81,Vector3(size*.86,.015,size*.86),0.0,"cyl")
 	for i in range(7):
 		var angle:=i*TAU/7.0
-		_part("leaf" if i%2==0 else "green",at+Vector3(sin(angle)*size*.29,size*(1.0+i%3*.13),cos(angle)*size*.29),Vector3(size*.28,size*.85,size*.15),angle,.60)
+		_part("leaf" if i%2==0 else "green",at+Vector3(sin(angle)*size*.29,size*(1.0+i%3*.13),cos(angle)*size*.29),Vector3(size*.28,size*.85,size*.15),angle,"leaf",.60)
 
 func _shared_area(accent: String) -> void:
 	# Leave the lift landing and central cross-aisle empty.
