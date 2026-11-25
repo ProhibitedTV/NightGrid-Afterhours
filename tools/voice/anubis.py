@@ -158,9 +158,39 @@ def bake(args,specs,selected):
     print("Candidates ready for explicit listening review; nothing published automatically.")
 
 
+SFX_SCRIPT=studio.ROOT/"tools/audio/generate_sfx.py"
+SFX_MANIFEST=studio.ROOT/"tools/audio/synaxis_sfx.json"
+
+
+def sfx_ids(ids,group):
+    data=production.load(SFX_MANIFEST)
+    known={x["id"]:x for x in data["assets"]}
+    if set(ids)-set(known):
+        raise ValueError("Unknown SFX ID; use sfx-list")
+    def family(name):
+        return "steps" if name.startswith("step_") else ("city" if name.startswith(("city_","event_")) or name=="road_roll" else "office")
+    selected=[i for i in known if (not ids or i in ids) and (not group or family(i)==group)]
+    if not selected:
+        raise ValueError("No matching SFX cues")
+    return selected
+
+
+def sfx_run(args,action):
+    import shutil
+    cli=shutil.which(args.sfx_cli)
+    if action=="generate" and not cli:
+        raise ValueError("Install the separate Stable Audio environment and pass --sfx-cli /absolute/path/to/stable-audio")
+    selected=sfx_ids(args.sfx_id,args.sfx_group)
+    selectors=[part for ident in selected for part in ("--id",ident)]
+    command=[sys.executable,str(SFX_SCRIPT),action,*selectors]
+    if action=="generate":
+        command.extend(["--skip-existing","--cli",cli,"--device",args.sfx_device])
+    subprocess.run(command,cwd=studio.ROOT,check=True)
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action",choices=["setup","list","status","bake"])
+    parser.add_argument("action",choices=["setup","list","status","bake","sfx-list","sfx-bake","bake-all"])
     parser.add_argument("--manifest",type=Path,default=chapter.CATALOG)
     parser.add_argument("--all",action="store_true")
     parser.add_argument("--id",action="append",default=[])
@@ -169,12 +199,26 @@ def main():
     parser.add_argument("--device",choices=["cuda","cpu"],default="cuda")
     parser.add_argument("--reviewer",default="Creative director")
     parser.add_argument("--non-interactive",action="store_true")
+    parser.add_argument("--sfx-id",action="append",default=[])
+    parser.add_argument("--sfx-group",choices=["office","city","steps"])
+    parser.add_argument("--sfx-cli",default="stable-audio")
+    parser.add_argument("--sfx-device",choices=["cpu","cuda"],default="cpu")
     args=parser.parse_args()
     args.manifest=args.manifest.resolve()
     if args.action=="setup":
         setup()
         return
+    if args.action in ("sfx-list","sfx-bake"):
+        sfx_run(args,"list" if args.action=="sfx-list" else "generate")
+        return
     specs=chapter.validate_catalog(args.manifest)
+    if args.action=="bake-all":
+        if args.id or args.character or args.sfx_id or args.sfx_group:
+            parser.error("bake-all renders both full catalogs; use bake or sfx-bake for selections")
+        # Effects first, before any cast approval prompt. Sequential processes.
+        sfx_run(args,"generate")
+        bake(args,specs,list(specs))
+        return
     if args.action=="list":
         run("studio.py","list","--manifest",args.manifest)
     elif args.action=="status":
