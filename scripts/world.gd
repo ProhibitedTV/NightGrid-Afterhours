@@ -2516,6 +2516,7 @@ func _toggle_interior() -> void:
 			var leaf: AnimatableBody3D = physical_lot.get("door")
 			if leaf.call("request_toggle"):
 				player.call("play_visual_action",&"interact")
+				player.get_node("Visual").call("reach_target",leaf,physical_lot.call("door_handle_anchor"),1)
 				world_audio.call("play_event","DOOR",leaf.global_position)
 		else:
 			_notify("Return to the front door to open or close it.")
@@ -3700,6 +3701,9 @@ func _venue_action(option: int) -> void:
 		var facing := _vending_machine.global_position-player.global_position
 		player.get_node("Visual").rotation.y = atan2(facing.x,facing.z)
 		player.get_node("Visual").call("play_product_action",id,true)
+		# The right hand holds the packaged product; the free left hand
+		# can contact the cabinet terminal when within anatomical reach.
+		player.get_node("Visual").call("reach_target",_vending_machine,_vending_machine.call("payment_anchor"),0)
 		_vending_machine.call("dispense_feedback")
 		_notify("Dispensed %s. R / D-pad down to consume." % item["name"])
 		_update_venue_panel()

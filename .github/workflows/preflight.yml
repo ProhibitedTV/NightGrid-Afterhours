@@ -139,6 +139,55 @@ jobs:
           timeout 75s godot --headless --path . --script res://tests/vending_smoke.gd 2>&1 | tee /tmp/nightgrid-vending.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-vending.log; then exit 1; fi
           grep -q "VENDING_SMOKE PASS:" /tmp/nightgrid-vending.log
+      - name: Validate weighted locomotion, preserved movement and stride transitions
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/locomotion_smoke.gd 2>&1 | tee /tmp/nightgrid-locomotion.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-locomotion.log; then exit 1; fi
+          grep -q "LOCOMOTION_SMOKE PASS:" /tmp/nightgrid-locomotion.log
+      - name: Measure imported courier foot contacts and natural stride speeds
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 60s godot --headless --path . --script res://tools/analyze_courier_gaits.gd 2>&1 | tee /tmp/nightgrid-gait-analysis.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-gait-analysis.log; then exit 1; fi
+          grep -q "GAIT_ANALYSIS PASS:" /tmp/nightgrid-gait-analysis.log
+          grep "GAIT_ANALYSIS_JSON " /tmp/nightgrid-gait-analysis.log | sed 's/^GAIT_ANALYSIS_JSON //' > /tmp/nightgrid-gait-profile.json
+      - name: Upload measured courier gait evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: courier-gait-profile
+          path: /tmp/nightgrid-gait-profile.json
+          if-no-files-found: error
+      - name: Validate bounded player terrain foot correction
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/terrain_feet_smoke.gd 2>&1 | tee /tmp/nightgrid-terrain-feet.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-terrain-feet.log; then exit 1; fi
+          grep -q "TERRAIN_FEET PASS:" /tmp/nightgrid-terrain-feet.log
+      - name: Validate reactive upper-body weight transfer
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/courier_posture_smoke.gd 2>&1 | tee /tmp/nightgrid-posture.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-posture.log; then exit 1; fi
+          grep -q "POSTURE_SMOKE PASS:" /tmp/nightgrid-posture.log
+      - name: Validate interruptible authored pivots and impact-sensitive landing
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/courier_transition_smoke.gd 2>&1 | tee /tmp/nightgrid-transition.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-transition.log; then exit 1; fi
+          grep -q "TRANSITION_SMOKE PASS:" /tmp/nightgrid-transition.log
+      - name: Validate contextual hand contact and streamed target cleanup
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/courier_reach_smoke.gd 2>&1 | tee /tmp/nightgrid-reach.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-reach.log; then exit 1; fi
+          grep -q "REACH_SMOKE PASS:" /tmp/nightgrid-reach.log
       - name: Verify the baked city textures match the original generator byte for byte
         run: godot --headless --path . --script res://tools/bake_city_material_maps.gd -- --verify
       - name: Validate deterministic road routes, intersection turns and off-road access
