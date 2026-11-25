@@ -84,7 +84,7 @@ func tick(delta: float, focus: Vector3, camera: Camera3D, indoors: bool, occupie
 		return
 	_last_tick = frame
 	var space := get_world_3d().direct_space_state
-	_pool.call("step", delta, signals)
+	_pool.call("step", delta, signals, hour)
 	var active: Dictionary = _pool.call("active_positions")
 	_phase_clock += delta
 	if _phase_clock >= PLAN_PERIOD:
@@ -155,9 +155,9 @@ func active_routines() -> Dictionary:
 func active_positions() -> Dictionary:
 	return _pool.call("active_positions") if _running else {}
 
-func react_to_incident(at: Vector3, radius: float, ignored: Array[RID]) -> void:
+func react_to_incident(at: Vector3, radius: float, ignored: Array[RID], urgent: bool = false) -> void:
 	if _running:
-		_pool.call("react_to_incident", get_world_3d().direct_space_state, at, radius, ignored)
+		_pool.call("react_to_incident", get_world_3d().direct_space_state, at, radius, ignored, urgent)
 
 func react_to_traffic(vehicles: Array[CharacterBody3D]) -> void:
 	if _running:

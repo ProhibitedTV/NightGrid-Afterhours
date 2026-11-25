@@ -92,6 +92,7 @@ func sample(id: String) -> Dictionary:
 	var t := 1.0-absf(phase*2.0-1.0)
 	return {"id":id,"position":a.lerp(b,t),"heading":(b-a).normalized()*(1.0 if phase<0.5 else -1.0),
 		"style":agent["style"],"speed":agent["speed"],"district":route.get("district",""),
+		"routine":agent["routine"].duplicate(),
 		"start":a,"end":b, "kind":route.get("kind", ""), "arrival":route.get("arrival", ""),
 		"signal":route.get("signal", Vector3i.ZERO)}
 

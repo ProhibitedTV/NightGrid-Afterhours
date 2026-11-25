@@ -43,3 +43,30 @@ static func eligible(profile: Dictionary,district: String,hour: float) -> bool:
 	if not (value is float or value is int) or not is_finite(float(value)) or float(value)<0.0 or float(value)>1.0:
 		return false
 	return float(value)<demand(district,hour)
+
+## Local activity intent: does not imply a route reaches a home or job.
+static func activity(profile: Dictionary,hour: float) -> String:
+	if not is_finite(hour) or hour<0.0:
+		return "RESTING"
+	var h:=fposmod(hour,24.0)
+	var role:=str(profile.get("role","RESIDENT"))
+	if role in ["OFFICE_WORKER","COMMUTER","CIVIC_WORKER","SHOP_WORKER","SERVICE_WORKER"]:
+		if (h>=6.0 and h<10.0) or (h>=16.0 and h<19.0):
+			return "COMMUTE"
+		if h>=11.5 and h<14.0:
+			return "BREAK"
+	if role in ["NIGHT_SHIFT","PATRON"] and (h>=19.0 or h<4.0):
+		return "NIGHT_OUT"
+	if role in ["DOCK_WORKER","SHIFT_WORKER","COURIER"] and ((h>=5.0 and h<9.0) or (h>=15.0 and h<19.0)):
+		return "COMMUTE"
+	if role=="SHOPPER" and h>=9.0 and h<20.0:
+		return "ERRAND"
+	return "RESTING"
+
+static func dwell(intent:String) -> float:
+	match intent:
+		"COMMUTE": return 0.45
+		"BREAK": return 5.0
+		"NIGHT_OUT": return 4.0
+		"ERRAND": return 3.0
+	return 2.0

@@ -3,6 +3,7 @@ extends Node3D
 ## The director supplies the visual rig, live spawn/recycle predicates,
 ## actual ground height and one physics-tick call.
 const Population = preload("res://scripts/sidewalk_population.gd")
+const Routines = preload("res://scripts/civilian_routines.gd")
 const RADIUS = 0.32
 const HEIGHT = 1.8
 const YIELD_SECONDS = 1.2
@@ -13,6 +14,8 @@ var _slots: Array[CharacterBody3D] = []
 var _leases: Dictionary = {}
 var _visuals: Array[Node3D] = []
 var _model_count := 1
+const MAX_INCIDENT_RADIUS = 24.0
+const ALERT_COOLDOWN = 5.0
 
 func build(visual_scene: PackedScene, capacity: int = Population.MAX_ACTIVE,
 		models: Array[PackedScene] = []) -> bool:
@@ -107,7 +110,9 @@ func activate(population, id: String, ground_y: float, allowed: Callable) -> boo
 		_leases[id] = {"slot":i,"start":sample["start"],"end":sample["end"],"heading":heading,"speed":sample["speed"],
 			"blocked_time":0.0,"turn_cooldown":0.0,"state":"WALK","hold":0.0,"alert":0.0,
 			"arrival":sample.get("arrival", ""), "signal":sample.get("signal", Vector3i.ZERO),
-			"social":0.0,"social_cooldown":0.0,"social_facing":Vector3.ZERO}
+			"social":0.0,"social_cooldown":0.0,"social_facing":Vector3.ZERO,
+			"routine":sample.get("routine",{}),"intent":"RESTING","dwell_state":"RESTING",
+			"alert_facing":Vector3.ZERO,"alert_cooldown":0.0,"retreat":0.0}
 		body.collision_layer = 1
 		body.collision_mask = 1
 		body.process_mode = Node.PROCESS_MODE_INHERIT
@@ -122,7 +127,7 @@ func activate(population, id: String, ground_y: float, allowed: Callable) -> boo
 
 ## Caller invokes once per physics tick. Stop on collision; do not teleport
 ## or push an actor back onto the nominal line. Grounded motion uses physics.
-func step(delta: float, signals: Node = null) -> void:
+func step(delta: float, signals: Node = null, hour: float = -1.0) -> void:
 	if not is_finite(delta) or delta<=0.0 or delta>0.1:
 		return
 	for id in _leases:
@@ -137,13 +142,15 @@ func step(delta: float, signals: Node = null) -> void:
 		var target := b if toward_end else a
 		var remaining := (target-body.global_position).dot(heading)
 		var arrival: String = lease["arrival"]
+		lease["intent"] = Routines.activity(lease["routine"],hour)
 		if remaining<=0.06:
 			heading = -heading
 			lease["heading"] = heading
 			target = a if toward_end else b
 			remaining = (target-body.global_position).dot(heading)
 			if toward_end:
-				lease["hold"] = _hold_duration(arrival, lease["signal"], signals)
+				lease["dwell_state"] = str(lease["intent"]) if arrival=="RESTING" else arrival
+				lease["hold"] = Routines.dwell(lease["intent"]) if arrival=="RESTING" else _hold_duration(arrival, lease["signal"], signals)
 		var offset := body.global_position-a
 		offset.y = 0.0
 		var lateral := (offset-axis*offset.dot(axis)).length()
@@ -152,6 +159,8 @@ func step(delta: float, signals: Node = null) -> void:
 		# Do not keep walking sideways off a certified strip after a slide.
 		# A displaced actor remains visible and leased for explicit recovery.
 		lease["alert"] = maxf(0.0, float(lease["alert"]) - delta)
+		lease["alert_cooldown"] = maxf(0.0, float(lease["alert_cooldown"]) - delta)
+		lease["retreat"] = maxf(0.0, float(lease["retreat"]) - delta)
 		lease["hold"] = maxf(0.0, float(lease["hold"]) - delta)
 		lease["social"] = maxf(0.0, float(lease["social"]) - delta)
 		lease["social_cooldown"] = maxf(0.0, float(lease["social_cooldown"]) - delta)
@@ -161,12 +170,16 @@ func step(delta: float, signals: Node = null) -> void:
 		elif float(lease["alert"]) > 0.0:
 			desired = Vector3.ZERO
 			lease["state"] = "ALERT"
+		elif float(lease["retreat"]) > 0.0:
+			# Retreat along the certified strip, not into traffic.
+			desired = heading*minf(float(lease["speed"])*1.5,maxf(0.0,remaining)/delta)
+			lease["state"] = "RETREAT"
 		elif float(lease["social"]) > 0.0:
 			desired = Vector3.ZERO
 			lease["state"] = "SOCIALIZE"
 		elif float(lease["hold"]) > 0.0:
 			desired = Vector3.ZERO
-			lease["state"] = arrival
+			lease["state"] = lease["dwell_state"]
 		else:
 			lease["state"] = "WALK"
 		body.velocity.x = desired.x
@@ -193,6 +206,8 @@ func step(delta: float, signals: Node = null) -> void:
 		else:
 			lease["blocked_time"] = 0.0
 		var facing: Vector3 = lease["social_facing"] if lease["state"] == "SOCIALIZE" else heading
+		if lease["state"]=="ALERT" and (lease["alert_facing"] as Vector3).length_squared()>0.01:
+			facing=lease["alert_facing"]
 		body.rotation.y = lerp_angle(body.rotation.y, atan2(facing.x,facing.z), minf(1.0, 9.0 * delta))
 		if _visuals[i].has_method("set_locomotion"):
 			var v := body.get_real_velocity()
@@ -212,17 +227,31 @@ func _hold_duration(arrival: String, crossing: Vector3i, signals: Node) -> float
 			return 2.0
 	return 0.0
 
-func react_to_incident(space: PhysicsDirectSpaceState3D, at: Vector3, radius: float, ignored: Array[RID]) -> void:
+func react_to_incident(space: PhysicsDirectSpaceState3D, at: Vector3, radius: float, ignored: Array[RID], urgent: bool = false) -> void:
+	if not at.is_finite() or not is_finite(radius) or radius<=0.0:
+		return
+	radius=minf(radius,MAX_INCIDENT_RADIUS)
 	for id in _leases:
 		var lease: Dictionary = _leases[id]
 		var body := _slots[int(lease["slot"])]
 		var eye := body.global_position + Vector3.UP * 1.6
-		if eye.distance_squared_to(at) > radius * radius:
+		if eye.distance_squared_to(at) > radius * radius or (float(lease["alert_cooldown"])>0.0 and not urgent):
 			continue
 		var exclude := ignored.duplicate()
 		exclude.append(body.get_rid())
 		if space.intersect_ray(PhysicsRayQueryParameters3D.create(eye, at, 1, exclude)).is_empty():
-			lease["alert"] = 2.6
+			lease["alert"] = 0.65 if urgent else 2.6
+			lease["alert_cooldown"] = ALERT_COOLDOWN
+			lease["social"] = 0.0
+			lease["hold"] = 0.0
+			var toward := at-eye
+			toward.y=0.0
+			lease["alert_facing"] = toward.normalized()
+			if urgent:
+				var heading:Vector3=lease["heading"]
+				if heading.dot(toward)>0.0:
+					lease["heading"] = -heading
+				lease["retreat"] = 3.8
 
 func react_to_traffic(vehicles: Array[CharacterBody3D]) -> void:
 	for id in _leases:
@@ -245,7 +274,7 @@ func react_to_traffic(vehicles: Array[CharacterBody3D]) -> void:
 func socialize_nearby(space: PhysicsDirectSpaceState3D) -> void:
 	var resting: Array[Dictionary] = []
 	for lease in _leases.values():
-		if lease["state"] in ["RESTING", "STOREFRONT", "WAIT_CROSSING"] and float(lease["social_cooldown"]) <= 0.0:
+		if lease["state"] in ["RESTING", "BREAK", "NIGHT_OUT", "ERRAND", "STOREFRONT", "WAIT_CROSSING"] and float(lease["social_cooldown"]) <= 0.0:
 			resting.append(lease)
 	for i in range(resting.size()):
 		var first := _slots[int(resting[i]["slot"])]
