@@ -14,6 +14,7 @@ const CAL_RECEIPT="street:compatibility_patch"
 const CAL_REWARD=85
 var cal_quest:int=0 # 0 offered, 1 accepted, 2 collected, 3 completed
 const StreetCred=preload("res://scripts/street_cred.gd")
+const Rhythm=preload("res://scripts/rhythm_rehearsal.gd")
 var _street_cred=StreetCred.new()
 
 var balance: int = 0
@@ -229,11 +230,11 @@ func settle_street_activity(source:String,sequence:int)->bool:
 
 ## Atomic, catalog-priced repeatable set settlement. No caller-selected cash.
 func settle_blue_hour_set(sequence:int)->bool:
-	if not has_receipt("venue:soundcheck_pass") or balance>MAX_CASH-45:
+	if not has_receipt("venue:soundcheck_pass") or balance>MAX_CASH-Rhythm.REWARD:
 		return false
 	if not _street_cred.settle_run("live_gig",sequence):
 		return false
-	balance+=45
+	balance+=Rhythm.REWARD
 	return true
 
 func snapshot() -> Dictionary:

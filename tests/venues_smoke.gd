@@ -237,6 +237,25 @@ func _verify() -> void:
 	if int(world.get("cash"))!=before_cash+125:
 		_fail("Music introduction paid twice")
 		return
+	# Exercise real venue-to-menu-to-ledger bridge with the fixture clock.
+	world.call("_venue_action",3)
+	var menu:Node=world.get("game_menu")
+	if menu.get("screen")!="blue_hour_set" or not paused:
+		_fail("Opening set did not use the pause-safe music menu")
+		return
+	var run=menu.get("_rhythm")
+	for lane in run.pattern:
+		run.advance(run.target_time()-run.elapsed)
+		run.strike(lane)
+	var cash_before_set:int=world.get("cash")
+	menu.call("_choice","rhythm_claim")
+	if paused or menu.get("screen")!="hidden" or music_ledger.street_activity_runs("live_gig")!=1 or music_ledger.street_cred()!=147 or int(world.get("cash"))!=cash_before_set+45:
+		_fail("Opening set did not settle and unpause exactly once")
+		return
+	world.call("_on_menu_action","rhythm_claim")
+	if music_ledger.street_activity_runs("live_gig")!=1 or int(world.get("cash"))!=cash_before_set+45:
+		_fail("Direct settlement replay awarded a second set")
+		return
 	print("VENUE_SMOKE PASS: ", kind_counts, " / quests=", catalog.SIDE_JOBS.size(),
 		" / saved_seed=", old_seed, " / venue_lights=", venues.call("get_active_light_count"))
 	quit(0)
