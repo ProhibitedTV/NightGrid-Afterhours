@@ -501,12 +501,15 @@ func _on_menu_action(action: String) -> void:
 			_notify("Route set to "+str(ClothingStore.STORES[id]["name"]))
 		game_menu.call("open_journal",_journal_context())
 		return
+	if action.begins_with("music_desk_name:"):
+		_music_desk_action(action)
+		return
 	match action:
 		"cal_accept","cal_complete":
 			if not _street_contact_id.is_empty():
 				_cal_pending={"id":_street_contact_id,"action":action}
 			_street_contact_id=""
-		"music_desk_buy","music_desk_busk","music_desk_practice","music_desk_owned","music_desk_recruit","music_desk_rehearse","music_desk_leave":
+		"music_desk_buy","music_desk_busk","music_desk_practice","music_desk_owned","music_desk_recruit","music_desk_rehearse","music_desk_press","music_desk_leave":
 			_music_desk_action(action)
 		"rhythm_claim":
 			var site:=_music_session_site
@@ -538,13 +541,13 @@ func _on_menu_action(action: String) -> void:
 			elif site=="band_encore:blue_hour":
 				var sequence:int=game_menu.call("consume_band_booking","band_encore")
 				if sequence>0 and _blue_hour_set_reachable() and progression.settle_band_encore(sequence):
-					_notify("BLUE HOUR / ENCORE +$120 • +12 STREET CRED")
+					_notify("BLUE HOUR / ENCORE +$120 • +12 STREET CRED • "+progression.band_merch_summary())
 				else:
 					_notify("ENCORE / Not settled. Retry the booking.")
 			elif site=="band_showcase:static_room":
 				var sequence:int=game_menu.call("consume_band_booking","band_showcase")
 				if sequence==1 and _band_contact_reachable("static_room") and progression.settle_band_showcase():
-					_notify("STATIC ROOM / SHOWCASE +$480 • +45 STREET CRED")
+					_notify("STATIC ROOM / SHOWCASE +$480 • +45 STREET CRED • "+progression.band_merch_summary())
 				else:
 					_notify("SHOWCASE / Not settled. Retry the booking.")
 			elif site=="band_debut:blue_hour":
@@ -5187,7 +5190,7 @@ func _busking_reachable(site:String)->bool:
 	return player.global_position.distance_to(point)<=5.5
 
 func _open_music_desk()->void:
-	game_menu.call("open_music_desk",{"owned":progression.owns_instrument(Instruments.STARTER),"owned_set":progression.owned_set_unlocked(),"cash":cash,"summary":progression.instrument_summary(),"band":progression.band_summary(),"recruit_rhea":progression.band_recruit_available("rhea"),"band_rehearse":progression.band_rehearsal_available()})
+	game_menu.call("open_music_desk",{"owned":progression.owns_instrument(Instruments.STARTER),"owned_set":progression.owned_set_unlocked(),"cash":cash,"summary":progression.instrument_summary(),"band":progression.band_summary(),"recruit_rhea":progression.band_recruit_available("rhea"),"band_rehearse":progression.band_rehearsal_available(),"band_names":ProgressionLedger.BAND_NAMES if progression.can_name_band() else [],"press_tapes":progression.can_press_tapes(),"merch":progression.band_merch_summary()})
 
 func _music_desk_action(action:String)->void:
 	if action=="music_desk_leave":
@@ -5195,7 +5198,17 @@ func _music_desk_action(action:String)->void:
 		return
 	if _music_session_site!="desk:copper_cup" or game_menu.get("screen")!="music_desk" or not _busking_reachable("copper_cup"):
 		return
+	if action.begins_with("music_desk_name:"):
+		var index:=action.trim_prefix("music_desk_name:")
+		if index.is_valid_int() and progression.choose_band_name(int(index)):
+			_notify("BAND / "+progression.band_name)
+		_open_music_desk()
+		return
 	match action:
+		"music_desk_press":
+			if progression.press_tapes():
+				_notify("AFTER THE LAST SHIFT / 12 tapes pressed for $60")
+			_open_music_desk()
 		"music_desk_rehearse":
 			if progression.band_rehearsal_available():
 				_music_session_site="band_rehearsal:copper_cup"

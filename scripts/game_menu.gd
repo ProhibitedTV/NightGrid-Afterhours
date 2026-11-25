@@ -423,6 +423,13 @@ func _render() -> void:
 				_button(col,"music_desk_recruit","INVITE RHEA VALE / BASS","music_desk_recruit")
 			if bool(_music_desk.get("band_rehearse",false)):
 				_button(col,"music_desk_rehearse","REHEARSE WITH RHEA AND MILO","music_desk_rehearse")
+			var names:Array=_music_desk.get("band_names",[])
+			for i in range(names.size()):
+				var key:="music_desk_name:%d"%i
+				_button(col,key,"NAME BAND / "+str(names[i]),key)
+			_label(col,str(_music_desk.get("merch","")),16,Ui.MUTED)
+			if bool(_music_desk.get("press_tapes",false)):
+				_button(col,"music_desk_press","PRESS 12 TAPES / $60","music_desk_press")
 			_button(col,"music_desk_leave","LEAVE","music_desk_leave")
 		"blue_hour_set":
 			_render_rhythm(col)
@@ -987,6 +994,10 @@ func _check(parent: VBoxContainer, caption: String, key: String) -> void:
 		_first_focus = toggle
 
 func _choice(action: String) -> void:
+	if action.begins_with("music_desk_name:"):
+		if screen=="music_desk":
+			action_requested.emit(action)
+		return
 	if is_instance_valid(_ui_click):
 		_ui_click.volume_db = -80.0 if float(settings.get("sfx_volume", 0.75)) <= 0.0 else linear_to_db(float(settings.get("sfx_volume", 0.75))) - 11.0
 		_ui_click.play()
@@ -1011,7 +1022,7 @@ func _choice(action: String) -> void:
 				action_requested.emit("begin_opening")
 			else:
 				hide_for_game()
-		"music_desk_buy","music_desk_busk","music_desk_practice","music_desk_owned","music_desk_recruit","music_desk_rehearse":
+		"music_desk_buy","music_desk_busk","music_desk_practice","music_desk_owned","music_desk_recruit","music_desk_rehearse","music_desk_press":
 			if screen=="music_desk":
 				action_requested.emit(action)
 		"music_desk_leave":
