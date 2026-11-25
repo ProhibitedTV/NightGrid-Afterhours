@@ -2,6 +2,7 @@ name: Offline voice studio
 on:
   pull_request:
     paths:
+      - 'scripts/opening_story.gd'
       - 'tools/voice/**'
       - 'tools/audio/**'
       - 'assets/audio/voiced/**'
@@ -31,6 +32,6 @@ jobs:
       - run: python tools/voice/anubis.py sfx-list
       - run: python tools/voice/studio.py list
 
-      - run: python tools/voice/chapter.py validate
+      - run: python tools/voice/chapter.py validate --source scripts/opening_story.gd
       - run: python tools/voice/chapter.py status
       - run: python tools/voice/production.py verify-library --manifest tools/voice/synaxis_chapter.json

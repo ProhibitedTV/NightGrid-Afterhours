@@ -1,0 +1,1 @@
+# Approved sound effects\n\nOnly reviewed, normalized WAVs and their provenance JSON belong here. No model weights. See [authoring guide](../../../../docs/SFX_AUTHORING.md).\n

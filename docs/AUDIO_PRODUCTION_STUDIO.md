@@ -175,3 +175,7 @@ python tools/voice/anubis.py bake --id synaxis.conference.01
 ```
 
 Default SFX device is CPU; opt into CUDA with --sfx-device cuda. SFX candidates live at dist/sfx-candidates; speech at dist/voice-production. Neither is published by bake-all. The separate SFX script supports explicit reviewed publication and verification; do not use --reviewed until listening and rights review. No runtime model dependencies. The dialogue catalog includes the seven initial scene blocks and breakroom choices, not every later optional NPC interview or guard branch; future authored cues need stable IDs and actual runtime triggers. This is an initial combined 64-cue library, not proof of complete city coverage. Both engines still require the first native Anubis smoke.
+
+## Integration checkpoint
+
+At main revision 73216c8, the seven pinned spoken script constants match the catalog. CI now checks the actual local opening script for drift; adding more dialogue still requires extending the catalog. No recordings have been baked or approved in the repository by this integration. Do not claim fully voiced gameplay until runtime triggers and strict published coverage pass.

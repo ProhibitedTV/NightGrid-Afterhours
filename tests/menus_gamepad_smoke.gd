@@ -369,15 +369,574 @@ func _verify() -> void:
 		_fail("Restored courier milestones must apply real bounded sprint benefit and journal state")
 		return
 	menu.call("open_opening")
-	if not menu.call("is_open") or not (menu.call("get_buttons") as Dictionary).has("opening_accept"):
-		_fail("Opening notice must be controller accessible")
-		return
 	var before_severance: int = world.get("cash")
+	if not menu.call("is_open") or not (menu.call("get_buttons") as Dictionary).has("opening_inspect"):
+		_fail("Opening ticket must be controller accessible")
+		return
 	menu.call("_choice","opening_accept")
+	if not menu.call("is_open") or world.get("cash")!=before_severance:
+		_fail("Cannot skip corporate investigation and collect severance early")
+		return
+	menu.call("_choice","opening_inspect")
+	menu.call("_choice","opening_brief")
+	menu.call("_choice","opening_phone")
+	menu.call("_choice","opening_hangup")
+	var opening = preload("res://scripts/opening_story.gd")
+	if not opening.CALL_MANDARIN.contains("解放军") or not opening.CALL_SUBTITLES.contains("People's Liberation Army"):
+		_fail("Mandarin phone call and English subtitles must identify the fictional military contact")
+		return
+	if not (menu.call("get_buttons") as Dictionary).has("opening_security") or not (menu.call("get_buttons") as Dictionary).has("opening_legal"):
+		_fail("Executive confrontation must present both report choices")
+		return
+	menu.call("_choice","opening_legal")
+	if menu.get("_opening_report")!="opening_legal" or not (menu.call("get_buttons") as Dictionary).has("opening_read_notice"):
+		_fail("Legal escalation has its own response")
+		return
+	world.call("_start_opening_office")
+	var office: Node3D = world.get("_opening_office")
+	if not is_instance_valid(office) or office.find_children("*","CollisionShape3D",true,false).size()<10:
+		_fail("Physical office must have real enclosed collision geometry")
+		return
+	var opening_visual: Node3D=player.get("visual")
+	var opening_rig: Skeleton3D=opening_visual.get("skeleton")
+	var opening_source=preload("res://scripts/opening_story.gd")
+	if opening_source.ROLE!="Corporate IP Security Analyst" or not opening_source.AUDIT.contains("not proof of an affair"):
+		_fail("Insider case must be based on unauthorized access, with the affair implied")
+		return
+	var suit_available := ResourceLoader.exists(opening_visual.call("corporate_model_path"),"PackedScene")
+	if suit_available and not opening_visual.get("corporate_attire"):
+		_fail("Generated formalwear must equip on the existing player rig")
+		return
+	if OS.get_environment("NIGHTGRID_REQUIRE_CORPORATE_SUIT")=="1" and not suit_available:
+		_fail("Suit asset workflow must provide a real imported skinned suit")
+		return
+	var finish: Node3D = office.get_node_or_null("ArchitecturalFinish")
+	if not is_instance_valid(finish) or finish.is_processing():
+		_fail("Office finish must be a static authored environment")
+		return
+	var detail_stats: Dictionary = finish.call("get_detail_stats")
+	if int(detail_stats["parts"]) < 500 or int(detail_stats["batches"]) > 75:
+		_fail("Office detail must use bounded static material batches")
+		return
+	for batch in finish.get_children():
+		if not batch is MultiMeshInstance3D or batch.multimesh.instance_count <= 0 or batch.material_override == null:
+			_fail("Office finish requires populated shared geometry and materials")
+			return
+	for id in ["WorkstationCollision","ExecutiveDeskCollision","HRDeskCollision","ReceptionDeskCollision","BreakroomTableCollision"]:
+		if not is_instance_valid(office.get_node_or_null(id)):
+			_fail("Furniture art replacement must preserve physical occupancy: "+id)
+			return
+	var propaganda: Node3D=office.get_node_or_null("CorporatePropaganda")
+	if not is_instance_valid(propaganda) or propaganda.get_child_count()!=16:
+		_fail("Sixteen physical corporate propaganda boards must be present")
+		return
+	for id in ["OfficeAttendance","Calibration","AIPledge","PTOFreeze","Meetings","SpeakUp","Equity","Water","Recruiting","LobbySurveillance"]:
+		if not is_instance_valid(propaganda.get_node_or_null(id+"/Headline")):
+			_fail("Missing environmental workplace satire: "+id)
+			return
+	for id in ["RecognitionAward","DeskTimeTracker","ExecutiveCoffeeMachine","CartonPriceCard"]:
+		if not is_instance_valid(office.get_node_or_null(id)):
+			_fail("Missing physical workplace storytelling prop: "+id)
+			return
+	for board in propaganda.get_children():
+		var logo:=board.get_node_or_null("BrandLockup") as MeshInstance3D
+		if logo==null or logo.material_override.albedo_texture==null:
+			_fail("Every physical poster uses the shared original Synaxis logo texture")
+			return
+	if not is_instance_valid(office.get_node_or_null("TowerBrandFront")) or not is_instance_valid(office.get_node_or_null("EntranceBrand")):
+		_fail("Permanent corporate facade uses the original brand")
+		return
+	if not str(propaganda.get_node("QuarterlyRecord/Headline").text).contains("$14.8 BILLION") or not str(propaganda.get_node("HealthRenewal/Headline").text).contains("24%") or not str(propaganda.get_node("HealthRenewal/FinePrint").text).contains("$231"):
+		_fail("Profit celebration and increased health premium must be actual in-world text")
+		return
+	var arrival_script=preload("res://scripts/synaxis_arrival.gd")
+	var shots: Array=arrival_script.SHOTS
+	for i in range(shots.size()):
+		var shot: Dictionary=shots[i]
+		if float(shot["duration"])<=0.0 or (i>0 and shot["from"]!=shots[i-1]["to"]):
+			_fail("Arrival camera cuts must not teleport the player")
+			return
+		var shot_start: Vector3=shot["from"]
+		var shot_end: Vector3=shot["to"]
+		# Sample each route leg against the executive partition expanded by capsule clearance.
+		for step in range(21):
+			var route_sample := shot_start.lerp(shot_end,float(step)/20.0)
+			if absf(route_sample.x)<.45 and route_sample.z>arrival_script.PARTITION_NEAR_Z-.36 and route_sample.z<arrival_script.PARTITION_FAR_Z+.36:
+				_fail("Arrival must turn around the partition rather than walk through it")
+				return
+	var partition: MeshInstance3D=office.get_node("ExecutivePartition")
+	var partition_mesh: BoxMesh=partition.mesh
+	if not is_equal_approx(partition.position.z-partition_mesh.size.z*.5,arrival_script.PARTITION_NEAR_Z) or shots[-1]["to"]!=preload("res://scripts/synaxis_office.gd").CUBICLE_POINT:
+		_fail("Arrival route must match the actual partition and playable cubicle")
+		return
+	var montage=arrival_script.new()
+	if not montage.advance(4.8) or not bool(montage.sample()["gate_open"]) or montage.advance(30.0) or not montage.sample().is_empty():
+		_fail("Arrival timeline opens the gate during crossing and terminates on a large frame delta")
+		return
+	if not office.call("arrival_active") or not player.get("input_blocked"):
+		_fail("New game begins with a controlled arrival cinematic")
+		return
+	world.call("_opening_interact") # skip uses the same completion path
+	if office.call("arrival_active") or player.get("input_blocked") or int(office.call("objective_stage",0))!=-2:
+		_fail("Skipping arrival restores player movement at the cubicle")
+		return
+	player.global_position=office.to_global(Vector3(0,1.15,0))
+	world.call("_opening_interact")
+	if menu.call("is_open") or int(office.call("objective_stage",0))!=-2:
+		_fail("Cannot interact with office workstation remotely")
+		return
+	var office_decks: Array=office.call("workfloor_stats")
+	var desk_total:=0
+	if office_decks.size()!=4:
+		_fail("Four real upper workplace floors exist")
+		return
+	for deck_stats in office_decks:
+		desk_total+=int(deck_stats["desks"])
+		if int(deck_stats["desks"])!=28 or int(deck_stats["chairs"])<28 or int(deck_stats["plants"])<5 or int(deck_stats["colliders"])<10 or int(deck_stats["batches"])>40:
+			_fail("Every workfloor must be fully furnished, collision backed and batched")
+			return
+	if desk_total<100:
+		_fail("HQ needs at least 100 dedicated workstations")
+		return
+	for level in [1,2,3,4,13]:
+		var previous:int=office.get("_active_floor")
+		player.global_position=office.to_global(Vector3(-.9,previous*3.65+1.15,5))
+		world.call("_opening_interact")
+		if not office.call("lift_active") or not player.get("input_blocked") or int(office.get("_active_floor"))!=previous:
+			_fail("Lift closes before moving and locks input during travel")
+			return
+		world.call("_opening_interact")
+		office.call("tick_lift",.20,player)
+		if int(office.get("_active_floor"))!=previous:
+			_fail("Lift cannot relocate before the doors close")
+			return
+		office.call("tick_lift",3.0,player)
+		if office.call("lift_active") or player.get("input_blocked"):
+			_fail("Lift opens and releases input at destination")
+			return
+		if int(office.get("_active_floor"))!=level or absf(office.to_local(player.global_position).y-(level*3.65+1.15))>.01:
+			_fail("Lift travels to actual upper floor elevations")
+			return
+	var ambient_count:=0
+	for index in range(1,5):
+		var floor_people:Node3D=office.get_node("Workfloor%d/DepartmentStaff" % index)
+		var people_stats:Dictionary=floor_people.call("stats")
+		ambient_count+=int(people_stats["people"])
+		if int(people_stats["animated"])!=0 or int(people_stats["seated"])!=6:
+			_fail("Off-floor office NPCs must be paused and have authored seat anchors")
+			return
+	if ambient_count!=32:
+		_fail("Four departments have 32 additional background employees")
+		return
+	var engineering_deck:Node3D=office.get_node("Workfloor1")
+	var robotics_lab:Node3D=engineering_deck.get_node("RoboticsLab")
+	engineering_deck.call("set_occupied",true)
+	var engineering_people:Node3D=engineering_deck.get_node("DepartmentStaff")
+	if int(engineering_people.call("stats")["animated"])!=8 or not str(engineering_deck.call("observe_worker",engineering_deck.to_global(Vector3(-5.3,1.15,5.65)))).contains("Faye"):
+		_fail("Occupied floor animates staff and provides incidental coworker conversation")
+		return
+	var walker:Node3D=engineering_people.get("_people")[7]
+	var start_walk:Vector3=walker.position
+	engineering_people.call("observe",Vector3.INF)
+	for tick in range(100):
+		engineering_people.call("_process",.1)
+	if float(engineering_people.call("stats")["walk_distance"])<.5 or walker.position.distance_to(start_walk)<.1 or walker.get("_walk_rig").size()!=2:
+		_fail("Standing coworker follows a bounded route with articulated legs")
+		return
+	engineering_people.call("observe",walker.global_position+Vector3.UP*1.15)
+	var paused_at:=walker.position
+	for tick in range(10):
+		engineering_people.call("_process",.1)
+	if walker.position.distance_to(paused_at)>.001 or bool(engineering_people.call("stats")["walking"]):
+		_fail("Walking coworker yields to a nearby visitor")
+		return
+	engineering_people.call("observe",Vector3.INF)
+	var services:Node3D=engineering_deck.get_node("OfficeServices")
+	for tick in range(850):
+		engineering_people.call("_process",.1)
+		services.call("_process",.1)
+	var npc_cycles:Dictionary=engineering_people.call("stats")
+	# A full round has a bounded stand-up, alternating speakers and cleanup.
+	var meeting_model=preload("res://scripts/synaxis_department_meeting.gd").new()
+	meeting_model.begin()
+	if meeting_model.speaker()!=6 or not meeting_model.line(1).contains("safety review"):
+		_fail("Stand-up begins with the department-specific agenda")
+		return
+	meeting_model.tick(3.1)
+	if meeting_model.speaker()!=7 or not meeting_model.line(1).contains("human override"):
+		_fail("Stand-up alternates speakers")
+		return
+	meeting_model.tick(6.0)
+	if meeting_model.active or meeting_model.completed!=1:
+		_fail("Stand-up ends without leaving a conversation active")
+		return
+	if int(npc_cycles["print_visits"])<1 or int(npc_cycles["coffee_visits"])<1:
+		_fail("Employee completes shared printer and coffee cycles")
+		return
+	for tick in range(500):
+		engineering_people.call("_process",.1)
+		services.call("_process",.1)
+	if int(engineering_people.call("stats")["meetings_completed"])<1:
+		_fail("Completed appliance round leads to a coordinated department stand-up")
+		return
+	meeting_model.begin(true)
+	if not meeting_model.line(1).contains("access notice") or meeting_model.line(1).contains("safety review"):
+		_fail("Late-shift stand-up reflects only public department notices")
+		return
+	meeting_model.reset()
+	engineering_people.call("set_story_stage",4)
+	var late_line:=str(engineering_people.call("observe",engineering_deck.to_global(Vector3(-5.3,1.15,5.65))))
+	if not late_line.contains("internal matters") or not bool(engineering_people.call("stats")["offboarding"]):
+		_fail("Employee remarks change when offboarding begins")
+		return
+	engineering_people.call("set_story_stage",-2)
+	# Reset circulation before testing player-owned cycles independently.
+	engineering_people.call("set_active",false)
+	services.call("set_active",false)
+	services.call("set_active",true)
+	var counts:Dictionary=services.call("stats")
+	var service_spec=preload("res://scripts/synaxis_office_services.gd")
+	var print_at:Vector3=services.to_global(service_spec.PRINTER_USE)
+	var coffee_at:Vector3=services.to_global(service_spec.COFFEE_USE)
+	if not services.call("interact",print_at) or not services.call("interact",print_at):
+		_fail("Office printer accepts local interaction and handles repeated input")
+		return
+	services.call("_process",3.1)
+	if int(services.call("stats")["printed"])!=int(counts["printed"])+1 or not services.call("interact",coffee_at):
+		_fail("Printer completes exactly one cycle; coffee station accepts local interaction")
+		return
+	services.call("_process",2.7)
+	if int(services.call("stats")["brewed"])!=int(counts["brewed"])+1 or bool(services.call("stats")["stream"]):
+		_fail("Coffee cycle finishes and stops the visible stream")
+		return
+	engineering_people.call("set_active",true)
+	var routine:Dictionary=engineering_people.call("stats")
+	if int(routine["board_visits"])<1 or int(routine["chat_visits"])<1 or walker.get("_clipboard")==null:
+		_fail("Department routine visits the task board and coworker with authored props")
+		return
+	var lab_stats:Dictionary=robotics_lab.call("lab_stats")
+	if int(lab_stats["prototypes"])!=2 or int(lab_stats["barriers"])!=4 or not bool(lab_stats["active"]):
+		_fail("Robotics lab has two articulated display prototypes and a closed collision bay")
+		return
+	var engineer_line:String=engineering_deck.call("observe_worker",engineering_deck.to_global(Vector3(3.8,1.15,4.45)))
+	if not engineer_line.contains("Imani"):
+		_fail("Robotics engineer has unmarked proximity dialogue")
+		return
+	engineering_deck.call("set_occupied",false)
+	if bool(robotics_lab.call("lab_stats")["active"]):
+		_fail("Robot demonstration stops when its floor is unoccupied")
+		return
+	var comic_deck:Node3D=office.get_node("Workfloor2")
+	var cal:Node3D=comic_deck.get("_rage")
+	comic_deck.call("set_occupied",true)
+	cal.call("observe",comic_deck.to_global(Vector3(4,1.15,4)))
+	cal.call("_process",1.8)
+	var gag:Dictionary=cal.call("get_gag_state")
+	if not gag["standing"] or not gag["keyboard"]:
+		_fail("Office worker stands up and picks up keyboard")
+		return
+	cal.call("_process",.95)
+	gag=cal.call("get_gag_state")
+	if not gag["impact"] or absf(float(gag["monitor_tilt"]))<.2:
+		_fail("Keyboard rage must visibly displace its own monitor")
+		return
+	cal.call("_process",3.0)
+	cal.call("observe",comic_deck.to_global(Vector3(4,1.15,4)))
+	if cal.call("get_gag_state")["performing"]:
+		_fail("Office comedy is one-shot, not an endlessly looping distraction")
+		return
+	comic_deck.call("set_occupied",false)
+	var procurement:Node3D=office.get_node("Workfloor4")
+	var egg:Node3D=procurement.get_node("OfficeEasterEggs")
+	procurement.call("set_occupied",true)
+	var arthur_line:String=procurement.call("observe_worker",procurement.to_global(Vector3(-4,1.15,3.7)))
+	if not arthur_line.contains("Arthur") or int(egg.call("get_egg_state")["prop_parts"])<6:
+		_fail("Red stapler is a physical prop with nearby coworker dialogue")
+		return
+	procurement.call("observe_worker",procurement.to_global(Vector3(0,1.15,5)))
+	var second_line:String=procurement.call("observe_worker",procurement.to_global(Vector3(-4,1.15,3.7)))
+	if second_line==arthur_line or int(egg.call("get_egg_state")["visits"])!=2:
+		_fail("Stapler dialogue changes on revisits, not every frame")
+		return
+	procurement.call("set_occupied",false)
+	var leadership_stats: Dictionary=office.call("executive_floor_stats")
+	if int(leadership_stats.get("executives",0))!=7 or not bool(leadership_stats.get("occupied",false)) or int(leadership_stats.get("colliders",0))<10:
+		_fail("Executive level must have seven distinct staff and physical luxury furniture")
+		return
+	var leadership: Node3D=office.get_node("ExecutiveFloor")
+	if float(leadership_stats["ceo_suite_area"])<=float(leadership_stats["other_office_area"]) or float(leadership_stats["balcony_area"])<19.0 or leadership.position.y<47.0 or office.get_node_or_null("CrownTerraceSlab")==null:
+		_fail("Founder has largest private suite and collision-backed terrace at the tower crown")
+		return
+	var hr_line: String=leadership.call("staff_remark",leadership.to_global(Vector3(-5.6,1.15,3.65)),-2)
+	if not hr_line.contains("Blaire Sterling") or not hr_line.contains("whole self") or leadership.call("staff_remark",leadership.to_global(Vector3(-5.6,1.15,3.65)),4)==hr_line:
+		_fail("HR slogans vary with mission phase and actual proximity")
+		return
+	for level in [4,3,2,1,0]:
+		var previous:int=office.get("_active_floor")
+		player.global_position=office.to_global(Vector3(.9,previous*3.65+1.15,5))
+		world.call("_opening_interact")
+		office.call("tick_lift",3.0,player)
+		if int(office.get("_active_floor"))!=level:
+			_fail("Lift returns to the ground-floor tutorial")
+			return
+	if bool(office.call("executive_floor_stats")["occupied"]):
+		_fail("Executive actors and local lamps deactivate away from their floor")
+		return
+	if int(office.call("objective_stage",0))!=-2 or menu.call("is_open") or world.get("cash")!=before_severance:
+		_fail("Office exploration does not advance the mission or alter the wallet")
+		return
+	var reserved:Node3D=office.get_node("FounderParking")
+	var reserved_stats:Dictionary=reserved.call("stats")
+	if not bool(reserved_stats["founder"]) or not bool(reserved_stats["static"]) or reserved_stats["plate"]!="SYNX1" or reserved.get_node_or_null("JetsonFounderR9/Coachwork/FrontClip")==null or reserved.get_node_or_null("FounderR9Collision")==null or world.get("cars").size()!=12:
+		_fail("Founder R9 uses the authored vehicle and a physical bay without modifying save fleet indices")
+		return
+	if int(reserved_stats["staff_bays"])!=4 or int(reserved_stats["other_parked"])!=5 or not bool(reserved_stats["covered"]):
+		_fail("Parking has covered leadership reserve and separate staff row without changing the active fleet")
+		return
+	for display in reserved.get("_parked"):
+		if display.is_processing() or display.get_node_or_null("KestrelMonocoque")==null:
+			_fail("Parked commuter displays must use authored models without runtime processing")
+			return
+	if not bool(office.get("_staff_exit_open")) or office.get_node("StaffExitDoor").visible or office.get_node_or_null("WorkfloorCapCollision")==null:
+		_fail("Prologue opens a physical staff exit to the parking area and seals the fourth floor ceiling")
+		return
+	var guard_data=preload("res://scripts/synaxis_parking_dialogue.gd")
+	var guard_position:Vector3=reserved.to_global(guard_data.ANCHOR+Vector3.UP*1.15)
+	if not bool(reserved_stats["guard"]) or not bool(reserved_stats["booth"]) or office.call("parking_guard_reachable",office.to_global(Vector3(0,1.15,0))):
+		_fail("Parking guard has local proximity and remains separate from lobby security")
+		return
+	player.global_position=guard_position
+	world.call("_opening_interact")
+	if not (menu.call("get_buttons") as Dictionary).has("guard_r9") or (menu.call("get_buttons") as Dictionary).has("guard_layoff"):
+		_fail("Parking guard offers pre-dismissal topics without premature layoff dialogue")
+		return
+	menu.call("_choice","guard_r9")
+	if menu.get("_guard_topic")!="guard_r9" or not (menu.call("get_buttons") as Dictionary).has("guard_back"):
+		_fail("Guard answers selected question and supports returning to topic list")
+		return
+	menu.call("_choice","guard_back")
+	menu.call("_choice","guard_leave")
+	if menu.call("is_open") or menu.get("_opening_stage")!=0 or world.get("cash")!=before_severance:
+		_fail("Guard dialogue is optional and cannot advance the opening or change cash")
+		return
+	var staff: Dictionary=office.get("_staff")
+	if staff.size()!=8 or not staff.has("reception"):
+		_fail("HQ has eight authored staff plus the executive assistant")
+		return
+	for staff_id in staff:
+		var employee: Node3D=staff[staff_id]
+		if employee.get_node_or_null("BreathingTorso/SynaxisEmployeeBadge")==null or str(employee.get("display_name")).is_empty():
+			_fail("Each employee has physical department attire and an identity")
+			return
+	var founder: Node3D=staff["jetson_wang"]
+	var jacket: MeshInstance3D=founder.get_node_or_null("BreathingTorso/JacketSilhouette")
+	if founder.get("outfit")!="executive_leather" or jacket==null or not jacket.material_override.normal_enabled or founder.get_node_or_null("BreathingTorso/MainZipperTrack")==null or founder.get_node_or_null("BreathingTorso/TieBlade")!=null:
+		_fail("Jetson has signature textured leather outerwear, zipper details and no tie")
+		return
+	var mika: Node3D=staff["mika"]
+	var staff_line: String=office.call("update_staff_attention",-2,mika.global_position+Vector3.UP*1.15)
+	if not staff_line.contains("Mika Torres") or not mika.call("get_staff_state")["attention"]:
+		_fail("Nearby supervisor reacts without a modal menu")
+		return
+	if office.call("update_staff_attention",-2,office.to_global(Vector3(0,1.15,0)))!="" or mika.call("get_staff_state")["attention"]:
+		_fail("Staff attention clears out of range")
+		return
+	var rooms=preload("res://scripts/synaxis_restrooms.gd")
+	var washrooms=office.get_node_or_null("Restrooms")
+	if not is_instance_valid(washrooms) or washrooms.find_children("*","CollisionShape3D",true,false).size()<10:
+		_fail("Both washrooms must have physical walls and closed stalls")
+		return
+	if not str(office.call("restroom_encounter",office.to_global(Vector3(0,1.15,5.0)))).is_empty():
+		_fail("Restroom encounters require crossing the entrance")
+		return
+	for id in [rooms.MEN,rooms.WOMEN]:
+		player.global_position=office.to_global(rooms.CENTERS[id])
+		world.call("_process",0.0)
+		if not (menu.call("get_buttons") as Dictionary).has("restroom_leave") or menu.get("_restroom_id")!=id:
+			_fail("Entering each actual restroom triggers its distinct scene")
+			return
+		menu.call("_choice","restroom_leave")
+		world.call("_process",0.0)
+		if menu.call("is_open") or int(office.call("objective_stage",0))!=-2 or world.get("cash")!=before_severance:
+			_fail("Restroom scene is optional, once per visit and cannot affect mission or wallet")
+			return
+	var breakroom_hq=preload("res://scripts/synaxis_office.gd")
+	player.global_position=office.to_global(breakroom_hq.BREAKROOM_POINT)
+	world.call("_opening_interact")
+	if not (menu.call("get_buttons") as Dictionary).has("breakroom_photo") or not is_instance_valid(office.get_node_or_null("PartyBannerBacking")):
+		_fail("Optional breakroom party requires actual in-world proximity and branded decor")
+		return
+	menu.call("_choice","breakroom_decline")
+	menu.call("_choice","breakroom_leave")
+	if menu.call("is_open") or not office.get("_breakroom_seen") or menu.get("_opening_stage")!=0 or world.get("cash")!=before_severance:
+		_fail("Optional party cannot alter mission stage or wallet")
+		return
+	world.call("_opening_interact")
+	if menu.call("is_open"):
+		_fail("Party cannot be replayed repeatedly in the same prologue")
+		return
+	player.global_position = office.call("point",0)
+	world.call("_opening_interact")
+	if menu.call("is_open") or office.call("errand_complete"):
+		_fail("IT alert cannot be opened before collecting the folder")
+		return
+	player.global_position=office.call("point",-2)
+	world.call("_opening_interact")
+	if int(office.call("objective_stage",0))!=-1 or office.get("_folder_desk").visible:
+		_fail("Folder pickup updates objective and removes desk prop")
+		return
+	world.call("_opening_interact")
+	if office.call("errand_complete"):
+		_fail("Folder cannot be handed over remotely")
+		return
+	player.global_position=office.to_global(Vector3(.9,1.15,5))
+	world.call("_opening_interact")
+	office.call("tick_lift",3.0,player)
+	var basement:Node3D=office.get_node("BasementIT")
+	var bstats:Dictionary=basement.call("basement_stats")
+	if int(office.get("_active_floor"))!=-1 or int(bstats["racks"])!=20 or not bool(bstats["hum"]):
+		_fail("IT handoff requires real basement lift travel, twenty racks and local ambient hum")
+		return
+	world.call("_physics_process",0.0)
+	if int(office.get("_active_floor"))!=-1 or office.to_local(player.global_position).y>0.0:
+		_fail("Basement must not activate the ground-level fall recovery")
+		return
+	player.global_position=office.call("point",-1)
+	world.call("_opening_interact")
+	if not office.call("errand_complete") or not office.get("_folder_desk").visible or world.get("cash")!=before_severance:
+		_fail("Actual IT handoff must precede alert without changing wages")
+		return
+	world.call("_opening_interact")
+	menu.call("_choice","opening_inspect")
+	menu.call("_choice","opening_brief")
+	if menu.call("is_open"):
+		_fail("Executive briefing requires walking to office")
+		return
+	player.global_position=office.to_global(Vector3(-.9,1.15-3.65,5))
+	world.call("_opening_interact")
+	office.call("tick_lift",3.0,player)
+	if int(office.get("_active_floor"))!=0 or bool(basement.call("basement_stats")["hum"]):
+		_fail("Returning to ground floor stops server-room ambient audio")
+		return
+	for next_floor in [1,2,3,4,13]:
+		player.global_position=office.to_global(Vector3(-.9,int(office.get("_active_floor"))*3.65+1.15,5))
+		world.call("_opening_interact")
+		office.call("tick_lift",3.0,player)
+		if int(office.get("_active_floor"))!=next_floor:
+			_fail("Executive briefing requires travelling to the crown")
+			return
+	player.global_position = office.call("point",2)
+	world.call("_opening_interact")
+	menu.call("_choice","opening_phone")
+	var assistant: Node3D = office.get("_assistant")
+	if staff["jetson_wang"].call("get_staff_state")["beat"]!=1:
+		_fail("CEO performance follows the staged executive briefing")
+		return
+	if not is_instance_valid(assistant) or not assistant.get("_on_call") or not assistant.get("_phone").visible:
+		_fail("Visible assistant speakerphone performance during Mandarin beat")
+		return
+	menu.call("_choice","opening_hangup")
+	if assistant.get("_on_call") or assistant.get("_phone").visible:
+		_fail("Hanging up clears the prop and phone pose")
+		return
+	menu.call("_choice","opening_security")
+	if menu.get("_opening_report")!="opening_security":
+		_fail("Security escalation has its own response")
+		return
+	menu.call("_choice","opening_read_notice")
+	player.global_position = office.call("point",4)
+	world.call("_opening_interact")
+	if not (menu.call("get_buttons") as Dictionary).has("opening_exit_accept") or not (menu.call("get_buttons") as Dictionary).has("opening_exit_decline"):
+		_fail("Exit interview presents both feedback choices")
+		return
+	menu.call("_choice","opening_accept")
+	if not menu.call("is_open") or world.get("cash")!=before_severance:
+		_fail("Cannot collect severance before offboarding")
+		return
+	menu.call("_choice","opening_exit_decline")
+	for next_floor in [4,3,2,1,0]:
+		player.global_position=office.to_global(Vector3(.9,int(office.get("_active_floor"))*3.65+1.15,5))
+		world.call("_opening_interact")
+		office.call("tick_lift",3.0,player)
+		if int(office.get("_active_floor"))!=next_floor:
+			_fail("Offboarding returns through the lift to reception")
+			return
+	player.global_position = office.call("point",5)
+	world.call("_opening_interact")
+	if menu.get("_opening_exit")!="opening_exit_decline":
+		_fail("Declining exit interview has distinct response")
+		return
+	if not (menu.call("get_buttons") as Dictionary).has("opening_accept"):
+		_fail("Final notice must expose QuotaDrop acceptance")
+		return
+	menu.call("_choice","opening_accept")
+	var headquarters = preload("res://scripts/synaxis_office.gd")
+	if not office.call("exit_active") or office.call("objective_stage",5)!=6 or world.get("cash")!=before_severance:
+		_fail("Final notice starts physical property return without crediting severance")
+		return
 	world.call("_accept_opening")
+	if world.get("cash")!=before_severance:
+		_fail("Cannot bypass equipment return")
+		return
+	world.call("_opening_interact")
+	if office.call("objective_stage",5)!=7 or not office.get("_returned_kit").visible or not office.get("_personal_bag").visible:
+		_fail("Equipment return visibly deposits company property and makes personal belongings available")
+		return
+	player.global_position=office.call("point",7)
+	world.call("_opening_interact")
+	if office.call("objective_stage",5)!=8 or opening_visual.get("corporate_attire") or not bool(office.get("_gate_open")):
+		_fail("Collecting belongings restores clothing and opens the public exit")
+		return
+	world.call("_accept_opening")
+	if world.get("cash")!=before_severance:
+		_fail("Severance remains pending until the player walks outside")
+		return
+	player.global_position=office.call("point",8)
+	world.call("_accept_opening")
+	world.call("_accept_opening")
+	if world.get("_opening_office")!=null or player.global_position.distance_to(headquarters.ENTRY)>.01 or world.get("city_details").call("synaxis_headquarters")!=office:
+		_fail("Office exit retains the real headquarters and places player at public entrance")
+		return
+	if opening_visual.get("corporate_attire") or opening_visual.get("skeleton")!=opening_rig:
+		_fail("Offboarding restores personal clothing without replacing the rig")
+		return
 	if world.get("cash") != before_severance+75 or not world.get("courier_mission").gig_economy or menu.call("is_open"):
 		_fail("Opening credits severance once and enables real QuotaDrop work")
 		return
+	if office.get_node_or_null("CorporatePropaganda")!=propaganda:
+		_fail("Propaganda is permanent headquarters dressing, not a tutorial overlay")
+		return
+	world.call("_toggle_interior")
+	if not str(world.get("notification")).contains("Public lobby open") or world.get("_opening_office")!=null:
+		_fail("HQ has a public lobby, not a second prologue")
+		return
+	player.global_position=office.to_global(headquarters.LOBBY_CHECKPOINT)
+	world.call("_toggle_interaction")
+	if not str(world.get("notification")).contains("Badge access revoked") or not is_instance_valid(office.get_node_or_null("SecurityGateCollision")):
+		_fail("Restricted office remains physically secured at the public checkpoint")
+		return
+	if bool(office.get("_staff_exit_open")) or not office.get_node("StaffExitDoor").visible:
+		_fail("Offboarding revokes the parking-side staff entrance")
+		return
+	player.global_position=guard_position
+	world.call("_toggle_interaction")
+	if not menu.get("_guard_former") or not (menu.call("get_buttons") as Dictionary).has("guard_access") or not (menu.call("get_buttons") as Dictionary).has("guard_layoff"):
+		_fail("Permanent guard recognizes revoked badge after offboarding")
+		return
+	menu.call("_choice","guard_layoff")
+	if menu.get("_guard_topic")!="guard_layoff" or not guard_data.reply("guard_layoff",true).contains("access-revocation"):
+		_fail("Former employee can ask about dismissal without restoring access")
+		return
+	menu.call("_choice","guard_leave")
+	world.call("_update_hud")
+	if not str(world.get("hud_prompt").text).contains("Talk to Marcus Vale"):
+		_fail("Local guard interaction has discoverable contextual prompt after prologue")
+		return
+	menu.call("open_journal",world.call("_journal_context"))
+	if not (menu.call("get_buttons") as Dictionary).has("synaxis_waypoint"):
+		_fail("Synaxis has a persistent return waypoint")
+		return
+	menu.call("hide_for_game")
 	var order = world.get("courier_mission")
 	var restaurants: Node = world.get("venue_system")
 	restaurants.call("set_hour",5.0)
