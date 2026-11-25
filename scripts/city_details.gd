@@ -15,6 +15,8 @@ const BrickwaterSigns = preload("res://scripts/brickwater_business_frontage.gd")
 const StreamProfile = preload("res://scripts/streaming_profile.gd")
 const MarketCarton = preload("res://scripts/market_carton.gd")
 const WalkInLot = preload("res://scripts/walk_in_lot.gd")
+const StarterHome = preload("res://scripts/starter_home.gd")
+const StarterGarage = preload("res://scripts/starter_garage.gd")
 ## Seeded city dressing. Static shell collisions + batched decorative geometry.
 ## The four neighborhoods deliberately share road geometry but not street character.
 
@@ -732,6 +734,14 @@ func _build_brickwater_alley(ix: int, iz: int) -> void:
 	alley.configure(-10.5+float(left["width"])*0.5,10.5-float(right["width"])*0.5)
 	_active_chunk.add_child(alley)
 
+func starter_garage(at: Vector3) -> Node3D:
+	if not at.is_finite() or _grid_cell(at) != StarterGarage.BLOCK:
+		return null
+	var chunk: Node3D = _loaded.get(StarterGarage.BLOCK)
+	if chunk == null and _staging.has(StarterGarage.BLOCK):
+		chunk = _staging[StarterGarage.BLOCK]["node"]
+	return chunk.get_node_or_null("StarterGarage") if is_instance_valid(chunk) else null
+
 func nearby_walk_in(at: Vector3) -> Node3D:
 	if not at.is_finite():
 		return null
@@ -928,6 +938,17 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 	var wall := Color(str(profile["wall"]))
 	var surface_kind: String = profile["material"]
 	var front := center.z - depth / 2.0
+	if Vector2i(ix,iz) == StarterGarage.BLOCK and which == StarterGarage.LOT:
+		if not shell_prebuilt:
+			var garage := StarterGarage.new()
+			garage.name = "StarterGarage"
+			garage.position = Vector3(center.x,.15,front)
+			garage.configure(width,height,depth,wall,surface_kind)
+			_active_chunk.add_child(garage)
+		if not shell_only:
+			_statistics["buildings"] += 1
+			_statistics["storefronts"] += 1
+		return
 	var back := center.z + depth / 2.0
 	var left := center.x - width / 2.0
 	var right := center.x + width / 2.0
@@ -1002,7 +1023,10 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 			lot.configure(width, height, depth, wall, surface_kind)
 			# Furniture has physical collision and must exist before the lot is
 			# walkable. Never create new obstacles inside an occupied room.
-			lot.call("dress",district,ACCENT[district],abs(ix * 11 + iz * 17 + which * 3))
+			if Vector2i(ix,iz) == StarterHome.BLOCK and which == StarterHome.LOT:
+				lot.call("dress_home", StarterHome.ID)
+			else:
+				lot.call("dress",district,ACCENT[district],abs(ix * 11 + iz * 17 + which * 3))
 			if ix == 0 and iz == -3 and which == 1:
 				lot.call("bind_physical_venue","helix_espresso")
 			(_active_chunk if _active_chunk != null else self).add_child(lot)
@@ -1165,6 +1189,8 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 	_detail(Vector3(center.x, 3.70, front - 0.27), Vector3(width * 0.88, 0.11, 0.19), sign_color, true)
 	var names: Array = SHOPS[district]
 	var label_text: String = "HELIX ESPRESSO" if ix == 0 and iz == -3 and which == 1 else names[abs(ix * 11 + iz * 17 + which * 3) % names.size()]
+	if Vector2i(ix,iz) == StarterHome.BLOCK and which == StarterHome.LOT:
+		label_text = StarterHome.NAME
 	_label(label_text, Vector3(center.x, 4.08, front - 0.42), sign_color, 54)
 	_statistics["storefronts"] += 1
 	for awning in range(4):

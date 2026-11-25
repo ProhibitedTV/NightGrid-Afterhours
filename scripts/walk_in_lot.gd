@@ -23,6 +23,7 @@ var _depth: float
 var _height: float
 var _dressed := false
 var physical_venue_id := ""
+var home_id := ""
 var door: AnimatableBody3D
 var _lamp: OmniLight3D
 var _pending_visuals: Dictionary = {}
@@ -149,6 +150,42 @@ func dress(district: String, accent: Color, variant: int) -> void:
 		_visual("UpperFixture",Vector3(0,UPPER_HEIGHT-.13,z),Vector3(3.0,.12,.42),_mat(Color("d8dad2"),true))
 		_section("UpperWorkstation",Vector3(3.55,ROOM_HEIGHT+.52,z),Vector3(1.65,1.04,1.45),counter)
 	_flush_interior_visuals()
+
+## Prototype furnishings, installed with collision in stage zero.
+func dress_home(id: String) -> void:
+	if _dressed:
+		return
+	_dressed = true
+	home_id = id
+	var timber := _mat(Color("604d40"))
+	var linen := _mat(Color("536d77"))
+	_section("Furnishing",Vector3(3.35,.28,13.9),Vector3(1.75,.56,2.25),timber)
+	_visual("Worktop",Vector3(3.35,.70,13.9),Vector3(1.68,.28,2.14),linen)
+	_visual("Worktop",Vector3(3.35,.89,14.64),Vector3(1.15,.12,.45),_mat(Color("d5ceba")))
+	_section("Furnishing",Vector3(3.55,.72,6.0),Vector3(1.55,1.44,.85),timber)
+	_section("Furnishing",Vector3(-3.55,.52,2.8),Vector3(1.65,1.04,1.45),timber)
+	_visual("Worktop",Vector3(-3.55,1.08,2.8),Vector3(1.72,.10,1.55),_mat(Color("a69c85")))
+	for z in [2.3,6.1,10.7,14.5]:
+		_visual("CeilingFixture",Vector3(0,ROOM_HEIGHT-.13,z),Vector3(2.0,.12,.42),_mat(Color("f1d5ad"),true))
+	_flush_interior_visuals()
+
+func home_action_point(action: String) -> Vector3:
+	match action:
+		"rest":
+			return to_global(Vector3(3.35,1.15,12.0))
+		"storage":
+			return to_global(Vector3(3.55,1.15,7.45))
+		"save":
+			return to_global(Vector3(-2.1,1.15,2.8))
+	return Vector3.INF
+
+func home_action(at: Vector3) -> String:
+	if home_id.is_empty() or not contains(at):
+		return ""
+	for action in ["rest","storage","save"]:
+		if at.distance_to(home_action_point(action)) < 1.1:
+			return action
+	return ""
 
 func bind_physical_venue(id: String) -> void:
 	physical_venue_id = id
