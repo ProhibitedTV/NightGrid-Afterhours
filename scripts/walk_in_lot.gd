@@ -228,6 +228,7 @@ func dress_clothing_store(store_id:String=ClothingStore.ID) -> void:
 	_shop_label(str(store["style"])+" / COLLECTION EXAMPLES",Vector3(3.45,2.25,2.6),.003,PI)
 	_dress_retail_feature(store_id,theme,black,oak,brass)
 	_dress_headwear(store["stock"],oak)
+	_dress_patch_display(store["stock"],black)
 	_flush_interior_visuals()
 	_clothing_clerk=ShopClerk.new()
 	_clothing_clerk.call("configure_staff",{"id":store_id+"_clerk","name":theme["clerk"],"role":str(store["name"])+" shopkeeper","activity":"TYPE","seated":false,"palette":theme["palette"],"phase":1.4,"outfit":"retail","hair":theme["hair"],"glasses":store_id!="nocturne","coat":Color(theme["coat"]),"height":.92,"width":.78})
@@ -276,22 +277,7 @@ func _dress_retail_feature(id:String,theme:Dictionary,base:Material,wood:Materia
 			for i in range(3):
 				_visual("Worktop",Vector3(x-.09,2.50,z-.48+i*.48),Vector3(.06,.32,.39),wood)
 				_shop_label(["DIY","FIX","REUSE"][i],Vector3(x-.14,2.50,z-.48+i*.48),.0028,-PI/2)
-			# Printed merch cards on the wall, using the exact wearable art.
-			for i in range(4):
-				var patch_id:String=["patch_deadcarrier","patch_voltage","patch_ghostshift","patch_nightgrid"][i]
-				var card:=MeshInstance3D.new()
-				var quad:=QuadMesh.new()
-				quad.size=Vector2(.24,.24)
-				card.mesh=quad
-				var material:=StandardMaterial3D.new()
-				material.albedo_texture=load("res://assets/textures/fashion/"+patch_id+".svg") as Texture2D
-				material.roughness=.94
-				card.material_override=material
-				card.position=Vector3(x-.16,1.99,z-.54+i*.36)
-				card.rotation.y=-PI/2
-				card.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-				add_child(card)
-				_shop_label("$%d" % Wardrobe.piece_price(patch_id),Vector3(x-.17,1.84,z-.54+i*.36),.002,-PI/2)
+
 		"obscura":
 			# Sparse brass display and a single folded signature piece.
 			for edge in [-.68,.68]:
@@ -320,6 +306,37 @@ func _dress_headwear(stock:Array,wood:Material) -> void:
 		add_child(sample)
 		_shop_label("$%d" % Wardrobe.piece_price(id),Vector3(4.03,2.22,sample.position.z),.002,-PI/2)
 	_shop_label("HEADWEAR",Vector3(4.02,2.65,11.8),.003,-PI/2)
+
+# Bounded wall grid uses exact wearable textures and shelf prices.
+func _dress_patch_display(stock:Array,base:Material) -> void:
+	var patches:Array=[]
+	for id in stock:
+		if Wardrobe.piece_valid(id) and Wardrobe.PIECES[id]["slot"]=="patch":
+			patches.append(id)
+	if patches.is_empty():
+		return
+	var x:=4.64
+	var z:=13.65
+	_visual("Worktop",Vector3(x,2.13,z),Vector3(.08,1.10,1.65),base)
+	for i in range(mini(patches.size(),8)):
+		var id:String=patches[i]
+		var card:=MeshInstance3D.new()
+		card.name=id+"_display"
+		var quad:=QuadMesh.new()
+		quad.size=Vector2(.25,.25)
+		card.mesh=quad
+		var material:=StandardMaterial3D.new()
+		material.albedo_texture=load("res://assets/textures/fashion/"+id+".svg") as Texture2D
+		material.roughness=.94
+		card.material_override=material
+		var col:=i%4
+		var row:=floori(float(i)/4.0)
+		card.position=Vector3(x-.07,2.36-float(row)*.40,z-.54+float(col)*.36)
+		card.rotation.y=-PI/2
+		card.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(card)
+		_shop_label("$%d" % Wardrobe.piece_price(id),card.position+Vector3(-.012,-.16,0),.002,-PI/2)
+	_shop_label("LOCAL SIGNAL / PATCHES",Vector3(x-.07,2.71,z),.003,-PI/2)
 
 func _shop_label(value:String,at:Vector3,pixel:float,yaw:float) -> void:
 	var label:=Label3D.new()

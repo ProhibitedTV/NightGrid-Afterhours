@@ -12,6 +12,7 @@ func _verify() -> void:
 	var expanded_catalog=preload("res://scripts/wardrobe_catalog.gd")
 	var expanded_store=preload("res://scripts/clothing_store.gd")
 	var sold:Dictionary={}
+	var patch_count:=0
 	if not check(expanded_catalog.IDS.size()>=35 and expanded_catalog.PIECE_IDS.size()>=37,"expanded catalog counts"):
 		return
 	for shop_id in expanded_store.IDS:
@@ -27,8 +28,14 @@ func _verify() -> void:
 				if not check(unique.has(item_id),"daily stock is sold by its shop"):
 					return
 	for item_id in expanded_catalog.IDS+expanded_catalog.PIECE_IDS:
+		if expanded_catalog.piece_valid(item_id) and expanded_catalog.PIECES[item_id]["slot"]=="patch":
+			patch_count+=1
+			if not check(ResourceLoader.exists("res://assets/textures/fashion/"+item_id+".svg","Texture2D"),"patch texture available"):
+				return
 		if not check(sold.has(item_id),"every cosmetic is available at a physical retailer"):
 			return
+	if not check(patch_count==12,"twelve original patch designs"):
+		return
 	for item_id in expanded_store.EXCLUSIVE:
 		var retailer_count:=0
 		for shop_id in expanded_store.IDS:

@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import itertools
 import json
+import math
 import re
 import struct
 import subprocess
@@ -43,6 +44,26 @@ def accessor_bytes(doc, binary, idx):
     require(count>0 and stride>=item and start>=v.get("byteOffset",0) and end<=v.get("byteOffset",0)+v["byteLength"] and end<=len(binary),"Accessor out of range")
     return b"".join(binary[start+i*stride:start+i*stride+item] for i in range(count))
 
+def validate_weights(doc, binary, attrs, joint_count):
+    """Reject invalid joint indices, NaN, negative or unnormalized weights."""
+    ja=doc["accessors"][attrs["JOINTS_0"]]
+    wa=doc["accessors"][attrs["WEIGHTS_0"]]
+    require(ja["type"]==wa["type"]=="VEC4", "Expected four skin influences")
+    require(ja["componentType"] in (5121,5123) and not ja.get("normalized",False),"Invalid joint accessor")
+    require(wa["componentType"] in (5121,5123,5126),"Invalid weight accessor")
+    require(wa["componentType"]==5126 or wa.get("normalized",False),"Integer weights must be normalized")
+    require(not (wa["componentType"]==5126 and wa.get("normalized",False)),"Float weights cannot be normalized")
+    jf={5121:"B",5123:"H"}[ja["componentType"]]
+    wf={5121:"B",5123:"H",5126:"f"}[wa["componentType"]]
+    scale={5121:255,5123:65535,5126:1}[wa["componentType"]]
+    joints=struct.iter_unpack("<4"+jf,accessor_bytes(doc,binary,attrs["JOINTS_0"]))
+    weights=struct.iter_unpack("<4"+wf,accessor_bytes(doc,binary,attrs["WEIGHTS_0"]))
+    for j,w in zip(joints,weights):
+        require(all(0<=v<joint_count for v in j),"Joint index outside rig")
+        normalized=[v/scale for v in w]
+        require(all(math.isfinite(v) and 0<=v<=1 for v in normalized),"Invalid weight")
+        require(abs(sum(normalized)-1)<=0.015,"Unnormalized skin weights")
+
 def rig(doc,binary):
     require(len(doc.get("skins",[]))==1,"Exactly one skin required")
     skin=doc["skins"][0]
@@ -79,7 +100,8 @@ def validate(path,reference,combo,limits):
     doc,raw,binary=glb(path)
     ref,_,refbin=reference
     require(len(raw)<=limits["max_bytes"],"Candidate byte budget exceeded")
-    require(rig(doc,binary)==rig(ref,refbin),"Joint hierarchy, transforms or inverse binds differ")
+    candidate_rig=rig(doc,binary)
+    require(candidate_rig==rig(ref,refbin),"Joint hierarchy, transforms or inverse binds differ")
     nodes=[n for n in doc["nodes"] if "mesh" in n and "skin" in n]
     require(len(nodes)==1,"Expected single weighted avatar mesh")
     parts=doc["meshes"][nodes[0]["mesh"]]["primitives"]
@@ -92,6 +114,7 @@ def validate(path,reference,combo,limits):
         require(all(doc["accessors"][attrs[k]]["count"]==count for k in ("NORMAL","TEXCOORD_0","JOINTS_0","WEIGHTS_0")),"Attribute count mismatch")
         for k in ("POSITION","NORMAL","TEXCOORD_0","JOINTS_0","WEIGHTS_0"):
             accessor_bytes(doc,binary,attrs[k])
+        validate_weights(doc,binary,attrs,len(candidate_rig[0]))
         vertices+=count
         materials.append(doc["materials"][part["material"]].get("name","").lower())
     require(0<vertices<=limits["max_vertices"],"Vertex budget exceeded")
@@ -101,7 +124,7 @@ def validate(path,reference,combo,limits):
         for pattern in entry["materials"]:
             require(any(re.search(pattern,n) for n in materials),f"Missing expected garment {pattern}: {materials}")
     return {"sha256":hashlib.sha256(raw).hexdigest(),"bytes":len(raw),"vertices":vertices,
-            "joints":len(rig(doc,binary)[0]),"materials":materials,"reviewed":False}
+            "joints":len(candidate_rig[0]),"materials":materials,"reviewed":False}
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)

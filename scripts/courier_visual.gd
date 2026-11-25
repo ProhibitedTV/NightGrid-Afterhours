@@ -16,7 +16,15 @@ const PATCH_TEXTURES={
 	"patch_deadcarrier":preload("res://assets/textures/fashion/patch_deadcarrier.svg"),
 	"patch_voltage":preload("res://assets/textures/fashion/patch_voltage.svg"),
 	"patch_ghostshift":preload("res://assets/textures/fashion/patch_ghostshift.svg"),
-	"patch_nightgrid":preload("res://assets/textures/fashion/patch_nightgrid.svg")
+	"patch_nightgrid":preload("res://assets/textures/fashion/patch_nightgrid.svg"),
+	"patch_rustchoir":preload("res://assets/textures/fashion/patch_rustchoir.svg"),
+	"patch_nullrent":preload("res://assets/textures/fashion/patch_nullrent.svg"),
+	"patch_scrapangel":preload("res://assets/textures/fashion/patch_scrapangel.svg"),
+	"patch_afterunion":preload("res://assets/textures/fashion/patch_afterunion.svg"),
+	"patch_blackrelay":preload("res://assets/textures/fashion/patch_blackrelay.svg"),
+	"patch_laserwake":preload("res://assets/textures/fashion/patch_laserwake.svg"),
+	"patch_citybus":preload("res://assets/textures/fashion/patch_citybus.svg"),
+	"patch_dockrat":preload("res://assets/textures/fashion/patch_dockrat.svg")
 }
 const Accessories=preload("res://scripts/wardrobe_accessories.gd")
 var _accessories:Dictionary={}

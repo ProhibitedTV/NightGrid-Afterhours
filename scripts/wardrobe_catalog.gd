@@ -61,7 +61,7 @@ static func garment_slot(name: String) -> String:
 # stable slot/item identities, with a separate validated visual asset contract.
 const SLOTS=["jacket","pants","glasses","watch","patch","hat"]
 const RESET_IDS=["reset_jacket","reset_pants","reset_glasses","reset_watch","reset_patch","reset_hat"]
-const PIECE_IDS=["jacket_ash","jacket_oxide","jacket_midnight","pants_charcoal","pants_sand","pants_teal","glasses_night","glasses_clear","watch_shift","watch_brass","jacket_ink","jacket_patch","jacket_signal","pants_salvage","pants_indigo","patch_deadcarrier","patch_voltage","patch_ghostshift","patch_nightgrid","jacket_concrete","pants_olive","jacket_copper","jacket_breakwater","pants_forge","jacket_silt","jacket_meridian","pants_pearl","jacket_oxblood","jacket_afterimage","pants_eclipse","jacket_ember","jacket_archivist","pants_porcelain","jacket_monolith","jacket_overprint","pants_scrapyard","jacket_deadstock","glasses_metro","watch_commute","glasses_harbor","watch_tide","glasses_meridian","watch_ink","glasses_afterimage","watch_pulse","glasses_porcelain","watch_monolith","glasses_deadstock","watch_salvage","hat_thread_cap","hat_thread_beanie","hat_quay_cap","hat_quay_bucket","hat_vesper_fedora","hat_vesper_cap","hat_nocturne_bucket","hat_nocturne_beanie","hat_obscura_fedora","hat_obscura_bucket","hat_signal_cap","hat_signal_beanie"]
+const PIECE_IDS=["jacket_ash","jacket_oxide","jacket_midnight","pants_charcoal","pants_sand","pants_teal","glasses_night","glasses_clear","watch_shift","watch_brass","jacket_ink","jacket_patch","jacket_signal","pants_salvage","pants_indigo","patch_deadcarrier","patch_voltage","patch_ghostshift","patch_nightgrid","jacket_concrete","pants_olive","jacket_copper","jacket_breakwater","pants_forge","jacket_silt","jacket_meridian","pants_pearl","jacket_oxblood","jacket_afterimage","pants_eclipse","jacket_ember","jacket_archivist","pants_porcelain","jacket_monolith","jacket_overprint","pants_scrapyard","jacket_deadstock","glasses_metro","watch_commute","glasses_harbor","watch_tide","glasses_meridian","watch_ink","glasses_afterimage","watch_pulse","glasses_porcelain","watch_monolith","glasses_deadstock","watch_salvage","hat_thread_cap","hat_thread_beanie","hat_quay_cap","hat_quay_bucket","hat_vesper_fedora","hat_vesper_cap","hat_nocturne_bucket","hat_nocturne_beanie","hat_obscura_fedora","hat_obscura_bucket","hat_signal_cap","hat_signal_beanie","patch_rustchoir","patch_nullrent","patch_scrapangel","patch_afterunion","patch_blackrelay","patch_laserwake","patch_citybus","patch_dockrat"]
 const PIECES={
 	"jacket_ash":{"name":"Ash work jacket","slot":"jacket","price":18,"tint":Color(.73,.77,.79),"finish":1.0},
 	"jacket_oxide":{"name":"Oxide street jacket","slot":"jacket","price":32,"tint":Color(1.0,.53,.38),"finish":.9},
@@ -123,7 +123,15 @@ const PIECES={
 	"hat_obscura_fedora":{"name":"Obscura / Monolith fedora","slot":"hat","price":480,"detail":"Graphite crown with muted gold ribbon"},
 	"hat_obscura_bucket":{"name":"Obscura / Porcelain bucket","slot":"hat","price":290,"detail":"Ivory crown and stone trim"},
 	"hat_signal_cap":{"name":"Second Signal / Reclaimed cap","slot":"hat","price":8,"detail":"Faded brown surplus cap"},
-	"hat_signal_beanie":{"name":"Second Signal / Ghost Shift beanie","slot":"hat","price":7,"detail":"Rust-toned knit with repaired cuff"}
+	"hat_signal_beanie":{"name":"Second Signal / Ghost Shift beanie","slot":"hat","price":7,"detail":"Rust-toned knit with repaired cuff"},
+	"patch_rustchoir":{"name":"Rust Choir / Factory Hymns","slot":"patch","price":5,"detail":"Industrial punk / broken gear"},
+	"patch_nullrent":{"name":"Null Rent / Eviction Notice","slot":"patch","price":4,"detail":"DIY protest print / torn house"},
+	"patch_scrapangel":{"name":"Scrap Angel / Broken Halo","slot":"patch","price":6,"detail":"Garage punk / broken halo"},
+	"patch_afterunion":{"name":"After Union / Clock Out","slot":"patch","price":5,"detail":"Local labor punk / timecard"},
+	"patch_blackrelay":{"name":"Black Relay / Night Transmission","slot":"patch","price":15,"detail":"Club collectible / fractured waveform"},
+	"patch_laserwake":{"name":"Laser Wake / Violet Hour","slot":"patch","price":18,"detail":"Nightlife collectible / neon horizon"},
+	"patch_citybus":{"name":"Night Bus / Last Stop","slot":"patch","price":6,"detail":"Streetwear / transit badge"},
+	"patch_dockrat":{"name":"Dock Rat / North Quay","slot":"patch","price":7,"detail":"Workwear badge / anchor"}
 }
 
 static func piece_valid(id:Variant) -> bool:
