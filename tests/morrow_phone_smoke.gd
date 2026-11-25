@@ -301,6 +301,10 @@ func _verify() -> void:
 	if world.get("cash")!=band_cash+240 or career.can_band_gig(wallet) or not wallet.has_receipt("music:blue_hour_debut"):
 		_fail("Band debut must settle once")
 		return
+	var Cred = preload("res://scripts/street_cred.gd")
+	if Cred.community_price(18,{"community":19})!=18 or Cred.community_price(18,{"community":20})!=17 or Cred.rank(85)!="Scene icon":
+		_fail("Street cred tier and price boundaries must agree")
+		return
 	var cred: Dictionary = world.call("_street_cred")
 	if cred["music"]!=55 or cred["community"]!=12 or cred["underground"]!=40 or not career.can_encore(wallet):
 		_fail("Cred must derive from successful performances, technical work and investigation")
@@ -321,6 +325,12 @@ func _verify() -> void:
 	if world.call("_street_cred")["music"]!=59:
 		_fail("Reputation must survive restore")
 		return
+	var before_cap := career.completed_sets
+	career.completed_sets = 100000
+	if world.call("_street_cred")["music"]!=100 or world.call("_street_cred")["community"]!=12:
+		_fail("Music cred cap must not bleed into other scenes")
+		return
+	career.completed_sets = before_cap
 	world.set("current_car",world.get("cars")[0])
 	if world.call("phone_available"):
 		_fail("Phone must not open while driving")

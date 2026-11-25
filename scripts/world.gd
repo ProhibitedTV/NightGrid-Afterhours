@@ -188,6 +188,7 @@ const BandTrack = preload("res://assets/audio/music/band_demo.wav")
 var music_career := MusicCareer.new()
 var _music_audio: AudioStreamPlayer3D
 var _music_site := ""
+var _music_start_cred := 0
 var civic_job_active := ""
 var civic_job_completed: Array[String] = []
 var civic_intel: Array[String] = []
@@ -731,6 +732,7 @@ func _start_music(kind: String, site: String) -> bool:
 		return false
 	suspend_weapon()
 	_music_site = site
+	_music_start_cred = int(_street_cred()["music"])
 	player.set("input_blocked",true)
 	player.get_node("Visual").call("set_music_prop",true)
 	if not is_instance_valid(_music_audio):
@@ -767,14 +769,13 @@ func _tick_music(delta: float) -> void:
 	if not music_career.mode.is_empty() and (_music_near_spot()!=_music_site or heat>.01 or health<=0.0):
 		_stop_music()
 		return
-	var before_cred := _street_cred()
 	var result := music_career.tick(delta,progression)
 	if not result.is_empty():
 		_stop_music()
 		if result["kind"]=="rehearse":
 			_notify("Rehearsal complete. %d / 2 for Blue Hour debut." % music_career.rehearsals)
 		else:
-			var gain := int(_street_cred()["music"])-int(before_cred["music"])
+			var gain := int(_street_cred()["music"])-_music_start_cred
 			_notify("Set complete. +$%d / +%d music cred." % [int(result["amount"]),gain] if result["paid"] else "Set complete. Wallet cannot accept payment.")
 
 func _music_contacts_context() -> Array[Dictionary]:

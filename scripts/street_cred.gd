@@ -41,4 +41,4 @@ static func summary(scores_now: Dictionary) -> String:
 	return "  •  ".join(parts)
 
 static func community_price(price: int, scores_now: Dictionary) -> int:
-	return maxi(0,price-ceili(price*.10)) if int(scores_now.get("community",0))>=20 else price
+	return maxi(0,price-floori(price*.10)) if int(scores_now.get("community",0))>=20 else price
