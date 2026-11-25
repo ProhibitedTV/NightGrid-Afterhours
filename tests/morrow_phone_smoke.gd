@@ -154,10 +154,49 @@ func _verify() -> void:
 			_fail("Completed repair still advertised")
 			return
 	world.call("_close_venue")
+	var case_state = world.get("investigation")
+	var case_cash: int = world.get("cash")
+	var unlocked := false
+	for listing in world.call("_phone_workboard"):
+		if listing["id"] == "investigation:paper_city":
+			unlocked = true
+	if not unlocked:
+		_fail("Paid technical work must unlock investigation")
+		return
+	if case_state.advance("dock_watch",0,wallet)["status"] != "unavailable":
+		_fail("Cannot skip investigation stages")
+		return
+	for site in ["harbor_library","records_office","dock_watch","harbor_library"]:
+		actor.global_position = civic.call("position_for",site)
+		world.call("_toggle_civic")
+		world.call("_venue_action",3)
+		if not world.get("_investigation_open"):
+			_fail("Investigation must open only at the current physical lead")
+			return
+		if case_state.stage == 3:
+			world.call("_venue_action",2)
+			if case_state.stage != 3 or world.get("cash") != case_cash:
+				_fail("Unsupported accusation must not settle")
+				return
+		world.call("_venue_action",1)
+		if case_state.stage < 4:
+			var stored: Dictionary = world.call("_capture_snapshot")
+			var stage_before: int = case_state.stage
+			case_state.restore(0,wallet)
+			case_state.restore(int(stored["investigation_stage"]),wallet)
+			if case_state.stage != stage_before or world.get("cash") != case_cash:
+				_fail("Intermediate lead must persist without payment")
+				return
+	if case_state.stage != 4 or world.get("cash") != case_cash+1450 or not wallet.has_receipt("investigation:paper_city"):
+		_fail("Investigation must settle exactly once")
+		return
+	if case_state.advance("harbor_library",0,wallet)["status"] != "unavailable":
+		_fail("Completed investigation must not pay again")
+		return
 	world.set("current_car",world.get("cars")[0])
 	if world.call("phone_available"):
 		_fail("Phone must not open while driving")
 		return
 	world.set("current_car",null)
-	print("MORROW_PHONE PASS: seven apps, live state, offer rotation, duty gate, workboard, alternate contact progression, physical diagnostics and driving gate")
+	print("MORROW_PHONE PASS: seven apps, live state, offer rotation, duty gate, workboard, alternate contact progression, physical diagnostics, staged investigation and driving gate")
 	quit(0)
