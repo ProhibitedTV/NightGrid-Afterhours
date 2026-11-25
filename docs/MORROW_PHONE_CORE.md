@@ -25,3 +25,6 @@ After recruiting both collaborators and passing two rehearsals, the Blue Hour co
 
 ## Encore and showcase bookings
 After the debut, two different Blue Hour encore arrangements (20 beats, 17 correct, $120 and 12 Street Cred each) advance the trio to a one-time Static Room showcase (32 beats, 27 correct, $480 and 45 Street Cred). The sequence is bounded, venue-gated and uses authoritative ledger receipts/run counts. Solo Blue Hour sets return after both encores, rather than replacing solo play indefinitely. Save validation rejects out-of-order completion, and cash overflow does not consume a booking. These are rhythm challenges using existing sampler pads; full ensemble audio and animated stage performances remain future work.
+
+## Scene reputation
+Music, Community and Underground ranks are read-only projections of the existing ledger's actual completed activities and receipts. Music counts completed street/solo sets, encores, soundcheck, debut and showcase. Community and Underground reflect authored favor, technical and investigation receipts. Each score is capped at 100; purchases, cash and waiting do not raise it. The journal and phone Cred app display these alongside unchanged global Street Cred. No new save schema, discounts, unlock rules or parallel XP wallet.

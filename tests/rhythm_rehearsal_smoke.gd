@@ -1,6 +1,7 @@
 extends SceneTree
 const Rhythm=preload("res://scripts/rhythm_rehearsal.gd")
 const Ledger=preload("res://scripts/progression_ledger.gd")
+const SceneRep=preload("res://scripts/scene_reputation.gd")
 const Art=preload("res://scripts/instrument_art.gd")
 const DEMOS=[preload("res://assets/audio/music/band_demo.wav"),preload("res://assets/audio/music/bass_demo.wav"),preload("res://assets/audio/music/busker_demo.wav"),preload("res://assets/audio/music/synth_demo.wav")]
 func _initialize()->void:
@@ -210,6 +211,27 @@ func _initialize()->void:
 		return
 	show_save["street_activity_runs"]["band_encore"]=1
 	if Ledger.valid_snapshot(show_save):
+		quit(1)
+		return
+	var scene_wallet:=Ledger.new()
+	var scores:=SceneRep.scores(scene_wallet)
+	if scores!={"music":0,"community":0,"underground":0}:
+		quit(1)
+		return
+	scene_wallet.set_balance(500)
+	if SceneRep.scores(scene_wallet)!=scores:
+		quit(1)
+		return
+	scene_wallet.credit_once("technical:crane_interlock",480)
+	scene_wallet.credit_once("investigation:paper_city",1450)
+	scene_wallet.settle_busking_set(1)
+	var derived:=SceneRep.scores(scene_wallet)
+	if derived!={"music":3,"community":12,"underground":40} or SceneRep.scores(band)["music"]!=78:
+		quit(1)
+		return
+	var projection:=SceneRep.scores(scene_wallet)
+	projection["music"]=100
+	if SceneRep.scores(scene_wallet)!=derived:
 		quit(1)
 		return
 	print("RHYTHM_REHEARSAL PASS: timing, cancellation, once-only claims, sequence and atomic payout")

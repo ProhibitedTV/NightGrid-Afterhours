@@ -646,6 +646,7 @@ func _render() -> void:
 			_divider(col)
 			_title(col,"REPUTATION / STREET CRED",18,Ui.AMBER)
 			_label(col,str(_journal_data.get("street_cred_summary","STREET CRED 0 / UNKNOWN")),16,Ui.ACCENT)
+			_label(col,str(_journal_data.get("scene_reputation","")),15,Ui.TEXT)
 			var cred:Dictionary=_journal_data.get("street_cred",{})
 			if int(cred.get("next",0))>int(cred.get("floor",0)):
 				var bar:=ProgressBar.new()

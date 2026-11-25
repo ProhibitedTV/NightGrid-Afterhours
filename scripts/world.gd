@@ -254,6 +254,7 @@ var sun_light: DirectionalLight3D
 var yaw := 0.0
 var pitch := 0.42
 const ProgressionLedger = preload("res://scripts/progression_ledger.gd")
+const SceneReputation = preload("res://scripts/scene_reputation.gd")
 var progression := ProgressionLedger.new()
 # Keep the existing HUD/test/gameplay cash interface; one live wallet owns it.
 var cash: int:
@@ -853,7 +854,7 @@ func _phone_context() -> Dictionary:
 		"cash":cash, "bitcoin_sats":progression.bitcoin_sats, "story":story_mission.journal(),
 		"home_owned":progression.owns_home(), "home_access":progression.has_receipt(StarterHome.ACCESS_RECEIPT),
 		"deposit":StarterHome.move_in_price(), "notice":Opening.app_notice(deliveries),
-		"global_street_cred":progression.street_cred_summary(), "cred_sources":progression.street_cred_sources(),
+		"global_street_cred":progression.street_cred_summary(), "cred_sources":progression.street_cred_sources(), "scene_reputation":SceneReputation.summary(SceneReputation.scores(progression)),
 		"workboard":_phone_workboard(), "instrument_status":progression.instrument_summary(),
 		"music_contact":_music_contact_status(), "music_sets":progression.street_activity_runs("busking"),
 		"live_sets":progression.street_activity_runs("live_gig"), "music_unlocked":progression.has_receipt("venue:soundcheck_pass"),
@@ -956,7 +957,7 @@ func _journal_context() -> Dictionary:
 		"cal_quest":_cal_objective(),
 		"street_cred":progression.street_cred_rank(),
 		"street_cred_summary":progression.street_cred_summary(),
-		"street_cred_sources":progression.street_cred_sources(),
+		"street_cred_sources":progression.street_cred_sources(),"scene_reputation":SceneReputation.summary(SceneReputation.scores(progression)),
 		"music_contact":_music_contact_status(),
 		"instrument_status":progression.instrument_summary(),
 		"busking_status":"STREET MUSIC / Moon Noodles or Copper Cup • %d sets completed"%progression.street_activity_runs("busking"),
