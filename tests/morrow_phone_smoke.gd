@@ -99,8 +99,8 @@ func _verify() -> void:
 	menu.call("_choice","phone_back")
 	menu.call("_choice","phone_app_opportunities")
 	var listings: Array = world.call("_phone_workboard")
-	if listings.size() != 8:
-		_fail("Workboard must list the eight authored contracts")
+	if listings.size() != 10:
+		_fail("Workboard must list eight existing and two technical contracts")
 		return
 	var first: Dictionary = listings[0]
 	var route_action: String = "phone_route_contract:"+str(first["id"])
