@@ -146,6 +146,7 @@ def main():
     os.environ["TRANSFORMERS_OFFLINE"]="1"
     from faster_whisper import WhisperModel
     packages = {k:importlib.metadata.version(k) for k in ("faster-whisper","ctranslate2")}
+    packages.update({"device":args.device,"compute_type":"int8" if args.device=="cpu" else "float16", "decode_contract":"beam5-temp0-no-context-no-vad-v1"})
     model=None
     for folder,spec in jobs:
         # Reuse reports only when the exact model and dependency versions match.
