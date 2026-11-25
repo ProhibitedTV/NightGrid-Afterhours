@@ -3,6 +3,7 @@ const AudioMix = preload("res://scripts/audio_mix.gd")
 const MinimapScript = preload("res://scripts/minimap.gd")
 const CityFoley = preload("res://scripts/city_foley.gd")
 const Ui = preload("res://scripts/ui_style.gd")
+const Opening = preload("res://scripts/opening_story.gd")
 ## Keyboard/mouse/controller-friendly menu layer. It remains interactive while
 ## the 3D SceneTree is paused; all buttons use Godot's built-in focus navigation.
 signal action_requested(action: String)
@@ -89,6 +90,9 @@ func is_open() -> bool:
 
 func open_title() -> void:
 	_open("title")
+
+func open_opening() -> void:
+	_open("opening")
 
 func open_pause() -> void:
 	_open("pause")
@@ -227,12 +231,19 @@ func _render() -> void:
 				_button(col, "continue", "CONTINUE SAVED GAME", "load")
 				_button(col, "play", "ENTER CURRENT SESSION", "play")
 			else:
-				_button(col, "play", "ENTER MORROW BAY", "play")
+				_button(col, "play", "BEGIN YOUR NEXT CHAPTER", "play")
 				_button(col, "continue", "CONTINUE  •  NO SAVE FOUND", "load", false)
 			_button(col, "new", "NEW WORLD / NEW SEED", "new")
 			_button(col, "settings", "SETTINGS", "settings")
 			_button(col, "controls", "CONTROLS & GAMEPAD", "controls")
 			_button(col, "quit", "QUIT TO DESKTOP", "quit")
+		"opening":
+			_title(col, Opening.EMPLOYER + " / PEOPLE OPERATIONS", 21, Ui.AMBER)
+			_title(col, Opening.HEADLINE, 29, Color("e3a39b"))
+			_label(col, Opening.NOTICE, 17, Color("cbd8e3"))
+			_divider(col)
+			_label(col, Opening.OFFER, 17, Ui.TEXT)
+			_button(col, "opening_accept", "ACCEPT TERMS / START DELIVERING", "opening_accept")
 		"pause":
 			_title(col, "PAUSED / SAFE MOMENT", 22, Color("f0dfcd"))
 			_button(col, "resume", "RESUME GAME", "resume")
@@ -285,6 +296,8 @@ func _render() -> void:
 				"  |  WORLD SEED  " + str(_journal_data.get("seed", "-")), 16, Color("bdcddd"))
 			_divider(col)
 			_title(col, "ACTIVE DELIVERIES", 18, Color("f0d1a0"))
+			if not str(_journal_data.get("opening_goal","")).is_empty():
+				_label(col, str(_journal_data["opening_goal"]), 17, Ui.AMBER)
 			_label(col, str(_journal_data.get("main_objective", "Explore Morrow Bay")),
 				17, Color("e1ebef"))
 			_button(col, "restart_courier", "ABANDON PACKAGE / RETRY ROUTE", "restart_courier", bool(_journal_data.get("courier_can_restart", false)))
@@ -305,8 +318,9 @@ func _render() -> void:
 			_label(col, str(_journal_data.get("outfit", "")), 16, Ui.ACCENT)
 			_label(col, "BTC WALLET: %d sats" % int(_journal_data.get("bitcoin_sats",0)), 16, Ui.ACCENT)
 			_label(col, str(_journal_data.get("home_text", "")), 16, Ui.ACCENT)
+			if bool(_journal_data.get("home_can_navigate", false)):
+				_button(col, "home_waypoint", "SET WAYPOINT TO POD", "home_waypoint")
 			if bool(_journal_data.get("home_owned", false)):
-				_button(col, "home_waypoint", "SET WAYPOINT TO HOME", "home_waypoint")
 				_label(col, str(_journal_data.get("garage_text", "")), 16, Ui.ACCENT)
 				_button(col, "garage_waypoint", "SET WAYPOINT TO GARAGE", "garage_waypoint")
 			_label(col, "%s  |  %d POLICE LOCATIONS" % [str(_journal_data.get("dispatch", "DISPATCH")), int(_journal_data.get("stations", 0))], 16, Color("77a7e0"))
@@ -471,7 +485,15 @@ func _choice(action: String) -> void:
 		_ui_click.volume_db = -80.0 if float(settings.get("sfx_volume", 0.75)) <= 0.0 else linear_to_db(float(settings.get("sfx_volume", 0.75))) - 11.0
 		_ui_click.play()
 	match action:
-		"play", "resume":
+		"play":
+			if screen == "title" and not _has_save:
+				action_requested.emit("begin_opening")
+			else:
+				hide_for_game()
+		"opening_accept":
+			hide_for_game()
+			action_requested.emit("accept_opening")
+		"resume":
 			hide_for_game()
 		"settings":
 			open_settings()

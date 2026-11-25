@@ -11,6 +11,7 @@ var pending_restore: Dictionary = {}
 # Transient per-launch flag: reloading a saved/new game should enter the world,
 # not force a second title screen after a deliberate menu choice.
 var boot_menu_shown := false
+var opening_pending := false
 var world_manifest: Dictionary = {}
 const WorldPlan = preload("res://scripts/world_plan.gd")
 const ProgressionLedger = preload("res://scripts/progression_ledger.gd")
@@ -23,6 +24,7 @@ func start_new_game() -> int:
 	if world_seed == old:
 		world_seed = (world_seed % 2147483646) + 1
 	pending_restore.clear()
+	opening_pending = true
 	world_manifest.clear()
 	return world_seed
 

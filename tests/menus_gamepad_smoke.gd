@@ -368,6 +368,49 @@ func _verify() -> void:
 	if not is_equal_approx(float(player.get("stamina")),88.1) or not str(world.call("_journal_context")["conditioning"]).contains("MAX RANK"):
 		_fail("Restored courier milestones must apply real bounded sprint benefit and journal state")
 		return
+	menu.call("open_opening")
+	if not menu.call("is_open") or not (menu.call("get_buttons") as Dictionary).has("opening_accept"):
+		_fail("Opening notice must be controller accessible")
+		return
+	var before_severance: int = world.get("cash")
+	menu.call("_choice","opening_accept")
+	world.call("_accept_opening")
+	if world.get("cash") != before_severance+75 or not world.get("courier_mission").gig_economy or menu.call("is_open"):
+		_fail("Opening credits severance once and enables real QuotaDrop work")
+		return
+	var order = world.get("courier_mission")
+	var restaurants: Node = world.get("venue_system")
+	restaurants.call("set_hour",5.0)
+	player.global_position = order.target()
+	world.call("_toggle_interaction")
+	if order.has_package():
+		_fail("Closed kitchen cannot hand over a new order")
+		return
+	restaurants.call("set_hour",19.25)
+	world.call("_toggle_interaction")
+	if not order.has_package():
+		_fail("Explicit on-foot pickup at actual restaurant")
+		return
+	var courier_visual: Node3D = player.get("visual")
+	var bag: Node3D = courier_visual.get("_meal_bag")
+	if not is_instance_valid(bag) or not bag.visible:
+		_fail("Collected meal must appear as the actual reusable held bag")
+		return
+	var opening_save: Dictionary = world.call("_capture_snapshot")
+	world.get("courier_mission").gig_economy = false
+	world.call("_apply_snapshot",opening_save)
+	if not world.get("courier_mission").gig_economy or world.get("cash") != before_severance+75:
+		_fail("Opening economy survives save restore")
+		return
+	if not bag.visible or courier_visual.get("_meal_bag")!=bag:
+		_fail("Restored meal must reuse the same held bag")
+		return
+	player.global_position = order.target()
+	var order_pay: int = order.payout()
+	world.call("_toggle_interaction")
+	if order.has_package() or bag.visible or world.get("cash")!=before_severance+75+order_pay:
+		_fail("Physical handoff removes bag and pays actual order exactly once")
+		return
 	menu.call("hide_for_game")
 	print("MENU_GAMEPAD_SMOKE PASS: action_count=", input_spec.ACTIONS.size(),
 		" / settings saved / pause & focus / controller context / title confirmation")

@@ -64,6 +64,7 @@ const VEHICLE_COLORS = [
 ]
 const CourierMission = preload("res://scripts/courier_mission.gd")
 const StoryMission = preload("res://scripts/story_mission.gd")
+const Opening = preload("res://scripts/opening_story.gd")
 const StarterHome = preload("res://scripts/starter_home.gd")
 var _home_panel := false
 var _storage_upgrade_quote := false
@@ -221,7 +222,7 @@ var carrying: bool:
 	get:
 		return courier_mission.has_package()
 var mission_position := Vector3.ZERO
-var notification := "Welcome to the night shift. Find a car and pick up the package."
+var notification := "Morrow Bay / Find your next shift. Follow the delivery marker."
 var notification_time := 8.0
 var police_cooldown := 4.0
 
@@ -274,7 +275,10 @@ func _ready() -> void:
 		if current_transit == null:
 			_resume_restored_actor_after_collision_sync(current_car if current_car != null else player)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	if DisplayServer.get_name() != "headless" and not bool(session.get("boot_menu_shown")):
+	if bool(session.get("opening_pending")) and restore.is_empty():
+		session.set("opening_pending",false)
+		game_menu.call("open_opening")
+	elif DisplayServer.get_name() != "headless" and not bool(session.get("boot_menu_shown")):
 		session.set("boot_menu_shown", true)
 		game_menu.call("open_title")
 	_log_playtest("world_ready", {"restored": not restore.is_empty()})
@@ -417,6 +421,13 @@ func _build_world_audio() -> void:
 
 func _on_menu_action(action: String) -> void:
 	match action:
+		"begin_opening":
+			if not progression.has_receipt(Opening.RECEIPT):
+				game_menu.call("open_opening")
+			else:
+				game_menu.call("hide_for_game")
+		"accept_opening":
+			_accept_opening()
 		"save":
 			_save_game()
 		"load":
@@ -441,7 +452,7 @@ func _on_menu_action(action: String) -> void:
 				set_navigation_waypoint(Vector2(entry.x,entry.z))
 			game_menu.call("open_journal", _journal_context())
 		"home_waypoint":
-			if progression.owns_home():
+			if progression.has_receipt(StarterHome.ACCESS_RECEIPT):
 				var entry := StarterHome.entry()
 				set_navigation_waypoint(Vector2(entry.x, entry.z))
 			game_menu.call("open_journal", _journal_context())
@@ -449,6 +460,12 @@ func _on_menu_action(action: String) -> void:
 			if story_mission.interrupt("abandoned"):
 				_notify("Contact mission abandoned. Speak to Mara to retry.")
 			game_menu.call("open_journal", _journal_context())
+
+func _accept_opening() -> void:
+	if progression.credit_once(Opening.RECEIPT,Opening.SEVERANCE):
+		courier_mission.gig_economy = true
+		_refresh_courier_target()
+		_notify("SYNAXIS: $75 severance credited. QUOTADROP: Your first delivery is ready. Earn your pod deposit.")
 
 # Resolve from existing venue/route contracts, never save another position.
 func _story_target() -> Vector3:
@@ -469,6 +486,7 @@ func _journal_context() -> Dictionary:
 		"district": district if landmark.is_empty() else "%s / %s" % [district, landmark],
 		"clock": day_night.call("clock_string"),
 		"seed": session.get("world_seed"),
+		"opening_goal": "QUOTADROP / POD DEPOSIT: $%d of $%d saved" % [mini(cash,StarterHome.move_in_price()),StarterHome.move_in_price()] if courier_mission.gig_economy and not progression.owns_home() else "",
 		"main_objective": "%s  •  STEP %d/%d  •  %dm  •  $%d" % [objective["title"], objective["step"], objective["total_steps"], remaining, objective["reward"]],
 		"courier_can_restart": carrying,
 		"story_objective": story_mission.journal(),
@@ -482,6 +500,7 @@ func _journal_context() -> Dictionary:
 		"cash": cash, "health": health, "heat": heat,
 		"owned_vehicles": _owned_vehicle_text(),
 		"home_owned": progression.owns_home(),
+		"home_can_navigate": progression.has_receipt(StarterHome.ACCESS_RECEIPT),
 		"garage_text": "GARAGE: Two reserved bays / recovery desk" if progression.owns_home() else "GARAGE: Locked services",
 		"home_text": "HOME: %s / %d of %d stored provisions" % [StarterHome.NAME,progression.home_supplies,progression.home_capacity()] if progression.owns_home() else "HOME: Complete Mara’s contact mission and pay the move-in cost.",
 		"weapons": weapons.inventory_text(),
@@ -834,7 +853,7 @@ func _physics_process(delta: float) -> void:
 	StreamProfile.accumulate(started, "world_pedestrians")
 	started = StreamProfile.begin()
 	_update_combat(delta)
-	if not indoors and current_transit == null and actor.global_position.distance_to(mission_position) < CourierMission.RADIUS:
+	if not courier_mission.gig_economy and not indoors and current_transit == null and actor.global_position.distance_to(mission_position) < CourierMission.RADIUS:
 		_advance_mission()
 	if (actor.global_position.y < -15.0 or not indoors and
 			(absf(actor.global_position.x) > 390.0 or absf(actor.global_position.z) > 390.0)):
@@ -1126,18 +1145,33 @@ func _clear_car_exit(car: CharacterBody3D) -> Vector3:
 	return Vector3.INF
 
 func _advance_mission() -> void:
-	var event_id: String = courier_mission.objective()["id"]
+	var objective := courier_mission.objective()
+	if courier_mission.gig_economy:
+		if current_car != null or current_transit != null or interiors.call("is_inside"):
+			return
+		if not carrying and not venue_system.call("is_open",str(objective.get("vendor",""))):
+			_notify("QuotaDrop: kitchen closed. Return during posted opening hours.")
+			return
+	var event_id: String = objective["id"]
 	var result := courier_mission.advance(event_id, _actor().global_position, progression)
 	match result.get("event", ""):
 		"collected":
 			world_audio.call("play_event", "PICKUP", _actor().global_position)
 			_refresh_courier_target()
-			_notify("Package secured! Follow the cyan beacon.")
+			if courier_mission.gig_economy:
+				player.call("play_visual_action",&"interact")
+				_notify("QuotaDrop: prepaid order collected. Deliver to the customer.")
+			else:
+				_notify("Package secured! Follow the cyan beacon.")
 		"delivered":
 			player.call("set_courier_conditioning",courier_mission.conditioning_rank())
 			world_audio.call("play_event", "DELIVERY", _actor().global_position)
 			_refresh_courier_target()
-			_notify("Delivery done! +$%d. Next pickup marked in amber." % int(result["reward"]))
+			if courier_mission.gig_economy:
+				player.call("play_visual_action",&"interact")
+				_notify("QuotaDrop: delivered. +$%d base + $%d tip. Next order offered." % [objective["base_pay"],objective["tip"]])
+			else:
+				_notify("Delivery done! +$%d. Next pickup marked in amber." % int(result["reward"]))
 			if story_mission.event("courier_delivered", progression) == "delivered":
 				_notify("Delivery done! +$%d. Report back to Mara at Lantern Cup." % int(result["reward"]))
 		"blocked":
@@ -1145,6 +1179,10 @@ func _advance_mission() -> void:
 
 func _refresh_courier_target() -> void:
 	_set_mission_target(courier_mission.target() - Vector3.UP * 0.2, carrying)
+	if is_instance_valid(player):
+		var visual: Node3D = player.get("visual")
+		if is_instance_valid(visual):
+			visual.call("set_meal_bag",courier_mission.gig_economy and carrying)
 
 func _set_mission_target(pos: Vector3, has_package: bool) -> void:
 	mission_position = pos + Vector3.UP * 0.2
@@ -1432,6 +1470,9 @@ func _respawn() -> void:
 	wanted.reset()
 	_pending_theft = null
 	var failed_story := story_mission.interrupt("failed")
+	var lost_order := courier_mission.gig_economy and courier_mission.restart()
+	if lost_order:
+		_refresh_courier_target()
 	progression.charge_up_to(100)
 	for officer in officers + returning_units:
 		if is_instance_valid(officer):
@@ -1441,7 +1482,7 @@ func _respawn() -> void:
 	dispatch.update_case(Vector3.INF, 0)
 	city_details.call("set_focus", player.global_position)
 	_snap_camera()
-	_notify("Back at the safehouse. Medical and towing fee: up to $100." + (" Contact mission failed; speak to Mara to retry." if failed_story else ""))
+	_notify("Returned to the street. Emergency recovery fee: up to $100." + (" Order canceled without pay." if lost_order else "") + (" Contact mission failed; speak to Mara to retry." if failed_story else ""))
 
 func _notify(message: String) -> void:
 	notification = message
@@ -1571,6 +1612,8 @@ func _build_world_systems() -> void:
 	civic_services.name = "CivicServices"
 	add_child(civic_services)
 	civic_services.call("set_hour", float(day_night.get("hour")))
+	if not courier_mission.configure_gig_routes(venue_system,civic_services):
+		push_error("QuotaDrop authored route catalog failed to resolve")
 	interiors = InteriorSystemScript.new()
 	interiors.name = "Interiors"
 	add_child(interiors)
@@ -1855,6 +1898,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 		var p := Vector3(float(last[0]), float(last[1]), float(last[2]))
 		if p.is_finite() and absf(p.x) <= 390.0 and absf(p.z) <= 390.0 and absf(p.y) <= 25.0 and heat >= Wanted.MIN_HEAT:
 			wanted.last_known = p
+	courier_mission.gig_economy = progression.has_receipt(Opening.RECEIPT)
 	courier_mission.restore(data.get("deliveries", 0), data.get("carrying", false))
 	player.call("set_courier_conditioning",courier_mission.conditioning_rank())
 	story_mission.restore(data.get("story_mission", StoryMission.new().snapshot()))
@@ -2077,6 +2121,9 @@ func _toggle_interaction() -> void:
 		return
 	if current_car != null or current_transit != null:
 		_notify("Get out of the vehicle before interacting with neighborhood businesses.")
+		return
+	if courier_mission.gig_economy and player.global_position.distance_to(mission_position) < CourierMission.RADIUS:
+		_advance_mission()
 		return
 	var garage: Node3D = city_details.call("starter_garage",player.global_position)
 	if is_instance_valid(garage) and garage.call("desk_reachable",player.global_position):
@@ -2604,13 +2651,13 @@ func _close_venue() -> void:
 func _update_venue_panel() -> void:
 	if _tenancy_panel:
 		var price := StarterHome.move_in_price()
-		venue_label.text = "LANTERN COURT / TENANCY\nMove-in payment $%d  |  CASH $%d\nPaid residence access. [1 / A] Cancel  [3 / Y] Confirm" % [price,cash]
+		venue_label.text = "LANTERN COURT / CAPSULE TENANCY\nInitial deposit $%d  |  CASH $%d\nStarter rental access. [1 / A] Cancel  [3 / Y] Confirm" % [price,cash]
 		venue_service_button.show()
 		venue_service_button.text = "1 / A  •  CANCEL"
 		venue_service_button.disabled = false
 		venue_job_button.hide()
 		venue_talk_button.show()
-		venue_talk_button.text = "3 / Y  •  PAY MOVE-IN COST"
+		venue_talk_button.text = "3 / Y  •  PAY POD DEPOSIT"
 		venue_talk_button.disabled = cash < price
 		return
 	if _exchange_panel:
@@ -2808,7 +2855,7 @@ func _venue_action(option: int) -> void:
 		elif option == 3:
 			if progression.activate_home_tenancy():
 				_close_venue()
-				_notify("Move-in payment accepted. Unit 01 is unlocked.")
+				_notify("Deposit accepted. Sleep Pod 01 is unlocked.")
 			else:
 				_notify("Payment declined. Earn more from courier contracts.")
 		return
@@ -2952,7 +2999,7 @@ func _venue_action(option: int) -> void:
 						mara_dialogue_line = "Mara: I need someone who knows these streets. Finish a courier run, then come tell me how it went."
 						_notify("NIGHT SHIFT CONTACT / New mission")
 					"complete":
-						mara_dialogue_line = "Mara: You made it back. Keep the extra hundred. I can get you approved for Unit 01 next door. Pay the move-in cost at the entrance."
+						mara_dialogue_line = "Mara: You made it back. Here’s a hundred for the referral. Lantern Court has a sleep pod available. Scrape together the deposit and pay at the entrance. It’s not much, but it locks."
 						_notify("NIGHT SHIFT CONTACT COMPLETE +$%d" % StoryMission.REWARD)
 					"blocked":
 						_notify("Wallet full. Speak to Mara again after spending some cash.")
@@ -3272,7 +3319,8 @@ func _update_hud() -> void:
 		_wanted_label.text += "\n" + dispatch.status()
 	_wanted_label.visible = tier > 0 or weapons.equipped != "holstered"
 	_wanted_label.modulate = Ui.DANGER if wanted.police_seen and tier > 0 else Ui.AMBER
-	var mission: String = courier_mission.objective()["hud"]
+	var active_order := courier_mission.objective()
+	var mission: String = active_order["hud"]
 	var distance := roundi(outdoors.distance_to(mission_position))
 	var message := notification if notification_time > 0.0 else ""
 	if performance_overlay:
@@ -3294,10 +3342,14 @@ func _update_hud() -> void:
 	hud_stamina.value = float(player.get("stamina"))
 	hud_label.text += "\nSTAMINA %d  •  %d snacks" % [ceili(float(player.get("stamina"))),Consumables.count(consumable_inventory)]
 	hud_objective.text = "%s  /  %dm" % [mission, distance]
+	if courier_mission.gig_economy and current_car == null and current_transit == null and not interiors.call("is_inside") and player.global_position.distance_to(mission_position) < CourierMission.RADIUS:
+		hud_objective.text += "  /  " + ("X" if gamepad_active else "G") + (" HAND OFF" if carrying else " COLLECT ORDER")
 	hud_objective.modulate = Ui.ACCENT if carrying else Ui.AMBER
 	hud_navigation.visible = navigation_waypoint != null
 	hud_navigation.text = navigation_text() if navigation_waypoint != null else ""
 	var jobs: Array[String] = []
+	if courier_mission.gig_economy and not progression.owns_home():
+		jobs.append("POD DEPOSIT / $%d of $%d" % [mini(cash,StarterHome.move_in_price()),StarterHome.move_in_price()])
 	if story_mission.status != "complete":
 		jobs.append(story_mission.journal())
 	if not venue_job_active.is_empty():
