@@ -379,6 +379,8 @@ func _verify() -> void:
 		return
 	menu.call("_choice","opening_inspect")
 	menu.call("_choice","opening_brief")
+	menu.call("_choice","opening_phone")
+	menu.call("_choice","opening_hangup")
 	var opening = preload("res://scripts/opening_story.gd")
 	if not opening.CALL_MANDARIN.contains("解放军") or not opening.CALL_SUBTITLES.contains("People's Liberation Army"):
 		_fail("Mandarin phone call and English subtitles must identify the fictional military contact")
@@ -408,6 +410,15 @@ func _verify() -> void:
 		return
 	player.global_position = office.call("point",2)
 	world.call("_opening_interact")
+	menu.call("_choice","opening_phone")
+	var assistant: Node3D = office.get("_assistant")
+	if not is_instance_valid(assistant) or not assistant.get("_on_call") or not assistant.get("_phone").visible:
+		_fail("Visible assistant speakerphone performance during Mandarin beat")
+		return
+	menu.call("_choice","opening_hangup")
+	if assistant.get("_on_call") or assistant.get("_phone").visible:
+		_fail("Hanging up clears the prop and phone pose")
+		return
 	menu.call("_choice","opening_security")
 	if menu.get("_opening_report")!="opening_security":
 		_fail("Security escalation has its own response")

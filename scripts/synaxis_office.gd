@@ -1,7 +1,12 @@
 extends Node3D
 ## Isolated, bounded introductory office set. Built once, removed before city play.
 ## Existing player rig and collision controller; no additional player or city streamer.
-const ORIGIN = Vector3(0,48,0)
+const ORIGIN = Vector3(1200,48,0)
+const Patron = preload("res://scripts/lantern_patron.gd")
+const Assistant = preload("res://scripts/synaxis_assistant.gd")
+var _assistant: Node3D
+var _ceo: Node3D
+var _hr: Node3D
 const START = Vector3(0,1.15,7)
 const POINTS = {0:Vector3(-5,1.15,4),2:Vector3(5,1.15,-4),4:Vector3(-5,1.15,-4),5:Vector3(5,1.15,5)}
 const TITLES = {0:"IT DESK / REVIEW THE ALERT",2:"EXECUTIVE OFFICE / ATTEND BRIEFING",4:"PEOPLE EXPERIENCE / EXIT INTERVIEW",5:"RECEPTION / COLLECT FINAL NOTICE"}
@@ -43,6 +48,7 @@ func _ready() -> void:
 	_sign("PEOPLE EXPERIENCE\nWE VALUE YOUR FEEDBACK",Vector3(-5,2.25,-5.0),.006)
 	_sign("EXECUTIVE AFFAIRS\nTRANSPARENCY IS A CORE VALUE",Vector3(5,2.25,-4.9),.006)
 	_sign("RECEPTION\nEXIT PROCESSING",Vector3(5,2.25,6.0),.006)
+	_build_cast()
 	_target_sign = _sign("",Vector3.ZERO,.006)
 	_target_sign.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_target_sign.modulate = Color("8de5cc")
@@ -59,6 +65,43 @@ func _ready() -> void:
 	_hint.add_theme_font_size_override("font_size",20)
 	panel.add_child(_hint)
 	set_stage(0)
+
+func _build_cast() -> void:
+	_ceo = Patron.new()
+	_ceo.call("configure",{"id":"jetson_wang","role":"Chief Executive Officer","activity":"CHAT","seated":true,"palette":2,"phase":1.2})
+	_ceo.position = Vector3(5,0,-6.65)
+	add_child(_ceo)
+	_assistant = Assistant.new()
+	_assistant.name = "LinXue"
+	_assistant.position = Vector3(7.1,0,-5.8)
+	_assistant.scale = Vector3.ONE*.88
+	add_child(_assistant)
+	_hr = Patron.new()
+	_hr.call("configure",{"id":"people_ops","role":"People Experience","activity":"SCROLL","seated":true,"palette":4,"phase":2.1})
+	_hr.position = Vector3(-5,0,-6.65)
+	add_child(_hr)
+	for actor in [_ceo,_assistant,_hr]:
+		actor.process_mode = Node.PROCESS_MODE_ALWAYS
+	_sign("JETSON WANG / CEO",Vector3(5,2.55,-6.65),.0045)
+	_sign("LIN XUE / EXECUTIVE ASSISTANT",Vector3(7.1,2.35,-5.8),.004)
+	_sign("PEOPLE EXPERIENCE",Vector3(-5,2.55,-6.65),.0045)
+
+func dialogue_camera(camera: Camera3D,stage: int,beat: int) -> void:
+	var from := Vector3(4.0,1.85,-2.7)
+	var toward := Vector3(6.4,1.6,-6.25)
+	if stage == 4:
+		from = Vector3(-6.9,1.8,-2.7)
+		toward = Vector3(-4.4,1.55,-6.25)
+	elif beat == 1:
+		from = Vector3(5.6,1.85,-3.7)
+		toward = Vector3(7.1,1.6,-5.8)
+	camera.global_position = to_global(from)
+	camera.look_at(to_global(toward),Vector3.UP)
+	_assistant.call("set_phone_call",stage==2 and beat==1)
+
+func end_dialogue() -> void:
+	if is_instance_valid(_assistant):
+		_assistant.call("set_phone_call",false)
 
 func _material(key: String,tint: Color,emissive: bool=false) -> StandardMaterial3D:
 	if not _mat.has(key):

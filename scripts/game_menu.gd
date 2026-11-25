@@ -43,6 +43,7 @@ var _opening_stage := 0
 var _opening_report := ""
 var _opening_exit := ""
 var _physical_opening := false
+var _briefing_beat := 0
 var settings: Dictionary = DEFAULT_SETTINGS.duplicate(true)
 var _root: Control
 var _screen_nodes: Array[Control] = []
@@ -98,6 +99,7 @@ func open_title() -> void:
 func open_opening(physical: bool = false) -> void:
 	_physical_opening = physical
 	_opening_stage = 0
+	_briefing_beat = 0
 	_opening_report = ""
 	_opening_exit = ""
 	if physical:
@@ -212,25 +214,28 @@ func _render() -> void:
 	_buttons.clear()
 	_focus_order.clear()
 	_first_focus = null
+	var staged := screen=="opening" and _physical_opening and _opening_stage in [2,4]
 	var shade := ColorRect.new()
 	shade.name = "Scrim"
-	shade.color = Color(0.028, 0.045, 0.060, 0.94)
+	shade.color = Color(0.028, 0.045, 0.060, .12 if staged else .94)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(shade)
 	var center := CenterContainer.new()
 	center.name = "Center"
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if staged:
+		center.anchor_left = .5
 	_root.add_child(center)
 	var panel := PanelContainer.new()
 	panel.name = "MenuPanel"
-	panel.custom_minimum_size = Vector2(760.0, 0.0)
+	panel.custom_minimum_size = Vector2(500.0 if staged else 760.0, 0.0)
 	panel.add_theme_stylebox_override("panel", Ui.card(0.99, 26))
 	center.add_child(panel)
 	var shell := VBoxContainer.new()
 	shell.add_theme_constant_override("separation", 16)
 	panel.add_child(shell)
 	_label(shell, "MORROW BAY   /   NIGHT SHIFT", 16, Ui.AMBER)
-	_title(shell, "NIGHTGRID: AFTERHOURS", 40, Ui.TEXT)
+	_title(shell, "EXECUTIVE PRIVILEGE" if staged else "NIGHTGRID: AFTERHOURS", 26 if staged else 40, Ui.TEXT)
 	_divider(shell)
 	_body_scroll = ScrollContainer.new()
 	_body_scroll.name = "MenuScroll"
@@ -274,12 +279,18 @@ func _render() -> void:
 					_button(col, "opening_brief", "ATTEND EXECUTIVE BRIEFING", "opening_brief")
 				2:
 					_title(col, "A PERSONNEL MATTER", 29, Ui.TEXT)
-					_label(col, Opening.CONFERENCE, 17, Color("cbd8e3"))
-					_label(col, "INCOMING CALL / MANDARIN", 16, Ui.AMBER)
-					_label(col, Opening.CALL_SUBTITLES, 17, Ui.TEXT)
-					_label(col, Opening.CONFERENCE_END, 17, Color("cbd8e3"))
-					_button(col, "opening_security", "REPORT THE INCIDENT TO SECURITY", "opening_security")
-					_button(col, "opening_legal", "ASK LEGAL TO PRESERVE THE AUDIT", "opening_legal")
+					match _briefing_beat:
+						0:
+							_label(col, Opening.CONFERENCE, 17, Color("cbd8e3"))
+							_button(col, "opening_phone", "WAIT FOR THE CALL", "opening_phone")
+						1:
+							_label(col, "INCOMING CALL / MANDARIN", 16, Ui.AMBER)
+							_label(col, Opening.CALL_SUBTITLES, 17, Ui.TEXT)
+							_button(col, "opening_hangup", "CONTINUE BRIEFING", "opening_hangup")
+						2:
+							_label(col, Opening.CONFERENCE_END, 17, Color("cbd8e3"))
+							_button(col, "opening_security", "REPORT TO SECURITY", "opening_security")
+							_button(col, "opening_legal", "ASK LEGAL TO PRESERVE AUDIT", "opening_legal")
 				3:
 					_title(col, "YOUR CONCERN HAS BEEN RECEIVED", 29, Ui.TEXT)
 					_label(col, Opening.REPORT_RESPONSE if _opening_report == "opening_security" else Opening.LEGAL_RESPONSE, 17, Color("cbd8e3"))
@@ -553,8 +564,14 @@ func _choice(action: String) -> void:
 			if screen == "opening" and _opening_stage == 1:
 				_opening_stage = 2
 				_opening_next_location()
+		"opening_phone", "opening_hangup":
+			if screen == "opening" and _opening_stage == 2 and ((action=="opening_phone" and _briefing_beat==0) or (action=="opening_hangup" and _briefing_beat==1)):
+				_briefing_beat += 1
+				if _physical_opening:
+					action_requested.emit("opening_camera")
+				_render()
 		"opening_security", "opening_legal":
-			if screen == "opening" and _opening_stage == 2:
+			if screen == "opening" and _opening_stage == 2 and _briefing_beat == 2:
 				_opening_report = action
 				_opening_stage = 3
 				_render()

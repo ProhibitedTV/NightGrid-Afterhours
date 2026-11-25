@@ -430,7 +430,12 @@ func _on_menu_action(action: String) -> void:
 				game_menu.call("hide_for_game")
 		"opening_walk":
 			if is_instance_valid(_opening_office):
+				_opening_office.call("end_dialogue")
 				_opening_office.call("set_stage",int(game_menu.get("_opening_stage")))
+				_snap_camera()
+		"opening_camera":
+			if is_instance_valid(_opening_office):
+				_opening_office.call("dialogue_camera",camera,int(game_menu.get("_opening_stage")),int(game_menu.get("_briefing_beat")))
 		"accept_opening":
 			_accept_opening()
 		"save":
@@ -487,6 +492,8 @@ func _opening_interact() -> void:
 		return
 	var stage := int(game_menu.get("_opening_stage"))
 	if _opening_office.call("reachable",stage,player.global_position):
+		if stage in [2,4]:
+			_opening_office.call("dialogue_camera",camera,stage,int(game_menu.get("_briefing_beat")))
 		game_menu.call("open_opening_stage")
 
 func _finish_opening_office() -> void:

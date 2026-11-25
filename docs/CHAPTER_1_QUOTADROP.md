@@ -23,3 +23,7 @@ The internal ticket has a zero budget and impossible deadline, compliance dashbo
 ## Physical opening set
 
 New sessions construct one isolated collision-backed office floor, reuse the main player and camera, and require walking to the IT desk, executive office, HR and reception before the corresponding dialogue. The city gameplay adapter is suspended during the prologue; no save is permitted mid-office through gameplay inputs. On acceptance, the temporary office is released and the player returns to the street with the existing one-time severance. This is a first original blockout with furniture and signs, not final architectural art or character cinematics. Tests exercise the physical checkpoint gates and return to city. Native visual and navigation review remain required.
+
+### Executive staging pass
+
+The office is isolated outside city bounds rather than above a potentially occupied skyscraper. The CEO and HR use the existing articulated patron presentation; Lin uses a distinct executive costume on the existing hero rig with a visible speakerphone prop. The briefing has three discrete beats (greeting, Mandarin call, response), with camera framing and a side dialogue panel. Actors animate while dialogue pauses gameplay. These are provisional cast stand-ins and a simple arm gesture, not final faces, skinned costumes, lip sync, voice acting or hand IK. Native framing and controller review remain necessary.
