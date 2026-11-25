@@ -103,16 +103,39 @@ func _run() -> void:
 	if not _expect(not ledger.owns_vehicle(vehicle_id) and world.get("cash") == before_title, "unaffordable title rejected without debit"):
 		return
 	world.set("cash", 600)
+	world.call("_update_venue_panel")
+	world.call("_venue_action", 2)
+	if not _expect(world.get("_title_quote_id") == vehicle_id and world.get("cash") == 600 and not ledger.owns_vehicle(vehicle_id), "review binds exact ID without debit"):
+		return
+	world.call("_venue_action", 1)
+	if not _expect(str(world.get("_title_quote_id")).is_empty() and world.get("cash") == 600, "cancel does not repair or charge"):
+		return
+	world.call("_venue_action", 2)
+	var parked_at := car.global_position
+	car.global_position = Vector3(0,1,0)
+	world.call("_venue_action", 2)
+	if not _expect(not ledger.owns_vehicle(vehicle_id) and world.get("cash") == 600, "stale selected vehicle refuses confirmation"):
+		return
+	car.global_position = parked_at
+	world.call("_update_venue_panel")
+	world.call("_venue_action", 2)
+	world.set("cash", 499)
+	world.call("_venue_action", 2)
+	if not _expect(not ledger.owns_vehicle(vehicle_id) and world.get("cash") == 499, "affordability rechecked at confirmation"):
+		return
+	world.set("cash", 500)
+	world.call("_update_venue_panel")
 	world.call("_venue_action", 2)
 	world.call("_venue_action", 2)
-	if not _expect(ledger.owns_vehicle(vehicle_id) and world.get("cash") == 100 and world.get("cars").size() == 12, "actual counter registers one existing car once"):
+	world.call("_venue_action", 2)
+	if not _expect(ledger.owns_vehicle(vehicle_id) and world.get("cash") == 0 and world.get("cars").size() == 12, "actual counter registers one existing car once at exact balance"):
 		return
 	var owned_save: Dictionary = session.call("make_snapshot", world.call("_capture_snapshot"))
 	if not _expect(session.call("is_valid_snapshot", owned_save), "registered title is valid save data"):
 		return
 	ledger.restore(0, {"version":1,"receipts":[]})
 	world.call("_apply_snapshot", owned_save)
-	if not _expect(ledger.owns_vehicle(vehicle_id) and world.get("cash") == 100 and world.get("cars").size() == 12, "title and balance restore without spawning a second car"):
+	if not _expect(ledger.owns_vehicle(vehicle_id) and world.get("cash") == 0 and world.get("cars").size() == 12, "title and balance restore without spawning a second car"):
 		return
 	world.call("_close_venue")
 	player.global_position = shop.to_global(Vector3(-1.42, 0.95, 0))

@@ -68,6 +68,9 @@ const StarterHome = preload("res://scripts/starter_home.gd")
 var _home_panel := false
 const StarterGarage = preload("res://scripts/starter_garage.gd")
 var _garage_panel := false
+# Transient quote; never serialized, never charges on selection.
+var _title_offer_id := ""
+var _title_quote_id := ""
 
 var rng := RandomNumberGenerator.new()
 var player: CharacterBody3D
@@ -2241,12 +2244,28 @@ func _owned_vehicle_text() -> String:
 	return "VEHICLE TITLES: " + ("None" if names.is_empty() else ", ".join(names))
 
 # Actual nearby stationary pilot stock only; no new spawn or remote purchase.
+func _title_eligible(car: CharacterBody3D) -> bool:
+	if not is_instance_valid(car):
+		return false
+	var id := str(car.get_meta("vehicle_id", ""))
+	if not RoadCars.TITLES.has(id) or progression.owns_vehicle(id):
+		return false
+	# Once Mara grants access, this specific Kestrel is free at the garage.
+	if progression.owns_home() and id == StarterGarage.IDS[0]:
+		return false
+	return not bool(car.get("occupied")) and absf(float(car.get("speed"))) <= .28 and car.global_position.distance_to(player.global_position) < 18.0
+
+func _title_by_id(id: String) -> CharacterBody3D:
+	for car in cars:
+		if is_instance_valid(car) and str(car.get_meta("vehicle_id","")) == id:
+			return car
+	return null
+
 func _nearby_title_candidate() -> CharacterBody3D:
 	var selected: CharacterBody3D
 	var nearest := 18.0
 	for car in cars:
-		var id := str(car.get_meta("vehicle_id", ""))
-		if not RoadCars.TITLES.has(id) or progression.owns_vehicle(id) or bool(car.get("occupied")) or int(car.call("speed_kph")) > 1:
+		if not _title_eligible(car):
 			continue
 		var distance := car.global_position.distance_to(player.global_position)
 		if distance < nearest:
@@ -2254,12 +2273,25 @@ func _nearby_title_candidate() -> CharacterBody3D:
 			nearest = distance
 	return selected
 
-func _purchase_nearby_title() -> void:
-	var car := _nearby_title_candidate()
-	if car == null:
-		_notify("Park eligible stock near the counter: Kestrel S6 or Cinder R9.")
+func _open_title_quote() -> void:
+	var car := _title_by_id(_title_offer_id)
+	if not _title_eligible(car):
+		_notify("That vehicle is no longer eligible. Select a new offer.")
 		return
-	var id := str(car.get_meta("vehicle_id"))
+	var price: int = RoadCars.TITLES[_title_offer_id]["price"]
+	if cash < price:
+		_notify("Not enough cash for this vehicle title.")
+		return
+	_title_quote_id = _title_offer_id
+
+func _confirm_title_quote() -> void:
+	# Consume the quote before validating; a second action cannot replay it.
+	var id := _title_quote_id
+	_title_quote_id = ""
+	var car := _title_by_id(id)
+	if not _title_eligible(car) or str(car.get_meta("vehicle_id","")) != id:
+		_notify("Offer expired. No payment taken.")
+		return
 	if not progression.buy_vehicle(id):
 		_notify("Not enough cash for this vehicle title.")
 		return
@@ -2456,6 +2488,8 @@ func _close_venue() -> void:
 		venue_talk_button.visible = false
 	venue_selected_id = ""
 	_repair_panel = false
+	_title_offer_id = ""
+	_title_quote_id = ""
 	_home_panel = false
 	_garage_panel = false
 	_vending_machine = null
@@ -2508,18 +2542,33 @@ func _update_venue_panel() -> void:
 		venue_label.text = body+"[G / B] Close  •  R / D-pad down: use best snack"
 		return
 	if _repair_panel:
+		if not _title_quote_id.is_empty():
+			var title: Dictionary = RoadCars.TITLES[_title_quote_id]
+			var quoted_car := _title_by_id(_title_quote_id)
+			var condition := "%.0f%%" % float(quoted_car.get("condition")) if is_instance_valid(quoted_car) else "Unavailable"
+			venue_label.text = "CONFIRM VEHICLE TITLE\n%s / %s\nCondition %s   |   Price $%d\nCash $%d  →  $%d\n[2 / X] Confirm  •  [1 / A] Cancel" % [title["name"],_title_quote_id,condition,title["price"],cash,cash-int(title["price"])]
+			venue_service_button.text = "1 / A  •  CANCEL"
+			venue_service_button.disabled = false
+			venue_job_button.show()
+			venue_job_button.text = "2 / X  •  CONFIRM TITLE"
+			venue_job_button.disabled = not _title_eligible(quoted_car) or cash < int(title["price"])
+			venue_talk_button.hide()
+			return
 		venue_label.text = "NIGHT SHIFT REPAIRS\nLeave the vehicle outside and bring the keys to the counter.\n[1 / A] Repair parked vehicle  $%d\n[G / B] Close   |   CASH $%d" % [BrickwaterRepair.PRICE, cash]
 		venue_service_button.text = "1 / A  •  REPAIR"
 		venue_service_button.disabled = false
 		var candidate := _nearby_title_candidate()
+		_title_offer_id = str(candidate.get_meta("vehicle_id")) if candidate != null else ""
 		venue_job_button.show()
 		venue_job_button.disabled = candidate == null
 		venue_job_button.text = "2 / X  •  REGISTER VEHICLE TITLE"
 		if candidate != null:
 			var title: Dictionary = RoadCars.TITLES[str(candidate.get_meta("vehicle_id"))]
-			venue_job_button.text = "2 / X  •  BUY %s TITLE  $%d" % [title["name"], title["price"]]
+			venue_job_button.text = "2 / X  •  REVIEW %s TITLE  $%d" % [title["name"], title["price"]]
 			venue_job_button.disabled = cash < int(title["price"])
 		venue_label.text += "\nTitle desk: bring eligible parked stock to the shop."
+		if progression.owns_home() and not progression.owns_vehicle(StarterGarage.IDS[0]):
+			venue_label.text += "\nYour starter Kestrel is free at Lantern Garage."
 		venue_talk_button.hide()
 		return
 	if not civic_selected_id.is_empty():
@@ -2621,12 +2670,19 @@ func _venue_action(option: int) -> void:
 		return
 	if _repair_panel:
 		var repair := _repair_storefront()
-		if venue_panel.visible and repair != null and repair.counter_reachable(player.global_position):
+		if not venue_panel.visible or repair == null or not repair.counter_reachable(player.global_position) or current_car != null or current_transit != null:
+			_close_venue()
+			return
+		if not _title_quote_id.is_empty():
 			if option == 1:
-				_repair_nearby_vehicle(BrickwaterRepair.PRICE)
+				_title_quote_id = ""
 			elif option == 2:
-				_purchase_nearby_title()
-			_update_venue_panel()
+				_confirm_title_quote()
+		elif option == 1:
+			_repair_nearby_vehicle(BrickwaterRepair.PRICE)
+		elif option == 2:
+			_open_title_quote()
+		_update_venue_panel()
 		return
 	if not civic_selected_id.is_empty():
 		_civic_action(option)
