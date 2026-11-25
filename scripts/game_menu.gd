@@ -558,15 +558,16 @@ func _wire_focus() -> void:
 		item.focus_neighbor_bottom = item.get_path_to(next)
 		item.focus_previous = item.get_path_to(prev)
 		item.focus_next = item.get_path_to(next)
-	if screen == "phone" and _phone_app.is_empty() and _focus_order.size() == 7:
-		for i in range(6):
+	if screen == "phone" and _phone_app.is_empty() and _focus_order.size() == Phone.APPS.size()+1:
+		var count := Phone.APPS.size()
+		for i in range(count):
 			var item := _focus_order[i]
 			item.focus_neighbor_left = item.get_path_to(_focus_order[i-1] if i%2 == 1 else item)
-			item.focus_neighbor_right = item.get_path_to(_focus_order[i+1] if i%2 == 0 else item)
-			item.focus_neighbor_top = item.get_path_to(_focus_order[i-2] if i>=2 else _focus_order[6])
-			item.focus_neighbor_bottom = item.get_path_to(_focus_order[i+2] if i<4 else _focus_order[6])
-		_focus_order[6].focus_neighbor_top = _focus_order[6].get_path_to(_focus_order[4])
-		_focus_order[6].focus_neighbor_bottom = _focus_order[6].get_path_to(_focus_order[0])
+			item.focus_neighbor_right = item.get_path_to(_focus_order[i+1] if i%2 == 0 and i+1<count else item)
+			item.focus_neighbor_top = item.get_path_to(_focus_order[i-2] if i>=2 else _focus_order[count])
+			item.focus_neighbor_bottom = item.get_path_to(_focus_order[i+2] if i+2<count else _focus_order[count])
+		_focus_order[count].focus_neighbor_top = _focus_order[count].get_path_to(_focus_order[count-1])
+		_focus_order[count].focus_neighbor_bottom = _focus_order[count].get_path_to(_focus_order[0])
 
 func _render_phone(col: VBoxContainer) -> void:
 	if _phone_app.is_empty():
@@ -609,6 +610,8 @@ func _render_phone(col: VBoxContainer) -> void:
 	for row in view["rows"]:
 		_label(col,str(row["label"]),15,Ui.AMBER)
 		_label(col,str(row["value"]),20,Ui.TEXT)
+		if row.has("action"):
+			_button(col,str(row["action"]),str(row["action_label"]),str(row["action"]))
 		_divider(col)
 	for item in view["actions"]:
 		_button(col,str(item["action"]),str(item["label"]),str(item["action"]))
