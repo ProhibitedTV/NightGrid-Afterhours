@@ -41,7 +41,7 @@ const START = Vector3(0,1.15,7)
 const BREAKROOM_POINT = Vector3(-4.2,1.15,6.85)
 var _breakroom_seen := false
 const POINTS = {-2:CUBICLE_POINT,-1:Vector3(-5,1.15,4),0:Vector3(-5,1.15,4),2:Vector3(5,1.15,-4),4:Vector3(-5,1.15,-4),5:Vector3(5,1.15,5)}
-const TITLES = {-2:"SYSTEMS OPERATIONS / COLLECT THE FOLDER",-1:"IT DEPARTMENT / DROP OFF THE FOLDER",0:"IT DESK / REVIEW THE ALERT",2:"EXECUTIVE OFFICE / ATTEND BRIEFING",4:"PEOPLE EXPERIENCE / EXIT INTERVIEW",5:"RECEPTION / COLLECT FINAL NOTICE"}
+const TITLES = {-2:"CORPORATE IP SECURITY / COLLECT THE FOLDER",-1:"IT DEPARTMENT / DROP OFF THE FOLDER",0:"IT DESK / REVIEW THE ALERT",2:"EXECUTIVE OFFICE / ATTEND BRIEFING",4:"PEOPLE EXPERIENCE / EXIT INTERVIEW",5:"RECEPTION / COLLECT FINAL NOTICE"}
 var _target_sign: Label3D
 var _hint: Label
 var _mat: Dictionary = {}
@@ -98,7 +98,7 @@ func _ready() -> void:
 	add_child(finish)
 	_collision("EmployeeCubicle",Vector3(4.5,.54,1.7),Vector3(2.25,1.08,.85))
 	_solid("CubicleDivider",Vector3(5.65,.82,1.7),Vector3(.075,1.64,1.0),_material("cubicle_fabric",Color("606d71")))
-	_sign("SYSTEMS OPERATIONS / 04",Vector3(4.5,1.80,1.22),.003)
+	_sign("CORPORATE IP SECURITY / 04",Vector3(4.5,1.80,1.22),.003)
 	_folder_desk = _make_folder()
 	_folder_desk.position = Vector3(4.05,1.10,1.93)
 	add_child(_folder_desk)
@@ -309,7 +309,7 @@ func _build_cast() -> void:
 		coworker.process_mode=Node.PROCESS_MODE_ALWAYS
 		_cast.add_child(coworker)
 	# Department staff remain at authored standing anchors, not in circulation lanes.
-	for spec in [{"id":"mika","role":"Systems Operations supervisor","palette":0,"position":Vector3(6.35,0,2.65),"yaw":-PI/2},{"id":"eli","role":"IT support technician","palette":2,"position":Vector3(-6.75,0,3.55),"yaw":PI/2},{"id":"security","role":"Lobby security","palette":4,"position":Vector3(3.5,0,-8.75),"yaw":-PI/2}]:
+	for spec in [{"id":"mika","role":"IP Security supervisor","palette":0,"position":Vector3(6.35,0,2.65),"yaw":-PI/2},{"id":"eli","role":"IT support technician","palette":2,"position":Vector3(-6.75,0,3.55),"yaw":PI/2},{"id":"security","role":"Lobby security","palette":4,"position":Vector3(3.5,0,-8.75),"yaw":-PI/2}]:
 		var staff:=Patron.new()
 		staff.call("configure",{"id":spec["id"],"role":spec["role"],"activity":"CHAT","seated":false,"palette":spec["palette"]})
 		staff.position=spec["position"]
@@ -568,9 +568,9 @@ func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 	_radar.call("set_office_state",Vector2(local.x,local.z),Vector2(goal.x,goal.z))
 	_hint.text = "SYNAXIS / EXECUTIVE PRIVILEGE\n%s" % TITLES[stage]
 	if stage==-2:
-		_hint.text += "\nMika: Can you take this folder to Eli in IT?"
+		_hint.text += "\nMika: Take the sealed access-control request to Eli in IT."
 	elif stage==-1:
-		_hint.text += "\nEli is across the aisle, by the server racks."
+		_hint.text += "\nEli can verify the authorization records across the aisle."
 	if reachable(stage,at):
 		_hint.text += "\n"+("X / INTERACT" if gamepad else "G / INTERACT")
 	if breakroom_reachable(at) and not _breakroom_seen:

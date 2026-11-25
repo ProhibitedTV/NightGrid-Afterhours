@@ -1,6 +1,6 @@
 # Chapter 1 — Your Future Has Been Optimized
 
-2036. Morrow Bay. Synaxis Omnisystems, a fictional vertically integrated cloud, logistics and storage megacorporation, eliminates the protagonist's systems-operations job. The notice is deliberately sterile corporate language; the $75 severance is insulting. All characters and incidents are fictional.
+2036. Morrow Bay. Synaxis Omnisystems, a fictional vertically integrated cloud, logistics and storage megacorporation, eliminates the protagonist's corporate intellectual-property security job. The notice is deliberately sterile corporate language; the $75 severance is insulting. All characters and incidents are fictional.
 
 ## Executive Privilege
 
@@ -62,3 +62,6 @@ Two compact physical washrooms between reception and breakroom, with entrance ga
 
 ### Arrival continuity
 The arrival camera now follows a continuous HQ-local walking route: exterior threshold, badge checkpoint, cleared security vestibule, east circulation aisle, and desk 04. Camera cuts do not relocate the player; the partition is shortened to provide turning clearance, and the indoor radar shares its exact endpoints. Arrival remains skippable and the original folder objective is unchanged. Native review of camera framing and character foot contact is still required.
+
+### Corporate IP Security and formalwear
+The protagonist is a Corporate IP Security Analyst, not general IT support. The sealed folder is an access-control request. IT correlates executive-assistant access events to the restricted prototype repository and confirms a CEO-approved override. The phone call corroborates the suspected espionage; private correspondence and a hotel approval imply an affair without proving one. Reporting the incident leads to executive interference and termination. The prologue uses the same face and rig with tailored charcoal suit, white shirt, burgundy tie and Oxford shoes, returning to personal clothing during offboarding. No wardrobe purchase, currency, or save change is involved. The pinned asset generation workflow must produce and import the actual suit; until then the normal courier mesh is a fallback, not an approved visual.

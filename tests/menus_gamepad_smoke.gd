@@ -397,6 +397,19 @@ func _verify() -> void:
 	if not is_instance_valid(office) or office.find_children("*","CollisionShape3D",true,false).size()<10:
 		_fail("Physical office must have real enclosed collision geometry")
 		return
+	var opening_visual: Node3D=player.get("visual")
+	var opening_rig: Skeleton3D=opening_visual.get("skeleton")
+	var opening_source=preload("res://scripts/opening_story.gd")
+	if opening_source.ROLE!="Corporate IP Security Analyst" or not opening_source.AUDIT.contains("not proof of an affair"):
+		_fail("Insider case must be based on unauthorized access, with the affair implied")
+		return
+	var suit_available := ResourceLoader.exists(opening_visual.call("corporate_model_path"),"PackedScene")
+	if suit_available and not opening_visual.get("corporate_attire"):
+		_fail("Generated formalwear must equip on the existing player rig")
+		return
+	if OS.get_environment("NIGHTGRID_REQUIRE_CORPORATE_SUIT")=="1" and not suit_available:
+		_fail("Suit asset workflow must provide a real imported skinned suit")
+		return
 	var finish: Node3D = office.get_node_or_null("ArchitecturalFinish")
 	if not is_instance_valid(finish) or finish.is_processing():
 		_fail("Office finish must be a static authored environment")
@@ -570,6 +583,9 @@ func _verify() -> void:
 	var headquarters = preload("res://scripts/synaxis_office.gd")
 	if world.get("_opening_office")!=null or player.global_position.distance_to(headquarters.ENTRY)>.01 or world.get("city_details").call("synaxis_headquarters")!=office:
 		_fail("Office exit retains the real headquarters and places player at public entrance")
+		return
+	if opening_visual.get("corporate_attire") or opening_visual.get("skeleton")!=opening_rig:
+		_fail("Offboarding restores personal clothing without replacing the rig")
 		return
 	if world.get("cash") != before_severance+75 or not world.get("courier_mission").gig_economy or menu.call("is_open"):
 		_fail("Opening credits severance once and enables real QuotaDrop work")

@@ -304,7 +304,7 @@ func _render() -> void:
 				0:
 					_title(col, "ONE LAST TICKET", 29, Ui.TEXT)
 					_label(col, Opening.TICKET, 17, Color("cbd8e3"))
-					_label(col, "Executive floor: CEO Jetson Wang and his impeccably dressed Shanghai-born executive assistant, Lin Xue.", 16, Ui.MUTED)
+					_label(col, "Eli: The override came from the executive floor. Your job is to establish who accessed the IP and whether they were authorized.", 16, Ui.MUTED)
 					_button(col, "opening_inspect", "REVIEW ACCESS ALERT", "opening_inspect")
 				1:
 					_title(col, "EXECUTIVE EXCEPTION", 29, Ui.TEXT)
@@ -323,7 +323,7 @@ func _render() -> void:
 							_button(col, "opening_hangup", "CONTINUE BRIEFING", "opening_hangup")
 						2:
 							_label(col, Opening.CONFERENCE_END, 17, Color("cbd8e3"))
-							_button(col, "opening_security", "REPORT TO SECURITY", "opening_security")
+							_button(col, "opening_security", "ESCALATE TO SECURITY DIRECTOR", "opening_security")
 							_button(col, "opening_legal", "ASK LEGAL TO PRESERVE AUDIT", "opening_legal")
 				3:
 					_title(col, "YOUR CONCERN HAS BEEN RECEIVED", 29, Ui.TEXT)

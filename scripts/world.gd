@@ -491,6 +491,7 @@ func _start_opening_office() -> void:
 		game_menu.call("open_opening")
 		return
 	_opening_office.call("begin_prologue")
+	player.get("visual").call("set_corporate_attire",true)
 	player.global_position = _opening_office.to_global(OpeningOffice.START)
 	player.velocity = Vector3.ZERO
 	yaw = 0.0
@@ -529,6 +530,7 @@ func _finish_opening_office() -> void:
 	var old := _opening_office
 	_opening_office = null
 	old.call("finish_prologue")
+	player.get("visual").call("set_corporate_attire",false)
 	player.global_position = OpeningOffice.ENTRY
 	player.velocity = Vector3.ZERO
 	player.call("restore_stamina",100.0)
