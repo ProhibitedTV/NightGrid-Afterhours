@@ -144,8 +144,14 @@ func _verify() -> void:
 	var older: Dictionary = record.duplicate(true)
 	older.erase("venue_job_active")
 	older.erase("venue_job_completed")
+	older.erase("progression")
 	if not session.call("is_valid_snapshot", older):
 		_fail("Backward compatibility with existing version-one saves broke")
+		return
+	var malformed: Dictionary = record.duplicate(true)
+	malformed["progression"] = {"version":1,"receipts":["venue:midnight_thermos","venue:midnight_thermos"]}
+	if session.call("is_valid_snapshot", malformed):
+		_fail("Duplicate reward receipt accepted by save validator")
 		return
 	var isolated_path := "user://tests/venues_smoke_slot.json"
 	if not session.call("save_snapshot_to", before, isolated_path):
@@ -165,6 +171,32 @@ func _verify() -> void:
 		return
 	if int(world.get("cash")) != 264 or int(session.get("world_seed")) != old_seed:
 		_fail("Loading a venue save changed currency or the city seed")
+		return
+	# Replaying a stale active contract after an actual disk restore must not pay.
+	var ledger = world.get("progression")
+	if not ledger.has_receipt("venue:midnight_thermos"):
+		_fail("Paid venue receipt was lost on disk round trip")
+		return
+	world.set("venue_job_active", "midnight_thermos")
+	world.set("venue_selected_id", "copper_cup")
+	player.global_position = venues.call("venue_position", "copper_cup")
+	venues.call("set_hour", 9.0)
+	ui.visible = true
+	world.call("_venue_action", 2)
+	if int(world.get("cash")) != 264 or not str(world.get("venue_job_active")).is_empty():
+		_fail("Stale paid job replay changed wallet or remained active")
+		return
+	# Old saves had only completed IDs; those still guard against duplicate pay.
+	var pre_ledger: Dictionary = after.duplicate(true)
+	pre_ledger.erase("progression")
+	pre_ledger["venue_job_active"] = "midnight_thermos"
+	world.call("_apply_snapshot", pre_ledger)
+	world.set("venue_selected_id", "copper_cup")
+	venues.call("set_hour", 9.0)
+	ui.visible = true
+	world.call("_venue_action", 2)
+	if int(world.get("cash")) != 264 or not str(world.get("venue_job_active")).is_empty():
+		_fail("Pre-ledger completed job replay changed wallet or remained active")
 		return
 	print("VENUE_SMOKE PASS: ", kind_counts, " / quests=", catalog.SIDE_JOBS.size(),
 		" / saved_seed=", old_seed, " / venue_lights=", venues.call("get_active_light_count"))
