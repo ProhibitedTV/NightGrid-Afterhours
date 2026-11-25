@@ -12,6 +12,7 @@ const SPRINT_DRAIN = 14.0
 const STAMINA_REGEN = 18.0
 const JUMP_COST = 12.0
 var stamina := STAMINA_MAX
+var _sprint_drain_multiplier := 1.0
 var _stamina_delay := 0.0
 var _exhausted := false
 var camera_yaw := 0.0
@@ -44,13 +45,16 @@ func add_stamina(amount: float) -> void:
 	if stamina >= 20.0:
 		_exhausted = false
 
+func set_courier_conditioning(rank: int) -> void:
+	_sprint_drain_multiplier = 1.0 - .05 * clampi(rank,0,3)
+
 func tick_stamina(delta: float, wants_sprint: bool, moving: bool, wants_jump: bool) -> Vector2i:
 	# Return actual sprint/jump permission. Exhaustion hysteresis avoids
 	# rapidly alternating run/walk when sprint remains held at zero.
 	var sprint := wants_sprint and moving and not _exhausted and stamina > 0.0
 	var jump := wants_jump and stamina >= JUMP_COST
 	if sprint or jump:
-		stamina = maxf(0.0,stamina-(SPRINT_DRAIN*delta if sprint else 0.0)-(JUMP_COST if jump else 0.0))
+		stamina = maxf(0.0,stamina-(SPRINT_DRAIN*_sprint_drain_multiplier*delta if sprint else 0.0)-(JUMP_COST if jump else 0.0))
 		_stamina_delay = .8
 		if stamina <= 0.0:
 			_exhausted = true

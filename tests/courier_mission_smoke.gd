@@ -37,6 +37,12 @@ func _verify() -> void:
 		return
 	if not check(restored.advance("deliver", dropoff, wallet).is_empty() and wallet.balance == 250 and restored.payout() == 300, "duplicate event rejected and next payout preserved"):
 		return
+	if not check(restored.conditioning_rank()==0 and restored.restore(2,false) and restored.conditioning_rank()==1,"first earned conditioning rank"):
+		return
+	if not check(restored.restore(5,false) and restored.conditioning_rank()==2 and restored.restore(10,false) and restored.conditioning_rank()==3,"milestone ranks"):
+		return
+	if not check(restored.restore(Director.MAX_RUNS,false) and restored.conditioning_rank()==3 and restored.conditioning_text().contains("MAX RANK"),"conditioning bounded at rank three"):
+		return
 	var story := Story.new()
 	if not check(story.event("courier_delivered", wallet).is_empty() and story.event("mara_talk", wallet) == "started", "contact must precede delivery"):
 		return
