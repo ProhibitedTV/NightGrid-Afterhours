@@ -779,6 +779,14 @@ func _verify() -> void:
 	if assistant.get("_on_call") or assistant.get("_phone").visible:
 		_fail("Hanging up clears the prop and phone pose")
 		return
+	if not (menu.call("get_buttons") as Dictionary).has("notes_open"):
+		_fail("Executive report choice should allow review of actual interview notes")
+		return
+	menu.call("_choice","notes_open")
+	menu.call("_choice","notes_back")
+	if menu.get("screen")!="opening" or int(menu.get("_opening_stage"))!=2 or int(menu.get("_briefing_beat"))!=2:
+		_fail("Reviewing interview notes cannot replay or advance the briefing")
+		return
 	menu.call("_choice","opening_security")
 	if menu.get("_opening_report")!="opening_security":
 		_fail("Security escalation has its own response")
