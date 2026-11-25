@@ -50,6 +50,39 @@ func _verify() -> void:
 		pool.step(1.0/60.0)
 	if not _check(body.global_position.distance_to(before)>0.15 and body.is_on_floor(),"physics movement and ground contact"):
 		return
+	# Local incident must be visible; a wall blocks the reaction ray.
+	var eye := body.global_position + Vector3.UP*1.6
+	var incident := eye + Vector3.RIGHT*4.0
+	var wall := StaticBody3D.new()
+	var wall_collision := CollisionShape3D.new()
+	var wall_shape := BoxShape3D.new()
+	wall_shape.size=Vector3(0.3,3.0,3.0)
+	wall_collision.shape=wall_shape
+	wall.add_child(wall_collision)
+	root.add_child(wall)
+	wall.global_position=eye+Vector3.RIGHT*2.0
+	await physics_frame
+	var ignored: Array[RID]=[]
+	pool.react_to_incident(pool.get_world_3d().direct_space_state,incident,10.0,ignored,true)
+	if not _check(float(pool.get("_leases")[id]["alert"])==0.0,"opaque wall blocks incident reaction"):
+		return
+	wall.queue_free()
+	await process_frame
+	await physics_frame
+	pool.react_to_incident(pool.get_world_3d().direct_space_state,incident,10.0,ignored,true)
+	pool.step(1.0/60.0)
+	if not _check(pool.movement_states()[id]=="ALERT","visible urgent incident interrupts routine"):
+		return
+	for i in range(46):
+		await physics_frame
+		pool.step(1.0/60.0)
+	if not _check(pool.movement_states()[id]=="RETREAT","urgent incident leads to bounded same-link retreat"):
+		return
+	for i in range(200):
+		await physics_frame
+		pool.step(1.0/60.0)
+	if not _check(float(pool.get("_leases")[id]["retreat"])<=0.0,"retreat expires without permanent panic"):
+		return
 	# A temporary obstruction in front of a live actor triggers a bounded
 	# yield followed by a reversal on the same certified line.
 	var heading := Vector3(sin(body.rotation.y),0,cos(body.rotation.y))
