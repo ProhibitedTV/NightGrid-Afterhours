@@ -1,0 +1,41 @@
+extends SceneTree
+const Room = preload("res://scripts/arcade_room.gd")
+func _initialize() -> void:
+	call_deferred("_verify")
+
+func check(ok: bool, label: String) -> bool:
+	if not ok:
+		push_error("ARCADE_ROOM_SMOKE: " + label)
+		quit(1)
+	return ok
+
+func _verify() -> void:
+	var room := Room.new()
+	root.add_child(room)
+	await process_frame
+	if not check(room.cabinets.size() == 4, "four cabinets"):
+		return
+	for cabinet in room.cabinets:
+		var front: Vector3 = cabinet.to_global(Vector3(0,1.1,1.0))
+		var back: Vector3 = cabinet.to_global(Vector3(0,1.1,-1.0))
+		if not check(room.cabinet_near(front) == cabinet.game_id and room.cabinet_near(back).is_empty(), "front-only interaction " + str(cabinet.game_id)):
+			return
+		var shapes := 0
+		for child in cabinet.get_children():
+			if child is CollisionShape3D:
+				shapes += 1
+			if not check(not child is SubViewport, "no idle live viewport"):
+				return
+		if not check(shapes == 2 and cabinet.get_node_or_null("CRTAttract") != null, "collidable shell and attract screen"):
+			return
+	if not check(room.cabinet_near(Vector3(0,1.1,5.8)).is_empty(), "entry aisle clear"):
+		return
+	var first := room.rook_line()
+	for i in range(Room.ROOK_LINES.size()-1):
+		room.rook_line()
+	if not check(room.rook_line() == first, "bounded dialogue rotation"):
+		return
+	room.queue_free()
+	await process_frame
+	print("ARCADE_ROOM_SMOKE: PASS")
+	quit(0)

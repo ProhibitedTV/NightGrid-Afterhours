@@ -9,6 +9,15 @@ var selection := 0
 var state := "select"
 var elapsed := 0.0
 var best: Dictionary = {}
+var locked_cabinet := ""
+
+func configure_cabinet(id: String, previous_best: Dictionary) -> bool:
+	if not Round.IDS.has(id):
+		return false
+	locked_cabinet = id
+	selection = Round.IDS.find(id)
+	best = previous_best.duplicate()
+	return true
 
 func _ready() -> void:
 	set_process(false)
@@ -24,7 +33,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_show_selection()
 	elif event.is_action_pressed("ui_left") or event.is_action_pressed("ui_right"):
 		var direction := -1 if event.is_action_pressed("ui_left") else 1
-		if state == "select":
+		if state == "select" and locked_cabinet.is_empty():
 			selection = posmod(selection + direction, Round.IDS.size())
 		elif state == "play":
 			round.steer(direction)
@@ -96,7 +105,7 @@ func _draw() -> void:
 	if state == "select":
 		_line(str(info["instructions"]), Vector2(32, 190), Color.WHITE, 18)
 		_line("LOCAL BEST  %06d" % int(best.get(id, 0)), Vector2(32, 235), accent, 24)
-		_line("<  SELECT CABINET  >  %d / %d" % [selection + 1, Round.IDS.size()], Vector2(32, 325), accent, 22)
+		_line("<  SELECT CABINET  >  %d / %d" % [selection + 1, Round.IDS.size()] if locked_cabinet.is_empty() else "FREE PRACTICE / NO SERVER REQUIRED", Vector2(32, 325), accent, 22)
 		_line("ENTER / A  PLAY     ESC / B  EXIT", Vector2(32, 428), Color.WHITE, 18)
 	elif state == "result":
 		_line("CREDITS ROLL" if round.result()["cleared"] else "GAME OVER", Vector2(32, 195), accent, 34)

@@ -3,6 +3,7 @@ const AudioMix = preload("res://scripts/audio_mix.gd")
 ## One active, enterable room at a time. Exterior address/quest identity is
 ## authored; transient geometry is allocated on entry and freed on exit.
 ## This is a separate interior space, not a cut-through doorway in building mesh.
+const ArcadeRoom = preload("res://scripts/arcade_room.gd")
 const Materials = preload("res://scripts/material_library.gd")
 const VenueAmbience = preload("res://scripts/venue_ambience.gd")
 const LanternCupHero = preload("res://scripts/lantern_cup_hero.gd")
@@ -44,6 +45,18 @@ func counter_reachable(at: Vector3) -> bool:
 
 func exit_reachable(at: Vector3) -> bool:
 	return is_inside() and at.distance_to(EXIT_POINT) <= EXIT_RADIUS
+
+func arcade_cabinet_near(at: Vector3) -> String:
+	if active_id != "insert_coin" or _room == null:
+		return ""
+	var kit := _room.get_node_or_null("ArcadeRoom")
+	return str(kit.call("cabinet_near", at)) if kit != null else ""
+
+func arcade_rook_line() -> String:
+	if active_id != "insert_coin" or _room == null:
+		return ""
+	var kit := _room.get_node_or_null("ArcadeRoom")
+	return str(kit.call("rook_line")) if kit != null else ""
 
 func get_patron_manifest() -> Array:
 	if active_id != "lantern_cup" or active_group != "VENUE" or _room == null:
@@ -207,6 +220,10 @@ func _build_room(site: Dictionary) -> void:
 		host.position = Vector3(0.0, 1.02, -7.12)
 		room.add_child(host)
 	match kind:
+		"ARCADE":
+			var kit := ArcadeRoom.new()
+			kit.name = "ArcadeRoom"
+			room.add_child(kit)
 		"GROCERY", "STALL":
 			_stocked_market(room, accent)
 		"CLINIC", "FIRE":
@@ -369,6 +386,8 @@ func _lounge(room: Node3D, accent: Color, kind: String) -> void:
 
 func _kind_color(kind: String) -> Color:
 	match kind:
+		"ARCADE":
+			return Color("72d7cf")
 		"CAFE", "CLINIC":
 			return Color("7ed4d8")
 		"BAR", "FIRE":

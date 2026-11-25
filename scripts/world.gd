@@ -170,6 +170,9 @@ var venue_system: Node3D
 var civic_services: Node3D
 var interiors: Node3D
 var game_menu: CanvasLayer
+var _arcade_layer: CanvasLayer
+var _arcade_best: Dictionary = {}
+const ArcadeScreen = preload("res://scenes/arcade_pilot.tscn")
 var nightgrid_fm: Node
 var world_audio: Node
 var frame_time_recorder = FrameTimeRecorder.new()
@@ -1978,6 +1981,7 @@ func _save_game() -> void:
 		_notify("Save failed. Check user data folder or permissions.")
 
 func _load_game() -> void:
+	_close_arcade()
 	if game_menu != null and game_menu.call("is_open"):
 		game_menu.call("hide_for_game")
 	if not bool(session.call("prepare_load")):
@@ -1989,6 +1993,7 @@ func _load_game() -> void:
 	get_tree().call_deferred("reload_current_scene")
 
 func _new_game() -> void:
+	_close_arcade()
 	if game_menu != null and game_menu.call("is_open"):
 		game_menu.call("hide_for_game")
 	_log_playtest("new_game_requested")
@@ -2217,6 +2222,43 @@ func _synaxis_access_notice() -> bool:
 		return true
 	return false
 
+func _open_arcade(id: String) -> bool:
+	if is_instance_valid(_arcade_layer) or get_tree().paused or current_car != null or current_transit != null:
+		return false
+	if str(interiors.call("arcade_cabinet_near", player.global_position)) != id or id.is_empty():
+		return false
+	var screen := ArcadeScreen.instantiate()
+	if not screen.call("configure_cabinet", id, _arcade_best):
+		screen.free()
+		return false
+	_arcade_layer = CanvasLayer.new()
+	_arcade_layer.name = "ArcadeModal"
+	_arcade_layer.layer = 100
+	_arcade_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(_arcade_layer)
+	_arcade_layer.add_child(screen)
+	screen.connect("exit_requested", _close_arcade)
+	suspend_weapon()
+	player.set("input_blocked", true)
+	player.velocity = Vector3.ZERO
+	get_tree().paused = true
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	return true
+
+func _close_arcade() -> void:
+	if not is_instance_valid(_arcade_layer):
+		return
+	var screen := _arcade_layer.get_child(0)
+	_arcade_best = screen.get("best").duplicate()
+	_arcade_layer.hide()
+	_arcade_layer.process_mode = Node.PROCESS_MODE_DISABLED
+	_arcade_layer.queue_free()
+	_arcade_layer = null
+	get_tree().paused = false
+	player.set("input_blocked", false)
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	_fire_held = true
+
 func _toggle_interior() -> void:
 	if interiors.call("is_inside"):
 		if not interiors.call("exit_reachable", player.global_position):
@@ -2267,7 +2309,12 @@ func _toggle_interior() -> void:
 	# Existing named shops keep H at their exact old public anchor. Their
 	# service migration is separate from the generic building conversion.
 	var legacy_anchor := false
-	if not venue.is_empty():
+	if str(venue.get("id", "")) == "insert_coin":
+		if not venue_system.call("is_open", "insert_coin"):
+			_notify("INSERT COIN is closed. Open 14:00–03:00.")
+			return
+		legacy_anchor = true
+	if not venue.is_empty() and not legacy_anchor:
 		legacy_anchor = player.global_position.distance_to(venue_system.call("venue_position",str(venue["id"]))) < .3
 	if not civic.is_empty():
 		legacy_anchor = legacy_anchor or player.global_position.distance_to(civic_services.call("position_for",str(civic["id"]))) < .3
@@ -2306,6 +2353,15 @@ func _toggle_interaction() -> void:
 		_close_venue()
 		return
 	if interiors.call("is_inside"):
+		if str(interiors.call("active_site_id")) == "insert_coin":
+			var cabinet_id := str(interiors.call("arcade_cabinet_near", player.global_position))
+			if not cabinet_id.is_empty():
+				_open_arcade(cabinet_id)
+			elif interiors.call("counter_reachable", player.global_position):
+				_notify("ROOK: " + str(interiors.call("arcade_rook_line")))
+			else:
+				_notify("Approach a cabinet from the front to play. Practice is free.")
+			return
 		# Mara's collectible, one-time shift note is a real world interaction,
 		# available only beside the flagship café booth. Reuse the already
 		# persisted civic-intel list; old saves and quest schemas are unchanged.
@@ -2831,6 +2887,9 @@ func _toggle_venue() -> void:
 	var venue: Dictionary = venue_system.call("venue_by_id", str(interiors.call("active_site_id"))) if interiors.call("is_inside") else venue_system.call("nearest_venue", player.global_position)
 	if not interiors.call("is_inside") and str(venue.get("id","")) == "helix_espresso":
 		_notify("Enter Helix Espresso and use its physical counter.")
+		return
+	if str(venue.get("id", "")) == "insert_coin":
+		_notify("INSERT COIN: enter with H / LB to play.")
 		return
 	if venue.is_empty():
 		_notify("Find a glowing venue frontage, then press G to visit.")
@@ -3634,7 +3693,13 @@ func _update_hud() -> void:
 		var site_id := str(interiors.call("active_site_id"))
 		var room_site: Dictionary = civic_services.call("site_by_id", site_id) if str(interiors.call("active_site_group")) == "CIVIC" else venue_system.call("venue_by_id", site_id)
 		prompts.append("%s  •  %s" % [str(room_site.get("name", site_id)), enter_key + " Exit" if interiors.call("exit_reachable", player.global_position) else "Return to front door"])
-		if interiors.call("counter_reachable", player.global_position):
+		if site_id == "insert_coin":
+			var cabinet_id := str(interiors.call("arcade_cabinet_near", player.global_position))
+			if not cabinet_id.is_empty():
+				prompts.append("%s  Play %s (free)" % [interact_key, cabinet_id.replace("_", " ").capitalize()])
+			elif interiors.call("counter_reachable", player.global_position):
+				prompts.append("%s  Talk to Rook" % interact_key)
+		elif interiors.call("counter_reachable", player.global_position):
 			prompts.append("%s  Service counter" % interact_key)
 		if site_id == "lantern_cup":
 			var local_regular: Dictionary = interiors.call("patron_near", player.global_position)
