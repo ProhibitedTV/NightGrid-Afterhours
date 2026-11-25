@@ -16,6 +16,7 @@ var _prologue_active := false
 const Patron = preload("res://scripts/lantern_patron.gd")
 const Assistant = preload("res://scripts/synaxis_assistant.gd")
 const Propaganda = preload("res://scripts/synaxis_propaganda.gd")
+const Brand = preload("res://scripts/synaxis_brand.gd")
 var _assistant: Node3D
 var _ceo: Node3D
 var _hr: Node3D
@@ -43,7 +44,7 @@ func _ready() -> void:
 	_solid("SecurityGate",Vector3(0,1.4,-7.65),Vector3(2.6,2.8,.25),_material("security",Color("293842")))
 	_solid("SecurityHeader",Vector3(0,3.15,-7.65),Vector3(2.6,.7,.25),wall)
 	_sign("RESTRICTED / BADGE ACCESS",Vector3(0,2.45,-7.80),.005).rotation.y=PI
-	_sign("SYNAXIS / EMPLOYEE ACCESS",Vector3(0,2.95,-10.17),.006).rotation.y = PI
+	Brand.wall_logo(self,"EntranceBrand",Vector3(0,3.12,-10.17),PI,2.15)
 	_sign("PUBLIC LOBBY",Vector3(0,2.65,-10.17),.0045).rotation.y = PI
 	# Fixed upper-floor shell, not a second generic building intersecting the office.
 	_solid("TowerCore",Vector3(0,27,0),Vector3(17,46.7,20),_material("glass",Color("354c60")))
@@ -51,7 +52,8 @@ func _ready() -> void:
 		var y := 5.4+float(floor)*3.65
 		_visual("FacadeSpandrel",Vector3(0,y,-10.13),Vector3(17,.36,.16),accent)
 	_visual("Crown",Vector3(0,50.8,0),Vector3(17.5,.75,20.5),desk)
-	_sign("SYNAXIS",Vector3(0,49.2,-10.24),.028).rotation.y = PI
+	Brand.wall_logo(self,"TowerBrandFront",Vector3(0,48.2,-10.24),PI,11.8)
+	Brand.wall_logo(self,"TowerBrandRear",Vector3(0,48.2,10.24),0.0,11.8)
 	_solid("SouthWall",Vector3(0,1.75,10),Vector3(17,3.5,.25),wall)
 	_solid("WestWall",Vector3(-8.5,1.75,0),Vector3(.25,3.5,20),wall)
 	_solid("EastWall",Vector3(8.5,1.75,0),Vector3(.25,3.5,20),wall)
@@ -77,7 +79,9 @@ func _ready() -> void:
 		light.light_energy = 1.25
 		light.shadow_enabled = false
 		add_child(light)
-	_sign("SYNAXIS OMNISYSTEMS",Vector3(0,2.55,-9.8),.012)
+	Brand.wall_logo(self,"ReceptionBrand",Vector3(5.2,2.78,9.81),PI,3.65)
+	Brand.wall_logo(self,"ExecutiveMark",Vector3(8.30,2.75,-5.9),-PI/2,.72,false,true)
+	Brand.wall_logo(self,"ExitCartonMark",Vector3(5,1.25,6.285),PI,.22)
 	_sign("THINK OUTSIDE THE BOX\nBOX SOLD SEPARATELY",Vector3(-5,2.25,2.15),.006)
 	_sign("PEOPLE EXPERIENCE\nWE VALUE YOUR FEEDBACK",Vector3(-5,2.25,-5.0),.006)
 	_sign("EXECUTIVE AFFAIRS\nTRANSPARENCY IS A CORE VALUE",Vector3(5,2.25,-4.9),.006)
@@ -108,8 +112,8 @@ func _ready() -> void:
 func _build_lobby(desk: Material,accent: Material,screen: Material) -> void:
 	_solid("VisitorKiosk",Vector3(-2.8,.61,-8.65),Vector3(.62,1.22,.44),desk)
 	_visual("VisitorDisplay",Vector3(-2.8,1.05,-8.9),Vector3(.48,.33,.04),screen)
-	_sign("VISITOR SERVICES\nALL APPOINTMENTS REQUIRE APPROVAL",Vector3(-4.75,1.8,-7.80),.004).rotation.y=PI
-	_sign("SECURITY NOTICE\nEMPLOYEE ACCESS MAY EXPIRE WITHOUT NOTICE",Vector3(4.75,1.8,-7.80),.004).rotation.y=PI
+	_sign("VISITOR SERVICES\nALL APPOINTMENTS REQUIRE APPROVAL",Vector3(-6.45,1.8,-7.80),.004).rotation.y=PI
+	_sign("SECURITY NOTICE\nEMPLOYEE ACCESS MAY EXPIRE WITHOUT NOTICE",Vector3(6.45,1.8,-7.80),.004).rotation.y=PI
 	for x in [-1.55,1.55]:
 		_solid("CardReaderPedestal",Vector3(x,.55,-8.1),Vector3(.19,1.1,.19),accent)
 		_visual("BadgeReader",Vector3(x,1.14,-8.1),Vector3(.23,.10,.25),_material("denied",Color("be5155"),true))

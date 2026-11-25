@@ -1,14 +1,15 @@
 extends Node3D
 ## Original, static corporate print artwork. Each board has a fixed wall
 ## transform and real panel geometry. No billboard, timer, network or collider.
-const INK = Color("12232f")
-const PAPER = Color("e8e8df")
-const GOLD = Color("f1c879")
-const AQUA = Color("95e3d6")
-const NAVY = Color("152e40")
-const WHITE = Color("f3f5f0")
-const RED = Color("ad4040")
-const BLUE = Color("355969")
+const Brand = preload("res://scripts/synaxis_brand.gd")
+const INK = Brand.INK
+const PAPER = Brand.PAPER
+const GOLD = Brand.GOLD
+const AQUA = Brand.AQUA
+const NAVY = Brand.NAVY
+const WHITE = Brand.WHITE
+const RED = Brand.RED
+const BLUE = Brand.BLUE
 
 func _ready() -> void:
 	# Local coordinates match the permanent Synaxis ground floor.
@@ -40,9 +41,12 @@ func _board(id: String,at: Vector3,yaw: float,dimensions: Vector2,background: Co
 	_quad(root,"Backing",dimensions,Vector3.ZERO,background)
 	_quad(root,"BrandStripe",Vector2(dimensions.x,.055),Vector3(0,dimensions.y*.5-.028,.004),accent)
 	# Real font metrics fit each authored line inside its panel at world scale.
-	_copy(root,"Department",eyebrow,Vector3(0,dimensions.y*.33,.012),dimensions.x-.20,dimensions.y*.09,accent)
-	_copy(root,"Headline",headline,Vector3(0,dimensions.y*.11,.012),dimensions.x-.20,dimensions.y*.29,ink)
-	_copy(root,"FinePrint",body,Vector3(0,-dimensions.y*.25,.012),dimensions.x-.20,dimensions.y*.33,ink)
+	var logo_width:=minf(dimensions.x*.38,dimensions.y*.82)
+	Brand.wall_logo(root,"BrandLockup",Vector3(-dimensions.x*.5+.12+logo_width*.5,dimensions.y*.34,.014),0.0,logo_width,background==PAPER)
+	var department_width:=dimensions.x-logo_width-.38
+	_copy(root,"Department",eyebrow,Vector3(dimensions.x*.5-.12-department_width*.5,dimensions.y*.34,.012),department_width,dimensions.y*.10,accent)
+	_copy(root,"Headline",headline,Vector3(0,dimensions.y*.08,.012),dimensions.x-.20,dimensions.y*.28,ink)
+	_copy(root,"FinePrint",body,Vector3(0,-dimensions.y*.25,.012),dimensions.x-.20,dimensions.y*.32,ink)
 
 func _quad(parent: Node3D,id: String,size: Vector2,at: Vector3,tint: Color) -> void:
 	var mesh := QuadMesh.new()

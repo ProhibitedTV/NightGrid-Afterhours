@@ -4,6 +4,7 @@ const MinimapScript = preload("res://scripts/minimap.gd")
 const CityFoley = preload("res://scripts/city_foley.gd")
 const Ui = preload("res://scripts/ui_style.gd")
 const Opening = preload("res://scripts/opening_story.gd")
+const SynaxisBrand = preload("res://scripts/synaxis_brand.gd")
 ## Keyboard/mouse/controller-friendly menu layer. It remains interactive while
 ## the 3D SceneTree is paused; all buttons use Godot's built-in focus navigation.
 signal action_requested(action: String)
@@ -264,7 +265,8 @@ func _render() -> void:
 			_button(col, "controls", "CONTROLS & GAMEPAD", "controls")
 			_button(col, "quit", "QUIT TO DESKTOP", "quit")
 		"opening":
-			_title(col, Opening.EMPLOYER + " / 2036", 21, Ui.AMBER)
+			SynaxisBrand.ui_lockup(col)
+			_label(col, "OMNISYSTEMS / INTERNAL USE ONLY / 2036", 14, SynaxisBrand.AQUA)
 			_label(col, "CHAPTER ONE / EXECUTIVE PRIVILEGE  •  %d/6" % (_opening_stage+1), 16, Ui.MUTED)
 			match _opening_stage:
 				0:

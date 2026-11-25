@@ -35,3 +35,7 @@ The street door now opens onto a small publicly accessible vestibule; a full-wid
 ### Corporate propaganda art
 
 Six original wall-mounted corporate print designs persist with headquarters: quarterly profit celebration ($14.8B), a 24% rounded health premium increase ($186 to $231 per pay period), open enrollment and deductible reminder ($6,200), shareholder celebration of 8,400 eliminated roles, exit campaign and off-clock wellness poster. All numbers are fictional world-building figures, not real-company claims or active wallet charges. Boards use fixed transforms, static quads and metric-fitted 3D text, no animated screens or additional simulation. The smoke checks placement in the real office scene and retention after termination; native legibility and framing remain to be checked.
+
+### Synaxis corporate identity
+
+Original geometric hexagon/signal emblem and custom outlined SYNAXIS wordmark are stored as scalable source SVGs in `assets/art/synaxis/`. Light/dark lockups share the exact same artwork; no external logo, font or trademark source. The brand script shares imported textures/materials between all six posters, tower faces, entrance, reception, executive wall mark and cardboard exit box. The same lockup appears in the opening terminal UI. Palette: midnight navy #152e40, signal aqua #95e3d6, warm paper #e8e8df, warning red #ad4040, investor gold #f1c879. Clear-space and scale guidance in the asset README. No real company identity used. Native visual verification remains pending.

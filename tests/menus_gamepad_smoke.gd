@@ -401,6 +401,14 @@ func _verify() -> void:
 	if not is_instance_valid(propaganda) or propaganda.get_child_count()!=6:
 		_fail("Six physical corporate propaganda boards must be present")
 		return
+	for board in propaganda.get_children():
+		var logo:=board.get_node_or_null("BrandLockup") as MeshInstance3D
+		if logo==null or logo.material_override.albedo_texture==null:
+			_fail("Every physical poster uses the shared original Synaxis logo texture")
+			return
+	if not is_instance_valid(office.get_node_or_null("TowerBrandFront")) or not is_instance_valid(office.get_node_or_null("EntranceBrand")):
+		_fail("Permanent corporate facade uses the original brand")
+		return
 	if not str(propaganda.get_node("QuarterlyRecord/Headline").text).contains("$14.8 BILLION") or not str(propaganda.get_node("HealthRenewal/Headline").text).contains("24%") or not str(propaganda.get_node("HealthRenewal/FinePrint").text).contains("$231"):
 		_fail("Profit celebration and increased health premium must be actual in-world text")
 		return
