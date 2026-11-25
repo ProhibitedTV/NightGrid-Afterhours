@@ -33,6 +33,24 @@
     },
     "rina": {
       "direction": "Original adult female coworker, sharp dry humor, natural conversational English."
+    },
+    "robot_romantic": {
+      "direction": "Original adult male, earnest romantic, slightly awkward, no celebrity likeness."
+    },
+    "nothing_happens": {
+      "direction": "Original adult male, flat deadpan internet cynic, casually dismissive."
+    },
+    "gig_grinder": {
+      "direction": "Original adult female, exhausted but quick-witted delivery worker."
+    },
+    "subscription_skeptic": {
+      "direction": "Original adult male, grumbling older local, dry delivery."
+    },
+    "street_visionary": {
+      "direction": "Original adult female, enthusiastic self-styled entrepreneur."
+    },
+    "night_regular": {
+      "direction": "Original adult male, relaxed nightlife regular, wry and conversational."
     }
   },
   "lines": [
@@ -333,6 +351,222 @@
       "source": {
         "constant": "BREAKROOM_DECLINE",
         "row": 1
+      }
+    },
+    {
+      "id": "street.robot_romantic.01",
+      "character": "robot_romantic",
+      "language": "English",
+      "text": "My girlfriend is a robot. Her parents are a motherboard and a warranty department.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "robot_romantic",
+        "index": 0
+      }
+    },
+    {
+      "id": "street.robot_romantic.02",
+      "character": "robot_romantic",
+      "language": "English",
+      "text": "We had an argument last night. She rolled back to a previous version of herself.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "robot_romantic",
+        "index": 1
+      }
+    },
+    {
+      "id": "street.robot_romantic.03",
+      "character": "robot_romantic",
+      "language": "English",
+      "text": "She's not high maintenance. It's a monthly subscription.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "robot_romantic",
+        "index": 2
+      }
+    },
+    {
+      "id": "street.nothing_happens.01",
+      "character": "nothing_happens",
+      "language": "English",
+      "text": "Nothing ever happens.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "nothing_happens",
+        "index": 0
+      }
+    },
+    {
+      "id": "street.nothing_happens.02",
+      "character": "nothing_happens",
+      "language": "English",
+      "text": "Everybody says this city is collapsing. I've been refreshing the feed for six hours. Nothing.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "nothing_happens",
+        "index": 1
+      }
+    },
+    {
+      "id": "street.nothing_happens.03",
+      "character": "nothing_happens",
+      "language": "English",
+      "text": "They could put a crater where the mayor's office is and I'd still call it a nothingburger.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "nothing_happens",
+        "index": 2
+      }
+    },
+    {
+      "id": "street.gig_grinder.01",
+      "character": "gig_grinder",
+      "language": "English",
+      "text": "I work for three apps. None of them know I'm employed.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "gig_grinder",
+        "index": 0
+      }
+    },
+    {
+      "id": "street.gig_grinder.02",
+      "character": "gig_grinder",
+      "language": "English",
+      "text": "My boss is a progress bar that hates me.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "gig_grinder",
+        "index": 1
+      }
+    },
+    {
+      "id": "street.gig_grinder.03",
+      "character": "gig_grinder",
+      "language": "English",
+      "text": "They gave me a loyalty badge instead of a raise. I can't pay rent with a little star.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "gig_grinder",
+        "index": 2
+      }
+    },
+    {
+      "id": "street.subscription_skeptic.01",
+      "character": "subscription_skeptic",
+      "language": "English",
+      "text": "My apartment has a subscription doorbell. I canceled it. Now visitors are downloadable content.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "subscription_skeptic",
+        "index": 0
+      }
+    },
+    {
+      "id": "street.subscription_skeptic.02",
+      "character": "subscription_skeptic",
+      "language": "English",
+      "text": "I miss when a toaster was just a toaster.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "subscription_skeptic",
+        "index": 1
+      }
+    },
+    {
+      "id": "street.subscription_skeptic.03",
+      "character": "subscription_skeptic",
+      "language": "English",
+      "text": "They offered me an ad-free shower. I asked if the water was extra.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "subscription_skeptic",
+        "index": 2
+      }
+    },
+    {
+      "id": "street.street_visionary.01",
+      "character": "street_visionary",
+      "language": "English",
+      "text": "I'm disrupting the sidewalk industry. People are already walking all over my product.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "street_visionary",
+        "index": 0
+      }
+    },
+    {
+      "id": "street.street_visionary.02",
+      "character": "street_visionary",
+      "language": "English",
+      "text": "My startup has no customers, but our waiting list is emotionally invested.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "street_visionary",
+        "index": 1
+      }
+    },
+    {
+      "id": "street.street_visionary.03",
+      "character": "street_visionary",
+      "language": "English",
+      "text": "We're pre-revenue, post-accountability. It's a very exciting phase.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "street_visionary",
+        "index": 2
+      }
+    },
+    {
+      "id": "street.night_regular.01",
+      "character": "night_regular",
+      "language": "English",
+      "text": "This club has a dress code and a credit score requirement.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "index": 0
+      }
+    },
+    {
+      "id": "street.night_regular.02",
+      "character": "night_regular",
+      "language": "English",
+      "text": "I came out for one drink. That was two firmware updates ago.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "index": 1
+      }
+    },
+    {
+      "id": "street.night_regular.03",
+      "character": "night_regular",
+      "language": "English",
+      "text": "The DJ is an algorithm. Somehow it still takes requests personally.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "index": 2
       }
     }
   ]
