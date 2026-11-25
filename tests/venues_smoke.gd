@@ -108,7 +108,7 @@ func _verify() -> void:
 		_fail("Auntie Sol's local side job was not accepted")
 		return
 	var map_state: Dictionary = world.call("get_map_state")
-	if not bool(map_state.get("side_quest_active", false)) or (map_state.get("venues", []) as Array).size() != 12:
+	if not bool(map_state.get("side_quest_active", false)) or (map_state.get("venues", []) as Array).size() != 13:
 		_fail("Minimap does not expose side job and discovered venue pins")
 		return
 	world.call("_toggle_venue")

@@ -38,7 +38,7 @@ Driving cabinet attract: "Seamless open world. Some districts require a separate
 Self-own poster: "AFTERHOURS: early access to your own bad decisions."
 
 ## Integration boundary
-This branch does not add a world location, modify the main game scene, charge cash, save high scores, or grant rewards. The pilot is a reusable isolated scene; integration and production art are separate follow-up slices.
+The in-city vertical slice adds INSERT COIN as a fixed legacy-transition venue in block (1,2), west lot. Free practice pauses the world and uses four cabinet-specific screens. Session highs are retained in the world instance only. No wallet debit, persistent score or reward changes. Native placement and controller acceptance remain outstanding.
 
 ## Player-first writing rule
 The games are free practice during this isolated pilot. Celebrate bug reporters, fan artists, friends, speedrunners and players who waited patiently. No real studio allegations or copied assets. Rest is a positive strategic action in Indie Dev, not a punishment.
