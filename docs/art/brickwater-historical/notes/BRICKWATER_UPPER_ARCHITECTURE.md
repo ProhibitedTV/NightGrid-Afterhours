@@ -1,0 +1,7 @@
+# Brickwater upper architecture pilot
+
+Part of #134, #144, #148; extends draft #157. All nine pinned CC0 source packages now have runtime placement in the pilot, in selected components rather than source display scenes. Two facing upper elevations use 5 three-metre bays × 2 levels each, with matched authored plaster/window pairs and cornices. The original lot collider stays unchanged; this is an opaque backed facade, not a claim of walk-in apartments. The 0.27m offset keeps selected recessed glass ahead of the existing backing. The previous west-lot primitive escape and overlapping inner window stickers are suppressed. Other elevations, existing windows outside this band, and parcel dimensions remain intact.
+
+Each side gets a two-terminal cable trunk with 6 double runs and 6 clips, at 4.30m; the source local axis rotation is explicitly remapped. West emergency escape comprises 2 platform/guardrail pairs and a stair flight above the pedestrian route. This is backdrop architecture, not a climbable route; mounting and stair-to-landing geometry require native visual review. No new collision is placed in the roadway or walkable alley. Source meshes are cached; no runtime download or full showcase layout.
+
+Headless test adds mesh selection counts, determinant, overhead limits and component presence. Exact native camera/clock, close-ups of glazing, physical attachments, stairs and lighting still required. No FPS or visual acceptance claims.

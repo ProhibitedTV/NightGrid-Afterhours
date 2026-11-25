@@ -33,3 +33,7 @@ godot --path . --rendering-method forward_plus --rendering-driver vulkan --fulls
 ```
 
 The harness writes unmodified framebuffer PNGs with world-space cameras, clock, lens, graphics flags, adapter and SHA-256. `--measure` disables VSync after the menu initializes, then samples one stationary view. `--walk` follows the in-game forward input with physics and city streaming active and saves the same CSV format as F8. Use `--ssr-off` with a separate output directory to inspect the fallback. Driving-height screenshots use a fixed camera. They do not measure moving vehicle performance.
+
+## Historical branch reconciliation
+
+[Original phase notes and unused art](art/brickwater-historical/README.md) preserve the remaining development record from #156 and #157 without restoring superseded runtime code or duplicate fixtures. The current consolidated capture harness remains the supported review path.
