@@ -2,7 +2,7 @@
 
 Combines pending #293–#296 on top of merged #291 and #292. Not a public release.
 
-1. Start New World. Speak to Mara at Lantern Cup's indoor counter.
+1. Start New World. Open Journal → Set waypoint to contact objective. Follow the route to Lantern Cup and speak to Mara at the indoor counter.
 2. Follow courier beacons; finish one delivery and return to Mara. Confirm one $100 bonus and home unlock.
 3. Journal → Set waypoint to home. Open Unit 01's door, rest with no wanted heat, store/take provisions, save at the desk.
 4. Journal → Set waypoint to garage. Claim the Kestrel at the desk. Drive out, damage it, return on foot, recover for $75. Check blocked bays refuse recovery without charge and damage persists.

@@ -415,6 +415,11 @@ func _on_menu_action(action: String) -> void:
 				_refresh_courier_target()
 				_notify("Package abandoned. Return to the pickup to retry.")
 			game_menu.call("open_journal", _journal_context())
+		"story_waypoint":
+			if story_mission.status != "complete":
+				var target := _story_target()
+				set_navigation_waypoint(Vector2(target.x,target.z))
+			game_menu.call("open_journal", _journal_context())
 		"garage_waypoint":
 			if progression.owns_home():
 				var entry := StarterGarage.entry()
@@ -430,6 +435,14 @@ func _on_menu_action(action: String) -> void:
 				_notify("Contact mission abandoned. Speak to Mara to retry.")
 			game_menu.call("open_journal", _journal_context())
 
+# Resolve from existing venue/route contracts, never save another position.
+func _story_target() -> Vector3:
+	if story_mission.status == "complete":
+		return Vector3.INF
+	if story_mission.step == 1:
+		return mission_position
+	return venue_system.call("venue_position", "lantern_cup")
+
 func _journal_context() -> Dictionary:
 	var outside: Vector3 = interiors.get("exterior_position") if interiors.call("is_inside") else _actor().global_position
 	var district: String = city_details.call("get_district_at", outside)
@@ -444,6 +457,7 @@ func _journal_context() -> Dictionary:
 		"main_objective": "%s  •  STEP %d/%d  •  %dm  •  $%d" % [objective["title"], objective["step"], objective["total_steps"], remaining, objective["reward"]],
 		"courier_can_restart": carrying,
 		"story_objective": story_mission.journal(),
+		"story_can_navigate": story_mission.status != "complete",
 		"story_can_abandon": story_mission.status == "active",
 		"venue_job": _venue_job_text(),
 		"civic_job": _civic_job_text(),
@@ -2982,7 +2996,7 @@ func _update_hud() -> void:
 	hud_navigation.visible = navigation_waypoint != null
 	hud_navigation.text = navigation_text() if navigation_waypoint != null else ""
 	var jobs: Array[String] = []
-	if story_mission.status == "active":
+	if story_mission.status != "complete":
 		jobs.append(story_mission.journal())
 	if not venue_job_active.is_empty():
 		jobs.append(_venue_job_text())
@@ -3075,6 +3089,9 @@ func set_navigation_waypoint(point: Vector2) -> Vector2:
 	for pin in civic_services.call("get_map_pins"):
 		var p: Vector3 = civic_services.call("position_for", str(pin["id"]))
 		candidates.append(Vector2(p.x, p.z))
+	if progression.owns_home():
+		for entry in [StarterHome.entry(),StarterGarage.entry()]:
+			candidates.append(Vector2(entry.x,entry.z))
 	for candidate in candidates:
 		var gap := point.distance_to(candidate)
 		if gap <= distance and Nav.valid(candidate):
@@ -3244,6 +3261,13 @@ func navigation_text() -> String:
 		if destination.distance_to(Vector2(p.x, p.z)) < 0.1:
 			label = str(civic_services.call("site_by_id", str(pin["id"]))["name"])
 			break
+	if progression.owns_home():
+		var home := StarterHome.entry()
+		var garage := StarterGarage.entry()
+		if destination.distance_to(Vector2(home.x,home.z)) < .1:
+			label = StarterHome.NAME
+		elif destination.distance_to(Vector2(garage.x,garage.z)) < .1:
+			label = StarterGarage.NAME
 	var route := _navigation_route(origin)
 	var line := "WAYPOINT  %s  •  %dm direct" % [label, roundi(origin.distance_to(destination))]
 	if route.is_empty():

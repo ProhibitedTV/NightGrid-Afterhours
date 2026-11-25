@@ -201,8 +201,8 @@ func _verify() -> void:
 	world.call("_advance_mission")
 	player.global_position = courier.target()
 	world.call("_advance_mission")
-	if world.get("story_mission").step != 2:
-		_fail("Real courier delivery did not advance the contact chain")
+	if world.get("story_mission").step != 2 or world.call("_story_target") != exterior:
+		_fail("Real courier delivery did not advance the contact chain to Mara’s address")
 		return
 	player.global_position = exterior
 	world.call("_toggle_interior")

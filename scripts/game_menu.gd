@@ -289,6 +289,8 @@ func _render() -> void:
 				17, Color("e1ebef"))
 			_button(col, "restart_courier", "ABANDON PACKAGE / RETRY ROUTE", "restart_courier", bool(_journal_data.get("courier_can_restart", false)))
 			_label(col, str(_journal_data.get("story_objective", "")), 16, Ui.ACCENT)
+			if bool(_journal_data.get("story_can_navigate", false)):
+				_button(col, "story_waypoint", "SET WAYPOINT TO CONTACT OBJECTIVE", "story_waypoint")
 			if bool(_journal_data.get("story_can_abandon", false)):
 				_button(col, "abandon_story", "ABANDON CONTACT MISSION", "abandon_story")
 			_label(col, str(_journal_data.get("venue_job", "No local contacts")),
@@ -476,7 +478,7 @@ func _choice(action: String) -> void:
 			open_map()
 		"journal":
 			action_requested.emit("journal")
-		"restart_courier", "abandon_story", "home_waypoint", "garage_waypoint":
+		"restart_courier", "abandon_story", "home_waypoint", "garage_waypoint", "story_waypoint":
 			action_requested.emit(action)
 		"back":
 			_open(_back_screen)

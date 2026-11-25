@@ -316,6 +316,18 @@ func _verify() -> void:
 	if paused or menu.call("is_open"):
 		_fail("Game cannot resume from controller pause")
 		return
+	# The fresh opening contact is discoverable without knowing the city.
+	menu.call("open_pause")
+	menu.call("open_journal", world.call("_journal_context"))
+	var contact: Button = menu.call("get_buttons").get("story_waypoint")
+	if contact == null or contact.disabled or contact.focus_mode != Control.FOCUS_ALL:
+		_fail("Opening contact waypoint is unavailable to controller")
+		return
+	menu.call("_choice","story_waypoint")
+	if not str(world.call("navigation_text")).contains("LANTERN CUP"):
+		_fail("Contact waypoint does not resolve to Mara’s real entrance")
+		return
+	menu.call("hide_for_game")
 	# Exercise the actual world courier adapter and journal action.
 	var director = world.get("courier_mission")
 	var initial_cash: int = world.get("cash")
