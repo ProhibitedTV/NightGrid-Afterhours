@@ -502,6 +502,18 @@ func _verify() -> void:
 		var previous:int=office.get("_active_floor")
 		player.global_position=office.to_global(Vector3(-.9,previous*3.65+1.15,5))
 		world.call("_opening_interact")
+		if not office.call("lift_active") or not player.get("input_blocked") or int(office.get("_active_floor"))!=previous:
+			_fail("Lift closes before moving and locks input during travel")
+			return
+		world.call("_opening_interact")
+		office.call("tick_lift",.20,player)
+		if int(office.get("_active_floor"))!=previous:
+			_fail("Lift cannot relocate before the doors close")
+			return
+		office.call("tick_lift",3.0,player)
+		if office.call("lift_active") or player.get("input_blocked"):
+			_fail("Lift opens and releases input at destination")
+			return
 		if int(office.get("_active_floor"))!=level or absf(office.to_local(player.global_position).y-(level*3.65+1.15))>.01:
 			_fail("Lift travels to actual upper floor elevations")
 			return
@@ -584,6 +596,7 @@ func _verify() -> void:
 		var previous:int=office.get("_active_floor")
 		player.global_position=office.to_global(Vector3(.9,previous*3.65+1.15,5))
 		world.call("_opening_interact")
+		office.call("tick_lift",3.0,player)
 		if int(office.get("_active_floor"))!=level:
 			_fail("Lift returns to the ground-floor tutorial")
 			return
@@ -699,6 +712,7 @@ func _verify() -> void:
 		return
 	player.global_position=office.to_global(Vector3(.9,1.15,5))
 	world.call("_opening_interact")
+	office.call("tick_lift",3.0,player)
 	var basement:Node3D=office.get_node("BasementIT")
 	var bstats:Dictionary=basement.call("basement_stats")
 	if int(office.get("_active_floor"))!=-1 or int(bstats["racks"])!=20 or not bool(bstats["hum"]):
@@ -721,12 +735,14 @@ func _verify() -> void:
 		return
 	player.global_position=office.to_global(Vector3(-.9,1.15-3.65,5))
 	world.call("_opening_interact")
+	office.call("tick_lift",3.0,player)
 	if int(office.get("_active_floor"))!=0 or bool(basement.call("basement_stats")["hum"]):
 		_fail("Returning to ground floor stops server-room ambient audio")
 		return
 	for next_floor in [1,2,3,4,13]:
 		player.global_position=office.to_global(Vector3(-.9,int(office.get("_active_floor"))*3.65+1.15,5))
 		world.call("_opening_interact")
+		office.call("tick_lift",3.0,player)
 		if int(office.get("_active_floor"))!=next_floor:
 			_fail("Executive briefing requires travelling to the crown")
 			return
@@ -762,6 +778,7 @@ func _verify() -> void:
 	for next_floor in [4,3,2,1,0]:
 		player.global_position=office.to_global(Vector3(.9,int(office.get("_active_floor"))*3.65+1.15,5))
 		world.call("_opening_interact")
+		office.call("tick_lift",3.0,player)
 		if int(office.get("_active_floor"))!=next_floor:
 			_fail("Offboarding returns through the lift to reception")
 			return

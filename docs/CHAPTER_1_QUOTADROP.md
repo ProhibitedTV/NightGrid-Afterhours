@@ -113,3 +113,6 @@ A compact collision-backed booth, translucent windows, metal frames, logbook, ra
 
 ### Circulation and access integration
 Ground west wall now has a real two-metre staff exit at local z=4.5; during the prologue it is open to the marked exterior walkway and rear parking. After severance it closes and restores collision without reopening the restricted lobby. Floor trim and radar reflect the doorway. Seal the fourth workfloor ceiling gap with a cap slab; add framed crown glazing and a shallow terrace threshold. Lift prompts name the actual next floor, including the express link from level 5 to 14. Structural regression checks cover staff-exit lifecycle and roof cap, but continuous walk-through and native visual review remain necessary.
+
+### Elevator transition
+The existing lift pads now initiate a 1.35-second staged door transition (2.10 seconds for the express ride). Screen-space metal doors close over the scene, destination signage appears, input is locked, the player and selected-floor audio/lighting change only after closure, and the doors reopen. Recovery and interaction are suppressed during the ride. No per-floor streaming, physics cabin, or new AI runtime; this is an interim staged visual transition rather than a simulated elevator. Tests exercise lockout, delay, routing and release. Native presentation verification pending.
