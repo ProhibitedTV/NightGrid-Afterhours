@@ -1,4 +1,5 @@
 extends SceneTree
+const Race = preload("res://scripts/grand_delay_race.gd")
 const Round = preload("res://scripts/arcade_round.gd")
 const Alt = preload("res://scripts/arcade_alt_round.gd")
 const Extra = preload("res://scripts/arcade_extra_round.gd")
@@ -74,6 +75,61 @@ func _verify() -> void:
 		return
 	deluxe.start("grand_delay")
 	if not check(deluxe.nitro_charge == 0 and deluxe.nitro_ticks == 0 and deluxe.streak == 0, "nitro and streak reset on replay"):
+		return
+	var race = Race.new()
+	if not check(race.start("grand_delay") and race.course.size() == 30 and race.countdown > 0, "authored three-district course"):
+		return
+	for i in range(121):
+		race.advance(true)
+	if not check(race.distance < 1.0 and race.speed < 2.0, "countdown holds the car"):
+		return
+	for i in range(240):
+		race.advance(true)
+	if not check(race.speed > 70.0 and race.distance > 100.0, "throttle accelerates continuously"):
+		return
+	for i in range(90):
+		race.steer(-1.0)
+		race.advance(false,true)
+	if not check(race.position_x >= -.10 and race.position_x < .1 and race.speed <= 29.0, "braking and steering bounded"):
+		return
+	race.start("grand_delay")
+	race.countdown = 0.0
+	for i in range(3):
+		race._hit({"kind":"feature","label":"TEST"},0.0)
+	if not check(race.strike() and race.nitro_left > 0.0 and not race.strike(), "charged boost once"):
+		return
+	race._hit({"kind":"wall","label":"TEST"},0.0)
+	if not check(race.lives==3 and race.pickups==3 and race.score>300,"nitro bypasses paywall"):
+		return
+	race.speed=70.0
+	race._hit({"kind":"traffic"},.45)
+	if not check(race.near_misses==1 and race.overtakes==1,"near miss rewards skill"):
+		return
+	race._hit({"kind":"traffic"},0.0)
+	race._hit({"kind":"traffic"},0.0)
+	if not check(race.lives==2 and race.collisions==1,"contact invulnerability prevents double damage"):
+		return
+	race.start("grand_delay")
+	race.countdown=0.0
+	# Collision-free deterministic pace test isolates the checkpoint clock.
+	race.course.clear()
+	race.objects.clear()
+	race.next_event=0
+	for i in range(6000):
+		race.advance(true)
+		if race.finished:
+			break
+	if not check(race.cleared and race.distance==Race.LENGTH and race.splits.size()==3 and race.race_time<60.0,"three checkpoint sprint is winnable"):
+		return
+	var final_race = race.result()
+	race.advance()
+	if not check(race.result()==final_race,"race result immutable"):
+		return
+	race.start("grand_delay")
+	race.countdown=0.0
+	race.remaining=Race.DT
+	race.advance()
+	if not check(race.finished and not race.cleared and race.pickups==0,"timeout and replay reset"):
 		return
 	var patch := Alt.new()
 	if not check(patch.start("patch_day") and patch.strike() and patch.score == 150 and not patch.strike(), "patch repairs exactly once"):
@@ -212,7 +268,7 @@ func _verify() -> void:
 	if not check(screen.state == "select" and screen.get_node_or_null("CabinetSpeaker") != null and screen.CUES.size() == 4, "cabinet scene loads with one speaker and four cues"):
 		return
 	screen._start_round()
-	if not check(screen.state == "play" and not screen.round.finished, "screen launches title"):
+	if not check(screen.state == "play" and screen.round is Race and not screen.round.finished, "screen launches dedicated race"):
 		return
 	screen._show_selection()
 	if not check(not screen.is_processing(), "abandoned round stops ticking"):

@@ -7,9 +7,9 @@ const Heritage = preload("res://scripts/arcade_heritage.gd")
 var heritage: Node3D
 const CARPET = preload("res://assets/arcade/carpet_tile.svg")
 const CIRCUIT_ART = preload("res://assets/arcade/circuit_poster.svg")
-const CIRCUIT_POINT := Vector3(0,1.15,-3.35)
+const CIRCUIT_POINT = Vector3(0,1.15,-3.35)
 var dressing: Node3D
-const ROOK_LINES := [
+const ROOK_LINES = [
 	"The devs aren't the problem. The boardroom is.",
 	"Someone brought me a bug report with a save file and a thank-you note. Made my week.",
 	"We kept the old cabinets offline. They still work.",

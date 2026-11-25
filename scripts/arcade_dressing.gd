@@ -3,7 +3,7 @@ extends Node3D
 const Human = preload("res://scripts/humanoid_visual.gd")
 const REPAIR = preload("res://assets/arcade/repair_poster.svg")
 const TOURNAMENT = preload("res://assets/arcade/tournament_poster.svg")
-const REGULARS := [
+const REGULARS = [
 	{"id":"ev","name":"Ev","role":"Modder","position":Vector3(-2.8,0.0,-.6),"palette":2,"lines":["I fixed a shader bug in a game once. The dev sent me a thank-you email.","The best patch notes are the ones that say what actually changed.","Back up your saves. Trust me.","There is a difference between a patch and a permission slip.","The engine-room tribute is my favorite. Modders kept a whole generation of games alive."]},
 	{"id":"nyx","name":"Nyx","role":"Speedrunner","position":Vector3(2.8,0.0,-.6),"palette":3,"lines":["I lost a world record by one frame. The person who beat me gave me their route.","A good game makes you want another run, not another purchase.","Nobody gets fast without looking silly first.","We race old games because their rules don't change every Tuesday.","A leaderboard should be a challenge, not an advertisement."]},
 	{"id":"ash","name":"Ash","role":"Squad regular","position":Vector3(-2.8,0.0,3.2),"palette":4,"lines":["Same friends, different sequel. I come for the friends.","We used to pass the controller around. This place gets it.","I let my kid beat my score. Don't tell Rook.","The new edition is mostly the same game. The laughter on voice chat is always new.","We still call it the Friday tournament even when we show up on Saturday."]},

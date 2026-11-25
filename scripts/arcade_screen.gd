@@ -6,6 +6,7 @@ const AltRound = preload("res://scripts/arcade_alt_round.gd")
 const ExtraRound = preload("res://scripts/arcade_extra_round.gd")
 const SeasonRound = preload("res://scripts/arcade_season_round.gd")
 const ClassicRound = preload("res://scripts/arcade_classic_round.gd")
+const Race = preload("res://scripts/grand_delay_race.gd")
 const DeluxeView = preload("res://scripts/arcade_grand_delay_view.gd")
 var deluxe_view := DeluxeView.new()
 var deluxe_lane := 1.0
@@ -13,7 +14,7 @@ var deluxe_pulse := 0.0
 var deluxe_cabinet: Node3D
 const Scores = preload("res://scripts/arcade_scores.gd")
 const AudioMix = preload("res://scripts/audio_mix.gd")
-const CUES := {
+const CUES = {
 	"start": preload("res://assets/arcade/audio/start.wav"),
 	"score": preload("res://assets/arcade/audio/score.wav"),
 	"damage": preload("res://assets/arcade/audio/damage.wav"),
@@ -60,7 +61,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		var direction := -1 if event.is_action_pressed("ui_left") else 1
 		if state == "select" and locked_cabinet.is_empty():
 			selection = posmod(selection + direction, Round.IDS.size())
-		elif state == "play" and not round is ClassicRound:
+		elif state == "play" and not round is ClassicRound and not round is Race:
 			var before := Vector2i(round.score,round.lives)
 			round.steer(direction)
 			_feedback_cue(before)
@@ -97,7 +98,9 @@ func _show_selection() -> void:
 
 func _start_round() -> void:
 	var id: String = Round.IDS[selection]
-	if id == "starline_patrol" or id == "neon_rebound":
+	if id == "grand_delay":
+		round = Race.new()
+	elif id == "starline_patrol" or id == "neon_rebound":
 		round = ClassicRound.new()
 	elif id == "open_world_checklist" or id == "battle_pass_hero":
 		round = SeasonRound.new()
@@ -119,6 +122,9 @@ func _start_round() -> void:
 	queue_redraw()
 
 func _process(delta: float) -> void:
+	if round is Race:
+		_process_race(delta)
+		return
 	if round is ClassicRound:
 		_process_classic(delta)
 		return
@@ -129,12 +135,6 @@ func _process(delta: float) -> void:
 		interval = SeasonRound.CHECK_INTERVAL
 	elif round.game_id == "battle_pass_hero":
 		interval = SeasonRound.SEASON_INTERVAL
-	if round.game_id == "grand_delay":
-		deluxe_lane = move_toward(deluxe_lane,float(round.lane),delta*9.0)
-		deluxe_pulse = move_toward(deluxe_pulse,0.0,delta*5.0)
-		if is_instance_valid(deluxe_cabinet):
-			deluxe_cabinet.call("set_deluxe_controls",deluxe_lane,deluxe_pulse)
-		queue_redraw()
 	# Limit catch-up after a stall; no unfair instant loss of multiple lives.
 	elapsed += minf(delta, interval)
 	if elapsed >= interval:
@@ -144,6 +144,26 @@ func _process(delta: float) -> void:
 		_feedback_cue(before)
 		_finish_if_needed()
 		queue_redraw()
+
+func _process_race(delta: float) -> void:
+	elapsed += minf(delta,Race.DT*5.0)
+	var axis = Input.get_axis("ui_left","ui_right")
+	round.steer(axis)
+	var throttle = Input.is_action_pressed("ui_up")
+	var brake = Input.is_action_pressed("ui_down")
+	var before = Vector2i(round.score,round.lives)
+	for i in range(5):
+		if elapsed < Race.DT or round.finished:
+			break
+		elapsed -= Race.DT
+		round.advance(throttle,brake)
+	deluxe_lane = move_toward(deluxe_lane,1.0+axis,delta*7.0)
+	deluxe_pulse = move_toward(deluxe_pulse,0.0,delta*5.0)
+	if is_instance_valid(deluxe_cabinet):
+		deluxe_cabinet.call("set_deluxe_controls",deluxe_lane,deluxe_pulse)
+	_feedback_cue(before)
+	_finish_if_needed()
+	queue_redraw()
 
 func _process_classic(delta: float) -> void:
 	# Bounded catch-up. Only the one active cabinet runs these fixed steps.
@@ -194,7 +214,7 @@ func _draw() -> void:
 	draw_set_transform((size - Vector2(800, 480) * scale_factor) * 0.5, 0.0, Vector2.ONE * scale_factor)
 	var id: String = Round.IDS[selection]
 	if id == "grand_delay":
-		deluxe_view.render(self,clampf(elapsed/Round.STEP_SECONDS,0.0,1.0),deluxe_lane,deluxe_pulse)
+		deluxe_view.render(self,deluxe_lane,deluxe_pulse)
 		return
 	var info: Dictionary = Round.GAMES[id]
 	var accent := Color(str(info["color"]))

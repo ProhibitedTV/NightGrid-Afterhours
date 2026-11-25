@@ -2,7 +2,7 @@ extends StaticBody3D
 ## Original static cabinet, face toward local +Z. No active viewport or per-frame scripts.
 const Catalog = preload("res://scripts/arcade_round.gd")
 const IDS = Catalog.IDS
-const ART := {
+const ART = {
 	"grand_delay": preload("res://assets/arcade/grand_delay.svg"),
 	"claw_compliance": preload("res://assets/arcade/claw_compliance.svg"),
 	"patch_day": preload("res://assets/arcade/patch_day.svg"),
@@ -14,8 +14,8 @@ const ART := {
 	"starline_patrol": preload("res://assets/arcade/starline_patrol.svg"),
 	"neon_rebound": preload("res://assets/arcade/neon_rebound.svg")
 }
-const TINTS := {"grand_delay": "69d8c2", "claw_compliance": "efb169", "patch_day": "c4a2f3", "indie_dev": "f1cd82", "annual_warfare": "a5ca82", "day_one_dlc": "ed9db5", "open_world_checklist": "80bce9", "battle_pass_hero": "e6a1ef", "starline_patrol": "72d7cf", "neon_rebound": "f2a96b"}
-const SERVICE_STICKERS := {"grand_delay":"RELEASE DATE: TBA", "claw_compliance":"APPROVED BY 12 COMMITTEES", "patch_day":"HOTFIX HOTLINE", "indie_dev":"MADE WITH WEEKENDS OFF", "annual_warfare":"RELOADS ARE FREE", "day_one_dlc":"ALL PARTS INCLUDED", "open_world_checklist":"SOCK NOT INCLUDED", "battle_pass_hero":"NO ATTENDANCE TRACKING", "starline_patrol":"RESTORED BY ROOK", "neon_rebound":"ORIGINAL BOARD / FREE PLAY"}
+const TINTS = {"grand_delay": "69d8c2", "claw_compliance": "efb169", "patch_day": "c4a2f3", "indie_dev": "f1cd82", "annual_warfare": "a5ca82", "day_one_dlc": "ed9db5", "open_world_checklist": "80bce9", "battle_pass_hero": "e6a1ef", "starline_patrol": "72d7cf", "neon_rebound": "f2a96b"}
+const SERVICE_STICKERS = {"grand_delay":"RELEASE DATE: TBA", "claw_compliance":"APPROVED BY 12 COMMITTEES", "patch_day":"HOTFIX HOTLINE", "indie_dev":"MADE WITH WEEKENDS OFF", "annual_warfare":"RELOADS ARE FREE", "day_one_dlc":"ALL PARTS INCLUDED", "open_world_checklist":"SOCK NOT INCLUDED", "battle_pass_hero":"NO ATTENDANCE TRACKING", "starline_patrol":"RESTORED BY ROOK", "neon_rebound":"ORIGINAL BOARD / FREE PLAY"}
 const CRT = preload("res://assets/arcade/attract_crt.gdshader")
 const DeluxeCRT = preload("res://assets/arcade/grand_delay_crt.gdshader")
 const DeluxeMarquee = preload("res://assets/arcade/grand_delay_marquee.svg")

@@ -1,8 +1,8 @@
 extends RefCounted
 ## Fixed-size per-save local scores. No network, wallet, run history or rewards.
 const Catalog = preload("res://scripts/arcade_round.gd")
-const MAX_SCORE := 20000
-const RIVALS := {
+const MAX_SCORE = 20000
+const RIVALS = {
 	"grand_delay": [["JET",1100],["ROOK",800],["MARA",500]],
 	"claw_compliance": [["NYX",1100],["ROOK",800],["ASH",400]],
 	"patch_day": [["ROOK",1850],["EV",1400],["MARA",850]],
@@ -16,7 +16,7 @@ const RIVALS := {
 }
 
 # Designed to be reachable by ordinary play, with no daily attendance requirement.
-const CIRCUIT := [
+const CIRCUIT = [
 	{"id":"grand_delay","goal":800,"rival":"JET","title":"ROAD TRIP"},
 	{"id":"claw_compliance","goal":600,"rival":"NYX","title":"NO COMMITTEE"},
 	{"id":"patch_day","goal":1000,"rival":"EV","title":"HOTFIX HERO"},
