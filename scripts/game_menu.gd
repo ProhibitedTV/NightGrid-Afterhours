@@ -17,6 +17,7 @@ var _rhythm_claim:Button
 var _rhythm_player:AudioStreamPlayer
 const PAD_CLIPS=[preload("res://assets/audio/rehearsal/kick.wav"),preload("res://assets/audio/rehearsal/clap.wav"),preload("res://assets/audio/rehearsal/hat.wav")]
 const Opening = preload("res://scripts/opening_story.gd")
+const Phone = preload("res://scripts/morrow_phone.gd")
 const SynaxisBrand = preload("res://scripts/synaxis_brand.gd")
 ## Keyboard/mouse/controller-friendly menu layer. It remains interactive while
 ## the 3D SceneTree is paused; all buttons use Godot's built-in focus navigation.
@@ -43,8 +44,8 @@ const HELP_SECTIONS = [
 		"pad": "RT accelerate · LT reverse · Left stick steer · B brake · D-pad Right radio · D-pad Up next · D-pad Left Cinder view"},
 	{"title": "SHOP / CONTACTS", "keyboard": "G interact/close · 1 buy/use · 2 contract · Esc close",
 		"pad": "X interact/contract · A service · B close · D-pad navigate"},
-	{"title": "SYSTEM", "keyboard": "Esc pause · M map · Tab journal · F5 save · F9 load · F6 new world · F3 FPS · F8 CSV · F10 photo",
-		"pad": "Start pause · View/Select map · B back · Save/Load/New in pause menu"}
+	{"title": "SYSTEM", "keyboard": "Esc pause · M map · Tab journal · P phone · F5 save · F9 load · F6 new world · F3 FPS · F8 CSV · F10 photo",
+		"pad": "Start pause · View/Select map · B back · Phone/Save/Load/New in pause menu"}
 ]
 
 var screen := "hidden"
@@ -53,6 +54,9 @@ var _confirmation_origin := "pause"
 var _has_save := false
 var _world: Node3D
 var _journal_data: Dictionary = {}
+var _phone_data: Dictionary = {}
+var _phone_app := ""
+var _phone_from_pause := false
 var _opening_stage := 0
 var _opening_report := ""
 var _opening_exit := ""
@@ -165,6 +169,26 @@ func _opening_next_location() -> void:
 	else:
 		_render()
 
+func open_phone(context: Dictionary, from_pause: bool = false) -> void:
+	_phone_data = context.duplicate(true)
+	_phone_app = ""
+	_phone_from_pause = from_pause
+	_open("phone")
+
+func refresh_phone(context: Dictionary) -> void:
+	if screen == "phone":
+		_phone_data = context.duplicate(true)
+		_render()
+
+func _phone_back() -> void:
+	if not _phone_app.is_empty():
+		_phone_app = ""
+		_render()
+	elif _phone_from_pause:
+		_open("pause")
+	else:
+		hide_for_game()
+
 func open_pause() -> void:
 	_open("pause")
 
@@ -210,8 +234,14 @@ func _open(value: String) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not is_open() or not event.is_pressed() or event.is_echo():
 		return
+	if screen == "phone" and event.is_action_pressed("phone_open"):
+		hide_for_game()
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("game_pause") or event.is_action_pressed("game_back"):
 		match screen:
+			"phone":
+				_phone_back()
 			"settings", "controls", "map", "journal":
 				_open(_back_screen)
 			"confirm_new":
@@ -280,25 +310,25 @@ func _render() -> void:
 	var staged := screen in ["breakroom","restroom","parking_guard","street_contact"] or (screen=="opening" and _physical_opening and _opening_stage in [2,4])
 	var shade := ColorRect.new()
 	shade.name = "Scrim"
-	shade.color = Color(0.028, 0.045, 0.060, .12 if staged else .94)
+	shade.color = Color(0.028, 0.045, 0.060, .36 if screen == "phone" else (.12 if staged else .94))
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(shade)
 	var center := CenterContainer.new()
 	center.name = "Center"
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	if staged:
+	if staged or screen == "phone":
 		center.anchor_left = .5
 	_root.add_child(center)
 	var panel := PanelContainer.new()
 	panel.name = "MenuPanel"
-	panel.custom_minimum_size = Vector2(500.0 if staged else 760.0, 0.0)
+	panel.custom_minimum_size = Vector2(410.0 if screen == "phone" else (500.0 if staged else 760.0), 0.0)
 	panel.add_theme_stylebox_override("panel", Ui.card(0.99, 26))
 	center.add_child(panel)
 	var shell := VBoxContainer.new()
 	shell.add_theme_constant_override("separation", 16)
 	panel.add_child(shell)
-	_label(shell, "MORROW BAY   /   NIGHT SHIFT", 16, Ui.AMBER)
-	_title(shell, "EXECUTIVE PRIVILEGE" if staged else "NIGHTGRID: AFTERHOURS", 26 if staged else 40, Ui.TEXT)
+	_label(shell, "MORROW MOBILE  ·  " + str(_phone_data.get("clock","--:--")) if screen == "phone" else "MORROW BAY   /   NIGHT SHIFT", 16, Ui.AMBER)
+	_title(shell, "Morrow OS" if screen == "phone" else ("EXECUTIVE PRIVILEGE" if staged else "NIGHTGRID: AFTERHOURS"), 26 if staged or screen == "phone" else 40, Ui.TEXT)
 	_divider(shell)
 	_body_scroll = ScrollContainer.new()
 	_body_scroll.name = "MenuScroll"
@@ -425,12 +455,15 @@ func _render() -> void:
 					_divider(col)
 					_label(col, Opening.OFFER, 17, Ui.TEXT)
 					_button(col, "opening_accept", "ACCEPT TERMS / RETURN COMPANY PROPERTY" if _physical_opening else "ACCEPT TERMS / START DELIVERING", "opening_accept")
+		"phone":
+			_render_phone(col)
 		"pause":
 			_title(col, "PAUSED / SAFE MOMENT", 22, Color("f0dfcd"))
 			_button(col, "resume", "RESUME GAME", "resume")
 			_button(col, "save", "SAVE WORLD  •  SLOT 1", "save")
 			_button(col, "map", "CITY MAP / DISTRICTS", "map")
 			_button(col, "journal", "JOURNAL / OBJECTIVES", "journal")
+			_button(col, "phone", "SMARTPHONE", "phone", is_instance_valid(_world) and bool(_world.call("phone_available")))
 			_button(col, "load", "LOAD SAVED WORLD", "load", _has_save)
 			_button(col, "new", "NEW WORLD / NEW SEED", "new")
 			_button(col, "settings", "SETTINGS", "settings")
@@ -615,6 +648,64 @@ func _wire_focus() -> void:
 		item.focus_neighbor_bottom = item.get_path_to(next)
 		item.focus_previous = item.get_path_to(prev)
 		item.focus_next = item.get_path_to(next)
+	if screen == "phone" and _phone_app.is_empty() and _focus_order.size() == Phone.APPS.size()+1:
+		var count: int = Phone.APPS.size()
+		for i in range(count):
+			var item := _focus_order[i]
+			item.focus_neighbor_left = item.get_path_to(_focus_order[i-1] if i%2 == 1 else item)
+			item.focus_neighbor_right = item.get_path_to(_focus_order[i+1] if i%2 == 0 and i+1<count else item)
+			item.focus_neighbor_top = item.get_path_to(_focus_order[i-2] if i>=2 else _focus_order[count])
+			item.focus_neighbor_bottom = item.get_path_to(_focus_order[i+2] if i+2<count else _focus_order[count])
+		_focus_order[count].focus_neighbor_top = _focus_order[count].get_path_to(_focus_order[count-1])
+		_focus_order[count].focus_neighbor_bottom = _focus_order[count].get_path_to(_focus_order[0])
+
+func _render_phone(col: VBoxContainer) -> void:
+	if _phone_app.is_empty():
+		_label(col, "Your city, connected.", 18, Ui.MUTED)
+		var apps := GridContainer.new()
+		apps.columns = 2
+		apps.add_theme_constant_override("h_separation",10)
+		apps.add_theme_constant_override("v_separation",10)
+		col.add_child(apps)
+		for entry in Phone.APPS:
+			var id: String = entry["id"]
+			var app_button := Button.new()
+			app_button.name = "Menu_phone_app_" + id
+			app_button.text = str(entry["name"])
+			app_button.icon = Phone.ICONS[id]
+			app_button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			app_button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+			app_button.expand_icon = true
+			app_button.add_theme_constant_override("icon_max_width",42)
+			app_button.custom_minimum_size = Vector2(0,100)
+			app_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			app_button.add_theme_font_size_override("font_size",20)
+			app_button.add_theme_color_override("font_color",Color(entry["color"]))
+			var tile := Ui.button_style(Color("1b2934"),Color("344752"))
+			tile.set_corner_radius_all(12)
+			app_button.add_theme_stylebox_override("normal",tile)
+			app_button.pressed.connect(_choice.bind("phone_app_"+id))
+			apps.add_child(app_button)
+			_buttons["phone_app_"+id] = app_button
+			_focus_order.append(app_button)
+			if _first_focus == null:
+				_first_focus = app_button
+		_button(col, "phone_back", "Put phone away" if not _phone_from_pause else "Back to pause", "phone_back")
+		return
+	var entry: Dictionary = Phone.app(_phone_app)
+	var view: Dictionary = Phone.view(_phone_app,_phone_data)
+	_title(col,str(entry["name"]),28,Color(entry["color"]))
+	_label(col,str(view["subtitle"]),16,Ui.MUTED)
+	_divider(col)
+	for row in view["rows"]:
+		_label(col,str(row["label"]),15,Ui.AMBER)
+		_label(col,str(row["value"]),20,Ui.TEXT)
+		if row.has("action"):
+			_button(col,str(row["action"]),str(row["action_label"]),str(row["action"]))
+		_divider(col)
+	for item in view["actions"]:
+		_button(col,str(item["action"]),str(item["label"]),str(item["action"]))
+	_button(col,"phone_back","Back to apps","phone_back")
 
 func _title(parent: VBoxContainer, value: String, font_size: int, tint: Color) -> void:
 	_label(parent, value, font_size, tint, true)
@@ -700,7 +791,20 @@ func _choice(action: String) -> void:
 	if is_instance_valid(_ui_click):
 		_ui_click.volume_db = -80.0 if float(settings.get("sfx_volume", 0.75)) <= 0.0 else linear_to_db(float(settings.get("sfx_volume", 0.75))) - 11.0
 		_ui_click.play()
+	if action.begins_with("phone_app_") and screen == "phone":
+		var id := action.trim_prefix("phone_app_")
+		if not Phone.app(id).is_empty():
+			_phone_app = id
+			_render()
+		return
+	if action.begins_with("phone_route_") and screen == "phone":
+		action_requested.emit(action)
+		return
 	match action:
+		"phone_back":
+			_phone_back()
+		"phone":
+			action_requested.emit("phone")
 		"play":
 			if screen == "title" and not _has_save:
 				action_requested.emit("begin_opening")

@@ -132,6 +132,8 @@ jobs:
           timeout 75s godot --headless --path . --script res://tests/starter_garage_smoke.gd 2>&1 | tee /tmp/nightgrid-garage.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-garage.log; then exit 1; fi
           grep -q "GARAGE_SMOKE PASS:" /tmp/nightgrid-garage.log
+      - name: Validate Morrow OS read-only app projections
+        run: timeout 30s godot --headless --path . --script res://tests/morrow_phone_core_smoke.gd
       - name: Validate real vending purchases, stamina and save migration
         timeout-minutes: 2
         run: |
