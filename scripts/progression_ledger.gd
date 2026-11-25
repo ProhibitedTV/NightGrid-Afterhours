@@ -7,12 +7,14 @@ const MAX_RECEIPTS = 4096
 const MAX_ID_LENGTH = 96
 const RoadCars = preload("res://scripts/road_car_catalog.gd")
 const StarterHome = preload("res://scripts/starter_home.gd")
+const Wardrobe = preload("res://scripts/wardrobe_catalog.gd")
 
 var balance: int = 0
 var _receipts: Dictionary = {}
 var _owned_vehicles: Dictionary = {}
 var home_supplies: int = 0
 var home_storage_expanded := false
+var outfit_id := Wardrobe.DEFAULT
 
 static func valid_cash(value: Variant) -> bool:
 	if not (value is int or value is float):
@@ -101,6 +103,12 @@ func grant_starter_vehicle() -> bool:
 	_owned_vehicles[id] = true
 	return true
 
+func select_outfit(id: String) -> bool:
+	if not owns_home() or not Wardrobe.valid_id(id):
+		return false
+	outfit_id = id
+	return true
+
 func home_capacity() -> int:
 	return StarterHome.EXPANDED_STORAGE if home_storage_expanded else StarterHome.MAX_STORAGE
 
@@ -128,7 +136,7 @@ func withdraw_supply(carried: int) -> int:
 func snapshot() -> Dictionary:
 	var ids: Array = _receipts.keys()
 	ids.sort()
-	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded}
+	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "outfit_id":outfit_id}
 
 static func valid_snapshot(value: Variant) -> bool:
 	if not value is Dictionary:
@@ -145,6 +153,9 @@ static func valid_snapshot(value: Variant) -> bool:
 		if not valid_id(id) or seen.has(id):
 			return false
 		seen[id] = true
+	var outfit: Variant = data.get("outfit_id",Wardrobe.DEFAULT)
+	if not Wardrobe.valid_id(outfit) or (outfit != Wardrobe.DEFAULT and not seen.has(StarterHome.ACCESS_RECEIPT)):
+		return false
 	var expanded: Variant = data.get("home_storage_expanded", false)
 	if not expanded is bool or (expanded and not seen.has(StarterHome.ACCESS_RECEIPT)):
 		return false
@@ -178,4 +189,5 @@ func restore(amount: Variant, data: Variant) -> bool:
 	_owned_vehicles = titles
 	home_supplies = int(data.get("home_supplies",0))
 	home_storage_expanded = data.get("home_storage_expanded",false)
+	outfit_id = data.get("outfit_id",Wardrobe.DEFAULT)
 	return true

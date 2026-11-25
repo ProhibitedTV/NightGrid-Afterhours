@@ -67,6 +67,8 @@ const StoryMission = preload("res://scripts/story_mission.gd")
 const StarterHome = preload("res://scripts/starter_home.gd")
 var _home_panel := false
 var _storage_upgrade_quote := false
+var _wardrobe_panel := false
+const Wardrobe = preload("res://scripts/wardrobe_catalog.gd")
 const StarterGarage = preload("res://scripts/starter_garage.gd")
 var _garage_panel := false
 # Transient quote; never serialized, never charges on selection.
@@ -465,6 +467,7 @@ func _journal_context() -> Dictionary:
 		"courier_can_restart": carrying,
 		"story_objective": story_mission.journal(),
 		"conditioning": courier_mission.conditioning_text(),
+		"outfit": "OUTFIT: " + str(Wardrobe.ITEMS[progression.outfit_id]["name"]),
 		"story_can_navigate": story_mission.status != "complete",
 		"story_can_abandon": story_mission.status == "active",
 		"venue_job": _venue_job_text(),
@@ -1814,6 +1817,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 	if not progression.restore(data.get("cash", 0), data.get("progression", {"version": ProgressionLedger.VERSION, "receipts": []})):
 		push_error("Invalid progression snapshot")
 		return
+	player.get_node("Visual").call("set_outfit",progression.outfit_id)
 	_cinder_cockpit = false
 	_cockpit_look = Vector2.ZERO
 	# Geometry is already reconstructed from the saved immutable seed.
@@ -2094,12 +2098,16 @@ func _toggle_interaction() -> void:
 					_notify("Rested at home. Health and stamina restored.")
 			"save":
 				_save_game()
+			"wardrobe":
+				_wardrobe_panel = true
+				_show_venue_dialogue()
+				_update_venue_panel()
 			"storage":
 				_home_panel = true
 				_show_venue_dialogue()
 				_update_venue_panel()
 			_:
-				_notify("At home: approach the bed, desk or storage cabinet.")
+				_notify("At home: approach the bed, desk, wardrobe or storage cabinet.")
 		return
 	if is_instance_valid(physical_lot) and not str(physical_lot.get("physical_venue_id")).is_empty():
 		if physical_lot.call("service_reachable",player.global_position):
@@ -2552,6 +2560,7 @@ func _close_venue() -> void:
 	_sale_offer_id = ""
 	_home_panel = false
 	_storage_upgrade_quote = false
+	_wardrobe_panel = false
 	_garage_panel = false
 	_vending_machine = null
 	for button in [venue_service_button,venue_job_button,venue_talk_button]:
@@ -2568,6 +2577,15 @@ func _close_venue() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _update_venue_panel() -> void:
+	if _wardrobe_panel:
+		venue_label.text = "LANTERN COURT / WARDROBE\nCurrent: %s\nThree included garment colorways." % Wardrobe.ITEMS[progression.outfit_id]["name"]
+		var buttons := [venue_service_button,venue_job_button,venue_talk_button]
+		for i in Wardrobe.IDS.size():
+			var id: String = Wardrobe.IDS[i]
+			buttons[i].show()
+			buttons[i].text = "%d  •  %s" % [i+1,Wardrobe.ITEMS[id]["name"]]
+			buttons[i].disabled = id == progression.outfit_id
+		return
 	if _garage_panel:
 		venue_label.text = "LANTERN GARAGE / RECOVERY\nDrive into either marked bay and leave your car there. Recovery $75; damage retained."
 		var buttons := [venue_service_button,venue_job_button]
@@ -2715,6 +2733,19 @@ func _mara_context() -> Dictionary:
 	}
 
 func _venue_action(option: int) -> void:
+	if _wardrobe_panel:
+		var lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+		if not venue_panel.visible or not is_instance_valid(lot) or lot.call("home_action",player.global_position) != "wardrobe" or not progression.owns_home() or current_car != null or current_transit != null:
+			_close_venue()
+			return
+		if option >= 1 and option <= Wardrobe.IDS.size():
+			var id: String = Wardrobe.IDS[option-1]
+			if player.get_node("Visual").call("set_outfit",id) and progression.select_outfit(id):
+				_notify("Outfit: " + str(Wardrobe.ITEMS[id]["name"]))
+			else:
+				_notify("Outfit unavailable.")
+		_update_venue_panel()
+		return
 	if _garage_panel:
 		var garage: Node3D = city_details.call("starter_garage",player.global_position)
 		if not venue_panel.visible or not is_instance_valid(garage) or not garage.call("desk_reachable",player.global_position) or not progression.owns_home():
