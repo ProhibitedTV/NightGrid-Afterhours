@@ -354,6 +354,37 @@ var _band_members: Array[String] = []
 const BAND_REHEARSALS_REQUIRED = 2
 const BAND_DEBUT_RECEIPT = "music:blue_hour_debut"
 const BAND_DEBUT_PAY = 240
+const BAND_ENCORE_PAY = 120
+const BAND_ENCORES_REQUIRED = 2
+const BAND_SHOWCASE_PAY = 480
+const BAND_SHOWCASE_RECEIPT = "music:static_room_showcase"
+
+func band_encore_available()->bool:
+	return has_receipt(BAND_DEBUT_RECEIPT) and street_activity_runs("band_encore")<BAND_ENCORES_REQUIRED
+
+func settle_band_encore(sequence:int)->bool:
+	if not band_encore_available() or balance>MAX_CASH-BAND_ENCORE_PAY:
+		return false
+	if not _street_cred.settle_run("band_encore",sequence):
+		return false
+	balance+=BAND_ENCORE_PAY
+	return true
+
+func band_showcase_available()->bool:
+	return has_receipt(BAND_DEBUT_RECEIPT) and street_activity_runs("band_encore")==BAND_ENCORES_REQUIRED and not has_receipt(BAND_SHOWCASE_RECEIPT)
+
+func settle_band_showcase()->bool:
+	return band_showcase_available() and credit_once(BAND_SHOWCASE_RECEIPT,BAND_SHOWCASE_PAY)
+
+func band_booking_summary()->String:
+	if has_receipt(BAND_SHOWCASE_RECEIPT):
+		return "STATIC ROOM / Showcase complete"
+	if band_showcase_available():
+		return "STATIC ROOM / Showcase available • $480"
+	if has_receipt(BAND_DEBUT_RECEIPT):
+		return "BLUE HOUR / Encore bookings %d/%d • $120 each"%[street_activity_runs("band_encore"),BAND_ENCORES_REQUIRED]
+	return "BLUE HOUR / Trio debut available • $240"
+
 
 func band_debut_available()->bool:
 	return _band_members.size()==2 and band_rehearsals==BAND_REHEARSALS_REQUIRED and has_receipt("venue:soundcheck_pass") and not has_receipt(BAND_DEBUT_RECEIPT)
@@ -383,7 +414,7 @@ func recruit_band_member(id:String)->bool:
 
 func band_summary()->String:
 	if _band_members.size()==2:
-		return "UNSIGNED TRIO / Rhea Vale: bass / Milo Static: synth\n"+("REHEARSE AT COPPER CUP / %d of %d"%[band_rehearsals,BAND_REHEARSALS_REQUIRED] if band_rehearsal_available() else ("BLUE HOUR / Trio debut complete" if has_receipt(BAND_DEBUT_RECEIPT) else "BLUE HOUR / Trio debut available • $240"))
+		return "UNSIGNED TRIO / Rhea Vale: bass / Milo Static: synth\n"+("REHEARSE AT COPPER CUP / %d of %d"%[band_rehearsals,BAND_REHEARSALS_REQUIRED] if band_rehearsal_available() else band_booking_summary())
 	if not owned_set_unlocked() or street_activity_runs("live_gig")==0:
 		return "BAND / Complete personal sampler practice and a Blue Hour opening set to meet collaborators."
 	var names:Array[String]=[]
@@ -447,6 +478,9 @@ static func valid_snapshot(value: Variant) -> bool:
 	if not valid_cash(rehearsals) or int(rehearsals)>BAND_REHEARSALS_REQUIRED or (int(rehearsals)>0 and roster_seen.size()!=BAND_MEMBERS.size()):
 		return false
 	if seen.has(BAND_DEBUT_RECEIPT) and (int(rehearsals)!=BAND_REHEARSALS_REQUIRED or roster_seen.size()!=BAND_MEMBERS.size()):
+		return false
+	var encores:int=int(data.get("street_activity_runs",{}).get("band_encore",0))
+	if encores>BAND_ENCORES_REQUIRED or (encores>0 and not seen.has(BAND_DEBUT_RECEIPT)) or (seen.has(BAND_SHOWCASE_RECEIPT) and (encores!=BAND_ENCORES_REQUIRED or not seen.has(BAND_DEBUT_RECEIPT))):
 		return false
 	var cal:Variant=data.get("cal_quest",0)
 	if not valid_cash(cal) or int(cal)>3 or (int(cal)==3)!=seen.has(CAL_RECEIPT):

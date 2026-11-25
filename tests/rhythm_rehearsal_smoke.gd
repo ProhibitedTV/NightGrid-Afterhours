@@ -177,5 +177,40 @@ func _initialize()->void:
 	if Ledger.valid_snapshot(debut_save):
 		quit(1)
 		return
+	if not band.band_encore_available() or band.band_showcase_available() or band.settle_band_encore(2):
+		quit(1)
+		return
+	for booking in [1,2]:
+		rhythm.start(booking,"band_encore")
+		if rhythm.pattern.size()!=20 or rhythm.required_hits!=17:
+			quit(1)
+			return
+		for lane in rhythm.pattern:
+			rhythm.advance(rhythm.target_time()-rhythm.elapsed)
+			rhythm.strike(lane)
+		if not rhythm.claim() or rhythm.claim() or not band.settle_band_encore(booking) or band.settle_band_encore(booking):
+			quit(1)
+			return
+	if band.band_encore_available() or not band.band_showcase_available() or band.balance!=before+480 or band.street_cred()!=cred+54:
+		quit(1)
+		return
+	rhythm.start(1,"band_showcase")
+	if rhythm.pattern.size()!=32 or rhythm.required_hits!=27:
+		quit(1)
+		return
+	for lane in rhythm.pattern:
+		rhythm.advance(rhythm.target_time()-rhythm.elapsed)
+		rhythm.strike(lane)
+	if not rhythm.claim() or rhythm.claim() or not band.settle_band_showcase() or band.settle_band_showcase() or band.balance!=before+960 or band.street_cred()!=cred+99:
+		quit(1)
+		return
+	var show_save:=band.snapshot()
+	if not band_copy.restore(band.balance,JSON.parse_string(JSON.stringify(show_save))) or band_copy.band_showcase_available():
+		quit(1)
+		return
+	show_save["street_activity_runs"]["band_encore"]=1
+	if Ledger.valid_snapshot(show_save):
+		quit(1)
+		return
 	print("RHYTHM_REHEARSAL PASS: timing, cancellation, once-only claims, sequence and atomic payout")
 	quit(0)

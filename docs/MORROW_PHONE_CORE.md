@@ -22,3 +22,6 @@ The recruited trio rehearses at Copper Cup via its existing music desk. Two dist
 
 ## First paid trio booking
 After recruiting both collaborators and passing two rehearsals, the Blue Hour counter offers the one-time $240 trio debut. A distinct 24-beat pattern requires 20 correct hits at 0.65-second spacing and a 0.18-second hit window. A successful rhythm claim at the reachable open venue settles exactly one payout and 30 Street Cred via the existing receipt ledger. A full wallet rejects settlement without consuming the booking. Solo opening sets return after debut; encore/showcase and merch are not yet implemented. The pads remain sampler cues, not a full mixed band performance or animated stage.
+
+## Encore and showcase bookings
+After the debut, two different Blue Hour encore arrangements (20 beats, 17 correct, $120 and 12 Street Cred each) advance the trio to a one-time Static Room showcase (32 beats, 27 correct, $480 and 45 Street Cred). The sequence is bounded, venue-gated and uses authoritative ledger receipts/run counts. Solo Blue Hour sets return after both encores, rather than replacing solo play indefinitely. Save validation rejects out-of-order completion, and cash overflow does not consume a booking. These are rhythm challenges using existing sampler pads; full ensemble audio and animated stage performances remain future work.

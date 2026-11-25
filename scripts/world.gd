@@ -534,6 +534,18 @@ func _on_menu_action(action: String) -> void:
 					_notify("BUSKING / SET COMPLETE +$8 • +4 STREET CRED")
 				else:
 					_notify("BUSKING / Set not settled.")
+			elif site=="band_encore:blue_hour":
+				var sequence:int=game_menu.call("consume_band_booking","band_encore")
+				if sequence>0 and _blue_hour_set_reachable() and progression.settle_band_encore(sequence):
+					_notify("BLUE HOUR / ENCORE +$120 • +12 STREET CRED")
+				else:
+					_notify("ENCORE / Not settled. Retry the booking.")
+			elif site=="band_showcase:static_room":
+				var sequence:int=game_menu.call("consume_band_booking","band_showcase")
+				if sequence==1 and _band_contact_reachable("static_room") and progression.settle_band_showcase():
+					_notify("STATIC ROOM / SHOWCASE +$480 • +45 STREET CRED")
+				else:
+					_notify("SHOWCASE / Not settled. Retry the booking.")
 			elif site=="band_debut:blue_hour":
 				var sequence:int=game_menu.call("consume_band_debut")
 				if sequence==1 and _blue_hour_set_reachable() and progression.settle_band_debut():
@@ -3986,6 +3998,12 @@ func _update_venue_panel() -> void:
 
 		if music_set and progression.band_debut_available():
 			venue_talk_button.text="3 / Y  •  TRIO DEBUT / $240"
+		elif music_set and progression.band_encore_available():
+			venue_talk_button.text="3 / Y  •  TRIO ENCORE / $120"
+		if venue_selected_id=="static_room" and progression.band_showcase_available():
+			venue_talk_button.show()
+			venue_talk_button.disabled=not _band_contact_reachable("static_room")
+			venue_talk_button.text="3 / Y  •  SHOWCASE / $480"
 		if recruit:
 			venue_talk_button.disabled=false
 			venue_talk_button.text="3 / Y  •  INVITE MILO STATIC"
@@ -4177,6 +4195,11 @@ func _venue_action(option: int) -> void:
 		return
 	# Dialogue is no-cost and remains accessible even near closing time.
 	if option == 3:
+		if venue_selected_id=="static_room" and _band_contact_reachable("static_room") and progression.band_showcase_available():
+			_close_venue()
+			_music_session_site="band_showcase:static_room"
+			game_menu.call("open_band_booking",1,"band_showcase")
+			return
 		if venue_selected_id=="dock_nine" and _band_contact_reachable("dock_nine") and progression.recruit_band_member("milo"):
 			_notify("MILO STATIC / "+str(ProgressionLedger.BAND_MEMBERS["milo"]["line"]))
 			_update_venue_panel()
@@ -4198,6 +4221,12 @@ func _venue_action(option: int) -> void:
 				_close_venue()
 				_music_session_site="band_debut:blue_hour"
 				game_menu.call("open_band_debut")
+				return
+			if progression.band_encore_available():
+				var encore_sequence:=progression.street_activity_runs("band_encore")+1
+				_close_venue()
+				_music_session_site="band_encore:blue_hour"
+				game_menu.call("open_band_booking",encore_sequence,"band_encore")
 				return
 			var sequence:=progression.street_activity_runs("live_gig")+1
 			_close_venue()
