@@ -144,6 +144,9 @@ func step(delta: float, signals: Node = null, hour: float = -1.0) -> void:
 		var arrival: String = lease["arrival"]
 		lease["intent"] = Routines.activity(lease["routine"],hour)
 		if remaining<=0.06:
+			# Reaching the safe end terminates retreat before ordinary reversal.
+			if float(lease["retreat"])>0.0:
+				lease["retreat"]=0.0
 			heading = -heading
 			lease["heading"] = heading
 			target = a if toward_end else b
@@ -235,7 +238,7 @@ func react_to_incident(space: PhysicsDirectSpaceState3D, at: Vector3, radius: fl
 		var lease: Dictionary = _leases[id]
 		var body := _slots[int(lease["slot"])]
 		var eye := body.global_position + Vector3.UP * 1.6
-		if eye.distance_squared_to(at) > radius * radius or (float(lease["alert_cooldown"])>0.0 and not urgent):
+		if eye.distance_squared_to(at) > radius * radius or (float(lease["alert_cooldown"])>0.0 and (not urgent or float(lease["retreat"])>0.0)):
 			continue
 		var exclude := ignored.duplicate()
 		exclude.append(body.get_rid())
