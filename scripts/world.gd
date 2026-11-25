@@ -3758,7 +3758,7 @@ func _fire_weapon() -> bool:
 	var target: Vector3 = camera_hit.get("position", view_end)
 	var origin := player.global_position + Vector3.UP * 0.55
 	if is_instance_valid(pedestrians):
-		pedestrians.call("react_to_incident", origin, 22.0, ignore)
+		pedestrians.call("react_to_incident", origin, 22.0, ignore, true)
 	var direction := origin.direction_to(target)
 	var endpoint := origin + direction * minf(origin.distance_to(target) + 0.05, float(spec["reach"]))
 	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(origin, endpoint, 1, ignore))
