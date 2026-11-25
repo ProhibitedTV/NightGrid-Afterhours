@@ -505,6 +505,31 @@ func _verify() -> void:
 		if int(office.get("_active_floor"))!=level or absf(office.to_local(player.global_position).y-(level*3.65+1.15))>.01:
 			_fail("Lift travels to actual upper floor elevations")
 			return
+		if level<=4:
+			var lift_arrival:Vector3=player.global_position
+			var before_stage:int=menu.get("_opening_stage")
+			player.global_position=office.to_global(Vector3(-6,level*3.65+1.15,-7.25))
+			var interview:Dictionary=office.call("interview_at",player.global_position,-2)
+			if interview.get("id","")!="worker_%d_0" % level or (interview["topics"] as Array).size()!=2:
+				_fail("Each workfloor has a reachable named interview before the main errand")
+				return
+			var later:Dictionary=office.call("interview_at",player.global_position,2)
+			if later["topics"][0]["reply"]==interview["topics"][0]["reply"]:
+				_fail("Interview responses should change with story stage")
+				return
+			world.call("_opening_interact")
+			if menu.get("screen")!="staff_interview" or not menu.call("get_buttons").has("interview_0"):
+				_fail("Physical employee interaction opens topic choices")
+				return
+			menu.call("_choice","interview_0")
+			if not menu.call("get_buttons").has("interview_back"):
+				_fail("Employee reply and return option missing")
+				return
+			menu.call("_choice","interview_leave")
+			if menu.call("is_open") or int(menu.get("_opening_stage"))!=before_stage or int(office.call("objective_stage",0))!=-2:
+				_fail("Optional interviews cannot advance the mission or strand gameplay")
+				return
+			player.global_position=lift_arrival
 	var ambient_count:=0
 	for index in range(1,5):
 		var floor_people:Node3D=office.get_node("Workfloor%d/DepartmentStaff" % index)
