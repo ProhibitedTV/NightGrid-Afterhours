@@ -25,6 +25,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Verify structural validator regression tests
+        run: python -m unittest discover -s tools/wardrobe -p 'test_*.py'
       - name: Generate and validate fitted combinations offline
         run: |
           python tools/wardrobe/author.py build --out assets/models/nightgrid/wardrobe_candidates
