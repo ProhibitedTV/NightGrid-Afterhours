@@ -460,6 +460,20 @@ func _render() -> void:
 				if bool(_journal_data.get("cal_can_navigate",false)):
 					_button(col,"cal_waypoint","SET COMPATIBILITY PATCH WAYPOINT","cal_waypoint")
 			_divider(col)
+			_title(col,"REPUTATION / STREET CRED",18,Ui.AMBER)
+			_label(col,str(_journal_data.get("street_cred_summary","STREET CRED 0 / UNKNOWN")),16,Ui.ACCENT)
+			var cred:Dictionary=_journal_data.get("street_cred",{})
+			if int(cred.get("next",0))>int(cred.get("floor",0)):
+				var bar:=ProgressBar.new()
+				bar.min_value=float(cred.get("floor",0))
+				bar.max_value=float(cred["next"])
+				bar.value=float(cred.get("points",0))
+				bar.show_percentage=false
+				bar.custom_minimum_size=Vector2(0,12)
+				col.add_child(bar)
+			for source in _journal_data.get("street_cred_sources",[]):
+				_label(col,"%s  /  +%d earned"%[str(source["name"]),int(source["points"])],14,Ui.MUTED)
+			_divider(col)
 			_title(col, "INVENTORY / STATUS", 18, Color("f0d1a0"))
 			_label(col, str(_journal_data.get("weapons", "No equipment data")), 16, Ui.ACCENT)
 			_label(col, str(_journal_data.get("owned_vehicles", "VEHICLE TITLES: None")), 16, Color("c4d6da"))

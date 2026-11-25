@@ -632,6 +632,9 @@ func _journal_context() -> Dictionary:
 		"story_can_abandon": story_mission.status == "active",
 		"venue_job": _venue_job_text(),
 		"cal_quest":_cal_objective(),
+		"street_cred":progression.street_cred_rank(),
+		"street_cred_summary":progression.street_cred_summary(),
+		"street_cred_sources":progression.street_cred_sources(),
 		"cal_can_navigate":_cal_target().is_finite(),
 		"civic_job": _civic_job_text(),
 		"cash": cash, "health": health, "heat": heat,
@@ -3289,12 +3292,13 @@ func _venue_action(option: int) -> void:
 				_notify("Side job already paid.")
 				_update_venue_panel()
 				return
+			var previous_cred:=progression.street_cred()
 			if not progression.credit_once("venue:" + venue_job_active, int(contract["reward"])):
 				_notify("Unable to settle side job. Check wallet capacity.")
 				return
 			venue_job_completed.append(venue_job_active)
 			venue_job_active = ""
-			_notify("SIDE JOB COMPLETE +$%d: %s" % [int(contract["reward"]), str(contract["ending"])])
+			_notify("SIDE JOB COMPLETE +$%d • +%d STREET CRED: %s" % [int(contract["reward"]),progression.street_cred()-previous_cred,str(contract["ending"])])
 	_update_venue_panel()
 
 func _venue_job_text() -> String:
@@ -3600,6 +3604,8 @@ func _update_hud() -> void:
 		jobs.append(_civic_job_text())
 	if progression.cal_quest in [1,2]:
 		jobs.append(_cal_objective())
+	if progression.street_cred()>0:
+		jobs.append(progression.street_cred_summary())
 	hud_jobs.text = "\n".join(jobs)
 	hud_jobs.visible = not jobs.is_empty()
 	hud_notice.text = message
@@ -3972,15 +3978,17 @@ func _resolve_cal_action(allowed:bool)->void:
 		_notify("Cal is no longer within reach. Approach him again.")
 		return
 	var action:="accept" if pending["action"]=="cal_accept" else "complete"
+	var before_cred:=progression.street_cred()
 	var changed:=progression.accept_cal_quest() if action=="accept" else progression.complete_cal_quest()
 	if not changed:
 		_notify("Unable to advance Compatibility Patch.")
 		return
 	var cue:=StreetSatire.cal_quest_line(action)
+	var reward_notice:="COMPATIBILITY PATCH / Accepted" if action=="accept" else "COMPATIBILITY PATCH / Completed +$85 • +%d STREET CRED"%(progression.street_cred()-before_cred)
 	if not is_instance_valid(dialogue_director) or not pedestrians.call("play_cal_quest_line",dialogue_director,id,action,listener,player.get_rid()):
-		_notify(str(cue["text"]))
+		_notify(reward_notice+" / "+str(cue["text"]))
 	else:
-		_notify("COMPATIBILITY PATCH / Accepted" if action=="accept" else "COMPATIBILITY PATCH / Completed +$85")
+		_notify(reward_notice)
 	if action=="accept":
 		_track_cal_waypoint()
 	elif _cal_tracking:

@@ -328,6 +328,13 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/pedestrian_pool_smoke.gd 2>&1 | tee /tmp/nightgrid-pedestrian-pool.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-pedestrian-pool.log; then exit 1; fi
+      - name: Validate street reputation ranks, bounded activity counters and save migration
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 45s godot --headless --path . --script res://tests/street_cred_smoke.gd 2>&1 | tee /tmp/nightgrid-street-cred.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-street-cred.log; then exit 1; fi
+          grep -q "STREET_CRED PASS:" /tmp/nightgrid-street-cred.log
       - name: Validate Cal anniversary quest state and one-time settlement
         timeout-minutes: 2
         run: |
