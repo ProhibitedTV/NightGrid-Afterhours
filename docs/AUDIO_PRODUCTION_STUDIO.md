@@ -76,7 +76,7 @@ Replace placeholders with actual exact model revisions and printed candidate fin
 
 The Qwen Base reference-conditioned API does not take free-form acting direction in this implementation; the original direction remains in the take metadata and must be checked by listening. Vary seed and evaluate alternate backends for emotional performance. Identical model/reference hashes are a consistency aid, not proof of perceived voice identity. Do not claim production quality before real auditions.
 
-Published path: `assets/audio/voiced/<line-id>/take.wav`, with `take.json` and `review.json`. Library verification runs offline without models, checks existing audio against the current manifest and rejects mixed cast identities. An empty library is allowed while authoring; this is not yet a required-coverage or runtime playback gate. The six current lines are audition fixtures, not the complete canonical dialogue catalog; the integration pass must bind them to the actual story source before shipping. Only one writer should use the pipeline at a time. No automatic publication.
+Published path: `assets/audio/voiced/<line-id>/take.wav`, with `take.json`, `qc.json` and `review.json`. Library verification runs offline without models, checks existing audio against the current manifest and rejects mixed cast identities. An empty library is allowed while authoring; the chapter release coverage gate below must be run explicitly. The six current lines are audition fixtures, not the complete canonical dialogue catalog; the integration pass must bind them to the actual story source before shipping. Only one writer should use the pipeline at a time. No automatic publication.
 
 ## Godot speech channel (first integration)
 
@@ -91,3 +91,29 @@ Install `faster-whisper` in the isolated voice environment. Acquire a complete *
 Run qc.py for the exact candidate as shown above. Its qc.json records the recognized transcript, edit count/rate, PCM duration, peak, RMS and leading/trailing/overall quiet measurements. Any normalized transcript difference or excessive quiet flags the take for review. These thresholds are provisional triage, not perceptual quality or speaker-identity certification. Chinese script variations, proper names, numbers and intentional pauses may cause legitimate flags. Listen to the complete take; regenerate bad speech. If a flagged take is genuinely correct, production.py approve requires a specific listening-based --qc-override in addition to the existing reviewer, notes and rights checks.
 
 Production publication now requires qc.json and a review tied to its exact bytes. The four published files are take.wav, take.json, qc.json and review.json. Validation recomputes metrics and rejects stale or inconsistent records without loading ASR models. Re-running QC invalidates an earlier review if the report changes. Earlier production approvals without QC must be redone; no published production assets existed when this change was authored. Audition review/cast locking remains separate. Test transcripts and WAVs are synthetic fixtures, never game assets. Real Whisper inference and bilingual accuracy on the target workstation remain unverified.
+
+## Canonical Chapter One production batch
+
+`tools/voice/synaxis_chapter.json` is a production manifest for 27 spoken rows, six original characters, seven scene blocks and both Mandarin utterances with English captions. Its source is the pinned corporate branch revision 6225d774650b116aa92a4945f4b484f1902726cf. Written ticket text, automated notices and nonspoken HR labels are intentionally excluded; the catalog is not yet the full office, guard or city dialogue inventory. The audio branch still has the older prologue script, so the pinned snapshot can be validated here but **live source parity cannot be claimed until integration**.
+
+```sh
+python tools/voice/chapter.py validate
+python tools/voice/chapter.py status --json
+python tools/voice/studio.py list --manifest tools/voice/synaxis_chapter.json
+# Use --manifest tools/voice/synaxis_chapter.json with EVERY audition, lock,
+# generation, QC, approval and publish command in this production batch.
+# Example cast audition and reference lock:
+python tools/voice/studio.py generate --manifest tools/voice/synaxis_chapter.json --id synaxis.conference.01 --revision VOICEDESIGN_REV
+python tools/voice/studio.py approve --manifest tools/voice/synaxis_chapter.json --id synaxis.conference.01 --take AUDITION_HASH --reviewer "Creative director" --notes "Reviewed performance and rights" --rights-checked
+python tools/voice/production.py lock --manifest tools/voice/synaxis_chapter.json --id synaxis.conference.01 --take AUDITION_HASH
+# Render multiple lines in one process once the corresponding cast is locked:
+python tools/voice/production.py generate --manifest tools/voice/synaxis_chapter.json --id synaxis.conference.01 --id synaxis.conference_end.04 --revision BASE_REV
+# QC accepts paired repeated --id/--take in the same order; model reused:
+python tools/voice/qc.py --manifest tools/voice/synaxis_chapter.json --id synaxis.conference.01 --take TAKE_HASH_1 --id synaxis.conference_end.04 --take TAKE_HASH_2 --model-dir /path/to/whisper
+# Approve and publish each exact take separately, never automatically.
+python tools/voice/chapter.py status
+# On the integrated branch only:
+python tools/voice/chapter.py require-complete --source scripts/opening_story.gd
+```
+
+The status inventory distinguishes needs_cast, needs_render, needs_qc, flagged, needs_review, approved and published. It verifies each published asset, reports invalid candidate fingerprints, and never approves or publishes automatically. Cache reuse requires unchanged source, settings, audio and QC provenance. The explicit release command fails on changed mission text, missing clips or failed published verification. The ordinary authoring CI tolerates missing clips while production is underway. The current fixture audition manifest is not the publishable chapter inventory; use the chapter manifest consistently and do not publish fixture-only IDs into the production library. A future integrated release workflow must invoke the strict gate before declaring the chapter voiced. No actual neural clips, gameplay triggering, lip sync, or native proof is supplied by this catalog.
