@@ -168,6 +168,15 @@ func dress_home(id: String) -> void:
 	for z in [2.3,6.1,10.7,14.5]:
 		_visual("CeilingFixture",Vector3(0,ROOM_HEIGHT-.13,z),Vector3(2.0,.12,.42),_mat(Color("f1d5ad"),true))
 	_flush_interior_visuals()
+	var wardrobe_label := Label3D.new()
+	wardrobe_label.name = "WardrobeLabel"
+	wardrobe_label.text = "WARDROBE"
+	wardrobe_label.font_size = 28
+	wardrobe_label.pixel_size = .005
+	wardrobe_label.position = Vector3(3.55,1.7,5.52)
+	wardrobe_label.rotation.y = PI
+	wardrobe_label.modulate = Color("b4d7d4")
+	add_child(wardrobe_label)
 
 func home_action_point(action: String) -> Vector3:
 	match action:
@@ -175,6 +184,10 @@ func home_action_point(action: String) -> Vector3:
 			return to_global(Vector3(3.35,1.15,12.0))
 		"storage":
 			return to_global(Vector3(3.55,1.15,7.45))
+		"wardrobe":
+			return to_global(Vector3(3.55,1.15,4.55))
+		"exchange":
+			return to_global(Vector3(-2.1,1.15,5.0))
 		"save":
 			return to_global(Vector3(-2.1,1.15,2.8))
 	return Vector3.INF
@@ -182,7 +195,7 @@ func home_action_point(action: String) -> Vector3:
 func home_action(at: Vector3) -> String:
 	if home_id.is_empty() or not contains(at):
 		return ""
-	for action in ["rest","storage","save"]:
+	for action in ["rest","storage","wardrobe","exchange","save"]:
 		if at.distance_to(home_action_point(action)) < 1.1:
 			return action
 	return ""

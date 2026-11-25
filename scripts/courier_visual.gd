@@ -3,6 +3,10 @@ extends Node3D
 const Model = preload("res://assets/models/nightgrid/courier/morrow_courier.glb")
 const Materials = preload("res://scripts/material_library.gd")
 const ProductArt = preload("res://scripts/consumable_prop.gd")
+const Wardrobe = preload("res://scripts/wardrobe_catalog.gd")
+var outfit_id := Wardrobe.DEFAULT
+var _wardrobe_surfaces: Array[Dictionary] = []
+var _wardrobe_materials: Dictionary = {}
 const FOOT_OFFSET = -0.95
 const DRIVER_SEAT = Vector3(-0.52, -0.23, -0.43)
 const LOOPS = [&"idle", &"walk", &"run", &"walk_back", &"strafe_left", &"strafe_right",
@@ -30,6 +34,7 @@ const FOOD_ACTIONS = [&"purchase_item",&"drink_item",&"eat_item"]
 func _ready() -> void:
 	var courier := Model.instantiate()
 	add_child(courier)
+	_cache_wardrobe_surfaces(courier)
 	skeleton = courier.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
 	animations = courier.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
 	animations.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS
@@ -45,6 +50,46 @@ func _ready() -> void:
 	_product_hand = skeleton.get_node("RightHandEquipment")
 	_play(&"idle", 0.0)
 	set_physics_process(false)
+
+func _cache_wardrobe_surfaces(model: Node3D) -> void:
+	for child in model.find_children("*","MeshInstance3D",true,false):
+		var mesh := child as MeshInstance3D
+		if mesh.skin == null or mesh.mesh == null:
+			continue
+		for index in mesh.mesh.get_surface_count():
+			var material := mesh.mesh.surface_get_material(index) as StandardMaterial3D
+			if material == null:
+				continue
+			var slot := Wardrobe.garment_slot(material.resource_name)
+			if not slot.is_empty():
+				_wardrobe_surfaces.append({"mesh":mesh,"surface":index,"material":material,"slot":slot})
+
+func set_outfit(id: String) -> bool:
+	if not Wardrobe.valid_id(id) or _wardrobe_surfaces.is_empty():
+		return false
+	if id == outfit_id:
+		return true
+	# Cache only the two authored alternatives, and only for this character.
+	# Never change shared mesh/import materials or duplicate skinned geometry.
+	if id != Wardrobe.DEFAULT and not _wardrobe_materials.has(id):
+		var variants: Array[StandardMaterial3D] = []
+		for entry in _wardrobe_surfaces:
+			var original: StandardMaterial3D = entry["material"]
+			var variant := original.duplicate() as StandardMaterial3D
+			variant.albedo_color = original.albedo_color * Wardrobe.ITEMS[id][entry["slot"]]
+			variant.roughness = clampf(original.roughness * float(Wardrobe.ITEMS[id]["finish"]),.2,1.0)
+			variants.append(variant)
+		_wardrobe_materials[id] = variants
+	for index in _wardrobe_surfaces.size():
+		var entry: Dictionary = _wardrobe_surfaces[index]
+		var mesh: MeshInstance3D = entry["mesh"]
+		var override: Material = null if id == Wardrobe.DEFAULT else _wardrobe_materials[id][index]
+		mesh.set_surface_override_material(entry["surface"],override)
+	outfit_id = id
+	return true
+
+func wardrobe_surface_count() -> int:
+	return _wardrobe_surfaces.size()
 
 func _prepare_library() -> void:
 	for clip in LOOPS:

@@ -7,12 +7,17 @@ const MAX_RECEIPTS = 4096
 const MAX_ID_LENGTH = 96
 const RoadCars = preload("res://scripts/road_car_catalog.gd")
 const StarterHome = preload("res://scripts/starter_home.gd")
+const Wardrobe = preload("res://scripts/wardrobe_catalog.gd")
+const Economy = preload("res://scripts/economy.gd")
+var bitcoin_sats: int = 0
 
 var balance: int = 0
 var _receipts: Dictionary = {}
 var _owned_vehicles: Dictionary = {}
 var home_supplies: int = 0
 var home_storage_expanded := false
+var outfit_id := Wardrobe.DEFAULT
+var _purchased_outfits: Dictionary = {}
 
 static func valid_cash(value: Variant) -> bool:
 	if not (value is int or value is float):
@@ -101,6 +106,55 @@ func grant_starter_vehicle() -> bool:
 	_owned_vehicles[id] = true
 	return true
 
+func owns_outfit(id: String) -> bool:
+	return Wardrobe.valid_id(id) and (id == Wardrobe.DEFAULT or _purchased_outfits.has(id))
+
+func purchased_outfit_ids() -> Array:
+	var ids: Array = _purchased_outfits.keys()
+	ids.sort()
+	return ids
+
+func exchange_bitcoin(buy: bool) -> bool:
+	var gross := Economy.EXCHANGE_USD
+	var fee := Economy.EXCHANGE_FEE_USD
+	if buy:
+		var received := Economy.sats_for_usd(gross-fee)
+		if bitcoin_sats > Economy.MAX_SATS-received or not spend(gross):
+			return false
+		bitcoin_sats += received
+	else:
+		var paid := Economy.sats_for_usd(gross)
+		if bitcoin_sats < paid or not credit(gross-fee):
+			return false
+		bitcoin_sats -= paid
+	return true
+
+func can_pay(usd: int, tender: String) -> bool:
+	if usd <= 0:
+		return false
+	if tender == "USD":
+		return balance >= usd
+	return tender == "BTC" and bitcoin_sats >= Economy.sats_for_usd(usd)
+
+func buy_outfit(id: String, tender: String = "USD") -> bool:
+	if not owns_home() or not Wardrobe.valid_id(id) or owns_outfit(id):
+		return false
+	var price := Wardrobe.price(id)
+	if not can_pay(price,tender):
+		return false
+	if tender == "BTC":
+		bitcoin_sats -= Economy.sats_for_usd(price)
+	else:
+		balance -= price
+	_purchased_outfits[id] = true
+	return true
+
+func select_outfit(id: String) -> bool:
+	if not owns_home() or not owns_outfit(id):
+		return false
+	outfit_id = id
+	return true
+
 func home_capacity() -> int:
 	return StarterHome.EXPANDED_STORAGE if home_storage_expanded else StarterHome.MAX_STORAGE
 
@@ -128,7 +182,7 @@ func withdraw_supply(carried: int) -> int:
 func snapshot() -> Dictionary:
 	var ids: Array = _receipts.keys()
 	ids.sort()
-	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded}
+	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "bitcoin_sats":bitcoin_sats}
 
 static func valid_snapshot(value: Variant) -> bool:
 	if not value is Dictionary:
@@ -145,6 +199,22 @@ static func valid_snapshot(value: Variant) -> bool:
 		if not valid_id(id) or seen.has(id):
 			return false
 		seen[id] = true
+	var sats: Variant = data.get("bitcoin_sats",0)
+	if not (sats is int or sats is float) or not is_finite(float(sats)) or float(sats)<0 or float(sats)>Economy.MAX_SATS or floor(float(sats))!=float(sats):
+		return false
+	var purchased: Variant = data.get("purchased_outfits",[])
+	if not purchased is Array or purchased.size() > Wardrobe.IDS.size() or (not purchased.is_empty() and not seen.has(StarterHome.ACCESS_RECEIPT)):
+		return false
+	var closet: Dictionary = {}
+	for id in purchased:
+		if not Wardrobe.valid_id(id) or id == Wardrobe.DEFAULT or closet.has(id):
+			return false
+		closet[id] = true
+	var outfit: Variant = data.get("outfit_id",Wardrobe.DEFAULT)
+	if not Wardrobe.valid_id(outfit) or (outfit != Wardrobe.DEFAULT and not seen.has(StarterHome.ACCESS_RECEIPT)):
+		return false
+	if outfit != Wardrobe.DEFAULT and not closet.has(outfit):
+		return false
 	var expanded: Variant = data.get("home_storage_expanded", false)
 	if not expanded is bool or (expanded and not seen.has(StarterHome.ACCESS_RECEIPT)):
 		return false
@@ -178,4 +248,9 @@ func restore(amount: Variant, data: Variant) -> bool:
 	_owned_vehicles = titles
 	home_supplies = int(data.get("home_supplies",0))
 	home_storage_expanded = data.get("home_storage_expanded",false)
+	outfit_id = data.get("outfit_id",Wardrobe.DEFAULT)
+	bitcoin_sats = int(data.get("bitcoin_sats",0))
+	_purchased_outfits.clear()
+	for id in data.get("purchased_outfits",[]):
+		_purchased_outfits[id] = true
 	return true

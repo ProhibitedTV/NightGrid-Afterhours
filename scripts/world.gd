@@ -67,6 +67,13 @@ const StoryMission = preload("res://scripts/story_mission.gd")
 const StarterHome = preload("res://scripts/starter_home.gd")
 var _home_panel := false
 var _storage_upgrade_quote := false
+var _wardrobe_panel := false
+var _wardrobe_index := 0
+var _wardrobe_quote_id := ""
+var _wardrobe_tender := "USD"
+var _exchange_panel := false
+const Economy = preload("res://scripts/economy.gd")
+const Wardrobe = preload("res://scripts/wardrobe_catalog.gd")
 const StarterGarage = preload("res://scripts/starter_garage.gd")
 var _garage_panel := false
 # Transient quote; never serialized, never charges on selection.
@@ -465,6 +472,8 @@ func _journal_context() -> Dictionary:
 		"courier_can_restart": carrying,
 		"story_objective": story_mission.journal(),
 		"conditioning": courier_mission.conditioning_text(),
+		"outfit": "OUTFIT: %s / %s" % [Wardrobe.ITEMS[progression.outfit_id]["name"],Wardrobe.ITEMS[progression.outfit_id]["rarity"]],
+		"bitcoin_sats": progression.bitcoin_sats,
 		"story_can_navigate": story_mission.status != "complete",
 		"story_can_abandon": story_mission.status == "active",
 		"venue_job": _venue_job_text(),
@@ -1814,6 +1823,9 @@ func _apply_snapshot(data: Dictionary) -> void:
 	if not progression.restore(data.get("cash", 0), data.get("progression", {"version": ProgressionLedger.VERSION, "receipts": []})):
 		push_error("Invalid progression snapshot")
 		return
+	var saved_visual: Node3D = player.get("visual")
+	if is_instance_valid(saved_visual):
+		saved_visual.call("set_outfit",progression.outfit_id)
 	_cinder_cockpit = false
 	_cockpit_look = Vector2.ZERO
 	# Geometry is already reconstructed from the saved immutable seed.
@@ -2094,12 +2106,21 @@ func _toggle_interaction() -> void:
 					_notify("Rested at home. Health and stamina restored.")
 			"save":
 				_save_game()
+			"exchange":
+				_exchange_panel = true
+				_show_venue_dialogue()
+				_update_venue_panel()
+			"wardrobe":
+				_wardrobe_panel = true
+				_wardrobe_index = Wardrobe.IDS.find(progression.outfit_id)
+				_show_venue_dialogue()
+				_update_venue_panel()
 			"storage":
 				_home_panel = true
 				_show_venue_dialogue()
 				_update_venue_panel()
 			_:
-				_notify("At home: approach the bed, desk or storage cabinet.")
+				_notify("At home: approach the bed, desk, wardrobe or storage cabinet.")
 		return
 	if is_instance_valid(physical_lot) and not str(physical_lot.get("physical_venue_id")).is_empty():
 		if physical_lot.call("service_reachable",player.global_position):
@@ -2552,6 +2573,10 @@ func _close_venue() -> void:
 	_sale_offer_id = ""
 	_home_panel = false
 	_storage_upgrade_quote = false
+	_wardrobe_panel = false
+	_wardrobe_quote_id = ""
+	_wardrobe_tender = "USD"
+	_exchange_panel = false
 	_garage_panel = false
 	_vending_machine = null
 	for button in [venue_service_button,venue_job_button,venue_talk_button]:
@@ -2568,6 +2593,43 @@ func _close_venue() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _update_venue_panel() -> void:
+	if _exchange_panel:
+		venue_label.text = "MORROW EXCHANGE / HOME TERMINAL\nUSD $%d  |  BTC %d sats\n$100 buy: +39,200 sats\n40,000 sats sell: +$98\n2%% fee each trade; fictional fixed rate." % [cash,progression.bitcoin_sats]
+		venue_service_button.show()
+		venue_service_button.text = "1 / A  •  BUY BTC ($100)"
+		venue_service_button.disabled = cash < Economy.EXCHANGE_USD or progression.bitcoin_sats > Economy.MAX_SATS-Economy.sats_for_usd(Economy.EXCHANGE_USD-Economy.EXCHANGE_FEE_USD)
+		venue_job_button.show()
+		venue_job_button.text = "2 / X  •  SELL BTC (40,000 sats)"
+		venue_job_button.disabled = progression.bitcoin_sats < Economy.sats_for_usd(Economy.EXCHANGE_USD) or cash > ProgressionLedger.MAX_CASH-(Economy.EXCHANGE_USD-Economy.EXCHANGE_FEE_USD)
+		venue_talk_button.hide()
+		return
+	if _wardrobe_panel:
+		var id: String = _wardrobe_quote_id if not _wardrobe_quote_id.is_empty() else Wardrobe.IDS[_wardrobe_index]
+		var item: Dictionary = Wardrobe.ITEMS[id]
+		var price := Wardrobe.price(id)
+		venue_service_button.show()
+		venue_talk_button.show()
+		if not _wardrobe_quote_id.is_empty():
+			var cost := "$%d" % price if _wardrobe_tender == "USD" else "%d sats" % Economy.sats_for_usd(price)
+			venue_label.text = "CONFIRM CLOTHING PURCHASE\n%s / %s\nPay %s (%s)\nUSD $%d  |  BTC %d sats\nCosmetic only. Owned permanently." % [item["name"],item["rarity"],cost,_wardrobe_tender,cash,progression.bitcoin_sats]
+			venue_service_button.text = "1 / A  •  CANCEL"
+			venue_service_button.disabled = false
+			venue_job_button.show()
+			venue_job_button.text = "2 / X  •  SWITCH USD / BTC"
+			venue_job_button.disabled = false
+			venue_talk_button.text = "3 / Y  •  CONFIRM PURCHASE"
+			venue_talk_button.disabled = not progression.can_pay(price,_wardrobe_tender) or progression.owns_outfit(id)
+			return
+		var owned := progression.owns_outfit(id)
+		venue_label.text = "WARDROBE / %d of %d\n%s / %s\n%s  |  CASH $%d\nWearing: %s" % [_wardrobe_index+1,Wardrobe.IDS.size(),item["name"],item["rarity"],"OWNED" if owned else "$%d / %d sats" % [price,Economy.sats_for_usd(price)],cash,Wardrobe.ITEMS[progression.outfit_id]["name"]]
+		venue_service_button.text = "1 / A  •  PREVIOUS"
+		venue_service_button.disabled = _wardrobe_index == 0
+		venue_job_button.show()
+		venue_job_button.text = "2 / X  •  NEXT"
+		venue_job_button.disabled = _wardrobe_index == Wardrobe.IDS.size()-1
+		venue_talk_button.text = "3 / Y  •  EQUIP" if owned else "3 / Y  •  REVIEW PURCHASE"
+		venue_talk_button.disabled = id == progression.outfit_id or (not owned and not progression.can_pay(price,"USD") and not progression.can_pay(price,"BTC"))
+		return
 	if _garage_panel:
 		venue_label.text = "LANTERN GARAGE / RECOVERY\nDrive into either marked bay and leave your car there. Recovery $75; damage retained."
 		var buttons := [venue_service_button,venue_job_button]
@@ -2711,10 +2773,55 @@ func _mara_context() -> Dictionary:
 		"hour": float(day_night.get("hour")),
 		"health": health, "heat": heat,
 		"shift_notes": civic_intel.has("lantern_cup_shift_notes"),
-		"job": venue_job_active
+		"job": venue_job_active,
+		"outfit_tier": int(Wardrobe.ITEMS[progression.outfit_id]["tier"]) if story_mission.status == "complete" else 0
 	}
 
 func _venue_action(option: int) -> void:
+	if _exchange_panel:
+		var lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+		if not venue_panel.visible or not is_instance_valid(lot) or lot.call("home_action",player.global_position) != "exchange" or not progression.owns_home() or current_car != null or current_transit != null:
+			_close_venue()
+			return
+		if option in [1,2]:
+			if progression.exchange_bitcoin(option == 1):
+				_notify("Currency exchanged. 2% fee paid.")
+			else:
+				_notify("Exchange declined. No balances changed.")
+		_update_venue_panel()
+		return
+	if _wardrobe_panel:
+		var lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+		if not venue_panel.visible or not is_instance_valid(lot) or lot.call("home_action",player.global_position) != "wardrobe" or not progression.owns_home() or current_car != null or current_transit != null:
+			_close_venue()
+			return
+		var visual := player.get_node("Visual")
+		if not _wardrobe_quote_id.is_empty():
+			if option == 1:
+				_wardrobe_quote_id = ""
+			elif option == 2:
+				_wardrobe_tender = "BTC" if _wardrobe_tender == "USD" else "USD"
+			elif option == 3:
+				var id := _wardrobe_quote_id
+				_wardrobe_quote_id = ""
+				if int(visual.call("wardrobe_surface_count")) > 0 and progression.buy_outfit(id,_wardrobe_tender):
+					_notify("Purchased " + str(Wardrobe.ITEMS[id]["name"]) + ". Ready to equip.")
+				else:
+					_notify("Purchase unavailable. No payment taken.")
+		elif option == 1:
+			_wardrobe_index = maxi(0,_wardrobe_index-1)
+		elif option == 2:
+			_wardrobe_index = mini(Wardrobe.IDS.size()-1,_wardrobe_index+1)
+		elif option == 3:
+			var id: String = Wardrobe.IDS[_wardrobe_index]
+			if progression.owns_outfit(id):
+				if visual.call("set_outfit",id) and progression.select_outfit(id):
+					_notify("Outfit: " + str(Wardrobe.ITEMS[id]["name"]))
+			elif progression.can_pay(Wardrobe.price(id),"USD") or progression.can_pay(Wardrobe.price(id),"BTC"):
+				_wardrobe_tender = "USD" if progression.can_pay(Wardrobe.price(id),"USD") else "BTC"
+				_wardrobe_quote_id = id
+		_update_venue_panel()
+		return
 	if _garage_panel:
 		var garage: Node3D = city_details.call("starter_garage",player.global_position)
 		if not venue_panel.visible or not is_instance_valid(garage) or not garage.call("desk_reachable",player.global_position) or not progression.owns_home():

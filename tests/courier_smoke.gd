@@ -72,6 +72,13 @@ func _check_asset() -> void:
 			&"board_car", &"drive_car", &"stand_up"]:
 		_expect(library.has_animation(clip) and library.get_animation(clip).get_track_count() >= 35,
 			"Missing weighted animation tracks for " + str(clip))
+	var wardrobe_count: int = visual.call("wardrobe_surface_count")
+	_expect(wardrobe_count >= 2, "Actual imported jacket and pants must expose garment surfaces")
+	var old_mesh := model.mesh if model != null else null
+	var old_skin := model.skin if model != null else null
+	_expect(visual.call("set_outfit","tideline") and visual.get("outfit_id")=="tideline","Real weighted outfit changes")
+	_expect(model != null and model.mesh==old_mesh and model.skin==old_skin and visual.get("skeleton")==rig,"Colorway must preserve mesh, skin and rig")
+	_expect(visual.call("set_outfit","dispatch") and not visual.call("set_outfit","unknown"),"Restore original appearance and reject unknown colorway")
 	_expect(Engine.physics_ticks_per_second == 60, "Physics must stay at 60 Hz")
 
 func _eye_surface_depth(model: MeshInstance3D) -> float:
