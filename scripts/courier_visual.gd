@@ -10,6 +10,8 @@ const Wardrobe = preload("res://scripts/wardrobe_catalog.gd")
 var outfit_id := Wardrobe.DEFAULT
 var clothing_slots:Dictionary={}
 var _piece_materials:Dictionary={}
+const Accessories=preload("res://scripts/wardrobe_accessories.gd")
+var _accessories:Dictionary={}
 var _wardrobe_surfaces: Array[Dictionary] = []
 var _wardrobe_materials: Dictionary = {}
 var _corporate_mesh: MeshInstance3D
@@ -85,6 +87,14 @@ func set_look(id:String,slots:Dictionary) -> bool:
 		return false
 	if id==outfit_id and slots==clothing_slots:
 		return true
+	for slot in ["glasses","watch"]:
+		var item_id:String=str(slots.get(slot,""))
+		if not item_id.is_empty() and not _accessories.has(item_id):
+			var attachment:=Accessories.build(skeleton,item_id)
+			if attachment==null:
+				return false
+			attachment.hide()
+			_accessories[item_id]=attachment
 	if id!=Wardrobe.DEFAULT and not _wardrobe_materials.has(id):
 		var variants:Array[StandardMaterial3D]=[]
 		for entry in _wardrobe_surfaces:
@@ -110,6 +120,8 @@ func set_look(id:String,slots:Dictionary) -> bool:
 				_piece_materials[key]=variant
 			override=_piece_materials[key]
 		mesh.set_surface_override_material(entry["surface"],override)
+	for item_id in _accessories:
+		_accessories[item_id].visible=slots.get(Wardrobe.PIECES[item_id]["slot"],"")==item_id
 	outfit_id=id
 	clothing_slots=slots.duplicate()
 	return true
@@ -169,6 +181,8 @@ func set_corporate_attire(active: bool) -> bool:
 	target.skin=donor.skin
 	candidate.free()
 	corporate_attire=true
+	for item_id in _accessories:
+		_accessories[item_id].hide()
 	return true
 
 func wardrobe_surface_count() -> int:

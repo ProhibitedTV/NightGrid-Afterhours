@@ -2860,15 +2860,25 @@ func _close_venue() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _clothing_owned(id:String) -> bool:
+	if not Wardrobe.reset_slot(id).is_empty():
+		return true
 	return progression.owns_piece(id) if Wardrobe.piece_valid(id) else progression.owns_outfit(id)
 
 func _clothing_selected(id:String) -> bool:
+	var slot:=Wardrobe.reset_slot(id)
+	if not slot.is_empty():
+		return not progression.clothing_slots.has(slot)
 	if Wardrobe.piece_valid(id):
 		return progression.clothing_slots.get(Wardrobe.PIECES[id]["slot"],"")==id
 	return progression.outfit_id==id and progression.clothing_slots.is_empty()
 
 func _preview_clothing(id:String) -> bool:
 	var visual:Node3D=player.get_node("Visual")
+	var reset:=Wardrobe.reset_slot(id)
+	if not reset.is_empty():
+		var slots:Dictionary=progression.clothing_slots.duplicate()
+		slots.erase(reset)
+		return visual.call("set_look",progression.outfit_id,slots)
 	if Wardrobe.piece_valid(id):
 		var slots:Dictionary=progression.clothing_slots.duplicate()
 		slots[Wardrobe.PIECES[id]["slot"]]=id
@@ -2923,7 +2933,7 @@ func _update_venue_panel() -> void:
 		venue_job_button.show()
 		venue_job_button.text = "2 / X  •  NEXT"
 		venue_job_button.disabled = _wardrobe_index == Wardrobe.browse_ids().size()-1
-		venue_talk_button.text = "3 / Y  •  EQUIP" if owned else "3 / Y  •  REVIEW PURCHASE"
+		venue_talk_button.text = ("3 / Y  •  REMOVE / RESTORE" if not Wardrobe.reset_slot(id).is_empty() else "3 / Y  •  EQUIP") if owned else "3 / Y  •  REVIEW PURCHASE"
 		venue_talk_button.disabled = _clothing_selected(id) or (not owned and not progression.can_pay(price,"USD") and not progression.can_pay(price,"BTC"))
 		return
 	if _garage_panel:
@@ -3116,7 +3126,7 @@ func _venue_action(option: int) -> void:
 			elif option == 3:
 				var id := _wardrobe_quote_id
 				_wardrobe_quote_id = ""
-				if int(visual.call("wardrobe_surface_count"))>0 and (progression.buy_piece(id,_wardrobe_tender,retail_ok) if Wardrobe.piece_valid(id) else progression.buy_outfit(id,_wardrobe_tender,retail_ok)):
+				if _preview_clothing(id) and int(visual.call("wardrobe_surface_count"))>0 and (progression.buy_piece(id,_wardrobe_tender,retail_ok) if Wardrobe.piece_valid(id) else progression.buy_outfit(id,_wardrobe_tender,retail_ok)):
 					_notify("Purchased "+str(Wardrobe.listing(id)["name"])+". Ready to equip.")
 				else:
 					_notify("Purchase unavailable. No payment taken.")
@@ -3128,8 +3138,11 @@ func _venue_action(option: int) -> void:
 			var id:String=Wardrobe.browse_ids()[_wardrobe_index]
 			var price:=int(Wardrobe.listing(id)["price"])
 			if _clothing_owned(id):
-				if _preview_clothing(id) and (progression.select_piece(id,retail_ok) if Wardrobe.piece_valid(id) else progression.select_outfit(id,retail_ok)):
-					_notify("Equipped: "+str(Wardrobe.listing(id)["name"]))
+				if _preview_clothing(id):
+					var reset:=Wardrobe.reset_slot(id)
+					var changed:bool=progression.clear_piece(reset,retail_ok) if not reset.is_empty() else (progression.select_piece(id,retail_ok) if Wardrobe.piece_valid(id) else progression.select_outfit(id,retail_ok))
+					if changed:
+						_notify("Appearance: "+str(Wardrobe.listing(id)["name"]))
 			elif progression.can_pay(price,"USD") or progression.can_pay(price,"BTC"):
 				_wardrobe_tender="USD" if progression.can_pay(price,"USD") else "BTC"
 				_wardrobe_quote_id=id

@@ -186,6 +186,12 @@ func select_piece(id:String,retail:bool=false) -> bool:
 	clothing_slots[Wardrobe.PIECES[id]["slot"]]=id
 	return true
 
+func clear_piece(slot:String,retail:bool=false) -> bool:
+	if (not owns_home() and not retail) or slot not in Wardrobe.SLOTS:
+		return false
+	clothing_slots.erase(slot)
+	return true
+
 func owned_piece_ids() -> Array:
 	var ids:Array=_owned_pieces.keys()
 	ids.sort()

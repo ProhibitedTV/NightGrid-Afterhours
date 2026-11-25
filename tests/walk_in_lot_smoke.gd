@@ -382,6 +382,27 @@ func _verify() -> void:
 	world.call("_close_venue")
 	if not check(ledger.outfit_id=="tideline" and ledger.clothing_slots=={"jacket":"jacket_ash","pants":"pants_charcoal"} and world.get("cash")==100-catalog.piece_price("jacket_ash")-catalog.piece_price("pants_charcoal"),"independent paid pieces mix and persist"):
 		return
+	world.set("cash",200)
+	world.call("_toggle_interaction")
+	world.set("_wardrobe_index",catalog.browse_ids().find("glasses_night"))
+	world.call("_update_venue_panel")
+	var visual:Node3D=player.get_node("Visual")
+	if not check(visual.get("_accessories").has("glasses_night") and not ledger.owns_piece("glasses_night"),"live accessory preview is separate from ownership"):
+		return
+	world.call("_venue_action",3)
+	world.call("_venue_action",3)
+	world.call("_venue_action",3)
+	world.set("_wardrobe_index",catalog.browse_ids().find("watch_shift"))
+	world.call("_update_venue_panel")
+	world.call("_venue_action",3)
+	world.call("_venue_action",3)
+	world.call("_venue_action",3)
+	world.set("_wardrobe_index",catalog.browse_ids().find("reset_glasses"))
+	world.call("_update_venue_panel")
+	world.call("_venue_action",3)
+	world.call("_close_venue")
+	if not check(ledger.owns_piece("glasses_night") and not ledger.clothing_slots.has("glasses") and ledger.clothing_slots.get("watch")=="watch_shift" and ledger.clothing_slots.get("jacket")=="jacket_ash" and not visual.get("_accessories")["glasses_night"].visible and visual.get("_accessories")["watch_shift"].visible and world.get("cash")==200-catalog.piece_price("glasses_night")-catalog.piece_price("watch_shift"),"accessories removable without losing ownership or other slots"):
+		return
 	var retail_save:Dictionary=ledger.snapshot()
 	if not check(fresh.restore(world.get("cash"),retail_save) and fresh.outfit_id=="tideline" and fresh.clothing_slots==ledger.clothing_slots and not fresh.owns_home(),"pre-tenancy wardrobe save round trip"):
 		return

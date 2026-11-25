@@ -33,15 +33,20 @@ static func garment_slot(name: String) -> String:
 
 # Individual material-compatible pieces. Future mesh pieces use the same
 # stable slot/item identities, with a separate validated visual asset contract.
-const SLOTS=["jacket","pants"]
-const PIECE_IDS=["jacket_ash","jacket_oxide","jacket_midnight","pants_charcoal","pants_sand","pants_teal"]
+const SLOTS=["jacket","pants","glasses","watch"]
+const RESET_IDS=["reset_jacket","reset_pants","reset_glasses","reset_watch"]
+const PIECE_IDS=["jacket_ash","jacket_oxide","jacket_midnight","pants_charcoal","pants_sand","pants_teal","glasses_night","glasses_clear","watch_shift","watch_brass"]
 const PIECES={
 	"jacket_ash":{"name":"Ash work jacket","slot":"jacket","price":18,"tint":Color(.73,.77,.79),"finish":1.0},
 	"jacket_oxide":{"name":"Oxide street jacket","slot":"jacket","price":32,"tint":Color(1.0,.53,.38),"finish":.9},
 	"jacket_midnight":{"name":"Midnight jacket","slot":"jacket","price":65,"tint":Color(.43,.48,.68),"finish":.82},
 	"pants_charcoal":{"name":"Charcoal cargo trousers","slot":"pants","price":15,"tint":Color(.42,.45,.49),"finish":1.0},
 	"pants_sand":{"name":"Sand cargo trousers","slot":"pants","price":24,"tint":Color(1.0,.89,.72),"finish":1.0},
-	"pants_teal":{"name":"Deep teal cargo trousers","slot":"pants","price":35,"tint":Color(.52,.87,.79),"finish":.92}
+	"pants_teal":{"name":"Deep teal cargo trousers","slot":"pants","price":35,"tint":Color(.52,.87,.79),"finish":.92},
+	"glasses_night":{"name":"Nightline smoke shades","slot":"glasses","price":26},
+	"glasses_clear":{"name":"Threadline clear frames","slot":"glasses","price":19},
+	"watch_shift":{"name":"Quay Shift digital watch","slot":"watch","price":38},
+	"watch_brass":{"name":"Nocturne brass watch","slot":"watch","price":110}
 }
 
 static func piece_valid(id:Variant) -> bool:
@@ -59,11 +64,17 @@ static func valid_slots(value:Variant) -> bool:
 	return true
 
 static func browse_ids() -> Array:
-	return IDS+PIECE_IDS
+	return IDS+PIECE_IDS+RESET_IDS
+
+static func reset_slot(id:String) -> String:
+	return id.trim_prefix("reset_") if id in RESET_IDS else ""
 
 static func listing(id:String) -> Dictionary:
 	if valid_id(id):
 		return {"name":ITEMS[id]["name"],"rarity":ITEMS[id]["rarity"],"price":price(id),"type":"OUTFIT"}
 	if piece_valid(id):
 		return {"name":PIECES[id]["name"],"rarity":"INDIVIDUAL","price":piece_price(id),"type":str(PIECES[id]["slot"]).to_upper()}
+	var slot:=reset_slot(id)
+	if not slot.is_empty():
+		return {"name":"Restore base "+slot if slot in ["jacket","pants"] else "Remove "+slot,"rarity":"NO CHARGE","price":0,"type":"RESET"}
 	return {}

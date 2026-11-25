@@ -11,3 +11,6 @@
 
 ## Initial separate pieces
 Ash, Oxide, Midnight jackets; Charcoal, Sand, Deep Teal cargo trousers. Catalog prices are fictional 2036 inflation-adjusted. A selected full outfit clears independent overrides; selecting individual pieces modifies only its slot. Ownership and equipped state are separate. No unapproved cosmetic becomes permanently equipped by preview. Asset cache is bounded by catalog and source material count, not combination count.
+
+## Accessory pilot
+Four original geometry pieces: smoke shades, clear frames, digital watch and brass watch. Cached bone-attached meshes follow Head and LeftHand, with wrist direction derived from the rig rest pose. No collisions or extra skeletons. Free reset entries restore the base jacket/pants or remove glasses/watch independently; owned items remain in inventory. Corporate attire hides accessories and restores the prior look. Preview failure prevents debit. Fit, lens appearance, wrist clearance and hand interactions still require native visual review; these are authored interim geometry, not validated premium assets.
