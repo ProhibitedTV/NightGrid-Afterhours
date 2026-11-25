@@ -542,6 +542,15 @@ func _on_menu_action(action: String) -> void:
 				_start_opening_office()
 			else:
 				game_menu.call("hide_for_game")
+		"guard_shift", "guard_followup":
+			# Only the real local actor can update the contact; menu actions alone
+			# do not grant progress, access, or money.
+			if game_menu.get("screen")=="parking_guard" and _parking_guard_near():
+				if action=="guard_shift":
+					progression.meet_synaxis_contact()
+				elif bool(game_menu.get("_guard_former")):
+					progression.complete_synaxis_checkin()
+				game_menu.set("_guard_contact",progression.synaxis_contact)
 		"guard_leave":
 			_snap_camera()
 		"restroom_leave":
@@ -648,13 +657,10 @@ func _opening_interact() -> void:
 		player.call("play_visual_action",&"interact")
 		return
 	if _opening_office.call("parking_guard_reachable",player.global_position):
-		game_menu.call("open_parking_guard",false)
+		game_menu.call("open_parking_guard",false,progression.synaxis_contact)
 		return
 	if not _opening_office.call("errand_complete"):
 		if _opening_office.call("try_errand",player):
-			return
-		# Optional exploration remains available even before the folder handoff.
-		if not _opening_office.call("breakroom_reachable",player.global_position):
 			return
 	var stage := int(game_menu.get("_opening_stage"))
 	if _opening_office.call("breakroom_reachable",player.global_position) and not bool(_opening_office.get("_breakroom_seen")):
@@ -665,6 +671,16 @@ func _opening_interact() -> void:
 		if stage in [2,4]:
 			_opening_office.call("dialogue_camera",camera,stage,int(game_menu.get("_briefing_beat")))
 		game_menu.call("open_opening_stage")
+		return
+	if _opening_office.call("terminal_reachable",player.global_position):
+		game_menu.call("open_cubicle_terminal")
+		return
+	# Optional interviews are subordinate to lift, folder, and main objective
+	# interactions, and never mutate the main opening stage or economy.
+	var objective: int = _opening_office.call("objective_stage",stage)
+	var interview: Dictionary = _opening_office.call("interview_at",player.global_position,objective)
+	if not interview.is_empty():
+		game_menu.call("open_staff_interview",interview)
 
 func _finish_opening_office() -> void:
 	if not is_instance_valid(_opening_office):
@@ -716,6 +732,7 @@ func _journal_context() -> Dictionary:
 		"seed": session.get("world_seed"),
 		"platform_notice": Opening.app_notice(deliveries) if courier_mission.gig_economy else "",
 		"synaxis_site": "SYNAXIS HQ / Glassline / Access revoked" if progression.has_receipt(Opening.RECEIPT) else "",
+		"synaxis_contact": _synaxis_contact_objective(),
 		"opening_goal": "QUOTADROP / POD DEPOSIT: $%d of $%d saved" % [mini(cash,StarterHome.move_in_price()),StarterHome.move_in_price()] if courier_mission.gig_economy and not progression.owns_home() else "",
 		"main_objective": "%s  •  STEP %d/%d  •  %dm  •  $%d" % [objective["title"], objective["step"], objective["total_steps"], remaining, objective["reward"]],
 		"courier_can_restart": carrying,
@@ -2434,7 +2451,7 @@ func _parking_guard_near() -> bool:
 
 func _try_parking_guard() -> bool:
 	if _parking_guard_near():
-		game_menu.call("open_parking_guard",progression.has_receipt(Opening.RECEIPT))
+		game_menu.call("open_parking_guard",progression.has_receipt(Opening.RECEIPT),progression.synaxis_contact)
 		return true
 	return false
 
@@ -4639,6 +4656,13 @@ func get_map_state() -> Dictionary:
 		"civic_quest_active": not civic_job_active.is_empty(),
 		"civic_quest": Vector2(_civic_job_target().x, _civic_job_target().z)
 	}
+
+func _synaxis_contact_objective() -> String:
+	if not progression.has_receipt(Opening.RECEIPT) or progression.synaxis_contact==0:
+		return ""
+	if progression.synaxis_contact==1:
+		return "A FAMILIAR FACE / Optional: check in with Marcus Vale at the rear Synaxis parking booth."
+	return "CONTACT / Marcus Vale — checked in. Rear Synaxis parking booth."
 
 func _cancel_street_interactions()->void:
 	_music_session_site=""

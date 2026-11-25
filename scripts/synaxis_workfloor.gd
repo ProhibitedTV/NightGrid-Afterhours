@@ -385,3 +385,6 @@ func _architecture(accent: String) -> void:
 		_part(accent,Vector3(side*.9,.018,5),Vector3(.78,.016,.82))
 	_label("LIFT / EXPRESS TO 14" if level==FLOOR_COUNT else "LIFT UP",Vector3(-.9,1.85,5.48),.003)
 	_label("LIFT DOWN",Vector3(.9,1.85,5.48),.003)
+
+func interview_id(at:Vector3) -> String:
+	return str(_people.call("interview_id",at)) if is_instance_valid(_people) else ""

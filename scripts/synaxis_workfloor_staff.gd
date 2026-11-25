@@ -322,3 +322,11 @@ func stats() -> Dictionary:
 		if actor.process_mode!=Node.PROCESS_MODE_DISABLED:
 			animated+=1
 	return {"people":_people.size(),"animated":animated,"seated":6,"standing":2,"walking":_walking,"walk_distance":_walk_distance,"route_index":_route_index,"task":_task,"board_visits":_board_visits,"chat_visits":_chat_visits,"print_visits":_print_visits,"coffee_visits":_coffee_visits,"rounds":_rounds,"meeting":_meeting.active,"meetings_completed":_meeting.completed,"offboarding":_offboarding}
+
+func interview_id(at:Vector3) -> String:
+	if not _active or not at.is_finite():
+		return ""
+	var local:=to_local(at)
+	if absf(local.y-1.15)>.8 or local.z>SEATS[0].z+.15:
+		return ""
+	return "worker_%d_0" % level if _people[0].global_position.distance_squared_to(at-Vector3.UP*1.15)<1.45*1.45 else ""

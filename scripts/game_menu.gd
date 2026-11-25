@@ -65,6 +65,14 @@ var _breakroom_choice := ""
 const ParkingDialogue=preload("res://scripts/synaxis_parking_dialogue.gd")
 var _guard_topic:=""
 var _guard_former:=false
+var _guard_contact:=0
+var _interview:Dictionary={}
+var _interview_topic:=-1
+var _investigation_notes:Dictionary={}
+var _notes_origin:="opening"
+const Workstation=preload("res://scripts/synaxis_workstation.gd")
+var _terminal_tab:="inbox"
+var _terminal_origin:="cubicle"
 const Restrooms = preload("res://scripts/synaxis_restrooms.gd")
 var _restroom_id := ""
 var settings: Dictionary = DEFAULT_SETTINGS.duplicate(true)
@@ -139,6 +147,10 @@ func open_opening(physical: bool = false) -> void:
 	_briefing_beat = 0
 	_opening_report = ""
 	_opening_exit = ""
+	_investigation_notes.clear()
+	_notes_origin="opening"
+	_terminal_tab="inbox"
+	_terminal_origin="cubicle"
 	if physical:
 		hide_for_game()
 	else:
@@ -158,14 +170,29 @@ func open_street_contact(contact:Dictionary)->void:
 	_street_contact=contact.duplicate(true)
 	_open("street_contact")
 
-func open_parking_guard(former:bool) -> void:
+func open_staff_interview(data:Dictionary) -> void:
+	if data.is_empty() or not data.has("topics"):
+		return
+	_interview=data.duplicate(true)
+	_interview_topic=-1
+	_open("staff_interview")
+
+func open_parking_guard(former:bool,contact:int=0) -> void:
 	_guard_former=former
+	_guard_contact=contact
 	_guard_topic=""
 	_open("parking_guard")
 
 func open_breakroom() -> void:
 	_breakroom_choice=""
 	_open("breakroom")
+
+func open_cubicle_terminal() -> void:
+	if not _physical_opening or _opening_stage!=0:
+		return
+	_terminal_origin="cubicle"
+	_terminal_tab="inbox"
+	_open("workstation")
 
 func open_opening_stage() -> void:
 	_open("opening")
@@ -237,6 +264,12 @@ func _unhandled_input(event: InputEvent) -> void:
 				_choice("breakroom_leave")
 			"parking_guard":
 				_choice("guard_leave")
+			"staff_interview":
+				_choice("interview_leave")
+			"investigation_notes":
+				_choice("notes_back")
+			"workstation":
+				_choice("terminal_leave")
 			"street_contact":
 				_choice("street_leave")
 			"blue_hour_set":
@@ -290,7 +323,7 @@ func _render() -> void:
 	_buttons.clear()
 	_focus_order.clear()
 	_first_focus = null
-	var staged := screen in ["breakroom","restroom","parking_guard","street_contact"] or (screen=="opening" and _physical_opening and _opening_stage in [2,4])
+	var staged := screen in ["breakroom","restroom","parking_guard","street_contact","staff_interview"] or (screen=="opening" and _physical_opening and _opening_stage in [2,4])
 	var shade := ColorRect.new()
 	shade.name = "Scrim"
 	shade.color = Color(0.028, 0.045, 0.060, .12 if staged else (.94 if screen in ["title", "opening"] else .68))
@@ -370,17 +403,62 @@ func _render() -> void:
 				2: _button(col,"cal_complete","HAND OVER THE HEAT SINK","cal_complete")
 				3: _label(col,"Compatibility Patch / Completed",15,Ui.MUTED)
 			_button(col,"street_leave","SEE YOU AROUND","street_leave")
+		"workstation":
+			SynaxisBrand.ui_lockup(col)
+			_title(col,"SYNAXIS WORKSPACE / INTERNAL",25,Ui.TEXT)
+			_label(col,"CORPORATE IP SECURITY  /  READ-ONLY SESSION",14,Ui.MUTED)
+			_button(col,"terminal_leave","RETURN TO "+("IT REVIEW" if _terminal_origin=="opening" else "WORKFLOOR"),"terminal_leave")
+			_button(col,"terminal_inbox","INBOX","terminal_inbox",_terminal_tab!="inbox")
+			_button(col,"terminal_ticket","SERVICE DESK","terminal_ticket",_terminal_tab!="ticket")
+			_button(col,"terminal_access","ACCESS RECORDS","terminal_access",_terminal_tab!="access")
+			var page:Dictionary=Workstation.page(_terminal_tab,_terminal_origin=="opening" and _opening_stage==1)
+			_title(col,str(page["title"]),20,Ui.AMBER)
+			if page.has("body"):
+				_label(col,str(page["body"]),16,Ui.TEXT)
+			for entry in page.get("rows",[]):
+				_divider(col)
+				if entry.has("subject"):
+					_label(col,str(entry["from"])+" / "+str(entry["subject"]),16,Ui.AMBER)
+					_label(col,str(entry["body"]),16,Ui.TEXT)
+				else:
+					_label(col,str(entry["event"])+" / "+str(entry["actor"]),16,Ui.AMBER)
+					_label(col,str(entry["resource"])+" — "+str(entry["status"]),16,Ui.TEXT)
+		"investigation_notes":
+			SynaxisBrand.ui_lockup(col)
+			_title(col,"PRIVATE INVESTIGATION NOTES",23,Ui.AMBER)
+			_label(col,"Personal notes from conversations. Statements are not verified audit evidence.",15,Ui.MUTED)
+			_button(col,"notes_back","RETURN TO CONVERSATION","notes_back")
+			if _investigation_notes.is_empty():
+				_label(col,"No employee statements recorded.",16,Ui.TEXT)
+			for id in _investigation_notes:
+				var note:Dictionary=_investigation_notes[id]
+				_label(col,str(note["name"])+" / "+str(note["question"]),16,Ui.AMBER)
+				_label(col,str(note["reply"]),16,Ui.TEXT)
+		"staff_interview":
+			SynaxisBrand.ui_lockup(col)
+			_title(col,str(_interview["name"]),23,Ui.AMBER)
+			_label(col,str(_interview["role"]),15,Ui.MUTED)
+			var topics:Array=_interview["topics"]
+			if _interview_topic<0:
+				for i in topics.size():
+					_button(col,"interview_%d" % i,str(topics[i]["question"]),"interview_%d" % i)
+			else:
+				_label(col,str(topics[_interview_topic]["question"]),16,Ui.MUTED)
+				_label(col,str(topics[_interview_topic]["reply"]),17,Ui.TEXT)
+				_button(col,"interview_back","ASK SOMETHING ELSE","interview_back")
+			_button(col,"notes_open","REVIEW PRIVATE NOTES (%d)" % _investigation_notes.size(),"notes_open")
+			_button(col,"interview_leave","BACK TO WORK","interview_leave")
 		"parking_guard":
 			SynaxisBrand.ui_lockup(col)
 			_title(col,"MARCUS VALE / PARKING SECURITY",23,Ui.AMBER)
 			if _guard_topic.is_empty():
-				_label(col,ParkingDialogue.greeting(_guard_former),16,Ui.TEXT)
+				_label(col,ParkingDialogue.greeting(_guard_former,_guard_contact),16,Ui.TEXT)
 				for topic in ParkingDialogue.TOPICS:
-					if ParkingDialogue.available(topic,_guard_former):
+					if ParkingDialogue.available(topic,_guard_former,_guard_contact):
 						_button(col,topic,str(ParkingDialogue.TOPICS[topic]["question"]),topic)
 			else:
 				_label(col,str(ParkingDialogue.TOPICS[_guard_topic]["question"]),16,Ui.MUTED)
-				_label(col,ParkingDialogue.reply(_guard_topic,_guard_former),17,Ui.TEXT)
+				_label(col,ParkingDialogue.reply(_guard_topic,_guard_former,_guard_contact),17,Ui.TEXT)
 				_button(col,"guard_back","ASK SOMETHING ELSE","guard_back")
 			_button(col,"guard_leave","SEE YOU AROUND","guard_leave")
 		"breakroom":
@@ -402,11 +480,13 @@ func _render() -> void:
 					_title(col, "ONE LAST TICKET", 29, Ui.TEXT)
 					_label(col, Opening.TICKET, 17, Color("cbd8e3"))
 					_label(col, "Eli: The override came from the executive floor. Your job is to establish who accessed the IP and whether they were authorized.", 16, Ui.MUTED)
+					_button(col,"terminal_open","OPEN SERVICE DESK","terminal_open")
 					_button(col, "opening_inspect", "REVIEW ACCESS ALERT", "opening_inspect")
 				1:
 					_title(col, "EXECUTIVE EXCEPTION", 29, Ui.TEXT)
 					_label(col, Opening.AUDIT, 17, Color("cbd8e3"))
 					_label(col, "The security policy applies to everyone. Except, apparently, the people who wrote it.", 16, Ui.MUTED)
+					_button(col,"terminal_open","INSPECT VALIDATED ACCESS RECORDS","terminal_open")
 					_button(col, "opening_brief", "ATTEND EXECUTIVE BRIEFING", "opening_brief")
 				2:
 					_title(col, "A PERSONNEL MATTER", 29, Ui.TEXT)
@@ -420,6 +500,8 @@ func _render() -> void:
 							_button(col, "opening_hangup", "CONTINUE BRIEFING", "opening_hangup")
 						2:
 							_label(col, Opening.CONFERENCE_END, 17, Color("cbd8e3"))
+							if not _investigation_notes.is_empty():
+								_button(col,"notes_open","REVIEW PRIVATE NOTES (%d)" % _investigation_notes.size(),"notes_open")
 							_button(col, "opening_security", "ESCALATE TO SECURITY DIRECTOR", "opening_security")
 							_button(col, "opening_legal", "ASK LEGAL TO PRESERVE AUDIT", "opening_legal")
 				3:
@@ -556,6 +638,8 @@ func _render() -> void:
 			if not str(_journal_data.get("synaxis_site","")).is_empty():
 				_label(col,str(_journal_data["synaxis_site"]),16,Ui.MUTED)
 				_button(col,"synaxis_waypoint","SET WAYPOINT TO SYNAXIS HQ","synaxis_waypoint")
+			if not str(_journal_data.get("synaxis_contact","")).is_empty():
+				_label(col,str(_journal_data["synaxis_contact"]),16,Ui.ACCENT)
 			_label(col, str(_journal_data.get("home_text", "")), 16, Ui.ACCENT)
 			if bool(_journal_data.get("home_can_navigate", false)):
 				_button(col, "home_waypoint", "SET WAYPOINT TO POD", "home_waypoint")
@@ -835,9 +919,49 @@ func _choice(action: String) -> void:
 				_street_contact={}
 				hide_for_game()
 				action_requested.emit(action)
-		"guard_r9", "guard_parking", "guard_robots", "guard_access", "guard_shift", "guard_layoff":
-			if screen=="parking_guard" and ParkingDialogue.available(action,_guard_former):
+		"interview_0", "interview_1":
+			if screen=="staff_interview":
+				var index:=int(action.trim_prefix("interview_"))
+				if index>=0 and index<(_interview["topics"] as Array).size():
+					_interview_topic=index
+					_record_interview(index)
+					_render()
+		"terminal_open":
+			if screen=="opening" and _opening_stage in [0,1]:
+				_terminal_origin="opening"
+				_terminal_tab="access" if _opening_stage==1 else "ticket"
+				_open("workstation")
+		"terminal_inbox", "terminal_ticket", "terminal_access":
+			if screen=="workstation":
+				_terminal_tab=action.trim_prefix("terminal_")
+				_render()
+		"terminal_leave":
+			if screen=="workstation":
+				if _terminal_origin=="opening":
+					_open("opening")
+				else:
+					hide_for_game()
+		"notes_open":
+			if screen=="staff_interview" or (screen=="opening" and _opening_stage==2 and _briefing_beat==2):
+				_notes_origin=screen
+				_open("investigation_notes")
+		"notes_back":
+			if screen=="investigation_notes":
+				_open(_notes_origin)
+		"interview_back":
+			if screen=="staff_interview":
+				_interview_topic=-1
+				_render()
+		"interview_leave":
+			if screen=="staff_interview":
+				_interview.clear()
+				_interview_topic=-1
+				hide_for_game()
+		"guard_r9", "guard_parking", "guard_robots", "guard_access", "guard_shift", "guard_layoff", "guard_followup":
+			if screen=="parking_guard" and ParkingDialogue.available(action,_guard_former,_guard_contact):
 				_guard_topic=action
+				if action in ["guard_shift","guard_followup"]:
+					action_requested.emit(action)
 				_render()
 		"guard_back":
 			if screen=="parking_guard":
@@ -925,6 +1049,14 @@ func _choice(action: String) -> void:
 			open_title()
 		"quit":
 			get_tree().quit()
+
+## In-memory optional interview notes; no save schema, rewards or progression.
+func _record_interview(index:int) -> void:
+	var topic:Dictionary=_interview["topics"][index]
+	var id:=str(topic["id"])+":"+str(topic.get("phase","before"))
+	if _investigation_notes.has(id) or _investigation_notes.size()>=28:
+		return
+	_investigation_notes[id]={"name":_interview["name"],"question":topic["question"],"reply":topic["reply"]}
 
 func open_blue_hour_set(sequence:int)->void:
 	_open_music_set(sequence,"live_gig")

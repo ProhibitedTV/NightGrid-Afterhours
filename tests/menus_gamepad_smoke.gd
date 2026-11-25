@@ -575,6 +575,44 @@ func _verify() -> void:
 		if int(office.get("_active_floor"))!=level or absf(office.to_local(player.global_position).y-(level*3.65+1.15))>.01:
 			_fail("Lift travels to actual upper floor elevations")
 			return
+		if level<=4:
+			var lift_arrival:Vector3=player.global_position
+			var before_stage:int=menu.get("_opening_stage")
+			player.global_position=office.to_global(Vector3(-6,level*3.65+1.15,-7.25))
+			var interview:Dictionary=office.call("interview_at",player.global_position,-2)
+			if interview.get("id","")!="worker_%d_0" % level or (interview["topics"] as Array).size()!=2:
+				_fail("Each workfloor has a reachable named interview before the main errand")
+				return
+			var later:Dictionary=office.call("interview_at",player.global_position,2)
+			if later["topics"][0]["reply"]==interview["topics"][0]["reply"]:
+				_fail("Interview responses should change with story stage")
+				return
+			world.call("_opening_interact")
+			if menu.get("screen")!="staff_interview" or not menu.call("get_buttons").has("interview_0"):
+				_fail("Physical employee interaction opens topic choices")
+				return
+			menu.call("_choice","interview_0")
+			if not menu.call("get_buttons").has("interview_back"):
+				_fail("Employee reply and return option missing")
+				return
+			menu.call("_choice","interview_back")
+			menu.call("_choice","interview_0")
+			if (menu.get("_investigation_notes") as Dictionary).size()!=level:
+				_fail("Repeated interviews must not duplicate private notes")
+				return
+			menu.call("_choice","notes_open")
+			if menu.get("screen")!="investigation_notes" or not menu.call("get_buttons").has("notes_back"):
+				_fail("Interview notes can be reviewed from the conversation")
+				return
+			menu.call("_choice","notes_back")
+			if menu.get("screen")!="staff_interview":
+				_fail("Notebook returns to the originating conversation")
+				return
+			menu.call("_choice","interview_leave")
+			if menu.call("is_open") or int(menu.get("_opening_stage"))!=before_stage or int(office.call("objective_stage",0))!=-2:
+				_fail("Optional interviews cannot advance the mission or strand gameplay")
+				return
+			player.global_position=lift_arrival
 	var ambient_count:=0
 	for index in range(1,5):
 		var floor_people:Node3D=office.get_node("Workfloor%d/DepartmentStaff" % index)
@@ -790,6 +828,14 @@ func _verify() -> void:
 		_fail("Guard answers selected question and supports returning to topic list")
 		return
 	menu.call("_choice","guard_back")
+	menu.call("_choice","guard_shift")
+	if world.get("progression").synaxis_contact!=1 or menu.get("_guard_contact")!=1:
+		_fail("Talking about Marcus's history establishes a real persistent contact")
+		return
+	menu.call("_choice","guard_back")
+	if (menu.call("get_buttons") as Dictionary).has("guard_followup"):
+		_fail("Post-dismissal check-in must remain locked during employment")
+		return
 	menu.call("_choice","guard_leave")
 	if menu.call("is_open") or menu.get("_opening_stage")!=0 or world.get("cash")!=before_severance:
 		_fail("Guard dialogue is optional and cannot advance the opening or change cash")
@@ -861,8 +907,18 @@ func _verify() -> void:
 		_fail("Folder pickup updates objective and removes desk prop")
 		return
 	world.call("_opening_interact")
-	if office.call("errand_complete"):
-		_fail("Folder cannot be handed over remotely")
+	if office.call("errand_complete") or menu.get("screen")!="workstation":
+		_fail("Desk terminal must be optional and cannot hand over folder remotely")
+		return
+	var terminal_data=preload("res://scripts/synaxis_workstation.gd")
+	menu.call("_choice","terminal_access")
+	if menu.get("_terminal_tab")!="access" or terminal_data.page("access",false).has("rows"):
+		_fail("Unverified workstation must not expose restricted access records")
+		return
+	menu.call("_choice","terminal_ticket")
+	menu.call("_choice","terminal_leave")
+	if menu.call("is_open") or int(office.call("objective_stage",0))!=-1:
+		_fail("Leaving cubicle terminal returns to unchanged errand")
 		return
 	player.global_position=office.to_global(Vector3(.9,1.15,5))
 	world.call("_opening_interact")
@@ -883,6 +939,14 @@ func _verify() -> void:
 		return
 	world.call("_opening_interact")
 	menu.call("_choice","opening_inspect")
+	menu.call("_choice","terminal_open")
+	if menu.get("screen")!="workstation" or menu.get("_terminal_tab")!="access" or terminal_data.page("access",true)["rows"].size()!=5:
+		_fail("Verified IT review exposes the three exports and executive exception")
+		return
+	menu.call("_choice","terminal_leave")
+	if menu.get("screen")!="opening" or int(menu.get("_opening_stage"))!=1:
+		_fail("Closing IT terminal preserves review stage")
+		return
 	menu.call("_choice","opening_brief")
 	if menu.call("is_open"):
 		_fail("Executive briefing requires walking to office")
@@ -913,6 +977,14 @@ func _verify() -> void:
 	menu.call("_choice","opening_hangup")
 	if assistant.get("_on_call") or assistant.get("_phone").visible:
 		_fail("Hanging up clears the prop and phone pose")
+		return
+	if not (menu.call("get_buttons") as Dictionary).has("notes_open"):
+		_fail("Executive report choice should allow review of actual interview notes")
+		return
+	menu.call("_choice","notes_open")
+	menu.call("_choice","notes_back")
+	if menu.get("screen")!="opening" or int(menu.get("_opening_stage"))!=2 or int(menu.get("_briefing_beat"))!=2:
+		_fail("Reviewing interview notes cannot replay or advance the briefing")
 		return
 	menu.call("_choice","opening_security")
 	if menu.get("_opening_report")!="opening_security":
@@ -1002,6 +1074,19 @@ func _verify() -> void:
 	if menu.get("_guard_topic")!="guard_layoff" or not guard_data.reply("guard_layoff",true).contains("access-revocation"):
 		_fail("Former employee can ask about dismissal without restoring access")
 		return
+	menu.call("_choice","guard_back")
+	if not (menu.call("get_buttons") as Dictionary).has("guard_followup") or not str(world.call("_journal_context")["synaxis_contact"]).contains("A FAMILIAR FACE"):
+		_fail("Former employee with introduction receives optional check-in")
+		return
+	menu.call("_choice","guard_followup")
+	if world.get("progression").synaxis_contact!=2 or world.get("cash")!=before_severance+75:
+		_fail("Check-in completes without granting money or access")
+		return
+	menu.call("_choice","guard_back")
+	menu.call("_choice","guard_followup")
+	if world.get("progression").synaxis_contact!=2:
+		_fail("Repeated check-in is idempotent")
+		return
 	menu.call("_choice","guard_leave")
 	world.call("_update_hud")
 	if not str(world.get("hud_prompt").text).contains("Talk to Marcus Vale"):
@@ -1031,9 +1116,29 @@ func _verify() -> void:
 		_fail("Collected meal must appear as the actual reusable held bag")
 		return
 	var opening_save: Dictionary = world.call("_capture_snapshot")
+	if int(opening_save["progression"].get("synaxis_contact",0))!=2:
+		_fail("Contact completion must serialize")
+		return
+	var contact_ledger=preload("res://scripts/progression_ledger.gd")
+	var legacy_contact:Dictionary=opening_save["progression"].duplicate(true)
+	legacy_contact.erase("synaxis_contact")
+	var restored_contact=contact_ledger.new()
+	if not restored_contact.restore(opening_save["cash"],legacy_contact) or restored_contact.synaxis_contact!=0:
+		_fail("Old progression saves restore with no prior introduction")
+		return
+	legacy_contact["synaxis_contact"]=3
+	if contact_ledger.valid_snapshot(legacy_contact):
+		_fail("Out-of-range contact state must be rejected")
+		return
+	legacy_contact["synaxis_contact"]=2
+	legacy_contact["receipts"].erase(opening.RECEIPT)
+	if contact_ledger.valid_snapshot(legacy_contact):
+		_fail("Check-in completion requires actual severance receipt")
+		return
+	world.get("progression").synaxis_contact=0
 	world.get("courier_mission").gig_economy = false
 	world.call("_apply_snapshot",opening_save)
-	if not world.get("courier_mission").gig_economy or world.get("cash") != before_severance+75:
+	if not world.get("courier_mission").gig_economy or world.get("cash") != before_severance+75 or world.get("progression").synaxis_contact!=2:
 		_fail("Opening economy survives save restore")
 		return
 	if not bag.visible or courier_visual.get("_meal_bag")!=bag:

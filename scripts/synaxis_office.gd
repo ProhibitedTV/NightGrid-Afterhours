@@ -16,6 +16,7 @@ var _lobby_light: OmniLight3D
 var _lobby_active := false
 var _prologue_active := false
 const Staff = preload("res://scripts/synaxis_staff.gd")
+const Interviews = preload("res://scripts/synaxis_interviews.gd")
 const Cast = preload("res://scripts/synaxis_cast.gd")
 var _staff: Dictionary = {}
 var _near_staff := ""
@@ -954,6 +955,9 @@ func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 			var worker_line:String=_workfloors[_active_floor-1].call("observe_worker",at)
 			if not worker_line.is_empty():
 				_hint.text+="\n"+worker_line
+		var interview:=interview_at(at,stage)
+		if not interview.is_empty() and not reachable(stage,at):
+			_hint.text+="\n"+("X" if gamepad else "G")+" / TALK TO "+str(interview["name"])
 		var direction:=lift_direction(at)
 		if direction!=0:
 			_hint.text+="\n"+("X" if gamepad else "G")+" / LIFT TO "+floor_title(lift_destination(direction))
@@ -973,6 +977,8 @@ func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 		_hint.text += "\nTake the lift down to B1. Eli can verify the authorization records."
 	if reachable(stage,at):
 		_hint.text += "\n"+("X / INTERACT" if gamepad else "G / INTERACT")
+	if terminal_reachable(at) and stage==-1:
+		_hint.text+="\n"+("X" if gamepad else "G")+" / OPEN WORKSTATION"
 	if breakroom_reachable(at) and not _breakroom_seen:
 		_hint.text += "\n" + ("X" if gamepad else "G") + " / OPTIONAL: BREAKROOM PARTY"
 	var lift:=lift_direction(at)
@@ -983,3 +989,18 @@ func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 	var remark:=update_staff_attention(stage,at)
 	if not remark.is_empty():
 		_hint.text += "\n"+remark
+
+func interview_at(at:Vector3,stage:int) -> Dictionary:
+	if not _prologue_active or _arrival!=null or not at.is_finite():
+		return {}
+	var id: String=""
+	if _active_floor==ExecutiveFloor.FLOOR and is_instance_valid(_executive_floor):
+		id=str(_executive_floor.call("executive_interview_id",at,stage))
+	elif _active_floor>=1 and _active_floor<=_workfloors.size():
+		id=str(_workfloors[_active_floor-1].call("interview_id",at))
+	return Interviews.conversation(id,stage)
+
+## Collecting the folder retains priority; the adjacent workstation is available
+## while carrying the request, before the verified IT report.
+func terminal_reachable(at:Vector3) -> bool:
+	return _prologue_active and _arrival==null and _active_floor==0 and _errand_phase==1 and at.is_finite() and at.distance_to(to_global(CUBICLE_POINT))<=1.8

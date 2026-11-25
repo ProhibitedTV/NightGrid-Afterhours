@@ -9,7 +9,10 @@ const RoadCars = preload("res://scripts/road_car_catalog.gd")
 const StarterHome = preload("res://scripts/starter_home.gd")
 const Wardrobe = preload("res://scripts/wardrobe_catalog.gd")
 const Economy = preload("res://scripts/economy.gd")
+const Opening = preload("res://scripts/opening_story.gd")
 var bitcoin_sats: int = 0
+# 0 unknown, 1 introduced, 2 post-dismissal check-in completed.
+var synaxis_contact: int = 0
 const CAL_RECEIPT="street:compatibility_patch"
 const CAL_REWARD=85
 var cal_quest:int=0 # 0 offered, 1 accepted, 2 collected, 3 completed
@@ -81,6 +84,18 @@ func credit_once(id: String, amount: int) -> bool:
 	if not credit(amount):
 		return false
 	_receipts[id] = true
+	return true
+
+func meet_synaxis_contact() -> bool:
+	if synaxis_contact!=0:
+		return false
+	synaxis_contact=1
+	return true
+
+func complete_synaxis_checkin() -> bool:
+	if synaxis_contact!=1 or not has_receipt(Opening.RECEIPT):
+		return false
+	synaxis_contact=2
 	return true
 
 func owns_vehicle(id: String) -> bool:
@@ -345,7 +360,7 @@ func snapshot() -> Dictionary:
 	ids.sort()
 	var instruments:Array=_instruments.keys()
 	instruments.sort()
-	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "owned_pieces":owned_piece_ids(), "clothing_slots":clothing_slots.duplicate(), "saved_looks":_saved_looks.duplicate(true), "bitcoin_sats":bitcoin_sats, "cal_quest":cal_quest, "street_activity_runs":_street_cred.snapshot(), "instruments":instruments, "sampler_practice":sampler_practice}
+	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "owned_pieces":owned_piece_ids(), "clothing_slots":clothing_slots.duplicate(), "saved_looks":_saved_looks.duplicate(true), "bitcoin_sats":bitcoin_sats, "synaxis_contact":synaxis_contact, "cal_quest":cal_quest, "street_activity_runs":_street_cred.snapshot(), "instruments":instruments, "sampler_practice":sampler_practice}
 
 static func valid_snapshot(value: Variant) -> bool:
 	if not value is Dictionary:
@@ -377,6 +392,9 @@ static func valid_snapshot(value: Variant) -> bool:
 		return false
 	var cal:Variant=data.get("cal_quest",0)
 	if not valid_cash(cal) or int(cal)>3 or (int(cal)==3)!=seen.has(CAL_RECEIPT):
+		return false
+	var contact: Variant = data.get("synaxis_contact",0)
+	if not valid_cash(contact) or int(contact)>2 or (int(contact)==2 and not seen.has(Opening.RECEIPT)):
 		return false
 	# Older saves already granted residence access; grandfather it, not new missions.
 	var tenancy: Variant = data.get("home_tenancy_paid",seen.has(StarterHome.ACCESS_RECEIPT))
@@ -462,6 +480,7 @@ func restore(amount: Variant, data: Variant) -> bool:
 	home_storage_expanded = data.get("home_storage_expanded",false)
 	outfit_id = data.get("outfit_id",Wardrobe.DEFAULT)
 	bitcoin_sats = int(data.get("bitcoin_sats",0))
+	synaxis_contact = int(data.get("synaxis_contact",0))
 	clothing_slots=data.get("clothing_slots",{}).duplicate()
 	_saved_looks=data.get("saved_looks",{}).duplicate(true)
 	_owned_pieces.clear()
