@@ -27,7 +27,7 @@ var _line:=""
 # One short circulation route per department. Clear of desk rows, table
 # collision and the lift landing (x=0,z=5). Faye/other coworker stays put.
 const WALKER=7
-const ROUTE=[Vector3(-3.35,0,6.12),Vector3(-2.0,0,6.12),Vector3(-2.0,0,4.05),Vector3(-5.3,0,4.05),Vector3(-7.10,0,4.05),Vector3(-7.10,0,6.8),Vector3(-7.10,0,4.05),Vector3(-2.0,0,4.05),Vector3(-2.0,0,6.12),Vector3(-3.35,0,6.12)]
+const ROUTE=[Vector3(-3.35,0,6.12),Vector3(-2.0,0,6.12),Vector3(-2.0,0,4.05),Vector3(-5.3,0,4.05),Vector3(-7.10,0,4.05),Vector3(-7.10,0,6.8),Vector3(-7.24,0,4.05),Vector3(-7.24,0,-.4),Vector3(-6.65,0,-.4),Vector3(-6.65,0,-2.45),Vector3(-6.65,0,-.4),Vector3(-7.24,0,-.4),Vector3(-7.24,0,4.05),Vector3(-2.0,0,4.05),Vector3(-2.0,0,6.12),Vector3(-3.35,0,6.12)]
 const EXCHANGES=[
 	["Sam: Did you update the risk matrix?","Faye: Yes. The risk matrix now requires a risk matrix."],
 	["Jules: Did the client approve the new design?","Dana: They approved the presentation about the design."],
@@ -39,6 +39,13 @@ var _board_visits:=0
 var _chat_visits:=0
 var _chat_elapsed:=0.0
 var _task_yaw:=0.0
+var _services:Node3D
+var _service_site:=""
+var _service_started:=false
+var _held:=""
+var _print_visits:=0
+var _coffee_visits:=0
+const OWNER="department_walker"
 var _route_index:=1
 var _wait:=0.0
 var _walking:=false
@@ -61,6 +68,7 @@ func _ready() -> void:
 		_people.append(actor)
 	_people[WALKER].call("enable_walk_rig")
 	_people[WALKER].call("enable_routine_props")
+	_services=get_parent().get_node_or_null("OfficeServices")
 	set_active(false)
 
 func set_active(active:bool) -> void:
@@ -74,6 +82,15 @@ func set_active(active:bool) -> void:
 		_wait=maxf(_wait,3.0+float(level)*1.1)
 	else:
 		_people[6].call("set_routine_pose","")
+		_service_site=""
+		_service_started=false
+		_held=""
+		_task="idle"
+		_people[WALKER].position=SEATS[WALKER]
+		_people[WALKER].rotation.y=YAW[WALKER]
+		_people[WALKER].call("set_routine_pose","")
+		_route_index=1
+		_wait=0.0
 	_last_near=-1
 	_line=""
 	for actor in _people:
@@ -94,11 +111,14 @@ func _process(delta:float) -> void:
 		actor.call("set_walk_speed",0.0)
 		_wait=maxf(_wait,1.0)
 		return
+	if not _service_site.is_empty():
+		_tick_service(actor,step)
+		return
 	if _wait>0.0:
 		_wait=maxf(0.0,_wait-step)
 		_walking=false
 		actor.call("set_walk_speed",0.0)
-		if _task in ["board","chat"]:
+		if _task in ["board","chat","sip"]:
 			actor.rotation.y=lerp_angle(actor.rotation.y,_task_yaw,clampf(step*6.0,0.0,1.0))
 		if _task=="chat":
 			_chat_elapsed+=step
@@ -106,7 +126,7 @@ func _process(delta:float) -> void:
 			_people[6].call("attend",actor.global_position,true)
 		if _wait<=0.0:
 			_task="carry"
-			actor.call("set_routine_pose","carry")
+			actor.call("set_routine_pose",_held if not _held.is_empty() else "carry")
 			_people[6].call("set_routine_pose","")
 			_people[6].call("attend",Vector3.ZERO,false)
 		return
@@ -120,6 +140,7 @@ func _process(delta:float) -> void:
 			_route_index=1
 			_wait=7.0+float(level)
 			_task="idle"
+			_held=""
 			actor.call("set_routine_pose","")
 			actor.rotation.y=YAW[WALKER]
 		elif _route_index==4:
@@ -135,6 +156,11 @@ func _process(delta:float) -> void:
 			_task_yaw=-PI/2
 			_board_visits+=1
 			actor.call("set_routine_pose","board")
+		elif _route_index in [9,10]:
+			_service_site="printer" if _route_index==9 else "coffee"
+			_service_started=false
+			_task=_service_site
+			actor.call("set_routine_pose","appliance")
 		_walking=false
 		actor.call("set_walk_speed",0.0)
 		return
@@ -153,10 +179,47 @@ func _process(delta:float) -> void:
 		return
 	actor.position=next
 	_task="carry"
-	actor.call("set_routine_pose","carry")
+	actor.call("set_routine_pose",_held if not _held.is_empty() else "carry")
 	_walk_distance+=advance
 	_walking=true
 	actor.call("set_walk_speed",.85)
+
+func _tick_service(actor:Node3D,step:float) -> void:
+	actor.call("set_walk_speed",0.0)
+	_walking=false
+	actor.rotation.y=lerp_angle(actor.rotation.y,-PI/2,clampf(step*7.0,0.0,1.0))
+	if absf(angle_difference(actor.rotation.y,-PI/2))>.2:
+		return
+	if not is_instance_valid(_services):
+		_service_site=""
+		return
+	if not _service_started:
+		# Player takes precedence if equipment already busy. Skip this stop.
+		if not _services.call("request",_service_site,OWNER):
+			_service_site=""
+			return
+		_service_started=true
+		return
+	var state:Dictionary=_services.call("stats")
+	if state["owner"]!=OWNER:
+		_service_site=""
+		_service_started=false
+		return
+	if not _services.call("collect",OWNER,_service_site):
+		return
+	if _service_site=="printer":
+		_print_visits+=1
+		_held="page"
+		actor.call("set_routine_pose","page")
+	else:
+		_coffee_visits+=1
+		_held="cup"
+		_task="sip"
+		_task_yaw=-PI/2
+		_wait=2.5
+		actor.call("set_routine_pose","sip")
+	_service_site=""
+	_service_started=false
 
 func observe(at:Vector3) -> String:
 	if not _active or not at.is_finite():
@@ -194,4 +257,4 @@ func stats() -> Dictionary:
 	for actor in _people:
 		if actor.process_mode!=Node.PROCESS_MODE_DISABLED:
 			animated+=1
-	return {"people":_people.size(),"animated":animated,"seated":6,"standing":2,"walking":_walking,"walk_distance":_walk_distance,"route_index":_route_index,"task":_task,"board_visits":_board_visits,"chat_visits":_chat_visits}
+	return {"people":_people.size(),"animated":animated,"seated":6,"standing":2,"walking":_walking,"walk_distance":_walk_distance,"route_index":_route_index,"task":_task,"board_visits":_board_visits,"chat_visits":_chat_visits,"print_visits":_print_visits,"coffee_visits":_coffee_visits}

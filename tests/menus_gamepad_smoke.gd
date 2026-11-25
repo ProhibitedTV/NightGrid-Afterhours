@@ -551,9 +551,19 @@ func _verify() -> void:
 		_fail("Walking coworker yields to a nearby visitor")
 		return
 	engineering_people.call("observe",Vector3.INF)
-	for tick in range(600):
-		engineering_people.call("_process",.1)
 	var services:Node3D=engineering_deck.get_node("OfficeServices")
+	for tick in range(850):
+		engineering_people.call("_process",.1)
+		services.call("_process",.1)
+	var npc_cycles:Dictionary=engineering_people.call("stats")
+	if int(npc_cycles["print_visits"])<1 or int(npc_cycles["coffee_visits"])<1:
+		_fail("Employee completes shared printer and coffee cycles")
+		return
+	# Reset circulation before testing player-owned cycles independently.
+	engineering_people.call("set_active",false)
+	services.call("set_active",false)
+	services.call("set_active",true)
+	var counts:Dictionary=services.call("stats")
 	var service_spec=preload("res://scripts/synaxis_office_services.gd")
 	var print_at:Vector3=services.to_global(service_spec.PRINTER_USE)
 	var coffee_at:Vector3=services.to_global(service_spec.COFFEE_USE)
@@ -561,13 +571,14 @@ func _verify() -> void:
 		_fail("Office printer accepts local interaction and handles repeated input")
 		return
 	services.call("_process",3.1)
-	if int(services.call("stats")["printed"])!=1 or not services.call("interact",coffee_at):
+	if int(services.call("stats")["printed"])!=int(counts["printed"])+1 or not services.call("interact",coffee_at):
 		_fail("Printer completes exactly one cycle; coffee station accepts local interaction")
 		return
 	services.call("_process",2.7)
-	if int(services.call("stats")["brewed"])!=1 or bool(services.call("stats")["stream"]):
+	if int(services.call("stats")["brewed"])!=int(counts["brewed"])+1 or bool(services.call("stats")["stream"]):
 		_fail("Coffee cycle finishes and stops the visible stream")
 		return
+	engineering_people.call("set_active",true)
 	var routine:Dictionary=engineering_people.call("stats")
 	if int(routine["board_visits"])<1 or int(routine["chat_visits"])<1 or walker.get("_clipboard")==null:
 		_fail("Department routine visits the task board and coworker with authored props")

@@ -20,6 +20,8 @@ var _walk_speed:=0.0
 var _walk_phase:=0.0
 var _routine_pose:=""
 var _clipboard:Node3D
+var _routine_cup:Node3D
+var _routine_page:Node3D
 static var _executive_leather: StandardMaterial3D
 
 func configure_staff(data: Dictionary) -> void:
@@ -182,11 +184,24 @@ func enable_routine_props() -> void:
 		_box(_clipboard,"TaskLine",Vector3(.025,.085-i*.041,.023),Vector3(.13,.008,.006),Color("647573"),"FABRIC")
 		_box(_clipboard,"TaskCheck",Vector3(-.079,.085-i*.041,.023),Vector3(.017,.017,.006),Color("52867e"),"FABRIC")
 	_clipboard.hide()
+	_routine_cup=_pivot(_right_hand,"RoutineCoffee",Vector3(0,.03,.12))
+	_cylinder(_routine_cup,"Cup",Vector3.ZERO,.065,.15,Color("d1c1a7"),"FABRIC")
+	_cylinder(_routine_cup,"Lid",Vector3(0,.079,0),.069,.018,Color("454b4a"),"FABRIC")
+	_routine_cup.hide()
+	_routine_page=_pivot(_right_hand,"RoutinePrintout",Vector3(0,-.08,.12))
+	_box(_routine_page,"Page",Vector3.ZERO,Vector3(.20,.28,.009),Color("eeeade"),"FABRIC")
+	for i in range(5):
+		_box(_routine_page,"PrintLine",Vector3(0,.09-i*.035,.008),Vector3(.15,.006,.003),Color("667472"),"FABRIC")
+	_routine_page.hide()
 
 func set_routine_pose(pose:String) -> void:
 	_routine_pose=pose
 	if is_instance_valid(_clipboard):
 		_clipboard.visible=pose in ["carry","board"]
+	if is_instance_valid(_routine_cup):
+		_routine_cup.visible=pose in ["cup","sip"]
+	if is_instance_valid(_routine_page):
+		_routine_page.visible=pose=="page"
 
 func _animate_routine(delta:float,t:float) -> void:
 	if _routine_pose=="board":
@@ -202,6 +217,15 @@ func _animate_routine(delta:float,t:float) -> void:
 		_right_hand.rotation.x=.15
 		if is_instance_valid(_clipboard):
 			_clipboard.rotation.x=.10
+	elif _routine_pose=="appliance":
+		_right_hand.position.y=-.27
+		_right_hand.position.z=.43
+		_right_hand.rotation.x=-.15
+	elif _routine_pose in ["cup","sip","page"]:
+		var lift:=.23*pow(maxf(0.0,sin(t*1.6)),2.0) if _routine_pose=="sip" else 0.0
+		_right_hand.position.y=-.36+lift
+		_right_hand.position.z=.25+lift*.2
+		_right_hand.rotation.x=-lift*.9
 	elif _routine_pose=="chat":
 		_right_hand.position.y=-.40+.085*maxf(0.0,sin(t*2.0))
 		_right_hand.position.z=.23

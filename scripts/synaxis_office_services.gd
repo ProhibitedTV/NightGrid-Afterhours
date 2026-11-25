@@ -14,6 +14,10 @@ var _elapsed:=0.0
 var _duration:=0.0
 var _sheet:MeshInstance3D
 var _liquid:MeshInstance3D
+var _cup_mesh:MeshInstance3D
+var _owner:=""
+var _output:=""
+var _claim_time:=0.0
 var _stream:MeshInstance3D
 var _status:Label3D
 var _coffee_status:Label3D
@@ -97,7 +101,7 @@ func _ready() -> void:
 	_box("DripTray",COFFEE+Vector3(.16,1.12,0),Vector3(.31,.045,.46),Color("222b30"))
 	for i in range(4):
 		_box("TrayGroove",COFFEE+Vector3(.07+i*.05,1.145,0),Vector3(.012,.005,.42),Color("808a8c"))
-	_cylinder("PaperCup",COFFEE+Vector3(.19,1.21,0),.056,.12,Color("d1c1a7"))
+	_cup_mesh=_cylinder("PaperCup",COFFEE+Vector3(.19,1.21,0),.056,.12,Color("d1c1a7"))
 	_liquid=_cylinder("CoffeeSurface",COFFEE+Vector3(.19,1.272,0),.048,.005,Color("4c2e1f"))
 	_liquid.hide()
 	_stream=_cylinder("CoffeeStream",COFFEE+Vector3(.19,1.35,0),.008,.15,Color("6a4028"))
@@ -114,6 +118,10 @@ func set_active(active:bool) -> void:
 		Audio.activate(_printer_sound,false)
 		Audio.activate(_coffee_sound,false)
 		_task=""
+		_owner=""
+		_output=""
+		_claim_time=0.0
+		_cup_mesh.show()
 		_notice=""
 		_notice_time=0.0
 		_status.text="READY"
@@ -136,18 +144,26 @@ func prompt(at:Vector3) -> String:
 	var site:=nearby(at)
 	if site.is_empty():
 		return ""
+	if not _task.is_empty() or not _owner.is_empty():
+		return "Equipment busy..."
 	if not _notice.is_empty():
 		return _notice
-	if not _task.is_empty():
-		return "Equipment busy..."
 	return "Print test page" if site=="printer" else "Brew office coffee"
 
 func interact(at:Vector3) -> bool:
 	var site:=nearby(at)
 	if site.is_empty():
 		return false
-	if not _task.is_empty():
-		return true
+	request(site,"player")
+	return true
+
+# Shared appliance transaction. NPCs never enter a player-owned cycle.
+func request(site:String,owner:String) -> bool:
+	if not _active or site not in ["printer","coffee"] or owner.is_empty() or not _task.is_empty() or not _owner.is_empty():
+		return false
+	_owner=owner
+	_output=""
+	_claim_time=0.0
 	_notice=""
 	_notice_time=0.0
 	_task=site
@@ -159,12 +175,26 @@ func interact(at:Vector3) -> bool:
 		if is_instance_valid(_printer_sound):
 			_printer_sound.play()
 	else:
+		_cup_mesh.show()
 		_liquid.hide()
 		_stream.show()
 		_coffee_status.text="BREWING..."
 		if is_instance_valid(_coffee_sound):
 			_coffee_sound.play()
 	set_process(true)
+	return true
+
+func collect(owner:String,site:String) -> bool:
+	if owner!=_owner or site!=_output or not _task.is_empty():
+		return false
+	if site=="printer":
+		_sheet.hide()
+	else:
+		_cup_mesh.hide()
+		_liquid.hide()
+	_owner=""
+	_output=""
+	_claim_time=0.0
 	return true
 
 func _process(delta:float) -> void:
@@ -174,6 +204,12 @@ func _process(delta:float) -> void:
 		_notice_time=maxf(0.0,_notice_time-delta)
 		if _notice_time<=0.0:
 			_notice=""
+		if not _owner.is_empty():
+			_claim_time=maxf(0.0,_claim_time-delta)
+			if _claim_time<=0.0:
+				_owner=""
+				_output=""
+		if _notice_time<=0.0 and _owner.is_empty():
 			set_process(false)
 		return
 	_elapsed=minf(_duration,_elapsed+maxf(0.0,delta))
@@ -194,8 +230,15 @@ func _process(delta:float) -> void:
 			_stream.hide()
 			_coffee_status.text="COMPLIMENTARY / 1 CUP"
 			_notice="Coffee ready. Compensation remains unchanged."
+		if _owner=="player":
+			_owner=""
+			_output=""
+		else:
+			_output=_task
+			_claim_time=8.0
+			_notice=""
 		_task=""
 		_notice_time=4.0
 
 func stats() -> Dictionary:
-	return {"active":_active,"task":_task,"printed":_printed,"brewed":_brewed,"stream":_stream.visible}
+	return {"active":_active,"task":_task,"printed":_printed,"brewed":_brewed,"stream":_stream.visible,"owner":_owner,"output":_output}
