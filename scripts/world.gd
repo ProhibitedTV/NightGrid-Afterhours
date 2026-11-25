@@ -3982,10 +3982,11 @@ func _resolve_cal_action(allowed:bool)->void:
 		_notify("Unable to advance Compatibility Patch.")
 		return
 	var cue:=StreetSatire.cal_quest_line(action)
+	var reward_notice:="COMPATIBILITY PATCH / Accepted" if action=="accept" else "COMPATIBILITY PATCH / Completed +$85 • +%d STREET CRED"%(progression.street_cred()-before_cred)
 	if not is_instance_valid(dialogue_director) or not pedestrians.call("play_cal_quest_line",dialogue_director,id,action,listener,player.get_rid()):
-		_notify(str(cue["text"]))
+		_notify(reward_notice+" / "+str(cue["text"]))
 	else:
-		_notify("COMPATIBILITY PATCH / Accepted" if action=="accept" else "COMPATIBILITY PATCH / Completed +$85 • +%d STREET CRED"%(progression.street_cred()-before_cred))
+		_notify(reward_notice)
 	if action=="accept":
 		_track_cal_waypoint()
 	elif _cal_tracking:
