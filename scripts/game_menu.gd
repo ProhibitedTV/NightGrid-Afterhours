@@ -990,7 +990,7 @@ func _choice(action: String) -> void:
 			_phone_app = id
 			_render()
 		return
-	if (action.begins_with("phone_route_") or action == "phone_work_decline") and screen == "phone":
+	if (action.begins_with("phone_route_") or action in ["phone_work_decline","phone_work_off","phone_work_on"]) and screen == "phone":
 		action_requested.emit(action)
 		return
 	match action:
