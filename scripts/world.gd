@@ -19,6 +19,8 @@ const RadarScript = preload("res://scripts/hud_radar.gd")
 const Ui = preload("res://scripts/ui_style.gd")
 const Nav = preload("res://scripts/navigation_waypoint.gd")
 const StreetRoute = preload("res://scripts/street_route.gd")
+const DrivingTrial = preload("res://scripts/driving_trial.gd")
+var _driving_trial := DrivingTrial.new()
 const RoadRestrictions = preload("res://scripts/road_restrictions.gd")
 const Arsenal = preload("res://scripts/arsenal.gd")
 const Wanted = preload("res://scripts/wanted_system.gd")
@@ -1127,7 +1129,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("interior_toggle"):
 		_toggle_interior()
 	elif event.is_action_pressed("interact"):
-		_toggle_interaction()
+		if current_car != null and (_driving_trial.active or DrivingTrial.near_start(Vector2(current_car.global_position.x,current_car.global_position.z))):
+			_toggle_driving_trial()
+		else:
+			_toggle_interaction()
 	elif event.is_action_pressed("use_supply"):
 		_consume_ration()
 	elif event.is_action_pressed("game_save"):
@@ -1448,6 +1453,7 @@ func _physics_process(delta: float) -> void:
 	if (actor.global_position.y < -15.0 or not indoors and
 			(absf(actor.global_position.x) > 390.0 or absf(actor.global_position.z) > 390.0)):
 		_respawn()
+	_update_driving_trial(delta)
 	_update_wanted(delta)
 	_update_ambient_civic(delta)
 	_update_civic_patrols(delta)
@@ -1462,6 +1468,38 @@ func _physics_process(delta: float) -> void:
 		_respawn()
 	if notification_time > 0.0:
 		notification_time -= delta
+
+func _toggle_driving_trial()->void:
+	if _driving_trial.active:
+		_driving_trial.stop("ABANDONED")
+		_notify("Southworks Circuit abandoned. Return to the start to retry.")
+		return
+	if current_car==null or current_transit!=null or Wanted.stars(heat)>0:
+		_notify("Southworks Circuit / park a roadworthy car and clear your wanted level.")
+		return
+	var at:=Vector2(current_car.global_position.x,current_car.global_position.z)
+	if _driving_trial.start(at,current_car.get_instance_id(),float(current_car.get("condition")),float(current_car.get("speed"))):
+		_notify("Southworks Circuit / follow all eight checkpoints. Obey traffic. First finish $90.")
+	else:
+		_notify("Southworks Circuit / stop at the start with a roadworthy car.")
+
+func _update_driving_trial(delta:float)->void:
+	if not _driving_trial.active:
+		return
+	if not is_instance_valid(current_car) or Wanted.stars(heat)>0:
+		_driving_trial.stop("ABANDONED")
+		_notify("Southworks Circuit abandoned.")
+		return
+	var at:=Vector2(current_car.global_position.x,current_car.global_position.z)
+	var outcome:=_driving_trial.tick(delta,at,current_car.get_instance_id(),float(current_car.get("condition")))
+	if outcome=="GATE":
+		_notify("Checkpoint %d / %d"%[_driving_trial.index,DrivingTrial.GATES.size()])
+	elif outcome=="COMPLETE":
+		var paid:=progression.credit_once(DrivingTrial.RECEIPT,DrivingTrial.REWARD)
+		_notify("Southworks Circuit / %.1fs%s"%[_driving_trial.elapsed," +$90" if paid else " / practice finish"])
+		_log_playtest("driving_trial_finish",{"seconds":_driving_trial.elapsed,"paid":paid})
+	elif not outcome.is_empty():
+		_notify("Southworks Circuit / "+outcome)
 
 func _actor() -> Node3D:
 	if current_transit != null:
@@ -2081,6 +2119,7 @@ func _reset_pursuit_runtime() -> void:
 	police_cooldown = 0.0
 
 func _respawn() -> void:
+	_driving_trial.stop("ABANDONED")
 	_cancel_street_interactions()
 	_log_playtest("respawn", {"health": health, "reason": "fall_or_boundary_or_damage"})
 	_close_venue()
@@ -2529,6 +2568,7 @@ func _capture_snapshot() -> Dictionary:
 	return state
 
 func _apply_snapshot(data: Dictionary) -> void:
+	_driving_trial.stop("ABANDONED")
 	_close_arcade()
 	_cancel_street_interactions()
 	if is_instance_valid(dialogue_director):
@@ -4695,6 +4735,8 @@ func _update_hud() -> void:
 	hud_navigation.visible = navigation_waypoint != null
 	hud_navigation.text = navigation_text() if navigation_waypoint != null else ""
 	var jobs: Array[String] = []
+	if _driving_trial.active and current_car!=null:
+		jobs.append(_driving_trial.status(Vector2(current_car.global_position.x,current_car.global_position.z)))
 	if courier_mission.gig_economy and not progression.owns_home():
 		jobs.append("POD DEPOSIT / $%d of $%d" % [mini(cash,StarterHome.move_in_price()),StarterHome.move_in_price()])
 	if story_mission.status != "complete":
@@ -4721,6 +4763,10 @@ func _update_hud() -> void:
 	var repair := _repair_storefront()
 	if current_car != null:
 		prompts.append(("RT/LT Drive  •  B Brake  •  Y Exit" if gamepad_active else "W/S Drive  •  Space Brake  •  E Exit") if show_control_hints else ("Y Exit vehicle" if gamepad_active else "E Exit vehicle"))
+		if _driving_trial.active:
+			prompts.append("%s Abandon circuit"%interact_key)
+		elif DrivingTrial.near_start(Vector2(current_car.global_position.x,current_car.global_position.z)):
+			prompts.append("%s Southworks Circuit / stop to start"%interact_key)
 		if is_instance_valid(nightgrid_fm) and show_control_hints:
 			prompts.append("D-pad → Radio  •  ↑ Next" if gamepad_active else "B Radio  •  N Next")
 	elif current_transit != null:
