@@ -193,7 +193,7 @@ func _render() -> void:
 	_first_focus = null
 	var shade := ColorRect.new()
 	shade.name = "Scrim"
-	shade.color = Color(0.028, 0.045, 0.060, 0.94)
+	shade.color = Color(0.028, 0.045, 0.060, 0.94 if screen == "title" or screen == "opening" else 0.68)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(shade)
 	var center := CenterContainer.new()
@@ -203,13 +203,13 @@ func _render() -> void:
 	var panel := PanelContainer.new()
 	panel.name = "MenuPanel"
 	panel.custom_minimum_size = Vector2(760.0, 0.0)
-	panel.add_theme_stylebox_override("panel", Ui.card(0.99, 26))
+	panel.add_theme_stylebox_override("panel", Ui.card(0.97, 22))
 	center.add_child(panel)
 	var shell := VBoxContainer.new()
-	shell.add_theme_constant_override("separation", 16)
+	shell.add_theme_constant_override("separation", 12)
 	panel.add_child(shell)
-	_label(shell, "MORROW BAY   /   NIGHT SHIFT", 16, Ui.AMBER)
-	_title(shell, "NIGHTGRID: AFTERHOURS", 40, Ui.TEXT)
+	_label(shell, "NIGHTGRID  /  MORROW BAY", 14, Ui.AMBER)
+	_title(shell, "AFTERHOURS" if screen == "title" else {"pause": "Paused", "settings": "Settings", "controls": "Controls", "map": "City atlas", "journal": "Journal", "confirm_new": "New session", "opening": "People operations"}.get(screen, "Afterhours"), 34, Ui.TEXT)
 	_divider(shell)
 	_body_scroll = ScrollContainer.new()
 	_body_scroll.name = "MenuScroll"
@@ -245,7 +245,6 @@ func _render() -> void:
 			_label(col, Opening.OFFER, 17, Ui.TEXT)
 			_button(col, "opening_accept", "ACCEPT TERMS / START DELIVERING", "opening_accept")
 		"pause":
-			_title(col, "PAUSED / SAFE MOMENT", 22, Color("f0dfcd"))
 			_button(col, "resume", "RESUME GAME", "resume")
 			_button(col, "save", "SAVE WORLD  •  SLOT 1", "save")
 			_button(col, "map", "CITY MAP / DISTRICTS", "map")
@@ -257,7 +256,6 @@ func _render() -> void:
 			_button(col, "title", "TITLE SCREEN", "title")
 			_button(col, "quit", "QUIT TO DESKTOP", "quit")
 		"settings":
-			_title(col, "Settings", 28, Ui.TEXT)
 			_label(col, "AUDIO", 16, Ui.AMBER)
 			_slider(col, "MASTER VOLUME", "master_volume", 0.0, 1.0, 0.05)
 			_slider(col, "NIGHTGRID FM / MUSIC VOLUME", "music_volume", 0.0, 1.0, 0.05)
@@ -281,7 +279,6 @@ func _render() -> void:
 			_label(col, "Changes save automatically. Toggle SSR, AO, haze and bloom to profile GPU cost.", 14, Color("90a7ba"))
 			_button(col, "back", "BACK", "back")
 		"controls":
-			_title(col, "CONTROLS / KEYBOARD + PAD", 22, Color("f0dfcd"))
 			for section in HELP_SECTIONS:
 				_label(col, str(section["title"]), 17, Color("87dcd8"))
 				_label(col, "KEYS   " + str(section["keyboard"]), 14, Color("e2dfd6"))
@@ -290,7 +287,6 @@ func _render() -> void:
 			_label(col, "Xbox / XInput layout. Controller support depends on Godot/OS device detection.", 14, Color("9db5c7"))
 			_button(col, "back", "BACK", "back")
 		"journal":
-			_title(col, "JOURNAL / NIGHT-SHIFT LEDGER", 22, Color("f0dfcd"))
 			_label(col, "CURRENT DISTRICT  " + str(_journal_data.get("district", "MORROW BAY")), 18, Color("8ad9d6"))
 			_label(col, "LOCAL TIME  " + str(_journal_data.get("clock", "--:--")) +
 				"  |  WORLD SEED  " + str(_journal_data.get("seed", "-")), 16, Color("bdcddd"))
@@ -338,7 +334,6 @@ func _render() -> void:
 				16, Color("c4d6da"))
 			_button(col, "back", "BACK TO PAUSE", "back")
 		"map":
-			_title(col, "MORROW BAY / CITY ATLAS", 22, Color("f0dfcd"))
 			_label(col, "Player • quests • shops • buses (gold) • M-Line (cyan) • police stations (blue shields)", 15, Color("adc8d2"))
 			var atlas := Control.new()
 			atlas.name = "WorldMapView"
@@ -386,7 +381,7 @@ func _fit_menu() -> void:
 	if not is_instance_valid(_body_scroll) or not is_instance_valid(_body_col):
 		return
 	var height := get_viewport().get_visible_rect().size.y
-	_body_scroll.custom_minimum_size.y = minf(_body_col.get_combined_minimum_size().y, maxf(140.0, height - 250.0))
+	_body_scroll.custom_minimum_size.y = minf(_body_col.get_combined_minimum_size().y, maxf(140.0, height - 200.0))
 
 func _wire_focus() -> void:
 	# Explicit vertical order avoids focus jumping between unrelated rows.
@@ -425,7 +420,7 @@ func _button(parent: VBoxContainer, key: String, caption: String, action: String
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	button.disabled = not enabled
 	button.focus_mode = Control.FOCUS_ALL
-	button.add_theme_font_size_override("font_size", 18)
+	button.add_theme_font_size_override("font_size", 17)
 	button.pressed.connect(func() -> void: _choice(action))
 	parent.add_child(button)
 	_buttons[key] = button
