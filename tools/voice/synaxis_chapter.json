@@ -1057,6 +1057,30 @@
         "topic": 1,
         "question": "How was last night?"
       }
+    },
+    {
+      "id": "street.robot_romantic.quest.accept",
+      "character": "robot_romantic",
+      "text": "It's our anniversary. Auntie Sol at Moon Noodles has my gift, a limited-edition heat sink. I paid already. Could you pick it up? She deserves better thermal management.",
+      "language": "English",
+      "direction": "Earnest, conversational; sincere thanks, never a punchline delivery.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "robot_romantic",
+        "quest": "accept"
+      }
+    },
+    {
+      "id": "street.robot_romantic.quest.complete",
+      "character": "robot_romantic",
+      "text": "Look at that copper finish. She's going to be so happy. Or at least her temperature sensors will be. Here's eighty-five bucks. Thanks, choom.",
+      "language": "English",
+      "direction": "Earnest, conversational; sincere thanks, never a punchline delivery.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "robot_romantic",
+        "quest": "complete"
+      }
     }
   ]
 }

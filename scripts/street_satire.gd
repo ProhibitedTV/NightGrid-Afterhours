@@ -345,6 +345,18 @@ const LINES = [
 		"text": "I woke up with three loyalty accounts and a receipt for premium atmosphere.",
 		"topic": 1,
 		"question": "How was last night?"
+	},
+	{
+		"id": "street.robot_romantic.quest.accept",
+		"character": "robot_romantic",
+		"text": "It's our anniversary. Auntie Sol at Moon Noodles has my gift, a limited-edition heat sink. I paid already. Could you pick it up? She deserves better thermal management.",
+		"quest": "accept"
+	},
+	{
+		"id": "street.robot_romantic.quest.complete",
+		"character": "robot_romantic",
+		"text": "Look at that copper finish. She's going to be so happy. Or at least her temperature sensors will be. Here's eighty-five bucks. Thanks, choom.",
+		"quest": "complete"
 	}
 ]
 const CAST = ["robot_romantic","nothing_happens","gig_grinder","subscription_skeptic","street_visionary","night_regular"]
@@ -421,3 +433,9 @@ static func profile(id:String) -> Dictionary:
 		if row["character"]==character and row.has("topic"):
 			result["topics"].append(row.duplicate())
 	return result
+
+static func cal_quest_line(action:String)->Dictionary:
+	for row in LINES:
+		if row.get("quest","")==action and row["character"]=="robot_romantic":
+			return row.duplicate()
+	return {}

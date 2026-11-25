@@ -132,6 +132,29 @@ func _verify()->void:
 	director.cancel_street_dialogue(speech)
 	if not _check(director.nearby_contact().is_empty(),"transition invalidates cached contact"):
 		return
+	if not _check(director.is_named_cal(first) and not director.is_named_cal(second) and director.confirm_cal_contact(first,contact_listener,RID()) and not director.confirm_cal_contact(second,contact_listener,RID()),"quest requires actual named Cal, not another resident"):
+		return
+	director.track_cal_quest(true)
+	if not _check(director.cal_position().is_finite() and population.available_at(first,0.0),"quest contact remains schedule eligible"):
+		return
+	if not _check(director.play_cal_quest_line(speech,first,"accept",contact_listener,RID()),"quest acceptance uses canonical spatial cue"):
+		return
+	speech.tick(0.1,contact_listener)
+	if not _check(speech.stats()["active"]=="street.robot_romantic.quest.accept","Cal speaks the correct quest line"):
+		return
+	director.cancel_street_dialogue(speech)
+	director.track_cal_quest(false)
+	# No unobserved actor relocation: the inactive target is the link center.
+	var expected:Vector3=(links[0]["start"]+links[0]["end"])*0.5
+	if not _check(pool.recycle(population,first,func(_at:Vector3)->bool:return true),"Cal returns to logical population"):
+		return
+	director.track_cal_quest(true)
+	if not _check(not director.cal_is_live() and director.cal_position().is_equal_approx(expected),"inactive quest waypoint uses stable neighborhood midpoint"):
+		return
+	var free:int=pool.free_style_count(int(population.sample(first)["style"]))
+	if not _check(free==1 and not pool.can_allocate_style(int(population.sample(first)["style"]),int(population.sample(first)["style"])),"last compatible slot protected"):
+		return
+	director.track_cal_quest(false)
 	director.shutdown()
 	print("STREET_EXCHANGE PASS: compatible leases, alternating turns, story interruption and context cancellation")
 	quit(0)

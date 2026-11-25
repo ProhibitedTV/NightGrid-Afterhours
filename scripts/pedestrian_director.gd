@@ -35,6 +35,7 @@ var _exchange_gap:=0.0
 var _street_dialogue:WeakRef
 const Satire=preload("res://scripts/street_satire.gd")
 var _named_ids:Dictionary={}
+var _quest_resident:=""
 var _contact:Dictionary={}
 var _contact_clock:=0.0
 var _player_request:Dictionary={}
@@ -87,6 +88,8 @@ func _local_candidates(focus: Vector3, camera: Camera3D, active: Dictionary, hou
 		entry["distance"] = distance
 		entries.append(entry)
 	entries.sort_custom(func(a: Dictionary,b: Dictionary) -> bool:
+		if a["id"]==_quest_resident or b["id"]==_quest_resident:
+			return a["id"]==_quest_resident and b["id"]!=_quest_resident
 		if is_equal_approx(float(a["distance"]),float(b["distance"])):
 			return str(a["id"])<str(b["id"])
 		return float(a["distance"])<float(b["distance"]))
@@ -133,7 +136,7 @@ func tick(delta: float, focus: Vector3, camera: Camera3D, indoors: bool, occupie
 	_clock = fposmod(_clock,PLAN_PERIOD)
 	var certified := func(entry: Dictionary) -> bool: return _cert.cached_clear(_city,entry)
 	var allow := func(entry: Dictionary) -> bool:
-		return _pool.call("has_free_style", entry["style"]) and _safety.pedestrian_spawn_allowed(camera,_city,space,entry,certified)
+		return _quest_slot_available(entry) and _safety.pedestrian_spawn_allowed(camera,_city,space,entry,certified)
 	var hidden := func(at: Vector3) -> bool: return _safety.hidden(camera,at,Safety.PEDESTRIAN_RADIUS)
 	var plan: Dictionary = _population.plan_changes(focus,camera.global_position,false,active,occupied,allow,hidden,hour)
 	for id in plan["recycle"]:
@@ -147,6 +150,8 @@ func tick(delta: float, focus: Vector3, camera: Camera3D, indoors: bool, occupie
 		if _leases.size()>=int(_pool.call("capacity")):
 			break
 		var id: String = entry["id"]
+		if not _quest_slot_available(entry):
+			continue
 		var at: Vector3 = entry["position"]
 		if not bool(_city.call("reserve_pedestrian_parcel",id,entry["start"],entry["end"])):
 			_failed_activation += 1
@@ -420,3 +425,63 @@ func cancel_street_dialogue(dialogue:Node)->void:
 	_player_request={}
 	_contact={}
 	_contact_clock=0.0
+
+## Quest availability changes only scheduling preference, never the spawn
+## distance, visibility, collision certification, or physical actor budget.
+func track_cal_quest(active:bool)->void:
+	var id:=str(_named_ids.get("robot_romantic","")) if active else ""
+	if id!=_quest_resident:
+		_quest_resident=id
+		_population.prioritize_resident(id)
+		_candidate_clock=0.12
+
+func cal_position()->Vector3:
+	var id:=str(_named_ids.get("robot_romantic",""))
+	var active:=active_positions()
+	if active.has(id):
+		return active[id]
+	var sample:Dictionary=_population.sample(id)
+	if sample.is_empty():
+		return Vector3.INF
+	# An unloaded NPC has no observed physical position. Guide to the
+	# center of his home link rather than a constantly moving guess.
+	var a:Vector3=sample["start"]
+	var b:Vector3=sample["end"]
+	return (a+b)*0.5
+
+func cal_is_live()->bool:
+	return active_positions().has(str(_named_ids.get("robot_romantic","")))
+
+func _quest_slot_available(entry:Dictionary)->bool:
+	var reserved:=-1
+	if not _quest_resident.is_empty() and not _leases.has(_quest_resident) and entry.get("id","")!=_quest_resident:
+		var target:Dictionary=_population.sample(_quest_resident)
+		reserved=int(target.get("style",-1))
+	return bool(_pool.call("can_allocate_style",int(entry["style"]),reserved))
+
+func is_named_cal(id:String)->bool:
+	return not id.is_empty() and _named_ids.get("robot_romantic","")==id
+
+func confirm_cal_contact(id:String,listener:Vector3,listener_rid:RID)->bool:
+	if not _running or not is_named_cal(id):
+		return false
+	var current:Dictionary=_pool.call("contact_near",get_world_3d().direct_space_state,listener,listener_rid,id)
+	return not current.is_empty()
+
+func play_cal_quest_line(dialogue:Node,id:String,action:String,listener:Vector3,listener_rid:RID)->bool:
+	if not confirm_cal_contact(id,listener,listener_rid) or not is_instance_valid(dialogue):
+		return false
+	cancel_street_dialogue(dialogue)
+	var speech:Dictionary=dialogue.call("stats")
+	if not str(speech["active"]).is_empty() or int(speech["pending"])>0:
+		return false
+	var reply:Dictionary=_pool.call("begin_cal_reply",get_world_3d().direct_space_state,listener,listener_rid,id,action)
+	if reply.is_empty():
+		return false
+	_player_lease=id
+	_player_line=str(reply["id"])
+	_player_finished=false
+	if not bool(dialogue.call("enqueue",_player_line,str(reply["text"]),0,reply["speaker"],PLAYER_SCOPE)):
+		_finish_player_reply(dialogue)
+		return false
+	return true
