@@ -247,6 +247,56 @@ func _verify() -> void:
 	if not wallet.has_receipt("music:dock_nine_debut") or career.can_gig(wallet) or world.get("cash") != music_cash-85+27+95:
 		_fail("Debut must pay once")
 		return
+	# The band roster is proximity-gated and persists; rehearsals never mint cash.
+	var band_cash: int = world.get("cash")
+	for tick in range(60):
+		world.call("_tick_music",.25)
+	for id in ["rhea","milo"]:
+		actor.global_position = Vector3.ZERO
+		world.call("_open_phone",false)
+		menu.call("_choice","phone_app_music")
+		menu.call("_choice","phone_music_recruit:"+id)
+		if career.members.has(id):
+			_fail("Remote recruitment must fail")
+			return
+		menu.call("hide_for_game")
+		var contact: Vector3 = venues.call("music_contact_position",id)
+		actor.global_position = contact+Vector3.UP
+		world.call("_open_phone",false)
+		menu.call("_choice","phone_app_music")
+		menu.call("_choice","phone_music_recruit:"+id)
+		if not career.members.has(id):
+			_fail("In-person recruitment should succeed")
+			return
+		menu.call("hide_for_game")
+	actor.global_position = venues.call("venue_position","copper_cup")
+	for rehearsal in range(2):
+		if not world.call("_start_music","rehearse","copper_cup"):
+			_fail("Band rehearsal must start")
+			return
+		for tick in range(96):
+			world.call("_tick_music",.25)
+		for tick in range(60):
+			world.call("_tick_music",.25)
+	if career.rehearsals!=2 or world.get("cash")!=band_cash or not career.can_band_gig(wallet):
+		_fail("Rehearsals must unlock band booking without payouts")
+		return
+	career.restore(career.snapshot())
+	if not career.band_ready() or career.rehearsals!=2:
+		_fail("Band roster and rehearsal history must restore")
+		return
+	venues.call("set_hour",21.0)
+	actor.global_position = venues.call("venue_position","blue_hour")
+	world.call("_toggle_venue")
+	world.call("_venue_action",3)
+	if career.mode!="band":
+		_fail("Blue Hour booking must start at the venue")
+		return
+	for tick in range(240):
+		world.call("_tick_music",.25)
+	if world.get("cash")!=band_cash+240 or career.can_band_gig(wallet) or not wallet.has_receipt("music:blue_hour_debut"):
+		_fail("Band debut must settle once")
+		return
 	world.set("current_car",world.get("cars")[0])
 	if world.call("phone_available"):
 		_fail("Phone must not open while driving")

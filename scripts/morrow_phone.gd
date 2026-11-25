@@ -69,12 +69,28 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 			rows.append({"label":"Instrument","value":"Used acoustic guitar" if state.get("music_owned",false) else "Copper Strings · Copper Cup counter · $85"})
 			actions.append({"label":"Route to Copper Strings","action":"phone_route_music_shop"})
 			rows.append({"label":"Street sets","value":"%d completed / 3 for first booking" % int(state.get("music_sets",0))})
-			rows.append({"label":"Busking spots","value":"Copper Cup, Lantern Cup and Dock Nine exterior frontages."})
+			rows.append({"label":"Busking spots","value":"Copper Cup, Lantern Cup, Dock Nine and Blue Hour exterior frontages."})
 			if state.get("music_owned",false) and state.get("music_near",false) and not state.get("music_cooldown",false):
 				actions.append({"label":"Play street set","action":"phone_music_play"})
 			if state.get("music_gig",false):
 				rows.append({"label":"Debut booking","value":"Dock Nine Social · $95 · visit the open counter"})
 				actions.append({"label":"Route to Dock Nine","action":"phone_route_music_gig"})
+			for member in state.get("music_contacts",[]):
+				var id: String = member["id"]
+				var row := {"label":"%s / %s" % [member["name"],member["role"]],"value":"Band member" if member["joined"] else "%s — %s" % [member["site"],member["line"]]}
+				if not member["joined"]:
+					row["action"] = "phone_music_recruit:"+id if member["near"] else "phone_route_music_contact:"+id
+					row["action_label"] = "Invite to band" if member["near"] else "Meet musician"
+				rows.append(row)
+			if state.get("music_band_ready",false):
+				rows.append({"label":"Band rehearsals","value":"%d completed / 2 for Blue Hour" % int(state.get("music_rehearsals",0))})
+				if state.get("music_rehearsal_near",false) and not state.get("music_cooldown",false):
+					actions.append({"label":"Rehearse with band","action":"phone_music_rehearse"})
+			if state.get("music_band_gig",false):
+				rows.append({"label":"Band booking","value":"Blue Hour · $240 · outdoor debut"})
+				actions.append({"label":"Route to Blue Hour","action":"phone_route_music_band"})
+			elif state.get("music_band_done",false):
+				rows.append({"label":"Blue Hour","value":"Band debut completed"})
 		"wallet":
 			subtitle = "Available funds"
 			rows.append({"label":"Cash on hand","value":"$%d" % int(state.get("cash",0))})
