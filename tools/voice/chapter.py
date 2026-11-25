@@ -66,6 +66,10 @@ def validate_catalog(path, source=None):
         if ident in expected or not ident.startswith("street."):
             raise ValueError("Duplicate or invalid street line")
         expected[ident]={"id":ident,"character":row["character"],"language":"English","text":row["text"]}
+        if "context" in row:
+            if row["context"] not in ("incident","urgent","traffic"):
+                raise ValueError("Unknown street event context")
+            expected[ident]["source"]={"catalog":"street_satire","character":row["character"],"context":row["context"]}
     if set(expected) != set(specs):
         raise ValueError("Catalog coverage differs from spoken script")
     for ident, fields in expected.items():

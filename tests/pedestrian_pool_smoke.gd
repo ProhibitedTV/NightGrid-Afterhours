@@ -77,7 +77,7 @@ func _verify() -> void:
 	await physics_frame
 	var ignored: Array[RID]=[]
 	pool.react_to_incident(pool.get_world_3d().direct_space_state,incident,10.0,ignored,true)
-	if not _check(float(pool.get("_leases")[id]["alert"])==0.0,"opaque wall blocks incident reaction"):
+	if not _check(float(pool.get("_leases")[id]["alert"])==0.0 and str(pool.get("_leases")[id]["context"]).is_empty(),"opaque wall blocks both reaction and remembered context"):
 		return
 	wall.queue_free()
 	await process_frame
@@ -95,6 +95,12 @@ func _verify() -> void:
 		await physics_frame
 		pool.step(1.0/60.0)
 	if not _check(float(pool.get("_leases")[id]["retreat"])<=0.0,"retreat expires without permanent panic"):
+		return
+	var after_listener:=body.global_position+Vector3.UP*1.6+Vector3.RIGHT*3.0
+	var response:Dictionary=pool.street_bark(pool.get_world_3d().direct_space_state,after_listener,RID())
+	if not _check(response.get("context")=="urgent" and response.get("character")==satire.personality(id),"recovered pedestrian remembers witnessed incident in its own voice"):
+		return
+	if not _check(pool.street_bark(pool.get_world_3d().direct_space_state,after_listener,RID()).is_empty(),"event remark consumed once despite generic cooldown bypass"):
 		return
 	# A temporary obstruction in front of a live actor triggers a bounded
 	# yield followed by a reversal on the same certified line.

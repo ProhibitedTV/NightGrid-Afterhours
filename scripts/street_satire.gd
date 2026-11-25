@@ -210,6 +210,8 @@ static func line_for(id:String, index:int) -> Dictionary:
 	return LINES[CAST.find(character)*3+posmod(index,3)].duplicate()
 
 static func contextual_line(id:String,context:String) -> Dictionary:
+	if not context in ["incident","urgent","traffic"]:
+		return {}
 	var character:=personality(id)
 	for row in LINES:
 		if row["character"]==character and row.get("context","")==context:
