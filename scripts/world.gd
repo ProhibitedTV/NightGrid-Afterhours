@@ -2122,9 +2122,14 @@ func _apply_snapshot(data: Dictionary) -> void:
 	_log_playtest("save_restored", {"seed": int(session.get("world_seed"))})
 	_notify("Save loaded. Seed %d; Morrow Bay restored." % int(session.get("world_seed")))
 
-func _try_parking_guard() -> bool:
+func _parking_guard_near() -> bool:
+	if current_car!=null or current_transit!=null or interiors.call("is_inside"):
+		return false
 	var hq:Node3D=city_details.call("synaxis_headquarters")
-	if is_instance_valid(hq) and hq.call("parking_guard_reachable",player.global_position):
+	return is_instance_valid(hq) and bool(hq.call("parking_guard_reachable",player.global_position))
+
+func _try_parking_guard() -> bool:
+	if _parking_guard_near():
 		game_menu.call("open_parking_guard",progression.has_receipt(Opening.RECEIPT))
 		return true
 	return false
@@ -3517,6 +3522,8 @@ func _update_hud() -> void:
 			prompts.append("%s   |   %s" % [str(nightgrid_fm.call("get_now_playing")), radio_keys])
 	elif current_transit != null:
 		prompts.append("RB Leave at next stop" if gamepad_active else "F Leave at next stop")
+	elif _parking_guard_near():
+		prompts.append("%s  Talk to Marcus Vale  •  Synaxis security" % interact_key)
 	elif repair != null and repair.door_reachable(player.global_position):
 		prompts.append("%s %s door  •  NIGHT SHIFT REPAIRS" % [enter_key, "Close" if repair.door.is_requested_open() else "Open"])
 		if repair.door.movement_blocked:

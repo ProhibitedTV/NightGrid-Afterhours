@@ -98,6 +98,7 @@ func _ready() -> void:
 	_park_kestrel("TechnologyStrategyS6",Vector3(3.9,0,BAY.z),Color("c1c4c2"),0.0)
 	_build_employee_row()
 	_build_walkway()
+	_build_security_station()
 	_build_guard()
 
 func _park_kestrel(id:String,at:Vector3,paint:Color,yaw:float) -> void:
@@ -162,6 +163,49 @@ func _build_walkway() -> void:
 		_box("RearCrosswalk",Vector3(-7.52,.039,17.9+i*.39),Vector3(1.14,.012,.22),Color("c2c3bc"))
 	_label("PedestrianRoute","PEDESTRIAN ROUTE / LOBBY",Vector3(-8.9,.043,10.6),.0026).rotation.x=-PI/2
 
+func _build_security_station() -> void:
+	# Compact booth along the west side, outside vehicle and pedestrian lanes.
+	var at:=Vector3(-7.92,0,15.6)
+	var slate:=Color("303d44")
+	var steel:=Color("78878a")
+	_box("SecurityBoothBase",at+Vector3(0,.48,0),Vector3(1.12,.96,1.56),slate,true)
+	_box("SecurityBoothCounter",at+Vector3(0,1.00,0),Vector3(1.18,.09,1.65),steel)
+	_box("SecurityBoothRoof",at+Vector3(0,2.34,0),Vector3(1.38,.15,1.87),slate)
+	for dx in [-.51,.51]:
+		for dz in [-.71,.71]:
+			_box("BoothFrame",at+Vector3(dx,1.65,dz),Vector3(.075,1.24,.075),steel)
+	# Side and back panels are physically closed; the aisle-facing service window is open.
+	var glass:=StandardMaterial3D.new()
+	glass.albedo_color=Color(.46,.65,.69,.24)
+	glass.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+	glass.roughness=.17
+	var west:=_box("BoothWestWindow",at+Vector3(-.53,1.65,0),Vector3(.05,1.24,1.43),steel,true)
+	west.material_override=glass
+	var back:=_box("BoothRearWindow",at+Vector3(0,1.65,-.73),Vector3(1.04,1.24,.05),steel,true)
+	back.material_override=glass
+	_box("BoothMonitor",at+Vector3(.05,1.34,-.38),Vector3(.50,.37,.08),Color("171d21"))
+	var screen:=_box("BoothMonitorScreen",at+Vector3(.05,1.34,-.331),Vector3(.44,.30,.012),Color("557b75"))
+	var lit:=StandardMaterial3D.new()
+	lit.albedo_color=Color("243d39")
+	lit.emission_enabled=true
+	lit.emission=Color("629d91")
+	lit.emission_energy_multiplier=.45
+	screen.material_override=lit
+	_box("BoothMonitorStand",at+Vector3(.05,1.12,-.38),Vector3(.10,.16,.18),slate)
+	_box("BoothLogbook",at+Vector3(.05,1.065,.24),Vector3(.31,.035,.26),Color("c6ba9b"))
+	for i in range(3):
+		_box("LogbookLine",at+Vector3(.05,1.087,.18+i*.047),Vector3(.23,.006,.009),Color("77766b"))
+	_box("BoothRadio",at+Vector3(-.36,1.16,.30),Vector3(.11,.24,.09),Color("20282c"))
+	_box("RadioAntenna",at+Vector3(-.39,1.36,.30),Vector3(.015,.20,.015),Color("20282c"))
+	_box("BoothFascia",at+Vector3(0,2.28,.96),Vector3(1.30,.26,.07),slate)
+	_label("SecurityBoothTitle","SECURITY / 02",at+Vector3(0,2.28,1.0),.0018)
+	_label("BoothNotice","ALL INCIDENTS MUST BE LOGGED",at+Vector3(0,.68,.785),.0013)
+	# CCTV housing is a visual prop, not an extra camera feed or render pass.
+	_box("BoothCameraMount",at+Vector3(.57,2.22,.77),Vector3(.12,.14,.16),steel)
+	var camera:=_box("BoothCamera",at+Vector3(.64,2.15,.91),Vector3(.18,.16,.30),Color("c4cbca"))
+	camera.rotation.x=-.20
+	_box("BoothCameraLens",at+Vector3(.64,2.12,1.07),Vector3(.11,.09,.025),Color("171d21"))
+
 func _build_guard() -> void:
 	_guard=Staff.new()
 	_guard.name="ParkingSecurityGuard"
@@ -169,6 +213,7 @@ func _build_guard() -> void:
 	_guard.position=GuardDialogue.ANCHOR
 	_guard.rotation.y=-PI/2
 	add_child(_guard)
+	_box("SecurityStationPost",Vector3(-7.12,.85,17.65),Vector3(.09,1.7,.09),Color("59646a"),true)
 	_box("SecurityStationSign",Vector3(-7.12,1.70,17.65),Vector3(.10,.48,.78),Color("25323e"))
 	_label("GuardStation","SECURITY\nLEADERSHIP RESERVE",Vector3(-7.06,1.70,17.65),.0017,PI/2)
 	update_guard(Vector3.INF)
@@ -183,10 +228,10 @@ func update_guard(at:Vector3) -> void:
 	if not is_instance_valid(_guard):
 		return
 	var active:=at.is_finite() and _guard.global_position.distance_squared_to(at)<400.0
-	if active!=_guard_active:
+	if active!=_guard_active or (not active and _guard.process_mode!=Node.PROCESS_MODE_DISABLED):
 		_guard_active=active
-	_guard.process_mode=Node.PROCESS_MODE_ALWAYS if active else Node.PROCESS_MODE_DISABLED
+		_guard.process_mode=Node.PROCESS_MODE_ALWAYS if active else Node.PROCESS_MODE_DISABLED
 	_guard.call("attend",at if active else Vector3.ZERO,guard_reachable(at))
 
 func stats() -> Dictionary:
-	return {"plate":PLATE,"founder":is_instance_valid(_car),"static":_car.get("_founder_display"),"bay":BAY,"reserved_bays":3,"staff_bays":EMPLOYEE_X.size(),"other_parked":_parked.size(),"covered":get_node_or_null("ExecutiveCanopy")!=null,"guard":is_instance_valid(_guard)}
+	return {"plate":PLATE,"founder":is_instance_valid(_car),"static":_car.get("_founder_display"),"bay":BAY,"reserved_bays":3,"staff_bays":EMPLOYEE_X.size(),"other_parked":_parked.size(),"covered":get_node_or_null("ExecutiveCanopy")!=null,"guard":is_instance_valid(_guard),"booth":get_node_or_null("SecurityBoothBaseCollision")!=null}

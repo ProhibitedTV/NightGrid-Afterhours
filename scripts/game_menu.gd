@@ -326,7 +326,8 @@ func _render() -> void:
 			if _guard_topic.is_empty():
 				_label(col,ParkingDialogue.greeting(_guard_former),16,Ui.TEXT)
 				for topic in ParkingDialogue.TOPICS:
-					_button(col,topic,str(ParkingDialogue.TOPICS[topic]["question"]),topic)
+					if ParkingDialogue.available(topic,_guard_former):
+						_button(col,topic,str(ParkingDialogue.TOPICS[topic]["question"]),topic)
 			else:
 				_label(col,str(ParkingDialogue.TOPICS[_guard_topic]["question"]),16,Ui.MUTED)
 				_label(col,ParkingDialogue.reply(_guard_topic,_guard_former),17,Ui.TEXT)
@@ -654,8 +655,8 @@ func _choice(action: String) -> void:
 				_interview.clear()
 				_interview_topic=-1
 				hide_for_game()
-		"guard_r9", "guard_parking", "guard_robots", "guard_access":
-			if screen=="parking_guard":
+		"guard_r9", "guard_parking", "guard_robots", "guard_access", "guard_shift", "guard_layoff":
+			if screen=="parking_guard" and ParkingDialogue.available(action,_guard_former):
 				_guard_topic=action
 				_render()
 		"guard_back":
