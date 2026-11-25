@@ -91,6 +91,13 @@ jobs:
           set -o pipefail
           godot --headless --path . --import --quit 2>&1 | tee /tmp/nightgrid-import.log
           if grep -Eq 'SCRIPT ERROR:|p_image->is_compressed\(\)|Cannot generate mipmaps from compressed image formats' /tmp/nightgrid-import.log; then exit 1; fi
+      - name: Verify transactional save replacement and rollback
+        timeout-minutes: 1
+        run: |
+          set -o pipefail
+          timeout 30s godot --headless --path . --script res://tests/atomic_save_smoke.gd 2>&1 | tee /tmp/nightgrid-atomic-save.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-atomic-save.log; then exit 1; fi
+          grep -q "ATOMIC_SAVE PASS:" /tmp/nightgrid-atomic-save.log
       - name: Verify seamless physical building entry, collision and save
         timeout-minutes: 3
         run: |
