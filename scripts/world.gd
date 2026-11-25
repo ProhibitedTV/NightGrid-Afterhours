@@ -428,6 +428,9 @@ func _on_menu_action(action: String) -> void:
 				_start_opening_office()
 			else:
 				game_menu.call("hide_for_game")
+		"restroom_leave":
+			if is_instance_valid(_opening_office):
+				_snap_camera()
 		"breakroom_leave":
 			if is_instance_valid(_opening_office):
 				_opening_office.call("mark_breakroom_seen")
@@ -817,6 +820,10 @@ func _process(delta: float) -> void:
 		player.set("camera_yaw",yaw)
 		_update_camera(delta)
 		_opening_office.call("update_prompt",int(_opening_office.call("objective_stage",int(game_menu.get("_opening_stage")))),player.global_position,gamepad_active)
+		if not game_menu.call("is_open"):
+			var restroom := str(_opening_office.call("restroom_encounter",player.global_position))
+			if not restroom.is_empty():
+				game_menu.call("open_restroom",restroom)
 		return
 	var actor := _actor()
 	if current_car != null and current_car.get("model_id") == RoadCars.R9:

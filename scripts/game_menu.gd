@@ -46,6 +46,8 @@ var _opening_exit := ""
 var _physical_opening := false
 var _briefing_beat := 0
 var _breakroom_choice := ""
+const Restrooms = preload("res://scripts/synaxis_restrooms.gd")
+var _restroom_id := ""
 var settings: Dictionary = DEFAULT_SETTINGS.duplicate(true)
 var _root: Control
 var _screen_nodes: Array[Control] = []
@@ -108,6 +110,12 @@ func open_opening(physical: bool = false) -> void:
 		hide_for_game()
 	else:
 		_open("opening")
+
+func open_restroom(id: String) -> void:
+	if id not in [Restrooms.MEN,Restrooms.WOMEN]:
+		return
+	_restroom_id=id
+	_open("restroom")
 
 func open_breakroom() -> void:
 	_breakroom_choice=""
@@ -173,6 +181,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				_open(_confirmation_origin)
 			"pause":
 				hide_for_game()
+			"restroom":
+				_choice("restroom_leave")
 			"breakroom":
 				_choice("breakroom_leave")
 			_:
@@ -222,7 +232,7 @@ func _render() -> void:
 	_buttons.clear()
 	_focus_order.clear()
 	_first_focus = null
-	var staged := screen=="breakroom" or (screen=="opening" and _physical_opening and _opening_stage in [2,4])
+	var staged := screen in ["breakroom","restroom"] or (screen=="opening" and _physical_opening and _opening_stage in [2,4])
 	var shade := ColorRect.new()
 	shade.name = "Scrim"
 	shade.color = Color(0.028, 0.045, 0.060, .12 if staged else .94)
@@ -271,6 +281,11 @@ func _render() -> void:
 			_button(col, "settings", "SETTINGS", "settings")
 			_button(col, "controls", "CONTROLS & GAMEPAD", "controls")
 			_button(col, "quit", "QUIT TO DESKTOP", "quit")
+		"restroom":
+			SynaxisBrand.ui_lockup(col)
+			_title(col,"AIR QUALITY INCIDENT" if _restroom_id==Restrooms.MEN else "FACILITIES / REQUIRED TRAINING",23,Ui.AMBER)
+			_label(col,Restrooms.MEN_DIALOGUE if _restroom_id==Restrooms.MEN else Restrooms.WOMEN_DIALOGUE,16,Ui.TEXT)
+			_button(col,"restroom_leave","BACK TO WORK","restroom_leave")
 		"breakroom":
 			SynaxisBrand.ui_lockup(col)
 			_title(col,Opening.BREAKROOM_TITLE,23,Ui.AMBER)
@@ -582,6 +597,10 @@ func _choice(action: String) -> void:
 			if screen=="breakroom" and _breakroom_choice.is_empty():
 				_breakroom_choice=action
 				_render()
+		"restroom_leave":
+			if screen=="restroom":
+				hide_for_game()
+				action_requested.emit("restroom_leave")
 		"breakroom_leave":
 			if screen=="breakroom":
 				hide_for_game()

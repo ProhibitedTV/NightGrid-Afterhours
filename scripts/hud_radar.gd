@@ -2,6 +2,7 @@ extends Control
 ## Local north-up HUD radar. The interactive atlas remains separate.
 const Nav = preload("res://scripts/navigation_waypoint.gd")
 const Plan = preload("res://scripts/world_plan.gd")
+const Restrooms = preload("res://scripts/synaxis_restrooms.gd")
 const RANGE_METRES = 116.0
 const BORDER = 9.0
 var world_node: Node3D
@@ -186,6 +187,8 @@ func _draw_office() -> void:
 		[Vector2(-8.5,-7.65),Vector2(8.5,-7.65)],
 		[Vector2(0,-7.2),Vector2(0,-.4)]
 	]:
+		_segment(edge[0],edge[1],wall,2.6)
+	for edge in Restrooms.WALL_EDGES:
 		_segment(edge[0],edge[1],wall,2.6)
 	for desk in [Vector2(-5,2.55),Vector2(4.5,1.7),Vector2(-5,-5.4),Vector2(5,-5.4),Vector2(5,6.5),Vector2(-4.2,8.12)]:
 		_segment(desk-Vector2(1.1,0),desk+Vector2(1.1,0),Color("52616e"),5.0)

@@ -20,6 +20,8 @@ const Brand = preload("res://scripts/synaxis_brand.gd")
 const Finish = preload("res://scripts/synaxis_office_finish.gd")
 const Radar = preload("res://scripts/hud_radar.gd")
 const Arrival = preload("res://scripts/synaxis_arrival.gd")
+const Restrooms = preload("res://scripts/synaxis_restrooms.gd")
+var _restrooms: Node3D
 const CUBICLE_POINT = Vector3(4.5,1.15,2.95)
 var _arrival: RefCounted
 var _arrival_canvas: CanvasLayer
@@ -79,6 +81,9 @@ func _ready() -> void:
 	_build_office_details(desk,accent,screen)
 	_build_breakroom(desk,accent)
 	_build_corporate_relics(desk,accent,screen)
+	_restrooms=Restrooms.new()
+	_restrooms.name="Restrooms"
+	add_child(_restrooms)
 	var propaganda := Propaganda.new()
 	propaganda.name="CorporatePropaganda"
 	add_child(propaganda)
@@ -214,6 +219,13 @@ func _build_corporate_relics(desk: Material,accent: Material,screen: Material) -
 	price_label.rotation.y=PI
 	price_label.modulate=Brand.INK
 
+func restroom_encounter(at: Vector3) -> String:
+	if not _prologue_active or _arrival!=null:
+		return ""
+	var local := to_local(at)
+	_restrooms.call("update_effects",local)
+	return str(_restrooms.call("encounter",local))
+
 func breakroom_reachable(at: Vector3) -> bool:
 	return _prologue_active and at.is_finite() and at.distance_to(to_global(BREAKROOM_POINT))<1.35
 
@@ -233,6 +245,7 @@ func public_checkpoint_reachable(at: Vector3) -> bool:
 
 func begin_prologue() -> void:
 	_prologue_active=true
+	_restrooms.call("begin_visit")
 	_errand_phase=0
 	_folder_desk.position=Vector3(4.05,1.10,1.93)
 	_folder_desk.show()
@@ -247,6 +260,7 @@ func begin_prologue() -> void:
 
 func finish_prologue() -> void:
 	_prologue_active=false
+	_restrooms.call("end_visit")
 	_arrival=null
 	_arrival_canvas.hide()
 	_set_gate_open(false)
@@ -411,7 +425,7 @@ func _set_gate_open(value: bool) -> void:
 		return
 	_gate_open=value
 	get_node("SecurityGate").visible=not value
-	get_node("SecurityGateCollision/CollisionShape3D").set_deferred("disabled",value)
+	get_node("SecurityGateCollision").get_child(0).set_deferred("disabled",value)
 	for child in get_node("ArchitecturalFinish").get_children():
 		if str(child.name).begins_with("gate_"):
 			child.visible=not value

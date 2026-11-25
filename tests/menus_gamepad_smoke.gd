@@ -452,6 +452,25 @@ func _verify() -> void:
 	if menu.call("is_open") or int(office.call("objective_stage",0))!=-2:
 		_fail("Cannot interact with office workstation remotely")
 		return
+	var rooms=preload("res://scripts/synaxis_restrooms.gd")
+	var washrooms=office.get_node_or_null("Restrooms")
+	if not is_instance_valid(washrooms) or washrooms.find_children("*","CollisionShape3D",true,false).size()<10:
+		_fail("Both washrooms must have physical walls and closed stalls")
+		return
+	if not str(office.call("restroom_encounter",office.to_global(Vector3(0,1.15,5.0)))).is_empty():
+		_fail("Restroom encounters require crossing the entrance")
+		return
+	for id in [rooms.MEN,rooms.WOMEN]:
+		player.global_position=office.to_global(rooms.CENTERS[id])
+		world.call("_process",0.0)
+		if not (menu.call("get_buttons") as Dictionary).has("restroom_leave") or menu.get("_restroom_id")!=id:
+			_fail("Entering each actual restroom triggers its distinct scene")
+			return
+		menu.call("_choice","restroom_leave")
+		world.call("_process",0.0)
+		if menu.call("is_open") or int(office.call("objective_stage",0))!=-2 or world.get("cash")!=before_severance:
+			_fail("Restroom scene is optional, once per visit and cannot affect mission or wallet")
+			return
 	var breakroom_hq=preload("res://scripts/synaxis_office.gd")
 	player.global_position=office.to_global(breakroom_hq.BREAKROOM_POINT)
 	world.call("_opening_interact")
