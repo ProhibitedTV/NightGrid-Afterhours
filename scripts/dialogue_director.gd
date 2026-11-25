@@ -5,13 +5,13 @@ extends Node3D
 signal caption_changed(line_id: String, caption: String)
 signal line_ended(line_id: String, reason: String)
 const Mix = preload("res://scripts/audio_mix.gd")
-const MAX_QUEUE := 8
-const MAX_CLIPS := 64
-const MAX_DISTANCE := 18.0
-const MAX_SECONDS := 45.0
-const AMBIENT := 0
-const STORY := 1
-const CRITICAL := 2
+const MAX_QUEUE = 8
+const MAX_CLIPS = 64
+const MAX_DISTANCE = 18.0
+const MAX_SECONDS = 45.0
+const AMBIENT = 0
+const STORY = 1
+const CRITICAL = 2
 
 var _screen: AudioStreamPlayer
 var _spatial: AudioStreamPlayer3D
@@ -42,7 +42,7 @@ func _ready() -> void:
 func prewarm(line_id: String) -> bool:
 	if not _valid_id(line_id):
 		return false
-	var path := "res://assets/audio/voiced/%s/take.wav" % line_id
+	var path := "res:" + "//assets/audio/voiced/%s/take.wav" % line_id
 	if not ResourceLoader.exists(path):
 		return false
 	return cache_clip(line_id, load(path) as AudioStream)
