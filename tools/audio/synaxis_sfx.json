@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "model": "small-sfx",
+  "source": "https://github.com/Stability-AI/stable-audio-3",
+  "weights": "https://huggingface.co/stabilityai/stable-audio-3-small-sfx",
+  "license": "https://stability.ai/license",
+  "assets": [
+    {
+      "id": "office_air",
+      "duration": 16,
+      "loop": true,
+      "seed": 4011,
+      "prompt": "Quiet realistic occupied corporate office room tone, ventilation, distant indistinct human murmurs and soft occasional keyboard taps, steady ambience, no music, no intelligible words"
+    },
+    {
+      "id": "server_fans",
+      "duration": 16,
+      "loop": true,
+      "seed": 4012,
+      "prompt": "Continuous recording of a data center aisle, dense smooth fan air noise, low electrical mechanical hum, steady air conditioning, no alarms, voices or music"
+    },
+    {
+      "id": "robotics_servos",
+      "duration": 12,
+      "loop": true,
+      "seed": 4013,
+      "prompt": "Quiet enclosed industrial robotics laboratory, intermittent small electric servo movements and gentle mechanical whirs over steady ventilation, no music, no voices"
+    },
+    {
+      "id": "keyboard_monitor_hit",
+      "duration": 3,
+      "loop": false,
+      "seed": 4014,
+      "prompt": "One sharp plastic computer keyboard striking a desktop computer monitor, brief plastic rattle and clunk, isolated close recorded foley, quiet background, no voices or music"
+    },
+    {
+      "id": "office_printer",
+      "duration": 5,
+      "loop": false,
+      "seed": 4015,
+      "prompt": "Office laser printer whirring, paper feeding and rollers stopping abruptly, isolated realistic foley, no voices or music"
+    },
+    {
+      "id": "lift_chime",
+      "duration": 2,
+      "loop": false,
+      "seed": 4016,
+      "prompt": "Short understated corporate elevator arrival bell, one soft electronic ding, clean isolated sound effect, no voices or music"
+    }
+  ]
+}

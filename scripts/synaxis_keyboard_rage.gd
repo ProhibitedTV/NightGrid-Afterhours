@@ -1,5 +1,6 @@
 extends "res://scripts/synaxis_staff.gd"
 ## One original office-rage performance per visit. No combat or mission effects.
+const GeneratedAudio=preload("res://scripts/synaxis_generated_audio.gd")
 const DURATION=5.4
 const DESK=Vector3(4,0,2.05)
 const SEAT=DESK+Vector3(0,0,.85)
@@ -13,6 +14,7 @@ var _seated_parts:Array[Node3D]=[]
 var _standing_parts:Array[Node3D]=[]
 var _hip:Node3D
 var _impact:=false
+var _impact_audio:AudioStreamPlayer3D
 var _desk_keyboard:Node3D
 var _arm:Node3D
 var _left_arm:Node3D
@@ -57,6 +59,7 @@ func _ready() -> void:
 	add_child(_desk_props)
 	_desk_props.top_level=true
 	_desk_props.global_position=get_parent().to_global(DESK)
+	_impact_audio=GeneratedAudio.emitter(_desk_props,"keyboard_monitor_hit",Vector3(0,1.1,0),-10.0,10.0)
 	_monitor=_pivot(_desk_props,"ImpactMonitor",Vector3(-.22,1.12,-.19))
 	_box(_monitor,"MonitorCase",Vector3.ZERO,Vector3(.56,.34,.05),Color("252e36"),"FABRIC")
 	_screen=_box(_monitor,"MonitorScreen",Vector3(0,0,.03),Vector3(.525,.305,.008),Color("6ea7b3"),"SCREEN")
@@ -147,6 +150,8 @@ func _process(delta:float) -> void:
 	_head.rotation.x=-.10+.17*strike
 	if _elapsed>=2.65 and not _impact:
 		_impact=true
+		if is_instance_valid(_impact_audio):
+			_impact_audio.play()
 		_monitor.rotation.x=-.32
 		_monitor.rotation.z=.18
 		_monitor.position.z-=.08

@@ -92,3 +92,6 @@ Level 2 retains 28 desks but replaces its east collaboration lounge with a seale
 
 ### Basement infrastructure / B1
 The IT handoff and audit now occur on a real below-grade floor with 20 populated racks, cold aisle markings, overhead cable trays, UPS and cooling cabinets, industrial workbench and hearing/electrical safety signs. Ground IT becomes a compliance records alcove. Lift goes down from ground to B1; minimap and objective marker follow the correct floor. Falling recovery uses active floor elevation. A quiet original looped server-room hum plays only while B1 is occupied. Story tests require actual lift travel and return before executive briefing. Native floor collision, audio and sightline validation pending.
+
+### Offline environmental SFX pipeline
+See [SFX authoring](SFX_AUTHORING.md). Stable Audio 3 Small-SFX candidates are generated outside the runtime, converted to mono 48 kHz PCM, loop-crossfaded or faded, and explicitly reviewed before publication. Optional spatial clips are loaded by office floors, B1, robotics, keyboard impact and lift; existing B1 synthetic hum remains a fallback. No generated WAVs are claimed until actual inference and review.

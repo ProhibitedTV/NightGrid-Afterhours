@@ -33,6 +33,9 @@ var _basement:Node3D
 var _executive_floor: Node3D
 var _workfloors: Array[Node3D]=[]
 var _active_floor:=0
+const GeneratedAudio=preload("res://scripts/synaxis_generated_audio.gd")
+var _ground_ambience:AudioStreamPlayer3D
+var _lift_audio:AudioStreamPlayer3D
 var _restrooms: Node3D
 const CUBICLE_POINT = Vector3(4.5,1.15,2.95)
 var _arrival: RefCounted
@@ -158,6 +161,8 @@ func _ready() -> void:
 	_radar.offset_bottom = -24.0
 	_radar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	canvas.add_child(_radar)
+	_ground_ambience=GeneratedAudio.emitter(self,"office_air",Vector3(0,1,1),-22.0,16.0,true)
+	_lift_audio=GeneratedAudio.emitter(self,"lift_chime",Vector3(0,1.2,5),-13.0,8.0)
 	_build_arrival_canvas()
 	set_stage(0)
 	_target_sign.hide()
@@ -215,6 +220,7 @@ func workfloor_stats() -> Array[Dictionary]:
 
 func _select_floor(level: int) -> void:
 	_active_floor=clampi(level,Basement.FLOOR,ExecutiveFloor.FLOOR)
+	GeneratedAudio.activate(_ground_ambience,_prologue_active and _active_floor==0)
 	for child in get_children():
 		if child is OmniLight3D:
 			child.visible=_prologue_active and _active_floor==0
@@ -252,6 +258,9 @@ func try_lift(player: CharacterBody3D) -> bool:
 	_select_floor(_active_floor+direction)
 	player.global_position=to_global(Vector3(0,_active_floor*Workfloor.FLOOR_HEIGHT+1.15,Workfloor.LIFT.y))
 	player.velocity=Vector3.ZERO
+	if is_instance_valid(_lift_audio):
+		_lift_audio.position.y=_active_floor*Workfloor.FLOOR_HEIGHT+1.2
+		_lift_audio.play()
 	return true
 
 func recovery_floor() -> float:

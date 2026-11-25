@@ -1,6 +1,7 @@
 extends Node3D
 ## Fictional demonstration hardware only. Articulated display props, not combat AI.
 const Staff=preload("res://scripts/synaxis_staff.gd")
+const GeneratedAudio=preload("res://scripts/synaxis_generated_audio.gd")
 const BAY=Vector3(4.9,0,7.65)
 const LINES=[
 	"Imani: It is a workforce augmentation platform. That's what the slide says.",
@@ -19,6 +20,7 @@ var _visits:=0
 var _line:=""
 var _clock:=0.0
 var _barriers:=0
+var _servo_audio:AudioStreamPlayer3D
 
 func _mat(key:String) -> StandardMaterial3D:
 	if not _materials.has(key):
@@ -112,6 +114,7 @@ func _ready() -> void:
 	_engineer.position=Vector3(3.8,0,4.45)
 	_engineer.rotation.y=PI
 	add_child(_engineer)
+	_servo_audio=GeneratedAudio.emitter(self,"robotics_servos",BAY+Vector3.UP,-19.0,9.0,true)
 	set_active(false)
 
 func _build_unit(id:String,at:Vector3,heavy:bool) -> void:
@@ -143,6 +146,7 @@ func _build_unit(id:String,at:Vector3,heavy:bool) -> void:
 	_box(head,"OpticalStrip",Vector3(0,.025,-.17),Vector3(.20,.035,.014),"red" if heavy else "cyan")
 
 func set_active(active:bool) -> void:
+	GeneratedAudio.activate(_servo_audio,active)
 	_active=active
 	set_process(active)
 	_engineer.process_mode=Node.PROCESS_MODE_ALWAYS if active else Node.PROCESS_MODE_DISABLED

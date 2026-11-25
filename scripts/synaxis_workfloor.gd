@@ -5,6 +5,7 @@ const Rage=preload("res://scripts/synaxis_keyboard_rage.gd")
 const Eggs=preload("res://scripts/synaxis_office_easter_eggs.gd")
 const Robotics=preload("res://scripts/synaxis_robotics_lab.gd")
 const FloorStaff=preload("res://scripts/synaxis_workfloor_staff.gd")
+const GeneratedAudio=preload("res://scripts/synaxis_generated_audio.gd")
 const FLOOR_COUNT=4
 const FLOOR_HEIGHT=3.65
 const LIFT=Vector2(0,5.0)
@@ -35,6 +36,7 @@ var _rage:Node3D
 var _eggs:Node3D
 var _robotics:Node3D
 var _people:Node3D
+var _office_ambience:AudioStreamPlayer3D
 
 static func desk_positions() -> Array[Vector2]:
 	var result: Array[Vector2]=[]
@@ -69,6 +71,7 @@ func _ready() -> void:
 	_architecture(accent)
 	_noticeboard(accent)
 	_flush()
+	_office_ambience=GeneratedAudio.emitter(self,"office_air",Vector3(0,1,-1),-22.0,18.0,true)
 	_people=FloorStaff.new()
 	_people.name="DepartmentStaff"
 	_people.level=level
@@ -93,6 +96,7 @@ func get_floor_stats() -> Dictionary:
 	return {"level":level,"department":DEPARTMENTS[level-1],"desks":_desks,"chairs":_chairs,"plants":_plants,"parts":_parts,"colliders":_colliders,"batches":get_children().filter(func(n):return n is MultiMeshInstance3D).size()}
 
 func set_occupied(active: bool) -> void:
+	GeneratedAudio.activate(_office_ambience,active)
 	for lamp in _lights:
 		lamp.visible=active
 	if is_instance_valid(_rage):

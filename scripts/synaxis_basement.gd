@@ -1,5 +1,6 @@
 extends "res://scripts/synaxis_workfloor.gd"
 ## Physical B1 infrastructure level. No permanent per-rack processing.
+const GeneratedSFX=preload("res://scripts/synaxis_generated_audio.gd")
 const FLOOR=-1
 const TITLE="B1 / INFORMATION TECHNOLOGY & INFRASTRUCTURE"
 const GOAL=Vector3(-5,1.15,4)
@@ -91,7 +92,10 @@ func _rack(at:Vector3,face:float) -> void:
 		_part("black",at+Vector3(face*.495,y,-.50),Vector3(.02,.11,.05))
 
 func _build_hum() -> void:
-	# Quiet original synthetic HVAC tone; no external audio or loud exposure.
+	_hum=GeneratedSFX.emitter(self,"server_fans",Vector3(0,1,-4.9),-18.0,18.0,true)
+	if _hum!=null:
+		return
+	# Quiet original synthetic HVAC fallback until an approved clip exists.
 	const RATE=22050
 	var pcm:=PackedByteArray()
 	pcm.resize(RATE*2)
