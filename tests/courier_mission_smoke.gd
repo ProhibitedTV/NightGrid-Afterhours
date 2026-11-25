@@ -1,6 +1,7 @@
 extends SceneTree
 const Director = preload("res://scripts/courier_mission.gd")
 const Wallet = preload("res://scripts/progression_ledger.gd")
+const Story = preload("res://scripts/story_mission.gd")
 
 func _initialize() -> void:
 	call_deferred("_verify")
@@ -35,6 +36,22 @@ func _verify() -> void:
 	if not check(restored.advance("deliver", dropoff, wallet).get("reward") == 250 and wallet.balance == 250 and restored.completed_runs == 1, "reward and run advance together"):
 		return
 	if not check(restored.advance("deliver", dropoff, wallet).is_empty() and wallet.balance == 250 and restored.payout() == 300, "duplicate event rejected and next payout preserved"):
+		return
+	var story := Story.new()
+	if not check(story.event("courier_delivered", wallet).is_empty() and story.event("mara_talk", wallet) == "started", "contact must precede delivery"):
+		return
+	if not check(story.event("mara_talk", wallet).is_empty() and story.interrupt("failed") and story.step == 0 and story.event("mara_talk", wallet) == "started", "failure requires retry at contact"):
+		return
+	if not check(story.interrupt("abandoned") and story.event("mara_talk", wallet) == "started" and story.event("courier_delivered", wallet) == "delivered", "abandon and retry"):
+		return
+	var copy := Story.new()
+	if not check(copy.restore(JSON.parse_string(JSON.stringify(story.snapshot()))) and copy.step == 2 and not copy.restore({"version":1,"id":Story.ID,"status":"active","step":3}), "validated story restore"):
+		return
+	wallet.set_balance(Wallet.MAX_CASH)
+	if not check(copy.event("mara_talk", wallet) == "blocked" and copy.step == 2, "failed settlement retains objective"):
+		return
+	wallet.set_balance(0)
+	if not check(copy.event("mara_talk", wallet) == "complete" and copy.event("mara_talk", wallet).is_empty() and wallet.balance == Story.REWARD, "one-time contact reward"):
 		return
 	print("COURIER_MISSION PASS: route validation, restart, restore, rollback and payout")
 	quit(0)

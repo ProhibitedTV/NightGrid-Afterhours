@@ -63,6 +63,7 @@ const VEHICLE_COLORS = [
 	Color("9b75e7"), Color("dedee0"), Color("58c99e")
 ]
 const CourierMission = preload("res://scripts/courier_mission.gd")
+const StoryMission = preload("res://scripts/story_mission.gd")
 
 var rng := RandomNumberGenerator.new()
 var player: CharacterBody3D
@@ -192,6 +193,7 @@ var cash: int:
 var health := 100.0
 var heat := 0.0
 var courier_mission := CourierMission.new()
+var story_mission := StoryMission.new()
 # Compatibility accessors for HUD and existing save fields.
 var deliveries: int:
 	get:
@@ -409,6 +411,10 @@ func _on_menu_action(action: String) -> void:
 				_refresh_courier_target()
 				_notify("Package abandoned. Return to the pickup to retry.")
 			game_menu.call("open_journal", _journal_context())
+		"abandon_story":
+			if story_mission.interrupt("abandoned"):
+				_notify("Contact mission abandoned. Speak to Mara to retry.")
+			game_menu.call("open_journal", _journal_context())
 
 func _journal_context() -> Dictionary:
 	var outside: Vector3 = interiors.get("exterior_position") if interiors.call("is_inside") else _actor().global_position
@@ -423,6 +429,8 @@ func _journal_context() -> Dictionary:
 		"seed": session.get("world_seed"),
 		"main_objective": "%s  •  STEP %d/%d  •  %dm  •  $%d" % [objective["title"], objective["step"], objective["total_steps"], remaining, objective["reward"]],
 		"courier_can_restart": carrying,
+		"story_objective": story_mission.journal(),
+		"story_can_abandon": story_mission.status == "active",
 		"venue_job": _venue_job_text(),
 		"civic_job": _civic_job_text(),
 		"cash": cash, "health": health, "heat": heat,
@@ -1059,6 +1067,8 @@ func _advance_mission() -> void:
 			world_audio.call("play_event", "DELIVERY", _actor().global_position)
 			_refresh_courier_target()
 			_notify("Delivery done! +$%d. Next pickup marked in amber." % int(result["reward"]))
+			if story_mission.event("courier_delivered", progression) == "delivered":
+				_notify("Delivery done! +$%d. Report back to Mara at Lantern Cup." % int(result["reward"]))
 		"blocked":
 			_notify("Cannot settle delivery. Check wallet capacity.")
 
@@ -1350,6 +1360,7 @@ func _respawn() -> void:
 	heat = 0.0
 	wanted.reset()
 	_pending_theft = null
+	var failed_story := story_mission.interrupt("failed")
 	progression.charge_up_to(100)
 	for officer in officers + returning_units:
 		if is_instance_valid(officer):
@@ -1359,7 +1370,7 @@ func _respawn() -> void:
 	dispatch.update_case(Vector3.INF, 0)
 	city_details.call("set_focus", player.global_position)
 	_snap_camera()
-	_notify("Back at the safehouse. Medical and towing fee: up to $100.")
+	_notify("Back at the safehouse. Medical and towing fee: up to $100." + (" Contact mission failed; speak to Mara to retry." if failed_story else ""))
 
 func _notify(message: String) -> void:
 	notification = message
@@ -1706,7 +1717,7 @@ func _capture_snapshot() -> Dictionary:
 	var state := {
 		"player_position": [saved_at.x, saved_at.y, saved_at.z],
 		"camera_yaw": yaw, "cash": cash, "progression": progression.snapshot(), "health": health, "heat": heat,
-		"deliveries": deliveries, "carrying": carrying,
+		"deliveries": deliveries, "carrying": carrying, "story_mission": story_mission.snapshot(),
 		"hour": day_night.get("hour"), "cars": stored_cars,
 		"occupied_car": cars.find(current_car),
 		"traffic": traffic.call("snapshot"), "rail": rail.call("snapshot"),
@@ -1770,6 +1781,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 		if p.is_finite() and absf(p.x) <= 390.0 and absf(p.z) <= 390.0 and absf(p.y) <= 25.0 and heat >= Wanted.MIN_HEAT:
 			wanted.last_known = p
 	courier_mission.restore(data.get("deliveries", 0), data.get("carrying", false))
+	story_mission.restore(data.get("story_mission", StoryMission.new().snapshot()))
 	yaw = float(data.get("camera_yaw", 0.0))
 	var position_data: Array = data["player_position"]
 	player.global_position = Vector3(float(position_data[0]), float(position_data[1]), float(position_data[2]))
@@ -2412,6 +2424,16 @@ func _venue_action(option: int) -> void:
 			if not response.is_empty():
 				mara_dialogue_line = str(response["line"])
 				_notify("MARA / " + str(response["topic"]))
+			if interiors.call("active_site_id") == "lantern_cup" and interiors.call("counter_reachable", player.global_position):
+				match story_mission.event("mara_talk", progression):
+					"started":
+						mara_dialogue_line = "Mara: I need someone who knows these streets. Finish a courier run, then come tell me how it went."
+						_notify("NIGHT SHIFT CONTACT / New mission")
+					"complete":
+						mara_dialogue_line = "Mara: You made it back. Keep the extra hundred. This city needs people who show up."
+						_notify("NIGHT SHIFT CONTACT COMPLETE +$%d" % StoryMission.REWARD)
+					"blocked":
+						_notify("Wallet full. Speak to Mara again after spending some cash.")
 			_update_venue_panel()
 		return
 	if not bool(venue_system.call("is_open", venue_selected_id)):
@@ -2754,6 +2776,8 @@ func _update_hud() -> void:
 	hud_navigation.visible = navigation_waypoint != null
 	hud_navigation.text = navigation_text() if navigation_waypoint != null else ""
 	var jobs: Array[String] = []
+	if story_mission.status == "active":
+		jobs.append(story_mission.journal())
 	if not venue_job_active.is_empty():
 		jobs.append(_venue_job_text())
 	if not civic_job_active.is_empty():
