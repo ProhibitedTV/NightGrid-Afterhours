@@ -183,6 +183,8 @@ func dress_clothing_store(store_id:String=ClothingStore.ID) -> void:
 			display.append(stock_id)
 		elif Wardrobe.piece_valid(stock_id) and Wardrobe.PIECES[stock_id]["slot"] in ["jacket","pants"]:
 			display.append(stock_id)
+	# Put the newest collection on the front fixtures; preserve a stable display order.
+	display.reverse()
 	# Three collision-backed display fixtures with folded colorways.
 	var fixture_index:=0
 	for z in [2.6,6.3,11.8]:
@@ -196,9 +198,17 @@ func dress_clothing_store(store_id:String=ClothingStore.ID) -> void:
 			var at:=Vector3(3.48,1.15,z-.48+float(i)*.48)
 			for layer in range(3):
 				_visual("Worktop",Vector3(at.x,1.00+float(layer)*.065,at.z),Vector3(.60,.058,.36),_mat(tint.darkened(.24+float(layer)*.06)))
-			# Shoulder/sleeve garment silhouettes on a display rail.
-			_visual("Worktop",Vector3(4.04,1.58,at.z),Vector3(.15,.62,.35),_mat(tint.darkened(.25)))
-			_visual("Worktop",Vector3(4.04,1.74,at.z),Vector3(.16,.23,.45),_mat(tint.darkened(.25)))
+			var cloth:=_mat(tint.darkened(.25))
+			if Wardrobe.piece_valid(id) and item["slot"]=="pants":
+				_visual("Worktop",Vector3(4.04,1.80,at.z),Vector3(.13,.18,.34),cloth)
+				for leg in [-.085,.085]:
+					_visual("Worktop",Vector3(4.04,1.49,at.z+leg),Vector3(.12,.48,.15),cloth)
+			else:
+				_visual("Worktop",Vector3(4.04,1.58,at.z),Vector3(.15,.62,.35),cloth)
+				_visual("Worktop",Vector3(4.04,1.74,at.z),Vector3(.16,.23,.45),cloth)
+			var listing:=Wardrobe.listing(id)
+			_shop_label("$%d" % listing["price"],Vector3(2.79,1.04,at.z),.002,-PI/2)
+		fixture_index+=1
 	for z in [2.3,6.1,10.7,14.5]:
 		_visual("CeilingFixture",Vector3(0,ROOM_HEIGHT-.13,z),Vector3(2.6,.12,.42),_mat(Color(theme["light"]),true))
 	# Branded sign panels, counter point-of-sale and merchandise tags.
