@@ -1,6 +1,6 @@
 # NightGrid audio production studio
 
-Part of [#308](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/308) and [#33](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/33). This is the first **audition-only** implementation. It produces local candidate WAVs, not game assets. No neural synthesis or GPU benchmark has been performed by the PR author. The existing soundtrack, spatial audio, dispatch and SFX work are not replaced.
+Part of [#308](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/308) and [#33](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/33). This implementation supports auditions, locked synthetic references, reference-conditioned production candidates, and explicit publishing. No actual game audio has yet been generated. No neural synthesis or GPU benchmark has been performed by the PR author. The existing soundtrack, spatial audio, dispatch and SFX work are not replaced.
 
 ## Repeatable authoring
 
@@ -23,9 +23,9 @@ python tools/voice/studio.py approve --id synaxis.jetson.blinds --take FINGERPRI
 python tools/voice/studio.py verify --id synaxis.jetson.blinds --take FINGERPRINT
 ```
 
-Model acquisition may also require the exact compatible tokenizer assets in the local Hugging Face cache; if offline inference fails, resolve that explicitly, never silently switch to online inference. The implementation uses VoiceDesign for *auditions only*. Re-running the same seed and package settings does not guarantee bit-identical synthesis across different GPUs. For an existing verified candidate the cache avoids rerendering. A new seed generates a distinct take. Each directory is keyed by text, character direction and generation settings, and holds normalized mono 48 kHz PCM, a provenance record and optional explicit review bound to both hashes. Review is not cryptographic identity authentication and is not a substitute for a license check. No production publish action until character reference locking and asset intake are implemented.
+Model acquisition may also require the exact compatible tokenizer assets in the local Hugging Face cache; if offline inference fails, resolve that explicitly, never silently switch to online inference. The implementation uses VoiceDesign for *auditions only*. Re-running the same seed and package settings does not guarantee bit-identical synthesis across different GPUs. For an existing verified candidate the cache avoids rerendering. A new seed generates a distinct take. Each directory is keyed by text, character direction and generation settings, and holds normalized mono 48 kHz PCM, a provenance record and optional explicit review bound to both hashes. Review is not cryptographic identity authentication and is not a substitute for a license check. The production workflow below adds character reference locking and explicit asset intake.
 
-After audition selection: freeze original synthetic voice reference WAV + transcript + hash and model revision; use Qwen Base voice clone for consistent casting across lines. VoiceDesign calls with matching descriptions alone do not ensure the same voice. Compare Chatterbox in a separate environment; optionally use RVC only with reviewed checkpoint/reference permissions. No real-person impersonation. Use offline ASR and language review as additional acceptance checks, not substitutes for listening.
+After audition selection: freeze original synthetic voice reference WAV + transcript + hash and model revision using the production tool; use Qwen Base voice clone for consistent casting across lines. VoiceDesign calls with matching descriptions alone do not ensure the same voice. Compare Chatterbox in a separate environment; optionally use RVC only with reviewed checkpoint/reference permissions. No real-person impersonation. Use offline ASR and language review as additional acceptance checks, not substitutes for listening.
 
 ## Whole-city coverage and delivery order
 
@@ -52,8 +52,27 @@ Acceptance per scene: native Windows capture at actual play volume, listening an
 ## Remaining implementation
 
 1. Native GPU smoke and blind auditions (six fixture lines, several seeds).
-2. Locked voice references and Qwen Base adapter; Chatterbox comparison.
-3. Automated transcript/duration QC, publish/verify contract, game-side voice director and lip sync.
+2. Benchmark the implemented locked voice references and Qwen Base adapter; Chatterbox comparison.
+3. Automated transcript QC, required asset coverage gate, game-side voice director and lip sync. Publish/verify contract and basic PCM duration checks implemented.
 4. Integrate into corporate branch after coordination; expand coverage in location-specific batches.
 5. Unify the SFX authoring contract from #307 without replacing its existing working paths; audit model-specific commercial eligibility before publication. Existing AudioCraft weights and Stable Audio checkpoints have different terms. No automatic license inference from source code.
 
+
+## Lock a cast member and bake production lines
+
+After approving a VoiceDesign audition with studio.py, run:
+
+```sh
+python tools/voice/production.py lock --id synaxis.jetson.blinds --take AUDITION_FINGERPRINT
+hf download Qwen/Qwen3-TTS-12Hz-1.7B-Base --revision BASE_REVISION
+python tools/voice/production.py generate --id synaxis.jetson.blinds --revision BASE_REVISION --seed 310
+python tools/voice/production.py approve --id synaxis.jetson.blinds --take PRODUCTION_FINGERPRINT --reviewer "Creative director" --notes "Reviewed performance, transcript and identity" --rights-checked
+python tools/voice/production.py publish --id synaxis.jetson.blinds --take PRODUCTION_FINGERPRINT
+python tools/voice/production.py verify-library
+```
+
+Replace placeholders with actual exact model revisions and printed candidate fingerprints. A cast lock contains the reviewed original synthetic WAV, transcript, original metadata and rights attestation. Back up `dist/voice-cast` to a private authoring archive; the public game repository receives only approved production clips and their provenance, not the reference WAV. The production adapter refuses to replace a locked character or existing published line silently. To revise a published line, deliberately archive/remove its old directory, publish a replacement, review the diff and rerun checks. Recasting requires replacing **all** published lines for the character together, not mixing voices.
+
+The Qwen Base reference-conditioned API does not take free-form acting direction in this implementation; the original direction remains in the take metadata and must be checked by listening. Vary seed and evaluate alternate backends for emotional performance. Identical model/reference hashes are a consistency aid, not proof of perceived voice identity. Do not claim production quality before real auditions.
+
+Published path: `assets/audio/voiced/<line-id>/take.wav`, with `take.json` and `review.json`. Library verification runs offline without models, checks existing audio against the current manifest and rejects mixed cast identities. An empty library is allowed while authoring; this is not yet a required-coverage or runtime playback gate. The six current lines are audition fixtures, not the complete canonical dialogue catalog; the integration pass must bind them to the actual story source before shipping. Only one writer should use the pipeline at a time. No automatic publication.
