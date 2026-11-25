@@ -1,0 +1,52 @@
+{
+  "source_pull_request": 122,
+  "archive_source_commit": "e6f84683f6ee3bfa38befdbeb6fd12b989a014eb",
+  "rendered_source_revision": "0b1ead821cc46d6db6fe76bf4874737b6d7b8f5a",
+  "images": {
+    "01-morrow-bay-neon-night.png": {
+      "git_blob_sha": "43b2bf9342e4ea1cd171b12a25fc74cf39d4b613",
+      "bytes": 580848,
+      "recorded_sha256": "05753fb2863e9eb943e8d6e15e5c4d29aeacf2f21af6073c2910690d18c08d19"
+    },
+    "02-vesper-market-nightlife.png": {
+      "git_blob_sha": "4a899336b2299b12ac049791c0347e481e47b5a0",
+      "bytes": 802606,
+      "recorded_sha256": "c5a6486073202c9686cbfe703b269a69b1245d983e5bcebf0ce0881ee17c7318"
+    },
+    "03-m-line-helix-terminal.png": {
+      "git_blob_sha": "b8d94375f001e597eec4858e6ec99fb9b989db04",
+      "bytes": 388170,
+      "recorded_sha256": "7a8d668ab4d9531845f5c03945c1967d79af8d2a070942478fef0d0b779533bc"
+    },
+    "04-horizon-commons-daylight.png": {
+      "git_blob_sha": "094328d5002d91374d2c86ab7a6d8c92c1784eb4",
+      "bytes": 697885,
+      "recorded_sha256": "4718aa7e952f4d1b2aae34c30758ef7ef3750239116c078f14a89fb5d61f0bab"
+    },
+    "05-quay-fresh-interior.png": {
+      "git_blob_sha": "97c360dd8997727a2cb8b3a80d812e1c8fc211f6",
+      "bytes": 228066,
+      "recorded_sha256": "23d518f311355d7ace74676c5e344bf35fff9075b821f77ba41915818351256d"
+    },
+    "06-title-menu.png": {
+      "git_blob_sha": "03d0310e50ecf5562844caaaa4339842f3ac17f4",
+      "bytes": 138349,
+      "recorded_sha256": "940e346f6e13134d7d858f4d22b23860217b1857dde270a18a43f7c8b57238c8"
+    },
+    "07-city-map-menu.png": {
+      "git_blob_sha": "1c8424da063b1004f1e737c9271e1e537f6a7651",
+      "bytes": 145271,
+      "recorded_sha256": "563acda3b95265d466cd4c552ec0c4f7f7f2fa735e35cbd5bfbbbde4e8cd59db"
+    },
+    "08-city-bus-coachwork.png": {
+      "git_blob_sha": "87ddc45e36027fdbb0e38e2a6be8e0132beb8f02",
+      "bytes": 909810,
+      "recorded_sha256": "0ad2a792b1027570329c5a2cee05a4894e3b280d86775a8351e16bdcaf11768d"
+    },
+    "09-civilian-sedan-coachwork.png": {
+      "git_blob_sha": "b8d353b4c3ed066f84ccf363459b277fc5079ef6",
+      "bytes": 689391,
+      "recorded_sha256": "88b933dde621273ee73d470a92020518ceff990352fcc0b891155741f2a1a13d"
+    }
+  }
+}
