@@ -1,4 +1,8 @@
 extends SceneTree
+const Track = preload("res://scripts/grand_delay_track.gd")
+const Garage = preload("res://scripts/grand_delay_garage.gd")
+const Rivals = preload("res://scripts/grand_delay_rivals.gd")
+const Race = preload("res://scripts/grand_delay_race.gd")
 const Round = preload("res://scripts/arcade_round.gd")
 const Alt = preload("res://scripts/arcade_alt_round.gd")
 const Extra = preload("res://scripts/arcade_extra_round.gd")
@@ -55,6 +59,207 @@ func _verify() -> void:
 		b.advance()
 	if not check(b.lives == 2, "paywall damage"):
 		return
+	var deluxe := Round.new()
+	deluxe.start("grand_delay")
+	for i in range(10):
+		for item in deluxe.objects:
+			if item["kind"] == "feature" and item["row"] == 4:
+				deluxe.lane = item["lane"]
+		deluxe.advance()
+	if not check(deluxe.nitro_charge == 3 and deluxe.score == 300 and deluxe.strike() and not deluxe.strike(), "three shipped features charge one nitro"):
+		return
+	for item in deluxe.objects:
+		if item["kind"] == "paywall" and item["row"] == 3:
+			deluxe.lane = item["lane"]
+	var before_nitro := deluxe.lives
+	deluxe.advance()
+	deluxe.advance()
+	if not check(deluxe.lives == before_nitro and deluxe.nitro_ticks == 0, "nitro bypasses one paywall"):
+		return
+	deluxe.start("grand_delay")
+	if not check(deluxe.nitro_charge == 0 and deluxe.nitro_ticks == 0 and deluxe.streak == 0, "nitro and streak reset on replay"):
+		return
+	if not check(is_zero_approx(Track.curvature(260.0)) and Track.curvature(440.0)>.7 and Track.curvature(925.0)<-.6 and is_zero_approx(Track.road_center(440.0,0.0)), "authored curve signs and contact projection"):
+		return
+	var race = Race.new()
+	if not check(race.start("grand_delay") and race.course.size() == 30 and race.countdown > 0, "authored three-district course"):
+		return
+	for i in range(121):
+		race.advance(true)
+	if not check(race.distance < 1.0 and race.speed < 2.0, "countdown holds the car"):
+		return
+	for i in range(240):
+		race.advance(true)
+	if not check(race.speed > 70.0 and race.distance > 100.0, "throttle accelerates continuously"):
+		return
+	for i in range(90):
+		race.steer(-1.0)
+		race.advance(false,true)
+	if not check(race.position_x >= -.10 and race.position_x < .1 and race.speed <= 29.0, "braking and steering bounded"):
+		return
+	race.start("grand_delay")
+	race.countdown = 0.0
+	for i in range(3):
+		race._hit({"kind":"feature","label":"TEST"},0.0)
+	if not check(race.strike() and race.nitro_left > 0.0 and not race.strike(), "charged boost once"):
+		return
+	race._hit({"kind":"wall","label":"TEST"},0.0)
+	if not check(race.lives==3 and race.pickups==3 and race.score>300,"nitro bypasses paywall"):
+		return
+	race.speed=70.0
+	race._hit({"kind":"traffic"},.45)
+	if not check(race.near_misses==1 and race.overtakes==1,"near miss rewards skill"):
+		return
+	race._hit({"kind":"traffic"},0.0)
+	race._hit({"kind":"traffic"},0.0)
+	if not check(race.lives==2 and race.collisions==1,"contact invulnerability prevents double damage"):
+		return
+	race.start("grand_delay")
+	race.countdown=0.0
+	# Collision-free deterministic pace test isolates the checkpoint clock.
+	race.course.clear()
+	race.objects.clear()
+	race.next_event=0
+	for i in range(6000):
+		race.advance(true)
+		if race.finished:
+			break
+	if not check(race.cleared and race.distance==Race.LENGTH and race.splits.size()==3 and race.race_time<60.0,"three checkpoint sprint is winnable"):
+		return
+	# Full authored course: steer from visible objects only, without changing course,
+	# score, speed, invulnerability or object positions.
+	race.start("grand_delay")
+	for i in range(6000):
+		var closest: Dictionary = {}
+		for item in race.objects:
+			if closest.is_empty() or float(item["z"]) < float(closest["z"]):
+				closest = item
+		var target: float = 1.0
+		if not closest.is_empty():
+			target = float(closest["x"])
+			if closest["kind"] != "feature":
+				target += -.47 if target >= 2.0 else .47
+		race.steer(clampf((target-race.position_x)*4.0,-1.0,1.0))
+		race.advance(true)
+		if race.finished:
+			break
+	if not check(race.cleared and race.lives==3 and race.pickups>=9 and race.near_misses>=5 and race.score>2000,"full authored course clear with steering and real traffic"):
+		return
+	var final_race = race.result()
+	race.advance()
+	if not check(race.result()==final_race,"race result immutable"):
+		return
+	race.start("grand_delay")
+	race.countdown=0.0
+	race.remaining=Race.DT
+	race.advance()
+	if not check(race.finished and not race.cleared and race.pickups==0,"timeout and replay reset"):
+		return
+	# Controlled slide is rewarded once per authored corner, not per button tap.
+	race.start("grand_delay")
+	race.countdown=0.0
+	race.distance=440.0
+	race.speed=65.0
+	race.objects.clear()
+	race.course.clear()
+	race.next_event=0
+	race.steer(.40)
+	for i in range(24):
+		race.advance(false,true)
+	race.steer(0.0)
+	race.advance(true)
+	if not check(race.drift_count==1 and race.drift_points>40 and not race.drifting, "clean corner drift earns points"):
+		return
+	race.distance=440.0
+	race.position_x=1.0
+	race.speed=65.0
+	race.steer(.40)
+	for i in range(24):
+		race.advance(false,true)
+	race.steer(0.0)
+	race.advance(true)
+	if not check(race.drift_count==1, "one drift award per bend"):
+		return
+	race.start("grand_delay")
+	if not check(race.drift_count==0 and race.drift_awards.is_empty() and not race.shoulder, "replay clears driving state"):
+		return
+	# All cars are selectable, all have authored speed/grip differences, no unlocks.
+	var top_speeds: Array[float] = []
+	for index in range(Garage.CARS.size()):
+		race.start("grand_delay",index,false)
+		race.countdown=0.0
+		race.course.clear()
+		race.objects.clear()
+		for i in range(400):
+			race.advance(true)
+		top_speeds.append(race.speed)
+	if not check(top_speeds[1]>top_speeds[0] and top_speeds[0]>top_speeds[2] and Garage.spec(2)["grip"]>Garage.spec(1)["grip"], "distinct vehicle performance"):
+		return
+	race.start("grand_delay",1,true)
+	if not check(race.rivals.size()==3 and race.race_place()==4 and race.car_index==1, "competitive starting grid"):
+		return
+	race.countdown=0.0
+	for i in range(120):
+		race.advance(true)
+	if not check(float(race.rivals[0]["z"])>12.0 and float(race.rivals[0]["speed"])>0.0, "rivals advance under own acceleration"):
+		return
+	# Exact finish ordering and contact cooldown isolated from the traffic model.
+	var ai_grid = Rivals.new_grid()
+	var ai_time = 0.0
+	for i in range(4200):
+		ai_time += Race.DT
+		Rivals.advance(ai_grid,race.objects,race.course,Race.DT,ai_time)
+	for driver in ai_grid:
+		if not check(float(driver["finish"])>40.0 and float(driver["finish"])<65.0 and float(driver["z"])==Race.LENGTH, "each rival completes the full sprint"):
+			return
+	var grid = Rivals.new_grid()
+	grid[0]["finish"]=48.0
+	grid[1]["finish"]=51.0
+	if not check(Rivals.place(grid,Race.LENGTH,50.0)==2, "finish-time ordering"):
+		return
+	race.rival_cooldown=0.0
+	race.rivals[0]["z"]=race.distance
+	race.rivals[0]["x"]=race.position_x
+	var before_contact: float = race.speed
+	var before_lives: int = race.lives
+	race._rival_contact()
+	race._rival_contact()
+	if not check(race.rival_contacts==1 and race.speed<before_contact and race.lives==before_lives, "rival contact is a bounded speed penalty"):
+		return
+	race.start("grand_delay")
+	if not check(race.rivals.is_empty() and race.car_index==0 and race.rival_contacts==0, "solo replay clears competition"):
+		return
+	# Complete competitive run through the same public controls. Do not require a
+	# perfect finish here: it is a regression for mode settlement, not tuning.
+	race.start("grand_delay",1,true)
+	for i in range(6000):
+		var next: Dictionary = {}
+		for item in race.objects:
+			if next.is_empty() or float(item["z"])<float(next["z"]):
+				next=item
+		var lane_target = 1.0
+		if not next.is_empty():
+			lane_target=float(next["x"])
+			if next["kind"]!="feature":
+				lane_target+=-.47 if lane_target>=2.0 else .47
+		race.steer(clampf((lane_target-race.position_x)*4.0,-1.0,1.0))
+		race.advance(true)
+		if race.finished:
+			break
+	if not check(race.finished and race.cleared and race.finish_place>=1 and race.finish_place<=4 and race.score<=Race.MAX_SCORE, "competitive sprint settles bounded final position"):
+		return
+	var competitive_result = race.result()
+	race.advance(true)
+	if not check(race.result()==competitive_result, "competitive finish remains immutable"):
+		return
+	var parry := Round.new()
+	parry.start("claw_compliance")
+	parry.objects.append({"lane":1,"row":Round.END_ROW-1,"kind":"drone"})
+	if not check(parry.strike() and parry.parries==1 and parry.score==125 and parry.claw_combo==1,"last-tick parry grants unique bonus"):
+		return
+	parry.start("claw_compliance")
+	if not check(parry.parries==0 and parry.claw_combo==0,"parry reset"):
+		return
 	var patch := Alt.new()
 	if not check(patch.start("patch_day") and patch.strike() and patch.score == 150 and not patch.strike(), "patch repairs exactly once"):
 		return
@@ -74,8 +279,15 @@ func _verify() -> void:
 		patch.advance()
 	if not check(not patch.result()["cleared"] and patch.lives == 0, "unrepaired bugs crash servers"):
 		return
+	patch.start("patch_day")
+	patch.bugs[patch.cursor]=2
+	if not check(patch.strike() and patch.urgent_repairs==1 and patch.repair_combo==1,"urgent repair tracked"):
+		return
 	var indie := Alt.new()
 	indie.start("indie_dev")
+	var preview := indie.studio_preview(0)
+	if not check(preview["quality"]==3 and preview["energy"]==4 and indie.quality==0,"studio preview is read-only"):
+		return
 	for action in [0, 0, 1, 2, 0, 1, 3, 2]:
 		indie.choice = action
 		if not check(indie.strike(), "studio action affordable"):
@@ -192,9 +404,13 @@ func _verify() -> void:
 	if not check(screen.state == "select" and screen.get_node_or_null("CabinetSpeaker") != null and screen.CUES.size() == 4, "cabinet scene loads with one speaker and four cues"):
 		return
 	screen._start_round()
-	if not check(screen.state == "play" and not screen.round.finished, "screen launches title"):
+	if not check(screen.state == "play" and screen.round is Race and not screen.round.finished, "screen launches dedicated race"):
+		return
+	if not check(screen.race_audio != null and screen.race_audio.engine.stream.loop_mode == AudioStreamWAV.LOOP_FORWARD and screen.race_audio.engine.stream.loop_end > 0, "race owns original looping engine sound"):
 		return
 	screen._show_selection()
+	if not check(not screen.race_audio.engine.playing and not screen.race_audio.tires.playing, "abandon stops race audio"):
+		return
 	if not check(not screen.is_processing(), "abandoned round stops ticking"):
 		return
 	screen.selection = 3

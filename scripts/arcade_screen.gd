@@ -6,7 +6,20 @@ const AltRound = preload("res://scripts/arcade_alt_round.gd")
 const ExtraRound = preload("res://scripts/arcade_extra_round.gd")
 const SeasonRound = preload("res://scripts/arcade_season_round.gd")
 const ClassicRound = preload("res://scripts/arcade_classic_round.gd")
+const Race = preload("res://scripts/grand_delay_race.gd")
+const Garage = preload("res://scripts/grand_delay_garage.gd")
+var race_car := 0
+var race_competitive := true
+const RaceAudio = preload("res://scripts/grand_delay_audio.gd")
+var race_audio: Node
+const DeluxeView = preload("res://scripts/arcade_grand_delay_view.gd")
+var deluxe_view := DeluxeView.new()
+var deluxe_lane := 1.0
+var deluxe_pulse := 0.0
+var deluxe_cabinet: Node3D
 const Scores = preload("res://scripts/arcade_scores.gd")
+const CabinetArt = preload("res://scripts/arcade_cabinet.gd")
+const Guide = preload("res://scripts/arcade_play_guide.gd")
 const AudioMix = preload("res://scripts/audio_mix.gd")
 const CUES = {
 	"start": preload("res://assets/arcade/audio/start.wav"),
@@ -24,6 +37,7 @@ var elapsed := 0.0
 var best: Dictionary = {}
 var locked_cabinet := ""
 var new_record := false
+var old_best := 0
 
 func configure_cabinet(id: String, previous_best: Dictionary) -> bool:
 	if not Round.IDS.has(id):
@@ -55,18 +69,23 @@ func _unhandled_input(event: InputEvent) -> void:
 		var direction := -1 if event.is_action_pressed("ui_left") else 1
 		if state == "select" and locked_cabinet.is_empty():
 			selection = posmod(selection + direction, Round.IDS.size())
-		elif state == "play" and not round is ClassicRound:
+		elif state == "select" and locked_cabinet == "grand_delay":
+			race_competitive = not race_competitive
+		elif state == "play" and not round is ClassicRound and not round is Race:
 			var before := Vector2i(round.score,round.lives)
 			round.steer(direction)
 			_feedback_cue(before)
 			_finish_if_needed()
 	elif event.is_action_pressed("ui_up") or event.is_action_pressed("ui_down"):
-		if state == "play" and (round is AltRound or round is ExtraRound or round is SeasonRound):
+		if state == "select" and Round.IDS[selection] == "grand_delay":
+			race_car = posmod(race_car + (1 if event.is_action_pressed("ui_down") else -1),Garage.CARS.size())
+		elif state == "play" and (round is AltRound or round is ExtraRound or round is SeasonRound):
 			var before := Vector2i(round.score,round.lives)
 			round.vertical(-1 if event.is_action_pressed("ui_up") else 1)
 			_feedback_cue(before)
 			_finish_if_needed()
 	elif event.is_action_pressed("ui_accept"):
+		deluxe_pulse = 1.0
 		match state:
 			"select":
 				_start_round()
@@ -83,6 +102,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	queue_redraw()
 
 func _show_selection() -> void:
+	_reset_deluxe_controls()
 	state = "select"
 	elapsed = 0.0
 	set_process(false)
@@ -90,7 +110,13 @@ func _show_selection() -> void:
 
 func _start_round() -> void:
 	var id: String = Round.IDS[selection]
-	if id == "starline_patrol" or id == "neon_rebound":
+	if id == "grand_delay":
+		round = Race.new()
+		if not is_instance_valid(race_audio):
+			race_audio = RaceAudio.new()
+			race_audio.name = "RaceAudio"
+			add_child(race_audio)
+	elif id == "starline_patrol" or id == "neon_rebound":
 		round = ClassicRound.new()
 	elif id == "open_world_checklist" or id == "battle_pass_hero":
 		round = SeasonRound.new()
@@ -100,16 +126,25 @@ func _start_round() -> void:
 		round = AltRound.new()
 	else:
 		round = Round.new()
-	if not round.start(id):
+	var started: bool = round.start(id,race_car,race_competitive) if round is Race else round.start(id)
+	if not started:
 		return
 	state = "play"
+	deluxe_lane = 1.0
+	deluxe_pulse = 0.0
 	new_record = false
+	old_best = int(best.get(id,0))
 	_play_cue("start")
+	if round is Race:
+		race_audio.call("start_race")
 	elapsed = 0.0
 	set_process(id != "indie_dev" and id != "day_one_dlc")
 	queue_redraw()
 
 func _process(delta: float) -> void:
+	if round is Race:
+		_process_race(delta)
+		return
 	if round is ClassicRound:
 		_process_classic(delta)
 		return
@@ -129,6 +164,28 @@ func _process(delta: float) -> void:
 		_feedback_cue(before)
 		_finish_if_needed()
 		queue_redraw()
+
+func _process_race(delta: float) -> void:
+	elapsed += minf(delta,Race.DT*5.0)
+	var axis = Input.get_axis("ui_left","ui_right")
+	round.steer(axis)
+	var throttle = Input.is_action_pressed("ui_up")
+	var brake = Input.is_action_pressed("ui_down")
+	var before = Vector2i(round.score,round.lives)
+	for i in range(5):
+		if elapsed < Race.DT or round.finished:
+			break
+		elapsed -= Race.DT
+		round.advance(throttle,brake)
+	if is_instance_valid(race_audio):
+		race_audio.call("update_race",round,delta)
+	deluxe_lane = move_toward(deluxe_lane,1.0+axis,delta*7.0)
+	deluxe_pulse = move_toward(deluxe_pulse,0.0,delta*5.0)
+	if is_instance_valid(deluxe_cabinet):
+		deluxe_cabinet.call("set_deluxe_controls",deluxe_lane,deluxe_pulse)
+	_feedback_cue(before)
+	_finish_if_needed()
+	queue_redraw()
 
 func _process_classic(delta: float) -> void:
 	# Bounded catch-up. Only the one active cabinet runs these fixed steps.
@@ -153,6 +210,7 @@ func _finish_if_needed() -> void:
 			_play_cue("record")
 			score_recorded.emit(round.game_id,round.score)
 		state = "result"
+		_reset_deluxe_controls()
 		set_process(false)
 
 func _play_cue(id: String) -> void:
@@ -177,6 +235,9 @@ func _draw() -> void:
 		return
 	draw_set_transform((size - Vector2(800, 480) * scale_factor) * 0.5, 0.0, Vector2.ONE * scale_factor)
 	var id: String = Round.IDS[selection]
+	if id == "grand_delay":
+		deluxe_view.render(self,deluxe_lane,deluxe_pulse)
+		return
 	var info: Dictionary = Round.GAMES[id]
 	var accent := Color(str(info["color"]))
 	draw_rect(Rect2(16, 16, 768, 448), Color("26343e"), false, 2.0)
@@ -184,12 +245,16 @@ func _draw() -> void:
 	_line(str(info["title"]), Vector2(32, 89), accent, 30)
 	_line(str(info["studio"]) + "  /  " + str(info["tagline"]), Vector2(32, 117), Color("e0e6e9"), 17)
 	if state == "select":
-		_line(str(info["instructions"]), Vector2(32, 190), Color.WHITE, 18)
-		_line("NEIGHBORHOOD LEADERBOARD", Vector2(32, 230), accent, 20)
+		draw_texture_rect(CabinetArt.ART[id],Rect2(32,141,145,180),false)
+		_line(str(Guide.TIPS[id][0]), Vector2(195, 163), Color.WHITE, 17)
+		_line(str(Guide.TIPS[id][1]), Vector2(195, 186), accent, 16)
+		_line("NEIGHBORHOOD LEADERBOARD", Vector2(195, 223), accent, 18)
 		var board: Array = Scores.board(id,best)
 		for i in range(board.size()):
 			var record: Array = board[i]
-			_line("%d.  %s   %06d" % [i+1,record[0],record[1]], Vector2(32+(i%2)*355,257+floori(float(i)/2.0)*27), accent if record[0] == "YOU" else Color.WHITE, 18)
+			_line("%d.  %s   %06d" % [i+1,record[0],record[1]], Vector2(195+(i%2)*275,250+floori(float(i)/2.0)*27), accent if record[0] == "YOU" else Color.WHITE, 18)
+		var level := Scores.mastery_level(id,int(best.get(id,0)))
+		_line("MASTERY %d / 3    /    ALL CONTENT INCLUDED" % level,Vector2(195,305),accent,16)
 		_line("<  SELECT CABINET  >  %d / %d" % [selection + 1, Round.IDS.size()] if locked_cabinet.is_empty() else "FREE PRACTICE / NO SERVER REQUIRED", Vector2(32, 325), accent, 22)
 		_line("ENTER / A  PLAY     ESC / B  EXIT", Vector2(32, 428), Color.WHITE, 18)
 	elif state == "result":
@@ -205,6 +270,7 @@ func _draw() -> void:
 		if round is AltRound or round is ExtraRound or round is SeasonRound or round is ClassicRound:
 			joke = round.feedback
 		_line(joke, Vector2(32, 308), accent, 19)
+		_line("MASTERY %d / 3   •   NEXT: %05d" % [Scores.mastery_level(id,int(best.get(id,0))),int(Scores.MASTERY[id][mini(2,Scores.mastery_level(id,int(best.get(id,0))))])],Vector2(32,382),Color("e9c283"),16)
 		_line("ENTER / A  CABINETS     ESC / B  BACK", Vector2(32, 428), Color.WHITE, 18)
 	elif id == "patch_day":
 		_draw_patch(accent)
@@ -233,6 +299,11 @@ func _draw() -> void:
 		draw_rect(Rect2(player_center - Vector2(22, 13), Vector2(44, 26)), accent)
 		if id == "claw_compliance":
 			draw_rect(Rect2(player_center - Vector2(28, 100), Vector2(56, 100)), accent, false, 1.0)
+			_line("PARRIES %02d" % round.parries,Vector2(32,211),accent,18)
+			_line("COMBO %02d" % round.claw_combo,Vector2(32,238),Color.WHITE,18)
+			if round.claw_flash>0:
+				draw_arc(player_center-Vector2(0,40),42,PI,TAU,24,accent,4,true)
+			_line(round.feedback,Vector2(32,407),accent,14)
 		_line("ARROWS / D-PAD  MOVE    ENTER / A  STRIKE" if id == "claw_compliance" else "ARROWS / D-PAD  STEER", Vector2(32, 428), Color.WHITE, 16)
 		_line("ESC / B  ABANDON", Vector2(570, 428), Color("a0b0ba"), 16)
 
@@ -253,6 +324,7 @@ func _draw_patch(accent: Color) -> void:
 				_line("OK", at + Vector2(35, 31), Color("69d8c2"), 16)
 			if cell == round.cursor:
 				draw_rect(bounds, accent, false, 3.0)
+	_line("COMBO %d / FIXED %d" % [round.repair_combo,round.repaired],Vector2(32,175),accent,15)
 	_line(round.feedback, Vector2(32, 391), accent, 17)
 	_line("ARROWS / D-PAD  MOVE    ENTER / A  REPAIR", Vector2(32, 428), Color.WHITE, 16)
 	_line("ESC / B  ABANDON", Vector2(570, 428), Color("a0b0ba"), 16)
@@ -268,7 +340,12 @@ func _draw_studio(accent: Color) -> void:
 			draw_rect(Rect2(at, Vector2(736, 36)), tint, false, 2.0)
 		_line(AltRound.ACTIONS[n], at + Vector2(12, 24), tint, 19)
 		_line(AltRound.DETAILS[n], at + Vector2(180, 24), Color.WHITE, 17)
-	_line(round.feedback, Vector2(32, 391), accent, 17)
+	var preview: Dictionary = round.studio_preview(round.choice)
+	if not preview.is_empty():
+		_line("NEXT: Q %d  BUGS %d  ENERGY %d  FANS %d" % [preview["quality"],preview["debt"],preview["energy"],preview["fans"]],Vector2(32,376),accent,14)
+	else:
+		_line("NOT ENOUGH ENERGY / REST",Vector2(32,376),Color("ed777e"),14)
+	_line(round.feedback, Vector2(32, 397), accent, 15)
 	_line("LEFT / RIGHT  CHOOSE    ENTER / A  COMMIT WEEK", Vector2(32, 428), Color.WHITE, 16)
 	_line("ESC / B  ABANDON", Vector2(570, 428), Color("a0b0ba"), 16)
 
@@ -297,6 +374,7 @@ func _draw_extra(accent: Color, gallery: bool) -> void:
 					draw_rect(bounds,accent,false,2.0)
 				else:
 					_line("%d" % value,at+Vector2(37,40),accent if value == y*3+x+1 else Color.WHITE,30)
+	_line("ACCURACY %d%% / STREAK %d" % [round.accuracy(),round.streak] if gallery else "TOTAL MOVES %d / EFFICIENT PACKS %d" % [round.puzzle_total_moves,round.puzzle_optimal],Vector2(32,180),accent,14)
 	_line(round.feedback,Vector2(32,391),accent,17)
 	_line("ARROWS / D-PAD AIM   ENTER / A FIRE OR RELOAD" if gallery else "ARROWS / D-PAD SLIDE EMPTY SPACE",Vector2(32,428),Color.WHITE,16)
 	_line("ESC / B ABANDON",Vector2(570,428),Color("a0b0ba"),16)
@@ -317,6 +395,7 @@ func _draw_checklist(accent: Color) -> void:
 			if cell == round.cursor:
 				draw_rect(bounds,accent,false,3.0)
 				draw_circle(at+Vector2(49,42),7.0,accent)
+	_line("CLEARED MAPS %d" % round.clean_waves,Vector2(32,180),accent,14)
 	_line(round.feedback,Vector2(32,391),accent,17)
 	_line("ARROWS / D-PAD MOVE AND COLLECT",Vector2(32,428),Color.WHITE,16)
 	_line("ESC / B ABANDON",Vector2(570,428),Color("a0b0ba"),16)
@@ -334,6 +413,7 @@ func _draw_season(accent: Color) -> void:
 		draw_rect(bounds,Color("35463e") if done else Color("26343e"))
 		draw_rect(bounds,accent if next else Color("53606b"),false,3.0 if next else 1.0)
 		_line(SeasonRound.COMMANDS[round.chain[i]],at+Vector2(14,44),Color("69d8c2") if done else Color.WHITE,22)
+	_line("PERFECT SEASONS %d / ERRORS %d" % [round.perfect_seasons,round.command_errors],Vector2(32,346),accent,15)
 	_line(round.feedback,Vector2(32,391),accent,17)
 	_line("ARROWS / D-PAD + ENTER / A MATCH COMMANDS",Vector2(32,428),Color.WHITE,16)
 	_line("ESC / B ABANDON",Vector2(570,428),Color("a0b0ba"),16)
@@ -355,7 +435,9 @@ func _draw_classic(accent: Color) -> void:
 		for shot in round.enemy_shots:
 			draw_circle(origin+shot,3.0,Color("f1cd82"))
 		var ship := origin+Vector2(round.player_x,ClassicRound.SHIP_Y)
-		draw_colored_polygon(PackedVector2Array([ship+Vector2(-13,8),ship+Vector2(0,-11),ship+Vector2(13,8),ship+Vector2(0,3)]),accent)
+		if round.respawn_ticks==0 or round.respawn_ticks%6<3:
+			draw_colored_polygon(PackedVector2Array([ship+Vector2(-13,8),ship+Vector2(0,-11),ship+Vector2(13,8),ship+Vector2(0,3)]),accent)
+		_line("HITS %d" % round.alien_hits,Vector2(610,146),accent,14)
 	else:
 		for brick in round.bricks:
 			var bounds: Rect2 = brick
@@ -363,7 +445,22 @@ func _draw_classic(accent: Color) -> void:
 			draw_rect(Rect2(origin+bounds.position,bounds.size),tint)
 		draw_rect(Rect2(origin+Vector2(round.player_x-ClassicRound.PADDLE_HALF,ClassicRound.SHIP_Y),Vector2(ClassicRound.PADDLE_HALF*2,7)),accent)
 		draw_circle(origin+round.ball,ClassicRound.BALL_RADIUS,Color.WHITE)
+		_line("CHAIN %d" % round.brick_chain,Vector2(610,146),accent,14)
 		if not round.launched:
 			_line("ENTER / A LAUNCH",Vector2(310,310),accent,18)
 	_line("HOLD LEFT / RIGHT   ENTER / A FIRE OR LAUNCH",Vector2(32,428),Color.WHITE,16)
 	_line("ESC / B ABANDON",Vector2(570,428),Color("a0b0ba"),16)
+
+func bind_deluxe_cabinet(cabinet: Node3D) -> void:
+	deluxe_cabinet = cabinet
+
+func _reset_deluxe_controls() -> void:
+	if is_instance_valid(race_audio):
+		race_audio.call("stop_race")
+	deluxe_lane = 1.0
+	deluxe_pulse = 0.0
+	if is_instance_valid(deluxe_cabinet):
+		deluxe_cabinet.call("set_deluxe_controls",1.0,0.0)
+
+func _exit_tree() -> void:
+	_reset_deluxe_controls()

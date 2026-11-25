@@ -55,9 +55,16 @@ func _verify() -> void:
 		Scores.record(stamps,challenge["id"],challenge["goal"])
 	if not check(Scores.circuit_count(stamps) == 8 and Scores.circuit_count(Scores.normalized(JSON.parse_string(JSON.stringify(stamps)))) == 8, "eight stamps survive save roundtrip"):
 		return
+	if not check(Scores.mastery_rows({}).size()==10 and Scores.mastery_total({})==0 and Scores.mastery_level("neon_rebound",699)==0 and Scores.mastery_level("neon_rebound",4100)==3,"ten cabinet mastery thresholds"):
+		return
+	var gold := {}
+	for id in Scores.MASTERY:
+		Scores.record(gold,id,Scores.MASTERY[id][2])
+	if not check(Scores.mastery_total(gold)==30 and Scores.mastery_total(Scores.normalized(JSON.parse_string(JSON.stringify(gold))))==30 and Scores.circuit_count(gold)==8,"mastery derives from existing saves"):
+		return
 	var board := preload("res://scripts/arcade_circuit_board.gd").new()
 	board.configure(stamps)
-	if not check(board.count == 8 and board.rows.size() == 8, "read-only circuit board"):
+	if not check(board.count == 8 and board.rows.size() == 8 and board.mastery.size()==10, "read-only circuit board"):
 		return
 	board.free()
 	var session := Session.new()

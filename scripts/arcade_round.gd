@@ -1,7 +1,7 @@
 extends RefCounted
 ## Deterministic, bounded cabinet simulation. No world, wallet or save dependencies.
 const GAMES = {
-	"grand_delay": {"title":"GRAND DELAY AUTO VI", "studio":"Milestone Mirage", "tagline":"A revolutionary city. Available eventually.", "instructions":"Steer into green feature drops. Avoid red paywalls.", "color":"69d8c2"},
+	"grand_delay": {"title":"GRAND DELAY AUTO VI", "studio":"Milestone Mirage", "tagline":"A revolutionary city. Available eventually.", "instructions":"Drive three districts. Hold up to accelerate, down to brake. Three features charge nitro.", "color":"69d8c2"},
 	"claw_compliance": {"title":"CLAW & COMPLIANCE", "studio":"Committee Interactive", "tagline":"Unleash your inner focus group.", "instructions":"Move between lanes. Strike approaching audit drones before they reach you.", "color":"efb169"},
 	"patch_day": {"title":"PATCH DAY 2077", "studio":"Quarterly Vision", "tagline":"The hotfix needs a hotfix.", "instructions":"Move across the grid and repair bugs before they crash the build.", "color":"c4a2f3"},
 	"indie_dev": {"title":"INDIE DEV SIMULATOR", "studio":"Two Friends & A Laptop", "tagline":"No shareholders were consulted.", "instructions":"Choose how to spend eight weeks. Ship a game, not a roadmap.", "color":"f1cd82"},
@@ -24,6 +24,15 @@ var lives := 3
 var step := 0
 var finished := true
 var objects: Array[Dictionary] = []
+var streak := 0
+var nitro_charge := 0
+var nitro_ticks := 0
+var feedback := ""
+var parries := 0
+var claw_combo := 0
+var claw_flash := 0
+const FEATURE_NAMES = ["WORKING AI","OFFLINE MODE","TRAFFIC AI","SAVE SLOT","ACTUAL ENDING","RADIO STATIONS","FREE PATCH"]
+const WALL_NAMES = ["PREORDER","SEASON PASS","ACCOUNT","DELUXE TAX","ROADMAP","DAY ONE DLC"]
 
 func start(id: String) -> bool:
 	if id != "grand_delay" and id != "claw_compliance":
@@ -35,6 +44,13 @@ func start(id: String) -> bool:
 	step = 0
 	finished = false
 	objects.clear()
+	streak = 0
+	nitro_charge = 0
+	nitro_ticks = 0
+	feedback = "NO ACCOUNT REQUIRED"
+	parries = 0
+	claw_combo = 0
+	claw_flash = 0
 	return true
 
 func steer(direction: int) -> void:
@@ -42,13 +58,30 @@ func steer(direction: int) -> void:
 		lane = clampi(lane + clampi(direction, -1, 1), 0, LANES - 1)
 
 func strike() -> bool:
-	if finished or game_id != "claw_compliance":
+	if finished:
+		return false
+	if game_id == "grand_delay":
+		if nitro_charge < 3 or nitro_ticks > 0:
+			return false
+		nitro_charge = 0
+		nitro_ticks = 5
+		feedback = "NITRO: FEATURE COMPLETE"
+		return true
+	if game_id != "claw_compliance":
 		return false
 	for i in range(objects.size() - 1, -1, -1):
 		var item: Dictionary = objects[i]
 		if int(item["lane"]) == lane and int(item["row"]) >= 3:
 			objects.remove_at(i)
 			score += 100
+			claw_combo += 1
+			claw_flash = 2
+			if int(item["row"]) == END_ROW-1:
+				parries += 1
+				score += 25
+				feedback = "PERFECT PARRY / NO COMMITTEE REQUIRED"
+			else:
+				feedback = "AUDIT DRONE DISABLED"
 			return true
 	return false
 
@@ -56,6 +89,7 @@ func advance() -> void:
 	if finished:
 		return
 	step += 1
+	claw_flash = maxi(0,claw_flash-1)
 	for i in range(objects.size() - 1, -1, -1):
 		var item: Dictionary = objects[i]
 		item["row"] = int(item["row"]) + 1
@@ -63,9 +97,26 @@ func advance() -> void:
 			if int(item["lane"]) == lane:
 				if item["kind"] == "feature":
 					score += 100
+					if game_id == "grand_delay":
+						streak += 1
+						nitro_charge = mini(3,nitro_charge+1)
+						feedback = "FEATURE SHIPPED: " + str(item.get("label","FEATURE"))
+				elif game_id == "grand_delay" and nitro_ticks > 0:
+					nitro_ticks = 0
+					feedback = "PAYWALL BYPASSED / NO EXTRA CHARGE"
 				else:
 					lives -= 1
+					if game_id == "claw_compliance":
+						claw_combo = 0
+						feedback = "AUDIT HIT / RECOVER"
+					if game_id == "grand_delay":
+						streak = 0
+						feedback = "PAYWALL: " + str(item.get("label","DELUXE TAX"))
+			elif game_id == "grand_delay" and item["kind"] == "feature":
+				streak = 0
 			objects.remove_at(i)
+	if nitro_ticks > 0:
+		nitro_ticks -= 1
 	if lives <= 0 or step >= ROUND_STEPS:
 		lives = maxi(lives, 0)
 		finished = true
@@ -75,8 +126,8 @@ func advance() -> void:
 		var wave := floori(float(step - 1) / 2.0)
 		var target := (int(wave) * 2 + 1) % LANES
 		if game_id == "grand_delay":
-			objects.append({"lane": target, "row": 0, "kind": "feature"})
-			objects.append({"lane": (target + 1) % LANES, "row": 0, "kind": "paywall"})
+			objects.append({"lane": target, "row": 0, "kind": "feature", "label": FEATURE_NAMES[wave % FEATURE_NAMES.size()]})
+			objects.append({"lane": (target + 1) % LANES, "row": 0, "kind": "paywall", "label": WALL_NAMES[wave % WALL_NAMES.size()]})
 		else:
 			objects.append({"lane": target, "row": 0, "kind": "drone"})
 

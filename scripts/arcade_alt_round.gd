@@ -21,6 +21,9 @@ var energy := 6
 var fans := 0
 var cleared := false
 var feedback := ""
+var repair_combo := 0
+var repaired := 0
+var urgent_repairs := 0
 
 func start(id: String) -> bool:
 	if id != "patch_day" and id != "indie_dev":
@@ -38,6 +41,9 @@ func start(id: String) -> bool:
 	energy = 6
 	fans = 0
 	cleared = false
+	repair_combo = 0
+	repaired = 0
+	urgent_repairs = 0
 	feedback = "The community is rooting for you."
 	if id == "patch_day":
 		bugs[Vector2i(1, 1)] = 5
@@ -62,9 +68,16 @@ func strike() -> bool:
 	if game_id == "patch_day":
 		if not bugs.has(cursor):
 			return false
-		score += 100 + int(bugs[cursor]) * 10
+		var ttl: int = bugs[cursor]
+		score += 100 + ttl * 10 + mini(repair_combo,4)*5
+		repair_combo += 1
+		repaired += 1
+		if ttl<=2:
+			urgent_repairs += 1
+			feedback = "Emergency hotfix! Saved the build."
+		else:
+			feedback = "Fixed! The players noticed."
 		bugs.erase(cursor)
-		feedback = "Fixed! The players noticed."
 		return true
 	return _studio_week()
 
@@ -77,6 +90,7 @@ func advance() -> void:
 		if int(bugs[cell]) <= 0:
 			bugs.erase(cell)
 			lives -= 1
+			repair_combo = 0
 			feedback = "Crash report received. Keep going!"
 	if lives <= 0 or step >= PATCH_STEPS:
 		lives = maxi(0, lives)
@@ -130,3 +144,9 @@ func _studio_week() -> bool:
 
 func result() -> Dictionary:
 	return {"game_id":game_id, "score":score, "lives":lives, "steps":step, "finished":finished, "cleared":cleared}
+
+func studio_preview(action: int) -> Dictionary:
+	var cost := 0 if action==2 else (2 if action==0 else 1)
+	if action<0 or action>=ACTIONS.size() or energy<cost:
+		return {}
+	return {"quality":quality+([3,1,0,0][action]),"debt":maxi(0,debt+[2,-3,0,0][action]),"energy":mini(8,energy+4) if action==2 else energy-cost,"fans":fans+(3 if action==3 else 0)}

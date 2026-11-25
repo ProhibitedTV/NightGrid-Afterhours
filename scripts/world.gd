@@ -2400,6 +2400,8 @@ func _open_arcade(id: String) -> bool:
 		screen.free()
 		return false
 	screen.connect("score_recorded", _record_arcade_score)
+	if id == "grand_delay":
+		screen.call("bind_deluxe_cabinet",interiors.call("arcade_cabinet_node",id))
 	return _present_arcade_overlay(screen)
 
 func _open_arcade_circuit() -> bool:

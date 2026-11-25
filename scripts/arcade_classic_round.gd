@@ -29,6 +29,9 @@ var ball := Vector2.ZERO
 var velocity := Vector2.ZERO
 var launched := false
 var feedback := ""
+var alien_hits := 0
+var brick_chain := 0
+var respawn_ticks := 0
 
 func start(id: String) -> bool:
 	if id != "starline_patrol" and id != "neon_rebound":
@@ -47,6 +50,9 @@ func start(id: String) -> bool:
 	enemies.clear()
 	enemy_shots.clear()
 	bricks.clear()
+	alien_hits = 0
+	brick_chain = 0
+	respawn_ticks = 0
 	if id == "starline_patrol":
 		_spawn_wave()
 		feedback = "Protect the colony. Three waves."
@@ -78,6 +84,7 @@ func advance() -> void:
 	if finished:
 		return
 	step += 1
+	respawn_ticks = maxi(0,respawn_ticks-1)
 	var margin := PADDLE_HALF if game_id == "neon_rebound" else 14.0
 	player_x = clampf(player_x + axis * SHIP_SPEED * DT, margin, WIDTH-margin)
 	if game_id == "starline_patrol":
@@ -116,6 +123,7 @@ func _advance_shooter() -> void:
 		for j in range(enemies.size()-1,-1,-1):
 			if Rect2(enemies[j]-Vector2(13,9),Vector2(26,18)).grow(3).has_point(shot):
 				enemies.remove_at(j)
+				alien_hits += 1
 				score += 100
 				hit = true
 				break
@@ -134,7 +142,7 @@ func _advance_shooter() -> void:
 	for i in range(enemy_shots.size()-1,-1,-1):
 		enemy_shots[i] += Vector2(0,(100.0+wave*20.0)*DT)
 		var projectile := enemy_shots[i]
-		if Rect2(Vector2(player_x-13,SHIP_Y-8),Vector2(26,16)).grow(3).has_point(projectile):
+		if respawn_ticks==0 and Rect2(Vector2(player_x-13,SHIP_Y-8),Vector2(26,16)).grow(3).has_point(projectile):
 			enemy_shots.clear()
 			_lose_life()
 			break
@@ -173,6 +181,7 @@ func _advance_bricks() -> void:
 		velocity.y = absf(velocity.y)
 	if velocity.y > 0 and old.y <= SHIP_Y-BALL_RADIUS and ball.y >= SHIP_Y-BALL_RADIUS and absf(ball.x-player_x) <= PADDLE_HALF+BALL_RADIUS:
 		ball.y = SHIP_Y-BALL_RADIUS
+		brick_chain = 0
 		var offset := clampf((ball.x-player_x)/PADDLE_HALF,-1,1)
 		var speed := minf(270.0,velocity.length()+2.0)
 		velocity = Vector2(offset*.82,-1.0).normalized()*speed
@@ -185,7 +194,8 @@ func _advance_bricks() -> void:
 				velocity.x *= -1
 			ball = old
 			bricks.remove_at(i)
-			score += 50
+			brick_chain += 1
+			score += 50 + mini(brick_chain-1,5)*10
 			break
 	if bricks.is_empty():
 		if wave >= 2:
@@ -200,6 +210,8 @@ func _advance_bricks() -> void:
 
 func _lose_life() -> void:
 	lives = maxi(0,lives-1)
+	brick_chain = 0
+	respawn_ticks = 30 if game_id=="starline_patrol" else 0
 	if lives == 0:
 		finished = true
 		feedback = "Game over. One more try?"

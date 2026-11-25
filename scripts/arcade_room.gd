@@ -23,7 +23,9 @@ const ROOK_LINES = [
 	"Games are a medium, not a monthly invoice.",
 	"Try my circuit. Eight little challenges, no expiry date. You play when you feel like it.",
 	"Those two classics by the entrance? No satire. Just games worth keeping alive.",
-	"People learned physics from bouncing a ball off a paddle. Never needed a premium edition."
+	"People learned physics from bouncing a ball off a paddle. Never needed a premium edition.",
+	"Thirty mastery medals on the board now. The classics count too.",
+	"Grand Delay has three cars. Somehow we managed to put them all on the same board."
 ]
 var cabinets: Array[Cabinet] = []
 var _line_index := 0
@@ -49,6 +51,8 @@ func _ready() -> void:
 	_sign("NO SERVER REQUIRED",Vector3(4.9,2.7,-7.9),Color("b4c9d9"),24)
 	_sign("AFTERHOURS: EARLY ACCESS TO BAD DECISIONS",Vector3(0,2.7,-7.9),Color("aab4ba"),18)
 	_sign("ROOK / REPAIRS & HIGH SCORES",Vector3(0,2.3,-5.1),Color("e9c283"),22)
+	_sign("10 GAMES / 30 MASTERY MEDALS",Vector3(0,2.05,-5.1),Color("72d7cf"),19)
+	_sign("FREE PLAY • LOCAL SCORES • NO LOGIN",Vector3(0,3.12,-7.9),Color("b4c9d9"),17)
 	var carpet := MeshInstance3D.new()
 	var mesh := BoxMesh.new()
 	mesh.size = Vector3(3.2,.025,12.0)
@@ -89,6 +93,12 @@ func regular_near(at: Vector3) -> Dictionary:
 
 func talk_regular(at: Vector3) -> Dictionary:
 	return dressing.call("talk",at) if is_instance_valid(dressing) else {}
+
+func cabinet_node(id: String) -> Node3D:
+	for cabinet in cabinets:
+		if is_instance_valid(cabinet) and cabinet.game_id == id:
+			return cabinet
+	return null
 
 func cabinet_near(at: Vector3) -> String:
 	for cabinet in cabinets:
