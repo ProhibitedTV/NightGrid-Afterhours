@@ -328,6 +328,13 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/pedestrian_pool_smoke.gd 2>&1 | tee /tmp/nightgrid-pedestrian-pool.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-pedestrian-pool.log; then exit 1; fi
+      - name: Validate Cal anniversary quest state and one-time settlement
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 45s godot --headless --path . --script res://tests/cal_quest_smoke.gd 2>&1 | tee /tmp/nightgrid-cal-quest.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-cal-quest.log; then exit 1; fi
+          grep -q "CAL_QUEST PASS:" /tmp/nightgrid-cal-quest.log
       - name: Validate authored two-person street dialogue and interruption
         timeout-minutes: 2
         run: |

@@ -132,6 +132,18 @@ func _verify()->void:
 	director.cancel_street_dialogue(speech)
 	if not _check(director.nearby_contact().is_empty(),"transition invalidates cached contact"):
 		return
+	if not _check(director.is_named_cal(first) and not director.is_named_cal(second) and director.confirm_cal_contact(first,contact_listener,RID()) and not director.confirm_cal_contact(second,contact_listener,RID()),"quest requires actual named Cal, not another resident"):
+		return
+	director.track_cal_quest(true)
+	if not _check(director.cal_position().is_finite() and population.available_at(first,0.0),"quest contact remains schedule eligible"):
+		return
+	if not _check(director.play_cal_quest_line(speech,first,"accept",contact_listener,RID()),"quest acceptance uses canonical spatial cue"):
+		return
+	speech.tick(0.1,contact_listener)
+	if not _check(speech.stats()["active"]=="street.robot_romantic.quest.accept","Cal speaks the correct quest line"):
+		return
+	director.cancel_street_dialogue(speech)
+	director.track_cal_quest(false)
 	director.shutdown()
 	print("STREET_EXCHANGE PASS: compatible leases, alternating turns, story interruption and context cancellation")
 	quit(0)
