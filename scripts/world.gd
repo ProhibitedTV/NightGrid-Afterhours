@@ -3704,12 +3704,12 @@ func navigation_text() -> String:
 		if destination.distance_to(Vector2(p.x, p.z)) < 0.1:
 			label = str(civic_services.call("site_by_id", str(pin["id"]))["name"])
 			break
-	if progression.owns_home():
-		var home := StarterHome.entry()
+	var home := StarterHome.entry()
+	if destination.distance_to(Vector2(home.x,home.z)) < .1:
+		label = StarterHome.NAME if progression.owns_home() else "LANTERN COURT / FREE CHECK-IN"
+	elif progression.owns_home():
 		var garage := StarterGarage.entry()
-		if destination.distance_to(Vector2(home.x,home.z)) < .1:
-			label = StarterHome.NAME
-		elif destination.distance_to(Vector2(garage.x,garage.z)) < .1:
+		if destination.distance_to(Vector2(garage.x,garage.z)) < .1:
 			label = StarterGarage.NAME
 	var route := _navigation_route(origin)
 	var line := "WAYPOINT  %s  •  %dm direct" % [label, roundi(origin.distance_to(destination))]
