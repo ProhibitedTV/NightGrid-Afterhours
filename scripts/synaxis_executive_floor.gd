@@ -121,7 +121,7 @@ func _ready() -> void:
 	set_occupied(false)
 
 func _private_office(side: float) -> void:
-	var x:=side*5.65
+	var x:float=side*5.65
 	_part("walnut",Vector3(x,.84,-5.55),Vector3(3.2,.13,1.0))
 	_part("brass",Vector3(x,.79,-5.05),Vector3(3.2,.025,.025))
 	for dx in [-1.34,1.34]:
@@ -154,7 +154,7 @@ func _boardroom() -> void:
 
 func _people_suite() -> void:
 	for side in [-1.0,1.0]:
-		var x:=side*5.6
+		var x:float=side*5.6
 		_part("walnut",Vector3(x,.84,2.35),Vector3(3.0,.13,1.1))
 		_solid(Vector3(x,.46,2.35),Vector3(3.0,.91,1.1))
 		_part("brass",Vector3(x,.42,2.35),Vector3(.45,.84,.82))
@@ -168,7 +168,7 @@ func _people_suite() -> void:
 
 func _lounge() -> void:
 	for side in [-1.0,1.0]:
-		var x:=side*5.4
+		var x:float=side*5.4
 		_part("velvet",Vector3(x,.42,8.85),Vector3(3.0,.52,.88))
 		_part("velvet",Vector3(x,.86,9.21),Vector3(3.0,.65,.20))
 		_solid(Vector3(x,.55,8.85),Vector3(3.0,1.10,.88))

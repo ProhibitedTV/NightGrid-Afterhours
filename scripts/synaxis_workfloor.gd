@@ -1,6 +1,7 @@
 extends Node3D
 ## Four authored workfloor layouts, using static material/primitive batches.
 ## Real desk and partition collision; no per-desk process or lights.
+const Rage=preload("res://scripts/synaxis_keyboard_rage.gd")
 const FLOOR_COUNT=4
 const FLOOR_HEIGHT=3.65
 const LIFT=Vector2(0,5.0)
@@ -27,6 +28,7 @@ var _plants:=0
 var _parts:=0
 var _colliders:=0
 var _lights: Array[OmniLight3D]=[]
+var _rage:Node3D
 
 static func desk_positions() -> Array[Vector2]:
 	var result: Array[Vector2]=[]
@@ -60,6 +62,12 @@ func _ready() -> void:
 	_shared_area(accent)
 	_architecture(accent)
 	_flush()
+	if level==2:
+		_rage=Rage.new()
+		_rage.configure_staff({"id":"cal","name":"Cal Mercer","role":"Product systems analyst","activity":"TYPE","seated":true,"palette":0,"outfit":"office","hair":"parted","glasses":true,"coat":"61727c","width":1.02,"height":.90,"phase":.3})
+		_rage.position=Rage.SEAT
+		_rage.rotation.y=PI
+		add_child(_rage)
 	set_occupied(false)
 
 func get_floor_stats() -> Dictionary:
@@ -68,6 +76,8 @@ func get_floor_stats() -> Dictionary:
 func set_occupied(active: bool) -> void:
 	for lamp in _lights:
 		lamp.visible=active
+	if is_instance_valid(_rage):
+		_rage.call("enable_performance",active)
 
 func _material(key: String) -> StandardMaterial3D:
 	if not _materials.has(key):
@@ -144,11 +154,12 @@ func _station(at: Vector3,face: float,row: int,col: int,accent: String) -> void:
 	for y in [.24,.47,.66]:
 		_part("steel",at+Vector3(.61,y,face*.32),Vector3(.16,.018,.027))
 	var screen_at:=at+Vector3(-.22,1.12,-face*.19)
-	_monitor(screen_at,face)
-	if (row+col+level)%3==0:
-		_monitor(screen_at+Vector3(.61,0,0),face)
-	_part("black",at+Vector3(-.22,.861,face*.19),Vector3(.45,.025,.15))
-	_part("steel",at+Vector3(-.22,.876,face*.19),Vector3(.41,.008,.12))
+	if not (level==2 and row==3 and col==5):
+		_monitor(screen_at,face)
+		if (row+col+level)%3==0:
+			_monitor(screen_at+Vector3(.61,0,0),face)
+		_part("black",at+Vector3(-.22,.861,face*.19),Vector3(.45,.025,.15))
+		_part("steel",at+Vector3(-.22,.876,face*.19),Vector3(.41,.008,.12))
 	_part("black",at+Vector3(.12,.87,face*.19),Vector3(.07,.041,.11))
 	_part("paper",at+Vector3(-.66,.86,face*.15),Vector3(.22,.022,.29))
 	if (row+col)%2==0:
@@ -226,6 +237,10 @@ func _label(value: String,at: Vector3,pixel: float,yaw: float=0.0) -> void:
 	sign.outline_size=2
 	sign.rotation.y=yaw
 	add_child(sign)
+
+func observe_worker(at:Vector3) -> void:
+	if is_instance_valid(_rage):
+		_rage.call("observe",at)
 
 func _architecture(accent: String) -> void:
 	# Light oak wall panels, accent bands, acoustic ceiling and corporate banners.

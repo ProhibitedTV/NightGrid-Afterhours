@@ -504,6 +504,26 @@ func _verify() -> void:
 		if int(office.get("_active_floor"))!=level or absf(office.to_local(player.global_position).y-(level*3.65+1.15))>.01:
 			_fail("Lift travels to actual upper floor elevations")
 			return
+	var comic_deck:Node3D=office.get_node("Workfloor2")
+	var cal:Node3D=comic_deck.get("_rage")
+	comic_deck.call("set_occupied",true)
+	cal.call("observe",comic_deck.to_global(Vector3(4,1.15,4)))
+	cal.call("_process",1.8)
+	var gag:Dictionary=cal.call("get_gag_state")
+	if not gag["standing"] or not gag["keyboard"]:
+		_fail("Office worker stands up and picks up keyboard")
+		return
+	cal.call("_process",.95)
+	gag=cal.call("get_gag_state")
+	if not gag["impact"] or absf(float(gag["monitor_tilt"]))<.2:
+		_fail("Keyboard rage must visibly displace its own monitor")
+		return
+	cal.call("_process",3.0)
+	cal.call("observe",comic_deck.to_global(Vector3(4,1.15,4)))
+	if cal.call("get_gag_state")["performing"]:
+		_fail("Office comedy is one-shot, not an endlessly looping distraction")
+		return
+	comic_deck.call("set_occupied",false)
 	var leadership_stats: Dictionary=office.call("executive_floor_stats")
 	if int(leadership_stats.get("executives",0))!=7 or not bool(leadership_stats.get("occupied",false)) or int(leadership_stats.get("colliders",0))<10:
 		_fail("Executive level must have seven distinct staff and physical luxury furniture")

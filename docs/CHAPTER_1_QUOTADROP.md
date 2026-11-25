@@ -77,3 +77,6 @@ Four formerly solid tower stories now have real slabs, walls and 28 desks per le
 
 ### Executive leadership level (level 6)
 The fifth upper floor has a marble-and-brass fit-out, walnut offices, glazed partitions, boardroom, shareholder presentation, executive espresso and velvet seating. Seven separately authored C-suite / senior People Strategy characters have proximity remarks that shift with the investigation; the CTO is technically credible while Finance, Operations and HR expose conflicting priorities. Jetson and Lin retain their ground-floor briefing anchors to avoid breaking the introductory mission. Only the occupied executive floor animates its cast and enables lamps. The lift and radar know about level 6. Native lighting, character quality, collision and performance review pending.
+
+### Optional office-rage vignette
+On the Product & Design floor, Cal Mercer is a heavyset systems analyst seated at a dedicated physical desk. Approaching from the aisle triggers a one-shot stand, keyboard pickup, windup, strike, monitor tilt/blackout, and return to seated posture. No mission progression or combat effects. Original staged visual homage; no borrowed footage or audio. Native pose and contact verification pending.
