@@ -150,7 +150,7 @@ func _verify() -> void:
 	var screen := preload("res://scenes/arcade_pilot.tscn").instantiate()
 	root.add_child(screen)
 	await process_frame
-	if not check(screen.state == "select", "cabinet scene loads"):
+	if not check(screen.state == "select" and screen.get_node_or_null("CabinetSpeaker") != null and screen.CUES.size() == 4, "cabinet scene loads with one speaker and four cues"):
 		return
 	screen._start_round()
 	if not check(screen.state == "play" and not screen.round.finished, "screen launches title"):

@@ -6,6 +6,14 @@ const AltRound = preload("res://scripts/arcade_alt_round.gd")
 const ExtraRound = preload("res://scripts/arcade_extra_round.gd")
 const SeasonRound = preload("res://scripts/arcade_season_round.gd")
 const Scores = preload("res://scripts/arcade_scores.gd")
+const AudioMix = preload("res://scripts/audio_mix.gd")
+const CUES := {
+	"start": preload("res://assets/arcade/audio/start.wav"),
+	"score": preload("res://assets/arcade/audio/score.wav"),
+	"damage": preload("res://assets/arcade/audio/damage.wav"),
+	"record": preload("res://assets/arcade/audio/record.wav")
+}
+var _cue: AudioStreamPlayer
 signal exit_requested
 signal score_recorded(id: String, value: int)
 var round = Round.new()
@@ -25,6 +33,12 @@ func configure_cabinet(id: String, previous_best: Dictionary) -> bool:
 	return true
 
 func _ready() -> void:
+	AudioMix.ensure()
+	_cue = AudioStreamPlayer.new()
+	_cue.name = "CabinetSpeaker"
+	_cue.bus = AudioMix.EFFECTS
+	_cue.volume_db = -12.0
+	add_child(_cue)
 	set_process(false)
 	queue_redraw()
 
@@ -41,18 +55,24 @@ func _unhandled_input(event: InputEvent) -> void:
 		if state == "select" and locked_cabinet.is_empty():
 			selection = posmod(selection + direction, Round.IDS.size())
 		elif state == "play":
+			var before := Vector2i(round.score,round.lives)
 			round.steer(direction)
+			_feedback_cue(before)
 			_finish_if_needed()
 	elif event.is_action_pressed("ui_up") or event.is_action_pressed("ui_down"):
 		if state == "play" and (round is AltRound or round is ExtraRound or round is SeasonRound):
+			var before := Vector2i(round.score,round.lives)
 			round.vertical(-1 if event.is_action_pressed("ui_up") else 1)
+			_feedback_cue(before)
 			_finish_if_needed()
 	elif event.is_action_pressed("ui_accept"):
 		match state:
 			"select":
 				_start_round()
 			"play":
+				var before := Vector2i(round.score,round.lives)
 				round.strike()
+				_feedback_cue(before)
 				_finish_if_needed()
 			"result":
 				_show_selection()
@@ -81,6 +101,7 @@ func _start_round() -> void:
 		return
 	state = "play"
 	new_record = false
+	_play_cue("start")
 	elapsed = 0.0
 	set_process(id != "indie_dev" and id != "day_one_dlc")
 	queue_redraw()
@@ -97,7 +118,9 @@ func _process(delta: float) -> void:
 	elapsed += minf(delta, interval)
 	if elapsed >= interval:
 		elapsed -= interval
+		var before := Vector2i(round.score,round.lives)
 		round.advance()
+		_feedback_cue(before)
 		_finish_if_needed()
 		queue_redraw()
 
@@ -105,9 +128,22 @@ func _finish_if_needed() -> void:
 	if state == "play" and round.finished:
 		new_record = Scores.record(best,round.game_id,round.score)
 		if new_record:
+			_play_cue("record")
 			score_recorded.emit(round.game_id,round.score)
 		state = "result"
 		set_process(false)
+
+func _play_cue(id: String) -> void:
+	if not is_instance_valid(_cue) or not CUES.has(id):
+		return
+	_cue.stream = CUES[id]
+	_cue.play()
+
+func _feedback_cue(before: Vector2i) -> void:
+	if round.lives < before.y:
+		_play_cue("damage")
+	elif round.score > before.x:
+		_play_cue("score")
 
 func _line(message: String, at: Vector2, tint: Color, font_size: int = 20) -> void:
 	draw_string(ThemeDB.fallback_font, at, message, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, tint)

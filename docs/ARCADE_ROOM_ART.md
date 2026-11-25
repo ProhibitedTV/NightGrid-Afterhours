@@ -15,3 +15,6 @@ INSERT COIN is now authored at block (1,2), west lot, using the existing legacy 
 
 ## Atmosphere pass
 Four local animated regulars use the shared HumanoidVisual rig and static cylinder collision, with proximity-based rotating dialogue. Cabinet reachability takes priority. Three original print/carpet SVGs, a rear repair bench, spare CRT, toolbox, and parts bins provide lived-in dressing. No cabinet slots or aisle positions changed. The Friday night poster is environmental fiction only; tournament gameplay remains future work. Native art/collision review remains required.
+
+## Sound pass
+Four original short PCM WAV cues were rendered offline (start, score, damage, record), stored in assets/arcade/audio and routed through one cabinet speaker on the existing effects bus. No runtime synthesis, external model, network, or background audio. The record cue takes priority over the final score cue. These are first-pass authored electronic effects; future sound design can replace the WAV assets without changing gameplay code.
