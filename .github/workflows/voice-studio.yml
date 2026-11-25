@@ -3,12 +3,14 @@ on:
   pull_request:
     paths:
       - 'tools/voice/**'
+      - 'tools/audio/**'
       - 'assets/audio/voiced/**'
       - '.github/workflows/voice-studio.yml'
   push:
     branches: [main]
     paths:
       - 'tools/voice/**'
+      - 'tools/audio/**'
       - 'assets/audio/voiced/**'
       - '.github/workflows/voice-studio.yml'
   workflow_dispatch:
@@ -25,6 +27,8 @@ jobs:
           python-version: '3.11'
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: python -m unittest discover -s tools/voice -v
+      - run: python -m unittest discover -s tools/audio -v
+      - run: python tools/voice/anubis.py sfx-list
       - run: python tools/voice/studio.py list
 
       - run: python tools/voice/chapter.py validate
