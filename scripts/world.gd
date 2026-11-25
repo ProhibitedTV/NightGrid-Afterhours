@@ -467,6 +467,8 @@ func _on_menu_action(action: String) -> void:
 			_open_phone(true)
 		"phone_decline_offer":
 			_phone_decline_offer()
+		"phone_toggle_duty":
+			_phone_toggle_duty()
 		"phone_route_order", "phone_route_mara", "phone_route_home", "phone_route_rail", "phone_route_bus":
 			_phone_route(action)
 		"restart_courier":
@@ -622,7 +624,7 @@ func _phone_context() -> Dictionary:
 	var rail_point: Vector2 = transit["rail"]
 	var bus_point: Vector2 = transit["bus"]
 	return {
-		"clock":day_night.call("clock_string"), "gig":courier_mission.gig_economy,
+		"clock":day_night.call("clock_string"), "gig":courier_mission.gig_economy, "on_duty":courier_mission.on_duty,
 		"offboarded":progression.has_receipt(Opening.RECEIPT), "order":courier_mission.objective()["title"],
 		"carrying":carrying, "payout":courier_mission.payout(), "deliveries":deliveries,
 		"cash":cash, "bitcoin_sats":progression.bitcoin_sats, "story":story_mission.journal(),
@@ -632,6 +634,15 @@ func _phone_context() -> Dictionary:
 		"rail_name":"%d m away (direct)" % roundi(origin.distance_to(rail_point)) if rail_point.is_finite() else "Unavailable",
 		"bus_name":"%d m away (direct)" % roundi(origin.distance_to(bus_point)) if bus_point.is_finite() else "Unavailable"
 	}
+
+func _phone_toggle_duty() -> void:
+	if not phone_available() or game_menu.get("screen") != "phone" or game_menu.get("_phone_app") != "work":
+		return
+	if courier_mission.set_on_duty(not courier_mission.on_duty):
+		if not courier_mission.on_duty and navigation_waypoint != null and (navigation_waypoint as Vector2).distance_to(Vector2(mission_position.x,mission_position.z)) < 12.0:
+			clear_navigation_waypoint()
+		_refresh_courier_target()
+		game_menu.call("refresh_phone",_phone_context())
 
 func _phone_decline_offer() -> void:
 	if not phone_available() or game_menu.get("screen") != "phone" or game_menu.get("_phone_app") != "work":
@@ -649,7 +660,7 @@ func _phone_route(action: String) -> void:
 	var destination := Vector2.INF
 	match action:
 		"phone_route_order":
-			if courier_mission.gig_economy:
+			if courier_mission.gig_economy and courier_mission.on_duty:
 				destination = Vector2(mission_position.x,mission_position.z)
 		"phone_route_mara":
 			var p: Vector3 = venue_system.call("venue_position","lantern_cup")
@@ -1416,6 +1427,8 @@ func _advance_mission() -> void:
 
 func _refresh_courier_target() -> void:
 	_set_mission_target(courier_mission.target() - Vector3.UP * 0.2, carrying)
+	if is_instance_valid(marker):
+		marker.visible = not courier_mission.gig_economy or courier_mission.on_duty
 	if is_instance_valid(player):
 		var visual: Node3D = player.get("visual")
 		if is_instance_valid(visual):
@@ -2069,7 +2082,7 @@ func _capture_snapshot() -> Dictionary:
 	var state := {
 		"player_position": [saved_at.x, saved_at.y, saved_at.z],
 		"camera_yaw": yaw, "cash": cash, "progression": progression.snapshot(), "health": health, "heat": heat,
-		"deliveries": deliveries, "carrying": carrying, "courier_offer_offset": courier_mission.offer_offset, "story_mission": story_mission.snapshot(),
+		"deliveries": deliveries, "carrying": carrying, "courier_offer_offset": courier_mission.offer_offset, "courier_on_duty": courier_mission.on_duty, "story_mission": story_mission.snapshot(),
 		"hour": day_night.get("hour"), "cars": stored_cars,
 		"occupied_car": cars.find(current_car),
 		"traffic": traffic.call("snapshot"), "rail": rail.call("snapshot"),
@@ -2140,6 +2153,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 	courier_mission.gig_economy = progression.has_receipt(Opening.RECEIPT)
 	courier_mission.restore(data.get("deliveries", 0), data.get("carrying", false))
 	courier_mission.restore_offer_offset(data.get("courier_offer_offset", 0))
+	courier_mission.on_duty = bool(data.get("courier_on_duty", true)) or carrying
 	player.call("set_courier_conditioning",courier_mission.conditioning_rank())
 	story_mission.restore(data.get("story_mission", StoryMission.new().snapshot()))
 	yaw = float(data.get("camera_yaw", 0.0))
@@ -2390,7 +2404,7 @@ func _toggle_interaction() -> void:
 		return
 	if _synaxis_access_notice():
 		return
-	if courier_mission.gig_economy and player.global_position.distance_to(mission_position) < CourierMission.RADIUS:
+	if courier_mission.gig_economy and courier_mission.on_duty and player.global_position.distance_to(mission_position) < CourierMission.RADIUS:
 		_advance_mission()
 		return
 	var garage: Node3D = city_details.call("starter_garage",player.global_position)
@@ -3619,8 +3633,8 @@ func _update_hud() -> void:
 	hud_health.value = health
 	hud_stamina.value = float(player.get("stamina"))
 	hud_label.text += "\nSTAMINA %d  •  %d snacks" % [ceili(float(player.get("stamina"))),Consumables.count(consumable_inventory)]
-	hud_objective.text = "%s  /  %dm" % [mission, distance]
-	if courier_mission.gig_economy and current_car == null and current_transit == null and not interiors.call("is_inside") and player.global_position.distance_to(mission_position) < CourierMission.RADIUS:
+	hud_objective.text = "FREE ROAM / QuotaDrop offline" if courier_mission.gig_economy and not courier_mission.on_duty else "%s  /  %dm" % [mission, distance]
+	if courier_mission.gig_economy and courier_mission.on_duty and current_car == null and current_transit == null and not interiors.call("is_inside") and player.global_position.distance_to(mission_position) < CourierMission.RADIUS:
 		hud_objective.text += "  /  " + ("X" if gamepad_active else "G") + (" HAND OFF" if carrying else " COLLECT ORDER")
 	hud_objective.modulate = Ui.ACCENT if carrying else Ui.AMBER
 	hud_navigation.visible = navigation_waypoint != null
