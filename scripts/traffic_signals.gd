@@ -126,7 +126,9 @@ func _make_mast(ix: int, iz: int, side: float) -> void:
 		var span: Vector3 = (top - arm_end).abs()
 		_install_mast_member(mast, (top + arm_end) * 0.5, span + Vector3(0.16, 0.21, 0.16))
 		_install_mast_member(mast, arm_end - Vector3.UP * 0.09, Vector3(0.12, 0.28, 0.12))
-	_install_mast_member(mast, at + Vector3.UP * 0.25, Vector3(0.44, 0.22, 0.44))
+	# Embed the footing below the street datum; the old base started at +0.14 m.
+	# The same transform drives rendering and collision, overlapping the shaft.
+	_install_mast_member(mast, at + Vector3.UP * 0.14, Vector3(0.44, 0.44, 0.44))
 	_install_mast_member(mast, at + Vector3.UP * 3.51, Vector3(0.27, ARM_Y - 0.12, 0.27))
 	_make_head(mast, ix, iz, "NS", ns - at, Vector3(0.0, 0.0, -side))
 	_make_head(mast, ix, iz, "EW", ew - at, Vector3(-side, 0.0, 0.0))

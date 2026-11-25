@@ -53,6 +53,44 @@ func _verify() -> void:
 	if heat >= 5.0:
 		_fail("Heat must cool after quiet interval")
 		return
+	# Deterministic search timing: no decay at the grace boundary and only
+	# the post-boundary fraction of a long tick may reduce heat.
+	var whole = Wanted.new()
+	var split = Wanted.new()
+	var whole_heat: float = whole.report(0.0, "THEFT", at, true)
+	var split_heat: float = split.report(0.0, "THEFT", at, true)
+	whole_heat = whole.decay(whole_heat, 10.0)
+	for i in range(20):
+		split_heat = split.decay(split_heat, 0.5)
+	if not is_equal_approx(whole_heat, 0.8) or not is_equal_approx(whole_heat, split_heat):
+		_fail("Search grace and cooldown depend on frame partition")
+		return
+	var boundary = Wanted.new()
+	var boundary_heat: float = boundary.report(0.0, "THEFT", at, true)
+	boundary_heat = boundary.decay(boundary_heat, 8.0)
+	if boundary_heat != 1.0 or boundary.status_text(boundary_heat) != "COOLING DOWN":
+		_fail("Heat changed at exact grace boundary")
+		return
+	boundary_heat = boundary.observe(boundary_heat, at, cop, false, 0.2)
+	boundary_heat = boundary.decay(boundary_heat, 2.0)
+	if boundary_heat != 1.0 or boundary.quiet != 0.0:
+		_fail("Renewed officer sight must restart the search grace")
+		return
+	boundary_heat = boundary.observe(boundary_heat, at, clear, false, 0.2)
+	boundary_heat = boundary.decay(boundary_heat, 17.0)
+	if boundary_heat != 0.0 or boundary.last_known.is_finite() or not boundary.last_reason.is_empty() or boundary.status_text(boundary_heat) != "CLEAR":
+		_fail("Pursuit did not clear atomically at zero stars")
+		return
+	var invalid = Wanted.new()
+	var invalid_heat: float = invalid.report(1.0, "UNKNOWN", at, true)
+	if invalid_heat != 1.0 or invalid.last_known.is_finite() or not invalid.last_reason.is_empty():
+		_fail("Unsupported report mutated search state")
+		return
+	invalid.last_ray_count = Wanted.MAX_RAYS
+	invalid.reset()
+	if invalid.last_ray_count != 0:
+		_fail("Reset retained stale ray count")
+		return
 	var packed: PackedScene = load("res://scenes/main.tscn")
 	var world: Node3D = packed.instantiate()
 	root.add_child(world)

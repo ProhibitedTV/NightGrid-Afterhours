@@ -2061,6 +2061,24 @@ func _spawn_police() -> void:
 		_log_playtest("police_spawn", {"x": launch.x, "z": launch.z, "tier": Wanted.stars(heat), "station": id, "unit": unit})
 		return
 
+func _reset_pursuit_runtime() -> void:
+	# Response cars and queued witness events belong to the current runtime,
+	# never to the save being restored. Keep permanent stations and patrols.
+	for officer in officers + returning_units:
+		if is_instance_valid(officer):
+			officer.set_physics_process(false)
+			officer.collision_layer = 0
+			officer.collision_mask = 0
+			officer.hide()
+			officer.queue_free()
+	officers.clear()
+	returning_units.clear()
+	dispatch.update_case(Vector3.INF, 0)
+	wanted.reset()
+	_pending_theft = null
+	_sight_clock = 0.0
+	police_cooldown = 0.0
+
 func _respawn() -> void:
 	_cancel_street_interactions()
 	_log_playtest("respawn", {"health": health, "reason": "fall_or_boundary_or_damage"})
@@ -2086,19 +2104,12 @@ func _respawn() -> void:
 	health = 100.0
 	player.call("restore_stamina",100.0)
 	heat = 0.0
-	wanted.reset()
-	_pending_theft = null
+	_reset_pursuit_runtime()
 	var failed_story := story_mission.interrupt("failed")
 	var lost_order := courier_mission.gig_economy and courier_mission.restart()
 	if lost_order:
 		_refresh_courier_target()
 	progression.charge_up_to(100)
-	for officer in officers + returning_units:
-		if is_instance_valid(officer):
-			officer.queue_free()
-	officers.clear()
-	returning_units.clear()
-	dispatch.update_case(Vector3.INF, 0)
 	city_details.call("set_focus", player.global_position)
 	_snap_camera()
 	_notify("Returned to the street. Emergency recovery fee: up to $100." + (" Order canceled without pay." if lost_order else "") + (" Contact mission failed; speak to Mara to retry." if failed_story else ""))
@@ -2501,7 +2512,7 @@ func _capture_snapshot() -> Dictionary:
 		"weapons": weapons.snapshot(),
 		"ambient_civic": ambient_civic.snapshot(),
 		"civic_patrol_service": civic_patrol_service.snapshot(),
-		"wanted_last_known": [wanted.last_known.x, wanted.last_known.y, wanted.last_known.z] if wanted.last_known.is_finite() else []
+		"wanted_last_known": [wanted.last_known.x, wanted.last_known.y, wanted.last_known.z] if Wanted.stars(heat) > 0 and wanted.last_known.is_finite() else []
 	}
 	if is_instance_valid(pedestrians):
 		var street_state: Dictionary = pedestrians.call("snapshot")
@@ -2553,13 +2564,17 @@ func _apply_snapshot(data: Dictionary) -> void:
 	rail.call("restore", data["rail"])
 	signal_controller.set("elapsed", fposmod(float(data.get("signal_elapsed", 0.0)), 72.0))
 	health = clampf(float(data.get("health", 100.0)), 1.0, 100.0)
+	_reset_pursuit_runtime()
 	heat = clampf(float(data.get("heat", 0.0)), 0.0, 5.0)
-	wanted.reset()
+	if Wanted.stars(heat) == 0:
+		heat = 0.0
 	var last: Variant = data.get("wanted_last_known", [])
 	if last is Array and last.size() == 3 and (last[0] is float or last[0] is int) and (last[1] is float or last[1] is int) and (last[2] is float or last[2] is int):
 		var p := Vector3(float(last[0]), float(last[1]), float(last[2]))
 		if p.is_finite() and absf(p.x) <= 390.0 and absf(p.z) <= 390.0 and absf(p.y) <= 25.0 and heat >= Wanted.MIN_HEAT:
 			wanted.last_known = p
+	# Restore only a valid saved case; never invent a witness or position.
+	dispatch.update_case(wanted.last_known, Wanted.stars(heat))
 	courier_mission.gig_economy = progression.has_receipt(Opening.RECEIPT)
 	courier_mission.restore(data.get("deliveries", 0), data.get("carrying", false))
 	courier_mission.restore_offer_offset(data.get("courier_offer_offset",0))

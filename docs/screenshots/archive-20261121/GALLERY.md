@@ -99,3 +99,7 @@ Select any screenshot to inspect it at full resolution.
 ## Local visual review
 
 Install Pillow if needed and run `python tools/review_screenshot_gallery.py` from the repository root. It verifies the 33 original hashes before producing review-only contact sheets and a checklist in `exports/gallery-review`. The originals are never modified. CI additionally checks the archive's Git blob identities, hashes, manifest and gallery links. Contact sheets are not replacements for the original captures or visual acceptance.
+
+## Repeat the historical camera set on current main
+
+The separate `Capture expanded gameplay review (artifact only)` manually dispatched workflow runs the 33-camera harness against a selected revision, verifies file set and hashes, and uploads a review artifact. It never pushes or overwrites the historical or native showcase gallery. For native Godot review, set `NIGHTGRID_EXPANDED_CAPTURE_DIR` to a new absolute directory, `NIGHTGRID_SOURCE_REVISION` to the checked-out commit, then run `godot --path . --rendering-method forward_plus --rendering-driver vulkan --resolution 1920x1080 --script res://tools/capture_expanded_gallery.gd`. The capture harness uses staged camera/actor positions, not performance measurements. Newly captured frames require visual acceptance; the historical archive stays unchanged. The updated harness has not yet completed a graphical capture.
