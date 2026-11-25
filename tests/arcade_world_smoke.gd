@@ -81,6 +81,36 @@ func _verify() -> void:
 	var screen := preload("res://scenes/arcade_pilot.tscn").instantiate()
 	if not check(screen.configure_cabinet("patch_day",{"patch_day":150}) and screen.selection == 2 and screen.best["patch_day"] == 150, "locked title and session highs"):
 		return
+	# Exercise the actual modal screen lifecycle, not only score helpers.
+	root.add_child(screen)
+	var emissions: Array = []
+	screen.score_recorded.connect(func(id: String, score: int) -> void:
+		emissions.append([id,score,screen.state,screen.is_processing()]))
+	screen.call("_start_round")
+	if not check(screen.state == "play", "screen starts selected game"):
+		return
+	screen.round.score = 200
+	var old_round = screen.round
+	screen.call("_show_selection")
+	var abandoned_step: int = old_round.step
+	screen.call("_process", 10.0)
+	screen.call("_finish_if_needed")
+	if not check(screen.state == "select" and not screen.is_processing() and old_round.step == abandoned_step and emissions.is_empty() and screen.best["patch_day"] == 150, "abandon stops simulation without recording score"):
+		return
+	screen.call("_start_round")
+	screen.round.score = 250
+	screen.round.finished = true
+	screen.call("_finish_if_needed")
+	screen.call("_finish_if_needed")
+	if not check(emissions == [["patch_day",250,"result",false]] and screen.best["patch_day"] == 250, "completion settles exactly once after stopping simulation"):
+		return
+	screen.call("_show_selection")
+	screen.call("_start_round")
+	screen.round.score = 200
+	screen.round.finished = true
+	screen.call("_finish_if_needed")
+	if not check(emissions.size() == 1 and screen.best["patch_day"] == 250, "lower replay score does not replace record"):
+		return
 	screen.free()
 	rooms.queue_free()
 	venues.queue_free()

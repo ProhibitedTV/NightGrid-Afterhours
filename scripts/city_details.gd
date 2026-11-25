@@ -15,6 +15,7 @@ const BrickwaterSigns = preload("res://scripts/brickwater_business_frontage.gd")
 const StreamProfile = preload("res://scripts/streaming_profile.gd")
 const MarketCarton = preload("res://scripts/market_carton.gd")
 const HorizonGarden = preload("res://scripts/horizon_commons_garden.gd")
+const MarketCounter = preload("res://scripts/market_counter.gd")
 const WalkInLot = preload("res://scripts/walk_in_lot.gd")
 const ClothingStore = preload("res://scripts/clothing_store.gd")
 const StarterHome = preload("res://scripts/starter_home.gd")
@@ -876,10 +877,10 @@ func _build_landmark(center: Vector3, name: String) -> void:
 			_detail(center + Vector3(0.0, 6.85, -12.0), Vector3(30.0, 0.18, 0.18), label_color, true)
 			for row in [-6.0, 6.0]:
 				for x in [-9.0, -3.0, 3.0, 9.0]:
-					_solid(center + Vector3(x, 0.65, row), Vector3(4.15, 1.02, 2.20), Color("69777b"))
-					_solid(center + Vector3(x, 1.265, row), Vector3(3.75, 0.23, 1.8), Color("d1a775"), "WOOD")
-					for produce in [-1.0, 0.0, 1.0]:
-						_detail(center + Vector3(x + produce, 1.54, row), Vector3(0.55, 0.32, 0.45), Color("78af78"))
+					var counter := MarketCounter.new()
+					counter.name = "MarketCounter_%d_%d" % [int(x),int(row)]
+					counter.position = center + Vector3(x,.15,row)
+					_active_chunk.add_child(counter)
 			for x in [-6.0, -1.85, 4.8, 10.6]:
 				var carton := MarketCarton.new()
 				carton.name = "DeliveryCarton_%d" % roundi(x * 100.0)

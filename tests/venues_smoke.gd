@@ -366,6 +366,38 @@ func _verify() -> void:
 		_fail("Closed frontage offered loaner sampler")
 		return
 	world.call("_close_venue")
+	# Verify actual imported backline meshes in each existing enterable venue,
+	# their bounded rear-bay placement and normal room teardown/restore.
+	var music_rooms = world.get_node("Interiors")
+	for id in ["copper_cup","dock_nine","blue_hour","static_room"]:
+		var site: Dictionary = venues.call("venue_by_id",id)
+		var outside: Vector3 = venues.call("venue_position",id)
+		music_rooms.call("enter",site,"VENUE",outside)
+		var kit := music_rooms.get_node_or_null("Interior_"+id+"/MusicBackline") as Node3D
+		if kit == null:
+			_fail("Missing imported music backline at "+id)
+			return
+		var count := 0
+		for prop in kit.get_children():
+			if prop is MeshInstance3D and prop.mesh is ArrayMesh:
+				count += 1
+				if absf(prop.position.x) < 2.8 or prop.position.z > -6.5 or prop.position.z < -8.7:
+					_fail("Music prop obstructs service/exit path at "+id)
+					return
+		if count < 5:
+			_fail("Expected five imported instrument/backline meshes at "+id)
+			return
+		var room_save: Dictionary = music_rooms.call("snapshot")
+		music_rooms.call("leave")
+		await process_frame
+		if not music_rooms.call("restore",room_save,site):
+			_fail("Music room restore failed at "+id)
+			return
+		if music_rooms.get_node_or_null("Interior_"+id+"/MusicBackline") == null:
+			_fail("Restored music room lost backline at "+id)
+			return
+		music_rooms.call("leave")
+		await process_frame
 	print("VENUE_SMOKE PASS: ", kind_counts, " / quests=", catalog.SIDE_JOBS.size(),
 		" / saved_seed=", old_seed, " / venue_lights=", venues.call("get_active_light_count"))
 	quit(0)

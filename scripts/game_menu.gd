@@ -15,6 +15,9 @@ var _rhythm_status:Label
 var _rhythm_meter:ProgressBar
 var _rhythm_claim:Button
 var _rhythm_player:AudioStreamPlayer
+var _rhythm_intro:AudioStreamPlayer
+const BAND_INTRO=preload("res://assets/audio/music/band_demo.wav")
+const STREET_INTRO=preload("res://assets/audio/music/busker_demo.wav")
 const PAD_CLIPS=[preload("res://assets/audio/rehearsal/kick.wav"),preload("res://assets/audio/rehearsal/clap.wav"),preload("res://assets/audio/rehearsal/hat.wav")]
 const Opening = preload("res://scripts/opening_story.gd")
 const Phone = preload("res://scripts/morrow_phone.gd")
@@ -114,6 +117,11 @@ func _ready() -> void:
 	_rhythm_player.process_mode=Node.PROCESS_MODE_ALWAYS
 	_rhythm_player.volume_db=-8.0
 	add_child(_rhythm_player)
+	_rhythm_intro=AudioStreamPlayer.new()
+	_rhythm_intro.name="MusicSetIntro"
+	_rhythm_intro.bus=AudioMix.MUSIC
+	_rhythm_intro.process_mode=Node.PROCESS_MODE_ALWAYS
+	add_child(_rhythm_intro)
 	visible = false
 
 func set_world_node(world: Node3D) -> void:
@@ -246,7 +254,7 @@ func confirm_new_game() -> void:
 
 func hide_for_game() -> void:
 	if screen=="blue_hour_set":
-		_rhythm_player.stop()
+		_stop_music_set_audio()
 		_rhythm.cancel()
 	screen = "hidden"
 	visible = false
@@ -260,6 +268,9 @@ func get_settings() -> Dictionary:
 	return settings.duplicate(true)
 
 func _open(value: String) -> void:
+	if screen=="blue_hour_set" and value!="blue_hour_set":
+		_stop_music_set_audio()
+		_rhythm.cancel()
 	if is_instance_valid(_world):
 		_world.call("suspend_weapon")
 	var previous := get_viewport().gui_get_focus_owner()
@@ -423,6 +434,13 @@ func _render() -> void:
 				_button(col,"music_desk_recruit","INVITE RHEA VALE / BASS","music_desk_recruit")
 			if bool(_music_desk.get("band_rehearse",false)):
 				_button(col,"music_desk_rehearse","REHEARSE WITH RHEA AND MILO","music_desk_rehearse")
+			var names:Array=_music_desk.get("band_names",[])
+			for i in range(names.size()):
+				var key:="music_desk_name:%d"%i
+				_button(col,key,"NAME BAND / "+str(names[i]),key)
+			_label(col,str(_music_desk.get("merch","")),16,Ui.MUTED)
+			if bool(_music_desk.get("press_tapes",false)):
+				_button(col,"music_desk_press","PRESS 12 TAPES / $60","music_desk_press")
 			_button(col,"music_desk_leave","LEAVE","music_desk_leave")
 		"blue_hour_set":
 			_render_rhythm(col)
@@ -646,6 +664,7 @@ func _render() -> void:
 			_divider(col)
 			_title(col,"REPUTATION / STREET CRED",18,Ui.AMBER)
 			_label(col,str(_journal_data.get("street_cred_summary","STREET CRED 0 / UNKNOWN")),16,Ui.ACCENT)
+			_label(col,str(_journal_data.get("scene_reputation","")),15,Ui.TEXT)
 			var cred:Dictionary=_journal_data.get("street_cred",{})
 			if int(cred.get("next",0))>int(cred.get("floor",0)):
 				var bar:=ProgressBar.new()
@@ -986,6 +1005,10 @@ func _check(parent: VBoxContainer, caption: String, key: String) -> void:
 		_first_focus = toggle
 
 func _choice(action: String) -> void:
+	if action.begins_with("music_desk_name:"):
+		if screen=="music_desk":
+			action_requested.emit(action)
+		return
 	if is_instance_valid(_ui_click):
 		_ui_click.volume_db = -80.0 if float(settings.get("sfx_volume", 0.75)) <= 0.0 else linear_to_db(float(settings.get("sfx_volume", 0.75))) - 11.0
 		_ui_click.play()
@@ -1010,7 +1033,7 @@ func _choice(action: String) -> void:
 				action_requested.emit("begin_opening")
 			else:
 				hide_for_game()
-		"music_desk_buy","music_desk_busk","music_desk_practice","music_desk_owned","music_desk_recruit","music_desk_rehearse":
+		"music_desk_buy","music_desk_busk","music_desk_practice","music_desk_owned","music_desk_recruit","music_desk_rehearse","music_desk_press":
 			if screen=="music_desk":
 				action_requested.emit(action)
 		"music_desk_leave":
@@ -1218,8 +1241,30 @@ func consume_sampler_practice()->int:
 func _open_music_set(sequence:int,source:String)->void:
 	_rhythm_sequence=sequence
 	_rhythm_focus_set=false
+	_stop_music_set_audio()
 	_rhythm.start(sequence,source)
 	_open("blue_hour_set")
+	_start_music_intro()
+
+func _stop_music_set_audio()->void:
+	_rhythm_player.stop()
+	_rhythm_intro.stop()
+
+func _music_set_gain(headroom:float)->float:
+	return linear_to_db(maxf(0.0001,clampf(float(settings.get("music_volume",0.65)),0.0,1.0))) + headroom
+
+func _start_music_intro()->void:
+	# A short authored soundcheck, not a timing track. Cut it before the
+	# first playable window; the player's pad hits remain the timing cue.
+	if _rhythm.mode=="practice" or float(settings.get("music_volume",0.65))<=0.0:
+		return
+	var band:bool=_rhythm.mode in ["band_rehearsal","band_debut","band_encore","band_showcase"]
+	var source:AudioStreamWAV=BAND_INTRO if band else STREET_INTRO
+	var clip:=source.duplicate() as AudioStreamWAV
+	clip.loop_mode=AudioStreamWAV.LOOP_DISABLED
+	_rhythm_intro.stream=clip
+	_rhythm_intro.volume_db=_music_set_gain(-16.0)
+	_rhythm_intro.play()
 
 func open_owned_sampler_set(sequence:int)->void:
 	_open_music_set(sequence,"owned_busking")
@@ -1269,6 +1314,8 @@ func _process(delta:float)->void:
 	if screen!="blue_hour_set":
 		return
 	_rhythm.advance(delta)
+	if _rhythm.elapsed>=Rhythm.LEAD-_rhythm.hit_window or _rhythm.finished or _rhythm.cancelled:
+		_rhythm_intro.stop()
 	_refresh_rhythm()
 
 func _input(event:InputEvent)->void:
@@ -1281,10 +1328,12 @@ func _input(event:InputEvent)->void:
 			return
 
 func _rhythm_strike(lane:int)->void:
-	if _rhythm.finished:
+	if _rhythm.finished or _rhythm.cancelled or lane<0 or lane>=PAD_CLIPS.size():
 		return
-	_rhythm_player.stream=PAD_CLIPS[lane]
-	_rhythm_player.play()
+	if float(settings.get("music_volume",0.65))>0.0:
+		_rhythm_player.volume_db=_music_set_gain(-8.0)
+		_rhythm_player.stream=PAD_CLIPS[lane]
+		_rhythm_player.play()
 	_rhythm.strike(lane)
 	_refresh_rhythm()
 
