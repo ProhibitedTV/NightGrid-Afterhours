@@ -95,3 +95,7 @@ Select any screenshot to inspect it at full resolution.
 | ![Title screen](06-title-menu.png) | ![City map](07-city-map-menu.png) |
 
 [Capture method](../README.md) · [Source revision, renderer and image checksums](capture-manifest.json)
+
+## Local visual review
+
+Install Pillow if needed and run `python tools/review_screenshot_gallery.py` from the repository root. It verifies the 33 original hashes before producing review-only contact sheets and a checklist in `exports/gallery-review`. The originals are never modified. CI additionally checks the archive's Git blob identities, hashes, manifest and gallery links. Contact sheets are not replacements for the original captures or visual acceptance.
