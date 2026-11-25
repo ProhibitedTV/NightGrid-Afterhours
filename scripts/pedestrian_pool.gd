@@ -3,6 +3,8 @@ extends Node3D
 ## The director supplies the visual rig, live spawn/recycle predicates,
 ## actual ground height and one physics-tick call.
 const Population = preload("res://scripts/sidewalk_population.gd")
+const Routines = preload("res://scripts/civilian_routines.gd")
+const Satire = preload("res://scripts/street_satire.gd")
 const RADIUS = 0.32
 const HEIGHT = 1.8
 const YIELD_SECONDS = 1.2
@@ -13,6 +15,8 @@ var _slots: Array[CharacterBody3D] = []
 var _leases: Dictionary = {}
 var _visuals: Array[Node3D] = []
 var _model_count := 1
+const MAX_INCIDENT_RADIUS = 24.0
+const ALERT_COOLDOWN = 5.0
 
 func build(visual_scene: PackedScene, capacity: int = Population.MAX_ACTIVE,
 		models: Array[PackedScene] = []) -> bool:
@@ -70,14 +74,23 @@ func active_positions() -> Dictionary:
 func capacity() -> int:
 	return _slots.size()
 
-func has_free_style(style: int) -> bool:
-	var used := {}
+func free_style_count(style:int)->int:
+	var used:Dictionary={}
 	for lease in _leases.values():
-		used[lease["slot"]] = true
-	for i in range(style % _model_count, _slots.size(), _model_count):
+		used[lease["slot"]]=true
+	var free:=0
+	for i in range(posmod(style,_model_count),_slots.size(),_model_count):
 		if not used.has(i):
-			return true
-	return false
+			free+=1
+	return free
+
+func has_free_style(style:int)->bool:
+	return free_style_count(style)>0
+
+## Reserve the final compatible slot for an absent tracked resident.
+func can_allocate_style(style:int,reserved_style:int=-1)->bool:
+	var free:=free_style_count(style)
+	return free>1 if reserved_style>=0 and posmod(style,_model_count)==posmod(reserved_style,_model_count) else free>0
 
 func activate(population, id: String, ground_y: float, allowed: Callable) -> bool:
 	if population == null or _leases.has(id) or not allowed.is_valid() or not is_finite(ground_y):
@@ -107,7 +120,11 @@ func activate(population, id: String, ground_y: float, allowed: Callable) -> boo
 		_leases[id] = {"slot":i,"start":sample["start"],"end":sample["end"],"heading":heading,"speed":sample["speed"],
 			"blocked_time":0.0,"turn_cooldown":0.0,"state":"WALK","hold":0.0,"alert":0.0,
 			"arrival":sample.get("arrival", ""), "signal":sample.get("signal", Vector3i.ZERO),
-			"social":0.0,"social_cooldown":0.0,"social_facing":Vector3.ZERO}
+			"social":0.0,"social_cooldown":0.0,"social_facing":Vector3.ZERO,
+			"routine":sample.get("routine",{}),"intent":"RESTING","dwell_state":"RESTING",
+			"alert_facing":Vector3.ZERO,"alert_cooldown":0.0,"retreat":0.0,
+			"bark_index":posmod(id.hash(),3),"bark_cooldown":0.0,
+			"context":"","context_ttl":0.0,"context_cooldown":0.0}
 		body.collision_layer = 1
 		body.collision_mask = 1
 		body.process_mode = Node.PROCESS_MODE_INHERIT
@@ -122,7 +139,7 @@ func activate(population, id: String, ground_y: float, allowed: Callable) -> boo
 
 ## Caller invokes once per physics tick. Stop on collision; do not teleport
 ## or push an actor back onto the nominal line. Grounded motion uses physics.
-func step(delta: float, signals: Node = null) -> void:
+func step(delta: float, signals: Node = null, hour: float = -1.0) -> void:
 	if not is_finite(delta) or delta<=0.0 or delta>0.1:
 		return
 	for id in _leases:
@@ -137,13 +154,18 @@ func step(delta: float, signals: Node = null) -> void:
 		var target := b if toward_end else a
 		var remaining := (target-body.global_position).dot(heading)
 		var arrival: String = lease["arrival"]
+		lease["intent"] = Routines.activity(lease["routine"],hour)
 		if remaining<=0.06:
+			# Reaching the safe end terminates retreat before ordinary reversal.
+			if float(lease["retreat"])>0.0:
+				lease["retreat"]=0.0
 			heading = -heading
 			lease["heading"] = heading
 			target = a if toward_end else b
 			remaining = (target-body.global_position).dot(heading)
 			if toward_end:
-				lease["hold"] = _hold_duration(arrival, lease["signal"], signals)
+				lease["dwell_state"] = str(lease["intent"]) if arrival=="RESTING" else arrival
+				lease["hold"] = Routines.dwell(lease["intent"]) if arrival=="RESTING" else _hold_duration(arrival, lease["signal"], signals)
 		var offset := body.global_position-a
 		offset.y = 0.0
 		var lateral := (offset-axis*offset.dot(axis)).length()
@@ -152,6 +174,13 @@ func step(delta: float, signals: Node = null) -> void:
 		# Do not keep walking sideways off a certified strip after a slide.
 		# A displaced actor remains visible and leased for explicit recovery.
 		lease["alert"] = maxf(0.0, float(lease["alert"]) - delta)
+		lease["alert_cooldown"] = maxf(0.0, float(lease["alert_cooldown"]) - delta)
+		lease["retreat"] = maxf(0.0, float(lease["retreat"]) - delta)
+		lease["bark_cooldown"] = maxf(0.0,float(lease["bark_cooldown"])-delta)
+		lease["context_ttl"] = maxf(0.0,float(lease["context_ttl"])-delta)
+		lease["context_cooldown"] = maxf(0.0,float(lease["context_cooldown"])-delta)
+		if float(lease["context_ttl"])<=0.0:
+			lease["context"]=""
 		lease["hold"] = maxf(0.0, float(lease["hold"]) - delta)
 		lease["social"] = maxf(0.0, float(lease["social"]) - delta)
 		lease["social_cooldown"] = maxf(0.0, float(lease["social_cooldown"]) - delta)
@@ -161,12 +190,16 @@ func step(delta: float, signals: Node = null) -> void:
 		elif float(lease["alert"]) > 0.0:
 			desired = Vector3.ZERO
 			lease["state"] = "ALERT"
+		elif float(lease["retreat"]) > 0.0:
+			# Retreat along the certified strip, not into traffic.
+			desired = heading*minf(float(lease["speed"])*1.5,maxf(0.0,remaining)/delta)
+			lease["state"] = "RETREAT"
 		elif float(lease["social"]) > 0.0:
 			desired = Vector3.ZERO
 			lease["state"] = "SOCIALIZE"
 		elif float(lease["hold"]) > 0.0:
 			desired = Vector3.ZERO
-			lease["state"] = arrival
+			lease["state"] = lease["dwell_state"]
 		else:
 			lease["state"] = "WALK"
 		body.velocity.x = desired.x
@@ -193,6 +226,8 @@ func step(delta: float, signals: Node = null) -> void:
 		else:
 			lease["blocked_time"] = 0.0
 		var facing: Vector3 = lease["social_facing"] if lease["state"] == "SOCIALIZE" else heading
+		if lease["state"]=="ALERT" and (lease["alert_facing"] as Vector3).length_squared()>0.01:
+			facing=lease["alert_facing"]
 		body.rotation.y = lerp_angle(body.rotation.y, atan2(facing.x,facing.z), minf(1.0, 9.0 * delta))
 		if _visuals[i].has_method("set_locomotion"):
 			var v := body.get_real_velocity()
@@ -212,19 +247,35 @@ func _hold_duration(arrival: String, crossing: Vector3i, signals: Node) -> float
 			return 2.0
 	return 0.0
 
-func react_to_incident(space: PhysicsDirectSpaceState3D, at: Vector3, radius: float, ignored: Array[RID]) -> void:
+func react_to_incident(space: PhysicsDirectSpaceState3D, at: Vector3, radius: float, ignored: Array[RID], urgent: bool = false) -> void:
+	if not at.is_finite() or not is_finite(radius) or radius<=0.0:
+		return
+	radius=minf(radius,MAX_INCIDENT_RADIUS)
 	for id in _leases:
 		var lease: Dictionary = _leases[id]
 		var body := _slots[int(lease["slot"])]
 		var eye := body.global_position + Vector3.UP * 1.6
-		if eye.distance_squared_to(at) > radius * radius:
+		if eye.distance_squared_to(at) > radius * radius or (float(lease["alert_cooldown"])>0.0 and (not urgent or float(lease["retreat"])>0.0)):
 			continue
 		var exclude := ignored.duplicate()
 		exclude.append(body.get_rid())
 		if space.intersect_ray(PhysicsRayQueryParameters3D.create(eye, at, 1, exclude)).is_empty():
-			lease["alert"] = 2.6
+			lease["alert"] = 0.65 if urgent else 2.6
+			_remember_context(lease,"urgent" if urgent else "incident")
+			lease["alert_cooldown"] = ALERT_COOLDOWN
+			lease["social"] = 0.0
+			lease["hold"] = 0.0
+			var toward := at-eye
+			toward.y=0.0
+			lease["alert_facing"] = toward.normalized()
+			if urgent:
+				var heading:Vector3=lease["heading"]
+				if heading.dot(toward)>0.0:
+					lease["heading"] = -heading
+				lease["retreat"] = 3.8
 
 func react_to_traffic(vehicles: Array[CharacterBody3D]) -> void:
+	var space:=get_world_3d().direct_space_state
 	for id in _leases:
 		var lease: Dictionary = _leases[id]
 		var body := _slots[int(lease["slot"])]
@@ -239,13 +290,22 @@ func react_to_traffic(vehicles: Array[CharacterBody3D]) -> void:
 				continue
 			var leading := offset.dot(velocity / speed)
 			if leading > -0.8 and leading < 1.1 * speed and (offset - velocity / speed * leading).length() < 2.25:
+				# Reject vehicles on other floors or behind solid geometry.
+				if absf(body.global_position.y-vehicle.global_position.y)>2.0:
+					continue
+				var exclude:Array[RID]=[body.get_rid(),vehicle.get_rid()]
+				var eye:=body.global_position+Vector3.UP*1.4
+				var target:=vehicle.global_position+Vector3.UP*0.8
+				if not space.intersect_ray(PhysicsRayQueryParameters3D.create(eye,target,1,exclude)).is_empty():
+					continue
 				lease["alert"] = maxf(float(lease["alert"]), 0.65)
+				_remember_context(lease,"traffic")
 				break
 
 func socialize_nearby(space: PhysicsDirectSpaceState3D) -> void:
 	var resting: Array[Dictionary] = []
 	for lease in _leases.values():
-		if lease["state"] in ["RESTING", "STOREFRONT", "WAIT_CROSSING"] and float(lease["social_cooldown"]) <= 0.0:
+		if lease["state"] in ["RESTING", "BREAK", "NIGHT_OUT", "ERRAND", "STOREFRONT", "WAIT_CROSSING"] and float(lease["social_cooldown"]) <= 0.0:
 			resting.append(lease)
 	for i in range(resting.size()):
 		var first := _slots[int(resting[i]["slot"])]
@@ -333,3 +393,212 @@ func capture_active(population) -> bool:
 		if not population.capture_live(id,body.global_position,lease["heading"]):
 			ok = false
 	return ok
+
+## At most one local calm speaker selected per global cooldown, with real LOS.
+func street_bark(space:PhysicsDirectSpaceState3D, listener:Vector3, listener_rid:RID, context_only:bool = false) -> Dictionary:
+	var nearest: String = ""
+	var best := 8.0*8.0
+	var best_context:=false
+	for id in _leases:
+		var lease:Dictionary=_leases[id]
+		var contextual:=float(lease["context_ttl"])>0.0 and float(lease["context_cooldown"])<=0.0
+		if not _bark_calm(lease) or (not contextual and (context_only or best_context or float(lease["bark_cooldown"])>0.0)):
+			continue
+		var body:=_slots[int(lease["slot"])]
+		var eye:=body.global_position+Vector3.UP*1.6
+		var distance:=eye.distance_squared_to(listener)
+		if distance>8.0*8.0 or distance<1.0 or (contextual==best_context and distance>best):
+			continue
+		var ignored:Array[RID]=[body.get_rid()]
+		if listener_rid.is_valid():
+			ignored.append(listener_rid)
+		if not space.intersect_ray(PhysicsRayQueryParameters3D.create(eye,listener,1,ignored)).is_empty():
+			continue
+		best=distance
+		best_context=contextual
+		nearest=id
+	if nearest.is_empty():
+		return {}
+	var chosen:Dictionary=_leases[nearest]
+	var line:Dictionary=Satire.contextual_line(nearest,str(chosen["context"])) if best_context else {}
+	if not line.is_empty():
+		chosen["context"]=""
+		chosen["context_ttl"]=0.0
+		chosen["context_cooldown"]=60.0
+	else:
+		line=Satire.line_for(nearest,int(chosen["bark_index"]))
+		chosen["bark_index"]=posmod(int(chosen["bark_index"])+1,3)
+	chosen["bark_cooldown"]=75.0
+	line["speaker"]=_slots[int(chosen["slot"])]
+	line["lease_id"]=nearest
+	return line
+
+static func _bark_calm(lease:Dictionary) -> bool:
+	return float(lease["alert"])<=0.0 and float(lease["retreat"])<=0.0 and lease["state"] in ["WALK","RESTING","BREAK","NIGHT_OUT","ERRAND","STOREFRONT","SOCIALIZE","WAIT_CROSSING"]
+
+func street_bark_valid(id:String) -> bool:
+	return _leases.has(id) and _bark_calm(_leases[id])
+
+## One bounded recent event per lease. Keep more urgent context over traffic.
+static func _remember_context(lease:Dictionary,context:String) -> void:
+	if float(lease["context_cooldown"])>0.0:
+		return
+	var previous:=str(lease["context"])
+	var priority:Dictionary={"":0,"traffic":1,"incident":2,"urgent":3}
+	if int(priority.get(context,0))<int(priority.get(previous,0)):
+		return
+	lease["context"]=context
+	lease["context_ttl"]=28.0
+
+## Existing physical actors may pause briefly for a three-turn exchange.
+## No actors are spawned or repositioned to make a conversation happen.
+func begin_street_exchange(space:PhysicsDirectSpaceState3D,listener:Vector3,listener_rid:RID) -> Dictionary:
+	var ids:=_leases.keys()
+	ids.sort()
+	for i in range(ids.size()):
+		var first_id:String=ids[i]
+		var first:Dictionary=_leases[first_id]
+		if not _exchange_ready(first):
+			continue
+		var first_body:=_slots[int(first["slot"])]
+		if first_body.global_position.distance_squared_to(listener)>64.0:
+			continue
+		for j in range(i+1,ids.size()):
+			var second_id:String=ids[j]
+			var second:Dictionary=_leases[second_id]
+			if not _exchange_ready(second):
+				continue
+			var second_body:=_slots[int(second["slot"])]
+			var distance:=first_body.global_position.distance_squared_to(second_body.global_position)
+			if distance<1.35*1.35 or distance>16.0:
+				continue
+			var beats:=Satire.exchange_for(first_id,second_id)
+			if beats.is_empty() or not _exchange_visible(space,first_body,second_body,listener,listener_rid):
+				continue
+			var facing:=first_body.global_position.direction_to(second_body.global_position)
+			facing.y=0.0
+			first["social_facing"]=facing.normalized()
+			second["social_facing"]=-facing.normalized()
+			for lease in [first,second]:
+				lease["social"]=30.0
+				lease["social_cooldown"]=90.0
+				lease["bark_cooldown"]=90.0
+			return {"first":first_id,"second":second_id,"beats":beats}
+	return {}
+
+static func _exchange_ready(lease:Dictionary) -> bool:
+	return _bark_calm(lease) and lease["state"] not in ["WAIT_CROSSING","STOREFRONT"] and float(lease["bark_cooldown"])<=0.0 and float(lease["context_ttl"])<=0.0
+
+static func _exchange_visible(space:PhysicsDirectSpaceState3D,a:CharacterBody3D,b:CharacterBody3D,listener:Vector3,listener_rid:RID) -> bool:
+	var a_eye:=a.global_position+Vector3.UP*1.6
+	var b_eye:=b.global_position+Vector3.UP*1.6
+	if a_eye.distance_squared_to(listener)>64.0 or b_eye.distance_squared_to(listener)>64.0 or a_eye.distance_squared_to(b_eye)>16.0:
+		return false
+	var ignored:Array[RID]=[a.get_rid(),b.get_rid()]
+	if listener_rid.is_valid():
+		ignored.append(listener_rid)
+	for segment in [[a_eye,b_eye],[a_eye,listener],[b_eye,listener]]:
+		if not space.intersect_ray(PhysicsRayQueryParameters3D.create(segment[0],segment[1],1,ignored)).is_empty():
+			return false
+	return true
+
+func exchange_valid(pair:Dictionary) -> bool:
+	for id in [pair["first"],pair["second"]]:
+		if not _leases.has(id) or not _bark_calm(_leases[id]) or float(_leases[id]["social"])<=0.0:
+			return false
+	return true
+
+func exchange_visible(pair:Dictionary,space:PhysicsDirectSpaceState3D,listener:Vector3,listener_rid:RID) -> bool:
+	if not exchange_valid(pair):
+		return false
+	return _exchange_visible(space,_slots[int(_leases[pair["first"]]["slot"])],_slots[int(_leases[pair["second"]]["slot"])],listener,listener_rid)
+
+func exchange_speaker(pair:Dictionary,character:String) -> Node3D:
+	if not exchange_valid(pair):
+		return null
+	for id in [pair["first"],pair["second"]]:
+		if Satire.personality(id)==character:
+			return _slots[int(_leases[id]["slot"])]
+	return null
+
+func release_exchange(pair:Dictionary) -> void:
+	for id in [pair["first"],pair["second"]]:
+		if _leases.has(id):
+			_leases[id]["social"]=0.0
+
+## Player-directed talk uses a live, nearby, calm lease, never abstract IDs.
+func contact_near(space:PhysicsDirectSpaceState3D,listener:Vector3,listener_rid:RID,required_id:String="") -> Dictionary:
+	var best:=2.8*2.8
+	var result:Dictionary={}
+	for id in _leases:
+		if not required_id.is_empty() and id!=required_id:
+			continue
+		var lease:Dictionary=_leases[id]
+		if not _bark_calm(lease) or float(lease["context_ttl"])>0.0:
+			continue
+		var body:=_slots[int(lease["slot"])]
+		var eye:=body.global_position+Vector3.UP*1.6
+		var distance:=eye.distance_squared_to(listener)
+		if distance>best or distance<0.36:
+			continue
+		var ignored:Array[RID]=[body.get_rid()]
+		if listener_rid.is_valid():
+			ignored.append(listener_rid)
+		if not space.intersect_ray(PhysicsRayQueryParameters3D.create(eye,listener,1,ignored)).is_empty():
+			continue
+		best=distance
+		result=Satire.profile(id)
+		result["lease_id"]=id
+	return result
+
+func begin_player_reply(space:PhysicsDirectSpaceState3D,listener:Vector3,listener_rid:RID,id:String,topic:int)->Dictionary:
+	var contact:=contact_near(space,listener,listener_rid,id)
+	if contact.is_empty() or topic<0 or topic>=contact["topics"].size():
+		return {}
+	var lease:Dictionary=_leases[id]
+	var body:=_slots[int(lease["slot"])]
+	var facing:=body.global_position.direction_to(listener)
+	facing.y=0.0
+	lease["social_facing"]=facing.normalized()
+	lease["social"]=15.0
+	lease["social_cooldown"]=30.0
+	lease["bark_cooldown"]=75.0
+	var line:Dictionary=contact["topics"][topic].duplicate()
+	line["speaker"]=body
+	return line
+
+func release_player_reply(id:String)->void:
+	if _leases.has(id):
+		_leases[id]["social"]=0.0
+
+func bark_audible(id:String,space:PhysicsDirectSpaceState3D,listener:Vector3,listener_rid:RID)->bool:
+	if not street_bark_valid(id):
+		return false
+	var body:=_slots[int(_leases[id]["slot"])]
+	var eye:=body.global_position+Vector3.UP*1.6
+	if eye.distance_squared_to(listener)>64.0:
+		return false
+	var ignored:Array[RID]=[body.get_rid()]
+	if listener_rid.is_valid():
+		ignored.append(listener_rid)
+	return space.intersect_ray(PhysicsRayQueryParameters3D.create(eye,listener,1,ignored)).is_empty()
+
+func player_reply_valid(id:String)->bool:
+	return street_bark_valid(id) and float(_leases[id]["social"])>0.0
+
+func begin_cal_reply(space:PhysicsDirectSpaceState3D,listener:Vector3,listener_rid:RID,id:String,action:String)->Dictionary:
+	if Satire.personality(id)!="robot_romantic" or contact_near(space,listener,listener_rid,id).is_empty():
+		return {}
+	var line:=Satire.cal_quest_line(action)
+	if line.is_empty():
+		return {}
+	var lease:Dictionary=_leases[id]
+	var body:=_slots[int(lease["slot"])]
+	var facing:=body.global_position.direction_to(listener)
+	facing.y=0.0
+	lease["social_facing"]=facing.normalized()
+	lease["social"]=15.0
+	lease["social_cooldown"]=30.0
+	lease["bark_cooldown"]=75.0
+	line["speaker"]=body
+	return line

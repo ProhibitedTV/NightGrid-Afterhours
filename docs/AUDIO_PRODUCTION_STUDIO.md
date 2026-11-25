@@ -179,3 +179,12 @@ Default SFX device is CPU; opt into CUDA with --sfx-device cuda. SFX candidates 
 ## Integration checkpoint
 
 At main revision 73216c8, the seven pinned spoken script constants match the catalog. CI now checks the actual local opening script for drift; adding more dialogue still requires extending the catalog. No recordings have been baked or approved in the repository by this integration. Do not claim fully voiced gameplay until runtime triggers and strict published coverage pass.
+
+
+## Street personality content foundation
+
+The audio authoring catalog now includes 57 original street utterances (18 incidental, 18 contextual, nine exchange beats and twelve optional player replies), across six original street voice designs. Together with the 27 corporate lines and 37 existing effects, this is 121 authored cues. The canonical street data lives in scripts/street_satire.gd and is checked against the manifest. The content-only PR #319 landed independently. This gameplay integration adds the local street playback, conversations and player replies; Godot and Windows validation are still required. No recordings or native gameplay evidence are claimed.
+
+Render the whole catalog using the existing bake-all command, or select a character, e.g. `python tools/voice/anubis.py bake --character nothing_happens`. Existing corporate specifications and cast locks are unchanged. Keep listening review and publish gates enabled. The street pilot remains opt-in via --living-streets. The street bank prewarms 57 clips within the 64-entry cache; do not preload the entire office library alongside it without a scoped cache policy.
+
+Compatibility Patch adds two original Cal Mercer quest utterances (`street.robot_romantic.quest.accept`, `street.robot_romantic.quest.complete`), for 86 speech cues and 37 SFX (123 total authored cues); 59 street clips fit the existing 64-clip bank. Both use the same voice identity and canonical manifest, with no new generated files or runtime inference. The existing Anubis full bake or `--character robot_romantic` includes them.

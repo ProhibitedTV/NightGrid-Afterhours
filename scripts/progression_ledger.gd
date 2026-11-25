@@ -10,6 +10,11 @@ const StarterHome = preload("res://scripts/starter_home.gd")
 const Wardrobe = preload("res://scripts/wardrobe_catalog.gd")
 const Economy = preload("res://scripts/economy.gd")
 var bitcoin_sats: int = 0
+const CAL_RECEIPT="street:compatibility_patch"
+const CAL_REWARD=85
+var cal_quest:int=0 # 0 offered, 1 accepted, 2 collected, 3 completed
+const StreetCred=preload("res://scripts/street_cred.gd")
+var _street_cred=StreetCred.new()
 
 var balance: int = 0
 var _receipts: Dictionary = {}
@@ -248,10 +253,47 @@ func withdraw_supply(carried: int) -> int:
 	home_supplies -= 1
 	return 1
 
+func accept_cal_quest()->bool:
+	if cal_quest!=0 or has_receipt(CAL_RECEIPT):
+		return false
+	cal_quest=1
+	return true
+
+func collect_cal_gift()->bool:
+	if cal_quest!=1:
+		return false
+	cal_quest=2
+	return true
+
+func complete_cal_quest()->bool:
+	if cal_quest!=2 or not credit_once(CAL_RECEIPT,CAL_REWARD):
+		return false
+	cal_quest=3
+	return true
+
+func street_cred()->int:
+	return _street_cred.total(_receipts)
+
+func street_cred_rank()->Dictionary:
+	return StreetCred.rank(street_cred())
+
+func street_cred_summary()->String:
+	return _street_cred.summary(_receipts)
+
+func street_cred_sources()->Array[Dictionary]:
+	return _street_cred.earned_sources(_receipts)
+
+func street_activity_runs(source:String)->int:
+	return _street_cred.completed_runs(source)
+
+## Gameplay systems call this only after validating a completed activity.
+func settle_street_activity(source:String,sequence:int)->bool:
+	return _street_cred.settle_run(source,sequence)
+
 func snapshot() -> Dictionary:
 	var ids: Array = _receipts.keys()
 	ids.sort()
-	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "owned_pieces":owned_piece_ids(), "clothing_slots":clothing_slots.duplicate(), "saved_looks":_saved_looks.duplicate(true), "bitcoin_sats":bitcoin_sats}
+	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "owned_pieces":owned_piece_ids(), "clothing_slots":clothing_slots.duplicate(), "saved_looks":_saved_looks.duplicate(true), "bitcoin_sats":bitcoin_sats, "cal_quest":cal_quest, "street_activity_runs":_street_cred.snapshot()}
 
 static func valid_snapshot(value: Variant) -> bool:
 	if not value is Dictionary:
@@ -268,6 +310,11 @@ static func valid_snapshot(value: Variant) -> bool:
 		if not valid_id(id) or seen.has(id):
 			return false
 		seen[id] = true
+	if not StreetCred.valid_runs(data.get("street_activity_runs",{})):
+		return false
+	var cal:Variant=data.get("cal_quest",0)
+	if not valid_cash(cal) or int(cal)>3 or (int(cal)==3)!=seen.has(CAL_RECEIPT):
+		return false
 	# Older saves already granted residence access; grandfather it, not new missions.
 	var tenancy: Variant = data.get("home_tenancy_paid",seen.has(StarterHome.ACCESS_RECEIPT))
 	if not tenancy is bool or (tenancy and not seen.has(StarterHome.ACCESS_RECEIPT)):
@@ -357,6 +404,8 @@ func restore(amount: Variant, data: Variant) -> bool:
 	_owned_pieces.clear()
 	for id in data.get("owned_pieces",[]):
 		_owned_pieces[id]=true
+	cal_quest=int(data.get("cal_quest",0))
+	_street_cred.restore(data.get("street_activity_runs",{}))
 	_purchased_outfits.clear()
 	for id in data.get("purchased_outfits",[]):
 		_purchased_outfits[id] = true
