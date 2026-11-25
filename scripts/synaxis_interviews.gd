@@ -31,5 +31,5 @@ static func conversation(id: String, stage: int) -> Dictionary:
 	var topics: Array[Dictionary] = []
 	for item in source["topics"]:
 		topics.append({"id":id+"."+str(item["id"]),"question":item["question"],
-			"reply":item["before"] if stage<2 else item["after"]})
+			"phase":"before" if stage<2 else "after","reply":item["before"] if stage<2 else item["after"]})
 	return {"id":id,"name":source["name"],"role":source["role"],"topics":topics}
