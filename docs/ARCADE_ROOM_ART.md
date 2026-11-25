@@ -1,0 +1,11 @@
+# INSERT COIN — first cabinet art and room kit
+
+Four individually illustrated original SVG cabinet skins; reusable human-scale cabinet shell with coin door, speaker slots, control deck, joystick, buttons, screen bezel and side panels. Static CRT shader has subtle scanlines/vignette, no time-based flickering and no active SubViewport. Two collision shapes per cabinet. Original geometry and graphics are authored specifically for Afterhours, not imported publisher IP.
+
+Room dressing puts two opposing pairs against the side walls of the existing 16×18m interior envelope, leaving a central aisle and door clear. Front-only reachability reports stable cabinet game IDs. Rook dialogue rotates through four player-positive lines. The room kit expects the host interior to supply architecture, a counter and lighting; the preview supplies a floor and camera only.
+
+Preview: `godot --path . res://scenes/arcade_room_preview.tscn`
+
+Smoke: `godot --headless --path . --script res://tests/arcade_room_smoke.gd`
+
+This branch supplies art and reusable reachability only, not playable city placement or modal binding. Patch Day and Indie Dev software are in PR #326. The next integration PR must select a verified physical address, connect cabinet IDs to the active game screen, isolate input and preserve save/load behavior. The preview is not a verified native screenshot or final art acceptance; profile on the target GPU before scaling.
