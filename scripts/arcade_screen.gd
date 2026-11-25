@@ -8,7 +8,7 @@ const SeasonRound = preload("res://scripts/arcade_season_round.gd")
 const ClassicRound = preload("res://scripts/arcade_classic_round.gd")
 const Scores = preload("res://scripts/arcade_scores.gd")
 const AudioMix = preload("res://scripts/audio_mix.gd")
-const CUES := {
+const CUES = {
 	"start": preload("res://assets/arcade/audio/start.wav"),
 	"score": preload("res://assets/arcade/audio/score.wav"),
 	"damage": preload("res://assets/arcade/audio/damage.wav"),

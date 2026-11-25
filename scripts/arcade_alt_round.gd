@@ -1,12 +1,12 @@
 extends RefCounted
 ## Two distinct bounded games: real-time grid repair and turn-based studio management.
-const COLS := 4
-const ROWS := 3
-const PATCH_STEPS := 30
-const PATCH_SECONDS := 0.65
-const WEEKS := 8
-const ACTIONS := ["Build", "Fix", "Rest", "Community"]
-const DETAILS := ["+3 quality, +2 bugs, -2 energy", "-3 bugs, +1 quality, -1 energy", "+4 energy", "+3 fans, -1 energy"]
+const COLS = 4
+const ROWS = 3
+const PATCH_STEPS = 30
+const PATCH_SECONDS = 0.65
+const WEEKS = 8
+const ACTIONS = ["Build", "Fix", "Rest", "Community"]
+const DETAILS = ["+3 quality, +2 bugs, -2 energy", "-3 bugs, +1 quality, -1 energy", "+4 energy", "+3 fans, -1 energy"]
 var game_id := ""
 var finished := true
 var score := 0

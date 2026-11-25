@@ -1,12 +1,12 @@
 extends RefCounted
 ## Original target gallery and sliding puzzle. No currency or real purchases.
-const SIDE := 3
-const GALLERY_STEPS := 24
-const GALLERY_SECONDS := 1.2
-const MAGAZINE := 4
-const MOVE_LIMIT := 36
-const SOLVED := [1,2,3,4,5,6,7,8,0]
-const SCRAMBLES := [
+const SIDE = 3
+const GALLERY_STEPS = 24
+const GALLERY_SECONDS = 1.2
+const MAGAZINE = 4
+const MOVE_LIMIT = 36
+const SOLVED = [1,2,3,4,5,6,7,8,0]
+const SCRAMBLES = [
 	[Vector2i.LEFT,Vector2i.UP,Vector2i.LEFT,Vector2i.DOWN],
 	[Vector2i.UP,Vector2i.LEFT,Vector2i.UP,Vector2i.RIGHT,Vector2i.DOWN,Vector2i.LEFT],
 	[Vector2i.LEFT,Vector2i.UP,Vector2i.RIGHT,Vector2i.UP,Vector2i.LEFT,Vector2i.DOWN,Vector2i.LEFT,Vector2i.UP]
