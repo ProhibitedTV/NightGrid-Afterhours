@@ -7,7 +7,8 @@ const APPS = [
 	{"id":"contacts","name":"Contacts","mark":"@","color":"c5a9ee"},
 	{"id":"housing","name":"Housing","mark":"H","color":"e2bba0"},
 	{"id":"transit","name":"Transit","mark":"M","color":"8ebce8"},
-	{"id":"messages","name":"Messages","mark":"••","color":"b4c9cb"}
+	{"id":"messages","name":"Messages","mark":"••","color":"b4c9cb"},
+	{"id":"opportunities","name":"Workboard","mark":"W","color":"e5ce89"}
 ]
 
 const ICONS = {
@@ -16,7 +17,8 @@ const ICONS = {
 	"contacts": preload("res://assets/phone/contacts.svg"),
 	"housing": preload("res://assets/phone/housing.svg"),
 	"transit": preload("res://assets/phone/transit.svg"),
-	"messages": preload("res://assets/phone/messages.svg")
+	"messages": preload("res://assets/phone/messages.svg"),
+	"opportunities": preload("res://assets/phone/opportunities.svg")
 }
 
 static func app(id: String) -> Dictionary:
@@ -47,6 +49,19 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 					actions.append({"label":"Go offline","action":"phone_toggle_duty"})
 			else:
 				rows.append({"label":"QuotaDrop","value":"Available after your Synaxis offboarding."})
+		"opportunities":
+			subtitle = "Independent work · Morrow Bay"
+			var listings: Array = state.get("workboard",[])
+			if listings.is_empty():
+				rows.append({"label":"No contracts remaining","value":"Explore the city or return to QuotaDrop for repeatable income."})
+			for listing in listings:
+				var status := "Turn in" if listing["active"] else "Ask about contract"
+				rows.append({
+					"label":"%s · $%d" % [listing["title"],int(listing["reward"])],
+					"value":"%s / %s / %s\n%s" % [listing["category"],listing["site"],"Open" if listing["open"] else "Closed",listing["brief"]],
+					"action":"phone_route_contract:"+str(listing["id"]),
+					"action_label":status+" · navigate"
+				})
 		"wallet":
 			subtitle = "Available funds"
 			rows.append({"label":"Cash on hand","value":"$%d" % int(state.get("cash",0))})
