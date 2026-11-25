@@ -444,11 +444,16 @@ func _verify() -> void:
 		return
 	menu.call("_choice","opening_accept")
 	world.call("_accept_opening")
-	if world.get("_opening_office")!=null or player.global_position.distance_to(Vector3(0,1.15,6))>.01:
-		_fail("Office exit cleans up and returns existing player to city")
+	var headquarters = preload("res://scripts/synaxis_office.gd")
+	if world.get("_opening_office")!=null or player.global_position.distance_to(headquarters.ENTRY)>.01 or world.get("city_details").call("synaxis_headquarters")!=office:
+		_fail("Office exit retains the real headquarters and places player at public entrance")
 		return
 	if world.get("cash") != before_severance+75 or not world.get("courier_mission").gig_economy or menu.call("is_open"):
 		_fail("Opening credits severance once and enables real QuotaDrop work")
+		return
+	world.call("_toggle_interior")
+	if not str(world.get("notification")).contains("Badge access revoked") or world.get("_opening_office")!=null:
+		_fail("Former employee cannot re-enter through locked public gate")
 		return
 	var order = world.get("courier_mission")
 	var restaurants: Node = world.get("venue_system")

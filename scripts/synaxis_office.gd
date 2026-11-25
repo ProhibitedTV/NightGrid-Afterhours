@@ -1,7 +1,15 @@
 extends Node3D
-## Isolated, bounded introductory office set. Built once, removed before city play.
-## Existing player rig and collision controller; no additional player or city streamer.
-const ORIGIN = Vector3(1200,48,0)
+## Permanent authored headquarters ground floor, streamed by its city parcel.
+## Only the introductory cast and mission UI are transient.
+const BLOCK = Vector2i(1,-1)
+const LOT = 0
+const ORIGIN = Vector3(76.5,.15,-33.88)
+const ENTRY = Vector3(76.5,1.30,-46.2)
+const ID = "synaxis_hq"
+const NAME = "SYNAXIS OMNISYSTEMS"
+var _intro_canvas: CanvasLayer
+var _cast: Node3D
+var _security: StaticBody3D
 const Patron = preload("res://scripts/lantern_patron.gd")
 const Assistant = preload("res://scripts/synaxis_assistant.gd")
 var _assistant: Node3D
@@ -22,7 +30,19 @@ func _ready() -> void:
 	var screen := _material("screen",Color("508f8d"),true)
 	_solid("Floor",Vector3(0,-.15,0),Vector3(17,.3,20),floor_mat)
 	_solid("Ceiling",Vector3(0,3.5,0),Vector3(17,.3,20),wall)
-	_solid("NorthWall",Vector3(0,1.75,-10),Vector3(17,3.5,.25),wall)
+	for side in [-1.0,1.0]:
+		_solid("FrontWall",Vector3(side*4.9,1.75,-10),Vector3(7.2,3.5,.25),wall)
+	_solid("EntranceHeader",Vector3(0,3.15,-10),Vector3(2.6,.7,.25),wall)
+	_solid("SecurityGate",Vector3(0,1.4,-10),Vector3(2.6,2.8,.25),_material("security",Color("293842")))
+	_sign("SYNAXIS / EMPLOYEE ACCESS",Vector3(0,2.95,-10.17),.006).rotation.y = PI
+	_sign("BADGE REQUIRED",Vector3(0,1.65,-10.17),.005).rotation.y = PI
+	# Fixed upper-floor shell, not a second generic building intersecting the office.
+	_solid("TowerCore",Vector3(0,27,0),Vector3(17,46.7,20),_material("glass",Color("354c60")))
+	for floor in range(12):
+		var y := 5.4+float(floor)*3.65
+		_visual("FacadeSpandrel",Vector3(0,y,-10.13),Vector3(17,.36,.16),accent)
+	_visual("Crown",Vector3(0,50.8,0),Vector3(17.5,.75,20.5),desk)
+	_sign("SYNAXIS",Vector3(0,49.2,-10.24),.028).rotation.y = PI
 	_solid("SouthWall",Vector3(0,1.75,10),Vector3(17,3.5,.25),wall)
 	_solid("WestWall",Vector3(-8.5,1.75,0),Vector3(.25,3.5,20),wall)
 	_solid("EastWall",Vector3(8.5,1.75,0),Vector3(.25,3.5,20),wall)
@@ -48,11 +68,11 @@ func _ready() -> void:
 	_sign("PEOPLE EXPERIENCE\nWE VALUE YOUR FEEDBACK",Vector3(-5,2.25,-5.0),.006)
 	_sign("EXECUTIVE AFFAIRS\nTRANSPARENCY IS A CORE VALUE",Vector3(5,2.25,-4.9),.006)
 	_sign("RECEPTION\nEXIT PROCESSING",Vector3(5,2.25,6.0),.006)
-	_build_cast()
 	_target_sign = _sign("",Vector3.ZERO,.006)
 	_target_sign.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_target_sign.modulate = Color("8de5cc")
 	var canvas := CanvasLayer.new()
+	_intro_canvas = canvas
 	canvas.layer = 5
 	add_child(canvas)
 	var panel := PanelContainer.new()
@@ -65,26 +85,58 @@ func _ready() -> void:
 	_hint.add_theme_font_size_override("font_size",20)
 	panel.add_child(_hint)
 	set_stage(0)
+	_target_sign.hide()
+	_intro_canvas.hide()
+	# Ground-floor furniture and collision remain; stage lighting is local.
+	for light in find_children("*","OmniLight3D",true,false):
+		light.hide()
+
+func begin_prologue() -> void:
+	if not is_instance_valid(_cast):
+		_build_cast()
+	_target_sign.show()
+	_intro_canvas.show()
+	for light in find_children("*","OmniLight3D",true,false):
+		light.show()
+	set_stage(0)
+
+func finish_prologue() -> void:
+	end_dialogue()
+	_target_sign.hide()
+	_intro_canvas.hide()
+	if is_instance_valid(_cast):
+		_cast.queue_free()
+		_cast = null
+	_assistant = null
+	_ceo = null
+	_hr = null
+	for light in find_children("*","OmniLight3D",true,false):
+		light.hide()
+
+static func entrance_reachable(at: Vector3) -> bool:
+	return at.is_finite() and at.distance_to(ENTRY) < 3.0
 
 func _build_cast() -> void:
+	_cast = Node3D.new()
+	_cast.name = "OpeningCast"
+	add_child(_cast)
 	_ceo = Patron.new()
 	_ceo.call("configure",{"id":"jetson_wang","role":"Chief Executive Officer","activity":"CHAT","seated":true,"palette":2,"phase":1.2})
 	_ceo.position = Vector3(5,0,-6.65)
-	add_child(_ceo)
+	_cast.add_child(_ceo)
 	_assistant = Assistant.new()
 	_assistant.name = "LinXue"
 	_assistant.position = Vector3(7.1,0,-5.8)
 	_assistant.scale = Vector3.ONE*.88
-	add_child(_assistant)
+	_cast.add_child(_assistant)
 	_hr = Patron.new()
 	_hr.call("configure",{"id":"people_ops","role":"People Experience","activity":"SCROLL","seated":true,"palette":4,"phase":2.1})
 	_hr.position = Vector3(-5,0,-6.65)
-	add_child(_hr)
+	_cast.add_child(_hr)
 	for actor in [_ceo,_assistant,_hr]:
 		actor.process_mode = Node.PROCESS_MODE_ALWAYS
-	_sign("JETSON WANG / CEO",Vector3(5,2.55,-6.65),.0045)
-	_sign("LIN XUE / EXECUTIVE ASSISTANT",Vector3(7.1,2.35,-5.8),.004)
-	_sign("PEOPLE EXPERIENCE",Vector3(-5,2.55,-6.65),.0045)
+	for sign in [_sign("JETSON WANG / CEO",Vector3(5,2.55,-6.65),.0045),_sign("LIN XUE / EXECUTIVE ASSISTANT",Vector3(7.1,2.35,-5.8),.004),_sign("PEOPLE EXPERIENCE",Vector3(-5,2.55,-6.65),.0045)]:
+		sign.reparent(_cast,false)
 
 func dialogue_camera(camera: Camera3D,stage: int,beat: int) -> void:
 	var from := Vector3(4.0,1.85,-2.7)

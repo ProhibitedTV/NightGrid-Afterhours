@@ -474,10 +474,13 @@ func _on_menu_action(action: String) -> void:
 func _start_opening_office() -> void:
 	if is_instance_valid(_opening_office) or progression.has_receipt(Opening.RECEIPT):
 		return
-	_opening_office = OpeningOffice.new()
-	_opening_office.name = "SynaxisExecutiveFloor"
-	_opening_office.position = OpeningOffice.ORIGIN
-	add_child(_opening_office)
+	city_details.call("set_focus",OpeningOffice.ENTRY)
+	_opening_office = city_details.call("synaxis_headquarters")
+	if not is_instance_valid(_opening_office):
+		# Fail safely to the accessible dialogue rather than strand a new game.
+		game_menu.call("open_opening")
+		return
+	_opening_office.call("begin_prologue")
 	player.global_position = _opening_office.to_global(OpeningOffice.START)
 	player.velocity = Vector3.ZERO
 	yaw = 0.0
@@ -501,9 +504,8 @@ func _finish_opening_office() -> void:
 		return
 	var old := _opening_office
 	_opening_office = null
-	old.hide()
-	old.queue_free()
-	player.global_position = PLAYER_START
+	old.call("finish_prologue")
+	player.global_position = OpeningOffice.ENTRY
 	player.velocity = Vector3.ZERO
 	player.call("restore_stamina",100.0)
 	get_node("HUD").show()
@@ -538,6 +540,7 @@ func _journal_context() -> Dictionary:
 		"clock": day_night.call("clock_string"),
 		"seed": session.get("world_seed"),
 		"platform_notice": Opening.app_notice(deliveries) if courier_mission.gig_economy else "",
+		"synaxis_site": "SYNAXIS HQ / Glassline / Access revoked" if progression.has_receipt(Opening.RECEIPT) else "",
 		"opening_goal": "QUOTADROP / POD DEPOSIT: $%d of $%d saved" % [mini(cash,StarterHome.move_in_price()),StarterHome.move_in_price()] if courier_mission.gig_economy and not progression.owns_home() else "",
 		"main_objective": "%s  •  STEP %d/%d  •  %dm  •  $%d" % [objective["title"], objective["step"], objective["total_steps"], remaining, objective["reward"]],
 		"courier_can_restart": carrying,
@@ -2089,6 +2092,9 @@ func _toggle_interior() -> void:
 	if current_car != null or current_transit != null:
 		_notify("Exit your vehicle before entering a building.")
 		return
+	if OpeningOffice.entrance_reachable(player.global_position):
+		_notify("SYNAXIS SECURITY: Badge access revoked. Employees only.")
+		return
 	var repair := _repair_storefront()
 	if repair != null:
 		if repair.door_reachable(player.global_position):
@@ -2191,6 +2197,9 @@ func _toggle_interaction() -> void:
 		return
 	if current_car != null or current_transit != null:
 		_notify("Get out of the vehicle before interacting with neighborhood businesses.")
+		return
+	if OpeningOffice.entrance_reachable(player.global_position):
+		_notify("SYNAXIS SECURITY: Badge access revoked. Your concern has been resolved.")
 		return
 	if courier_mission.gig_economy and player.global_position.distance_to(mission_position) < CourierMission.RADIUS:
 		_advance_mission()
