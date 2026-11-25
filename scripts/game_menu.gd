@@ -49,6 +49,8 @@ var _breakroom_choice := ""
 const ParkingDialogue=preload("res://scripts/synaxis_parking_dialogue.gd")
 var _guard_topic:=""
 var _guard_former:=false
+var _interview:Dictionary={}
+var _interview_topic:=-1
 const Restrooms = preload("res://scripts/synaxis_restrooms.gd")
 var _restroom_id := ""
 var settings: Dictionary = DEFAULT_SETTINGS.duplicate(true)
@@ -119,6 +121,13 @@ func open_restroom(id: String) -> void:
 		return
 	_restroom_id=id
 	_open("restroom")
+
+func open_staff_interview(data:Dictionary) -> void:
+	if data.is_empty() or not data.has("topics"):
+		return
+	_interview=data.duplicate(true)
+	_interview_topic=-1
+	_open("staff_interview")
 
 func open_parking_guard(former:bool) -> void:
 	_guard_former=former
@@ -195,6 +204,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				_choice("breakroom_leave")
 			"parking_guard":
 				_choice("guard_leave")
+			"staff_interview":
+				_choice("interview_leave")
 			_:
 				pass
 		get_viewport().set_input_as_handled()
@@ -242,7 +253,7 @@ func _render() -> void:
 	_buttons.clear()
 	_focus_order.clear()
 	_first_focus = null
-	var staged := screen in ["breakroom","restroom","parking_guard"] or (screen=="opening" and _physical_opening and _opening_stage in [2,4])
+	var staged := screen in ["breakroom","restroom","parking_guard","staff_interview"] or (screen=="opening" and _physical_opening and _opening_stage in [2,4])
 	var shade := ColorRect.new()
 	shade.name = "Scrim"
 	shade.color = Color(0.028, 0.045, 0.060, .12 if staged else .94)
@@ -296,6 +307,19 @@ func _render() -> void:
 			_title(col,"AIR QUALITY INCIDENT" if _restroom_id==Restrooms.MEN else "FACILITIES / REQUIRED TRAINING",23,Ui.AMBER)
 			_label(col,Restrooms.MEN_DIALOGUE if _restroom_id==Restrooms.MEN else Restrooms.WOMEN_DIALOGUE,16,Ui.TEXT)
 			_button(col,"restroom_leave","BACK TO WORK","restroom_leave")
+		"staff_interview":
+			SynaxisBrand.ui_lockup(col)
+			_title(col,str(_interview["name"]),23,Ui.AMBER)
+			_label(col,str(_interview["role"]),15,Ui.MUTED)
+			var topics:Array=_interview["topics"]
+			if _interview_topic<0:
+				for i in topics.size():
+					_button(col,"interview_%d" % i,str(topics[i]["question"]),"interview_%d" % i)
+			else:
+				_label(col,str(topics[_interview_topic]["question"]),16,Ui.MUTED)
+				_label(col,str(topics[_interview_topic]["reply"]),17,Ui.TEXT)
+				_button(col,"interview_back","ASK SOMETHING ELSE","interview_back")
+			_button(col,"interview_leave","BACK TO WORK","interview_leave")
 		"parking_guard":
 			SynaxisBrand.ui_lockup(col)
 			_title(col,"MARCUS VALE / PARKING SECURITY",23,Ui.AMBER)
@@ -614,6 +638,21 @@ func _choice(action: String) -> void:
 			if screen == "title" and not _has_save:
 				action_requested.emit("begin_opening")
 			else:
+				hide_for_game()
+		"interview_0", "interview_1":
+			if screen=="staff_interview":
+				var index:=int(action.trim_prefix("interview_"))
+				if index>=0 and index<(_interview["topics"] as Array).size():
+					_interview_topic=index
+					_render()
+		"interview_back":
+			if screen=="staff_interview":
+				_interview_topic=-1
+				_render()
+		"interview_leave":
+			if screen=="staff_interview":
+				_interview.clear()
+				_interview_topic=-1
 				hide_for_game()
 		"guard_r9", "guard_parking", "guard_robots", "guard_access":
 			if screen=="parking_guard":
