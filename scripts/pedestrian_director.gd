@@ -369,7 +369,7 @@ func _finish_player_reply(dialogue:Node)->void:
 
 func _update_contact(dialogue:Node,listener:Vector3,listener_rid:RID,allowed:bool,delta:float)->void:
 	var space:=get_world_3d().direct_space_state
-	if not _player_lease.is_empty() and (not allowed or _player_finished or not bool(dialogue.call("has_scope",PLAYER_SCOPE)) or not bool(_pool.call("street_bark_valid",_player_lease))):
+	if not _player_lease.is_empty() and (not allowed or _player_finished or not bool(dialogue.call("has_scope",PLAYER_SCOPE)) or not bool(_pool.call("player_reply_valid",_player_lease))):
 		_finish_player_reply(dialogue)
 	_contact_clock-=delta
 	if not allowed:

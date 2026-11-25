@@ -573,3 +573,6 @@ func bark_audible(id:String,space:PhysicsDirectSpaceState3D,listener:Vector3,lis
 	if listener_rid.is_valid():
 		ignored.append(listener_rid)
 	return space.intersect_ray(PhysicsRayQueryParameters3D.create(eye,listener,1,ignored)).is_empty()
+
+func player_reply_valid(id:String)->bool:
+	return street_bark_valid(id) and float(_leases[id]["social"])>0.0
