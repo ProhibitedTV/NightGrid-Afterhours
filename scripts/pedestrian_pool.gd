@@ -382,7 +382,9 @@ func street_bark(space:PhysicsDirectSpaceState3D, listener:Vector3, listener_rid
 		var distance:=eye.distance_squared_to(listener)
 		if distance>best or distance<1.0:
 			continue
-		var ignored:Array[RID]=[body.get_rid(),listener_rid]
+		var ignored:Array[RID]=[body.get_rid()]
+		if listener_rid.is_valid():
+			ignored.append(listener_rid)
 		if not space.intersect_ray(PhysicsRayQueryParameters3D.create(eye,listener,1,ignored)).is_empty():
 			continue
 		best=distance
