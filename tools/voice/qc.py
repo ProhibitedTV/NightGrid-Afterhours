@@ -126,8 +126,9 @@ def main():
     parser.add_argument("--take", required=True)
     parser.add_argument("--model-dir", type=Path, required=True)
     parser.add_argument("--device", choices=["cpu","cuda"], default="cpu")
+    parser.add_argument("--manifest", type=Path, default=studio.MANIFEST)
     args = parser.parse_args()
-    specs = studio.read_manifest()
+    specs = studio.read_manifest(args.manifest)
     if args.id not in specs or not studio.SHA.fullmatch(args.take):
         parser.error("Select a known line and exact production fingerprint")
     spec = specs[args.id]

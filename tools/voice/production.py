@@ -221,8 +221,9 @@ def main():
     parser.add_argument("--notes")
     parser.add_argument("--rights-checked", action="store_true")
     parser.add_argument("--qc-override", help="Specific listening-based justification for QC flags")
+    parser.add_argument("--manifest", type=Path, default=studio.MANIFEST)
     args = parser.parse_args()
-    specs = studio.read_manifest()
+    specs = studio.read_manifest(args.manifest)
     if args.action == "verify-library":
         print("Verified published lines:", verify_library(specs))
         return

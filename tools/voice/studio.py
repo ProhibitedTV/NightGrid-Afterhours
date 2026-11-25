@@ -184,8 +184,9 @@ def main():
     parser.add_argument("--reviewer")
     parser.add_argument("--notes")
     parser.add_argument("--rights-checked", action="store_true")
+    parser.add_argument("--manifest", type=Path, default=MANIFEST)
     args = parser.parse_args()
-    specs = read_manifest()
+    specs = read_manifest(args.manifest)
     selected = args.id or list(specs)
     if any(i not in specs for i in selected):
         parser.error("Unknown line ID")
