@@ -386,14 +386,14 @@ func capture_active(population) -> bool:
 	return ok
 
 ## At most one local calm speaker selected per global cooldown, with real LOS.
-func street_bark(space:PhysicsDirectSpaceState3D, listener:Vector3, listener_rid:RID) -> Dictionary:
+func street_bark(space:PhysicsDirectSpaceState3D, listener:Vector3, listener_rid:RID, context_only:bool = false) -> Dictionary:
 	var nearest: String = ""
 	var best := 8.0*8.0
 	var best_context:=false
 	for id in _leases:
 		var lease:Dictionary=_leases[id]
 		var contextual:=float(lease["context_ttl"])>0.0 and float(lease["context_cooldown"])<=0.0
-		if not _bark_calm(lease) or (not contextual and (best_context or float(lease["bark_cooldown"])>0.0)):
+		if not _bark_calm(lease) or (not contextual and (context_only or best_context or float(lease["bark_cooldown"])>0.0)):
 			continue
 		var body:=_slots[int(lease["slot"])]
 		var eye:=body.global_position+Vector3.UP*1.6
@@ -440,3 +440,79 @@ static func _remember_context(lease:Dictionary,context:String) -> void:
 		return
 	lease["context"]=context
 	lease["context_ttl"]=28.0
+
+## Existing physical actors may pause briefly for a three-turn exchange.
+## No actors are spawned or repositioned to make a conversation happen.
+func begin_street_exchange(space:PhysicsDirectSpaceState3D,listener:Vector3,listener_rid:RID) -> Dictionary:
+	var ids:=_leases.keys()
+	ids.sort()
+	for i in range(ids.size()):
+		var first_id:String=ids[i]
+		var first:Dictionary=_leases[first_id]
+		if not _exchange_ready(first):
+			continue
+		var first_body:=_slots[int(first["slot"])]
+		if first_body.global_position.distance_squared_to(listener)>64.0:
+			continue
+		for j in range(i+1,ids.size()):
+			var second_id:String=ids[j]
+			var second:Dictionary=_leases[second_id]
+			if not _exchange_ready(second):
+				continue
+			var second_body:=_slots[int(second["slot"])]
+			var distance:=first_body.global_position.distance_squared_to(second_body.global_position)
+			if distance<1.35*1.35 or distance>16.0:
+				continue
+			var beats:=Satire.exchange_for(first_id,second_id)
+			if beats.is_empty() or not _exchange_visible(space,first_body,second_body,listener,listener_rid):
+				continue
+			var facing:=first_body.global_position.direction_to(second_body.global_position)
+			facing.y=0.0
+			first["social_facing"]=facing.normalized()
+			second["social_facing"]=-facing.normalized()
+			for lease in [first,second]:
+				lease["social"]=30.0
+				lease["social_cooldown"]=90.0
+				lease["bark_cooldown"]=90.0
+			return {"first":first_id,"second":second_id,"beats":beats}
+	return {}
+
+static func _exchange_ready(lease:Dictionary) -> bool:
+	return _bark_calm(lease) and lease["state"] not in ["WAIT_CROSSING","STOREFRONT"] and float(lease["bark_cooldown"])<=0.0 and float(lease["context_ttl"])<=0.0
+
+static func _exchange_visible(space:PhysicsDirectSpaceState3D,a:CharacterBody3D,b:CharacterBody3D,listener:Vector3,listener_rid:RID) -> bool:
+	var a_eye:=a.global_position+Vector3.UP*1.6
+	var b_eye:=b.global_position+Vector3.UP*1.6
+	if a_eye.distance_squared_to(listener)>64.0 or b_eye.distance_squared_to(listener)>64.0 or a_eye.distance_squared_to(b_eye)>16.0:
+		return false
+	var ignored:Array[RID]=[a.get_rid(),b.get_rid()]
+	if listener_rid.is_valid():
+		ignored.append(listener_rid)
+	for segment in [[a_eye,b_eye],[a_eye,listener],[b_eye,listener]]:
+		if not space.intersect_ray(PhysicsRayQueryParameters3D.create(segment[0],segment[1],1,ignored)).is_empty():
+			return false
+	return true
+
+func exchange_valid(pair:Dictionary) -> bool:
+	for id in [pair["first"],pair["second"]]:
+		if not _leases.has(id) or not _bark_calm(_leases[id]) or float(_leases[id]["social"])<=0.0:
+			return false
+	return true
+
+func exchange_visible(pair:Dictionary,space:PhysicsDirectSpaceState3D,listener:Vector3,listener_rid:RID) -> bool:
+	if not exchange_valid(pair):
+		return false
+	return _exchange_visible(space,_slots[int(_leases[pair["first"]]["slot"])],_slots[int(_leases[pair["second"]]["slot"])],listener,listener_rid)
+
+func exchange_speaker(pair:Dictionary,character:String) -> Node3D:
+	if not exchange_valid(pair):
+		return null
+	for id in [pair["first"],pair["second"]]:
+		if Satire.personality(id)==character:
+			return _slots[int(_leases[id]["slot"])]
+	return null
+
+func release_exchange(pair:Dictionary) -> void:
+	for id in [pair["first"],pair["second"]]:
+		if _leases.has(id):
+			_leases[id]["social"]=0.0

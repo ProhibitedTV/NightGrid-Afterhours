@@ -24,6 +24,14 @@ var _failed_activation := 0
 var _pending_release := 0
 var _street_clock := 12.0
 var _street_lease := ""
+var _exchange:Dictionary={}
+var _exchange_turn:=0
+var _exchange_line:=""
+var _exchange_result:=""
+var _exchange_elapsed:=0.0
+var _exchange_check:=0.0
+var _exchange_gap:=0.0
+const EXCHANGE_SCOPE="street:exchange"
 
 func configure(city: Node, seed_value: int, links: Array[Dictionary], approved_visual: PackedScene,
 		capacity: int = Pop.MAX_ACTIVE, models: Array[PackedScene] = []) -> bool:
@@ -195,8 +203,14 @@ func _exit_tree() -> void:
 	shutdown()
 
 ## Transient ambient dialogue only; no mission, wallet or wanted changes.
+
 func update_street_dialogue(dialogue:Node, listener:Vector3, listener_rid:RID, allowed:bool, delta:float) -> void:
 	if not _running or not is_instance_valid(dialogue):
+		return
+	if not dialogue.is_connected("line_ended",_on_street_line_ended):
+		dialogue.connect("line_ended",_on_street_line_ended)
+	if not _exchange.is_empty():
+		_tick_exchange(dialogue,listener,listener_rid,allowed,delta)
 		return
 	if not _street_lease.is_empty() and (not allowed or not bool(_pool.call("street_bark_valid",_street_lease))):
 		dialogue.call("cancel_scope","street:"+_street_lease)
@@ -210,10 +224,80 @@ func update_street_dialogue(dialogue:Node, listener:Vector3, listener_rid:RID, a
 	var speech:Dictionary=dialogue.call("stats")
 	if not str(speech["active"]).is_empty() or int(speech["pending"])>0:
 		return
-	var bark:Dictionary=_pool.call("street_bark",get_world_3d().direct_space_state,listener,listener_rid)
+	var space:=get_world_3d().direct_space_state
+	# A remembered witnessed incident takes precedence over a new exchange.
+	var bark:Dictionary=_pool.call("street_bark",space,listener,listener_rid,true)
+	if bark.is_empty():
+		_exchange=_pool.call("begin_street_exchange",space,listener,listener_rid)
+		if not _exchange.is_empty():
+			_exchange_turn=0
+			_exchange_elapsed=0.0
+			_exchange_check=0.0
+			_exchange_gap=0.0
+			_exchange_line=""
+			_exchange_result=""
+			_tick_exchange(dialogue,listener,listener_rid,allowed,delta)
+			return
+		bark=_pool.call("street_bark",space,listener,listener_rid)
 	if bark.is_empty():
 		return
 	var lease_id:=str(bark["lease_id"])
 	if dialogue.call("enqueue",str(bark["id"]),str(bark["text"]),0,bark["speaker"],"street:"+lease_id):
 		_street_lease=lease_id
 		_street_clock=24.0
+
+func _on_street_line_ended(line_id:String,reason:String) -> void:
+	if not _exchange.is_empty() and line_id==_exchange_line:
+		_exchange_result=reason
+
+func _end_exchange(dialogue:Node) -> void:
+	var pair:=_exchange
+	# Clear first so synchronous cancellation cannot advance a stale turn.
+	_exchange={}
+	_exchange_line=""
+	_exchange_result=""
+	if not pair.is_empty():
+		_pool.call("release_exchange",pair)
+	dialogue.call("cancel_scope",EXCHANGE_SCOPE)
+	_street_clock=36.0
+
+func _tick_exchange(dialogue:Node,listener:Vector3,listener_rid:RID,allowed:bool,delta:float) -> void:
+	_exchange_elapsed+=delta
+	if not allowed or _exchange_elapsed>=28.0 or not bool(_pool.call("exchange_valid",_exchange)):
+		_end_exchange(dialogue)
+		return
+	_exchange_check-=delta
+	if _exchange_check<=0.0:
+		_exchange_check=0.2
+		if not bool(_pool.call("exchange_visible",_exchange,get_world_3d().direct_space_state,listener,listener_rid)):
+			_end_exchange(dialogue)
+			return
+	if not _exchange_result.is_empty():
+		if _exchange_result!="complete":
+			_end_exchange(dialogue)
+			return
+		_exchange_turn+=1
+		_exchange_line=""
+		_exchange_result=""
+		_exchange_gap=0.35
+	if _exchange_turn>=_exchange["beats"].size():
+		_end_exchange(dialogue)
+		return
+	if not _exchange_line.is_empty():
+		return
+	_exchange_gap=maxf(0.0,_exchange_gap-delta)
+	if _exchange_gap>0.0:
+		return
+	var speech:Dictionary=dialogue.call("stats")
+	if not str(speech["active"]).is_empty() or int(speech["pending"])>0:
+		# Story speech takes priority; do not resume an old conversation.
+		_end_exchange(dialogue)
+		return
+	var beat:Dictionary=_exchange["beats"][_exchange_turn]
+	var speaker:Node3D=_pool.call("exchange_speaker",_exchange,str(beat["character"]))
+	if not is_instance_valid(speaker):
+		_end_exchange(dialogue)
+		return
+	_exchange_line=str(beat["id"])
+	if not bool(dialogue.call("enqueue",_exchange_line,str(beat["text"]),0,speaker,EXCHANGE_SCOPE)):
+		_end_exchange(dialogue)
