@@ -183,6 +183,9 @@ var venue_job_button: Button
 var venue_talk_button: Button
 var venue_close_button: Button
 var mara_dialogue_line := ""
+const DialogueCaption = preload("res://scripts/dialogue_caption.gd")
+var ambient_caption: PanelContainer
+var contact_caption: PanelContainer
 var venue_selected_id := ""
 var _repair_panel := false
 var _pooled_traffic_enabled := false
@@ -2107,8 +2110,7 @@ func _toggle_interaction() -> void:
 			"shift_notes": civic_intel.has("lantern_cup_shift_notes")
 		})
 		if not regular.is_empty():
-			_notify("%s / %s: %s" % [
-				str(regular["name"]), str(regular["role"]), str(regular["line"])])
+			ambient_caption.call("present", str(regular["name"]), str(regular["line"]))
 			return
 		if not interiors.call("counter_reachable", player.global_position):
 			_notify("Walk toward the staffed service counter to interact.")
@@ -2478,7 +2480,7 @@ func _update_civic_panel() -> void:
 	venue_label.text = title
 	if venue_service_button != null:
 		venue_service_button.disabled = not opened
-		venue_service_button.text = "1 / A  •  SERVICE"
+		venue_service_button.text = "1 / A  ·  %s  $%d" % [str(venue["item"]), int(venue["price"])]
 	if venue_job_button != null:
 		var offered: Dictionary = civic_services.call("order_from", civic_selected_id) if civic_job_active.is_empty() else civic_services.call("order_by_id", civic_job_active)
 		var available := not offered.is_empty() and (
@@ -2608,6 +2610,7 @@ func _toggle_venue() -> void:
 func _show_venue_dialogue() -> void:
 	if venue_selected_id == "lantern_cup" and interiors.call("is_inside"):
 		interiors.call("set_mara_attention", true)
+	ambient_caption.call("clear")
 	venue_panel.visible = true
 	player.set("input_blocked", true)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -2618,6 +2621,10 @@ func _close_venue() -> void:
 	if interiors != null:
 		interiors.call("set_mara_attention", false)
 	mara_dialogue_line = ""
+	if is_instance_valid(contact_caption):
+		contact_caption.call("clear")
+	if is_instance_valid(ambient_caption):
+		ambient_caption.call("clear")
 	if venue_talk_button != null:
 		venue_talk_button.visible = false
 	venue_selected_id = ""
@@ -2649,6 +2656,8 @@ func _close_venue() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _update_venue_panel() -> void:
+	if is_instance_valid(contact_caption) and (venue_selected_id != "lantern_cup" or not interiors.call("is_inside")):
+		contact_caption.call("clear")
 	if _tenancy_panel:
 		var price := StarterHome.move_in_price()
 		venue_label.text = "LANTERN COURT / CAPSULE TENANCY\nInitial deposit $%d  |  CASH $%d\nStarter rental access. [1 / A] Cancel  [3 / Y] Confirm" % [price,cash]
@@ -2805,21 +2814,22 @@ func _update_venue_panel() -> void:
 	var is_mara := venue_selected_id == "lantern_cup" and bool(interiors.call("is_inside"))
 	if is_mara:
 		var introduction := str(interiors.call("mara_greeting", _mara_context()))
-		body += "\n" + (mara_dialogue_line if not mara_dialogue_line.is_empty() else introduction)
-		body += "\n[3 / Y] TALK TO MARA"
+		contact_caption.call("present", "Mara", mara_dialogue_line if not mara_dialogue_line.is_empty() else introduction, true)
+	else:
+		contact_caption.call("clear")
 	if open_now:
-		body += "[1 / A] %s  $%d   " % [str(venue["item"]), int(venue["price"])]
+		body += "Available: %s  $%d   " % [str(venue["item"]), int(venue["price"])]
 		if venue_job_active.is_empty():
 			var offer: Dictionary = venue_system.call("job_from", venue_selected_id)
 			if not offer.is_empty() and not venue_job_completed.has(str(offer["id"])):
-				body += "\n[2 / X] SIDE JOB: %s (+$%d)" % [str(offer["title"]), int(offer["reward"])]
+				body += "\nLocal work: %s (+$%d)" % [str(offer["title"]), int(offer["reward"])]
 		else:
 			var active: Dictionary = venue_system.call("job_by_id", venue_job_active)
 			if not active.is_empty() and str(active["to"]) == venue_selected_id:
-				body += "\n[2 / X] DELIVER: %s (+$%d)" % [str(active["title"]), int(active["reward"])]
+				body += "\nDeliver: %s (+$%d)" % [str(active["title"]), int(active["reward"])]
 	else:
 		body += "Come back during business hours."
-	body += "\n[G / B] Close   |   CASH $%d" % cash
+	body += "\nCash  $%d" % cash
 	venue_label.text = body
 	if venue_service_button != null:
 		venue_service_button.disabled = not open_now
@@ -2830,10 +2840,11 @@ func _update_venue_panel() -> void:
 			(not venue_job_active.is_empty() and str(offered["to"]) == venue_selected_id) or
 			(venue_job_active.is_empty() and not venue_job_completed.has(str(offered["id"]))))
 		venue_job_button.disabled = not open_now or not available
-		venue_job_button.text = "2 / X  •  SIDE JOB"
+		venue_job_button.text = "2 / X  ·  " + ("Turn in job" if not venue_job_active.is_empty() else "Ask for work")
 	if venue_talk_button != null:
 		venue_talk_button.visible = is_mara
 		venue_talk_button.disabled = not is_mara
+		venue_talk_button.text = "3 / Y  ·  Talk to Mara"
 
 func _mara_context() -> Dictionary:
 	return {
@@ -3235,6 +3246,9 @@ func _build_hud() -> void:
 	dialogue_layout.add_theme_constant_override("separation", 7)
 	venue_panel.add_child(dialogue_layout)
 	dialogue_layout.add_child(venue_label)
+	contact_caption = DialogueCaption.new()
+	contact_caption.name = "ContactCaption"
+	dialogue_layout.add_child(contact_caption)
 	var action_row := HBoxContainer.new()
 	action_row.add_theme_constant_override("separation", 7)
 	dialogue_layout.add_child(action_row)
@@ -3263,6 +3277,18 @@ func _build_hud() -> void:
 	venue_close_button.focus_mode = Control.FOCUS_ALL
 	venue_close_button.pressed.connect(func() -> void: _close_venue())
 	action_row.add_child(venue_close_button)
+	ambient_caption = DialogueCaption.new()
+	ambient_caption.name = "AmbientCaption"
+	ambient_caption.anchor_left = 0.5
+	ambient_caption.anchor_right = 0.5
+	ambient_caption.anchor_top = 1.0
+	ambient_caption.anchor_bottom = 1.0
+	ambient_caption.offset_left = -420.0
+	ambient_caption.offset_right = 420.0
+	ambient_caption.offset_top = -300.0
+	ambient_caption.offset_bottom = -205.0
+	ambient_caption.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	ui.add_child(ambient_caption)
 	var equipment_layer := CanvasLayer.new()
 	equipment_layer.name = "EquipmentOverlay"
 	equipment_layer.layer = 9
@@ -3420,6 +3446,12 @@ func _update_hud() -> void:
 	hud_prompt_card.visible = not venue_panel.visible
 	if venue_panel.visible:
 		_update_venue_panel()
+	if is_instance_valid(ambient_caption) and ambient_caption.visible:
+		# Keep the subtitle above the actual contextual action stack, even if
+		# a future HUD layout changes its height or hides its prompts.
+		var bottom := minf(-150.0, hud_prompt_card.offset_top - 12.0) if hud_prompt_card.visible else -150.0
+		ambient_caption.offset_bottom = bottom
+		ambient_caption.offset_top = bottom - maxf(90.0, ambient_caption.get_combined_minimum_size().y)
 
 func _venue_job_target() -> Vector3:
 	if venue_job_active.is_empty():
