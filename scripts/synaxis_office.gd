@@ -23,6 +23,7 @@ const Assistant = preload("res://scripts/synaxis_assistant.gd")
 const Propaganda = preload("res://scripts/synaxis_propaganda.gd")
 const Brand = preload("res://scripts/synaxis_brand.gd")
 const Finish = preload("res://scripts/synaxis_office_finish.gd")
+const FounderParking=preload("res://scripts/synaxis_founder_parking.gd")
 const Radar = preload("res://scripts/hud_radar.gd")
 const Arrival = preload("res://scripts/synaxis_arrival.gd")
 const Restrooms = preload("res://scripts/synaxis_restrooms.gd")
@@ -83,6 +84,9 @@ func _ready() -> void:
 	# Fixed upper-floor shell, not a second generic building intersecting the office.
 	_solid("TowerCore",Vector3(0,32.85,0),Vector3(17,29.2,20),_material("glass",Color("354c60")))
 	_build_workfloor_shell(wall,floor_mat)
+	var parking:=FounderParking.new()
+	parking.name="FounderParking"
+	add_child(parking)
 	for floor in range(12):
 		var y := 5.4+float(floor)*3.65
 		_visual("FacadeSpandrel",Vector3(0,y,-10.13),Vector3(17,.36,.16),accent)

@@ -593,6 +593,11 @@ func _verify() -> void:
 	if int(office.call("objective_stage",0))!=-2 or menu.call("is_open") or world.get("cash")!=before_severance:
 		_fail("Office exploration does not advance the mission or alter the wallet")
 		return
+	var reserved:Node3D=office.get_node("FounderParking")
+	var reserved_stats:Dictionary=reserved.call("stats")
+	if not bool(reserved_stats["founder"]) or not bool(reserved_stats["static"]) or reserved_stats["plate"]!="SYNX1" or reserved.get_node_or_null("JetsonFounderR9/Coachwork/FrontClip")==null or reserved.get_node_or_null("FounderR9Collision")==null or world.get("cars").size()!=12:
+		_fail("Founder R9 uses the authored vehicle and a physical bay without modifying save fleet indices")
+		return
 	var staff: Dictionary=office.get("_staff")
 	if staff.size()!=8 or not staff.has("reception"):
 		_fail("HQ has eight authored staff plus the executive assistant")
