@@ -168,6 +168,7 @@ def generate(args, specs):
                                   ("qwen-tts", "torch", "soundfile", "transformers")},
                      "ffmpeg": subprocess.check_output([args.ffmpeg, "-version"], text=True).splitlines()[0]}
     model = None
+    results = []
     for spec in specs:
         line = spec["line"]
         ref = CAST / line["character"]
@@ -178,6 +179,7 @@ def generate(args, specs):
         if folder.exists():
             verify_take(folder, spec, cast)
             print("Verified cached production take:", folder)
+            results.append({"id":line["id"],"take":fingerprint})
             continue
         if model is None:
             model = Qwen3TTSModel.from_pretrained(
@@ -206,6 +208,8 @@ def generate(args, specs):
 
         atomic_directory(folder, write)
         print("Production candidate:", folder)
+        results.append({"id":line["id"],"take":fingerprint})
+    return results
 
 
 def main():
@@ -222,6 +226,7 @@ def main():
     parser.add_argument("--rights-checked", action="store_true")
     parser.add_argument("--qc-override", help="Specific listening-based justification for QC flags")
     parser.add_argument("--manifest", type=Path, default=studio.MANIFEST)
+    parser.add_argument("--result-file", type=Path, help="Write exact generated candidate IDs and fingerprints")
     args = parser.parse_args()
     specs = studio.read_manifest(args.manifest)
     if args.action == "verify-library":
@@ -230,7 +235,12 @@ def main():
     if not args.id or any(i not in specs for i in args.id):
         parser.error("Select known --id values")
     if args.action == "generate":
-        generate(args, [specs[i] for i in args.id])
+        results = generate(args, [specs[i] for i in args.id])
+        if args.result_file:
+            args.result_file.parent.mkdir(parents=True, exist_ok=True)
+            tmp=args.result_file.with_suffix(".tmp")
+            studio.write_json(tmp, results)
+            tmp.replace(args.result_file)
         return
     if len(args.id) != 1 or not args.take or not studio.SHA.fullmatch(args.take):
         parser.error("Select exactly one --id and exact --take fingerprint")
