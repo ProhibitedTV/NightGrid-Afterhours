@@ -535,6 +535,23 @@ func _verify() -> void:
 	if int(engineering_people.call("stats")["animated"])!=8 or not str(engineering_deck.call("observe_worker",engineering_deck.to_global(Vector3(-5.3,1.15,5.65)))).contains("Faye"):
 		_fail("Occupied floor animates staff and provides incidental coworker conversation")
 		return
+	var trace_key:=InputEventAction.new()
+	trace_key.action=&"record_frame_trace"
+	trace_key.pressed=true
+	var recorder=world.get("frame_time_recorder")
+	world.call("_unhandled_input",trace_key)
+	if not recorder.recording:
+		_fail("Office prologue accepts the same F8 diagnostic action as street gameplay")
+		return
+	world.call("_process",.016)
+	if recorder.captured_frames()<1:
+		_fail("Office gameplay contributes render interval samples")
+		return
+	recorder.end_capture()
+	var context:Dictionary=world.call("_opening_diagnostic_context")
+	if context.get("site")!="synaxis_hq" or not context.has("floor") or not context.has("stage"):
+		_fail("Chapter evidence includes floor and stage context")
+		return
 	var walker:Node3D=engineering_people.get("_people")[7]
 	var start_walk:Vector3=walker.position
 	engineering_people.call("observe",Vector3.INF)
