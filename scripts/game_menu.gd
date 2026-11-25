@@ -861,9 +861,9 @@ func consume_blue_hour_result()->int:
 	return 0
 
 func _render_rhythm(col:VBoxContainer)->void:
-	var street:=_rhythm.mode=="busking"
-	var practice:=_rhythm.mode=="practice"
-	var owned:=_rhythm.mode=="owned_busking"
+	var street:bool=_rhythm.mode=="busking"
+	var practice:bool=_rhythm.mode=="practice"
+	var owned:bool=_rhythm.mode=="owned_busking"
 	_title(col,"POCKETBEAT M3 / PERSONAL SET" if owned else ("POCKETBEAT M3 / PRACTICE" if practice else ("STREET SAMPLER / BUSKING" if street else "BLUE HOUR / OPENING SET")),24,Ui.AMBER)
 	_label(col,("Play your own sampler for the neighborhood." if owned else ("Practice your own sampler. No cash or reputation reward." if practice else ("Borrow the neighborhood loaner sampler." if street else "Borrow Rae's three-pad sampler.")))+" Hit the indicated pad in the timing window. %d of %d required."%[_rhythm.required_hits,_rhythm.pattern.size()],16,Ui.TEXT)
 	_label(col,"1 / A: kick   2 / X: clap   3 / Y: hat",16,Ui.MUTED)
@@ -916,9 +916,9 @@ func _refresh_rhythm()->void:
 			_rhythm_focus_set=true
 			_rhythm_claim.grab_focus()
 		return
-	var remaining:=_rhythm.target_time()-_rhythm.elapsed
+	var remaining:float=_rhythm.target_time()-_rhythm.elapsed
 	var lane:int=_rhythm.pattern[_rhythm.index]
-	var window:=absf(remaining)<=_rhythm.hit_window
+	var window:bool=absf(remaining)<=_rhythm.hit_window
 	_rhythm_status.text="%s / %s / %d of %d  •  %d hits"%[["KICK","CLAP","HI-HAT"][lane],"HIT NOW" if window else "READY %.1fs"%maxf(0.0,remaining),_rhythm.index+1,_rhythm.pattern.size(),_rhythm.hits]
 	_rhythm_status.modulate=Ui.ACCENT if window else Ui.TEXT
 	_rhythm_meter.value=clampf(1.0-maxf(0.0,remaining)/_rhythm.beat_seconds,0.0,1.0)

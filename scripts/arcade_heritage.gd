@@ -1,7 +1,7 @@
 extends Node3D
 ## Original illustrated museum pieces. Names are historical tributes, not endorsements.
 ## Read from the clear front-wall gallery; static textures, no animated displays.
-const EXHIBITS := [
+const EXHIBITS = [
 	{"id":"pixel_pioneers", "title":"PIXEL PIONEERS", "line":"A tribute to Toru Iwatani and Shigeru Miyamoto: expressive characters, readable rules, and the joy of one more try.", "art":preload("res://assets/arcade/heritage/pixel_pioneers.svg"), "position":Vector3(-6.4,2.14,8.57), "approach":Vector3(-6.4,1.15,7.18), "rotation":PI},
 	{"id":"puzzle_legacy", "title":"THE PERFECT PUZZLE", "line":"For Alexey Pajitnov and the puzzle makers who taught us that a few simple rules can last a lifetime.", "art":preload("res://assets/arcade/heritage/puzzle_legacy.svg"), "position":Vector3(-4.5,2.14,8.57), "approach":Vector3(-4.5,1.15,7.18), "rotation":PI},
 	{"id":"adventure_legacy", "title":"THE NEXT ROOM", "line":"For Roberta Williams and adventure-game storytellers: the joy of opening a door, asking a question, and finding a new world.", "art":preload("res://assets/arcade/heritage/adventure_legacy.svg"), "position":Vector3(-2.6,2.14,8.57), "approach":Vector3(-2.6,1.15,7.18), "rotation":PI},
@@ -13,7 +13,7 @@ const EXHIBITS := [
 	{"id":"lan_party", "title":"BRING YOUR OWN COMPUTER", "line":"A tribute to LAN parties, split-screen nights, borrowed Ethernet cables and carrying a CRT across town just to play together.", "art":preload("res://assets/arcade/heritage/lan_party.svg"), "position":Vector3(-3.1,1.52,-4.45), "approach":Vector3(-3.1,1.15,-3.25), "rotation":0.0, "stand":true},
 	{"id":"shareware_scene", "title":"COPY THIS DISK", "line":"For shareware authors, demo-disc collectors, modders and indie developers: a good game spreads because someone wants their friend to play it.", "art":preload("res://assets/arcade/heritage/shareware_scene.svg"), "position":Vector3(3.1,1.52,-4.45), "approach":Vector3(3.1,1.15,-3.25), "rotation":0.0, "stand":true}
 ]
-const INSPECT_RADIUS := 1.05
+const INSPECT_RADIUS = 1.05
 var _materials: Dictionary = {}
 
 func _ready() -> void:
