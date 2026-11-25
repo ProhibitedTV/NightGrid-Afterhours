@@ -261,6 +261,90 @@ const LINES = [
 		"text": "I paid extra to leave early.",
 		"exchange": "night_subscription",
 		"turn": 2
+	},
+	{
+		"id": "street.robot_romantic.talk.1",
+		"character": "robot_romantic",
+		"text": "At a trade show. I asked for her number and she gave me her serial number. We just clicked.",
+		"topic": 0,
+		"question": "How did you two meet?"
+	},
+	{
+		"id": "street.robot_romantic.talk.2",
+		"character": "robot_romantic",
+		"text": "No. She's charging. We have separate schedules, but at least she tells me when she's unavailable.",
+		"topic": 1,
+		"question": "Is she coming out tonight?"
+	},
+	{
+		"id": "street.nothing_happens.talk.1",
+		"character": "nothing_happens",
+		"text": "It's fine. Everybody online says the end is near. My rent went up, but otherwise nothing ever happens.",
+		"topic": 0,
+		"question": "What do you think of Morrow Bay?"
+	},
+	{
+		"id": "street.nothing_happens.talk.2",
+		"character": "nothing_happens",
+		"text": "A software update that actually fixes something. Now that would be historic.",
+		"topic": 1,
+		"question": "What would actually surprise you?"
+	},
+	{
+		"id": "street.gig_grinder.talk.1",
+		"character": "gig_grinder",
+		"text": "I'm technically my own boss. My boss just denied my request for a bathroom break.",
+		"topic": 0,
+		"question": "How's work?"
+	},
+	{
+		"id": "street.gig_grinder.talk.2",
+		"character": "gig_grinder",
+		"text": "Never accept a job that pays in exposure. Unless your landlord is a photographer.",
+		"topic": 1,
+		"question": "Any advice for a new courier?"
+	},
+	{
+		"id": "street.subscription_skeptic.talk.1",
+		"character": "subscription_skeptic",
+		"text": "You used to own things. Now the toaster wants my email address. I'm not building a relationship with breakfast.",
+		"topic": 0,
+		"question": "What's wrong with subscriptions?"
+	},
+	{
+		"id": "street.subscription_skeptic.talk.2",
+		"character": "subscription_skeptic",
+		"text": "A screwdriver. No account, no updates. Beautiful piece of technology.",
+		"topic": 1,
+		"question": "What's the last thing you bought outright?"
+	},
+	{
+		"id": "street.street_visionary.talk.1",
+		"character": "street_visionary",
+		"text": "We're building a platform to connect people who have free time with people who want to invoice it.",
+		"topic": 0,
+		"question": "What's your latest startup?"
+	},
+	{
+		"id": "street.street_visionary.talk.2",
+		"character": "street_visionary",
+		"text": "Absolutely. Compensation is experience, equity in a future entity, and access to our inspirational group chat.",
+		"topic": 1,
+		"question": "Are you hiring?"
+	},
+	{
+		"id": "street.night_regular.talk.1",
+		"character": "night_regular",
+		"text": "Find somewhere that plays real music and doesn't scan your credit score at the door. Good luck.",
+		"topic": 0,
+		"question": "Where's a good place to go?"
+	},
+	{
+		"id": "street.night_regular.talk.2",
+		"character": "night_regular",
+		"text": "I woke up with three loyalty accounts and a receipt for premium atmosphere.",
+		"topic": 1,
+		"question": "How was last night?"
 	}
 ]
 const CAST = ["robot_romantic","nothing_happens","gig_grinder","subscription_skeptic","street_visionary","night_regular"]
@@ -299,4 +383,41 @@ static func exchange_for(first:String,second:String) -> Array[Dictionary]:
 				candidate.append(beat.duplicate())
 		if candidate.size()==3 and candidate[1]["character"] in [a,b] and candidate[1]["character"]!=candidate[0]["character"]:
 			return candidate
+	return result
+
+const PROFILES = {
+	"robot_romantic": {
+		"name": "Cal Mercer",
+		"role": "Robot romantic"
+	},
+	"nothing_happens": {
+		"name": "Dale Voss",
+		"role": "Professional skeptic"
+	},
+	"gig_grinder": {
+		"name": "Nina Reyes",
+		"role": "App economy veteran"
+	},
+	"subscription_skeptic": {
+		"name": "Frank Bell",
+		"role": "Analog holdout"
+	},
+	"street_visionary": {
+		"name": "Tess Park",
+		"role": "Serial founder"
+	},
+	"night_regular": {
+		"name": "Milo Crane",
+		"role": "Afterhours regular"
+	}
+}
+
+static func profile(id:String) -> Dictionary:
+	var character:=personality(id)
+	var result:Dictionary=PROFILES[character].duplicate()
+	result["character"]=character
+	result["topics"]=[]
+	for row in LINES:
+		if row["character"]==character and row.has("topic"):
+			result["topics"].append(row.duplicate())
 	return result

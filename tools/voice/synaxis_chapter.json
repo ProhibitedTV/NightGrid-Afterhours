@@ -901,6 +901,162 @@
         "exchange": "night_subscription",
         "turn": 2
       }
+    },
+    {
+      "id": "street.robot_romantic.talk.1",
+      "character": "robot_romantic",
+      "language": "English",
+      "text": "At a trade show. I asked for her number and she gave me her serial number. We just clicked.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "robot_romantic",
+        "topic": 0,
+        "question": "How did you two meet?"
+      }
+    },
+    {
+      "id": "street.robot_romantic.talk.2",
+      "character": "robot_romantic",
+      "language": "English",
+      "text": "No. She's charging. We have separate schedules, but at least she tells me when she's unavailable.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "robot_romantic",
+        "topic": 1,
+        "question": "Is she coming out tonight?"
+      }
+    },
+    {
+      "id": "street.nothing_happens.talk.1",
+      "character": "nothing_happens",
+      "language": "English",
+      "text": "It's fine. Everybody online says the end is near. My rent went up, but otherwise nothing ever happens.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "nothing_happens",
+        "topic": 0,
+        "question": "What do you think of Morrow Bay?"
+      }
+    },
+    {
+      "id": "street.nothing_happens.talk.2",
+      "character": "nothing_happens",
+      "language": "English",
+      "text": "A software update that actually fixes something. Now that would be historic.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "nothing_happens",
+        "topic": 1,
+        "question": "What would actually surprise you?"
+      }
+    },
+    {
+      "id": "street.gig_grinder.talk.1",
+      "character": "gig_grinder",
+      "language": "English",
+      "text": "I'm technically my own boss. My boss just denied my request for a bathroom break.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "gig_grinder",
+        "topic": 0,
+        "question": "How's work?"
+      }
+    },
+    {
+      "id": "street.gig_grinder.talk.2",
+      "character": "gig_grinder",
+      "language": "English",
+      "text": "Never accept a job that pays in exposure. Unless your landlord is a photographer.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "gig_grinder",
+        "topic": 1,
+        "question": "Any advice for a new courier?"
+      }
+    },
+    {
+      "id": "street.subscription_skeptic.talk.1",
+      "character": "subscription_skeptic",
+      "language": "English",
+      "text": "You used to own things. Now the toaster wants my email address. I'm not building a relationship with breakfast.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "subscription_skeptic",
+        "topic": 0,
+        "question": "What's wrong with subscriptions?"
+      }
+    },
+    {
+      "id": "street.subscription_skeptic.talk.2",
+      "character": "subscription_skeptic",
+      "language": "English",
+      "text": "A screwdriver. No account, no updates. Beautiful piece of technology.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "subscription_skeptic",
+        "topic": 1,
+        "question": "What's the last thing you bought outright?"
+      }
+    },
+    {
+      "id": "street.street_visionary.talk.1",
+      "character": "street_visionary",
+      "language": "English",
+      "text": "We're building a platform to connect people who have free time with people who want to invoice it.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "street_visionary",
+        "topic": 0,
+        "question": "What's your latest startup?"
+      }
+    },
+    {
+      "id": "street.street_visionary.talk.2",
+      "character": "street_visionary",
+      "language": "English",
+      "text": "Absolutely. Compensation is experience, equity in a future entity, and access to our inspirational group chat.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "street_visionary",
+        "topic": 1,
+        "question": "Are you hiring?"
+      }
+    },
+    {
+      "id": "street.night_regular.talk.1",
+      "character": "night_regular",
+      "language": "English",
+      "text": "Find somewhere that plays real music and doesn't scan your credit score at the door. Good luck.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "topic": 0,
+        "question": "Where's a good place to go?"
+      }
+    },
+    {
+      "id": "street.night_regular.talk.2",
+      "character": "night_regular",
+      "language": "English",
+      "text": "I woke up with three loyalty accounts and a receipt for premium atmosphere.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "topic": 1,
+        "question": "How was last night?"
+      }
     }
   ]
 }

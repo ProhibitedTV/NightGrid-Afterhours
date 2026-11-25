@@ -73,6 +73,11 @@ def validate_catalog(path, source=None):
         if "exchange" in row:
             expected[ident]["source"]={"catalog":"street_satire","character":row["character"],
                                       "exchange":row["exchange"],"turn":row["turn"]}
+        if "topic" in row:
+            if row["topic"] not in (0,1) or not row["question"].strip():
+                raise ValueError("Invalid player conversation topic")
+            expected[ident]["source"]={"catalog":"street_satire","character":row["character"],
+                                      "topic":row["topic"],"question":row["question"]}
     exchanges={}
     for row in street:
         if "exchange" in row:
