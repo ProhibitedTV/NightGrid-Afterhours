@@ -289,12 +289,31 @@ func _verify() -> void:
 		return
 	world.call("_toggle_venue")
 	world.call("_venue_action",3)
-	if menu.get("screen")!="blue_hour_set":
-		_fail("Second busking site unavailable")
+	if menu.get("screen")!="music_desk":
+		_fail("Copper Cup music desk unavailable")
 		return
+	menu.call("_choice","music_desk_busk")
 	menu.call("_choice","rhythm_cancel")
 	if paused or busk_ledger.street_activity_runs("busking")!=1 or int(world.get("cash"))!=cash_before_busk+8:
 		_fail("Cancelled street set awarded progression")
+		return
+	world.call("_toggle_venue")
+	world.call("_venue_action",3)
+	var before_instrument:int=world.get("cash")
+	menu.call("_choice","music_desk_buy")
+	menu.call("_choice","music_desk_buy")
+	if not busk_ledger.owns_instrument("pocketbeat_m3") or int(world.get("cash"))!=before_instrument-40:
+		_fail("Instrument purchase not idempotent")
+		return
+	menu.call("_choice","music_desk_practice")
+	var practice=menu.get("_rhythm")
+	for lane in practice.pattern:
+		practice.advance(practice.target_time()-practice.elapsed)
+		practice.strike(lane)
+	var old_cred:int=busk_ledger.street_cred()
+	menu.call("_choice","rhythm_claim")
+	if paused or busk_ledger.sampler_practice!=1 or busk_ledger.street_cred()!=old_cred or int(world.get("cash"))!=before_instrument-40:
+		_fail("Practice should only grant proficiency")
 		return
 	venues.call("set_hour",4.0)
 	world.call("_toggle_venue")

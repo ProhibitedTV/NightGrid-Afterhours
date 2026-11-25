@@ -39,6 +39,28 @@ func _initialize()->void:
 	if not street.settle_busking_set(1) or street.settle_busking_set(1) or street.settle_busking_set(3) or street.balance!=8 or street.street_cred()!=4 or street.street_activity_runs("live_gig")!=0:
 		quit(1)
 		return
+	var owner:=Ledger.new()
+	owner.set_balance(39)
+	if owner.buy_instrument("pocketbeat_m3") or owner.complete_sampler_practice(1):
+		quit(1)
+		return
+	owner.set_balance(40)
+	if not owner.buy_instrument("pocketbeat_m3") or owner.buy_instrument("pocketbeat_m3") or owner.balance!=0 or not owner.complete_sampler_practice(1) or owner.complete_sampler_practice(1) or owner.complete_sampler_practice(3) or owner.street_cred()!=0:
+		quit(1)
+		return
+	var copy:=Ledger.new()
+	if not copy.restore(0,JSON.parse_string(JSON.stringify(owner.snapshot()))) or not copy.owns_instrument("pocketbeat_m3") or copy.sampler_practice!=1:
+		quit(1)
+		return
+	var invalid:=owner.snapshot()
+	invalid["instruments"]=[]
+	if copy.restore(999,invalid) or copy.balance!=0 or copy.sampler_practice!=1:
+		quit(1)
+		return
+	rhythm.start(1,"practice")
+	if rhythm.mode!="practice" or rhythm.pattern.size()!=8:
+		quit(1)
+		return
 	var p:=Ledger.new()
 	if p.settle_blue_hour_set(1):
 		quit(1)

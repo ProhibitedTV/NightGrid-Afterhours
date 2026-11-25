@@ -23,8 +23,8 @@ var consumed:=false
 var feedback:="GET READY"
 
 func start(sequence:int,source:String="live_gig")->void:
-	mode="busking" if source=="busking" else "live_gig"
-	var street:=mode=="busking"
+	mode=source if source in ["busking","practice"] else "live_gig"
+	var street:=mode!="live_gig"
 	var patterns:=BUSKING_PATTERNS if street else PATTERNS
 	beat_seconds=1.0 if street else BEAT
 	hit_window=0.30 if street else WINDOW

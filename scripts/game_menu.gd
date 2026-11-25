@@ -7,6 +7,8 @@ const Rhythm=preload("res://scripts/rhythm_rehearsal.gd")
 var _rhythm=Rhythm.new()
 var _rhythm_sequence:=0
 var _rhythm_focus_set:=false
+var _music_desk:Dictionary={}
+const Instruments=preload("res://scripts/instrument_catalog.gd")
 var _rhythm_status:Label
 var _rhythm_meter:ProgressBar
 var _rhythm_claim:Button
@@ -224,6 +226,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				_choice("street_leave")
 			"blue_hour_set":
 				_choice("rhythm_cancel")
+			"music_desk":
+				_choice("music_desk_leave")
 			_:
 				pass
 		get_viewport().set_input_as_handled()
@@ -325,6 +329,15 @@ func _render() -> void:
 			_title(col,"AIR QUALITY INCIDENT" if _restroom_id==Restrooms.MEN else "FACILITIES / REQUIRED TRAINING",23,Ui.AMBER)
 			_label(col,Restrooms.MEN_DIALOGUE if _restroom_id==Restrooms.MEN else Restrooms.WOMEN_DIALOGUE,16,Ui.TEXT)
 			_button(col,"restroom_leave","BACK TO WORK","restroom_leave")
+		"music_desk":
+			_title(col,"COPPER CUP / MUSIC CONSIGNMENT",24,Ui.AMBER)
+			_label(col,"Hal has a refurbished PocketBeat M3 sampler on the counter. Loaners are still free.",16,Ui.TEXT)
+			_label(col,str(_music_desk.get("summary","")),16,Ui.ACCENT)
+			_label(col,"CASH $%d"%int(_music_desk.get("cash",0)),16,Ui.MUTED)
+			_button(col,"music_desk_busk","BORROW SAMPLER / BUSK","music_desk_busk")
+			_button(col,"music_desk_buy","BUY POCKETBEAT M3 / $40","music_desk_buy",not bool(_music_desk.get("owned",false)) and int(_music_desk.get("cash",0))>=Instruments.price(Instruments.STARTER))
+			_button(col,"music_desk_practice","PRACTICE OWNED SAMPLER","music_desk_practice",bool(_music_desk.get("owned",false)))
+			_button(col,"music_desk_leave","LEAVE","music_desk_leave")
 		"blue_hour_set":
 			_render_rhythm(col)
 		"street_contact":
@@ -492,6 +505,7 @@ func _render() -> void:
 				bar.show_percentage=false
 				bar.custom_minimum_size=Vector2(0,12)
 				col.add_child(bar)
+			_label(col,str(_journal_data.get("instrument_status","")),16,Ui.ACCENT)
 			_label(col,str(_journal_data.get("busking_status","")),16,Ui.ACCENT)
 			_button(col,"busking_waypoint","SET STREET MUSIC WAYPOINT","busking_waypoint")
 			_label(col,str(_journal_data.get("music_contact","")),16,Ui.ACCENT)
@@ -682,6 +696,13 @@ func _choice(action: String) -> void:
 				action_requested.emit("begin_opening")
 			else:
 				hide_for_game()
+		"music_desk_buy","music_desk_busk","music_desk_practice":
+			if screen=="music_desk":
+				action_requested.emit(action)
+		"music_desk_leave":
+			if screen=="music_desk":
+				hide_for_game()
+				action_requested.emit(action)
 		"rhythm_pad_0","rhythm_pad_1","rhythm_pad_2":
 			if screen=="blue_hour_set":
 				_rhythm_strike(int(action.right(1)))
@@ -793,6 +814,18 @@ func open_blue_hour_set(sequence:int)->void:
 func open_busking_set(sequence:int)->void:
 	_open_music_set(sequence,"busking")
 
+func open_music_desk(data:Dictionary)->void:
+	_music_desk=data.duplicate()
+	_open("music_desk")
+
+func open_sampler_practice(sequence:int)->void:
+	_open_music_set(sequence,"practice")
+
+func consume_sampler_practice()->int:
+	if screen=="blue_hour_set" and _rhythm.mode=="practice" and _rhythm.claim():
+		return _rhythm_sequence
+	return 0
+
 func _open_music_set(sequence:int,source:String)->void:
 	_rhythm_sequence=sequence
 	_rhythm_focus_set=false
@@ -811,8 +844,9 @@ func consume_blue_hour_result()->int:
 
 func _render_rhythm(col:VBoxContainer)->void:
 	var street:=_rhythm.mode=="busking"
-	_title(col,"STREET SAMPLER / BUSKING" if street else "BLUE HOUR / OPENING SET",24,Ui.AMBER)
-	_label(col,("Borrow the neighborhood loaner sampler." if street else "Borrow Rae's three-pad sampler.")+" Hit the indicated pad in the timing window. %d of %d required."%[_rhythm.required_hits,_rhythm.pattern.size()],16,Ui.TEXT)
+	var practice:=_rhythm.mode=="practice"
+	_title(col,"POCKETBEAT M3 / PRACTICE" if practice else ("STREET SAMPLER / BUSKING" if street else "BLUE HOUR / OPENING SET"),24,Ui.AMBER)
+	_label(col,("Practice your own sampler. No cash or reputation reward." if practice else ("Borrow the neighborhood loaner sampler." if street else "Borrow Rae's three-pad sampler."))+" Hit the indicated pad in the timing window. %d of %d required."%[_rhythm.required_hits,_rhythm.pattern.size()],16,Ui.TEXT)
 	_label(col,"1 / A: kick   2 / X: clap   3 / Y: hat",16,Ui.MUTED)
 	_rhythm_status=Label.new()
 	_rhythm_status.add_theme_font_size_override("font_size",22)
@@ -824,7 +858,7 @@ func _render_rhythm(col:VBoxContainer)->void:
 	for lane in range(3):
 		var key:="rhythm_pad_%d"%lane
 		_button(col,key,["1 / A  KICK","2 / X  CLAP","3 / Y  HI-HAT"][lane],key)
-	_button(col,"rhythm_claim","COLLECT $8 / +4 STREET CRED" if street else "COLLECT $45 / +12 STREET CRED","rhythm_claim",false)
+	_button(col,"rhythm_claim","RECORD PRACTICE SET" if practice else ("COLLECT $8 / +4 STREET CRED" if street else "COLLECT $45 / +12 STREET CRED"),"rhythm_claim",false)
 	_rhythm_claim=_buttons["rhythm_claim"]
 	_button(col,"rhythm_cancel","LEAVE SET","rhythm_cancel")
 	_refresh_rhythm()
