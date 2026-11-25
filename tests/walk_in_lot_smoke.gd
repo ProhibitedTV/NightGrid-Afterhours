@@ -429,6 +429,27 @@ func _verify() -> void:
 	store.call("set_local_light",false,Vector3.INF)
 	if not check(not clerk.visible and clerk.process_mode==Node.PROCESS_MODE_DISABLED,"unoccupied shop pauses clerk"):
 		return
+	for id in Store.IDS:
+		var spec:Dictionary=Store.STORES[id]
+		if not check(Store.for_lot(spec["block"],spec["lot"])==id and Store.entry(id).is_finite(),"fixed fashion parcel directory"):
+			return
+		for item in spec["stock"]:
+			if not check(not catalog.listing(item).is_empty(),"valid stock item"):
+				return
+	if not check(not Store.carries(Store.ID,"obscura_sable") and Store.carries("obscura","obscura_sable"),"exclusive designer stock"):
+		return
+	city.call("set_focus",Store.entry("quay_standard"))
+	var quay:Node3D=city.call("nearby_walk_in",Store.entry("quay_standard"))
+	if not check(is_instance_valid(quay) and quay.get("clothing_store_id")=="quay_standard","North Quay physical clothing store"):
+		return
+	player.global_position=quay.call("clothing_counter")
+	world.set("cash",500)
+	world.call("_toggle_interaction")
+	world.set("_wardrobe_quote_id","obscura_sable")
+	world.call("_venue_action",3)
+	if not check(not ledger.owns_outfit("obscura_sable") and world.get("cash")==500,"wrong-store quote cannot debit"):
+		return
+	world.call("_close_venue")
 	var retail_save:Dictionary=ledger.snapshot()
 	if not check(fresh.restore(world.get("cash"),retail_save) and fresh.outfit_id=="tideline" and fresh.clothing_slots==ledger.clothing_slots and not fresh.owns_home(),"pre-tenancy wardrobe save round trip"):
 		return

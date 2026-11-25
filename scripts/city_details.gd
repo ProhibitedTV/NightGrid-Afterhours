@@ -1043,8 +1043,8 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 			# walkable. Never create new obstacles inside an occupied room.
 			if Vector2i(ix,iz) == StarterHome.BLOCK and which == StarterHome.LOT:
 				lot.call("dress_home", StarterHome.ID)
-			elif Vector2i(ix,iz)==ClothingStore.BLOCK and which==ClothingStore.LOT:
-				lot.call("dress_clothing_store")
+			elif not ClothingStore.for_lot(Vector2i(ix,iz),which).is_empty():
+				lot.call("dress_clothing_store",ClothingStore.for_lot(Vector2i(ix,iz),which))
 			else:
 				lot.call("dress",district,ACCENT[district],abs(ix * 11 + iz * 17 + which * 3))
 			if ix == 0 and iz == -3 and which == 1:
@@ -1211,8 +1211,9 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 	var label_text: String = "HELIX ESPRESSO" if ix == 0 and iz == -3 and which == 1 else names[abs(ix * 11 + iz * 17 + which * 3) % names.size()]
 	if Vector2i(ix,iz) == StarterHome.BLOCK and which == StarterHome.LOT:
 		label_text = StarterHome.NAME
-	elif Vector2i(ix,iz)==ClothingStore.BLOCK and which==ClothingStore.LOT:
-		label_text = ClothingStore.NAME+" / STREETWEAR"
+	elif not ClothingStore.for_lot(Vector2i(ix,iz),which).is_empty():
+		var store:Dictionary=ClothingStore.STORES[ClothingStore.for_lot(Vector2i(ix,iz),which)]
+		label_text=str(store["name"])+" / "+str(store["style"])
 	_label(label_text, Vector3(center.x, 4.08, front - 0.42), sign_color, 54)
 	_statistics["storefronts"] += 1
 	for awning in range(4):

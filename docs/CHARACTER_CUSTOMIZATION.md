@@ -20,3 +20,6 @@ All/outfits/jackets/trousers/glasses/watches category filters; H/F or LB/RB swit
 
 ## Shop atmosphere increment
 Threadline has a named shopkeeper, Tess Vale, with a distinct retail tag, greeting on first checkout interaction each visit, and purchase acknowledgment. Existing staff pose rig is reused; animation is disabled and the clerk hidden outside the occupied ground floor. Added countertop POS, payment signage, branded wall and shelf accents and a retail playlist from existing NightGrid tracks. No voice assets, new dynamic lights, or collision changes; native quality remains unverified. The clerk is intentionally static at her station pending better store-specific authored actors.
+
+## District stock pass
+Five stable physical clothing locations: Threadline (-3,-2 east), Quay Standard (0,-4 west), Vesper Line (-1,-2 east), Nocturne (0,2 west), Obscura (1,-3 west). Four new outfits and one jacket variant are retailer-exclusive; home retains legacy purchase compatibility and can equip owned exclusives. Checkout validates the specific store and available inventory. Shared interior and clerk are temporary until distinct shop art and staff pass; native testing pending.

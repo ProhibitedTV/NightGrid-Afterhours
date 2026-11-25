@@ -3,7 +3,7 @@ extends RefCounted
 ## No new body, geometry, skeleton, texture or collision assets.
 const Economy = preload("res://scripts/economy.gd")
 const DEFAULT = "dispatch"
-const IDS = ["dispatch","tideline","rustline","quay_basic","vesper_tailored","nocturne_atelier","obscura_signature","threadline_basics","night_shift"]
+const IDS = ["dispatch","tideline","rustline","quay_basic","vesper_tailored","nocturne_atelier","obscura_signature","threadline_basics","night_shift","quay_dock","vesper_ink","nocturne_veil","obscura_sable"]
 const ITEMS = {
 	"dispatch":{"name":"Morrow Dispatch","rarity":"COMMON","tier":0,"price":45,"jacket":Color.WHITE,"pants":Color.WHITE,"finish":1.0},
 	"tideline":{"name":"Tideline","rarity":"COMMON","tier":0,"price":35,"jacket":Color(.55,.88,1.0),"pants":Color(.65,.83,.95),"finish":1.0},
@@ -13,7 +13,11 @@ const ITEMS = {
 	"nocturne_atelier":{"name":"Nocturne Atelier / Midnight","rarity":"LUXURY","tier":3,"price":950,"jacket":Color(.46,.48,.76),"pants":Color(.40,.42,.55),"finish":.70},
 	"obscura_signature":{"name":"Obscura / Signature Edition","rarity":"EXCLUSIVE","tier":4,"price":2400,"jacket":Color(1.0,.59,.82),"pants":Color(.48,.38,.46),"finish":.62},
 	"threadline_basics":{"name":"Threadline / Everyday","rarity":"COMMON","tier":0,"price":20,"jacket":Color(.78,.81,.76),"pants":Color(.80,.81,.78),"finish":1.0},
-	"night_shift":{"name":"Threadline / Night Shift","rarity":"UNCOMMON","tier":1,"price":65,"jacket":Color(.62,.73,.86),"pants":Color(.48,.53,.64),"finish":.90}
+	"night_shift":{"name":"Threadline / Night Shift","rarity":"UNCOMMON","tier":1,"price":65,"jacket":Color(.62,.73,.86),"pants":Color(.48,.53,.64),"finish":.90},
+	"quay_dock":{"name":"Quay Standard / Dock Canvas","rarity":"UNCOMMON","tier":1,"price":85,"jacket":Color(.75,.88,.65),"pants":Color(.58,.68,.55),"finish":1.0},
+	"vesper_ink":{"name":"Vesper Line / Ink","rarity":"RARE","tier":2,"price":360,"jacket":Color(.50,.59,.83),"pants":Color(.45,.48,.66),"finish":.84},
+	"nocturne_veil":{"name":"Nocturne / Violet Veil","rarity":"LUXURY","tier":3,"price":620,"jacket":Color(.82,.49,.94),"pants":Color(.43,.35,.56),"finish":.70},
+	"obscura_sable":{"name":"Obscura / Sable Collection","rarity":"EXCLUSIVE","tier":4,"price":1800,"jacket":Color(.44,.43,.46),"pants":Color(.48,.44,.41),"finish":.62}
 }
 
 # Catalog values are estimated 2026 USD anchors, not final shelf prices.
@@ -35,7 +39,7 @@ static func garment_slot(name: String) -> String:
 # stable slot/item identities, with a separate validated visual asset contract.
 const SLOTS=["jacket","pants","glasses","watch"]
 const RESET_IDS=["reset_jacket","reset_pants","reset_glasses","reset_watch"]
-const PIECE_IDS=["jacket_ash","jacket_oxide","jacket_midnight","pants_charcoal","pants_sand","pants_teal","glasses_night","glasses_clear","watch_shift","watch_brass"]
+const PIECE_IDS=["jacket_ash","jacket_oxide","jacket_midnight","pants_charcoal","pants_sand","pants_teal","glasses_night","glasses_clear","watch_shift","watch_brass","jacket_ink"]
 const PIECES={
 	"jacket_ash":{"name":"Ash work jacket","slot":"jacket","price":18,"tint":Color(.73,.77,.79),"finish":1.0},
 	"jacket_oxide":{"name":"Oxide street jacket","slot":"jacket","price":32,"tint":Color(1.0,.53,.38),"finish":.9},
@@ -46,7 +50,8 @@ const PIECES={
 	"glasses_night":{"name":"Nightline smoke shades","slot":"glasses","price":26},
 	"glasses_clear":{"name":"Threadline clear frames","slot":"glasses","price":19},
 	"watch_shift":{"name":"Quay Shift digital watch","slot":"watch","price":38},
-	"watch_brass":{"name":"Nocturne brass watch","slot":"watch","price":110}
+	"watch_brass":{"name":"Nocturne brass watch","slot":"watch","price":110},
+	"jacket_ink":{"name":"Vesper ink jacket","slot":"jacket","price":175,"tint":Color(.48,.60,.82),"finish":.8}
 }
 
 static func piece_valid(id:Variant) -> bool:

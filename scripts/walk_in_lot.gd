@@ -160,11 +160,12 @@ func dress(district: String, accent: Color, variant: int) -> void:
 	_flush_interior_visuals()
 
 ## Original shop dressing, with the same collision-first streamed shell.
-func dress_clothing_store() -> void:
-	if _dressed:
+func dress_clothing_store(store_id:String=ClothingStore.ID) -> void:
+	if _dressed or not ClothingStore.STORES.has(store_id):
 		return
 	_dressed=true
-	clothing_store_id=ClothingStore.ID
+	clothing_store_id=store_id
+	var store:Dictionary=ClothingStore.STORES[store_id]
 	var black:=_mat(Color("252c33"))
 	var oak:=_mat(Color("8e7660"))
 	var brass:=_mat(Color("b9a277"))
@@ -178,7 +179,11 @@ func dress_clothing_store() -> void:
 		_visual("Worktop",Vector3(3.58,.93,z),Vector3(1.52,.08,1.63),oak)
 		_visual("Worktop",Vector3(4.19,1.53,z),Vector3(.055,1.15,1.43),brass)
 		for i in range(3):
-			var id:String=Wardrobe.IDS[(int(z)+i)%Wardrobe.IDS.size()]
+			var display:Array=[]
+			for stock_id in store["stock"]:
+				if Wardrobe.valid_id(stock_id):
+					display.append(stock_id)
+			var id:String=display[(int(z)+i)%display.size()]
 			var item:Dictionary=Wardrobe.ITEMS[id]
 			var tint:Color=item["jacket"]
 			var at:=Vector3(3.48,1.15,z-.48+float(i)*.48)
@@ -196,11 +201,11 @@ func dress_clothing_store() -> void:
 	_visual("Worktop",Vector3(-3.15,1.14,3.15),Vector3(.22,.028,.16),brass)
 	for z in [2.6,6.3,11.8]:
 		_visual("Worktop",Vector3(2.82,.99,z),Vector3(.045,.12,.65),brass)
-	_shop_label("EVERYDAY. EVERYWHERE.",Vector3(0,2.66,4.1),.003,PI)
-	_shop_label("THREADLINE",Vector3(4.62,2.12,8.2),.003,-PI/2)
+	_shop_label(str(store["style"])+" / COLLECTION",Vector3(0,2.66,4.1),.003,PI)
+	_shop_label(str(store["name"]),Vector3(4.62,2.12,8.2),.003,-PI/2)
 	_shop_label("USD / BTC ACCEPTED",Vector3(-3.50,1.83,2.8),.003,PI)
 	_shop_label("FITTING / LOOK GOOD. FEEL LIKE YOURSELF.",Vector3(3.45,2.25,6.3),.003,-PI/2)
-	_shop_label("THREADLINE / VESPER MARKET",Vector3(0,2.95,4.1),.005,PI)
+	_shop_label(str(store["name"])+" / "+str(store["district"]),Vector3(0,2.95,4.1),.005,PI)
 	_shop_label("FITTING / CHECKOUT",Vector3(-3.55,2.28,2.8),.004,PI)
 	_shop_label("WORKWEAR / STREET / AFTER DARK",Vector3(3.45,2.25,2.6),.003,PI)
 	_flush_interior_visuals()
@@ -228,7 +233,7 @@ func clothing_greeting() -> String:
 	if _clothing_greeted:
 		return ""
 	_clothing_greeted=true
-	return "Tess: First time at Threadline? Try anything on. You only pay when you decide to keep it."
+	return str(ClothingStore.STORES[clothing_store_id]["name"])+": Try anything on. You only pay when you decide to keep it."
 
 func clothing_remark(purchased:bool=false) -> String:
 	if purchased:
@@ -242,7 +247,7 @@ func clothing_counter() -> Vector3:
 	return to_global(ClothingStore.COUNTER)
 
 func clothing_reachable(at:Vector3) -> bool:
-	return clothing_store_id==ClothingStore.ID and contains(at) and at.distance_to(clothing_counter())<1.4
+	return ClothingStore.STORES.has(clothing_store_id) and contains(at) and at.distance_to(clothing_counter())<1.4
 
 ## Prototype furnishings, installed with collision in stage zero.
 func dress_home(id: String) -> void:
