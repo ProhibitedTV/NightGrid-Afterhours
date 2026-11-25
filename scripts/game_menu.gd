@@ -704,7 +704,7 @@ func _choice(action: String) -> void:
 			_phone_app = id
 			_render()
 		return
-	if (action.begins_with("phone_route_") or action == "phone_decline_offer") and screen == "phone":
+	if (action.begins_with("phone_route_") or action == "phone_decline_offer" or action == "phone_toggle_duty") and screen == "phone":
 		action_requested.emit(action)
 		return
 	match action:
