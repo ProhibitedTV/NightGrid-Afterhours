@@ -10,6 +10,9 @@ const StarterHome = preload("res://scripts/starter_home.gd")
 const Wardrobe = preload("res://scripts/wardrobe_catalog.gd")
 const Economy = preload("res://scripts/economy.gd")
 var bitcoin_sats: int = 0
+const CAL_RECEIPT="street:compatibility_patch"
+const CAL_REWARD=85
+var cal_quest:int=0 # 0 offered, 1 accepted, 2 collected, 3 completed
 
 var balance: int = 0
 var _receipts: Dictionary = {}
@@ -185,10 +188,28 @@ func withdraw_supply(carried: int) -> int:
 	home_supplies -= 1
 	return 1
 
+func accept_cal_quest()->bool:
+	if cal_quest!=0 or has_receipt(CAL_RECEIPT):
+		return false
+	cal_quest=1
+	return true
+
+func collect_cal_gift()->bool:
+	if cal_quest!=1:
+		return false
+	cal_quest=2
+	return true
+
+func complete_cal_quest()->bool:
+	if cal_quest!=2 or not credit_once(CAL_RECEIPT,CAL_REWARD):
+		return false
+	cal_quest=3
+	return true
+
 func snapshot() -> Dictionary:
 	var ids: Array = _receipts.keys()
 	ids.sort()
-	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "bitcoin_sats":bitcoin_sats}
+	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "bitcoin_sats":bitcoin_sats, "cal_quest":cal_quest}
 
 static func valid_snapshot(value: Variant) -> bool:
 	if not value is Dictionary:
@@ -205,6 +226,9 @@ static func valid_snapshot(value: Variant) -> bool:
 		if not valid_id(id) or seen.has(id):
 			return false
 		seen[id] = true
+	var cal:Variant=data.get("cal_quest",0)
+	if not valid_cash(cal) or int(cal)>3 or (int(cal)==3)!=seen.has(CAL_RECEIPT):
+		return false
 	# Older saves already granted residence access; grandfather it, not new missions.
 	var tenancy: Variant = data.get("home_tenancy_paid",seen.has(StarterHome.ACCESS_RECEIPT))
 	if not tenancy is bool or (tenancy and not seen.has(StarterHome.ACCESS_RECEIPT)):
@@ -261,6 +285,7 @@ func restore(amount: Variant, data: Variant) -> bool:
 	home_storage_expanded = data.get("home_storage_expanded",false)
 	outfit_id = data.get("outfit_id",Wardrobe.DEFAULT)
 	bitcoin_sats = int(data.get("bitcoin_sats",0))
+	cal_quest=int(data.get("cal_quest",0))
 	_purchased_outfits.clear()
 	for id in data.get("purchased_outfits",[]):
 		_purchased_outfits[id] = true
