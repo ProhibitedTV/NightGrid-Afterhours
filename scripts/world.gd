@@ -172,6 +172,9 @@ var _cal_pending:Dictionary={}
 var _cal_tracking:=false
 var _cal_nav_clock:=0.0
 const CAL_PICKUP="moon_noodles"
+const BUSKING_SITES=["moon_noodles","copper_cup"]
+var _music_session_site:=""
+const Instruments=preload("res://scripts/instrument_catalog.gd")
 var city_perimeter: Node3D
 var flora: Node3D
 var day_night: Node
@@ -474,6 +477,48 @@ func _on_menu_action(action: String) -> void:
 			if not _street_contact_id.is_empty():
 				_cal_pending={"id":_street_contact_id,"action":action}
 			_street_contact_id=""
+		"music_desk_buy","music_desk_busk","music_desk_practice","music_desk_owned","music_desk_leave":
+			_music_desk_action(action)
+		"rhythm_claim":
+			var site:=_music_session_site
+			_music_session_site=""
+			if site=="practice:copper_cup":
+				var sequence:int=game_menu.call("consume_sampler_practice")
+				if sequence>0 and _busking_reachable("copper_cup") and progression.complete_sampler_practice(sequence):
+					_notify(progression.instrument_summary())
+				else:
+					_notify("PRACTICE / Set not recorded.")
+			elif site=="owned:copper_cup":
+				var sequence:int=game_menu.call("consume_owned_sampler_set")
+				if sequence>0 and _busking_reachable("copper_cup") and progression.settle_owned_sampler_set(sequence):
+					_notify("PERSONAL SET / +$14 • +4 STREET CRED")
+				else:
+					_notify("PERSONAL SET / Not settled.")
+			elif site in BUSKING_SITES:
+				var sequence:int=game_menu.call("consume_busking_result")
+				if sequence>0 and _busking_reachable(site) and progression.settle_busking_set(sequence):
+					_notify("BUSKING / SET COMPLETE +$8 • +4 STREET CRED")
+				else:
+					_notify("BUSKING / Set not settled.")
+			elif site=="blue_hour":
+				var sequence:int=game_menu.call("consume_blue_hour_result")
+				if sequence>0 and _blue_hour_set_reachable() and progression.settle_blue_hour_set(sequence):
+					_notify("BLUE HOUR / SET COMPLETE +$45 • +12 STREET CRED")
+				else:
+					_notify("BLUE HOUR / Set not settled.")
+		"rhythm_cancel":
+			_music_session_site=""
+			_notify("MUSIC / Set ended. No reward.")
+		"busking_waypoint":
+			var site:="moon_noodles" if venue_system.call("is_open","moon_noodles") or not venue_system.call("is_open","copper_cup") else "copper_cup"
+			var point:Vector3=venue_system.call("venue_position",site)
+			set_navigation_waypoint(Vector2(point.x,point.z))
+			game_menu.call("open_journal",_journal_context())
+		"music_waypoint":
+			if progression.street_cred()>=100 and not progression.has_receipt("venue:soundcheck_pass"):
+				var point:Vector3=venue_system.call("venue_position","blue_hour" if venue_job_active=="soundcheck_pass" else "static_room")
+				set_navigation_waypoint(Vector2(point.x,point.z))
+			game_menu.call("open_journal",_journal_context())
 		"cal_waypoint":
 			_track_cal_waypoint()
 			game_menu.call("open_journal",_journal_context())
@@ -667,6 +712,10 @@ func _journal_context() -> Dictionary:
 		"street_cred":progression.street_cred_rank(),
 		"street_cred_summary":progression.street_cred_summary(),
 		"street_cred_sources":progression.street_cred_sources(),
+		"music_contact":_music_contact_status(),
+		"instrument_status":progression.instrument_summary(),
+		"busking_status":"STREET MUSIC / Moon Noodles or Copper Cup • %d sets completed"%progression.street_activity_runs("busking"),
+		"music_can_navigate":progression.street_cred()>=100 and not progression.has_receipt("venue:soundcheck_pass"),
 		"cal_can_navigate":_cal_target().is_finite(),
 		"civic_job": _civic_job_text(),
 		"cash": cash, "health": health, "heat": heat,
@@ -2943,7 +2992,7 @@ func _update_civic_panel() -> void:
 		venue_service_button.text = "1 / A  •  SERVICE"
 	if venue_job_button != null:
 		var offered: Dictionary = civic_services.call("order_from", civic_selected_id) if civic_job_active.is_empty() else civic_services.call("order_by_id", civic_job_active)
-		var available := not offered.is_empty() and (
+		var available:bool = not offered.is_empty() and (
 			(not civic_job_active.is_empty() and str(offered["to"]) == civic_selected_id) or
 			(civic_job_active.is_empty() and not civic_job_completed.has(str(offered["id"]))))
 		venue_job_button.disabled = not opened or not available
@@ -3080,6 +3129,8 @@ func _show_venue_dialogue() -> void:
 		venue_service_button.call_deferred("grab_focus")
 
 func _close_venue() -> void:
+	if is_instance_valid(dialogue_director):
+		dialogue_director.call("cancel_scope","venue:music_contact")
 	if interiors != null:
 		interiors.call("set_mara_attention", false)
 	mara_dialogue_line = ""
@@ -3468,8 +3519,11 @@ func _update_venue_panel() -> void:
 		body += "[1 / A] %s  $%d   " % [str(venue["item"]), int(venue["price"])]
 		if venue_job_active.is_empty():
 			var offer: Dictionary = venue_system.call("job_from", venue_selected_id)
-			if not offer.is_empty() and not venue_job_completed.has(str(offer["id"])):
-				body += "\n[2 / X] SIDE JOB: %s (+$%d)" % [str(offer["title"]), int(offer["reward"])]
+			if not offer.is_empty() and not venue_job_completed.has(str(offer["id"])) and not progression.has_receipt("venue:"+str(offer["id"])):
+				if venue_system.call("job_unlocked",offer,progression.street_cred()):
+					body += "\n[2 / X] SIDE JOB: %s (+$%d)" % [str(offer["title"]), int(offer["reward"])]
+				else:
+					body += "\n%s / Requires %d Street Cred (you have %d)"%[str(offer["title"]),int(offer["min_cred"]),progression.street_cred()]
 		else:
 			var active: Dictionary = venue_system.call("job_by_id", venue_job_active)
 			if not active.is_empty() and str(active["to"]) == venue_selected_id:
@@ -3483,14 +3537,17 @@ func _update_venue_panel() -> void:
 		venue_service_button.text = "1 / A  •  SERVICE"
 	if venue_job_button != null:
 		var offered: Dictionary = venue_system.call("job_from", venue_selected_id) if venue_job_active.is_empty() else venue_system.call("job_by_id", venue_job_active)
-		var available := not offered.is_empty() and (
+		var available:bool = not offered.is_empty() and (
 			(not venue_job_active.is_empty() and str(offered["to"]) == venue_selected_id) or
-			(venue_job_active.is_empty() and not venue_job_completed.has(str(offered["id"]))))
+			(venue_job_active.is_empty() and not venue_job_completed.has(str(offered["id"])) and not progression.has_receipt("venue:"+str(offered["id"])) and venue_system.call("job_unlocked",offered,progression.street_cred())))
 		venue_job_button.disabled = not open_now or not available
 		venue_job_button.text = "2 / X  •  SIDE JOB"
 	if venue_talk_button != null:
-		venue_talk_button.visible = is_mara
-		venue_talk_button.disabled = not is_mara
+		var music_set:=venue_selected_id=="blue_hour" and progression.has_receipt("venue:soundcheck_pass")
+		var busk:bool=bool(venue_selected_id in BUSKING_SITES and not interiors.call("is_inside"))
+		venue_talk_button.visible = is_mara or music_set or busk
+		venue_talk_button.disabled = not is_mara and not (music_set and open_now and _blue_hour_set_reachable()) and not (busk and _busking_reachable(venue_selected_id))
+		venue_talk_button.text="3 / Y  •  PLAY OPENING SET" if music_set else (("3 / Y  •  MUSIC DESK" if venue_selected_id=="copper_cup" else "3 / Y  •  BUSK WITH LOANER SAMPLER") if busk else "3 / Y  •  TALK TO MARA")
 
 func _mara_context() -> Dictionary:
 	return {
@@ -3668,6 +3725,24 @@ func _venue_action(option: int) -> void:
 		return
 	# Dialogue is no-cost and remains accessible even near closing time.
 	if option == 3:
+		if venue_selected_id=="copper_cup" and _busking_reachable(venue_selected_id):
+			_close_venue()
+			_music_session_site="desk:copper_cup"
+			_open_music_desk()
+			return
+		if _busking_reachable(venue_selected_id):
+			var site:=venue_selected_id
+			var sequence:=progression.street_activity_runs("busking")+1
+			_close_venue()
+			_music_session_site=site
+			game_menu.call("open_busking_set",sequence)
+			return
+		if venue_selected_id=="blue_hour" and _blue_hour_set_reachable():
+			var sequence:=progression.street_activity_runs("live_gig")+1
+			_close_venue()
+			_music_session_site="blue_hour"
+			game_menu.call("open_blue_hour_set",sequence)
+			return
 		if venue_selected_id == "lantern_cup" and interiors.call("is_inside"):
 			var response: Dictionary = interiors.call("mara_talk", _mara_context())
 			if not response.is_empty():
@@ -3717,11 +3792,18 @@ func _venue_action(option: int) -> void:
 	elif option == 2:
 		if venue_job_active.is_empty():
 			var job: Dictionary = venue_system.call("job_from", venue_selected_id)
-			if job.is_empty() or venue_job_completed.has(str(job.get("id", ""))):
+			if job.is_empty() or venue_job_completed.has(str(job.get("id", ""))) or progression.has_receipt("venue:"+str(job.get("id",""))):
 				_notify("No new work from this contact.")
+				return
+			if not venue_system.call("job_unlocked",job,progression.street_cred()):
+				_notify("Build your local reputation first. Requires %d Street Cred."%int(job.get("min_cred",0)))
 				return
 			venue_job_active = str(job["id"])
 			_notify("NEW SIDE JOB: %s — %s" % [str(job["title"]), str(job["brief"])])
+			_play_music_contact_cue(venue_job_active,"brief")
+			if venue_job_active=="soundcheck_pass":
+				var target:=_venue_job_target()
+				set_navigation_waypoint(Vector2(target.x,target.z))
 		else:
 			var contract: Dictionary = venue_system.call("job_by_id", venue_job_active)
 			if contract.is_empty():
@@ -3737,11 +3819,15 @@ func _venue_action(option: int) -> void:
 				_notify("Side job already paid.")
 				_update_venue_panel()
 				return
+			if not venue_system.call("job_unlocked",contract,progression.street_cred()):
+				_notify("This contract requires more Street Cred.")
+				return
 			var previous_cred:=progression.street_cred()
 			if not progression.credit_once("venue:" + venue_job_active, int(contract["reward"])):
 				_notify("Unable to settle side job. Check wallet capacity.")
 				return
 			venue_job_completed.append(venue_job_active)
+			_play_music_contact_cue(venue_job_active,"ending")
 			venue_job_active = ""
 			_notify("SIDE JOB COMPLETE +$%d • +%d STREET CRED: %s" % [int(contract["reward"]),progression.street_cred()-previous_cred,str(contract["ending"])])
 	_update_venue_panel()
@@ -4417,6 +4503,7 @@ func get_map_state() -> Dictionary:
 	}
 
 func _cancel_street_interactions()->void:
+	_music_session_site=""
 	_street_contact_id=""
 	_cal_pending={}
 	if is_instance_valid(pedestrians) and is_instance_valid(dialogue_director):
@@ -4502,3 +4589,61 @@ func _update_cal_navigation(delta:float)->void:
 		navigation_waypoint=target
 		_route_cache.clear()
 		_route_revision=-1
+
+func _music_contact_status()->String:
+	if progression.has_receipt("venue:soundcheck_pass"):
+		return "UNDERGROUND / Rae at Blue Hour: Opening sets available • %d completed"%progression.street_activity_runs("live_gig")
+	if venue_job_active=="soundcheck_pass":
+		return "UNDERGROUND / Deliver Nyx's demo to Blue Hour."
+	if progression.street_cred()>=100:
+		return "UNDERGROUND / Nyx at Static Room has a music favor for you."
+	return "UNDERGROUND / Reach 100 Street Cred to meet Nyx."
+
+func _play_music_contact_cue(id:String,beat:String)->void:
+	var cue:=StreetSatire.venue_job_line(id,beat)
+	if cue.is_empty() or not is_instance_valid(dialogue_director):
+		return
+	# Existing venue panel does not expose a physical host node; use the
+	# bounded nonspatial voice channel rather than inventing a world speaker.
+	dialogue_director.call("cancel_scope","venue:music_contact")
+	dialogue_director.call("enqueue",str(cue["id"]),str(cue["text"]),DialogueDirector.STORY,null,"venue:music_contact")
+
+func _blue_hour_set_reachable()->bool:
+	if not progression.has_receipt("venue:soundcheck_pass") or not is_instance_valid(player) or current_car!=null or current_transit!=null or weapons.equipped!="holstered" or not venue_system.call("is_open","blue_hour"):
+		return false
+	if interiors.call("is_inside"):
+		return str(interiors.call("active_site_id"))=="blue_hour" and bool(interiors.call("counter_reachable",player.global_position))
+	var point:Vector3=venue_system.call("venue_position","blue_hour")
+	return player.global_position.distance_to(point)<=5.5
+
+func _busking_reachable(site:String)->bool:
+	if site not in BUSKING_SITES or not is_instance_valid(player) or current_car!=null or current_transit!=null or interiors.call("is_inside") or weapons.equipped!="holstered" or not venue_system.call("is_open",site):
+		return false
+	var point:Vector3=venue_system.call("venue_position",site)
+	return player.global_position.distance_to(point)<=5.5
+
+func _open_music_desk()->void:
+	game_menu.call("open_music_desk",{"owned":progression.owns_instrument(Instruments.STARTER),"owned_set":progression.owned_set_unlocked(),"cash":cash,"summary":progression.instrument_summary()})
+
+func _music_desk_action(action:String)->void:
+	if action=="music_desk_leave":
+		_music_session_site=""
+		return
+	if _music_session_site!="desk:copper_cup" or game_menu.get("screen")!="music_desk" or not _busking_reachable("copper_cup"):
+		return
+	match action:
+		"music_desk_buy":
+			if progression.buy_instrument(Instruments.STARTER):
+				_notify("Purchased PocketBeat M3. Your own sampler is ready to practice.")
+			_open_music_desk()
+		"music_desk_busk":
+			_music_session_site="copper_cup"
+			game_menu.call("open_busking_set",progression.street_activity_runs("busking")+1)
+		"music_desk_owned":
+			if progression.owned_set_unlocked():
+				_music_session_site="owned:copper_cup"
+				game_menu.call("open_owned_sampler_set",progression.street_activity_runs("busking")+1)
+		"music_desk_practice":
+			if progression.owns_instrument(Instruments.STARTER) and progression.sampler_practice<Instruments.MAX_PRACTICE:
+				_music_session_site="practice:copper_cup"
+				game_menu.call("open_sampler_practice",progression.sampler_practice+1)

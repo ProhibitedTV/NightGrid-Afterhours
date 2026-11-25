@@ -82,6 +82,10 @@ def validate_catalog(path, source=None):
             if row["quest"] not in ("accept","complete") or row["character"]!="robot_romantic":
                 raise ValueError("Invalid Cal quest cue")
             expected[ident]["source"]={"catalog":"street_satire","character":row["character"],"quest":row["quest"]}
+        if "venue_job" in row:
+            if row["venue_job"]!="soundcheck_pass" or (row["beat"],row["character"]) not in (("brief","nyx"),("ending","rae")):
+                raise ValueError("Invalid music contact cue")
+            expected[ident]["source"]={"catalog":"street_satire","character":row["character"],"venue_job":row["venue_job"],"beat":row["beat"]}
     exchanges={}
     for row in street:
         if "exchange" in row:
