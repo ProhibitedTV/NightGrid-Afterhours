@@ -524,6 +524,19 @@ func _verify() -> void:
 		_fail("Office comedy is one-shot, not an endlessly looping distraction")
 		return
 	comic_deck.call("set_occupied",false)
+	var procurement:Node3D=office.get_node("Workfloor4")
+	var egg:Node3D=procurement.get_node("OfficeEasterEggs")
+	procurement.call("set_occupied",true)
+	var arthur_line:String=procurement.call("observe_worker",procurement.to_global(Vector3(-4,1.15,3.7)))
+	if not arthur_line.contains("Arthur") or int(egg.call("get_egg_state")["prop_parts"])<6:
+		_fail("Red stapler is a physical prop with nearby coworker dialogue")
+		return
+	procurement.call("observe_worker",procurement.to_global(Vector3(0,1.15,5)))
+	var second_line:String=procurement.call("observe_worker",procurement.to_global(Vector3(-4,1.15,3.7)))
+	if second_line==arthur_line or int(egg.call("get_egg_state")["visits"])!=2:
+		_fail("Stapler dialogue changes on revisits, not every frame")
+		return
+	procurement.call("set_occupied",false)
 	var leadership_stats: Dictionary=office.call("executive_floor_stats")
 	if int(leadership_stats.get("executives",0))!=7 or not bool(leadership_stats.get("occupied",false)) or int(leadership_stats.get("colliders",0))<10:
 		_fail("Executive level must have seven distinct staff and physical luxury furniture")

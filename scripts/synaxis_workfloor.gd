@@ -2,6 +2,7 @@ extends Node3D
 ## Four authored workfloor layouts, using static material/primitive batches.
 ## Real desk and partition collision; no per-desk process or lights.
 const Rage=preload("res://scripts/synaxis_keyboard_rage.gd")
+const Eggs=preload("res://scripts/synaxis_office_easter_eggs.gd")
 const FLOOR_COUNT=4
 const FLOOR_HEIGHT=3.65
 const LIFT=Vector2(0,5.0)
@@ -29,6 +30,7 @@ var _parts:=0
 var _colliders:=0
 var _lights: Array[OmniLight3D]=[]
 var _rage:Node3D
+var _eggs:Node3D
 
 static func desk_positions() -> Array[Vector2]:
 	var result: Array[Vector2]=[]
@@ -68,6 +70,10 @@ func _ready() -> void:
 		_rage.position=Rage.SEAT
 		_rage.rotation.y=PI
 		add_child(_rage)
+	if level==4:
+		_eggs=Eggs.new()
+		_eggs.name="OfficeEasterEggs"
+		add_child(_eggs)
 	set_occupied(false)
 
 func get_floor_stats() -> Dictionary:
@@ -78,6 +84,8 @@ func set_occupied(active: bool) -> void:
 		lamp.visible=active
 	if is_instance_valid(_rage):
 		_rage.call("enable_performance",active)
+	if is_instance_valid(_eggs):
+		_eggs.call("set_active",active)
 
 func _material(key: String) -> StandardMaterial3D:
 	if not _materials.has(key):
@@ -161,7 +169,8 @@ func _station(at: Vector3,face: float,row: int,col: int,accent: String) -> void:
 		_part("black",at+Vector3(-.22,.861,face*.19),Vector3(.45,.025,.15))
 		_part("steel",at+Vector3(-.22,.876,face*.19),Vector3(.41,.008,.12))
 	_part("black",at+Vector3(.12,.87,face*.19),Vector3(.07,.041,.11))
-	_part("paper",at+Vector3(-.66,.86,face*.15),Vector3(.22,.022,.29))
+	if not (level==4 and row==3 and col==1):
+		_part("paper",at+Vector3(-.66,.86,face*.15),Vector3(.22,.022,.29))
 	if (row+col)%2==0:
 		_part("white",at+Vector3(.55,.91,face*.14),Vector3(.085,.13,.085),0.0,"cyl")
 	if (row*7+col+level)%5==0:
@@ -215,6 +224,14 @@ func _shared_area(accent: String) -> void:
 			_chair(Vector3(x+dx,0,8.60),-1.0)
 		_part("paper",Vector3(x,.81,7.55),Vector3(.33,.02,.25))
 		_plant(Vector3(x+.8,.80,7.55),.24)
+	# Small original background jokes, deliberately not map objectives.
+	if level==1:
+		_label("PRINTER 07 / PAPER JAM\nIT TICKET CLOSED: USER EDUCATED",Vector3(-7.48,1.52,-.4),.0019,PI/2)
+	elif level==3:
+		_part("paper",Vector3(7.47,1.55,-.4),Vector3(.015,.30,.23))
+		_label("PLEASE FILE YOUR\nPAPERLESS INITIATIVE\nIN TRIPLICATE",Vector3(7.45,1.55,-.4),.0014,-PI/2)
+	elif level==4:
+		_label("UNCLAIMED PERSONAL PROPERTY\nALL ITEMS BECOME COMPANY ASSETS",Vector3(-8.21,2.2,2.8),.003,PI/2)
 	# Printer alcove and storage on perimeter.
 	for x in [-7.85,7.85]:
 		_part("oak",Vector3(x,.53,-.4),Vector3(.68,1.06,1.4))
@@ -238,9 +255,12 @@ func _label(value: String,at: Vector3,pixel: float,yaw: float=0.0) -> void:
 	sign.rotation.y=yaw
 	add_child(sign)
 
-func observe_worker(at:Vector3) -> void:
+func observe_worker(at:Vector3) -> String:
 	if is_instance_valid(_rage):
 		_rage.call("observe",at)
+	if is_instance_valid(_eggs):
+		return str(_eggs.call("observe",at))
+	return ""
 
 func _architecture(accent: String) -> void:
 	# Light oak wall panels, accent bands, acoustic ceiling and corporate banners.

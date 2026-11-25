@@ -80,3 +80,6 @@ The fifth upper floor has a marble-and-brass fit-out, walnut offices, glazed par
 
 ### Optional office-rage vignette
 On the Product & Design floor, Cal Mercer is a heavyset systems analyst seated at a dedicated physical desk. Approaching from the aisle triggers a one-shot stand, keyboard pickup, windup, strike, monitor tilt/blackout, and return to seated posture. No mission progression or combat effects. Original staged visual homage; no borrowed footage or audio. Native pose and contact verification pending.
+
+### Unmarked office Easter eggs
+Business Operations has Arthur Bell, a possessive procurement clerk with a small red stapler constructed from distinct hinge, channel, anvil and handle pieces. Proximity reveals three original remarks on separate visits, never a quest marker or economy action. Engineering and QA have original printer and paperwork jokes. No borrowed film dialogue or footage. Native visual verification pending.

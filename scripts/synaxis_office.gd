@@ -681,7 +681,9 @@ func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 			if not executive_line.is_empty():
 				_hint.text+="\n"+executive_line
 		if _active_floor<=Workfloor.FLOOR_COUNT:
-			_workfloors[_active_floor-1].call("observe_worker",at)
+			var worker_line:String=_workfloors[_active_floor-1].call("observe_worker",at)
+			if not worker_line.is_empty():
+				_hint.text+="\n"+worker_line
 		var direction:=lift_direction(at)
 		if direction!=0:
 			_hint.text+="\n"+("X" if gamepad else "G")+" / LIFT "+("UP" if direction>0 else "DOWN")
