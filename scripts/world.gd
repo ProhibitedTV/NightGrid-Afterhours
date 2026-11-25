@@ -733,7 +733,7 @@ func _start_music(kind: String, site: String) -> bool:
 	suspend_weapon()
 	_music_site = site
 	_music_start_cred = int(_street_cred()["music"])
-	venue_system.call("set_player_performing",true)
+	venue_system.call("set_player_performing",true,site,player.global_position)
 	player.set("input_blocked",true)
 	player.get_node("Visual").call("set_music_prop",true)
 	if kind in ["band","rehearse","encore"]:
@@ -4059,7 +4059,7 @@ func _update_hud() -> void:
 	if not investigation_note.is_empty():
 		jobs.append(investigation_note)
 	if not music_career.mode.is_empty():
-		jobs.append("LIVE SET / %ds  •  G / X stop" % int(music_career.elapsed))
+		jobs.append("LIVE SET / %ds  •  %d listeners  •  G / X stop" % [int(music_career.elapsed),int(venue_system.call("music_audience_count"))])
 	hud_jobs.text = "\n".join(jobs)
 	hud_jobs.visible = not jobs.is_empty()
 	hud_notice.text = message

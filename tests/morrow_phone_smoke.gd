@@ -242,12 +242,19 @@ func _verify() -> void:
 	if not world.call("_start_music","busk","copper_cup") or not actor.get("input_blocked"):
 		_fail("Busking must start at a safe physical spot")
 		return
+	venues.call("_refresh")
+	if int(venues.call("music_audience_count"))<=0:
+		_fail("Nearby open venue patrons should acknowledge the performance")
+		return
 	var rig: Node3D = actor.get_node("Visual")
 	if rig.get("current_pose") != &"music_strum" or not rig.get_node("AcousticGuitar").visible:
 		_fail("Performance should show guitar and authored strum clip")
 		return
 	world.call("_tick_music",.25)
 	world.call("_stop_music")
+	if int(venues.call("music_audience_count"))!=0:
+		_fail("Performance cancellation must restore audience")
+		return
 	if actor.get("input_blocked") or rig.get_node("AcousticGuitar").visible or rig.get("current_pose")==&"music_strum" or world.get("cash") != music_cash-85:
 		_fail("Interrupted set must restore input and not pay")
 		return

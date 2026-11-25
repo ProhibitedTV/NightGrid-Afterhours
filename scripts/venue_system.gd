@@ -63,6 +63,10 @@ var _ambient_musicians: Dictionary = {}
 var _ambient_music: AudioStreamPlayer3D
 var _ambient_source := ""
 var _player_performing := false
+var _performing_site := ""
+var _performing_position := Vector3.ZERO
+var _audience_rest: Dictionary = {}
+var _audience_count := 0
 var _music_volume := .65
 var _lights: Array[OmniLight3D] = []
 var _focus := Vector3.ZERO
@@ -412,11 +416,42 @@ func set_music_volume(volume: float) -> void:
 			_ambient_music.stop()
 			_ambient_source = ""
 
-func set_player_performing(active: bool) -> void:
+func set_player_performing(active: bool, site: String = "", at: Vector3 = Vector3.ZERO) -> void:
 	_player_performing = active
+	_performing_site = site if active else ""
+	_performing_position = at
 	if active and is_instance_valid(_ambient_music):
 		_ambient_music.stop()
 		_ambient_source = ""
+	if not active:
+		_restore_music_audience()
+
+func _restore_music_audience() -> void:
+	for patron in _audience_rest:
+		if is_instance_valid(patron):
+			patron.rotation.y = float(_audience_rest[patron])
+	_audience_rest.clear()
+	_audience_count = 0
+
+func _refresh_music_audience() -> void:
+	if not _player_performing or not _patrons.has(_performing_site) or not is_open(_performing_site):
+		_restore_music_audience()
+		return
+	_audience_count = 0
+	for patron in _patrons[_performing_site]:
+		var p := patron as Node3D
+		var delta := _performing_position-p.global_position
+		delta.y = 0.0
+		if delta.length_squared()>64.0 or delta.length_squared()<.09:
+			continue
+		if not _audience_rest.has(p):
+			_audience_rest[p] = p.rotation.y
+		# Existing patrons face -Z; keep their positions and collision unchanged.
+		p.rotation.y = atan2(-delta.x,-delta.z)
+		_audience_count += 1
+
+func music_audience_count() -> int:
+	return _audience_count
 
 func _music_scheduled(entry: Dictionary) -> bool:
 	var start: float = entry["start"]
@@ -644,6 +679,7 @@ func _night_factor() -> float:
 
 func _refresh() -> void:
 	_refresh_ambient_musicians()
+	_refresh_music_audience()
 	var darkness := _night_factor()
 	for id in _music_contacts:
 		var contact: Node3D = _music_contacts[id]
