@@ -118,10 +118,46 @@ func _verify() -> void:
 	if story.event("contract_completed",wallet) != "delivered" or story.step != 2:
 		_fail("Legitimate local work should qualify for Mara's referral")
 		return
+	# Real civic counter, evidence, retry, one-time payout and discovery removal.
+	var civic = world.get("civic_services")
+	var actor: Node3D = world.get("player")
+	civic.call("set_hour",12.0)
+	actor.global_position = civic.call("position_for","crane_supply")
+	world.call("_toggle_civic")
+	world.call("_venue_action",3)
+	if not world.get("_technical_case_open") or not world.get("venue_label").text.contains("DIAGNOSTIC REPORT"):
+		_fail("Technical contract must open at the actual counter")
+		return
+	var technical_cash: int = world.get("cash")
+	world.call("_venue_action",1)
+	if world.get("cash") != technical_cash or not world.get("_technical_case_open"):
+		_fail("Incorrect diagnosis must not pay or complete")
+		return
+	actor.global_position += Vector3(20,0,0)
+	world.call("_venue_action",2)
+	if world.get("cash") != technical_cash:
+		_fail("Remote repair must be rejected")
+		return
+	actor.global_position = civic.call("position_for","crane_supply")
+	world.call("_toggle_civic")
+	world.call("_venue_action",3)
+	world.call("_venue_action",2)
+	if world.get("cash") != technical_cash+480 or not wallet.has_receipt("technical:crane_interlock"):
+		_fail("Correct physical diagnosis must settle once")
+		return
+	world.call("_venue_action",3)
+	if world.get("cash") != technical_cash+480 or world.get("_technical_case_open"):
+		_fail("Completed repair must not reopen")
+		return
+	for listing in world.call("_phone_workboard"):
+		if listing["id"] == "technical:crane_interlock":
+			_fail("Completed repair still advertised")
+			return
+	world.call("_close_venue")
 	world.set("current_car",world.get("cars")[0])
 	if world.call("phone_available"):
 		_fail("Phone must not open while driving")
 		return
 	world.set("current_car",null)
-	print("MORROW_PHONE PASS: seven apps, live state, offer rotation, duty gate, workboard, alternate contact progression and driving gate")
+	print("MORROW_PHONE PASS: seven apps, live state, offer rotation, duty gate, workboard, alternate contact progression, physical diagnostics and driving gate")
 	quit(0)
