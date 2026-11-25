@@ -83,6 +83,13 @@ func buy_vehicle(id: String) -> bool:
 func owns_home() -> bool:
 	return has_receipt(StarterHome.ACCESS_RECEIPT)
 
+func grant_starter_vehicle() -> bool:
+	var id := "street:kestrel_01"
+	if not owns_home() or owns_vehicle(id):
+		return false
+	_owned_vehicles[id] = true
+	return true
+
 # Return the number actually transferred; caller updates carried count once.
 func deposit_supply(carried: int) -> int:
 	if not owns_home() or carried <= 0 or home_supplies >= StarterHome.MAX_STORAGE:

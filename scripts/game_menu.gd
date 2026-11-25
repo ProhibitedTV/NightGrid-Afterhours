@@ -302,6 +302,8 @@ func _render() -> void:
 			_label(col, str(_journal_data.get("home_text", "")), 16, Ui.ACCENT)
 			if bool(_journal_data.get("home_owned", false)):
 				_button(col, "home_waypoint", "SET WAYPOINT TO HOME", "home_waypoint")
+				_label(col, str(_journal_data.get("garage_text", "")), 16, Ui.ACCENT)
+				_button(col, "garage_waypoint", "SET WAYPOINT TO GARAGE", "garage_waypoint")
 			_label(col, "%s  |  %d POLICE LOCATIONS" % [str(_journal_data.get("dispatch", "DISPATCH")), int(_journal_data.get("stations", 0))], 16, Color("77a7e0"))
 			_label(col, "CASH  $%d     HEALTH  %d     HEAT  %.1f" % [
 				int(_journal_data.get("cash", 0)), int(_journal_data.get("health", 100)),
@@ -474,7 +476,7 @@ func _choice(action: String) -> void:
 			open_map()
 		"journal":
 			action_requested.emit("journal")
-		"restart_courier", "abandon_story", "home_waypoint":
+		"restart_courier", "abandon_story", "home_waypoint", "garage_waypoint":
 			action_requested.emit(action)
 		"back":
 			_open(_back_screen)
