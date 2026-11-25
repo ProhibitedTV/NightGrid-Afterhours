@@ -17,6 +17,7 @@ const WorldPlan = preload("res://scripts/world_plan.gd")
 const ProgressionLedger = preload("res://scripts/progression_ledger.gd")
 const CourierMission = preload("res://scripts/courier_mission.gd")
 const StoryMission = preload("res://scripts/story_mission.gd")
+const ArcadeScores = preload("res://scripts/arcade_scores.gd")
 
 func start_new_game() -> int:
 	var old := world_seed
@@ -68,6 +69,9 @@ func is_valid_snapshot(value: Variant) -> bool:
 		return false
 	if not _finite_number(data["health"]) or not _finite_number(data["hour"]):
 		return false
+	var day:Variant=data.get("day_index",0)
+	if not _finite_number(day) or float(day)<0 or float(day)>1000000 or floor(float(day))!=float(day):
+		return false
 	if not data["carrying"] is bool or not CourierMission.valid_run_count(data["deliveries"]):
 		return false
 	if not ProgressionLedger.valid_cash(data["cash"]):
@@ -84,6 +88,8 @@ func is_valid_snapshot(value: Variant) -> bool:
 		return false
 	# Older v1 saves do not contain a manifest; synthesize it once from their seed.
 	if data.has("world_manifest") and not WorldPlan.valid_manifest(data["world_manifest"]):
+		return false
+	if not ArcadeScores.valid(data.get("arcade_best", {})):
 		return false
 	if data.has("interior"):
 		if not data["interior"] is Dictionary:

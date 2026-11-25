@@ -100,3 +100,10 @@ Files: JSONL, F8 CSV, F10 PNG + JSON, crash log (if any)
 ```
 
 Before sharing, remove any private username/path or personal information from the evidence. **Native image quality, audio listening, pad support, old-save compatibility, and RTX 3060 60 FPS remain unverified until someone plays this specific build.** The published [beta.7](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases/tag/v0.1.0-beta.7) stays an independent rollback; this development artifact is **not** an official new release.
+
+## Executive Privilege acceptance (RC7)
+
+Start a New World after backing up saves. Follow the [RC7 chapter acceptance route](BETA8_RC7.md): arrival, folder and IT audit, departmental lift exploration, executive briefing, HR, physical equipment return and exit. Verify $75 once, revoked access on revisit and QuotaDrop pickup. Test the parking guard and appliances with both input modes. Record native FPS/trace data; automated smoke tests do not establish visual quality or full-route frame pacing.
+
+### Office evidence capture (stabilization follow-up)
+F7 markers and F8 frame traces are enabled during the prologue. F10 records a clean viewport outside arrival/lift transitions; office objective UI is hidden for the captured frame. JSON includes exact build revision and chapter floor/stage. The frame sampler measures callback intervals in the office as well as outside. This follow-up is intended for review without moving the current RC7 release tip until its queued validation completes.

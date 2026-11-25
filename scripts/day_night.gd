@@ -9,6 +9,8 @@ var _surface_receivers: Array[Node] = []
 const DAY_LENGTH_SECONDS = 1440.0
 const START_HOUR = 19.25
 var hour: float = START_HOUR
+var day_index:int=0
+const MAX_DAY_INDEX=1000000
 var paused := false
 var _environment: WorldEnvironment
 var _sun: DirectionalLight3D
@@ -78,7 +80,9 @@ func configure(world_environment: WorldEnvironment, sun: DirectionalLight3D, cit
 
 func _process(delta: float) -> void:
 	if not paused:
-		hour = fposmod(hour + delta * 24.0 / DAY_LENGTH_SECONDS, 24.0)
+		var next_hour:=hour+delta*24.0/DAY_LENGTH_SECONDS
+		day_index=mini(MAX_DAY_INDEX,day_index+floori(next_hour/24.0))
+		hour=fposmod(next_hour,24.0)
 	_update_accumulator += delta
 	if _update_accumulator >= 0.20:
 		var target := 1.0 if _sky_weather == "storm" else (0.74 if _sky_weather == "rain" else 0.0)
@@ -187,6 +191,8 @@ func set_hour(value: float) -> void:
 	_apply()
 
 func advance_hour(value: float = 1.0) -> void:
+	if value>0.0:
+		day_index=mini(MAX_DAY_INDEX,day_index+floori((hour+value)/24.0))
 	set_hour(hour + value)
 
 func toggle_pause() -> void:

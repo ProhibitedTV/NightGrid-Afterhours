@@ -156,7 +156,7 @@ func _process(delta: float) -> void:
 	_walking = next_walk
 	var clip := walk_clip if _walking else idle_clip
 	if not _walking:
-		if _activity in ["ALERT", "YIELD", "STOREFRONT", "WAIT_CROSSING"] and _player.has_animation(&"look_around"):
+		if _activity in ["ALERT", "YIELD", "STOREFRONT", "WAIT_CROSSING", "ERRAND", "NIGHT_OUT"] and _player.has_animation(&"look_around"):
 			clip = &"look_around"
 		elif _activity == "SOCIALIZE" and _player.has_animation(&"wave"):
 			clip = &"wave"
