@@ -7,6 +7,60 @@ func _fail(message: String) -> void:
 	push_error("TRANSPORT_SMOKE: " + message)
 	quit(1)
 
+func _check_signal_grid(signals: Node3D) -> bool:
+	# All 80 ordinary intersections have two solid corner masts; the authored
+	# Central Exchange assembly owns its own geometry.
+	var supports := signals.get_node_or_null("SignalMastsAndArms") as MultiMeshInstance3D
+	if supports == null or supports.multimesh.instance_count != 960:
+		return false
+	for ix in range(-4, 5):
+		for iz in range(-4, 5):
+			if ix != 0 or iz != 0:
+				for side in [-1, 1]:
+					var mast := signals.get_node_or_null("SignalMast_%d_%d_%d" % [ix, iz, side]) as StaticBody3D
+					if mast == null:
+						return false
+					var ns := mast.get_node_or_null("NS") as Node3D
+					var ew := mast.get_node_or_null("EW") as Node3D
+					if ns == null or ew == null:
+						return false
+					if ns.basis.z.dot(Vector3(0, 0, -side)) < 0.99 or ew.basis.z.dot(Vector3(-side, 0, 0)) < 0.99:
+						return false
+					var footing := false
+					var shaft := false
+					for child in mast.get_children():
+						if child is CollisionShape3D and child.shape is BoxShape3D:
+							var dimensions: Vector3 = child.shape.size
+							if is_equal_approx(dimensions.x, 0.44) and is_equal_approx(dimensions.z, 0.44):
+								footing = child.position.y - dimensions.y * 0.5 <= 0.0 and child.position.y + dimensions.y * 0.5 >= 0.32
+							if is_equal_approx(dimensions.x, 0.27) and dimensions.y > 6.0:
+								shaft = child.position.y - dimensions.y * 0.5 <= 0.32
+					if not footing or not shaft:
+						return false
+			# Check phase transitions across offsets, including the second all-red.
+			for tick in range(144):
+				signals.set("elapsed", float(tick) * 0.5)
+				var ns_phase: String = signals.call("phase_at", ix, iz, "NS")
+				var ew_phase: String = signals.call("phase_at", ix, iz, "EW")
+				if ns_phase != "RED" and ew_phase != "RED":
+					return false
+	# At (-3,-3), the corridor offset is zero. Test both travel directions
+	# on both axes for red stop, approach slowdown, green and committed exit.
+	var junction := Vector3(-174.0, 0, -174.0)
+	for direction in [Vector3.RIGHT, Vector3.LEFT, Vector3.BACK, Vector3.FORWARD]:
+		var red_time := 0.0 if absf(direction.x) > 0.5 else 36.0
+		signals.set("elapsed", red_time)
+		if not is_zero_approx(float(signals.call("approach_speed_cap", junction - direction * 11.0, direction, 20.0))):
+			return false
+		if not is_equal_approx(float(signals.call("approach_speed_cap", junction - direction * 21.0, direction, 20.0)), 8.6):
+			return false
+		if not is_equal_approx(float(signals.call("approach_speed_cap", junction - direction * 7.0, direction, 20.0)), 20.0):
+			return false
+		signals.set("elapsed", fposmod(red_time + 36.0, 72.0))
+		if not is_equal_approx(float(signals.call("approach_speed_cap", junction - direction * 11.0, direction, 20.0)), 20.0):
+			return false
+	return true
+
 func _check() -> void:
 	var scene: PackedScene = load("res://scenes/main.tscn")
 	if scene == null:
@@ -89,6 +143,9 @@ func _check() -> void:
 		_fail("Train doors must visually close for departure")
 		return
 	rail.call("_sync_train_visual")
+	if not _check_signal_grid(signals):
+		_fail("Citywide signal mounting, phase separation or approach speed regression")
+		return
 	for step in range(72):
 		signals.set("elapsed", float(step))
 		var ns: String = signals.call("phase_at", -3, -3, "NS")

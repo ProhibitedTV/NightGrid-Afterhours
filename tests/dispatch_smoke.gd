@@ -70,6 +70,31 @@ func _verify() -> void:
 		if not (world.get("officers") as Array).is_empty() or not officer.is_queued_for_deletion():
 			_fail("Case closure must release cruiser back to its station")
 			return
+	# Reloading must not inherit deployed units or queued theft from the
+	# abandoned timeline. Exercise the actual world save/apply path.
+	var clean: Dictionary = world.call("_capture_snapshot")
+	var report_point := Vector3(0, 1, 18)
+	world.call("_report_incident", "THEFT", report_point, true)
+	world.call("_spawn_police")
+	var spawned: Array = world.get("officers")
+	if spawned.size() != 1:
+		_fail("Save fixture failed to spawn a response unit")
+		return
+	var stale: CharacterBody3D = spawned[0]
+	var pursued: Dictionary = world.call("_capture_snapshot")
+	world.set("_pending_theft", {"position": report_point})
+	world.call("_apply_snapshot", clean)
+	if float(world.get("heat")) != 0.0 or not live.active.is_empty() or not (world.get("officers") as Array).is_empty() or not (world.get("returning_units") as Array).is_empty() or world.get("_pending_theft") != null or not stale.is_queued_for_deletion() or stale.collision_layer != 0:
+		_fail("Clean save retained pursuit units, collision or pending crime")
+		return
+	world.call("_apply_snapshot", pursued)
+	if float(world.get("heat")) <= 0.0 or live.active.get("point") != report_point or not (world.get("officers") as Array).is_empty() or int(live.active.get("reports", 0)) != 1:
+		_fail("Wanted save did not reconstruct the saved dispatch case")
+		return
+	world.call("_apply_snapshot", clean)
+	if not live.active.is_empty() or live.stations.size() != 2 or (world.get("routine_patrols") as Array).size() != 2:
+		_fail("Repeated load must preserve permanent station and patrol registry")
+		return
 	var player: CharacterBody3D = world.get("player")
 	player.global_position = address
 	world.call("_toggle_interior")
