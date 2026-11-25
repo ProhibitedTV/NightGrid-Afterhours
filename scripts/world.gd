@@ -26,6 +26,7 @@ const PoliceDispatch = preload("res://scripts/police_dispatch.gd")
 const AmbientCivicLedger = preload("res://scripts/ambient_civic_ledger.gd")
 const CivicPatrolService = preload("res://scripts/civic_patrol_service.gd")
 const PoliceRadio = preload("res://scripts/police_radio.gd")
+const DialogueDirector = preload("res://scripts/dialogue_director.gd")
 const EquipmentWheel = preload("res://scripts/equipment_wheel.gd")
 const Reticle = preload("res://scripts/weapon_reticle.gd")
 const CombatFoley = preload("res://scripts/city_foley.gd")
@@ -98,6 +99,9 @@ var civic_patrol_service = CivicPatrolService.new()
 var _civic_patrol: CharacterBody3D
 var _civic_patrol_poll := 0.0
 var police_radio: Node
+var dialogue_director: Node3D
+var _dialogue_card: PanelContainer
+var _dialogue_caption: Label
 var _radio_caption: Label
 var _radio_card: PanelContainer
 var _radio_close_tail := 0.0
@@ -267,6 +271,10 @@ func _ready() -> void:
 	police_radio = PoliceRadio.new()
 	police_radio.name = "PoliceRadio"
 	add_child(police_radio)
+	dialogue_director = DialogueDirector.new()
+	dialogue_director.name = "DialogueDirector"
+	add_child(dialogue_director)
+	dialogue_director.connect("caption_changed", _show_dialogue_caption)
 	var restore: Dictionary = session.call("take_pending_restore")
 	if restore.is_empty():
 		_refresh_courier_target()
@@ -372,7 +380,7 @@ func _update_police_radio(delta: float) -> void:
 	police_radio.call("set_receiver", receiver if local_receiver else Vector3.INF)
 	police_radio.call("tick", delta, active or local_receiver or closing)
 	if is_instance_valid(nightgrid_fm):
-		nightgrid_fm.set("dialogue_active", police_radio.call("speaking"))
+		nightgrid_fm.set("dialogue_active", bool(police_radio.call("speaking")) or (is_instance_valid(dialogue_director) and bool(dialogue_director.call("speaking"))))
 	if not active and not bool(police_radio.call("has_traffic")):
 		_radio_close_tail = 0.0
 	var caption: String = police_radio.get("current")
@@ -739,6 +747,8 @@ func _process(delta: float) -> void:
 	var in_workshop := repair != null and repair.contains(actor.global_position)
 	if repair != null:
 		repair.set_listener(actor.global_position, in_workshop)
+	if is_instance_valid(dialogue_director):
+		dialogue_director.call("tick", delta, actor.global_position)
 	_update_police_radio(delta)
 	var interior_id := str(interiors.call("active_site_id")) if indoors else ""
 	var interior_kind := ""
@@ -1864,6 +1874,8 @@ func _capture_snapshot() -> Dictionary:
 	return state
 
 func _apply_snapshot(data: Dictionary) -> void:
+	if is_instance_valid(dialogue_director):
+		dialogue_director.call("cancel_all")
 	if not progression.restore(data.get("cash", 0), data.get("progression", {"version": ProgressionLedger.VERSION, "receipts": []})):
 		push_error("Invalid progression snapshot")
 		return
@@ -3180,6 +3192,11 @@ func _build_hud() -> void:
 	_radio_caption = _hud_text(_radio_card, "Transmission", 16, Color("a4c7ef"))
 	_radio_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_radio_card.hide()
+	_dialogue_card = _hud_card(ui, "SpeechCaptionCard", 0.5, 1.0, Vector4(-375, -238, 375, -160))
+	_dialogue_caption = _hud_text(_dialogue_card, "SpeechCaption", 19, Ui.TEXT)
+	_dialogue_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_dialogue_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_dialogue_card.hide()
 	_reticle = Reticle.new()
 	_reticle.name = "AimReticle"
 	_reticle.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -3283,6 +3300,11 @@ func _hud_text(parent: Node, node_name: String, font_size: int, tint: Color) -> 
 	label.add_theme_color_override("font_color", tint)
 	parent.add_child(label)
 	return label
+
+func _show_dialogue_caption(_line_id: String, caption: String) -> void:
+	if is_instance_valid(_dialogue_card):
+		_dialogue_caption.text = caption
+		_dialogue_card.visible = not caption.is_empty()
 
 func _hud_card(layer: CanvasLayer, node_name: String, ax: float, ay: float, bounds: Vector4) -> PanelContainer:
 	var panel := PanelContainer.new()
