@@ -66,6 +66,20 @@ func _verify() -> void:
 		return
 	if not check(not home_copy.restore(0,{"version":1,"receipts":[],"home_storage_expanded":true}) and not home_copy.restore(0,{"version":1,"receipts":["story:night_shift_contact"],"home_supplies":21}) and home_copy.balance==250,"invalid upgrade and excess base storage rejected"):
 		return
+	var closet := Ledger.new()
+	closet.set_balance(500)
+	if not check(not closet.buy_outfit("vesper_tailored") and not closet.select_outfit("vesper_tailored"),"locked wardrobe"):
+		return
+	closet.credit_once("story:night_shift_contact",100)
+	if not check(not closet.buy_outfit("obscura_signature") and not closet.select_outfit("vesper_tailored") and closet.balance==600,"unaffordable and unowned refused"):
+		return
+	if not check(closet.buy_outfit("vesper_tailored") and not closet.buy_outfit("vesper_tailored") and closet.select_outfit("vesper_tailored") and closet.balance==200,"rare title paid once"):
+		return
+	var closet_copy := Ledger.new()
+	if not check(closet_copy.restore(200,JSON.parse_string(JSON.stringify(closet.snapshot()))) and closet_copy.outfit_id=="vesper_tailored","premium outfit persists"):
+		return
+	if not check(not closet_copy.restore(0,{"version":1,"receipts":["story:night_shift_contact"],"outfit_id":"vesper_tailored"}) and closet_copy.balance==200,"unowned equipped premium rejected"):
+		return
 	var world := (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	root.add_child(world)
 	await process_frame

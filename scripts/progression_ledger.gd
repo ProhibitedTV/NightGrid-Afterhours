@@ -15,6 +15,7 @@ var _owned_vehicles: Dictionary = {}
 var home_supplies: int = 0
 var home_storage_expanded := false
 var outfit_id := Wardrobe.DEFAULT
+var _purchased_outfits: Dictionary = {}
 
 static func valid_cash(value: Variant) -> bool:
 	if not (value is int or value is float):
@@ -103,8 +104,24 @@ func grant_starter_vehicle() -> bool:
 	_owned_vehicles[id] = true
 	return true
 
+func owns_outfit(id: String) -> bool:
+	return Wardrobe.valid_id(id) and (int(Wardrobe.ITEMS[id]["price"]) == 0 or _purchased_outfits.has(id))
+
+func purchased_outfit_ids() -> Array:
+	var ids: Array = _purchased_outfits.keys()
+	ids.sort()
+	return ids
+
+func buy_outfit(id: String) -> bool:
+	if not owns_home() or not Wardrobe.valid_id(id) or owns_outfit(id):
+		return false
+	if not spend(int(Wardrobe.ITEMS[id]["price"])):
+		return false
+	_purchased_outfits[id] = true
+	return true
+
 func select_outfit(id: String) -> bool:
-	if not owns_home() or not Wardrobe.valid_id(id):
+	if not owns_home() or not owns_outfit(id):
 		return false
 	outfit_id = id
 	return true
@@ -136,7 +153,7 @@ func withdraw_supply(carried: int) -> int:
 func snapshot() -> Dictionary:
 	var ids: Array = _receipts.keys()
 	ids.sort()
-	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "outfit_id":outfit_id}
+	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids()}
 
 static func valid_snapshot(value: Variant) -> bool:
 	if not value is Dictionary:
@@ -153,8 +170,18 @@ static func valid_snapshot(value: Variant) -> bool:
 		if not valid_id(id) or seen.has(id):
 			return false
 		seen[id] = true
+	var purchased: Variant = data.get("purchased_outfits",[])
+	if not purchased is Array or purchased.size() > Wardrobe.IDS.size() or (not purchased.is_empty() and not seen.has(StarterHome.ACCESS_RECEIPT)):
+		return false
+	var closet: Dictionary = {}
+	for id in purchased:
+		if not Wardrobe.valid_id(id) or int(Wardrobe.ITEMS[id]["price"]) <= 0 or closet.has(id):
+			return false
+		closet[id] = true
 	var outfit: Variant = data.get("outfit_id",Wardrobe.DEFAULT)
 	if not Wardrobe.valid_id(outfit) or (outfit != Wardrobe.DEFAULT and not seen.has(StarterHome.ACCESS_RECEIPT)):
+		return false
+	if int(Wardrobe.ITEMS[outfit]["price"]) > 0 and not closet.has(outfit):
 		return false
 	var expanded: Variant = data.get("home_storage_expanded", false)
 	if not expanded is bool or (expanded and not seen.has(StarterHome.ACCESS_RECEIPT)):
@@ -190,4 +217,7 @@ func restore(amount: Variant, data: Variant) -> bool:
 	home_supplies = int(data.get("home_supplies",0))
 	home_storage_expanded = data.get("home_storage_expanded",false)
 	outfit_id = data.get("outfit_id",Wardrobe.DEFAULT)
+	_purchased_outfits.clear()
+	for id in data.get("purchased_outfits",[]):
+		_purchased_outfits[id] = true
 	return true

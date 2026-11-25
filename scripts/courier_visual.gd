@@ -77,6 +77,7 @@ func set_outfit(id: String) -> bool:
 			var original: StandardMaterial3D = entry["material"]
 			var variant := original.duplicate() as StandardMaterial3D
 			variant.albedo_color = original.albedo_color * Wardrobe.ITEMS[id][entry["slot"]]
+			variant.roughness = clampf(original.roughness * float(Wardrobe.ITEMS[id]["finish"]),.2,1.0)
 			variants.append(variant)
 		_wardrobe_materials[id] = variants
 	for index in _wardrobe_surfaces.size():

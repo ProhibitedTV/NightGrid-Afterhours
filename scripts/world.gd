@@ -68,6 +68,8 @@ const StarterHome = preload("res://scripts/starter_home.gd")
 var _home_panel := false
 var _storage_upgrade_quote := false
 var _wardrobe_panel := false
+var _wardrobe_index := 0
+var _wardrobe_quote_id := ""
 const Wardrobe = preload("res://scripts/wardrobe_catalog.gd")
 const StarterGarage = preload("res://scripts/starter_garage.gd")
 var _garage_panel := false
@@ -467,7 +469,7 @@ func _journal_context() -> Dictionary:
 		"courier_can_restart": carrying,
 		"story_objective": story_mission.journal(),
 		"conditioning": courier_mission.conditioning_text(),
-		"outfit": "OUTFIT: " + str(Wardrobe.ITEMS[progression.outfit_id]["name"]),
+		"outfit": "OUTFIT: %s / %s" % [Wardrobe.ITEMS[progression.outfit_id]["name"],Wardrobe.ITEMS[progression.outfit_id]["rarity"]],
 		"story_can_navigate": story_mission.status != "complete",
 		"story_can_abandon": story_mission.status == "active",
 		"venue_job": _venue_job_text(),
@@ -2100,6 +2102,7 @@ func _toggle_interaction() -> void:
 				_save_game()
 			"wardrobe":
 				_wardrobe_panel = true
+				_wardrobe_index = Wardrobe.IDS.find(progression.outfit_id)
 				_show_venue_dialogue()
 				_update_venue_panel()
 			"storage":
@@ -2561,6 +2564,7 @@ func _close_venue() -> void:
 	_home_panel = false
 	_storage_upgrade_quote = false
 	_wardrobe_panel = false
+	_wardrobe_quote_id = ""
 	_garage_panel = false
 	_vending_machine = null
 	for button in [venue_service_button,venue_job_button,venue_talk_button]:
@@ -2578,13 +2582,28 @@ func _close_venue() -> void:
 
 func _update_venue_panel() -> void:
 	if _wardrobe_panel:
-		venue_label.text = "LANTERN COURT / WARDROBE\nCurrent: %s\nThree included garment colorways." % Wardrobe.ITEMS[progression.outfit_id]["name"]
-		var buttons := [venue_service_button,venue_job_button,venue_talk_button]
-		for i in Wardrobe.IDS.size():
-			var id: String = Wardrobe.IDS[i]
-			buttons[i].show()
-			buttons[i].text = "%d  •  %s" % [i+1,Wardrobe.ITEMS[id]["name"]]
-			buttons[i].disabled = id == progression.outfit_id
+		var id: String = _wardrobe_quote_id if not _wardrobe_quote_id.is_empty() else Wardrobe.IDS[_wardrobe_index]
+		var item: Dictionary = Wardrobe.ITEMS[id]
+		var price := int(item["price"])
+		venue_service_button.show()
+		venue_talk_button.show()
+		if not _wardrobe_quote_id.is_empty():
+			venue_label.text = "CONFIRM CLOTHING PURCHASE\n%s / %s\nPrice $%d  |  Cash after $%d\nCosmetic only. Owned permanently." % [item["name"],item["rarity"],price,cash-price]
+			venue_service_button.text = "1 / A  •  CANCEL"
+			venue_service_button.disabled = false
+			venue_job_button.hide()
+			venue_talk_button.text = "3 / Y  •  CONFIRM PURCHASE"
+			venue_talk_button.disabled = cash < price or progression.owns_outfit(id)
+			return
+		var owned := progression.owns_outfit(id)
+		venue_label.text = "WARDROBE / %d of %d\n%s / %s\n%s  |  CASH $%d\nWearing: %s" % [_wardrobe_index+1,Wardrobe.IDS.size(),item["name"],item["rarity"],"OWNED" if owned else "$%d" % price,cash,Wardrobe.ITEMS[progression.outfit_id]["name"]]
+		venue_service_button.text = "1 / A  •  PREVIOUS"
+		venue_service_button.disabled = _wardrobe_index == 0
+		venue_job_button.show()
+		venue_job_button.text = "2 / X  •  NEXT"
+		venue_job_button.disabled = _wardrobe_index == Wardrobe.IDS.size()-1
+		venue_talk_button.text = "3 / Y  •  EQUIP" if owned else "3 / Y  •  REVIEW PURCHASE"
+		venue_talk_button.disabled = id == progression.outfit_id or (not owned and cash < price)
 		return
 	if _garage_panel:
 		venue_label.text = "LANTERN GARAGE / RECOVERY\nDrive into either marked bay and leave your car there. Recovery $75; damage retained."
@@ -2729,7 +2748,8 @@ func _mara_context() -> Dictionary:
 		"hour": float(day_night.get("hour")),
 		"health": health, "heat": heat,
 		"shift_notes": civic_intel.has("lantern_cup_shift_notes"),
-		"job": venue_job_active
+		"job": venue_job_active,
+		"outfit_tier": int(Wardrobe.ITEMS[progression.outfit_id]["tier"]) if story_mission.status == "complete" else 0
 	}
 
 func _venue_action(option: int) -> void:
@@ -2738,12 +2758,28 @@ func _venue_action(option: int) -> void:
 		if not venue_panel.visible or not is_instance_valid(lot) or lot.call("home_action",player.global_position) != "wardrobe" or not progression.owns_home() or current_car != null or current_transit != null:
 			_close_venue()
 			return
-		if option >= 1 and option <= Wardrobe.IDS.size():
-			var id: String = Wardrobe.IDS[option-1]
-			if player.get_node("Visual").call("set_outfit",id) and progression.select_outfit(id):
-				_notify("Outfit: " + str(Wardrobe.ITEMS[id]["name"]))
-			else:
-				_notify("Outfit unavailable.")
+		var visual := player.get_node("Visual")
+		if not _wardrobe_quote_id.is_empty():
+			if option == 1:
+				_wardrobe_quote_id = ""
+			elif option == 3:
+				var id := _wardrobe_quote_id
+				_wardrobe_quote_id = ""
+				if int(visual.call("wardrobe_surface_count")) > 0 and progression.buy_outfit(id):
+					_notify("Purchased " + str(Wardrobe.ITEMS[id]["name"]) + ". Ready to equip.")
+				else:
+					_notify("Purchase unavailable. No payment taken.")
+		elif option == 1:
+			_wardrobe_index = maxi(0,_wardrobe_index-1)
+		elif option == 2:
+			_wardrobe_index = mini(Wardrobe.IDS.size()-1,_wardrobe_index+1)
+		elif option == 3:
+			var id: String = Wardrobe.IDS[_wardrobe_index]
+			if progression.owns_outfit(id):
+				if visual.call("set_outfit",id) and progression.select_outfit(id):
+					_notify("Outfit: " + str(Wardrobe.ITEMS[id]["name"]))
+			elif cash >= int(Wardrobe.ITEMS[id]["price"]):
+				_wardrobe_quote_id = id
 		_update_venue_panel()
 		return
 	if _garage_panel:

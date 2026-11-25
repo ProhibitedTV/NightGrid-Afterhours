@@ -231,5 +231,11 @@ func _verify() -> void:
 	if rooms.call("get_mara_character") != null or str(rooms.call("active_site_id")) != "copper_cup":
 		_fail("Unique character should not leak into other businesses")
 		return
+	var sample := load("res://scripts/mara_hero.gd").new()
+	var compliment: Dictionary = sample.call("next_dialogue",{"outfit_tier":3,"health":100.0,"heat":0.0})
+	if not str(compliment.get("line","")).contains("Afterimage Lounge"):
+		_fail("Luxury clothing must enable optional contextual contact dialogue")
+		return
+	sample.free()
 	print("MARA_CHARACTER_SMOKE PASS: ", counts, " / dialogue, gestures, venue economy, save/load")
 	quit(0)
