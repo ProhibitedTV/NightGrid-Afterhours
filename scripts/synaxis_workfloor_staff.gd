@@ -24,6 +24,15 @@ var _people:Array[Node3D]=[]
 var _active:=false
 var _last_near:=-1
 var _line:=""
+# One short circulation route per department. Clear of desk rows, table
+# collision and the lift landing (x=0,z=5). Faye/other coworker stays put.
+const WALKER=7
+const ROUTE=[Vector3(-3.35,0,6.12),Vector3(-2.0,0,6.12),Vector3(-2.0,0,4.05),Vector3(-4.35,0,4.05),Vector3(-3.35,0,4.05),Vector3(-3.35,0,6.12)]
+var _route_index:=1
+var _wait:=0.0
+var _walking:=false
+var _visitor:=Vector3.INF
+var _walk_distance:=0.0
 
 func _ready() -> void:
 	for i in SEATS.size():
@@ -39,10 +48,18 @@ func _ready() -> void:
 		actor.rotation.y=YAW[i]
 		add_child(actor)
 		_people.append(actor)
+	_people[WALKER].call("enable_walk_rig")
 	set_active(false)
 
 func set_active(active:bool) -> void:
 	_active=active
+	set_process(active)
+	_visitor=Vector3.INF
+	_walking=false
+	if not _people.is_empty():
+		_people[WALKER].call("set_walk_speed",0.0)
+	if active:
+		_wait=3.0+float(level)*1.1
 	_last_near=-1
 	_line=""
 	for actor in _people:
@@ -51,12 +68,65 @@ func set_active(active:bool) -> void:
 		if not active:
 			actor.call("attend",Vector3.ZERO,false)
 
+func _process(delta:float) -> void:
+	if not _active:
+		return
+	var actor:Node3D=_people[WALKER]
+	var step:=clampf(delta,0.0,.10)
+	# Stop for nearby visitors and do not walk through their space.
+	var visitor_near:=_visitor.is_finite() and actor.position.distance_to(_visitor)<1.45
+	if visitor_near:
+		_walking=false
+		actor.call("set_walk_speed",0.0)
+		_wait=maxf(_wait,1.0)
+		return
+	if _wait>0.0:
+		_wait=maxf(0.0,_wait-step)
+		_walking=false
+		actor.call("set_walk_speed",0.0)
+		return
+	var target:Vector3=ROUTE[_route_index]
+	var offset:=target-actor.position
+	var distance:=offset.length()
+	if distance<.04:
+		actor.position=target
+		_route_index+=1
+		if _route_index>=ROUTE.size():
+			_route_index=1
+			_wait=7.0+float(level)
+			actor.rotation.y=YAW[WALKER]
+		elif _route_index==4:
+			_wait=2.5
+		_walking=false
+		actor.call("set_walk_speed",0.0)
+		return
+	var heading:=atan2(offset.x,offset.z)
+	actor.rotation.y=lerp_angle(actor.rotation.y,heading,clampf(step*7.0,0.0,1.0))
+	# Turn first at corners instead of sliding sideways.
+	if absf(angle_difference(actor.rotation.y,heading))>.28:
+		_walking=false
+		actor.call("set_walk_speed",0.0)
+		return
+	var advance:=minf(distance,step*.85)
+	var next:=actor.position+offset.normalized()*advance
+	if _visitor.is_finite() and next.distance_to(_visitor)<1.25:
+		_walking=false
+		actor.call("set_walk_speed",0.0)
+		return
+	actor.position=next
+	_walk_distance+=advance
+	_walking=true
+	actor.call("set_walk_speed",.85)
+
 func observe(at:Vector3) -> String:
 	if not _active or not at.is_finite():
+		_visitor=Vector3.INF
 		return ""
 	var local:=to_local(at)
 	if absf(local.y-1.15)>.8:
+		_visitor=Vector3.INF
 		return ""
+	_visitor=Vector3(local.x,0,local.z)
 	var closest:=-1
 	var best:=1.45*1.45
 	for i in [0,6,7]:
@@ -70,8 +140,8 @@ func observe(at:Vector3) -> String:
 	if closest!=_last_near:
 		_last_near=closest
 		_line="" if closest<0 else str(CHAT[level-1][0 if closest==0 else closest-5])
-		for i in _people.size():
-			_people[i].call("attend",at,i==closest)
+	for i in _people.size():
+		_people[i].call("attend",at,i==closest)
 	return _line
 
 func stats() -> Dictionary:
@@ -79,4 +149,4 @@ func stats() -> Dictionary:
 	for actor in _people:
 		if actor.process_mode!=Node.PROCESS_MODE_DISABLED:
 			animated+=1
-	return {"people":_people.size(),"animated":animated,"seated":6,"standing":2}
+	return {"people":_people.size(),"animated":animated,"seated":6,"standing":2,"walking":_walking,"walk_distance":_walk_distance,"route_index":_route_index}

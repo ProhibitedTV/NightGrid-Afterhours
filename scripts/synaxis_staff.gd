@@ -14,6 +14,10 @@ var _badge: Node3D
 var _mouth_detail: Node3D
 var _skin_color := Color.WHITE
 var _coat_color := Color.WHITE
+var _walk_rig:Array[Node3D]=[]
+var _walk_knees:Array[Node3D]=[]
+var _walk_speed:=0.0
+var _walk_phase:=0.0
 static var _executive_leather: StandardMaterial3D
 
 func configure_staff(data: Dictionary) -> void:
@@ -148,6 +152,43 @@ func _ready() -> void:
 			_left_wrist=child
 			break
 
+func enable_walk_rig() -> void:
+	if seated or not _walk_rig.is_empty():
+		return
+	# Replace only the opted-in actor's rigid standing legs. Keep identity,
+	# upper-body detail, idle animation and material cache shared.
+	for child in get_children():
+		if child is MeshInstance3D and (absf(child.position.y-.47)<.01 or absf(child.position.y-.10)<.01):
+			child.hide()
+	for side in [-1.0,1.0]:
+		var hip:=_pivot(self,"WalkingHip",Vector3(side*.18,.92,0))
+		_ellipsoid(hip,"TrouserThigh",Vector3(0,-.22,0),Vector3(.22,.46,.25),_coat_color.darkened(.18),"FABRIC")
+		var knee:=_pivot(hip,"WalkingKnee",Vector3(0,-.43,0))
+		_ellipsoid(knee,"TrouserShin",Vector3(0,-.19,0),Vector3(.19,.43,.21),_coat_color.darkened(.21),"FABRIC")
+		_ellipsoid(knee,"WalkingShoe",Vector3(0,-.39,.10),Vector3(.25,.18,.38),Color("292e34"),"FABRIC")
+		_walk_rig.append(hip)
+		_walk_knees.append(knee)
+
+func set_walk_speed(speed:float) -> void:
+	_walk_speed=clampf(speed,0.0,1.1)
+
+func _animate_walk(delta:float) -> void:
+	if _walk_rig.is_empty():
+		return
+	var amount:=clampf(_walk_speed/.85,0.0,1.0)
+	_walk_phase=fposmod(_walk_phase+delta*_walk_speed*TAU/.66,TAU)
+	var blend:=clampf(delta*10.0,0.0,1.0)
+	for i in range(2):
+		var swing:=sin(_walk_phase+float(i)*PI)
+		_walk_rig[i].rotation.x=lerpf(_walk_rig[i].rotation.x,-swing*.34*amount,blend)
+		_walk_knees[i].rotation.x=lerpf(_walk_knees[i].rotation.x,maxf(0.0,-swing)*.36*amount,blend)
+	_torso.position.y+=absf(sin(_walk_phase))*.018*amount
+	_torso.rotation.z+=sin(_walk_phase)*.027*amount
+	if amount>.02:
+		_right_hand.position.z=.19+sin(_walk_phase)*.12*amount
+		if is_instance_valid(_left_wrist):
+			_left_wrist.position.z=.17-sin(_walk_phase)*.12*amount
+
 func attend(target: Vector3,active: bool) -> void:
 	_attentive=active and target.is_finite()
 	if _attentive:
@@ -185,3 +226,4 @@ func _process(delta: float) -> void:
 				_right_hand.position.y=-.40
 	if _mouth_detail!=null:
 		_mouth_detail.scale.y=.018*(1.0+.25*absf(sin(t*13.0))) if _scene_beat>=0 else .018
+	_animate_walk(delta)

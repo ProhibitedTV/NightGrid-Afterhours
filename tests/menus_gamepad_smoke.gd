@@ -535,6 +535,21 @@ func _verify() -> void:
 	if int(engineering_people.call("stats")["animated"])!=8 or not str(engineering_deck.call("observe_worker",engineering_deck.to_global(Vector3(-5.3,1.15,5.65)))).contains("Faye"):
 		_fail("Occupied floor animates staff and provides incidental coworker conversation")
 		return
+	var walker:Node3D=engineering_people.get("_people")[7]
+	var start_walk:Vector3=walker.position
+	engineering_people.call("observe",Vector3.INF)
+	for tick in range(100):
+		engineering_people.call("_process",.1)
+	if float(engineering_people.call("stats")["walk_distance"])<.5 or walker.position.distance_to(start_walk)<.1 or walker.get("_walk_rig").size()!=2:
+		_fail("Standing coworker follows a bounded route with articulated legs")
+		return
+	engineering_people.call("observe",walker.global_position+Vector3.UP*1.15)
+	var paused_at:=walker.position
+	for tick in range(10):
+		engineering_people.call("_process",.1)
+	if walker.position.distance_to(paused_at)>.001 or bool(engineering_people.call("stats")["walking"]):
+		_fail("Walking coworker yields to a nearby visitor")
+		return
 	var lab_stats:Dictionary=robotics_lab.call("lab_stats")
 	if int(lab_stats["prototypes"])!=2 or int(lab_stats["barriers"])!=4 or not bool(lab_stats["active"]):
 		_fail("Robotics lab has two articulated display prototypes and a closed collision bay")
