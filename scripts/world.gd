@@ -3003,11 +3003,16 @@ func _wardrobe_visible_ids() -> Array:
 			if _clothing_owned(id):
 				result.append(id)
 			continue
-		if _clothing_retail:
-			if id in _retail_stock or id in Wardrobe.RESET_IDS:
-				result.append(id)
-		elif id not in ClothingStore.EXCLUSIVE or _clothing_owned(id):
-			result.append(id)
+		var available:bool=(id in _retail_stock or id in Wardrobe.RESET_IDS) if _clothing_retail else (id not in ClothingStore.EXCLUSIVE or _clothing_owned(id))
+		if not available:
+			continue
+		if _wardrobe_category in ["AFFORDABLE","UNOWNED"]:
+			if _clothing_owned(id):
+				continue
+			var cost:=int(Wardrobe.listing(id)["price"])
+			if _wardrobe_category=="AFFORDABLE" and not progression.can_pay(cost,"USD") and not progression.can_pay(cost,"BTC"):
+				continue
+		result.append(id)
 	return result
 
 func _cycle_wardrobe_category(direction:int) -> void:
@@ -3092,6 +3097,8 @@ func _update_saved_looks() -> void:
 
 func _step_wardrobe(direction:int) -> void:
 	var visible_ids:=_wardrobe_visible_ids()
+	if visible_ids.is_empty():
+		return
 	var current:String=Wardrobe.browse_ids()[_wardrobe_index]
 	var index:=visible_ids.find(current)
 	_wardrobe_index=Wardrobe.browse_ids().find(visible_ids[clampi(index+direction,0,visible_ids.size()-1)])
@@ -3155,6 +3162,25 @@ func _update_venue_panel() -> void:
 		var item: Dictionary = Wardrobe.listing(id)
 		var price:=int(item["price"])
 		var visible_ids:=_wardrobe_visible_ids()
+		if visible_ids.is_empty() and _wardrobe_quote_id.is_empty():
+			player.get_node("Visual").call("set_look",progression.outfit_id,progression.clothing_slots)
+			_wardrobe_controls.show()
+			_wardrobe_category_label.text=_wardrobe_category+" / 0 items"
+			_wardrobe_compare_button.hide()
+			for button in _wardrobe_controls.get_children():
+				if button is Button:
+					button.disabled=false
+			venue_label.text="NO MATCHING CLOTHING\n"+("No unowned items fit either wallet balance." if _wardrobe_category=="AFFORDABLE" else "Nothing available in this category.")+"\nChange category to continue browsing."
+			venue_service_button.show()
+			venue_job_button.show()
+			venue_talk_button.show()
+			venue_service_button.text="1 / A  •  PREVIOUS"
+			venue_job_button.text="2 / X  •  NEXT"
+			venue_talk_button.text="3 / Y  •  SELECT"
+			venue_service_button.disabled=true
+			venue_job_button.disabled=true
+			venue_talk_button.disabled=true
+			return
 		var visible_index:=visible_ids.find(id)
 		if visible_index<0 and _wardrobe_quote_id.is_empty() and not visible_ids.is_empty():
 			id=visible_ids[0]
@@ -3183,7 +3209,7 @@ func _update_venue_panel() -> void:
 			venue_job_button.text = "2 / X  •  SWITCH USD / BTC"
 			venue_job_button.disabled = false
 			venue_talk_button.text = "3 / Y  •  CONFIRM PURCHASE"
-			venue_talk_button.disabled = not preview_ok or not progression.can_pay(price,_wardrobe_tender) or _clothing_owned(id)
+			venue_talk_button.disabled = visible_index<0 or not preview_ok or not progression.can_pay(price,_wardrobe_tender) or _clothing_owned(id)
 			return
 		var owned := _clothing_owned(id)
 		venue_label.text = (str(ClothingStore.STORES[_retail_id]["name"])+" / FITTING" if _clothing_retail else "WARDROBE")+"\n%s  ·  %s\n%s   |   CASH $%d\n%s" % [item["name"],item["type"]+" / "+item["rarity"],"EQUIPPED" if _clothing_selected(id) else ("OWNED" if owned else "$%d / %d sats" % [price,Economy.sats_for_usd(price)]),cash,"CURRENT LOOK" if _fitting_compare else ("TRY-ON ONLY • Right stick / drag RMB to rotate • zoom with stick / wheel" if _clothing_retail else "Wearing: "+str(Wardrobe.ITEMS[progression.outfit_id]["name"]))]

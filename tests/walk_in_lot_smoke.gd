@@ -389,6 +389,28 @@ func _verify() -> void:
 	world.call("_toggle_interaction")
 	if not check(world.get("_clothing_retail") and world.get("_wardrobe_panel") and not ledger.owns_home(),"retail available before pod"):
 		return
+	var before_filter_cash:int=world.get("cash")
+	var before_filter_sats:int=ledger.bitcoin_sats
+	world.set("_wardrobe_category","UNOWNED")
+	var unowned:Array=world.call("_wardrobe_visible_ids")
+	if not check("tideline" in unowned and not "dispatch" in unowned and not "reset_hat" in unowned,"unowned filter excludes owned and reset entries"):
+		return
+	ledger.bitcoin_sats=0
+	world.set("cash",0)
+	world.set("_wardrobe_category","AFFORDABLE")
+	world.call("_update_venue_panel")
+	if not check(world.call("_wardrobe_visible_ids").is_empty() and world.get("venue_talk_button").disabled,"empty affordable results safely disable checkout"):
+		return
+	world.call("_step_wardrobe",1)
+	ledger.bitcoin_sats=40000
+	world.call("_update_venue_panel")
+	if not check("tideline" in world.call("_wardrobe_visible_ids") and not "dispatch" in world.call("_wardrobe_visible_ids"),"affordable filter supports BTC"):
+		return
+	ledger.bitcoin_sats=before_filter_sats
+	world.set("cash",before_filter_cash)
+	world.set("_wardrobe_category","ALL")
+	world.set("_wardrobe_index",0)
+	world.call("_update_venue_panel")
 	world.call("_venue_action",2)
 	world.call("_venue_action",3)
 	if not check(world.get("_wardrobe_quote_id")=="tideline" and world.get("cash")==75,"retail quote is not debit"):

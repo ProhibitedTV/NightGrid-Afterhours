@@ -63,3 +63,7 @@ Direct wardrobe service input dispatch prevents GUI focus consuming controller p
 ## Local scene merchandise
 
 Eight original 256px vector patch designs extend the weighted backpack slot to 12 choices: Rust Choir, Null Rent, Scrap Angel and After Union at Second Signal; Black Relay and Laser Wake at Nocturne; Night Bus at Threadline; Dock Rat at Quay Standard. Four new permanent thrift staples. The same exact textures appear on a bounded eight-card wall display at participating shops, with actual 2036 prices. No real band logos or music rights assumed; fictional scene branding only. 104 unique cosmetics (35 outfit colorways and 69 pieces). Existing save and preview contracts unchanged. Native import and legibility pending.
+
+## Retail browsing improvements
+
+AFFORDABLE and UNOWNED categories filter the physical shop stock, exclude owned items and reset actions, and account for either USD or BTC without combining wallets. Home continues to hide retailer exclusives until owned. Empty categories restore the committed appearance, disable checkout and navigation, and leave category controls usable. A quote still revalidates availability and tender before payment. Added walk-in smoke coverage for empty and BTC-funded filters. No save format changes.
