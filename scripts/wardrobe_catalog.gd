@@ -84,9 +84,9 @@ static func listing(id:String) -> Dictionary:
 		return {"name":"Restore base "+slot if slot in ["jacket","pants"] else "Remove "+slot,"rarity":"NO CHARGE","price":0,"type":"RESET"}
 	return {}
 
-const CATEGORIES=["ALL","OUTFITS","JACKETS","TROUSERS","GLASSES","WATCHES"]
+const CATEGORIES=["ALL","OUTFITS","JACKETS","TROUSERS","GLASSES","WATCHES","OWNED","LOOKS"]
 static func category_ids(category:String) -> Array:
-	if category=="ALL":
+	if category in ["ALL","OWNED"]:
 		return browse_ids()
 	if category=="OUTFITS":
 		return IDS.duplicate()

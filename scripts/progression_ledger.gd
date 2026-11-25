@@ -20,6 +20,8 @@ var home_tenancy_paid := false
 var outfit_id := Wardrobe.DEFAULT
 var _purchased_outfits: Dictionary = {}
 var clothing_slots:Dictionary={}
+const LOOK_IDS=["look_1","look_2","look_3"]
+var _saved_looks:Dictionary={}
 var _owned_pieces:Dictionary={}
 
 static func valid_cash(value: Variant) -> bool:
@@ -192,6 +194,31 @@ func clear_piece(slot:String,retail:bool=false) -> bool:
 	clothing_slots.erase(slot)
 	return true
 
+func saved_look(id:String) -> Dictionary:
+	return (_saved_looks.get(id,{}) as Dictionary).duplicate(true)
+
+func save_look(id:String,retail:bool=false) -> bool:
+	if id not in LOOK_IDS or (not retail and not owns_home()) or not owns_outfit(outfit_id) or not Wardrobe.valid_slots(clothing_slots):
+		return false
+	for piece in clothing_slots.values():
+		if not owns_piece(piece):
+			return false
+	_saved_looks[id]={"outfit":outfit_id,"slots":clothing_slots.duplicate()}
+	return true
+
+func equip_look(id:String,retail:bool=false) -> bool:
+	if id not in LOOK_IDS or (not retail and not owns_home()):
+		return false
+	var look:=saved_look(id)
+	if look.is_empty() or not owns_outfit(look["outfit"]) or not Wardrobe.valid_slots(look["slots"]):
+		return false
+	for piece in look["slots"].values():
+		if not owns_piece(piece):
+			return false
+	outfit_id=look["outfit"]
+	clothing_slots=look["slots"].duplicate()
+	return true
+
 func owned_piece_ids() -> Array:
 	var ids:Array=_owned_pieces.keys()
 	ids.sort()
@@ -224,7 +251,7 @@ func withdraw_supply(carried: int) -> int:
 func snapshot() -> Dictionary:
 	var ids: Array = _receipts.keys()
 	ids.sort()
-	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "owned_pieces":owned_piece_ids(), "clothing_slots":clothing_slots.duplicate(), "bitcoin_sats":bitcoin_sats}
+	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "owned_pieces":owned_piece_ids(), "clothing_slots":clothing_slots.duplicate(), "saved_looks":_saved_looks.duplicate(true), "bitcoin_sats":bitcoin_sats}
 
 static func valid_snapshot(value: Variant) -> bool:
 	if not value is Dictionary:
@@ -275,6 +302,20 @@ static func valid_snapshot(value: Variant) -> bool:
 	for id in slots.values():
 		if not owned_pieces.has(id):
 			return false
+	var looks:Variant=data.get("saved_looks",{})
+	if not looks is Dictionary or looks.size()>LOOK_IDS.size():
+		return false
+	for id in looks:
+		if id not in LOOK_IDS or not looks[id] is Dictionary:
+			return false
+		var look:Dictionary=looks[id]
+		if look.size()!=2 or not Wardrobe.valid_id(look.get("outfit")) or not Wardrobe.valid_slots(look.get("slots")):
+			return false
+		if look["outfit"]!=Wardrobe.DEFAULT and not closet.has(look["outfit"]):
+			return false
+		for piece in look["slots"].values():
+			if not owned_pieces.has(piece):
+				return false
 	var expanded: Variant = data.get("home_storage_expanded", false)
 	if not expanded is bool or (expanded and not tenancy):
 		return false
@@ -312,6 +353,7 @@ func restore(amount: Variant, data: Variant) -> bool:
 	outfit_id = data.get("outfit_id",Wardrobe.DEFAULT)
 	bitcoin_sats = int(data.get("bitcoin_sats",0))
 	clothing_slots=data.get("clothing_slots",{}).duplicate()
+	_saved_looks=data.get("saved_looks",{}).duplicate(true)
 	_owned_pieces.clear()
 	for id in data.get("owned_pieces",[]):
 		_owned_pieces[id]=true

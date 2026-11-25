@@ -26,3 +26,6 @@ Five stable physical clothing locations: Threadline (-3,-2 east), Quay Standard 
 
 ## Brand identity increment
 Five distinct shopkeepers, palette and light colors, feature walls and music groups. Threadline patch wall, Quay canvas/tool panel, Vesper fabric library, Nocturne violet light installation (static, no strobe), Obscura brass signature display. Each feature is catalog-driven and priced; existing static batches, one local light, and occupied-floor NPC processing are reused. Journal fashion directory provides a waypoint action for each address. The shells and interim character rigs are shared; native visual/audio/controller validation pending.
+
+## Personal looks and owned collection
+Three persistent complete outfit presets, including base outfit and every independent slot. Optional save field defaults empty for old snapshots; validation rejects unknown slots, unknown preset names and unowned base/pieces. At checkout or home, cycle to OWNED to browse all owned items (across stores); LOOKS displays preset slots. R/D-pad down saves the actual committed outfit, not a try-on; overwriting requires a second press, browsing or equipping cancels pending overwrite. Equip is free and never changes ownership. Native UI and save regression checks are pending.

@@ -458,8 +458,31 @@ func _verify() -> void:
 	if not check(not ledger.owns_outfit("obscura_sable") and world.get("cash")==500,"wrong-store quote cannot debit"):
 		return
 	world.call("_close_venue")
+	world.call("_toggle_interaction")
+	world.call("_cycle_wardrobe_category",-1)
+	if not check(world.get("_wardrobe_category")=="LOOKS","personal looks accessible at any shop"):
+		return
+	world.call("_save_fitting_look")
+	if not check(ledger.saved_look("look_1").get("slots")==ledger.clothing_slots,"save complete committed combination"):
+		return
+	var saved_slots:Dictionary=ledger.clothing_slots.duplicate()
+	ledger.clear_piece("watch",true)
+	world.call("_save_fitting_look")
+	if not check(world.get("_look_save_pending") and ledger.saved_look("look_1")["slots"]==saved_slots,"replace requires confirmation"):
+		return
+	world.call("_venue_action",3)
+	if not check(ledger.clothing_slots==saved_slots and not world.get("_look_save_pending"),"equip saved look without paying"):
+		return
+	world.call("_cycle_wardrobe_category",-1)
+	if not check(world.get("_wardrobe_category")=="OWNED" and "tideline" in world.call("_wardrobe_visible_ids") and not "obscura_sable" in world.call("_wardrobe_visible_ids"),"owned-only inventory spans retailers"):
+		return
+	world.call("_close_venue")
 	var retail_save:Dictionary=ledger.snapshot()
-	if not check(fresh.restore(world.get("cash"),retail_save) and fresh.outfit_id=="tideline" and fresh.clothing_slots==ledger.clothing_slots and not fresh.owns_home(),"pre-tenancy wardrobe save round trip"):
+	var invalid_look:Dictionary=retail_save.duplicate(true)
+	invalid_look["saved_looks"]["look_2"]={"outfit":"obscura_sable","slots":{}}
+	if not check(not fresh.valid_snapshot(invalid_look),"unowned preset rejected"):
+		return
+	if not check(fresh.restore(world.get("cash"),retail_save) and fresh.outfit_id=="tideline" and fresh.clothing_slots==ledger.clothing_slots and fresh.saved_look("look_1")==ledger.saved_look("look_1") and not fresh.owns_home(),"pre-tenancy wardrobe save round trip"):
 		return
 	print("WALK_IN_LOT PASS: physical doors, multiple rooms, upper floor ascent/descent, bounded walls, streamed finish, world-coordinate restore and exit")
 	quit(0)
