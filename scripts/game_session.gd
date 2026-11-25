@@ -12,6 +12,7 @@ var pending_restore: Dictionary = {}
 var boot_menu_shown := false
 var world_manifest: Dictionary = {}
 const WorldPlan = preload("res://scripts/world_plan.gd")
+const ProgressionLedger = preload("res://scripts/progression_ledger.gd")
 
 func start_new_game() -> int:
 	var old := world_seed
@@ -53,6 +54,10 @@ func is_valid_snapshot(value: Variant) -> bool:
 	if not data["cars"] is Array or not data["traffic"] is Dictionary or not data["rail"] is Dictionary:
 		return false
 	if not data["carrying"] is bool:
+		return false
+	if not ProgressionLedger.valid_cash(data["cash"]):
+		return false
+	if data.has("progression") and not ProgressionLedger.valid_snapshot(data["progression"]):
 		return false
 	# Older v1 saves do not contain a manifest; synthesize it once from their seed.
 	if data.has("world_manifest") and not WorldPlan.valid_manifest(data["world_manifest"]):
