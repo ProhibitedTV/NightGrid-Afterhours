@@ -29,10 +29,10 @@ func _setup()->void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--capture-dir="):
 			capture_dir=arg.trim_prefix("--capture-dir=")
-		elif arg.begins_with("res://assets/models/nightgrid/wardrobe_candidates/") and arg.ends_with("/Morrow_Courier.glb") and not arg.contains(".."):
+		elif arg.begins_with("res://assets/models/nightgrid/".path_join("wardrobe_candidates/")) and arg.ends_with("/Morrow_Courier.glb") and not arg.contains(".."):
 			candidate_paths.append(arg)
 	if candidate_paths.is_empty():
-		push_error("Pass one or more imported wardrobe candidate res:// paths after --")
+		push_error("Pass one or more imported wardrobe candidate resource paths after --")
 		quit(2)
 		return
 	var stage:=Node3D.new()

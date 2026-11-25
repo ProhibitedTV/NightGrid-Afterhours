@@ -1,5 +1,6 @@
 extends RefCounted
 ## Deterministic fixed-step arcade driving. World distances are meters; x is road width in lanes.
+const Track = preload("res://scripts/grand_delay_track.gd")
 const DT = 1.0/60.0
 const LENGTH = 3600.0
 const DISTRICT_LENGTH = 1200.0
@@ -44,6 +45,14 @@ var objects: Array[Dictionary] = []
 var course: Array[Dictionary] = []
 var next_event = 0
 var splits: Array[float] = []
+var bend = 0.0
+var drifting = false
+var drift_time = 0.0
+var drift_bend = -1
+var drift_awards: Array[int] = []
+var drift_count = 0
+var drift_points = 0
+var shoulder = false
 
 func start(id: String) -> bool:
 	if id != "grand_delay":
@@ -76,6 +85,14 @@ func start(id: String) -> bool:
 	objects.clear()
 	course.clear()
 	splits.clear()
+	bend = 0.0
+	drifting = false
+	drift_time = 0.0
+	drift_bend = -1
+	drift_awards.clear()
+	drift_count = 0
+	drift_points = 0
+	shoulder = false
 	next_event = 0
 	for stage in range(ROUTES.size()):
 		for entry in ROUTES[stage]:
@@ -130,6 +147,9 @@ func _hit(item: Dictionary, gap: float) -> void:
 		if invulnerable <= 0.0:
 			lives -= 1
 			collisions += 1
+			drifting = false
+			drift_time = 0.0
+			drift_bend = -1
 			streak = 0
 			speed *= .48
 			nitro_left = 0.0
@@ -157,13 +177,31 @@ func advance(throttle: bool = false, brake: bool = false) -> void:
 	feedback_time = maxf(0.0,feedback_time-DT)
 	invulnerable = maxf(0.0,invulnerable-DT)
 	nitro_left = maxf(0.0,nitro_left-DT)
-	var target = 28.0 if brake else (76.0 if throttle else 53.0)
+	bend = Track.curvature(distance)
+	var bend_id = Track.bend_index(distance)
+	var slide = brake and absf(steering)>.35 and absf(bend)>.25 and speed>44.0 and invulnerable<=0.0 and not shoulder
+	if slide:
+		if drift_bend != bend_id:
+			drift_time = 0.0
+			drift_bend = bend_id
+		drifting = true
+		drift_time += DT
+	elif drifting:
+		_finish_drift(not shoulder and invulnerable<=0.0)
+	var target = (49.0 if drifting else 28.0) if brake else (76.0 if throttle else 53.0)
 	if nitro_left > 0.0 and not brake:
 		target = 98.0
-	speed = move_toward(speed,target,(85.0 if brake else (35.0 if nitro_left>0.0 else 24.0))*DT)
-	var desired = steering*(2.3+speed*.009)
-	lateral_velocity = move_toward(lateral_velocity,desired,12.0*DT)
+	# Curves exert outward load proportional to speed. Feathering brake allows
+	# a controlled slide; shoulders reduce top speed but never steal a life.
+	if shoulder:
+		target = minf(target,39.0)
+	speed = move_toward(speed,target,(48.0 if drifting else (85.0 if brake else (35.0 if nitro_left>0.0 else 24.0)))*DT)
+	var desired = steering*(2.3+speed*.009) - bend*.38*pow(speed/76.0,2.0)
+	lateral_velocity = move_toward(lateral_velocity,desired,(7.0 if drifting else 12.0)*DT)
 	position_x = clampf(position_x+lateral_velocity*DT,-.10,2.10)
+	shoulder = position_x < -.065 or position_x > 2.065
+	if shoulder and drifting:
+		_finish_drift(false)
 	distance = minf(LENGTH,distance+speed*DT)
 	_spawn_visible()
 	for i in range(objects.size()-1,-1,-1):
@@ -193,8 +231,20 @@ func advance(throttle: bool = false, brake: bool = false) -> void:
 		finished = true
 		_message("TIME OUT / RELEASE POSTPONED")
 
+func _finish_drift(clean: bool) -> void:
+	if clean and drift_time >= .25 and drift_bend>=0 and not drift_awards.has(drift_bend):
+		drift_awards.append(drift_bend)
+		drift_count += 1
+		var points = mini(120,40+floori(drift_time*40.0))
+		drift_points += points
+		_add_points(points)
+		_message("CLEAN DRIFT +%d" % points)
+	drifting = false
+	drift_time = 0.0
+	drift_bend = -1
+
 func result() -> Dictionary:
-	return {"game_id":game_id,"score":score,"lives":lives,"finished":finished,"cleared":cleared,"time":race_time,"distance":distance,"pickups":pickups,"near_misses":near_misses,"overtakes":overtakes,"collisions":collisions,"best_streak":best_streak,"splits":splits.duplicate()}
+	return {"game_id":game_id,"score":score,"lives":lives,"finished":finished,"cleared":cleared,"time":race_time,"distance":distance,"pickups":pickups,"near_misses":near_misses,"overtakes":overtakes,"collisions":collisions,"best_streak":best_streak,"splits":splits.duplicate(),"drifts":drift_count,"drift_points":drift_points}
 
 func grade() -> String:
 	if not cleared:

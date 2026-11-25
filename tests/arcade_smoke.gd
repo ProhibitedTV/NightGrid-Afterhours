@@ -1,4 +1,5 @@
 extends SceneTree
+const Track = preload("res://scripts/grand_delay_track.gd")
 const Race = preload("res://scripts/grand_delay_race.gd")
 const Round = preload("res://scripts/arcade_round.gd")
 const Alt = preload("res://scripts/arcade_alt_round.gd")
@@ -76,6 +77,8 @@ func _verify() -> void:
 	deluxe.start("grand_delay")
 	if not check(deluxe.nitro_charge == 0 and deluxe.nitro_ticks == 0 and deluxe.streak == 0, "nitro and streak reset on replay"):
 		return
+	if not check(is_zero_approx(Track.curvature(260.0)) and Track.curvature(440.0)>.7 and Track.curvature(925.0)<-.6 and is_zero_approx(Track.road_center(440.0,0.0)), "authored curve signs and contact projection"):
+		return
 	var race = Race.new()
 	if not check(race.start("grand_delay") and race.course.size() == 30 and race.countdown > 0, "authored three-district course"):
 		return
@@ -149,6 +152,34 @@ func _verify() -> void:
 	race.remaining=Race.DT
 	race.advance()
 	if not check(race.finished and not race.cleared and race.pickups==0,"timeout and replay reset"):
+		return
+	# Controlled slide is rewarded once per authored corner, not per button tap.
+	race.start("grand_delay")
+	race.countdown=0.0
+	race.distance=440.0
+	race.speed=65.0
+	race.objects.clear()
+	race.course.clear()
+	race.next_event=0
+	race.steer(.40)
+	for i in range(24):
+		race.advance(false,true)
+	race.steer(0.0)
+	race.advance(true)
+	if not check(race.drift_count==1 and race.drift_points>40 and not race.drifting, "clean corner drift earns points"):
+		return
+	race.distance=440.0
+	race.position_x=1.0
+	race.speed=65.0
+	race.steer(.40)
+	for i in range(24):
+		race.advance(false,true)
+	race.steer(0.0)
+	race.advance(true)
+	if not check(race.drift_count==1, "one drift award per bend"):
+		return
+	race.start("grand_delay")
+	if not check(race.drift_count==0 and race.drift_awards.is_empty() and not race.shoulder, "replay clears driving state"):
 		return
 	var patch := Alt.new()
 	if not check(patch.start("patch_day") and patch.strike() and patch.score == 150 and not patch.strike(), "patch repairs exactly once"):
