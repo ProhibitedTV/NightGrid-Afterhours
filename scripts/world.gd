@@ -3232,6 +3232,7 @@ func _build_hud() -> void:
 	venue_panel.offset_right = 784.0
 	venue_panel.offset_top = -330.0
 	venue_panel.offset_bottom = -94.0
+	venue_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	venue_panel.custom_minimum_size = Vector2(0.0, 218.0)
 	venue_panel.theme = Ui.make_theme()
 	venue_panel.add_theme_stylebox_override("panel", Ui.card(0.97, 20))
@@ -3249,8 +3250,9 @@ func _build_hud() -> void:
 	contact_caption = DialogueCaption.new()
 	contact_caption.name = "ContactCaption"
 	dialogue_layout.add_child(contact_caption)
-	var action_row := HBoxContainer.new()
-	action_row.add_theme_constant_override("separation", 7)
+	var action_row := HFlowContainer.new()
+	action_row.add_theme_constant_override("h_separation", 7)
+	action_row.add_theme_constant_override("v_separation", 7)
 	dialogue_layout.add_child(action_row)
 	venue_service_button = Button.new()
 	venue_service_button.name = "ServiceAction"
