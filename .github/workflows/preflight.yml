@@ -151,6 +151,13 @@ jobs:
           timeout 75s godot --headless --path . --script res://tests/courier_mission_smoke.gd 2>&1 | tee /tmp/nightgrid-courier-mission.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-courier-mission.log; then exit 1; fi
           grep -q "COURIER_MISSION PASS:" /tmp/nightgrid-courier-mission.log
+      - name: Validate smartphone apps and real-world route actions
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/morrow_phone_smoke.gd 2>&1 | tee /tmp/nightgrid-phone.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-phone.log; then exit 1; fi
+          grep -q "MORROW_PHONE PASS:" /tmp/nightgrid-phone.log
       - name: Validate main menus, saved settings and controller action contexts
         timeout-minutes: 2
         run: |
