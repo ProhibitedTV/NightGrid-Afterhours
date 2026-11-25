@@ -3420,7 +3420,8 @@ func _update_hud() -> void:
 	hud_prompt.text = "\n".join(prompts)
 	hud_prompt_card.visible = not venue_panel.visible
 	# Reflow upward for long contextual text without covering the bottom inset.
-	hud_prompt_card.reset_size()
+	hud_prompt_card.offset_top = -24.0 - maxf(88.0, hud_prompt_card.get_combined_minimum_size().y)
+	hud_prompt_card.offset_bottom = -24.0
 	if venue_panel.visible:
 		_update_venue_panel()
 
