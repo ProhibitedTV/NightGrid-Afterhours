@@ -51,6 +51,12 @@
     },
     "night_regular": {
       "direction": "Original adult male, relaxed nightlife regular, wry and conversational."
+    },
+    "nyx": {
+      "direction": "Original adult nightlife promoter, low-key, independent music enthusiast, no celebrity likeness."
+    },
+    "rae": {
+      "direction": "Original adult venue host, warm and dry, pragmatic underground musician, no celebrity likeness."
     }
   },
   "lines": [
@@ -1080,6 +1086,32 @@
         "catalog": "street_satire",
         "character": "robot_romantic",
         "quest": "complete"
+      }
+    },
+    {
+      "id": "street.nyx.soundcheck.brief",
+      "character": "nyx",
+      "text": "People around here say you keep your word. Take this demo to Rae at Blue Hour. No algorithms, no auditions by committee. Just let someone hear it.",
+      "language": "English",
+      "direction": "Casual direct address to a trusted local; understated, sincere.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "nyx",
+        "venue_job": "soundcheck_pass",
+        "beat": "brief"
+      }
+    },
+    {
+      "id": "street.rae.soundcheck.ending",
+      "character": "rae",
+      "text": "Nyx sent you? Good. This city needs more people making music, not more people selling subscriptions to it. I'll keep your name on the list.",
+      "language": "English",
+      "direction": "Casual direct address to a trusted local; understated, sincere.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "rae",
+        "venue_job": "soundcheck_pass",
+        "beat": "ending"
       }
     }
   ]

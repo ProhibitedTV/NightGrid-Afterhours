@@ -7,13 +7,15 @@ const FAVOR_POINTS={
 	"venue:midnight_thermos":15,
 	"venue:dead_frequency":25,
 	"venue:glass_invoice":20,
-	"venue:last_shift_recipe":20}
+	"venue:last_shift_recipe":20,
+	"venue:soundcheck_pass":30}
 const FAVOR_NAMES={
 	"street:compatibility_patch":"Compatibility Patch",
 	"venue:midnight_thermos":"The Midnight Thermos",
 	"venue:dead_frequency":"Dead Frequency",
 	"venue:glass_invoice":"The Glass Invoice",
-	"venue:last_shift_recipe":"Last Shift Recipe"}
+	"venue:last_shift_recipe":"Last Shift Recipe",
+	"venue:soundcheck_pass":"Soundcheck Pass"}
 const RUN_POINTS={"busking":4,"live_gig":12,"skate_session":3}
 const MAX_RUNS=100000
 const MAX_CRED=10000

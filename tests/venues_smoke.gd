@@ -23,8 +23,8 @@ func _verify() -> void:
 	if venues == null or session == null:
 		_fail("SocialVenues or GameSession is missing")
 		return
-	if int(venues.call("get_venue_count")) != 12 or catalog.SIDE_JOBS.size() != 4:
-		_fail("Expected 12 social hubs and four story contracts")
+	if int(venues.call("get_venue_count")) != 12 or catalog.SIDE_JOBS.size() != 5:
+		_fail("Expected 12 social hubs and five story contracts")
 		return
 	var seen := {}
 	var kind_counts := {}
@@ -197,6 +197,41 @@ func _verify() -> void:
 	world.call("_venue_action", 2)
 	if int(world.get("cash")) != 264 or not str(world.get("venue_job_active")).is_empty():
 		_fail("Pre-ledger completed job replay changed wallet or remained active")
+		return
+	# A direct button/action call cannot bypass the reputation gate.
+	world.call("_close_venue")
+	world.set("venue_job_active","")
+	venues.call("set_hour",23.0)
+	player.global_position=venues.call("venue_position","static_room")
+	world.call("_toggle_venue")
+	world.call("_venue_action",2)
+	if not str(world.get("venue_job_active")).is_empty():
+		_fail("Low-reputation music contract bypass")
+		return
+	var music_ledger=world.get("progression")
+	for id in ["midnight_thermos","dead_frequency","glass_invoice","last_shift_recipe"]:
+		music_ledger.credit_once("venue:"+id,1)
+	music_ledger.accept_cal_quest()
+	music_ledger.collect_cal_gift()
+	music_ledger.complete_cal_quest()
+	if music_ledger.street_cred()!=105:
+		_fail("Music contact threshold fixture failed")
+		return
+	world.call("_venue_action",2)
+	if str(world.get("venue_job_active"))!="soundcheck_pass":
+		_fail("Recognized player could not accept music introduction")
+		return
+	world.call("_close_venue")
+	player.global_position=venues.call("venue_position","blue_hour")
+	world.call("_toggle_venue")
+	var before_cash:int=world.get("cash")
+	world.call("_venue_action",2)
+	if music_ledger.street_cred()!=135 or int(world.get("cash"))!=before_cash+125 or not music_ledger.has_receipt("venue:soundcheck_pass"):
+		_fail("Music introduction reward or contact receipt missing")
+		return
+	world.call("_venue_action",2)
+	if int(world.get("cash"))!=before_cash+125:
+		_fail("Music introduction paid twice")
 		return
 	print("VENUE_SMOKE PASS: ", kind_counts, " / quests=", catalog.SIDE_JOBS.size(),
 		" / saved_seed=", old_seed, " / venue_lights=", venues.call("get_active_light_count"))

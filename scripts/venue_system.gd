@@ -1,5 +1,8 @@
 extends Node3D
 const AudioMix = preload("res://scripts/audio_mix.gd")
+const Satire=preload("res://scripts/street_satire.gd")
+const SOUNDCHECK="soundcheck_pass"
+const MUSIC_REPUTATION=100
 ## Morrow Bay's authored social hubs: fixed addresses, opening hours, readable
 ## streetfront set dressing, services and four directed side-story contracts.
 ## The seed never changes a venue's address, contact or narrative identity.
@@ -32,7 +35,8 @@ const SIDE_JOBS = [
 	{"id": "glass_invoice", "title": "THE GLASS INVOICE", "from": "afterimage", "to": "dock_nine", "reward": 230,
 		"brief": "A private receipt shows who is buying the district's power rights.", "ending": "Old Ren files the invoice where the corporation cannot rewrite it."},
 	{"id": "last_shift_recipe", "title": "LAST SHIFT RECIPE", "from": "furnace_skewers", "to": "neon_bao", "reward": 150,
-		"brief": "Nell wants Jun to try her late father's recipe before the market closes.", "ending": "Jun puts the recipe on the menu. The old district lives another night."}
+		"brief": "Nell wants Jun to try her late father's recipe before the market closes.", "ending": "Jun puts the recipe on the menu. The old district lives another night."},
+	{"id":"soundcheck_pass","title":"SOUNDCHECK PASS","from":"static_room","to":"blue_hour","reward":125,"min_cred":MUSIC_REPUTATION}
 ]
 
 const KIND_COLOR = {
@@ -105,13 +109,13 @@ func venue_by_id(venue_id: String) -> Dictionary:
 func job_by_id(job_id: String) -> Dictionary:
 	for job in SIDE_JOBS:
 		if str(job["id"]) == job_id:
-			return job
+			return _job_details(job)
 	return {}
 
 func job_from(venue_id: String) -> Dictionary:
 	for job in SIDE_JOBS:
 		if str(job["from"]) == venue_id:
-			return job
+			return _job_details(job)
 	return {}
 
 func venue_position(venue_id: String) -> Vector3:
@@ -469,3 +473,13 @@ func _refresh() -> void:
 			lamp.light_energy = 0.75 * darkness
 		else:
 			lamp.light_energy = 0.0
+
+static func job_unlocked(job:Dictionary,cred:int)->bool:
+	return not job.is_empty() and cred>=int(job.get("min_cred",0))
+
+static func _job_details(job:Dictionary)->Dictionary:
+	var result:=job.duplicate()
+	if result["id"]==SOUNDCHECK:
+		for beat in ["brief","ending"]:
+			result[beat]=Satire.venue_job_line(SOUNDCHECK,beat)["text"]
+	return result

@@ -471,6 +471,9 @@ func _render() -> void:
 				bar.show_percentage=false
 				bar.custom_minimum_size=Vector2(0,12)
 				col.add_child(bar)
+			_label(col,str(_journal_data.get("music_contact","")),16,Ui.ACCENT)
+			if bool(_journal_data.get("music_can_navigate",false)):
+				_button(col,"music_waypoint","SET UNDERGROUND MUSIC CONTACT WAYPOINT","music_waypoint")
 			for source in _journal_data.get("street_cred_sources",[]):
 				_label(col,"%s  /  +%d earned"%[str(source["name"]),int(source["points"])],14,Ui.MUTED)
 			_divider(col)
@@ -727,7 +730,7 @@ func _choice(action: String) -> void:
 			open_map()
 		"journal":
 			action_requested.emit("journal")
-		"restart_courier", "abandon_story", "home_waypoint", "garage_waypoint", "story_waypoint", "synaxis_waypoint", "cal_waypoint":
+		"restart_courier", "abandon_story", "home_waypoint", "garage_waypoint", "story_waypoint", "synaxis_waypoint", "cal_waypoint", "music_waypoint":
 			action_requested.emit(action)
 		"back":
 			_open(_back_screen)

@@ -357,6 +357,20 @@ const LINES = [
 		"character": "robot_romantic",
 		"text": "Look at that copper finish. She's going to be so happy. Or at least her temperature sensors will be. Here's eighty-five bucks. Thanks, choom.",
 		"quest": "complete"
+	},
+	{
+		"id": "street.nyx.soundcheck.brief",
+		"character": "nyx",
+		"text": "People around here say you keep your word. Take this demo to Rae at Blue Hour. No algorithms, no auditions by committee. Just let someone hear it.",
+		"venue_job": "soundcheck_pass",
+		"beat": "brief"
+	},
+	{
+		"id": "street.rae.soundcheck.ending",
+		"character": "rae",
+		"text": "Nyx sent you? Good. This city needs more people making music, not more people selling subscriptions to it. I'll keep your name on the list.",
+		"venue_job": "soundcheck_pass",
+		"beat": "ending"
 	}
 ]
 const CAST = ["robot_romantic","nothing_happens","gig_grinder","subscription_skeptic","street_visionary","night_regular"]
@@ -437,5 +451,11 @@ static func profile(id:String) -> Dictionary:
 static func cal_quest_line(action:String)->Dictionary:
 	for row in LINES:
 		if row.get("quest","")==action and row["character"]=="robot_romantic":
+			return row.duplicate()
+	return {}
+
+static func venue_job_line(id:String,beat:String)->Dictionary:
+	for row in LINES:
+		if row.get("venue_job","")==id and row.get("beat","")==beat:
 			return row.duplicate()
 	return {}
