@@ -120,6 +120,8 @@ func _draw() -> void:
 					tint = Color("86d3df")
 				"BAR":
 					tint = Color("e5a1a6")
+				"ARCADE":
+					tint = Color("72d7cf")
 				"CLUB":
 					tint = Color("e28eec")
 			if not bool(location["open"]):

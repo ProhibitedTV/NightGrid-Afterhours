@@ -26,6 +26,8 @@ const PoliceDispatch = preload("res://scripts/police_dispatch.gd")
 const AmbientCivicLedger = preload("res://scripts/ambient_civic_ledger.gd")
 const CivicPatrolService = preload("res://scripts/civic_patrol_service.gd")
 const PoliceRadio = preload("res://scripts/police_radio.gd")
+const DialogueDirector = preload("res://scripts/dialogue_director.gd")
+const StreetSatire = preload("res://scripts/street_satire.gd")
 const EquipmentWheel = preload("res://scripts/equipment_wheel.gd")
 const Reticle = preload("res://scripts/weapon_reticle.gd")
 const CombatFoley = preload("res://scripts/city_foley.gd")
@@ -65,10 +67,27 @@ const VEHICLE_COLORS = [
 const CourierMission = preload("res://scripts/courier_mission.gd")
 const StoryMission = preload("res://scripts/story_mission.gd")
 const Opening = preload("res://scripts/opening_story.gd")
+const OpeningOffice = preload("res://scripts/synaxis_office.gd")
+var _opening_office: Node3D
 const StarterHome = preload("res://scripts/starter_home.gd")
 var _home_panel := false
 var _storage_upgrade_quote := false
 var _wardrobe_panel := false
+var _clothing_retail := false
+var _retail_id:=""
+var _retail_stock:Array=[]
+var _retail_day:=0
+var _fitting_yaw:=0.0
+var _fitting_rotation:=0.0
+var _fitting_zoom:=0.0
+var _fitting_compare:=false
+var _wardrobe_category:="ALL"
+var _look_index:=0
+var _look_save_pending:=false
+var _wardrobe_controls:HBoxContainer
+var _wardrobe_category_label:Label
+var _wardrobe_compare_button:Button
+const ClothingStore = preload("res://scripts/clothing_store.gd")
 var _wardrobe_index := 0
 var _wardrobe_quote_id := ""
 var _wardrobe_tender := "USD"
@@ -98,6 +117,9 @@ var civic_patrol_service = CivicPatrolService.new()
 var _civic_patrol: CharacterBody3D
 var _civic_patrol_poll := 0.0
 var police_radio: Node
+var dialogue_director: Node3D
+var _dialogue_card: PanelContainer
+var _dialogue_caption: Label
 var _radio_caption: Label
 var _radio_card: PanelContainer
 var _radio_close_tail := 0.0
@@ -145,6 +167,14 @@ var minimap: Control
 var city_details: Node3D
 var pedestrians: Node3D
 var _pedestrian_scan := 0.0
+var _street_contact_id:=""
+var _cal_pending:Dictionary={}
+var _cal_tracking:=false
+var _cal_nav_clock:=0.0
+const CAL_PICKUP="moon_noodles"
+const BUSKING_SITES=["moon_noodles","copper_cup"]
+var _music_session_site:=""
+const Instruments=preload("res://scripts/instrument_catalog.gd")
 var city_perimeter: Node3D
 var flora: Node3D
 var day_night: Node
@@ -158,6 +188,11 @@ var venue_system: Node3D
 var civic_services: Node3D
 var interiors: Node3D
 var game_menu: CanvasLayer
+var _arcade_layer: CanvasLayer
+var _arcade_best: Dictionary = {}
+const ArcadeScreen = preload("res://scenes/arcade_pilot.tscn")
+const ArcadeScores = preload("res://scripts/arcade_scores.gd")
+const ArcadeCircuit = preload("res://scripts/arcade_circuit_board.gd")
 var nightgrid_fm: Node
 var world_audio: Node
 var frame_time_recorder = FrameTimeRecorder.new()
@@ -270,6 +305,12 @@ func _ready() -> void:
 	police_radio = PoliceRadio.new()
 	police_radio.name = "PoliceRadio"
 	add_child(police_radio)
+	dialogue_director = DialogueDirector.new()
+	dialogue_director.name = "DialogueDirector"
+	add_child(dialogue_director)
+	dialogue_director.connect("caption_changed", _show_dialogue_caption)
+	for line in StreetSatire.LINES:
+		dialogue_director.call("prewarm",str(line["id"]))
 	var restore: Dictionary = session.call("take_pending_restore")
 	if restore.is_empty():
 		_refresh_courier_target()
@@ -280,7 +321,7 @@ func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	if bool(session.get("opening_pending")) and restore.is_empty():
 		session.set("opening_pending",false)
-		game_menu.call("open_opening")
+		_start_opening_office()
 	elif DisplayServer.get_name() != "headless" and not bool(session.get("boot_menu_shown")):
 		session.set("boot_menu_shown", true)
 		game_menu.call("open_title")
@@ -315,6 +356,9 @@ func _log_playtest(name: String, details: Dictionary = {}) -> void:
 		"indoors": indoors,
 		"mode": "car" if current_car != null else ("transit_" + transit_kind.to_lower() if current_transit != null else "on_foot")
 	}
+	if is_instance_valid(_opening_office):
+		context["chapter"]=_opening_diagnostic_context()
+		context["indoors"]=_inside_opening_hq()
 	if current_car != null:
 		context["speed_kph"] = current_car.call("speed_kph")
 	if name == "manual_marker":
@@ -375,7 +419,7 @@ func _update_police_radio(delta: float) -> void:
 	police_radio.call("set_receiver", receiver if local_receiver else Vector3.INF)
 	police_radio.call("tick", delta, active or local_receiver or closing)
 	if is_instance_valid(nightgrid_fm):
-		nightgrid_fm.set("dialogue_active", police_radio.call("speaking"))
+		nightgrid_fm.set("dialogue_active", bool(police_radio.call("speaking")) or (is_instance_valid(dialogue_director) and bool(dialogue_director.call("speaking"))))
 	if not active and not bool(police_radio.call("has_traffic")):
 		_radio_close_tail = 0.0
 	var caption: String = police_radio.get("current")
@@ -423,12 +467,92 @@ func _build_world_audio() -> void:
 		float(options.get("sfx_volume", 0.75)))
 
 func _on_menu_action(action: String) -> void:
+	if action.begins_with("fashion_waypoint:"):
+		var id:=action.trim_prefix("fashion_waypoint:")
+		if ClothingStore.STORES.has(id):
+			var entry:=ClothingStore.entry(id)
+			set_navigation_waypoint(Vector2(entry.x,entry.z))
+			_notify("Route set to "+str(ClothingStore.STORES[id]["name"]))
+		game_menu.call("open_journal",_journal_context())
+		return
 	match action:
+		"cal_accept","cal_complete":
+			if not _street_contact_id.is_empty():
+				_cal_pending={"id":_street_contact_id,"action":action}
+			_street_contact_id=""
+		"music_desk_buy","music_desk_busk","music_desk_practice","music_desk_owned","music_desk_leave":
+			_music_desk_action(action)
+		"rhythm_claim":
+			var site:=_music_session_site
+			_music_session_site=""
+			if site=="practice:copper_cup":
+				var sequence:int=game_menu.call("consume_sampler_practice")
+				if sequence>0 and _busking_reachable("copper_cup") and progression.complete_sampler_practice(sequence):
+					_notify(progression.instrument_summary())
+				else:
+					_notify("PRACTICE / Set not recorded.")
+			elif site=="owned:copper_cup":
+				var sequence:int=game_menu.call("consume_owned_sampler_set")
+				if sequence>0 and _busking_reachable("copper_cup") and progression.settle_owned_sampler_set(sequence):
+					_notify("PERSONAL SET / +$14 • +4 STREET CRED")
+				else:
+					_notify("PERSONAL SET / Not settled.")
+			elif site in BUSKING_SITES:
+				var sequence:int=game_menu.call("consume_busking_result")
+				if sequence>0 and _busking_reachable(site) and progression.settle_busking_set(sequence):
+					_notify("BUSKING / SET COMPLETE +$8 • +4 STREET CRED")
+				else:
+					_notify("BUSKING / Set not settled.")
+			elif site=="blue_hour":
+				var sequence:int=game_menu.call("consume_blue_hour_result")
+				if sequence>0 and _blue_hour_set_reachable() and progression.settle_blue_hour_set(sequence):
+					_notify("BLUE HOUR / SET COMPLETE +$45 • +12 STREET CRED")
+				else:
+					_notify("BLUE HOUR / Set not settled.")
+		"rhythm_cancel":
+			_music_session_site=""
+			_notify("MUSIC / Set ended. No reward.")
+		"busking_waypoint":
+			var site:="moon_noodles" if venue_system.call("is_open","moon_noodles") or not venue_system.call("is_open","copper_cup") else "copper_cup"
+			var point:Vector3=venue_system.call("venue_position",site)
+			set_navigation_waypoint(Vector2(point.x,point.z))
+			game_menu.call("open_journal",_journal_context())
+		"music_waypoint":
+			if progression.street_cred()>=100 and not progression.has_receipt("venue:soundcheck_pass"):
+				var point:Vector3=venue_system.call("venue_position","blue_hour" if venue_job_active=="soundcheck_pass" else "static_room")
+				set_navigation_waypoint(Vector2(point.x,point.z))
+			game_menu.call("open_journal",_journal_context())
+		"cal_waypoint":
+			_track_cal_waypoint()
+			game_menu.call("open_journal",_journal_context())
+		"street_reply_0","street_reply_1":
+			if is_instance_valid(pedestrians) and not _street_contact_id.is_empty():
+				pedestrians.call("request_player_reply",_street_contact_id,0 if action=="street_reply_0" else 1)
+			_street_contact_id=""
+		"street_leave":
+			_street_contact_id=""
 		"begin_opening":
 			if not progression.has_receipt(Opening.RECEIPT):
-				game_menu.call("open_opening")
+				_start_opening_office()
 			else:
 				game_menu.call("hide_for_game")
+		"guard_leave":
+			_snap_camera()
+		"restroom_leave":
+			if is_instance_valid(_opening_office):
+				_snap_camera()
+		"breakroom_leave":
+			if is_instance_valid(_opening_office):
+				_opening_office.call("mark_breakroom_seen")
+				_snap_camera()
+		"opening_walk":
+			if is_instance_valid(_opening_office):
+				_opening_office.call("end_dialogue")
+				_opening_office.call("set_stage",int(game_menu.get("_opening_stage")))
+				_snap_camera()
+		"opening_camera":
+			if is_instance_valid(_opening_office):
+				_opening_office.call("dialogue_camera",camera,int(game_menu.get("_opening_stage")),int(game_menu.get("_briefing_beat")))
 		"accept_opening":
 			_accept_opening()
 		"save":
@@ -454,6 +578,9 @@ func _on_menu_action(action: String) -> void:
 				var entry := StarterGarage.entry()
 				set_navigation_waypoint(Vector2(entry.x,entry.z))
 			game_menu.call("open_journal", _journal_context())
+		"synaxis_waypoint":
+			set_navigation_waypoint(Vector2(OpeningOffice.ENTRY.x,OpeningOffice.ENTRY.z))
+			game_menu.call("open_journal",_journal_context())
 		"home_waypoint":
 			if progression.has_receipt(StarterHome.ACCESS_RECEIPT):
 				var entry := StarterHome.entry()
@@ -464,8 +591,90 @@ func _on_menu_action(action: String) -> void:
 				_notify("Contact mission abandoned. Speak to Mara to retry.")
 			game_menu.call("open_journal", _journal_context())
 
+func _start_opening_office() -> void:
+	if is_instance_valid(_opening_office) or progression.has_receipt(Opening.RECEIPT):
+		return
+	city_details.call("set_focus",OpeningOffice.ENTRY)
+	_opening_office = city_details.call("synaxis_headquarters")
+	if not is_instance_valid(_opening_office):
+		# Fail safely to the accessible dialogue rather than strand a new game.
+		game_menu.call("open_opening")
+		return
+	if is_instance_valid(dialogue_director):
+		dialogue_director.call("cancel_all")
+	_cancel_street_interactions()
+	_opening_office.call("begin_prologue")
+	player.get("visual").call("set_corporate_attire",true)
+	player.global_position = _opening_office.to_global(OpeningOffice.START)
+	player.velocity = Vector3.ZERO
+	yaw = 0.0
+	player.set("camera_yaw",yaw)
+	get_node("HUD").hide()
+	marker.hide()
+	game_menu.call("open_opening",true)
+	_opening_office.call("start_arrival",player,camera)
+
+func _opening_interact() -> void:
+	if not is_instance_valid(_opening_office) or game_menu.call("is_open"):
+		return
+	if _opening_office.call("arrival_active"):
+		_opening_office.call("finish_arrival",player,camera)
+		_snap_camera()
+		return
+	if _opening_office.call("lift_active"):
+		return
+	if _opening_office.call("exit_active"):
+		_opening_office.call("try_exit_step",player)
+		return
+	if _opening_office.call("try_lift",player):
+		return
+	if _opening_office.call("try_office_service",player.global_position):
+		player.call("play_visual_action",&"interact")
+		return
+	if _opening_office.call("parking_guard_reachable",player.global_position):
+		game_menu.call("open_parking_guard",false)
+		return
+	if not _opening_office.call("errand_complete"):
+		if _opening_office.call("try_errand",player):
+			return
+		# Optional exploration remains available even before the folder handoff.
+		if not _opening_office.call("breakroom_reachable",player.global_position):
+			return
+	var stage := int(game_menu.get("_opening_stage"))
+	if _opening_office.call("breakroom_reachable",player.global_position) and not bool(_opening_office.get("_breakroom_seen")):
+		_opening_office.call("breakroom_camera",camera)
+		game_menu.call("open_breakroom")
+		return
+	if _opening_office.call("errand_complete") and _opening_office.call("reachable",stage,player.global_position):
+		if stage in [2,4]:
+			_opening_office.call("dialogue_camera",camera,stage,int(game_menu.get("_briefing_beat")))
+		game_menu.call("open_opening_stage")
+
+func _finish_opening_office() -> void:
+	if not is_instance_valid(_opening_office):
+		return
+	var old := _opening_office
+	_opening_office = null
+	old.call("finish_prologue")
+	player.get("visual").call("set_corporate_attire",false)
+	player.global_position = OpeningOffice.ENTRY
+	player.velocity = Vector3.ZERO
+	player.call("restore_stamina",100.0)
+	get_node("HUD").show()
+	marker.show()
+	city_details.call("set_focus",player.global_position)
+	_snap_camera()
+
 func _accept_opening() -> void:
+	if is_instance_valid(_opening_office):
+		if not _opening_office.call("exit_active"):
+			if int(game_menu.get("_opening_stage"))==5:
+				_opening_office.call("begin_exit",player.global_position)
+			return
+		if not _opening_office.call("exit_ready",player.global_position):
+			return
 	if progression.credit_once(Opening.RECEIPT,Opening.SEVERANCE):
+		_finish_opening_office()
 		courier_mission.gig_economy = true
 		_refresh_courier_target()
 		_notify("SYNAXIS: $75 severance credited. QUOTADROP: Your first delivery is ready. Earn your pod deposit.")
@@ -489,16 +698,28 @@ func _journal_context() -> Dictionary:
 		"district": district if landmark.is_empty() else "%s / %s" % [district, landmark],
 		"clock": day_night.call("clock_string"),
 		"seed": session.get("world_seed"),
+		"platform_notice": Opening.app_notice(deliveries) if courier_mission.gig_economy else "",
+		"synaxis_site": "SYNAXIS HQ / Glassline / Access revoked" if progression.has_receipt(Opening.RECEIPT) else "",
 		"opening_goal": "QUOTADROP / POD DEPOSIT: $%d of $%d saved" % [mini(cash,StarterHome.move_in_price()),StarterHome.move_in_price()] if courier_mission.gig_economy and not progression.owns_home() else "",
 		"main_objective": "%s  •  STEP %d/%d  •  %dm  •  $%d" % [objective["title"], objective["step"], objective["total_steps"], remaining, objective["reward"]],
 		"courier_can_restart": carrying,
 		"story_objective": story_mission.journal(),
 		"conditioning": courier_mission.conditioning_text(),
+		"clothing_store": ClothingStore.directory(), "fashion_locations": ClothingStore.IDS.duplicate(),
 		"outfit": "OUTFIT: %s / %s" % [Wardrobe.ITEMS[progression.outfit_id]["name"],Wardrobe.ITEMS[progression.outfit_id]["rarity"]],
 		"bitcoin_sats": progression.bitcoin_sats,
 		"story_can_navigate": story_mission.status != "complete",
 		"story_can_abandon": story_mission.status == "active",
 		"venue_job": _venue_job_text(),
+		"cal_quest":_cal_objective(),
+		"street_cred":progression.street_cred_rank(),
+		"street_cred_summary":progression.street_cred_summary(),
+		"street_cred_sources":progression.street_cred_sources(),
+		"music_contact":_music_contact_status(),
+		"instrument_status":progression.instrument_summary(),
+		"busking_status":"STREET MUSIC / Moon Noodles or Copper Cup • %d sets completed"%progression.street_activity_runs("busking"),
+		"music_can_navigate":progression.street_cred()>=100 and not progression.has_receipt("venue:soundcheck_pass"),
+		"cal_can_navigate":_cal_target().is_finite(),
 		"civic_job": _civic_job_text(),
 		"cash": cash, "health": health, "heat": heat,
 		"owned_vehicles": _owned_vehicle_text(),
@@ -547,6 +768,36 @@ func _input(event: InputEvent) -> void:
 		gamepad_active = false
 	if game_menu != null and game_menu.call("is_open"):
 		return
+	if _wardrobe_panel and venue_panel.visible:
+		# Route venue shortcuts before GUI focus can consume controller A.
+		if event is InputEventKey and event.echo:
+			get_viewport().set_input_as_handled()
+			return
+		for index in range(3):
+			if event.is_action_pressed(["service_one","service_two","service_three"][index]):
+				_venue_action(index+1)
+				get_viewport().set_input_as_handled()
+				return
+		if event.is_action_pressed("game_back"):
+			_close_venue()
+			get_viewport().set_input_as_handled()
+			return
+		if event.is_action_pressed("interior_toggle") or event.is_action_pressed("transit_toggle"):
+			_cycle_wardrobe_category(-1 if event.is_action_pressed("interior_toggle") else 1)
+			get_viewport().set_input_as_handled()
+			return
+		if event.is_action_pressed("use_supply"):
+			_toggle_fitting_compare()
+			get_viewport().set_input_as_handled()
+			return
+		if _clothing_retail and event is InputEventMouseMotion and event.button_mask & MOUSE_BUTTON_MASK_RIGHT:
+			_fitting_rotation=wrapf(_fitting_rotation+event.relative.x*.012,-PI,PI)
+			get_viewport().set_input_as_handled()
+			return
+		if _clothing_retail and event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
+			_fitting_zoom=clampf(_fitting_zoom+(.12 if event.button_index==MOUSE_BUTTON_WHEEL_UP else -.12),0.0,1.0)
+			get_viewport().set_input_as_handled()
+			return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		if _cinder_cockpit and _can_use_cinder_view():
 			_adjust_cockpit_look(Vector2(-event.relative.x, event.relative.y * (-1.0 if invert_look_y else 1.0) * .625) * mouse_sensitivity)
@@ -562,6 +813,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.echo:
 		return
 	if not event.is_pressed():
+		return
+	if _handle_playtest_diagnostic(event):
+		get_viewport().set_input_as_handled()
+		return
+	if is_instance_valid(_opening_office):
+		if event.is_action_pressed("interact") or (_opening_office.call("arrival_active") and event.is_action_pressed("game_pause")):
+			_opening_interact()
 		return
 	if event.is_action_pressed("game_pause"):
 		if venue_panel.visible:
@@ -636,26 +894,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("toggle_fps"):
 		performance_overlay = not performance_overlay
 		performance_label.visible = performance_overlay
-	elif event.is_action_pressed("playtest_mark"):
-		_log_playtest("manual_marker", {"note": "Player pressed F7 after noticing an issue"})
-		playtest_logger.flush()
-		_notify("Playtest marker saved: " + playtest_logger.get_log_path() if playtest_logger.is_active() else "Playtest logging unavailable.")
-	elif event.is_action_pressed("record_frame_trace"):
-		if frame_time_recorder.recording or frame_time_recorder.capture_full:
-			frame_time_recorder.end_capture()
-			var exported: String = frame_time_recorder.export_csv()
-			var transitions: String = frame_time_recorder.export_vehicle_trace(exported)
-			_log_playtest("frame_trace_saved", {"path": exported, "vehicle_transitions":transitions,"frames":frame_time_recorder.captured_frames()})
-			_notify("Drive trace saved: " + exported if not exported.is_empty() else "Drive trace export failed.")
-		else:
-			var stream_start: Dictionary = city_details.call("get_streaming_stats")
-			frame_time_recorder.begin_capture(int(stream_start["loads"]),
-				int(stream_start.get("stage_steps", 0)), int(stream_start.get("total_build_usec", 0)))
-			_log_playtest("frame_trace_started")
-			_notify("Drive trace recording. Press F8 again to save a CSV.")
-	elif event.is_action_pressed("capture_playtest_frame"):
-		if not _capturing_evidence:
-			call_deferred("_capture_playtest_frame")
 	elif event.is_action_pressed("compare_render_look"):
 		var profile: String = str(day_night.call("cycle_render_profile"))
 		_log_playtest("render_profile_switched", {"render_profile": profile})
@@ -667,6 +905,31 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	get_viewport().set_input_as_handled()
 
+func _handle_playtest_diagnostic(event:InputEvent) -> bool:
+	if event.is_action_pressed("playtest_mark"):
+		_log_playtest("manual_marker", {"note": "Player pressed F7 after noticing an issue"})
+		playtest_logger.flush()
+		_notify("Playtest marker saved: " + playtest_logger.get_log_path() if playtest_logger.is_active() else "Playtest logging unavailable.")
+	elif event.is_action_pressed("record_frame_trace"):
+		if frame_time_recorder.recording or frame_time_recorder.capture_full:
+			frame_time_recorder.end_capture()
+			var exported: String = frame_time_recorder.export_csv()
+			var transitions: String = frame_time_recorder.export_vehicle_trace(exported)
+			_log_playtest("frame_trace_saved", {"path": exported, "vehicle_transitions":transitions,"frames":frame_time_recorder.captured_frames()})
+			_notify("Frame trace saved: " + exported if not exported.is_empty() else "Frame trace export failed.")
+		else:
+			var stream_start: Dictionary = city_details.call("get_streaming_stats")
+			frame_time_recorder.begin_capture(int(stream_start["loads"]),
+				int(stream_start.get("stage_steps", 0)), int(stream_start.get("total_build_usec", 0)))
+			_log_playtest("frame_trace_started")
+			_notify("Frame trace recording. Press F8 again to save a CSV.")
+	elif event.is_action_pressed("capture_playtest_frame"):
+		if not _capturing_evidence:
+			call_deferred("_capture_playtest_frame")
+	else:
+		return false
+	return true
+
 ## F10 produces a genuine rendered viewport frame without HUD, plus an
 ## adjacent JSON record with exact camera pose, game world, settings and
 ## measured rolling frame intervals. No world teleport or save mutation.
@@ -675,7 +938,15 @@ func _capture_playtest_frame() -> void:
 		return
 	if game_menu != null and game_menu.call("is_open"):
 		return
+	var office_capture:=is_instance_valid(_opening_office)
+	if office_capture and (_opening_office.call("arrival_active") or _opening_office.call("lift_active")):
+		print("F10: capture after the arrival or lift transition.")
+		return
 	_capturing_evidence = true
+	var office_layer:CanvasLayer=_opening_office.get("_intro_canvas") if office_capture else null
+	var office_was_visible:=is_instance_valid(office_layer) and office_layer.visible
+	if is_instance_valid(office_layer):
+		office_layer.hide()
 	var hud_layer := get_node_or_null("HUD") as CanvasLayer
 	var hud_was_visible := hud_layer != null and hud_layer.visible
 	if hud_layer != null:
@@ -687,6 +958,8 @@ func _capture_playtest_frame() -> void:
 	var framebuffer := get_viewport().get_texture().get_image()
 	if hud_layer != null:
 		hud_layer.visible = hud_was_visible
+	if is_instance_valid(office_layer) and is_instance_valid(_opening_office) and not _opening_office.call("lift_active"):
+		office_layer.visible=office_was_visible
 	if framebuffer == null or framebuffer.is_empty():
 		_capturing_evidence = false
 		_notify("F10 capture failed: renderer returned no framebuffer.")
@@ -702,7 +975,9 @@ func _capture_playtest_frame() -> void:
 		"world_seed": int(session.get("world_seed")),
 		"game_clock": str(day_night.call("clock_string")),
 		"district": str(city_details.call("get_district_at", outdoor_position)),
-		"indoors": bool(interiors.call("is_inside")),
+		"indoors": bool(interiors.call("is_inside")) or _inside_opening_hq(),
+		"chapter_context": _opening_diagnostic_context(),
+		"build_revision": BuildInfo.REVISION,
 		"motion_context": motion,
 		"graphic_settings": game_menu.call("get_settings"),
 		"render_profile": str(day_night.call("get_render_profile")),
@@ -726,8 +1001,47 @@ func _capture_playtest_frame() -> void:
 		_log_playtest("screenshot_failed", {"error": str(result.get("error", "unknown error"))})
 		_notify("F10 capture failed: " + str(result.get("error", "unknown error")))
 
+func _inside_opening_hq() -> bool:
+	if not is_instance_valid(_opening_office):
+		return false
+	var local:=_opening_office.to_local(player.global_position)
+	return absf(local.x)<8.5 and absf(local.z)<10.0
+
+func _opening_diagnostic_context() -> Dictionary:
+	if not is_instance_valid(_opening_office):
+		return {}
+	return {"site":"synaxis_hq","floor":int(_opening_office.get("_active_floor")),"stage":int(_opening_office.call("objective_stage",int(game_menu.get("_opening_stage")))),"arrival":bool(_opening_office.call("arrival_active")),"lift":bool(_opening_office.call("lift_active")),"offboarding":bool(_opening_office.call("exit_active"))}
+
 func _process(delta: float) -> void:
 	if not is_instance_valid(player):
+		return
+	if is_instance_valid(_opening_office):
+		var opening_stream:Dictionary=city_details.call("get_streaming_stats")
+		frame_time_recorder.sample_frame(delta,opening_stream,player.global_position,false)
+		playtest_logger.sample_frame(delta,opening_stream,player.global_position,"synaxis_opening")
+		if _opening_office.call("arrival_active"):
+			if not _opening_office.call("tick_arrival",delta,player,camera):
+				_snap_camera()
+			return
+		if _opening_office.call("lift_active"):
+			if _opening_office.call("tick_lift",delta,player):
+				_snap_camera()
+			return
+		var look := GameInput.look_vector()
+		yaw -= look.x * stick_sensitivity * delta
+		pitch = clampf(pitch+look.y*stick_sensitivity*delta*(-1.0 if invert_look_y else 1.0),.20,.85)
+		player.set("camera_yaw",yaw)
+		_update_camera(delta)
+		_opening_office.call("update_prompt",int(_opening_office.call("objective_stage",int(game_menu.get("_opening_stage")))),player.global_position,gamepad_active)
+		if _opening_office.call("exit_ready",player.global_position):
+			_accept_opening()
+			return
+		if _opening_office.call("exit_active"):
+			return
+		if not game_menu.call("is_open"):
+			var restroom := str(_opening_office.call("restroom_encounter",player.global_position))
+			if not restroom.is_empty():
+				game_menu.call("open_restroom",restroom)
 		return
 	var actor := _actor()
 	if current_car != null and current_car.get("model_id") == RoadCars.R9:
@@ -742,6 +1056,8 @@ func _process(delta: float) -> void:
 	var in_workshop := repair != null and repair.contains(actor.global_position)
 	if repair != null:
 		repair.set_listener(actor.global_position, in_workshop)
+	if is_instance_valid(dialogue_director):
+		dialogue_director.call("tick", delta, actor.global_position)
 	_update_police_radio(delta)
 	var interior_id := str(interiors.call("active_site_id")) if indoors else ""
 	var interior_kind := ""
@@ -750,6 +1066,9 @@ func _process(delta: float) -> void:
 	if in_physical_room:
 		interior_id = str(physical_room.get("physical_venue_id"))
 		interior_kind = str((venue_system.call("venue_by_id",interior_id) as Dictionary).get("kind",""))
+		if not str(physical_room.get("clothing_store_id")).is_empty():
+			interior_id=str(physical_room.get("clothing_store_id"))
+			interior_kind=str(ClothingStore.THEMES[interior_id]["music"]).to_upper()
 	if indoors and str(interiors.call("active_site_group")) == "VENUE":
 		interior_kind = str((venue_system.call("venue_by_id", interior_id) as Dictionary).get("kind", ""))
 	if is_instance_valid(nightgrid_fm):
@@ -791,6 +1110,9 @@ func _process(delta: float) -> void:
 				traversal_velocity = (actor as CharacterBody3D).velocity
 			city_details.call("request_focus", actor.global_position, traversal_velocity)
 		city_details.call("update_walk_in_light", actor.global_position if not indoors and current_car == null and current_transit == null else Vector3.INF)
+		var headquarters: Node3D = city_details.call("synaxis_headquarters")
+		if is_instance_valid(headquarters):
+			headquarters.call("update_public_light",actor.global_position if not indoors and current_car == null and current_transit == null else Vector3.INF)
 		var started := StreamProfile.begin()
 		street_lights.call("set_focus", interiors.get("exterior_position") if indoors else actor.global_position)
 		StreamProfile.end(started, "street_light_focus")
@@ -809,6 +1131,10 @@ func _process(delta: float) -> void:
 		var menu_position: Vector3
 		if is_instance_valid(_vending_machine):
 			menu_position = _vending_machine.global_position if city_details.call("nearby_vending",player.global_position) == _vending_machine else Vector3.INF
+		elif _wardrobe_panel:
+			var wardrobe_lot:Node3D=city_details.call("nearby_walk_in",player.global_position)
+			var reachable:bool=is_instance_valid(wardrobe_lot) and (wardrobe_lot.get("clothing_store_id")==_retail_id and wardrobe_lot.call("clothing_reachable",player.global_position) if _clothing_retail else progression.owns_home() and wardrobe_lot.call("home_action",player.global_position)=="wardrobe")
+			menu_position=player.global_position if reachable else Vector3.INF
 		elif _repair_panel:
 			menu_position = repair.counter_position() if repair != null else Vector3.INF
 		elif indoors:
@@ -835,6 +1161,14 @@ func _process(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	# Gameplay mission/heat/damage timers are fixed-tick, not render-tick.
 	if not is_instance_valid(player):
+		return
+	if is_instance_valid(_opening_office):
+		if _opening_office.call("lift_active"):
+			return
+		if player.global_position.y < float(_opening_office.call("recovery_floor")):
+			player.global_position = _opening_office.call("recovery_position")
+			player.velocity = Vector3.ZERO
+			_snap_camera()
 		return
 	if _active_station_lift != null and not bool(_active_station_lift.get("travelling")):
 		var landing: Vector3 = _active_station_lift.call("destination")
@@ -903,10 +1237,15 @@ func enable_living_streets() -> bool:
 	return true
 
 func _update_pedestrians(delta: float, actor: Node3D, indoors: bool) -> void:
+	pedestrians.call("track_cal_quest",progression.cal_quest in [1,2])
 	var occupied: Array[Vector3] = [actor.global_position]
 	var street_mode := not indoors and current_transit == null and is_instance_valid(camera)
 	pedestrians.call("tick", delta, actor.global_position, camera, not street_mode,
 		occupied, float(day_night.get("hour")), signal_controller)
+	if is_instance_valid(dialogue_director):
+		pedestrians.call("update_street_dialogue",dialogue_director,actor.global_position+Vector3.UP*1.6,player.get_rid(),street_mode and current_car==null and weapons.equipped=="holstered",delta)
+	_resolve_cal_action(street_mode and current_car==null and weapons.equipped=="holstered")
+	_update_cal_navigation(delta)
 	_pedestrian_scan += delta
 	if not street_mode or _pedestrian_scan < 0.18:
 		return
@@ -928,7 +1267,7 @@ func _camera_focus() -> Vector3:
 		1.65 if current_car != null or current_transit != null else 1.45)
 
 func _camera_goal() -> Vector3:
-	var distance := (3.0 if interiors.call("is_inside") else
+	var distance := (3.0 if is_instance_valid(_opening_office) or interiors.call("is_inside") else
 		(21.0 if transit_kind == "TRAIN" else
 		(15.0 if transit_kind == "BUS" else
 		(13.0 if current_car != null else 7.5))))
@@ -982,6 +1321,22 @@ func _toggle_cinder_view() -> void:
 
 func _update_camera(delta: float, teleport: bool = false) -> void:
 	if camera == null or not is_instance_valid(player):
+		return
+	if _wardrobe_panel and _clothing_retail and venue_panel.visible:
+		var visual:Node3D=player.get_node("Visual")
+		var stick:=GameInput.look_vector()
+		_fitting_rotation=wrapf(_fitting_rotation+stick.x*delta*2.2,-PI,PI)
+		_fitting_zoom=clampf(_fitting_zoom-stick.y*delta*.8,0.0,1.0)
+		var patch_view:=false
+		if _wardrobe_category!="LOOKS" and _wardrobe_index>=0 and _wardrobe_index<Wardrobe.browse_ids().size():
+			var selected:String=Wardrobe.browse_ids()[_wardrobe_index]
+			patch_view=Wardrobe.reset_slot(selected)=="patch" or (Wardrobe.piece_valid(selected) and Wardrobe.PIECES[selected]["slot"]=="patch")
+		visual.rotation.y=PI/2+_fitting_rotation+(PI if patch_view else 0.0)
+		var focus:=player.global_position+Vector3.UP*lerpf(.03,.58,_fitting_zoom)
+		var offset:=Vector3(2.25,.26,1.05)*lerpf(1.0,.53,_fitting_zoom)
+		camera.global_position=_camera_clearance(focus,focus+offset)
+		if camera.global_position.distance_squared_to(focus)>.001:
+			camera.look_at(focus,Vector3.UP)
 		return
 	if _cinder_cockpit and _can_use_cinder_view():
 		var coach := current_car.get_node("RoadCarVisual/Coachwork") as Node3D
@@ -1447,6 +1802,7 @@ func _spawn_police() -> void:
 		return
 
 func _respawn() -> void:
+	_cancel_street_interactions()
 	_log_playtest("respawn", {"health": health, "reason": "fall_or_boundary_or_damage"})
 	_close_venue()
 	weapons.holster()
@@ -1793,6 +2149,7 @@ func _save_game() -> void:
 		_notify("Save failed. Check user data folder or permissions.")
 
 func _load_game() -> void:
+	_close_arcade()
 	if game_menu != null and game_menu.call("is_open"):
 		game_menu.call("hide_for_game")
 	if not bool(session.call("prepare_load")):
@@ -1804,6 +2161,7 @@ func _load_game() -> void:
 	get_tree().call_deferred("reload_current_scene")
 
 func _new_game() -> void:
+	_close_arcade()
 	if game_menu != null and game_menu.call("is_open"):
 		game_menu.call("hide_for_game")
 	_log_playtest("new_game_requested")
@@ -1836,7 +2194,7 @@ func _capture_snapshot() -> Dictionary:
 		"player_position": [saved_at.x, saved_at.y, saved_at.z],
 		"camera_yaw": yaw, "cash": cash, "progression": progression.snapshot(), "health": health, "heat": heat,
 		"deliveries": deliveries, "carrying": carrying, "story_mission": story_mission.snapshot(),
-		"hour": day_night.get("hour"), "cars": stored_cars,
+		"hour": day_night.get("hour"), "day_index":day_night.get("day_index"), "cars": stored_cars,
 		"occupied_car": cars.find(current_car),
 		"traffic": traffic.call("snapshot"), "rail": rail.call("snapshot"),
 		"signal_elapsed": signal_controller.get("elapsed"),
@@ -1846,7 +2204,7 @@ func _capture_snapshot() -> Dictionary:
 		"civic_job_active": civic_job_active, "civic_job_completed": civic_job_completed.duplicate(),
 		"civic_intel": civic_intel.duplicate(), "ration_packs": ration_packs,
 		"consumables": consumable_inventory.duplicate(), "stamina": player.get("stamina"),
-		"interior": interiors.call("snapshot"),
+		"interior": interiors.call("snapshot"), "arcade_best": _arcade_best.duplicate(),
 		"navigation_waypoint": [] if navigation_waypoint == null else [navigation_waypoint.x, navigation_waypoint.y],
 		"weapons": weapons.snapshot(),
 		"ambient_civic": ambient_civic.snapshot(),
@@ -1867,17 +2225,26 @@ func _capture_snapshot() -> Dictionary:
 	return state
 
 func _apply_snapshot(data: Dictionary) -> void:
+	_close_arcade()
+	_cancel_street_interactions()
+	if is_instance_valid(dialogue_director):
+		dialogue_director.call("cancel_all")
 	if not progression.restore(data.get("cash", 0), data.get("progression", {"version": ProgressionLedger.VERSION, "receipts": []})):
 		push_error("Invalid progression snapshot")
 		return
+	_arcade_best = ArcadeScores.normalized(data.get("arcade_best", {}))
 	var saved_visual: Node3D = player.get("visual")
 	if is_instance_valid(saved_visual):
-		saved_visual.call("set_outfit",progression.outfit_id)
+		saved_visual.call("set_look",progression.outfit_id,progression.clothing_slots)
 	_cinder_cockpit = false
 	_cockpit_look = Vector2.ZERO
 	# Geometry is already reconstructed from the saved immutable seed.
 	if is_instance_valid(nightgrid_fm):
 		nightgrid_fm.call("restore", data.get("nightgrid_radio", {}))
+	# A saved active favor is explicit prior opt-in; do not strand the job
+	# when the next launch omits --living-streets.
+	if progression.cal_quest in [1,2] and not is_instance_valid(pedestrians):
+		enable_living_streets()
 	if is_instance_valid(pedestrians):
 		pedestrians.call("restore", data.get("sidewalk_population", {}))
 	navigation_waypoint = Nav.decode(data.get("navigation_waypoint", []))
@@ -1940,6 +2307,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 		elif saved_transit == "TRAIN":
 			_board_transit(rail.get_node("MorrowLineTrain"), "TRAIN", false)
 			_rail_platform_rider = bool(data.get("rail_platform_rider", false))
+	day_night.set("day_index",int(data.get("day_index",0)))
 	day_night.call("set_hour", float(data.get("hour", 19.25)))
 	venue_system.call("set_hour", float(day_night.get("hour")))
 	civic_services.call("set_hour", float(day_night.get("hour")))
@@ -2003,6 +2371,87 @@ func _apply_snapshot(data: Dictionary) -> void:
 	_log_playtest("save_restored", {"seed": int(session.get("world_seed"))})
 	_notify("Save loaded. Seed %d; Morrow Bay restored." % int(session.get("world_seed")))
 
+func _parking_guard_near() -> bool:
+	if current_car!=null or current_transit!=null or interiors.call("is_inside"):
+		return false
+	var hq:Node3D=city_details.call("synaxis_headquarters")
+	return is_instance_valid(hq) and bool(hq.call("parking_guard_reachable",player.global_position))
+
+func _try_parking_guard() -> bool:
+	if _parking_guard_near():
+		game_menu.call("open_parking_guard",progression.has_receipt(Opening.RECEIPT))
+		return true
+	return false
+
+func _synaxis_access_notice() -> bool:
+	var hq: Node3D = city_details.call("synaxis_headquarters")
+	if is_instance_valid(hq) and hq.call("public_checkpoint_reachable",player.global_position):
+		_notify("SYNAXIS SECURITY: Badge access revoked. Your concern has been resolved. Authorized visitors only beyond this checkpoint.")
+		return true
+	if OpeningOffice.entrance_reachable(player.global_position):
+		_notify("SYNAXIS: Public lobby open. Badge access revoked for the restricted offices.")
+		return true
+	return false
+
+func _open_arcade(id: String) -> bool:
+	if is_instance_valid(_arcade_layer) or get_tree().paused or current_car != null or current_transit != null:
+		return false
+	if str(interiors.call("arcade_cabinet_near", player.global_position)) != id or id.is_empty():
+		return false
+	var screen := ArcadeScreen.instantiate()
+	if not screen.call("configure_cabinet", id, _arcade_best):
+		screen.free()
+		return false
+	screen.connect("score_recorded", _record_arcade_score)
+	if id == "grand_delay":
+		screen.call("bind_deluxe_cabinet",interiors.call("arcade_cabinet_node",id))
+	return _present_arcade_overlay(screen)
+
+func _open_arcade_circuit() -> bool:
+	if is_instance_valid(_arcade_layer) or get_tree().paused or current_car != null or current_transit != null:
+		return false
+	if not interiors.call("arcade_circuit_near",player.global_position):
+		return false
+	var screen := ArcadeCircuit.new()
+	screen.configure(_arcade_best)
+	return _present_arcade_overlay(screen)
+
+func _present_arcade_overlay(screen: Control) -> bool:
+	_arcade_layer = CanvasLayer.new()
+	_arcade_layer.name = "ArcadeModal"
+	_arcade_layer.layer = 100
+	_arcade_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(_arcade_layer)
+	_arcade_layer.add_child(screen)
+	screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	screen.connect("exit_requested", _close_arcade)
+	suspend_weapon()
+	player.set("input_blocked", true)
+	player.velocity = Vector3.ZERO
+	get_tree().paused = true
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	return true
+
+func _record_arcade_score(id: String, value: int) -> void:
+	var before := ArcadeScores.circuit_count(_arcade_best)
+	if ArcadeScores.record(_arcade_best,id,value):
+		var after := ArcadeScores.circuit_count(_arcade_best)
+		if after > before:
+			_notify("ROOK: Local Legend! All eight stamps earned." if after == 8 else "ROOK: Circuit stamp earned. %d/8." % after)
+
+func _close_arcade() -> void:
+	if not is_instance_valid(_arcade_layer):
+		return
+	# Completed results are recorded immediately; abandoned rounds do not settle.
+	_arcade_layer.hide()
+	_arcade_layer.process_mode = Node.PROCESS_MODE_DISABLED
+	_arcade_layer.queue_free()
+	_arcade_layer = null
+	get_tree().paused = false
+	player.set("input_blocked", false)
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	_fire_held = true
+
 func _toggle_interior() -> void:
 	if interiors.call("is_inside"):
 		if not interiors.call("exit_reachable", player.global_position):
@@ -2021,6 +2470,8 @@ func _toggle_interior() -> void:
 		return
 	if current_car != null or current_transit != null:
 		_notify("Exit your vehicle before entering a building.")
+		return
+	if _synaxis_access_notice():
 		return
 	var repair := _repair_storefront()
 	if repair != null:
@@ -2051,7 +2502,12 @@ func _toggle_interior() -> void:
 	# Existing named shops keep H at their exact old public anchor. Their
 	# service migration is separate from the generic building conversion.
 	var legacy_anchor := false
-	if not venue.is_empty():
+	if str(venue.get("id", "")) == "insert_coin":
+		if not venue_system.call("is_open", "insert_coin"):
+			_notify("INSERT COIN is closed. Open 14:00–03:00.")
+			return
+		legacy_anchor = true
+	if not venue.is_empty() and not legacy_anchor:
 		legacy_anchor = player.global_position.distance_to(venue_system.call("venue_position",str(venue["id"]))) < .3
 	if not civic.is_empty():
 		legacy_anchor = legacy_anchor or player.global_position.distance_to(civic_services.call("position_for",str(civic["id"]))) < .3
@@ -2090,6 +2546,25 @@ func _toggle_interaction() -> void:
 		_close_venue()
 		return
 	if interiors.call("is_inside"):
+		if str(interiors.call("active_site_id")) == "insert_coin":
+			var cabinet_id := str(interiors.call("arcade_cabinet_near", player.global_position))
+			if not cabinet_id.is_empty():
+				_open_arcade(cabinet_id)
+			elif interiors.call("arcade_circuit_near",player.global_position):
+				_open_arcade_circuit()
+			else:
+				var exhibit: Dictionary = interiors.call("arcade_exhibit_near",player.global_position)
+				if not exhibit.is_empty():
+					_notify("%s / %s" % [exhibit["title"],exhibit["line"]])
+					return
+				var regular: Dictionary = interiors.call("arcade_talk_regular",player.global_position)
+				if not regular.is_empty():
+					_notify("%s / %s: %s" % [regular["name"],regular["role"],regular["line"]])
+				elif interiors.call("counter_reachable", player.global_position):
+					_notify("ROOK: " + str(interiors.call("arcade_rook_line")))
+				else:
+					_notify("Approach a cabinet from the front to play. Practice is free.")
+			return
 		# Mara's collectible, one-time shift note is a real world interaction,
 		# available only beside the flagship café booth. Reuse the already
 		# persisted civic-intel list; old saves and quest schemas are unchanged.
@@ -2124,6 +2599,10 @@ func _toggle_interaction() -> void:
 	if current_car != null or current_transit != null:
 		_notify("Get out of the vehicle before interacting with neighborhood businesses.")
 		return
+	if _try_parking_guard():
+		return
+	if _synaxis_access_notice():
+		return
 	if courier_mission.gig_economy and player.global_position.distance_to(mission_position) < CourierMission.RADIUS:
 		_advance_mission()
 		return
@@ -2147,6 +2626,27 @@ func _toggle_interaction() -> void:
 			_notify("Approach the service counter.")
 		return
 	var physical_lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+	if is_instance_valid(physical_lot) and not str(physical_lot.get("clothing_store_id")).is_empty():
+		if physical_lot.call("clothing_reachable",player.global_position):
+			_clothing_retail=true
+			_retail_id=str(physical_lot.get("clothing_store_id"))
+			_retail_day=int(day_night.get("day_index"))
+			_retail_stock=ClothingStore.stock_for_day(_retail_id,_retail_day)
+			_fitting_yaw=player.get_node("Visual").rotation.y
+			_fitting_rotation=0.0
+			_fitting_zoom=0.0
+			_fitting_compare=false
+			_wardrobe_category="ALL"
+			_wardrobe_panel=true
+			_wardrobe_index=Wardrobe.browse_ids().find(progression.outfit_id if progression.outfit_id in _retail_stock else "dispatch")
+			var greeting:String=physical_lot.call("clothing_greeting")
+			if not greeting.is_empty():
+				_notify(greeting)
+			_show_venue_dialogue()
+			_update_venue_panel()
+		else:
+			_notify(str(ClothingStore.STORES[physical_lot.get("clothing_store_id")]["name"])+": approach the fitting and checkout counter.")
+		return
 	if is_instance_valid(physical_lot) and not str(physical_lot.get("home_id")).is_empty():
 		if not progression.owns_home():
 			_notify("Complete Mara’s contact mission first.")
@@ -2166,6 +2666,7 @@ func _toggle_interaction() -> void:
 				_show_venue_dialogue()
 				_update_venue_panel()
 			"wardrobe":
+				_wardrobe_category="ALL"
 				_wardrobe_panel = true
 				_wardrobe_index = Wardrobe.IDS.find(progression.outfit_id)
 				_show_venue_dialogue()
@@ -2186,6 +2687,10 @@ func _toggle_interaction() -> void:
 		else:
 			_notify("Walk to the indoor service counter.")
 		return
+	if _cal_pickup_reachable() and progression.collect_cal_gift():
+		_notify("COMPATIBILITY PATCH: Collected Cal\u0027s prepaid anniversary heat sink. Return to Cal Mercer.")
+		_track_cal_waypoint()
+		return
 	var machine: Node3D = city_details.call("nearby_vending",player.global_position)
 	if is_instance_valid(machine):
 		_vending_machine = machine
@@ -2194,6 +2699,14 @@ func _toggle_interaction() -> void:
 		return
 	var shop: Dictionary = venue_system.call("nearest_venue", player.global_position)
 	var service: Dictionary = civic_services.call("nearest_site", player.global_position)
+	if shop.is_empty() and service.is_empty() and is_instance_valid(pedestrians) and weapons.equipped=="holstered":
+		var contact:Dictionary=pedestrians.call("nearby_contact")
+		if not contact.is_empty():
+			_street_contact_id=str(contact["lease_id"])
+			if pedestrians.call("is_named_cal",_street_contact_id) and progression.has_receipt(Opening.RECEIPT):
+				contact["cal_quest"]=progression.cal_quest
+			game_menu.call("open_street_contact",contact)
+			return
 	if str(shop.get("id","")) == "helix_espresso":
 		_notify("HELIX ESPRESSO: enter the actual building to order.")
 		return
@@ -2480,10 +2993,10 @@ func _update_civic_panel() -> void:
 	venue_label.text = title
 	if venue_service_button != null:
 		venue_service_button.disabled = not opened
-		venue_service_button.text = "1 / A  ·  %s  $%d" % [str(venue["item"]), int(venue["price"])]
+		venue_service_button.text = "1 / A  ·  %s  $%d" % [_civic_service_text(site), int(site["price"])]
 	if venue_job_button != null:
 		var offered: Dictionary = civic_services.call("order_from", civic_selected_id) if civic_job_active.is_empty() else civic_services.call("order_by_id", civic_job_active)
-		var available := not offered.is_empty() and (
+		var available:bool = not offered.is_empty() and (
 			(not civic_job_active.is_empty() and str(offered["to"]) == civic_selected_id) or
 			(civic_job_active.is_empty() and not civic_job_completed.has(str(offered["id"]))))
 		venue_job_button.disabled = not opened or not available
@@ -2599,6 +3112,9 @@ func _toggle_venue() -> void:
 	if not interiors.call("is_inside") and str(venue.get("id","")) == "helix_espresso":
 		_notify("Enter Helix Espresso and use its physical counter.")
 		return
+	if str(venue.get("id", "")) == "insert_coin":
+		_notify("INSERT COIN: enter with H / LB to play.")
+		return
 	if venue.is_empty():
 		_notify("Find a glowing venue frontage, then press G to visit.")
 		return
@@ -2610,7 +3126,8 @@ func _toggle_venue() -> void:
 func _show_venue_dialogue() -> void:
 	if venue_selected_id == "lantern_cup" and interiors.call("is_inside"):
 		interiors.call("set_mara_attention", true)
-	ambient_caption.call("clear")
+	if is_instance_valid(ambient_caption):
+		ambient_caption.call("clear")
 	venue_panel.visible = true
 	player.set("input_blocked", true)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -2618,6 +3135,8 @@ func _show_venue_dialogue() -> void:
 		venue_service_button.call_deferred("grab_focus")
 
 func _close_venue() -> void:
+	if is_instance_valid(dialogue_director):
+		dialogue_director.call("cancel_scope","venue:music_contact")
 	if interiors != null:
 		interiors.call("set_mara_attention", false)
 	mara_dialogue_line = ""
@@ -2635,7 +3154,20 @@ func _close_venue() -> void:
 	_sale_offer_id = ""
 	_home_panel = false
 	_storage_upgrade_quote = false
+	if _wardrobe_panel and is_instance_valid(player):
+		player.get_node("Visual").call("set_look",progression.outfit_id,progression.clothing_slots)
+		if _clothing_retail:
+			player.get_node("Visual").rotation.y=_fitting_yaw
 	_wardrobe_panel = false
+	_clothing_retail=false
+	_retail_id=""
+	_retail_stock.clear()
+	_fitting_compare=false
+	_wardrobe_category="ALL"
+	_look_index=0
+	_look_save_pending=false
+	if is_instance_valid(_wardrobe_controls):
+		_wardrobe_controls.hide()
 	_wardrobe_quote_id = ""
 	_wardrobe_tender = "USD"
 	_exchange_panel = false
@@ -2654,6 +3186,142 @@ func _close_venue() -> void:
 		player.set("input_blocked", false)
 	if game_menu == null or not game_menu.call("is_open"):
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+func _wardrobe_visible_ids() -> Array:
+	var result:Array=[]
+	for id in Wardrobe.category_ids(_wardrobe_category):
+		if _wardrobe_category=="OWNED":
+			if _clothing_owned(id):
+				result.append(id)
+			continue
+		var available:bool=(id in _retail_stock or id in Wardrobe.RESET_IDS) if _clothing_retail else (id not in ClothingStore.EXCLUSIVE or _clothing_owned(id))
+		if not available:
+			continue
+		if _wardrobe_category in ["AFFORDABLE","UNOWNED"]:
+			if _clothing_owned(id):
+				continue
+			var cost:=int(Wardrobe.listing(id)["price"])
+			if _wardrobe_category=="AFFORDABLE" and not progression.can_pay(cost,"USD") and not progression.can_pay(cost,"BTC"):
+				continue
+		result.append(id)
+	return result
+
+func _cycle_wardrobe_category(direction:int) -> void:
+	if not _wardrobe_panel or not _wardrobe_quote_id.is_empty():
+		return
+	var index:=Wardrobe.CATEGORIES.find(_wardrobe_category)
+	_wardrobe_category=Wardrobe.CATEGORIES[posmod(index+direction,Wardrobe.CATEGORIES.size())]
+	player.get_node("Visual").call("set_look",progression.outfit_id,progression.clothing_slots)
+	_fitting_rotation=0.0
+	_fitting_zoom=0.0
+	_look_save_pending=false
+	_look_index=0
+	var visible_ids:=_wardrobe_visible_ids()
+	if not visible_ids.is_empty():
+		_wardrobe_index=Wardrobe.browse_ids().find(visible_ids[0])
+	_fitting_compare=false
+	_update_venue_panel()
+
+func _toggle_fitting_compare() -> void:
+	if _wardrobe_panel and _wardrobe_category=="LOOKS":
+		_save_fitting_look()
+		return
+	if not _wardrobe_panel or not _clothing_retail:
+		return
+	_fitting_compare=not _fitting_compare
+	_update_venue_panel()
+
+func _wardrobe_session_valid() -> bool:
+	if not _wardrobe_panel or not is_instance_valid(player) or not venue_panel.visible or current_car!=null or current_transit!=null:
+		return false
+	var lot:Node3D=city_details.call("nearby_walk_in",player.global_position)
+	if not is_instance_valid(lot):
+		return false
+	if _clothing_retail:
+		return lot.get("clothing_store_id")==_retail_id and lot.call("clothing_reachable",player.global_position)
+	return progression.owns_home() and lot.call("home_action",player.global_position)=="wardrobe"
+
+func _save_fitting_look() -> void:
+	if not _wardrobe_session_valid() or _wardrobe_category!="LOOKS":
+		return
+	var id:String=ProgressionLedger.LOOK_IDS[_look_index]
+	if not progression.saved_look(id).is_empty() and not _look_save_pending:
+		_look_save_pending=true
+		_update_venue_panel()
+		return
+	if progression.save_look(id,_clothing_retail):
+		_notify("Saved current outfit to Look %d." % (_look_index+1))
+	_look_save_pending=false
+	_update_venue_panel()
+
+func _update_saved_looks() -> void:
+	var id:String=ProgressionLedger.LOOK_IDS[_look_index]
+	var look:Dictionary=progression.saved_look(id)
+	var visual:Node3D=player.get_node("Visual")
+	var preview_ok:=true
+	if look.is_empty():
+		visual.call("set_look",progression.outfit_id,progression.clothing_slots)
+	else:
+		preview_ok=bool(visual.call("set_look",look["outfit"],look["slots"]))
+	_wardrobe_controls.show()
+	_wardrobe_category_label.text="LOOKS / %d of %d" % [_look_index+1,ProgressionLedger.LOOK_IDS.size()]
+	for button in _wardrobe_controls.get_children():
+		if button is Button:
+			button.disabled=false
+	_wardrobe_compare_button.show()
+	_wardrobe_compare_button.text="R / ↓ CONFIRM REPLACE" if _look_save_pending else "R / ↓ SAVE CURRENT"
+	var info:="Empty slot" if look.is_empty() else str(Wardrobe.ITEMS[look["outfit"]]["name"])
+	if not look.is_empty():
+		for slot in Wardrobe.SLOTS:
+			if look["slots"].has(slot):
+				info+=" / "+str(Wardrobe.PIECES[look["slots"][slot]]["name"])
+	venue_label.text="PERSONAL LOOK %d\n%s\n%s" % [_look_index+1,info,"Confirm replacement with your committed look." if _look_save_pending else "Save the look you are wearing or equip this saved combination. No charge."]
+	venue_service_button.show()
+	venue_service_button.text="1 / A  •  PREVIOUS"
+	venue_service_button.disabled=_look_index==0
+	venue_job_button.show()
+	venue_job_button.text="2 / X  •  NEXT"
+	venue_job_button.disabled=_look_index==ProgressionLedger.LOOK_IDS.size()-1
+	venue_talk_button.show()
+	venue_talk_button.text="3 / Y  •  EQUIP LOOK"
+	venue_talk_button.disabled=look.is_empty() or not preview_ok
+
+func _step_wardrobe(direction:int) -> void:
+	var visible_ids:=_wardrobe_visible_ids()
+	if visible_ids.is_empty():
+		return
+	var current:String=Wardrobe.browse_ids()[_wardrobe_index]
+	var index:=visible_ids.find(current)
+	_wardrobe_index=Wardrobe.browse_ids().find(visible_ids[clampi(index+direction,0,visible_ids.size()-1)])
+	_fitting_compare=false
+	_fitting_rotation=0.0
+	_fitting_zoom=0.0
+
+func _clothing_owned(id:String) -> bool:
+	if not Wardrobe.reset_slot(id).is_empty():
+		return true
+	return progression.owns_piece(id) if Wardrobe.piece_valid(id) else progression.owns_outfit(id)
+
+func _clothing_selected(id:String) -> bool:
+	var slot:=Wardrobe.reset_slot(id)
+	if not slot.is_empty():
+		return not progression.clothing_slots.has(slot)
+	if Wardrobe.piece_valid(id):
+		return progression.clothing_slots.get(Wardrobe.PIECES[id]["slot"],"")==id
+	return progression.outfit_id==id and progression.clothing_slots.is_empty()
+
+func _preview_clothing(id:String) -> bool:
+	var visual:Node3D=player.get_node("Visual")
+	var reset:=Wardrobe.reset_slot(id)
+	if not reset.is_empty():
+		var slots:Dictionary=progression.clothing_slots.duplicate()
+		slots.erase(reset)
+		return visual.call("set_look",progression.outfit_id,slots)
+	if Wardrobe.piece_valid(id):
+		var slots:Dictionary=progression.clothing_slots.duplicate()
+		slots[Wardrobe.PIECES[id]["slot"]]=id
+		return visual.call("set_look",progression.outfit_id,slots)
+	return visual.call("set_look",id,{})
 
 func _update_venue_panel() -> void:
 	if is_instance_valid(contact_caption) and (venue_selected_id != "lantern_cup" or not interiors.call("is_inside")):
@@ -2680,9 +3348,49 @@ func _update_venue_panel() -> void:
 		venue_talk_button.hide()
 		return
 	if _wardrobe_panel:
-		var id: String = _wardrobe_quote_id if not _wardrobe_quote_id.is_empty() else Wardrobe.IDS[_wardrobe_index]
-		var item: Dictionary = Wardrobe.ITEMS[id]
-		var price := Wardrobe.price(id)
+		if _wardrobe_category=="LOOKS":
+			_update_saved_looks()
+			return
+		var id: String = _wardrobe_quote_id if not _wardrobe_quote_id.is_empty() else Wardrobe.browse_ids()[_wardrobe_index]
+		var item: Dictionary = Wardrobe.listing(id)
+		var price:=int(item["price"])
+		var visible_ids:=_wardrobe_visible_ids()
+		if visible_ids.is_empty() and _wardrobe_quote_id.is_empty():
+			player.get_node("Visual").call("set_look",progression.outfit_id,progression.clothing_slots)
+			_wardrobe_controls.show()
+			_wardrobe_category_label.text=_wardrobe_category+" / 0 items"
+			_wardrobe_compare_button.hide()
+			for button in _wardrobe_controls.get_children():
+				if button is Button:
+					button.disabled=false
+			venue_label.text="NO MATCHING CLOTHING\n"+("No unowned items fit either wallet balance." if _wardrobe_category=="AFFORDABLE" else "Nothing available in this category.")+"\nChange category to continue browsing."
+			venue_service_button.show()
+			venue_job_button.show()
+			venue_talk_button.show()
+			venue_service_button.text="1 / A  •  PREVIOUS"
+			venue_job_button.text="2 / X  •  NEXT"
+			venue_talk_button.text="3 / Y  •  SELECT"
+			venue_service_button.disabled=true
+			venue_job_button.disabled=true
+			venue_talk_button.disabled=true
+			return
+		var visible_index:=visible_ids.find(id)
+		if visible_index<0 and _wardrobe_quote_id.is_empty() and not visible_ids.is_empty():
+			id=visible_ids[0]
+			_wardrobe_index=Wardrobe.browse_ids().find(id)
+			item=Wardrobe.listing(id)
+			price=int(item["price"])
+			visible_index=0
+		var preview_ok:=true
+		if _clothing_retail:
+			preview_ok=bool(player.get_node("Visual").call("set_look",progression.outfit_id,progression.clothing_slots)) if _fitting_compare else _preview_clothing(id)
+		_wardrobe_controls.show()
+		_wardrobe_category_label.text=_wardrobe_category+"  /  "+str(visible_index+1)+" of "+str(visible_ids.size())+("  •  DROP "+str(_retail_day%3+1) if _retail_id==ClothingStore.THRIFT else "")
+		_wardrobe_compare_button.visible=_clothing_retail
+		_wardrobe_compare_button.text="R / ↓  PREVIEW" if _fitting_compare else "R / ↓  COMPARE"
+		for button in _wardrobe_controls.get_children():
+			if button is Button and button!=_wardrobe_compare_button:
+				button.disabled=not _wardrobe_quote_id.is_empty()
 		venue_service_button.show()
 		venue_talk_button.show()
 		if not _wardrobe_quote_id.is_empty():
@@ -2694,17 +3402,20 @@ func _update_venue_panel() -> void:
 			venue_job_button.text = "2 / X  •  SWITCH USD / BTC"
 			venue_job_button.disabled = false
 			venue_talk_button.text = "3 / Y  •  CONFIRM PURCHASE"
-			venue_talk_button.disabled = not progression.can_pay(price,_wardrobe_tender) or progression.owns_outfit(id)
+			venue_talk_button.disabled = visible_index<0 or not preview_ok or not progression.can_pay(price,_wardrobe_tender) or _clothing_owned(id)
 			return
-		var owned := progression.owns_outfit(id)
-		venue_label.text = "WARDROBE / %d of %d\n%s / %s\n%s  |  CASH $%d\nWearing: %s" % [_wardrobe_index+1,Wardrobe.IDS.size(),item["name"],item["rarity"],"OWNED" if owned else "$%d / %d sats" % [price,Economy.sats_for_usd(price)],cash,Wardrobe.ITEMS[progression.outfit_id]["name"]]
+		var owned := _clothing_owned(id)
+		venue_label.text = (str(ClothingStore.STORES[_retail_id]["name"])+" / FITTING" if _clothing_retail else "WARDROBE")+"\n%s  ·  %s\n%s   |   CASH $%d\n%s" % [item["name"],item["type"]+" / "+item["rarity"],"EQUIPPED" if _clothing_selected(id) else ("OWNED" if owned else "$%d / %d sats" % [price,Economy.sats_for_usd(price)]),cash,"CURRENT LOOK" if _fitting_compare else ("TRY-ON ONLY • Right stick / drag RMB to rotate • zoom with stick / wheel" if _clothing_retail else "Wearing: "+str(Wardrobe.ITEMS[progression.outfit_id]["name"]))]
+		venue_label.text+="\n"+str(item.get("detail",""))
 		venue_service_button.text = "1 / A  •  PREVIOUS"
-		venue_service_button.disabled = _wardrobe_index == 0
+		venue_service_button.disabled = visible_index<=0
 		venue_job_button.show()
 		venue_job_button.text = "2 / X  •  NEXT"
-		venue_job_button.disabled = _wardrobe_index == Wardrobe.IDS.size()-1
-		venue_talk_button.text = "3 / Y  •  EQUIP" if owned else "3 / Y  •  REVIEW PURCHASE"
-		venue_talk_button.disabled = id == progression.outfit_id or (not owned and not progression.can_pay(price,"USD") and not progression.can_pay(price,"BTC"))
+		venue_job_button.disabled = visible_index>=visible_ids.size()-1
+		venue_talk_button.text = ("3 / Y  •  REMOVE / RESTORE" if not Wardrobe.reset_slot(id).is_empty() else "3 / Y  •  EQUIP") if owned else "3 / Y  •  REVIEW PURCHASE"
+		if _clothing_retail and Wardrobe.piece_valid(id) and Wardrobe.PIECES[id]["slot"]=="patch":
+			venue_label.text+="\nBACKPACK ART / "+("CURRENT PATCH" if _fitting_compare else "ROTATE TO INSPECT")
+		venue_talk_button.disabled = not preview_ok or _clothing_selected(id) or (not owned and not progression.can_pay(price,"USD") and not progression.can_pay(price,"BTC"))
 		return
 	if _garage_panel:
 		venue_label.text = "LANTERN GARAGE / RECOVERY\nDrive into either marked bay and leave your car there. Recovery $75; damage retained."
@@ -2821,30 +3532,35 @@ func _update_venue_panel() -> void:
 		body += "Available: %s  $%d   " % [str(venue["item"]), int(venue["price"])]
 		if venue_job_active.is_empty():
 			var offer: Dictionary = venue_system.call("job_from", venue_selected_id)
-			if not offer.is_empty() and not venue_job_completed.has(str(offer["id"])):
-				body += "\nLocal work: %s (+$%d)" % [str(offer["title"]), int(offer["reward"])]
+			if not offer.is_empty() and not venue_job_completed.has(str(offer["id"])) and not progression.has_receipt("venue:"+str(offer["id"])):
+				if venue_system.call("job_unlocked",offer,progression.street_cred()):
+					body += "\n[2 / X] SIDE JOB: %s (+$%d)" % [str(offer["title"]), int(offer["reward"])]
+				else:
+					body += "\n%s / Requires %d Street Cred (you have %d)"%[str(offer["title"]),int(offer["min_cred"]),progression.street_cred()]
 		else:
 			var active: Dictionary = venue_system.call("job_by_id", venue_job_active)
 			if not active.is_empty() and str(active["to"]) == venue_selected_id:
-				body += "\nDeliver: %s (+$%d)" % [str(active["title"]), int(active["reward"])]
+				body += "\n[2 / X] DELIVER: %s (+$%d)" % [str(active["title"]), int(active["reward"])]
 	else:
 		body += "Come back during business hours."
-	body += "\nCash  $%d" % cash
+	body += "\n[G / B] Close   |   CASH $%d" % cash
 	venue_label.text = body
 	if venue_service_button != null:
 		venue_service_button.disabled = not open_now
-		venue_service_button.text = "1 / A  •  SERVICE"
+		venue_service_button.text = "1 / A  ·  %s  $%d" % [str(venue["item"]), int(venue["price"])]
 	if venue_job_button != null:
 		var offered: Dictionary = venue_system.call("job_from", venue_selected_id) if venue_job_active.is_empty() else venue_system.call("job_by_id", venue_job_active)
-		var available := not offered.is_empty() and (
+		var available:bool = not offered.is_empty() and (
 			(not venue_job_active.is_empty() and str(offered["to"]) == venue_selected_id) or
-			(venue_job_active.is_empty() and not venue_job_completed.has(str(offered["id"]))))
+			(venue_job_active.is_empty() and not venue_job_completed.has(str(offered["id"])) and not progression.has_receipt("venue:"+str(offered["id"])) and venue_system.call("job_unlocked",offered,progression.street_cred())))
 		venue_job_button.disabled = not open_now or not available
 		venue_job_button.text = "2 / X  ·  " + ("Turn in job" if not venue_job_active.is_empty() else "Ask for work")
 	if venue_talk_button != null:
-		venue_talk_button.visible = is_mara
-		venue_talk_button.disabled = not is_mara
-		venue_talk_button.text = "3 / Y  ·  Talk to Mara"
+		var music_set:=venue_selected_id=="blue_hour" and progression.has_receipt("venue:soundcheck_pass")
+		var busk:bool=bool(venue_selected_id in BUSKING_SITES and not interiors.call("is_inside"))
+		venue_talk_button.visible = is_mara or music_set or busk
+		venue_talk_button.disabled = not is_mara and not (music_set and open_now and _blue_hour_set_reachable()) and not (busk and _busking_reachable(venue_selected_id))
+		venue_talk_button.text="3 / Y  •  PLAY OPENING SET" if music_set else (("3 / Y  •  MUSIC DESK" if venue_selected_id=="copper_cup" else "3 / Y  •  BUSK WITH LOANER SAMPLER") if busk else "3 / Y  •  TALK TO MARA")
 
 func _mara_context() -> Dictionary:
 	return {
@@ -2884,10 +3600,23 @@ func _venue_action(option: int) -> void:
 		return
 	if _wardrobe_panel:
 		var lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
-		if not venue_panel.visible or not is_instance_valid(lot) or lot.call("home_action",player.global_position) != "wardrobe" or not progression.owns_home() or current_car != null or current_transit != null:
+		var retail_ok:bool=is_instance_valid(lot) and _clothing_retail and lot.get("clothing_store_id")==_retail_id and lot.call("clothing_reachable",player.global_position)
+		var home_ok:bool=is_instance_valid(lot) and not _clothing_retail and progression.owns_home() and lot.call("home_action",player.global_position)=="wardrobe"
+		if not venue_panel.visible or not (retail_ok or home_ok) or current_car != null or current_transit != null:
 			_close_venue()
 			return
 		var visual := player.get_node("Visual")
+		if _wardrobe_category=="LOOKS":
+			_look_save_pending=false
+			if option in [1,2]:
+				_look_index=clampi(_look_index+(-1 if option==1 else 1),0,ProgressionLedger.LOOK_IDS.size()-1)
+			elif option==3:
+				var look_id:String=ProgressionLedger.LOOK_IDS[_look_index]
+				var look:Dictionary=progression.saved_look(look_id)
+				if not look.is_empty() and visual.call("set_look",look["outfit"],look["slots"]) and progression.equip_look(look_id,retail_ok):
+					_notify("Equipped personal look %d." % (_look_index+1))
+			_update_venue_panel()
+			return
 		if not _wardrobe_quote_id.is_empty():
 			if option == 1:
 				_wardrobe_quote_id = ""
@@ -2896,22 +3625,32 @@ func _venue_action(option: int) -> void:
 			elif option == 3:
 				var id := _wardrobe_quote_id
 				_wardrobe_quote_id = ""
-				if int(visual.call("wardrobe_surface_count")) > 0 and progression.buy_outfit(id,_wardrobe_tender):
-					_notify("Purchased " + str(Wardrobe.ITEMS[id]["name"]) + ". Ready to equip.")
+				if id in _wardrobe_visible_ids() and _preview_clothing(id) and int(visual.call("wardrobe_surface_count"))>0 and (progression.buy_piece(id,_wardrobe_tender,retail_ok) if Wardrobe.piece_valid(id) else progression.buy_outfit(id,_wardrobe_tender,retail_ok)):
+					_notify("Purchased "+str(Wardrobe.listing(id)["name"])+". Ready to equip."+(" "+str(lot.call("clothing_remark",true)) if retail_ok else ""))
+					if _wardrobe_category in ["AFFORDABLE","UNOWNED"]:
+						_wardrobe_category="OWNED"
+						_wardrobe_index=Wardrobe.browse_ids().find(id)
 				else:
 					_notify("Purchase unavailable. No payment taken.")
 		elif option == 1:
-			_wardrobe_index = maxi(0,_wardrobe_index-1)
+			_step_wardrobe(-1)
 		elif option == 2:
-			_wardrobe_index = mini(Wardrobe.IDS.size()-1,_wardrobe_index+1)
+			_step_wardrobe(1)
 		elif option == 3:
-			var id: String = Wardrobe.IDS[_wardrobe_index]
-			if progression.owns_outfit(id):
-				if visual.call("set_outfit",id) and progression.select_outfit(id):
-					_notify("Outfit: " + str(Wardrobe.ITEMS[id]["name"]))
-			elif progression.can_pay(Wardrobe.price(id),"USD") or progression.can_pay(Wardrobe.price(id),"BTC"):
-				_wardrobe_tender = "USD" if progression.can_pay(Wardrobe.price(id),"USD") else "BTC"
-				_wardrobe_quote_id = id
+			var id:String=Wardrobe.browse_ids()[_wardrobe_index]
+			if id not in _wardrobe_visible_ids():
+				return
+			var price:=int(Wardrobe.listing(id)["price"])
+			_fitting_compare=false
+			if _clothing_owned(id):
+				if _preview_clothing(id):
+					var reset:=Wardrobe.reset_slot(id)
+					var changed:bool=progression.clear_piece(reset,retail_ok) if not reset.is_empty() else (progression.select_piece(id,retail_ok) if Wardrobe.piece_valid(id) else progression.select_outfit(id,retail_ok))
+					if changed:
+						_notify("Appearance: "+str(Wardrobe.listing(id)["name"]))
+			elif progression.can_pay(price,"USD") or progression.can_pay(price,"BTC"):
+				_wardrobe_tender="USD" if progression.can_pay(price,"USD") else "BTC"
+				_wardrobe_quote_id=id
 		_update_venue_panel()
 		return
 	if _garage_panel:
@@ -2999,6 +3738,24 @@ func _venue_action(option: int) -> void:
 		return
 	# Dialogue is no-cost and remains accessible even near closing time.
 	if option == 3:
+		if venue_selected_id=="copper_cup" and _busking_reachable(venue_selected_id):
+			_close_venue()
+			_music_session_site="desk:copper_cup"
+			_open_music_desk()
+			return
+		if _busking_reachable(venue_selected_id):
+			var site:=venue_selected_id
+			var sequence:=progression.street_activity_runs("busking")+1
+			_close_venue()
+			_music_session_site=site
+			game_menu.call("open_busking_set",sequence)
+			return
+		if venue_selected_id=="blue_hour" and _blue_hour_set_reachable():
+			var sequence:=progression.street_activity_runs("live_gig")+1
+			_close_venue()
+			_music_session_site="blue_hour"
+			game_menu.call("open_blue_hour_set",sequence)
+			return
 		if venue_selected_id == "lantern_cup" and interiors.call("is_inside"):
 			var response: Dictionary = interiors.call("mara_talk", _mara_context())
 			if not response.is_empty():
@@ -3048,11 +3805,18 @@ func _venue_action(option: int) -> void:
 	elif option == 2:
 		if venue_job_active.is_empty():
 			var job: Dictionary = venue_system.call("job_from", venue_selected_id)
-			if job.is_empty() or venue_job_completed.has(str(job.get("id", ""))):
+			if job.is_empty() or venue_job_completed.has(str(job.get("id", ""))) or progression.has_receipt("venue:"+str(job.get("id",""))):
 				_notify("No new work from this contact.")
+				return
+			if not venue_system.call("job_unlocked",job,progression.street_cred()):
+				_notify("Build your local reputation first. Requires %d Street Cred."%int(job.get("min_cred",0)))
 				return
 			venue_job_active = str(job["id"])
 			_notify("NEW SIDE JOB: %s — %s" % [str(job["title"]), str(job["brief"])])
+			_play_music_contact_cue(venue_job_active,"brief")
+			if venue_job_active=="soundcheck_pass":
+				var target:=_venue_job_target()
+				set_navigation_waypoint(Vector2(target.x,target.z))
 		else:
 			var contract: Dictionary = venue_system.call("job_by_id", venue_job_active)
 			if contract.is_empty():
@@ -3068,12 +3832,17 @@ func _venue_action(option: int) -> void:
 				_notify("Side job already paid.")
 				_update_venue_panel()
 				return
+			if not venue_system.call("job_unlocked",contract,progression.street_cred()):
+				_notify("This contract requires more Street Cred.")
+				return
+			var previous_cred:=progression.street_cred()
 			if not progression.credit_once("venue:" + venue_job_active, int(contract["reward"])):
 				_notify("Unable to settle side job. Check wallet capacity.")
 				return
 			venue_job_completed.append(venue_job_active)
+			_play_music_contact_cue(venue_job_active,"ending")
 			venue_job_active = ""
-			_notify("SIDE JOB COMPLETE +$%d: %s" % [int(contract["reward"]), str(contract["ending"])])
+			_notify("SIDE JOB COMPLETE +$%d • +%d STREET CRED: %s" % [int(contract["reward"]),progression.street_cred()-previous_cred,str(contract["ending"])])
 	_update_venue_panel()
 
 func _venue_job_text() -> String:
@@ -3191,6 +3960,11 @@ func _build_hud() -> void:
 	_radio_caption = _hud_text(_radio_card, "Transmission", 16, Color("a4c7ef"))
 	_radio_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_radio_card.hide()
+	_dialogue_card = _hud_card(ui, "SpeechCaptionCard", 0.5, 1.0, Vector4(-375, -238, 375, -160))
+	_dialogue_caption = _hud_text(_dialogue_card, "SpeechCaption", 19, Ui.TEXT)
+	_dialogue_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_dialogue_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_dialogue_card.hide()
 	_reticle = Reticle.new()
 	_reticle.name = "AimReticle"
 	_reticle.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -3246,6 +4020,25 @@ func _build_hud() -> void:
 	var dialogue_layout := VBoxContainer.new()
 	dialogue_layout.add_theme_constant_override("separation", 7)
 	venue_panel.add_child(dialogue_layout)
+	_wardrobe_controls=HBoxContainer.new()
+	_wardrobe_controls.name="FittingCategories"
+	_wardrobe_controls.hide()
+	dialogue_layout.add_child(_wardrobe_controls)
+	var previous_category:=Button.new()
+	previous_category.text="H / LB  ‹"
+	previous_category.pressed.connect(func()->void: _cycle_wardrobe_category(-1))
+	_wardrobe_controls.add_child(previous_category)
+	_wardrobe_category_label=Label.new()
+	_wardrobe_category_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	_wardrobe_category_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	_wardrobe_controls.add_child(_wardrobe_category_label)
+	var next_category:=Button.new()
+	next_category.text="›  F / RB"
+	next_category.pressed.connect(func()->void: _cycle_wardrobe_category(1))
+	_wardrobe_controls.add_child(next_category)
+	_wardrobe_compare_button=Button.new()
+	_wardrobe_compare_button.pressed.connect(_toggle_fitting_compare)
+	_wardrobe_controls.add_child(_wardrobe_compare_button)
 	dialogue_layout.add_child(venue_label)
 	contact_caption = DialogueCaption.new()
 	contact_caption.name = "ContactCaption"
@@ -3311,6 +4104,11 @@ func _hud_text(parent: Node, node_name: String, font_size: int, tint: Color) -> 
 	label.add_theme_color_override("font_color", tint)
 	parent.add_child(label)
 	return label
+
+func _show_dialogue_caption(_line_id: String, caption: String) -> void:
+	if is_instance_valid(_dialogue_card):
+		_dialogue_caption.text = caption
+		_dialogue_card.visible = not caption.is_empty()
 
 func _hud_card(layer: CanvasLayer, node_name: String, ax: float, ay: float, bounds: Vector4) -> PanelContainer:
 	var panel := PanelContainer.new()
@@ -3384,6 +4182,10 @@ func _update_hud() -> void:
 		jobs.append(_venue_job_text())
 	if not civic_job_active.is_empty():
 		jobs.append(_civic_job_text())
+	if progression.cal_quest in [1,2]:
+		jobs.append(_cal_objective())
+	if progression.street_cred()>0:
+		jobs.append(progression.street_cred_summary())
 	hud_jobs.text = "\n".join(jobs)
 	hud_jobs.visible = not jobs.is_empty()
 	hud_notice.text = message
@@ -3400,6 +4202,8 @@ func _update_hud() -> void:
 			prompts.append("%s   |   %s" % [str(nightgrid_fm.call("get_now_playing")), radio_keys])
 	elif current_transit != null:
 		prompts.append("RB Leave at next stop" if gamepad_active else "F Leave at next stop")
+	elif _parking_guard_near():
+		prompts.append("%s  Talk to Marcus Vale  •  Synaxis security" % interact_key)
 	elif repair != null and repair.door_reachable(player.global_position):
 		prompts.append("%s %s door  •  NIGHT SHIFT REPAIRS" % [enter_key, "Close" if repair.door.is_requested_open() else "Open"])
 		if repair.door.movement_blocked:
@@ -3410,7 +4214,22 @@ func _update_hud() -> void:
 		var site_id := str(interiors.call("active_site_id"))
 		var room_site: Dictionary = civic_services.call("site_by_id", site_id) if str(interiors.call("active_site_group")) == "CIVIC" else venue_system.call("venue_by_id", site_id)
 		prompts.append("%s  •  %s" % [str(room_site.get("name", site_id)), enter_key + " Exit" if interiors.call("exit_reachable", player.global_position) else "Return to front door"])
-		if interiors.call("counter_reachable", player.global_position):
+		if site_id == "insert_coin":
+			var cabinet_id := str(interiors.call("arcade_cabinet_near", player.global_position))
+			if not cabinet_id.is_empty():
+				prompts.append("%s  Play %s (free)" % [interact_key, cabinet_id.replace("_", " ").capitalize()])
+			elif interiors.call("arcade_circuit_near",player.global_position):
+				prompts.append("%s  Rook's circuit (%d/8)" % [interact_key,ArcadeScores.circuit_count(_arcade_best)])
+			else:
+				var exhibit: Dictionary = interiors.call("arcade_exhibit_near",player.global_position)
+				var regular: Dictionary = interiors.call("arcade_regular_near",player.global_position)
+				if not exhibit.is_empty():
+					prompts.append("%s  Inspect %s" % [interact_key,exhibit["title"]])
+				elif not regular.is_empty():
+					prompts.append("%s  Chat with %s" % [interact_key,regular["name"]])
+				elif interiors.call("counter_reachable", player.global_position):
+					prompts.append("%s  Talk to Rook" % interact_key)
+		elif interiors.call("counter_reachable", player.global_position):
 			prompts.append("%s  Service counter" % interact_key)
 		if site_id == "lantern_cup":
 			var local_regular: Dictionary = interiors.call("patron_near", player.global_position)
@@ -3432,6 +4251,8 @@ func _update_hud() -> void:
 		if physical_lot != null and not str(physical_lot.get("home_id")).is_empty():
 			var home_action := str(physical_lot.call("home_action",player.global_position))
 			prompts.append("HOME / " + (interact_key + " " + home_action.capitalize() if progression.owns_home() and not home_action.is_empty() else ("Unit 01" if progression.owns_home() else "Locked — tenancy payment required")))
+		if physical_lot != null and physical_lot.call("clothing_reachable",player.global_position):
+			prompts.append("%s Browse %s clothing" % [interact_key,ClothingStore.STORES[physical_lot.get("clothing_store_id")]["name"]])
 		if physical_lot != null and physical_lot.call("service_reachable",player.global_position):
 			prompts.append("%s Order at HELIX ESPRESSO" % interact_key)
 		if physical_lot != null and physical_lot.call("doorway_reachable",player.global_position):
@@ -3439,6 +4260,12 @@ func _update_hud() -> void:
 			prompts.append("%s %s building door" % [enter_key,"Close" if leaf.call("is_requested_open") else "Open"])
 		if is_instance_valid(city_details.call("nearby_vending",player.global_position)):
 			prompts.append("%s  Vending machine" % interact_key)
+		if _cal_pickup_reachable():
+			prompts.append("%s  Collect Cal\u0027s prepaid gift" % interact_key)
+		if prompts.is_empty() and is_instance_valid(pedestrians) and weapons.equipped=="holstered":
+			var contact:Dictionary=pedestrians.call("nearby_contact")
+			if not contact.is_empty():
+				prompts.append("%s  Talk to %s" % [interact_key,str(contact["name"])])
 		if prompts.is_empty():
 			prompts.append("Y Vehicle  •  RB Transit  •  X Interact" if gamepad_active else "E Vehicle  •  F Transit  •  G Interact")
 	if _can_use_weapon():
@@ -3449,8 +4276,6 @@ func _update_hud() -> void:
 	if venue_panel.visible:
 		_update_venue_panel()
 	if is_instance_valid(ambient_caption) and ambient_caption.visible:
-		# Keep the subtitle above the actual contextual action stack, even if
-		# a future HUD layout changes its height or hides its prompts.
 		var bottom := minf(-150.0, hud_prompt_card.offset_top - 12.0) if hud_prompt_card.visible else -150.0
 		ambient_caption.offset_bottom = bottom
 		ambient_caption.offset_top = bottom - maxf(90.0, ambient_caption.get_combined_minimum_size().y)
@@ -3466,6 +4291,7 @@ func _venue_job_target() -> Vector3:
 func set_navigation_waypoint(point: Vector2) -> Vector2:
 	if not point.is_finite():
 		return Vector2.ZERO if navigation_waypoint == null else navigation_waypoint
+	_cal_tracking=false
 	point = Nav.clamp_point(point)
 	# Prefer exact, persistent interaction positions when clicking near pins.
 	var selected := point
@@ -3491,6 +4317,7 @@ func set_navigation_waypoint(point: Vector2) -> Vector2:
 	return selected
 
 func clear_navigation_waypoint() -> void:
+	_cal_tracking=false
 	navigation_waypoint = null
 	_route_cache.clear()
 	_route_revision = -1
@@ -3597,7 +4424,7 @@ func _fire_weapon() -> bool:
 	var target: Vector3 = camera_hit.get("position", view_end)
 	var origin := player.global_position + Vector3.UP * 0.55
 	if is_instance_valid(pedestrians):
-		pedestrians.call("react_to_incident", origin, 22.0, ignore)
+		pedestrians.call("react_to_incident", origin, 22.0, ignore, true)
 	var direction := origin.direction_to(target)
 	var endpoint := origin + direction * minf(origin.distance_to(target) + 0.05, float(spec["reach"]))
 	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(origin, endpoint, 1, ignore))
@@ -3708,3 +4535,149 @@ func get_map_state() -> Dictionary:
 		"civic_quest_active": not civic_job_active.is_empty(),
 		"civic_quest": Vector2(_civic_job_target().x, _civic_job_target().z)
 	}
+
+func _cancel_street_interactions()->void:
+	_music_session_site=""
+	_street_contact_id=""
+	_cal_pending={}
+	if is_instance_valid(pedestrians) and is_instance_valid(dialogue_director):
+		pedestrians.call("cancel_street_dialogue",dialogue_director)
+
+## Anniversaries are optional; the ledger is the sole reward/state owner.
+func _cal_pickup_reachable()->bool:
+	if progression.cal_quest!=1 or not is_instance_valid(venue_system) or not is_instance_valid(player) or current_car!=null or current_transit!=null or interiors.call("is_inside") or weapons.equipped!="holstered":
+		return false
+	var at:Vector3=venue_system.call("venue_position",CAL_PICKUP)
+	return player.global_position.distance_to(at)<=3.0
+
+func _cal_target()->Vector3:
+	if progression.cal_quest==1 and is_instance_valid(venue_system):
+		return venue_system.call("venue_position",CAL_PICKUP)
+	if progression.cal_quest==2 and is_instance_valid(pedestrians):
+		return pedestrians.call("cal_position")
+	return Vector3.INF
+
+func _cal_objective()->String:
+	match progression.cal_quest:
+		1: return "COMPATIBILITY PATCH / Collect prepaid gift at Moon Noodles"
+		2:
+			if not is_instance_valid(pedestrians):
+				return "COMPATIBILITY PATCH / Living Streets unavailable; relaunch with --living-streets"
+			if not pedestrians.call("cal_is_live"):
+				return "COMPATIBILITY PATCH / Cal's neighborhood; approach from 35–95m with the sidewalk out of view"
+			return "COMPATIBILITY PATCH / Return heat sink to Cal Mercer"
+		3: return "COMPATIBILITY PATCH / Completed"
+	return ""
+
+func _resolve_cal_action(allowed:bool)->void:
+	if _cal_pending.is_empty():
+		return
+	var pending:=_cal_pending
+	_cal_pending={}
+	var id:=str(pending["id"])
+	var listener:Vector3=player.global_position+Vector3.UP*1.6
+	if not allowed or not progression.has_receipt(Opening.RECEIPT) or not pedestrians.call("confirm_cal_contact",id,listener,player.get_rid()):
+		_notify("Cal is no longer within reach. Approach him again.")
+		return
+	var action:="accept" if pending["action"]=="cal_accept" else "complete"
+	var before_cred:=progression.street_cred()
+	var changed:=progression.accept_cal_quest() if action=="accept" else progression.complete_cal_quest()
+	if not changed:
+		_notify("Unable to advance Compatibility Patch.")
+		return
+	var cue:=StreetSatire.cal_quest_line(action)
+	var reward_notice:="COMPATIBILITY PATCH / Accepted" if action=="accept" else "COMPATIBILITY PATCH / Completed +$85 • +%d STREET CRED"%(progression.street_cred()-before_cred)
+	if not is_instance_valid(dialogue_director) or not pedestrians.call("play_cal_quest_line",dialogue_director,id,action,listener,player.get_rid()):
+		_notify(reward_notice+" / "+str(cue["text"]))
+	else:
+		_notify(reward_notice)
+	if action=="accept":
+		_track_cal_waypoint()
+	elif _cal_tracking:
+		clear_navigation_waypoint()
+
+## Quest-owned waypoints bypass venue snapping; manual map pins keep priority.
+func _track_cal_waypoint()->void:
+	var point:=_cal_target()
+	if not point.is_finite():
+		return
+	_cal_tracking=true
+	_cal_nav_clock=0.0
+	_update_cal_navigation(0.0)
+
+func _update_cal_navigation(delta:float)->void:
+	if not _cal_tracking:
+		return
+	if progression.cal_quest not in [1,2]:
+		clear_navigation_waypoint()
+		return
+	_cal_nav_clock-=delta
+	if _cal_nav_clock>0.0:
+		return
+	_cal_nav_clock=1.0
+	var point:=_cal_target()
+	if not point.is_finite():
+		return
+	var target:=Nav.clamp_point(Vector2(point.x,point.z))
+	if navigation_waypoint==null or target.distance_to(navigation_waypoint)>=4.0:
+		navigation_waypoint=target
+		_route_cache.clear()
+		_route_revision=-1
+
+func _music_contact_status()->String:
+	if progression.has_receipt("venue:soundcheck_pass"):
+		return "UNDERGROUND / Rae at Blue Hour: Opening sets available • %d completed"%progression.street_activity_runs("live_gig")
+	if venue_job_active=="soundcheck_pass":
+		return "UNDERGROUND / Deliver Nyx's demo to Blue Hour."
+	if progression.street_cred()>=100:
+		return "UNDERGROUND / Nyx at Static Room has a music favor for you."
+	return "UNDERGROUND / Reach 100 Street Cred to meet Nyx."
+
+func _play_music_contact_cue(id:String,beat:String)->void:
+	var cue:=StreetSatire.venue_job_line(id,beat)
+	if cue.is_empty() or not is_instance_valid(dialogue_director):
+		return
+	# Existing venue panel does not expose a physical host node; use the
+	# bounded nonspatial voice channel rather than inventing a world speaker.
+	dialogue_director.call("cancel_scope","venue:music_contact")
+	dialogue_director.call("enqueue",str(cue["id"]),str(cue["text"]),DialogueDirector.STORY,null,"venue:music_contact")
+
+func _blue_hour_set_reachable()->bool:
+	if not progression.has_receipt("venue:soundcheck_pass") or not is_instance_valid(player) or current_car!=null or current_transit!=null or weapons.equipped!="holstered" or not venue_system.call("is_open","blue_hour"):
+		return false
+	if interiors.call("is_inside"):
+		return str(interiors.call("active_site_id"))=="blue_hour" and bool(interiors.call("counter_reachable",player.global_position))
+	var point:Vector3=venue_system.call("venue_position","blue_hour")
+	return player.global_position.distance_to(point)<=5.5
+
+func _busking_reachable(site:String)->bool:
+	if site not in BUSKING_SITES or not is_instance_valid(player) or current_car!=null or current_transit!=null or interiors.call("is_inside") or weapons.equipped!="holstered" or not venue_system.call("is_open",site):
+		return false
+	var point:Vector3=venue_system.call("venue_position",site)
+	return player.global_position.distance_to(point)<=5.5
+
+func _open_music_desk()->void:
+	game_menu.call("open_music_desk",{"owned":progression.owns_instrument(Instruments.STARTER),"owned_set":progression.owned_set_unlocked(),"cash":cash,"summary":progression.instrument_summary()})
+
+func _music_desk_action(action:String)->void:
+	if action=="music_desk_leave":
+		_music_session_site=""
+		return
+	if _music_session_site!="desk:copper_cup" or game_menu.get("screen")!="music_desk" or not _busking_reachable("copper_cup"):
+		return
+	match action:
+		"music_desk_buy":
+			if progression.buy_instrument(Instruments.STARTER):
+				_notify("Purchased PocketBeat M3. Your own sampler is ready to practice.")
+			_open_music_desk()
+		"music_desk_busk":
+			_music_session_site="copper_cup"
+			game_menu.call("open_busking_set",progression.street_activity_runs("busking")+1)
+		"music_desk_owned":
+			if progression.owned_set_unlocked():
+				_music_session_site="owned:copper_cup"
+				game_menu.call("open_owned_sampler_set",progression.street_activity_runs("busking")+1)
+		"music_desk_practice":
+			if progression.owns_instrument(Instruments.STARTER) and progression.sampler_practice<Instruments.MAX_PRACTICE:
+				_music_session_site="practice:copper_cup"
+				game_menu.call("open_sampler_practice",progression.sampler_practice+1)

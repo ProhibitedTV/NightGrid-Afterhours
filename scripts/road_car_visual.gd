@@ -35,6 +35,8 @@ static var _spray_fade: Gradient
 static var _contact_shadow_mesh: PlaneMesh
 
 var _night := true
+var _founder_display:=false
+var _founder_finishes:Dictionary={}
 var _color: Color
 var _spec: Dictionary
 var _shell: Node3D
@@ -75,6 +77,10 @@ func configure(paint_color: Color) -> void:
 	_color = paint_color
 	_spec = Cars.DATA[Cars.R9]
 
+func configure_founder_display() -> void:
+	configure(Color("122c29"))
+	_founder_display=true
+
 func _ready() -> void:
 	if _shared.is_empty():
 		_create_materials()
@@ -102,6 +108,11 @@ func _ready() -> void:
 		_crash_sources[part] = part.mesh
 	_steering_wheel = _shell.get_node_or_null("SteeringWheel") as Node3D
 	_build_wheels()
+	if _founder_display:
+		# Static parked display: no drivetrain, live instruments, lights or physics tick.
+		set_process(false)
+		set_physics_process(false)
+		return
 	_build_lights()
 	_cluster = Cluster.new()
 	_cluster.name = "LiveInstrumentCluster"
@@ -240,10 +251,31 @@ func _finish(part: MeshInstance3D) -> void:
 			carbon.clearcoat_roughness = 0.27
 			_shared[label] = carbon
 		var material: Material = _shared.get(key if label == "Paint" else label)
+		if _founder_display and material!=null:
+			material=_founder_finish(label,material)
 		if material != null:
 			part.set_surface_override_material(index, material)
 	if part.name.ends_with("Lenses") or part.name == &"HeadProjectors":
 		part.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+func _founder_finish(label:String,original:Material) -> Material:
+	if label not in ["MachinedAlloy","BrakeCaliper","Glazing","Seat","Paint"]:
+		return original
+	if not _founder_finishes.has(label):
+		var finish:=original.duplicate() as Material
+		match label:
+			"MachinedAlloy":
+				(finish as StandardMaterial3D).albedo_color=Color("9c8356")
+			"BrakeCaliper":
+				(finish as StandardMaterial3D).albedo_color=Color("b7a06f")
+			"Seat":
+				(finish as StandardMaterial3D).albedo_color=Color("9d7251")
+			"Glazing":
+				(finish as ShaderMaterial).set_shader_parameter("privacy_tint",.20)
+			"Paint":
+				(finish as ShaderMaterial).set_shader_parameter("flake_content",.22)
+		_founder_finishes[label]=finish
+	return _founder_finishes[label]
 
 func _build_wheels() -> void:
 	if _wheel_mesh == null:
