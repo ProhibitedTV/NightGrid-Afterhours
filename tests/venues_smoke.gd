@@ -303,6 +303,20 @@ func _verify() -> void:
 	if display==null or display.find_children("*","MeshInstance3D",true,false).is_empty():
 		_fail("PocketBeat GLB missing from actual consignment counter")
 		return
+	var strings:=venues.get_node_or_null("copper_cup/IronwakeConsignment") as Node3D
+	if strings==null or strings.find_children("*","MeshInstance3D",true,false).size()<2:
+		_fail("Original guitar and bass display missing")
+		return
+	venues.call("set_focus",venues.call("venue_position","copper_cup"))
+	venues.call("set_hour",12.0)
+	if not strings.visible:
+		_fail("Open nearby string display hidden")
+		return
+	venues.call("set_hour",4.0)
+	if strings.visible:
+		_fail("Closed string display remained visible")
+		return
+	venues.call("set_hour",12.0)
 	if menu.find_children("PocketBeatPreview","SubViewportContainer",true,false).is_empty():
 		_fail("Music desk missing real model preview")
 		return

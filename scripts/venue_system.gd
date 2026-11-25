@@ -5,6 +5,9 @@ const SOUNDCHECK="soundcheck_pass"
 const MUSIC_REPUTATION=100
 const PocketBeat=preload("res://assets/instruments/pocketbeat_m3.glb")
 var _sampler_display:Node3D
+const Breaker=preload("res://assets/instruments/ironwake_breaker_g6.glb")
+const Dredge=preload("res://assets/instruments/ironwake_dredge_b4.glb")
+var _string_display:Node3D
 ## Morrow Bay's authored social hubs: fixed addresses, opening hours, readable
 ## streetfront set dressing, services and four directed side-story contracts.
 ## The seed never changes a venue's address, contact or narrative identity.
@@ -238,6 +241,7 @@ func _build_venue(venue: Dictionary) -> void:
 				_sampler_display.position=Vector3(0.45,1.676,0.57)
 				_sampler_display.rotation.y=deg_to_rad(12.0)
 				front.add_child(_sampler_display)
+				_build_ironwake_display(front)
 			if venue_id == "lantern_cup":
 				_build_lantern_cup_streetfront(front, accent, neon)
 		"BAR":
@@ -445,6 +449,8 @@ func _night_factor() -> float:
 func _refresh() -> void:
 	if is_instance_valid(_sampler_display):
 		_sampler_display.visible=is_open("copper_cup") and venue_position("copper_cup").distance_squared_to(_focus)<35.0*35.0
+	if is_instance_valid(_string_display):
+		_string_display.visible=is_open("copper_cup") and venue_position("copper_cup").distance_squared_to(_focus)<25.0*25.0
 	var darkness := _night_factor()
 	var nearby: Array[Dictionary] = []
 	for pin in _map_pins:
@@ -493,3 +499,17 @@ static func _job_details(job:Dictionary)->Dictionary:
 		for beat in ["brief","ending"]:
 			result[beat]=Satire.venue_job_line(SOUNDCHECK,beat)["text"]
 	return result
+
+## Static consignment wall display, not player inventory. Meter-scale imported
+## assets share existing frontage lighting; no new collision or processing.
+func _build_ironwake_display(front:Node3D)->void:
+	_string_display=Node3D.new()
+	_string_display.name="IronwakeConsignment"
+	front.add_child(_string_display)
+	for i in range(2):
+		var model:Node3D=(Breaker if i==0 else Dredge).instantiate() as Node3D
+		model.name="BreakerG6" if i==0 else "DredgeB4"
+		model.position=Vector3(3.05+float(i)*0.64,0.88,1.91)
+		model.rotation.y=PI
+		_string_display.add_child(model)
+	_label(_string_display,"IRONWAKE / DISPLAY ONLY",Vector3(3.37,2.18,1.77),Color("b9a48d"),15)
