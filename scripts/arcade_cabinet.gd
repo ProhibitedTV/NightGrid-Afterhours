@@ -13,6 +13,7 @@ const ART := {
 	"battle_pass_hero": preload("res://assets/arcade/battle_pass_hero.svg")
 }
 const TINTS := {"grand_delay": "69d8c2", "claw_compliance": "efb169", "patch_day": "c4a2f3", "indie_dev": "f1cd82", "annual_warfare": "a5ca82", "day_one_dlc": "ed9db5", "open_world_checklist": "80bce9", "battle_pass_hero": "e6a1ef"}
+const SERVICE_STICKERS := {"grand_delay":"RELEASE DATE: TBA", "claw_compliance":"APPROVED BY 12 COMMITTEES", "patch_day":"HOTFIX HOTLINE", "indie_dev":"MADE WITH WEEKENDS OFF", "annual_warfare":"RELOADS ARE FREE", "day_one_dlc":"ALL PARTS INCLUDED", "open_world_checklist":"SOCK NOT INCLUDED", "battle_pass_hero":"NO ATTENDANCE TRACKING"}
 const CRT = preload("res://assets/arcade/attract_crt.gdshader")
 var game_id := "grand_delay"
 static var materials: Dictionary = {}
@@ -74,6 +75,15 @@ func _ready() -> void:
 	marquee.modulate = Color("10151d")
 	marquee.outline_size = 0
 	add_child(marquee)
+	var sticker := Label3D.new()
+	sticker.name = "ServiceSticker"
+	sticker.text = str(SERVICE_STICKERS[game_id])
+	sticker.font_size = 20
+	sticker.pixel_size = .0015
+	sticker.modulate = Color("c8bba4")
+	sticker.position = Vector3(0,.31,.401)
+	sticker.outline_size = 0
+	add_child(sticker)
 	_collision(Vector3(0,1.10,.03),Vector3(.87,2.16,.85))
 	_collision(Vector3(0,1.04,.43),Vector3(.84,.15,.24))
 

@@ -20,7 +20,7 @@ func _verify() -> void:
 		var back: Vector3 = cabinet.to_global(Vector3(0,1.1,-1.0))
 		if not check(room.cabinet_near(front) == cabinet.game_id and room.cabinet_near(back).is_empty(), "front-only interaction " + str(cabinet.game_id)):
 			return
-		if not check(cabinet.get_node_or_null("MarqueeTitle") != null, "readable cabinet marquee"):
+		if not check(cabinet.get_node_or_null("MarqueeTitle") != null and cabinet.get_node_or_null("ServiceSticker") != null, "cabinet marquee and service sticker"):
 			return
 		var shapes := 0
 		for child in cabinet.get_children():
@@ -39,8 +39,23 @@ func _verify() -> void:
 	var second_line := room.talk_regular(local)
 	if not check(first_line["line"] != second_line["line"], "regular has rotating dialogue"):
 		return
-	room.talk_regular(local)
+	for i in range(3):
+		room.talk_regular(local)
 	if not check(room.talk_regular(local) == first_line, "regular dialogue wraps"):
+		return
+	var archive := room.get_node_or_null("GameCultureArchive")
+	if not check(archive != null and archive.EXHIBITS.size() == 8, "eight archive exhibits"):
+		return
+	var seen := {}
+	for exhibit in archive.EXHIBITS:
+		var point: Vector3 = archive.to_global(exhibit["approach"])
+		var found: Dictionary = room.exhibit_near(point)
+		if not check(found.get("id","") == exhibit["id"] and not seen.has(exhibit["id"]) and room.cabinet_near(point).is_empty() and room.regular_near(point).is_empty(), "distinct reachable archive display " + str(exhibit["id"])):
+			return
+		seen[exhibit["id"]] = true
+		if not check(archive.get_node_or_null(str(exhibit["id"])+"/Illustration") != null, "exhibit has artwork"):
+			return
+	if not check(room.exhibit_near(Vector3(0,1.1,5.8)).is_empty(), "entry not consumed by archive"):
 		return
 	var first := room.rook_line()
 	for i in range(Room.ROOK_LINES.size()-1):

@@ -2364,6 +2364,10 @@ func _toggle_interaction() -> void:
 			if not cabinet_id.is_empty():
 				_open_arcade(cabinet_id)
 			else:
+				var exhibit: Dictionary = interiors.call("arcade_exhibit_near",player.global_position)
+				if not exhibit.is_empty():
+					_notify("%s / %s" % [exhibit["title"],exhibit["line"]])
+					return
 				var regular: Dictionary = interiors.call("arcade_talk_regular",player.global_position)
 				if not regular.is_empty():
 					_notify("%s / %s: %s" % [regular["name"],regular["role"],regular["line"]])
@@ -3708,8 +3712,11 @@ func _update_hud() -> void:
 			if not cabinet_id.is_empty():
 				prompts.append("%s  Play %s (free)" % [interact_key, cabinet_id.replace("_", " ").capitalize()])
 			else:
+				var exhibit: Dictionary = interiors.call("arcade_exhibit_near",player.global_position)
 				var regular: Dictionary = interiors.call("arcade_regular_near",player.global_position)
-				if not regular.is_empty():
+				if not exhibit.is_empty():
+					prompts.append("%s  Inspect %s" % [interact_key,exhibit["title"]])
+				elif not regular.is_empty():
 					prompts.append("%s  Chat with %s" % [interact_key,regular["name"]])
 				elif interiors.call("counter_reachable", player.global_position):
 					prompts.append("%s  Talk to Rook" % interact_key)

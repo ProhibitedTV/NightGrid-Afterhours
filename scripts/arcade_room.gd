@@ -3,6 +3,8 @@ extends Node3D
 ## The owner supplies the architectural shell and lighting.
 const Cabinet = preload("res://scripts/arcade_cabinet.gd")
 const Dressing = preload("res://scripts/arcade_dressing.gd")
+const Heritage = preload("res://scripts/arcade_heritage.gd")
+var heritage: Node3D
 const CARPET = preload("res://assets/arcade/carpet_tile.svg")
 var dressing: Node3D
 const ROOK_LINES := [
@@ -13,7 +15,10 @@ const ROOK_LINES := [
 	"Those four friends on the warfare cabinet? They've been a squad for ten years.",
 	"Every tile in the puzzle is included. Radical business model, I know.",
 	"Somebody cleared the whole map, then spent an hour just watching the sunset. That's a good game.",
-	"If the season ends before you finish, come back whenever. We don't track attendance."
+	"If the season ends before you finish, come back whenever. We don't track attendance.",
+	"Go read the archive by the entrance. The people who made games worth loving deserve their flowers.",
+	"The apology trophy is fake. The cartridge shelf is the real treasure.",
+	"Games are a medium, not a monthly invoice."
 ]
 var cabinets: Array[Cabinet] = []
 var _line_index := 0
@@ -49,6 +54,12 @@ func _ready() -> void:
 	dressing = Dressing.new()
 	dressing.name = "ArcadeDressing"
 	add_child(dressing)
+	heritage = Heritage.new()
+	heritage.name = "GameCultureArchive"
+	add_child(heritage)
+
+func exhibit_near(at: Vector3) -> Dictionary:
+	return heritage.call("exhibit_near",at) if is_instance_valid(heritage) else {}
 
 func regular_near(at: Vector3) -> Dictionary:
 	return dressing.call("regular_near",at) if is_instance_valid(dressing) else {}
