@@ -299,6 +299,13 @@ func _verify() -> void:
 		return
 	world.call("_toggle_venue")
 	world.call("_venue_action",3)
+	var display:=venues.get_node_or_null("copper_cup/PocketBeatConsignment") as Node3D
+	if display==null or display.find_children("*","MeshInstance3D",true,false).is_empty():
+		_fail("PocketBeat GLB missing from actual consignment counter")
+		return
+	if menu.find_children("PocketBeatPreview","SubViewportContainer",true,false).is_empty():
+		_fail("Music desk missing real model preview")
+		return
 	var before_instrument:int=world.get("cash")
 	menu.call("_choice","music_desk_buy")
 	menu.call("_choice","music_desk_buy")

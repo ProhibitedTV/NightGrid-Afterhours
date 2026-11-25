@@ -3,6 +3,8 @@ const AudioMix = preload("res://scripts/audio_mix.gd")
 const Satire=preload("res://scripts/street_satire.gd")
 const SOUNDCHECK="soundcheck_pass"
 const MUSIC_REPUTATION=100
+const PocketBeat=preload("res://assets/instruments/pocketbeat_m3.glb")
+var _sampler_display:Node3D
 ## Morrow Bay's authored social hubs: fixed addresses, opening hours, readable
 ## streetfront set dressing, services and four directed side-story contracts.
 ## The seed never changes a venue's address, contact or narrative identity.
@@ -230,6 +232,12 @@ func _build_venue(venue: Dictionary) -> void:
 			# Physical Helix lobby replaces the visual-only sidewalk counter.
 			if venue_id != "helix_espresso":
 				_build_cafe(front, accent, neon)
+			if venue_id=="copper_cup":
+				_sampler_display=PocketBeat.instantiate() as Node3D
+				_sampler_display.name="PocketBeatConsignment"
+				_sampler_display.position=Vector3(0.45,1.676,0.57)
+				_sampler_display.rotation.y=deg_to_rad(12.0)
+				front.add_child(_sampler_display)
 			if venue_id == "lantern_cup":
 				_build_lantern_cup_streetfront(front, accent, neon)
 		"BAR":
@@ -435,6 +443,8 @@ func _night_factor() -> float:
 	return 0.0
 
 func _refresh() -> void:
+	if is_instance_valid(_sampler_display):
+		_sampler_display.visible=is_open("copper_cup") and venue_position("copper_cup").distance_squared_to(_focus)<35.0*35.0
 	var darkness := _night_factor()
 	var nearby: Array[Dictionary] = []
 	for pin in _map_pins:

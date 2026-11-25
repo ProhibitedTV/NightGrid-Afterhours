@@ -9,6 +9,7 @@ var _rhythm_sequence:=0
 var _rhythm_focus_set:=false
 var _music_desk:Dictionary={}
 const Instruments=preload("res://scripts/instrument_catalog.gd")
+const PocketBeat=preload("res://assets/instruments/pocketbeat_m3.glb")
 var _rhythm_status:Label
 var _rhythm_meter:ProgressBar
 var _rhythm_claim:Button
@@ -331,6 +332,7 @@ func _render() -> void:
 			_button(col,"restroom_leave","BACK TO WORK","restroom_leave")
 		"music_desk":
 			_title(col,"COPPER CUP / MUSIC CONSIGNMENT",24,Ui.AMBER)
+			_pocketbeat_preview(col)
 			_label(col,"Hal has a refurbished PocketBeat M3 sampler on the counter. Loaners are still free.",16,Ui.TEXT)
 			_label(col,str(_music_desk.get("summary","")),16,Ui.ACCENT)
 			_label(col,"CASH $%d"%int(_music_desk.get("cash",0)),16,Ui.MUTED)
@@ -913,3 +915,36 @@ func _refresh_rhythm()->void:
 	_rhythm_status.text="%s / %s / %d of %d  •  %d hits"%[["KICK","CLAP","HI-HAT"][lane],"HIT NOW" if window else "READY %.1fs"%maxf(0.0,remaining),_rhythm.index+1,_rhythm.pattern.size(),_rhythm.hits]
 	_rhythm_status.modulate=Ui.ACCENT if window else Ui.TEXT
 	_rhythm_meter.value=clampf(1.0-maxf(0.0,remaining)/_rhythm.beat_seconds,0.0,1.0)
+
+## Isolated static model preview; render one frame, no continuous extra camera.
+func _pocketbeat_preview(col:VBoxContainer)->void:
+	var frame:=SubViewportContainer.new()
+	frame.name="PocketBeatPreview"
+	frame.custom_minimum_size=Vector2(360,160)
+	frame.stretch=true
+	frame.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	col.add_child(frame)
+	var viewport:=SubViewport.new()
+	viewport.size=Vector2i(480,192)
+	viewport.own_world_3d=true
+	viewport.transparent_bg=true
+	viewport.render_target_update_mode=SubViewport.UPDATE_ONCE
+	frame.add_child(viewport)
+	var model:=PocketBeat.instantiate() as Node3D
+	viewport.add_child(model)
+	var cam:=Camera3D.new()
+	cam.projection=Camera3D.PROJECTION_ORTHOGONAL
+	cam.size=0.29
+	cam.position=Vector3(0.21,0.26,0.27)
+	viewport.add_child(cam)
+	cam.look_at(Vector3(0,0.028,0),Vector3.UP)
+	cam.current=true
+	var key:=DirectionalLight3D.new()
+	key.rotation_degrees=Vector3(-48,-32,0)
+	key.light_energy=1.5
+	viewport.add_child(key)
+	var fill:=DirectionalLight3D.new()
+	fill.rotation_degrees=Vector3(-32,145,0)
+	fill.light_energy=0.85
+	fill.light_color=Color("a0d6ee")
+	viewport.add_child(fill)
