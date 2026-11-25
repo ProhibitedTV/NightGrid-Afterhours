@@ -54,6 +54,22 @@ func _verify() -> void:
 		_fail("real route must resume gameplay without changing wallet or mission")
 		return
 	world.call("clear_navigation_waypoint")
+	menu.call("open_pause")
+	menu.call("_choice","phone")
+	menu.call("_choice","phone_app_opportunities")
+	if not (menu.call("get_buttons") as Dictionary).has("phone_route_circuit"):
+		_fail("Circuit discoverable on workboard")
+		return
+	menu.call("_choice","phone_route_circuit")
+	var trial=world.get("_driving_trial")
+	if paused or world.get("navigation_waypoint")!=trial.START or trial.active or ledger.get("balance")!=cash_before:
+		_fail("Circuit discovery routes without starting or paying")
+		return
+	var beacon:=world.get_node_or_null("DrivingTrialBeacon") as Node3D
+	if beacon==null or beacon.find_children("*","CollisionShape3D",true,false).size()!=0 or beacon.position!=Vector3(trial.START.x,0,trial.START.y):
+		_fail("Circuit marker is missing, misplaced or colliding")
+		return
+	world.call("clear_navigation_waypoint")
 	var courier: RefCounted = world.get("courier_mission")
 	courier.set("gig_economy",true)
 	world.call("_refresh_courier_target")

@@ -21,6 +21,8 @@ const Nav = preload("res://scripts/navigation_waypoint.gd")
 const StreetRoute = preload("res://scripts/street_route.gd")
 const DrivingTrial = preload("res://scripts/driving_trial.gd")
 var _driving_trial := DrivingTrial.new()
+var _trial_beacon: Node3D
+var _trial_beacon_label: Label3D
 const RoadRestrictions = preload("res://scripts/road_restrictions.gd")
 const Arsenal = preload("res://scripts/arsenal.gd")
 const Wanted = preload("res://scripts/wanted_system.gd")
@@ -314,6 +316,7 @@ func _ready() -> void:
 	if "--living-streets" in OS.get_cmdline_user_args():
 		enable_living_streets()
 	_create_marker()
+	_create_trial_beacon()
 	_build_hud()
 	_build_game_menu()
 	_build_nightgrid_fm()
@@ -860,7 +863,7 @@ func _phone_context() -> Dictionary:
 		"home_owned":progression.owns_home(), "home_access":progression.has_receipt(StarterHome.ACCESS_RECEIPT),
 		"deposit":StarterHome.move_in_price(), "notice":Opening.app_notice(deliveries),
 		"global_street_cred":progression.street_cred_summary(), "cred_sources":progression.street_cred_sources(), "scene_reputation":SceneReputation.summary(SceneReputation.scores(progression)),
-		"workboard":_phone_workboard(), "instrument_status":progression.instrument_summary(),
+		"workboard":_phone_workboard(), "circuit_completed":progression.has_receipt(DrivingTrial.RECEIPT), "instrument_status":progression.instrument_summary(),
 		"music_contact":_music_contact_status(), "music_sets":progression.street_activity_runs("busking"),
 		"live_sets":progression.street_activity_runs("live_gig"), "music_unlocked":progression.has_receipt("venue:soundcheck_pass"),
 		"music_contact_available":progression.street_cred()>=100,
@@ -903,6 +906,9 @@ func _phone_route(action: String) -> void:
 				destination = listing["position"]
 				break
 	match action:
+		"phone_route_circuit":
+			if app == "opportunities":
+				destination = DrivingTrial.START
 		"phone_route_order":
 			if app == "work" and courier_mission.gig_economy and courier_mission.mission_active():
 				destination = Vector2(mission_position.x,mission_position.z)
@@ -1454,6 +1460,7 @@ func _physics_process(delta: float) -> void:
 			(absf(actor.global_position.x) > 390.0 or absf(actor.global_position.z) > 390.0)):
 		_respawn()
 	_update_driving_trial(delta)
+	_sync_trial_beacon()
 	_update_wanted(delta)
 	_update_ambient_civic(delta)
 	_update_civic_patrols(delta)
@@ -4434,6 +4441,43 @@ func _create_marker() -> void:
 	marker_light.omni_range = 10.0
 	marker.add_child(marker_light)
 	add_child(marker)
+
+func _create_trial_beacon() -> void:
+	# One reusable, noncolliding world-space game marker; no dynamic light.
+	_trial_beacon=Node3D.new()
+	_trial_beacon.name="DrivingTrialBeacon"
+	var ring:=MeshInstance3D.new()
+	var mesh:=TorusMesh.new()
+	mesh.inner_radius=DrivingTrial.RADIUS-.25
+	mesh.outer_radius=DrivingTrial.RADIUS
+	mesh.rings=48
+	mesh.ring_segments=6
+	ring.mesh=mesh
+	ring.position.y=.18
+	ring.material_override=_make_material(Color("68e0da"),true)
+	_trial_beacon.add_child(ring)
+	_trial_beacon_label=Label3D.new()
+	_trial_beacon_label.position.y=3.6
+	_trial_beacon_label.billboard=BaseMaterial3D.BILLBOARD_ENABLED
+	_trial_beacon_label.font_size=42
+	_trial_beacon_label.pixel_size=.012
+	_trial_beacon_label.modulate=Color("b2fff0")
+	_trial_beacon_label.outline_size=8
+	_trial_beacon.add_child(_trial_beacon_label)
+	add_child(_trial_beacon)
+	_sync_trial_beacon()
+
+func _sync_trial_beacon()->void:
+	if not is_instance_valid(_trial_beacon):
+		return
+	var target:Vector2=DrivingTrial.GATES[_driving_trial.index] if _driving_trial.active else DrivingTrial.START
+	var at:=Vector3(target.x,0.0,target.y)
+	var title:="CHECKPOINT %d / %d"%[_driving_trial.index+1,DrivingTrial.GATES.size()] if _driving_trial.active else "SOUTHWORKS CIRCUIT / START"
+	if _trial_beacon.position!=at:
+		_trial_beacon.position=at
+	if _trial_beacon_label.text!=title:
+		_trial_beacon_label.text=title
+	_trial_beacon.visible=is_instance_valid(player) and not is_instance_valid(_opening_office) and not interiors.call("is_inside") and _actor().global_position.distance_squared_to(at)<120.0*120.0
 
 func _build_hud() -> void:
 	var ui := CanvasLayer.new()
