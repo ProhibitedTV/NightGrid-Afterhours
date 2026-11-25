@@ -2,6 +2,7 @@ extends Node3D
 ## On-demand room dressing, fits the existing 16 x 18 interior envelope.
 ## The owner supplies the architectural shell and lighting.
 const Cabinet = preload("res://scripts/arcade_cabinet.gd")
+const KeyArt = preload("res://scripts/arcade_key_art.gd")
 const Dressing = preload("res://scripts/arcade_dressing.gd")
 const Heritage = preload("res://scripts/arcade_heritage.gd")
 var heritage: Node3D
@@ -43,6 +44,7 @@ func _ready() -> void:
 			cabinet.rotation.y = PI
 		add_child(cabinet)
 		cabinets.append(cabinet)
+		_mount_game_poster(cabinet,i)
 	_sign("INSERT COIN",Vector3(0,3.8,-7.9),Color("72d7cf"),56)
 	_sign("INDEPENDENT CABINET UNION",Vector3(0,3.25,-7.9),Color("e9c283"),23)
 	_sign("ROADMAP OF THE ROADMAP",Vector3(-4.9,2.7,-7.9),Color("d6a1bd"),24)
@@ -111,3 +113,39 @@ func _sign(message: String, at: Vector3, tint: Color, font_size: int) -> void:
 	label.outline_size = 2
 	label.no_depth_test = false
 	add_child(label)
+
+func _mount_game_poster(cabinet: Cabinet, index: int) -> void:
+	var frame := Node3D.new()
+	frame.name = "GamePoster_"+cabinet.game_id
+	if index < 8:
+		# Above each machine, recessed against the side wall.
+		frame.position = Vector3(-7.67 if cabinet.position.x < 0 else 7.67,3.30,cabinet.position.z)
+		frame.rotation.y = cabinet.rotation.y
+	else:
+		# Classic machines use front-wall panels, outside the doorway.
+		frame.position = Vector3(-2.6 if index == 8 else 2.6,3.80,8.69)
+		frame.rotation.y = PI
+	add_child(frame)
+	var dims := KeyArt.fit(cabinet.game_id,Vector2(1.0,1.42))
+	var border := MeshInstance3D.new()
+	border.name = "Frame"
+	var box := BoxMesh.new()
+	box.size = Vector3(dims.x+.065,dims.y+.065,.045)
+	border.mesh = box
+	var border_mat := StandardMaterial3D.new()
+	border_mat.albedo_color = Color("2b3038")
+	border_mat.metallic = .35
+	border_mat.roughness = .65
+	border.material_override = border_mat
+	frame.add_child(border)
+	var print_mesh := QuadMesh.new()
+	print_mesh.size = dims
+	var art := MeshInstance3D.new()
+	art.name = "Print"
+	art.mesh = print_mesh
+	var ink := StandardMaterial3D.new()
+	ink.albedo_texture = KeyArt.texture(cabinet.game_id)
+	ink.roughness = .90
+	art.material_override = ink
+	art.position.z = .026
+	frame.add_child(art)

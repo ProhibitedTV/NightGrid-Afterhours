@@ -2,24 +2,15 @@ extends StaticBody3D
 ## Original static cabinet, face toward local +Z. No active viewport or per-frame scripts.
 const Catalog = preload("res://scripts/arcade_round.gd")
 const IDS = Catalog.IDS
-const ART := {
-	"grand_delay": preload("res://assets/arcade/grand_delay.svg"),
-	"claw_compliance": preload("res://assets/arcade/claw_compliance.svg"),
-	"patch_day": preload("res://assets/arcade/patch_day.svg"),
-	"indie_dev": preload("res://assets/arcade/indie_dev.svg"),
-	"annual_warfare": preload("res://assets/arcade/annual_warfare.svg"),
-	"day_one_dlc": preload("res://assets/arcade/day_one_dlc.svg"),
-	"open_world_checklist": preload("res://assets/arcade/open_world_checklist.svg"),
-	"battle_pass_hero": preload("res://assets/arcade/battle_pass_hero.svg"),
-	"starline_patrol": preload("res://assets/arcade/starline_patrol.svg"),
-	"neon_rebound": preload("res://assets/arcade/neon_rebound.svg")
-}
+const KeyArt = preload("res://scripts/arcade_key_art.gd")
+const ART = KeyArt.ART
 const TINTS := {"grand_delay": "69d8c2", "claw_compliance": "efb169", "patch_day": "c4a2f3", "indie_dev": "f1cd82", "annual_warfare": "a5ca82", "day_one_dlc": "ed9db5", "open_world_checklist": "80bce9", "battle_pass_hero": "e6a1ef", "starline_patrol": "72d7cf", "neon_rebound": "f2a96b"}
 const SERVICE_STICKERS := {"grand_delay":"RELEASE DATE: TBA", "claw_compliance":"APPROVED BY 12 COMMITTEES", "patch_day":"HOTFIX HOTLINE", "indie_dev":"MADE WITH WEEKENDS OFF", "annual_warfare":"RELOADS ARE FREE", "day_one_dlc":"ALL PARTS INCLUDED", "open_world_checklist":"SOCK NOT INCLUDED", "battle_pass_hero":"NO ATTENDANCE TRACKING", "starline_patrol":"RESTORED BY ROOK", "neon_rebound":"ORIGINAL BOARD / FREE PLAY"}
 const CRT = preload("res://assets/arcade/attract_crt.gdshader")
 var game_id := "grand_delay"
 static var materials: Dictionary = {}
 static var screens: Dictionary = {}
+static var printed: Dictionary = {}
 
 func configure(id: String) -> bool:
 	if is_inside_tree() or not ART.has(id):
@@ -56,17 +47,23 @@ func _ready() -> void:
 	for n in range(3):
 		_cylinder("Button", Vector3(.04+n*.105,1.13,.36), .035,.035,trim if n == 0 else black)
 	var screen := QuadMesh.new()
-	screen.size = Vector2(.59,.65)
+	screen.size = KeyArt.fit(game_id,Vector2(.59,.65))
 	if not screens.has(game_id):
 		var mat := ShaderMaterial.new()
 		mat.shader = CRT
-		mat.set_shader_parameter("art",ART[game_id])
+		mat.set_shader_parameter("art",KeyArt.texture(game_id))
 		screens[game_id] = mat
 	_mesh("CRTAttract",screen,Vector3(0,1.52,.29),screens[game_id])
 	var side := QuadMesh.new()
-	side.size = Vector2(.60,.77)
+	side.size = KeyArt.fit(game_id,Vector2(.60,.77))
+	if not printed.has(game_id):
+		var ink := StandardMaterial3D.new()
+		ink.albedo_texture = KeyArt.texture(game_id)
+		ink.roughness = .85
+		ink.metallic = 0.0
+		printed[game_id] = ink
 	for sign in [-1,1]:
-		var panel := _mesh("SideArt",side,Vector3(sign*.419,1.48,-.08),screens[game_id])
+		var panel := _mesh("SideArt",side,Vector3(sign*.419,1.48,-.08),printed[game_id])
 		panel.rotation.y = sign * PI / 2.0
 	var marquee := Label3D.new()
 	marquee.name = "MarqueeTitle"

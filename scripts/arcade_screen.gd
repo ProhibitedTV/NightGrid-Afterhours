@@ -7,6 +7,7 @@ const ExtraRound = preload("res://scripts/arcade_extra_round.gd")
 const SeasonRound = preload("res://scripts/arcade_season_round.gd")
 const ClassicRound = preload("res://scripts/arcade_classic_round.gd")
 const Scores = preload("res://scripts/arcade_scores.gd")
+const KeyArt = preload("res://scripts/arcade_key_art.gd")
 const AudioMix = preload("res://scripts/audio_mix.gd")
 const CUES := {
 	"start": preload("res://assets/arcade/audio/start.wav"),
@@ -184,15 +185,17 @@ func _draw() -> void:
 	_line(str(info["title"]), Vector2(32, 89), accent, 30)
 	_line(str(info["studio"]) + "  /  " + str(info["tagline"]), Vector2(32, 117), Color("e0e6e9"), 17)
 	if state == "select":
-		_line(str(info["instructions"]), Vector2(32, 190), Color.WHITE, 18)
-		_line("NEIGHBORHOOD LEADERBOARD", Vector2(32, 230), accent, 20)
+		_draw_key_art(id,accent)
+		draw_multiline_string(ThemeDB.fallback_font,Vector2(32,162),str(info["instructions"]),HORIZONTAL_ALIGNMENT_LEFT,475,18,-1,Color.WHITE)
+		_line("NEIGHBORHOOD LEADERBOARD", Vector2(32, 240), accent, 20)
 		var board: Array = Scores.board(id,best)
 		for i in range(board.size()):
 			var record: Array = board[i]
-			_line("%d.  %s   %06d" % [i+1,record[0],record[1]], Vector2(32+(i%2)*355,257+floori(float(i)/2.0)*27), accent if record[0] == "YOU" else Color.WHITE, 18)
-		_line("<  SELECT CABINET  >  %d / %d" % [selection + 1, Round.IDS.size()] if locked_cabinet.is_empty() else "FREE PRACTICE / NO SERVER REQUIRED", Vector2(32, 325), accent, 22)
+			_line("%d.  %s   %06d" % [i+1,record[0],record[1]], Vector2(32+(i%2)*230,268+floori(float(i)/2.0)*27), accent if record[0] == "YOU" else Color.WHITE, 18)
+		_line("<  SELECT CABINET  >  %d / %d" % [selection + 1, Round.IDS.size()] if locked_cabinet.is_empty() else "FREE PRACTICE / NO SERVER REQUIRED", Vector2(32, 345), accent, 20)
 		_line("ENTER / A  PLAY     ESC / B  EXIT", Vector2(32, 428), Color.WHITE, 18)
 	elif state == "result":
+		_draw_key_art(id,accent)
 		_line("CREDITS ROLL" if round.result()["cleared"] else "GAME OVER", Vector2(32, 195), accent, 34)
 		_line("SCORE  %06d  /  BEST  %06d" % [round.score, int(best.get(id, 0))], Vector2(32, 245), Color.WHITE, 24)
 		if new_record:
@@ -204,7 +207,7 @@ func _draw() -> void:
 		var joke := "Next-gen features sold separately." if id == "grand_delay" else "Your combat performance is pending stakeholder approval."
 		if round is AltRound or round is ExtraRound or round is SeasonRound or round is ClassicRound:
 			joke = round.feedback
-		_line(joke, Vector2(32, 308), accent, 19)
+		draw_multiline_string(ThemeDB.fallback_font,Vector2(32,308),joke,HORIZONTAL_ALIGNMENT_LEFT,475,17,-1,accent)
 		_line("ENTER / A  CABINETS     ESC / B  BACK", Vector2(32, 428), Color.WHITE, 18)
 	elif id == "patch_day":
 		_draw_patch(accent)
@@ -367,3 +370,13 @@ func _draw_classic(accent: Color) -> void:
 			_line("ENTER / A LAUNCH",Vector2(310,310),accent,18)
 	_line("HOLD LEFT / RIGHT   ENTER / A FIRE OR LAUNCH",Vector2(32,428),Color.WHITE,16)
 	_line("ESC / B ABANDON",Vector2(570,428),Color("a0b0ba"),16)
+
+func _draw_key_art(id: String, accent: Color) -> void:
+	var image := KeyArt.texture(id)
+	if image == null:
+		return
+	var frame := Rect2(535,142,231,265)
+	draw_rect(frame,Color("0a1119"))
+	draw_rect(frame,accent,false,1.0)
+	var dims := KeyArt.fit(id,frame.size-Vector2(12,12))
+	draw_texture_rect(image,Rect2(frame.get_center()-dims*.5,dims),false)

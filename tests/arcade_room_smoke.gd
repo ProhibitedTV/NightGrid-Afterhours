@@ -1,5 +1,6 @@
 extends SceneTree
 const Room = preload("res://scripts/arcade_room.gd")
+const KeyArt = preload("res://scripts/arcade_key_art.gd")
 func _initialize() -> void:
 	call_deferred("_verify")
 
@@ -15,7 +16,14 @@ func _verify() -> void:
 	await process_frame
 	if not check(room.cabinets.size() == 10, "ten cabinets"):
 		return
+	var illustrated := KeyArt.illustrated_count()
+	if not check(illustrated == 0 or illustrated == room.cabinets.size(),"illustrated pack is complete or vector fallback"):
+		return
 	for cabinet in room.cabinets:
+		var texture := KeyArt.texture(cabinet.game_id)
+		var dims := KeyArt.fit(cabinet.game_id,Vector2(1.0,1.42))
+		if not check(texture != null and dims.x <= 1.001 and dims.y <= 1.421 and absf(dims.aspect()-texture.get_size().aspect()) < .001 and room.get_node_or_null("GamePoster_"+cabinet.game_id+"/Print") != null,"aspect-correct cabinet and wall artwork"):
+			return
 		var front: Vector3 = cabinet.to_global(Vector3(0,1.1,1.0))
 		var back: Vector3 = cabinet.to_global(Vector3(0,1.1,-1.0))
 		if not check(room.cabinet_near(front) == cabinet.game_id and room.cabinet_near(back).is_empty(), "front-only interaction " + str(cabinet.game_id)):
