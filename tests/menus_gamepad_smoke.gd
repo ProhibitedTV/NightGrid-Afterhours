@@ -247,6 +247,32 @@ func _verify() -> void:
 	if str(menu.get("screen")) != "journal" or not (menu.get("_journal_data") as Dictionary).has("main_objective"):
 		_fail("Live journal did not present player objective and inventory")
 		return
+	if not (menu.call("get_buttons") as Dictionary).has("inventory"):
+		_fail("Journal must link to dedicated player inventory")
+		return
+	var previous_items: Dictionary = world.get("consumable_inventory").duplicate()
+	world.set("consumable_inventory", {"water": 2, "protein": 1})
+	menu.call("_choice", "inventory")
+	var player_data: Dictionary = menu.get("_journal_data")
+	var inventory_buttons: Dictionary = menu.call("get_buttons")
+	if not paused or str(menu.get("screen")) != "inventory" or player_data.get("consumables") != {"water": 2, "protein": 1} or not is_equal_approx(float(player_data["stamina"]), float(player.get("stamina"))):
+		_fail("Player inventory must read actual carried items and stamina")
+		return
+	var inventory_content := menu.find_child("MenuContent", true, false)
+	if inventory_content.find_children("*", "TextureRect", true, false).size() != 2 or inventory_content.find_children("*", "ProgressBar", true, false).size() != 2:
+		_fail("Player inventory must show owned item icons and independent vitals")
+		return
+	if not inventory_buttons.has("save_waypoint") or not inventory_buttons.has("journal") or inventory_buttons["journal"].focus_mode != Control.FOCUS_ALL:
+		_fail("Inventory navigation and property actions must support controller")
+		return
+	menu.call("_choice", "journal")
+	if str(menu.get("screen")) != "journal" or not (menu.call("get_buttons") as Dictionary).has("restart_courier"):
+		_fail("Returning to journal must retain mission actions")
+		return
+	if world.get("consumable_inventory") != {"water": 2, "protein": 1}:
+		_fail("Inventory browsing must not consume or change items")
+		return
+	world.set("consumable_inventory", previous_items)
 	menu.call("_choice", "back")
 	if str(menu.get("screen")) != "pause":
 		_fail("Journal Back did not return to pause")
