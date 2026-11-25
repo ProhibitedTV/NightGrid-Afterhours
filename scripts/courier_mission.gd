@@ -30,6 +30,8 @@ func conditioning_text() -> String:
 	var detail := "MAX RANK" if rank == CONDITIONING_MILESTONES.size() else "NEXT: %d deliveries" % CONDITIONING_MILESTONES[rank]
 	return "COURIER CONDITIONING  %d/%d  |  %d%% less sprint drain  |  %s" % [rank,CONDITIONING_MILESTONES.size(),rank*5,detail]
 
+const Economy = preload("res://scripts/economy.gd")
+var gig_economy := false
 var completed_runs: int = 0
 var step: int = 0
 
@@ -53,10 +55,16 @@ func target() -> Vector3:
 	return ROUTES[completed_runs % ROUTES.size()][OBJECTIVES[step]["point"]] + Vector3.UP * 0.2
 
 func payout() -> int:
+	# Starter meal delivery: estimated 2026 $15–24 net platform payout.
+	if gig_economy:
+		return Economy.price_2036(15+mini(completed_runs,9))
 	return 250 + 50 * mini(completed_runs, 8)
 
 func objective() -> Dictionary:
 	var result: Dictionary = OBJECTIVES[step].duplicate()
+	if gig_economy:
+		result["title"] = "QuotaDrop / Collect meal" if step == 0 else "QuotaDrop / Deliver meal"
+		result["hud"] = "QUOTADROP / PICK UP MEAL" if step == 0 else "QUOTADROP / DELIVER MEAL"
 	result["route_id"] = ROUTES[completed_runs % ROUTES.size()]["id"]
 	result["run"] = completed_runs + 1
 	result["step"] = step + 1

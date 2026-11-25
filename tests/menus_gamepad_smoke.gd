@@ -368,6 +368,22 @@ func _verify() -> void:
 	if not is_equal_approx(float(player.get("stamina")),88.1) or not str(world.call("_journal_context")["conditioning"]).contains("MAX RANK"):
 		_fail("Restored courier milestones must apply real bounded sprint benefit and journal state")
 		return
+	menu.call("open_opening")
+	if not menu.call("is_open") or not (menu.call("get_buttons") as Dictionary).has("opening_accept"):
+		_fail("Opening notice must be controller accessible")
+		return
+	var before_severance: int = world.get("cash")
+	menu.call("_choice","opening_accept")
+	world.call("_accept_opening")
+	if world.get("cash") != before_severance+75 or not world.get("courier_mission").gig_economy or menu.call("is_open"):
+		_fail("Opening credits severance once and enables real QuotaDrop work")
+		return
+	var opening_save: Dictionary = world.call("_capture_snapshot")
+	world.get("courier_mission").gig_economy = false
+	world.call("_apply_snapshot",opening_save)
+	if not world.get("courier_mission").gig_economy or world.get("cash") != before_severance+75:
+		_fail("Opening economy survives save restore")
+		return
 	menu.call("hide_for_game")
 	print("MENU_GAMEPAD_SMOKE PASS: action_count=", input_spec.ACTIONS.size(),
 		" / settings saved / pause & focus / controller context / title confirmation")

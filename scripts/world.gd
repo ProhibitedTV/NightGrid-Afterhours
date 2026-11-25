@@ -64,6 +64,7 @@ const VEHICLE_COLORS = [
 ]
 const CourierMission = preload("res://scripts/courier_mission.gd")
 const StoryMission = preload("res://scripts/story_mission.gd")
+const Opening = preload("res://scripts/opening_story.gd")
 const StarterHome = preload("res://scripts/starter_home.gd")
 var _home_panel := false
 var _storage_upgrade_quote := false
@@ -221,7 +222,7 @@ var carrying: bool:
 	get:
 		return courier_mission.has_package()
 var mission_position := Vector3.ZERO
-var notification := "Welcome to the night shift. Find a car and pick up the package."
+var notification := "Morrow Bay / Find your next shift. Follow the delivery marker."
 var notification_time := 8.0
 var police_cooldown := 4.0
 
@@ -274,7 +275,10 @@ func _ready() -> void:
 		if current_transit == null:
 			_resume_restored_actor_after_collision_sync(current_car if current_car != null else player)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	if DisplayServer.get_name() != "headless" and not bool(session.get("boot_menu_shown")):
+	if bool(session.get("opening_pending")) and restore.is_empty():
+		session.set("opening_pending",false)
+		game_menu.call("open_opening")
+	elif DisplayServer.get_name() != "headless" and not bool(session.get("boot_menu_shown")):
 		session.set("boot_menu_shown", true)
 		game_menu.call("open_title")
 	_log_playtest("world_ready", {"restored": not restore.is_empty()})
@@ -417,6 +421,13 @@ func _build_world_audio() -> void:
 
 func _on_menu_action(action: String) -> void:
 	match action:
+		"begin_opening":
+			if not progression.has_receipt(Opening.RECEIPT):
+				game_menu.call("open_opening")
+			else:
+				game_menu.call("hide_for_game")
+		"accept_opening":
+			_accept_opening()
 		"save":
 			_save_game()
 		"load":
@@ -441,7 +452,7 @@ func _on_menu_action(action: String) -> void:
 				set_navigation_waypoint(Vector2(entry.x,entry.z))
 			game_menu.call("open_journal", _journal_context())
 		"home_waypoint":
-			if progression.owns_home():
+			if progression.has_receipt(StarterHome.ACCESS_RECEIPT):
 				var entry := StarterHome.entry()
 				set_navigation_waypoint(Vector2(entry.x, entry.z))
 			game_menu.call("open_journal", _journal_context())
@@ -449,6 +460,12 @@ func _on_menu_action(action: String) -> void:
 			if story_mission.interrupt("abandoned"):
 				_notify("Contact mission abandoned. Speak to Mara to retry.")
 			game_menu.call("open_journal", _journal_context())
+
+func _accept_opening() -> void:
+	if progression.credit_once(Opening.RECEIPT,Opening.SEVERANCE):
+		courier_mission.gig_economy = true
+		_refresh_courier_target()
+		_notify("SYNAXIS: $75 severance credited. QUOTADROP: Your first delivery is ready. Earn your pod deposit.")
 
 # Resolve from existing venue/route contracts, never save another position.
 func _story_target() -> Vector3:
@@ -469,6 +486,7 @@ func _journal_context() -> Dictionary:
 		"district": district if landmark.is_empty() else "%s / %s" % [district, landmark],
 		"clock": day_night.call("clock_string"),
 		"seed": session.get("world_seed"),
+		"opening_goal": "QUOTADROP / POD DEPOSIT: $%d of $%d saved" % [mini(cash,StarterHome.move_in_price()),StarterHome.move_in_price()] if courier_mission.gig_economy and not progression.owns_home() else "",
 		"main_objective": "%s  •  STEP %d/%d  •  %dm  •  $%d" % [objective["title"], objective["step"], objective["total_steps"], remaining, objective["reward"]],
 		"courier_can_restart": carrying,
 		"story_objective": story_mission.journal(),
@@ -482,6 +500,7 @@ func _journal_context() -> Dictionary:
 		"cash": cash, "health": health, "heat": heat,
 		"owned_vehicles": _owned_vehicle_text(),
 		"home_owned": progression.owns_home(),
+		"home_can_navigate": progression.has_receipt(StarterHome.ACCESS_RECEIPT),
 		"garage_text": "GARAGE: Two reserved bays / recovery desk" if progression.owns_home() else "GARAGE: Locked services",
 		"home_text": "HOME: %s / %d of %d stored provisions" % [StarterHome.NAME,progression.home_supplies,progression.home_capacity()] if progression.owns_home() else "HOME: Complete Mara’s contact mission and pay the move-in cost.",
 		"weapons": weapons.inventory_text(),
@@ -1855,6 +1874,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 		var p := Vector3(float(last[0]), float(last[1]), float(last[2]))
 		if p.is_finite() and absf(p.x) <= 390.0 and absf(p.z) <= 390.0 and absf(p.y) <= 25.0 and heat >= Wanted.MIN_HEAT:
 			wanted.last_known = p
+	courier_mission.gig_economy = progression.has_receipt(Opening.RECEIPT)
 	courier_mission.restore(data.get("deliveries", 0), data.get("carrying", false))
 	player.call("set_courier_conditioning",courier_mission.conditioning_rank())
 	story_mission.restore(data.get("story_mission", StoryMission.new().snapshot()))
@@ -2604,13 +2624,13 @@ func _close_venue() -> void:
 func _update_venue_panel() -> void:
 	if _tenancy_panel:
 		var price := StarterHome.move_in_price()
-		venue_label.text = "LANTERN COURT / TENANCY\nMove-in payment $%d  |  CASH $%d\nPaid residence access. [1 / A] Cancel  [3 / Y] Confirm" % [price,cash]
+		venue_label.text = "LANTERN COURT / CAPSULE TENANCY\nInitial deposit $%d  |  CASH $%d\nStarter rental access. [1 / A] Cancel  [3 / Y] Confirm" % [price,cash]
 		venue_service_button.show()
 		venue_service_button.text = "1 / A  •  CANCEL"
 		venue_service_button.disabled = false
 		venue_job_button.hide()
 		venue_talk_button.show()
-		venue_talk_button.text = "3 / Y  •  PAY MOVE-IN COST"
+		venue_talk_button.text = "3 / Y  •  PAY POD DEPOSIT"
 		venue_talk_button.disabled = cash < price
 		return
 	if _exchange_panel:
@@ -2808,7 +2828,7 @@ func _venue_action(option: int) -> void:
 		elif option == 3:
 			if progression.activate_home_tenancy():
 				_close_venue()
-				_notify("Move-in payment accepted. Unit 01 is unlocked.")
+				_notify("Deposit accepted. Sleep Pod 01 is unlocked.")
 			else:
 				_notify("Payment declined. Earn more from courier contracts.")
 		return
@@ -2952,7 +2972,7 @@ func _venue_action(option: int) -> void:
 						mara_dialogue_line = "Mara: I need someone who knows these streets. Finish a courier run, then come tell me how it went."
 						_notify("NIGHT SHIFT CONTACT / New mission")
 					"complete":
-						mara_dialogue_line = "Mara: You made it back. Keep the extra hundred. I can get you approved for Unit 01 next door. Pay the move-in cost at the entrance."
+						mara_dialogue_line = "Mara: You made it back. Here’s a hundred for the referral. Lantern Court has a sleep pod available. Scrape together the deposit and pay at the entrance. It’s not much, but it locks."
 						_notify("NIGHT SHIFT CONTACT COMPLETE +$%d" % StoryMission.REWARD)
 					"blocked":
 						_notify("Wallet full. Speak to Mara again after spending some cash.")
@@ -3298,6 +3318,8 @@ func _update_hud() -> void:
 	hud_navigation.visible = navigation_waypoint != null
 	hud_navigation.text = navigation_text() if navigation_waypoint != null else ""
 	var jobs: Array[String] = []
+	if courier_mission.gig_economy and not progression.owns_home():
+		jobs.append("POD DEPOSIT / $%d of $%d" % [mini(cash,StarterHome.move_in_price()),StarterHome.move_in_price()])
 	if story_mission.status != "complete":
 		jobs.append(story_mission.journal())
 	if not venue_job_active.is_empty():

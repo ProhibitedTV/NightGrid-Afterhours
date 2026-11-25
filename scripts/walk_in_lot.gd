@@ -162,6 +162,12 @@ func dress_home(id: String) -> void:
 	_section("Furnishing",Vector3(3.35,.28,13.9),Vector3(1.75,.56,2.25),timber)
 	_visual("Worktop",Vector3(3.35,.70,13.9),Vector3(1.68,.28,2.14),linen)
 	_visual("Worktop",Vector3(3.35,.89,14.64),Vector3(1.15,.12,.45),_mat(Color("d5ceba")))
+	# Compact enclosed sleeping berth within the reused shell. Leave the
+	# entrance at z=12 open, and keep the shared walking aisle unobstructed.
+	var shell := _mat(Color("555d63"))
+	_section("PodPartition",Vector3(2.35,1.1,14.05),Vector3(.12,2.2,2.55),shell)
+	_visual("PodCeiling",Vector3(3.35,2.14,14.05),Vector3(2.0,.15,2.55),shell)
+	_visual("PodLight",Vector3(3.35,2.04,13.65),Vector3(.75,.045,.18),_mat(Color("e0b587"),true))
 	_section("Furnishing",Vector3(3.55,.72,6.0),Vector3(1.55,1.44,.85),timber)
 	_section("Furnishing",Vector3(-3.55,.52,2.8),Vector3(1.65,1.04,1.45),timber)
 	_visual("Worktop",Vector3(-3.55,1.08,2.8),Vector3(1.72,.10,1.55),_mat(Color("a69c85")))

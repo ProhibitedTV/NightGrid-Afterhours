@@ -43,6 +43,16 @@ func _verify() -> void:
 		return
 	if not check(restored.restore(Director.MAX_RUNS,false) and restored.conditioning_rank()==3 and restored.conditioning_text().contains("MAX RANK"),"conditioning bounded at rank three"):
 		return
+	var gig := Director.new()
+	gig.gig_economy = true
+	var gig_wallet := Wallet.new()
+	if not check(gig.payout()==20 and str(gig.objective()["title"]).contains("QuotaDrop"),"starter gig has realistic paid meal delivery"):
+		return
+	for run in range(6):
+		gig.advance("collect",gig.target(),gig_wallet)
+		gig.advance("deliver",gig.target(),gig_wallet)
+	if not check(gig.completed_runs==6 and gig_wallet.balance==141,"six starter deliveries use the inflation-adjusted catalog"):
+		return
 	var story := Story.new()
 	if not check(story.event("courier_delivered", wallet).is_empty() and story.event("mara_talk", wallet) == "started", "contact must precede delivery"):
 		return
