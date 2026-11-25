@@ -13,7 +13,19 @@ const STYLES={
 	"glasses_porcelain":{"slot":"glasses","primary":"d6caba","secondary":"807978","shape":"round","accent":0.33},
 	"watch_monolith":{"slot":"watch","primary":"292b30","secondary":"777369","shape":"round","accent":"d2b678"},
 	"glasses_deadstock":{"slot":"glasses","primary":"846849","secondary":"b29559","shape":"round","accent":0.42},
-	"watch_salvage":{"slot":"watch","primary":"52543b","secondary":"686b60","shape":"digital","accent":"9eb77b"}
+	"watch_salvage":{"slot":"watch","primary":"52543b","secondary":"686b60","shape":"digital","accent":"9eb77b"},
+	"hat_thread_cap":{"slot":"hat","shape":"cap","primary":"303b42","secondary":"c9a66b"},
+	"hat_thread_beanie":{"slot":"hat","shape":"beanie","primary":"46515d","secondary":"a4aeb8"},
+	"hat_quay_cap":{"slot":"hat","shape":"cap","primary":"59634e","secondary":"bbab79"},
+	"hat_quay_bucket":{"slot":"hat","shape":"bucket","primary":"395a5b","secondary":"789395"},
+	"hat_vesper_fedora":{"slot":"hat","shape":"fedora","primary":"484853","secondary":"93818a"},
+	"hat_vesper_cap":{"slot":"hat","shape":"cap","primary":"303445","secondary":"a4a5b8"},
+	"hat_nocturne_bucket":{"slot":"hat","shape":"bucket","primary":"342940","secondary":"78628d"},
+	"hat_nocturne_beanie":{"slot":"hat","shape":"beanie","primary":"493656","secondary":"ac78b4"},
+	"hat_obscura_fedora":{"slot":"hat","shape":"fedora","primary":"282a2e","secondary":"b6a078"},
+	"hat_obscura_bucket":{"slot":"hat","shape":"bucket","primary":"c7c0b2","secondary":"928a81"},
+	"hat_signal_cap":{"slot":"hat","shape":"cap","primary":"755e44","secondary":"a08a64"},
+	"hat_signal_beanie":{"slot":"hat","shape":"beanie","primary":"5b5147","secondary":"a78353"}
 }
 
 static func build(rig:Skeleton3D,id:String) -> Node3D:
@@ -21,9 +33,10 @@ static func build(rig:Skeleton3D,id:String) -> Node3D:
 		return null
 	var style:Dictionary=STYLES.get(id,{})
 	var glasses:=id in ["glasses_night","glasses_clear"] or style.get("slot","")=="glasses"
-	if not glasses and id not in ["watch_shift","watch_brass"] and style.get("slot","")!="watch":
+	var hat:bool=style.get("slot","")=="hat"
+	if not glasses and not hat and id not in ["watch_shift","watch_brass"] and style.get("slot","")!="watch":
 		return null
-	var bone:=rig.find_bone("Head" if glasses else "LeftHand")
+	var bone:=rig.find_bone("Head" if glasses or hat else "LeftHand")
 	if bone<0:
 		return null
 	var rest:=rig.get_bone_global_rest(bone)
@@ -34,7 +47,11 @@ static func build(rig:Skeleton3D,id:String) -> Node3D:
 	var geometry:=Node3D.new()
 	geometry.name="AccessoryGeometry"
 	anchor.add_child(geometry)
-	if glasses:
+	if hat:
+		# Provisional head-relative fit, shared with the live skeleton.
+		geometry.transform=rest.affine_inverse()*Transform3D(Basis.IDENTITY,rest.origin+Vector3(0,.09,.006))
+		_hat(geometry,style)
+	elif glasses:
 		# Align to skeleton-space face axes, independent of bone local orientation.
 		geometry.transform=rest.affine_inverse()*Transform3D(Basis.IDENTITY,rest.origin+Vector3(0,.005,.116))
 		if style.is_empty():
@@ -201,3 +218,72 @@ static func _collection_watch(root:Node3D,style:Dictionary) -> void:
 		_box(root,"Dial",Vector3(0,0,.044),Vector3(.040,.030,.004),dial)
 		for x in [-.012,0.0,.012]:
 			_box(root,"Digit",Vector3(x,0,.047),Vector3(.005,.012,.002),ink)
+
+# Original bounded accessory meshes, also used by the static store display.
+# Hat fit/clearance is a native-review gate; never alter the live hair/body mesh.
+static func display_hat(id:String) -> Node3D:
+	var style:Dictionary=STYLES.get(id,{})
+	if style.get("slot","")!="hat":
+		return null
+	var root:=Node3D.new()
+	root.name=id
+	_hat(root,style)
+	return root
+
+static func _hat_band(root:Node3D,id:String,at:Vector3,top:float,bottom:float,height:float,mat:Material,depth:float=1.0) -> void:
+	var node:=MeshInstance3D.new()
+	node.name=id
+	var mesh:=CylinderMesh.new()
+	mesh.top_radius=top
+	mesh.bottom_radius=bottom
+	mesh.height=height
+	mesh.radial_segments=24
+	mesh.rings=0
+	node.mesh=mesh
+	node.position=at
+	node.scale.z=depth
+	node.material_override=mat
+	node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(node)
+
+static func _hat_dome(root:Node3D,id:String,at:Vector3,radius:float,height:float,mat:Material,depth:float=1.0) -> void:
+	var node:=MeshInstance3D.new()
+	node.name=id
+	var mesh:=SphereMesh.new()
+	mesh.radius=radius
+	mesh.height=height
+	mesh.radial_segments=24
+	mesh.rings=10
+	mesh.is_hemisphere=true
+	node.mesh=mesh
+	node.position=at
+	node.scale.z=depth
+	node.material_override=mat
+	node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(node)
+
+static func _hat(root:Node3D,style:Dictionary) -> void:
+	var cloth:=_material(Color(style["primary"]),0.0,.92)
+	var trim:=_material(Color(style["secondary"]),0.0,.86)
+	match style["shape"]:
+		"cap":
+			_hat_dome(root,"PanelCrown",Vector3(0,.025,0),.101,.115,cloth,1.10)
+			_hat_band(root,"CrownBand",Vector3(0,.010,0),.101,.101,.022,cloth,1.10)
+			_hat_band(root,"Visor",Vector3(0,.004,.101),.095,.095,.009,trim,.74)
+			_box(root,"Clasp",Vector3(0,.012,-.111),Vector3(.028,.011,.004),trim)
+		"beanie":
+			_hat_dome(root,"KnitCrown",Vector3(0,.026,0),.105,.137,cloth,1.08)
+			_hat_band(root,"FoldedCuff",Vector3(0,.006,0),.105,.103,.039,trim,1.08)
+			for i in range(24):
+				var angle:=TAU*float(i)/24.0
+				var seam:=Vector3(sin(angle)*.103,.006,cos(angle)*.111)
+				_box(root,"CuffRib",seam,Vector3(.003,.031,.003),cloth)
+		"bucket":
+			_hat_band(root,"TaperedCrown",Vector3(0,.054,0),.087,.102,.105,cloth,1.08)
+			_hat_band(root,"SlopedBrim",Vector3(0,.002,0),.105,.144,.035,trim,1.08)
+			_hat_band(root,"BrimEdge",Vector3(0,-.016,0),.145,.145,.006,cloth,1.08)
+		"fedora":
+			_hat_band(root,"Crown",Vector3(0,.056,0),.087,.102,.109,cloth,1.10)
+			_hat_band(root,"Ribbon",Vector3(0,.017,0),.101,.103,.025,trim,1.10)
+			_hat_band(root,"Brim",Vector3(0,-.001,0),.147,.147,.012,cloth,1.12)
+			_box(root,"RibbonKnot",Vector3(.097,.017,0),Vector3(.012,.023,.032),trim)

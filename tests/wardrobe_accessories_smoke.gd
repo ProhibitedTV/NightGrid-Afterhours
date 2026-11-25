@@ -20,7 +20,7 @@ func _verify()->void:
 	var count:=0
 	for id in Catalog.PIECE_IDS:
 		var slot:String=Catalog.PIECES[id]["slot"]
-		if slot not in ["glasses","watch"]:
+		if slot not in ["glasses","watch","hat"]:
 			continue
 		var slots:Dictionary={}
 		slots[slot]=id
@@ -35,7 +35,17 @@ func _verify()->void:
 		if not check(actor.set_look(Catalog.DEFAULT,slots) and attachments[id]==attachment and actor.set_look(Catalog.DEFAULT,{}),"reuse "+id):
 			return
 		count+=1
-	if not check(count==16 and Access.build(rig,"not_an_accessory")==null,"accessory coverage and invalid ID"):
+	if not check(count==28 and Access.build(rig,"not_an_accessory")==null,"accessory coverage and invalid ID"):
+		return
+	var mixed:Dictionary={"hat":"hat_thread_cap","glasses":"glasses_metro","watch":"watch_commute"}
+	if not check(actor.set_look(Catalog.DEFAULT,mixed),"independent hat glasses and watch"):
+		return
+	var attached:Dictionary=actor.get("_accessories")
+	for id in mixed.values():
+		if not check(attached[id].visible,"mixed accessory visible "+id):
+			return
+	mixed.erase("hat")
+	if not check(actor.set_look(Catalog.DEFAULT,mixed) and not attached["hat_thread_cap"].visible and attached["glasses_metro"].visible and attached["watch_commute"].visible,"remove only headwear"):
 		return
 	print("WARDROBE_ACCESSORIES PASS: ",count," fitted accessory IDs; native visual fit pending")
 	quit(0)

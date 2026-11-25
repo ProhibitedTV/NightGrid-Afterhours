@@ -32,6 +32,7 @@ var _clothing_remark_index:=0
 const ShopClerk=preload("res://scripts/synaxis_staff.gd")
 const ClothingStore = preload("res://scripts/clothing_store.gd")
 const Wardrobe = preload("res://scripts/wardrobe_catalog.gd")
+const FashionAccessories=preload("res://scripts/wardrobe_accessories.gd")
 var door: AnimatableBody3D
 var _lamp: OmniLight3D
 var _pending_visuals: Dictionary = {}
@@ -226,6 +227,7 @@ func dress_clothing_store(store_id:String=ClothingStore.ID) -> void:
 	_shop_label("FITTING / CHECKOUT",Vector3(-3.55,2.28,2.8),.004,PI)
 	_shop_label(str(store["style"])+" / COLLECTION EXAMPLES",Vector3(3.45,2.25,2.6),.003,PI)
 	_dress_retail_feature(store_id,theme,black,oak,brass)
+	_dress_headwear(store["stock"],oak)
 	_flush_interior_visuals()
 	_clothing_clerk=ShopClerk.new()
 	_clothing_clerk.call("configure_staff",{"id":store_id+"_clerk","name":theme["clerk"],"role":str(store["name"])+" shopkeeper","activity":"TYPE","seated":false,"palette":theme["palette"],"phase":1.4,"outfit":"retail","hair":theme["hair"],"glasses":store_id!="nocturne","coat":Color(theme["coat"]),"height":.92,"width":.78})
@@ -298,6 +300,26 @@ func _dress_retail_feature(id:String,theme:Dictionary,base:Material,wood:Materia
 			_visual("Worktop",Vector3(x-.16,2.29,z),Vector3(.19,.17,.54),_mat(tint))
 	_shop_label(str(theme["feature"]),Vector3(x-.17,2.94,z),.0026,-PI/2)
 	_shop_label("%s / $%d" % [Wardrobe.ITEMS[feature]["name"],Wardrobe.price(feature)],Vector3(x-.18,1.72,z),.0024,-PI/2)
+
+# Two physical hat samples on the existing wall fixture, no new collision or light.
+func _dress_headwear(stock:Array,wood:Material) -> void:
+	var hats:Array=[]
+	for id in stock:
+		if Wardrobe.piece_valid(id) and Wardrobe.PIECES[id]["slot"]=="hat":
+			hats.append(id)
+	if hats.is_empty():
+		return
+	_visual("Worktop",Vector3(4.28,2.27,11.8),Vector3(.43,.07,1.45),wood)
+	for i in range(mini(hats.size(),2)):
+		var id:String=hats[i]
+		var sample:=FashionAccessories.display_hat(id)
+		if sample==null:
+			continue
+		sample.position=Vector3(4.25,2.36,11.45+float(i)*.70)
+		sample.rotation.y=-PI/2
+		add_child(sample)
+		_shop_label("$%d" % Wardrobe.piece_price(id),Vector3(4.03,2.22,sample.position.z),.002,-PI/2)
+	_shop_label("HEADWEAR",Vector3(4.02,2.65,11.8),.003,-PI/2)
 
 func _shop_label(value:String,at:Vector3,pixel:float,yaw:float) -> void:
 	var label:=Label3D.new()

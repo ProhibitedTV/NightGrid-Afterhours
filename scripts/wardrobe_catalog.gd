@@ -59,9 +59,9 @@ static func garment_slot(name: String) -> String:
 
 # Individual material-compatible pieces. Future mesh pieces use the same
 # stable slot/item identities, with a separate validated visual asset contract.
-const SLOTS=["jacket","pants","glasses","watch","patch"]
-const RESET_IDS=["reset_jacket","reset_pants","reset_glasses","reset_watch","reset_patch"]
-const PIECE_IDS=["jacket_ash","jacket_oxide","jacket_midnight","pants_charcoal","pants_sand","pants_teal","glasses_night","glasses_clear","watch_shift","watch_brass","jacket_ink","jacket_patch","jacket_signal","pants_salvage","pants_indigo","patch_deadcarrier","patch_voltage","patch_ghostshift","patch_nightgrid","jacket_concrete","pants_olive","jacket_copper","jacket_breakwater","pants_forge","jacket_silt","jacket_meridian","pants_pearl","jacket_oxblood","jacket_afterimage","pants_eclipse","jacket_ember","jacket_archivist","pants_porcelain","jacket_monolith","jacket_overprint","pants_scrapyard","jacket_deadstock","glasses_metro","watch_commute","glasses_harbor","watch_tide","glasses_meridian","watch_ink","glasses_afterimage","watch_pulse","glasses_porcelain","watch_monolith","glasses_deadstock","watch_salvage"]
+const SLOTS=["jacket","pants","glasses","watch","patch","hat"]
+const RESET_IDS=["reset_jacket","reset_pants","reset_glasses","reset_watch","reset_patch","reset_hat"]
+const PIECE_IDS=["jacket_ash","jacket_oxide","jacket_midnight","pants_charcoal","pants_sand","pants_teal","glasses_night","glasses_clear","watch_shift","watch_brass","jacket_ink","jacket_patch","jacket_signal","pants_salvage","pants_indigo","patch_deadcarrier","patch_voltage","patch_ghostshift","patch_nightgrid","jacket_concrete","pants_olive","jacket_copper","jacket_breakwater","pants_forge","jacket_silt","jacket_meridian","pants_pearl","jacket_oxblood","jacket_afterimage","pants_eclipse","jacket_ember","jacket_archivist","pants_porcelain","jacket_monolith","jacket_overprint","pants_scrapyard","jacket_deadstock","glasses_metro","watch_commute","glasses_harbor","watch_tide","glasses_meridian","watch_ink","glasses_afterimage","watch_pulse","glasses_porcelain","watch_monolith","glasses_deadstock","watch_salvage","hat_thread_cap","hat_thread_beanie","hat_quay_cap","hat_quay_bucket","hat_vesper_fedora","hat_vesper_cap","hat_nocturne_bucket","hat_nocturne_beanie","hat_obscura_fedora","hat_obscura_bucket","hat_signal_cap","hat_signal_beanie"]
 const PIECES={
 	"jacket_ash":{"name":"Ash work jacket","slot":"jacket","price":18,"tint":Color(.73,.77,.79),"finish":1.0},
 	"jacket_oxide":{"name":"Oxide street jacket","slot":"jacket","price":32,"tint":Color(1.0,.53,.38),"finish":.9},
@@ -111,7 +111,19 @@ const PIECES={
 	"glasses_porcelain":{"name":"Porcelain signature frames","slot":"glasses","price":390,"detail":"Ivory frame / pale smoke lenses"},
 	"watch_monolith":{"name":"Monolith signature watch","slot":"watch","price":720,"detail":"Round graphite case / gold markers"},
 	"glasses_deadstock":{"name":"Deadstock aviator rounds","slot":"glasses","price":12,"detail":"Reclaimed amber lens / bronze frame"},
-	"watch_salvage":{"name":"Salvage digital watch","slot":"watch","price":9,"detail":"Scuffed olive band / green display"}
+	"watch_salvage":{"name":"Salvage digital watch","slot":"watch","price":9,"detail":"Scuffed olive band / green display"},
+	"hat_thread_cap":{"name":"Threadline / Block cap","slot":"hat","price":24,"detail":"Slate cap with brass-tone clasp"},
+	"hat_thread_beanie":{"name":"Threadline / Night Bus beanie","slot":"hat","price":16,"detail":"Steel-blue knit with folded cuff"},
+	"hat_quay_cap":{"name":"Quay / Shift cap","slot":"hat","price":29,"detail":"Olive crown and sand visor"},
+	"hat_quay_bucket":{"name":"Quay / Breakwater bucket","slot":"hat","price":38,"detail":"Harbor-green tapered crown"},
+	"hat_vesper_fedora":{"name":"Vesper / Meridian fedora","slot":"hat","price":115,"detail":"Charcoal crown and mauve ribbon"},
+	"hat_vesper_cap":{"name":"Vesper / Ink cap","slot":"hat","price":78,"detail":"Ink crown with silver-tone trim"},
+	"hat_nocturne_bucket":{"name":"Nocturne / Eclipse bucket","slot":"hat","price":95,"detail":"Violet brim and midnight crown"},
+	"hat_nocturne_beanie":{"name":"Nocturne / Static beanie","slot":"hat","price":65,"detail":"Plum knit and contrast cuff"},
+	"hat_obscura_fedora":{"name":"Obscura / Monolith fedora","slot":"hat","price":480,"detail":"Graphite crown with muted gold ribbon"},
+	"hat_obscura_bucket":{"name":"Obscura / Porcelain bucket","slot":"hat","price":290,"detail":"Ivory crown and stone trim"},
+	"hat_signal_cap":{"name":"Second Signal / Reclaimed cap","slot":"hat","price":8,"detail":"Faded brown surplus cap"},
+	"hat_signal_beanie":{"name":"Second Signal / Ghost Shift beanie","slot":"hat","price":7,"detail":"Rust-toned knit with repaired cuff"}
 }
 
 static func piece_valid(id:Variant) -> bool:
@@ -144,13 +156,13 @@ static func listing(id:String) -> Dictionary:
 		return {"name":"Restore base "+slot if slot in ["jacket","pants"] else "Remove "+slot,"rarity":"NO CHARGE","price":0,"type":"RESET","detail":"Keep ownership; restore appearance"}
 	return {}
 
-const CATEGORIES=["ALL","OUTFITS","JACKETS","TROUSERS","GLASSES","WATCHES","PATCHES","OWNED","LOOKS"]
+const CATEGORIES=["ALL","OUTFITS","JACKETS","TROUSERS","GLASSES","WATCHES","PATCHES","HEADWEAR","OWNED","LOOKS"]
 static func category_ids(category:String) -> Array:
 	if category in ["ALL","OWNED"]:
 		return browse_ids()
 	if category=="OUTFITS":
 		return IDS.duplicate()
-	var slot:String={"JACKETS":"jacket","TROUSERS":"pants","GLASSES":"glasses","WATCHES":"watch","PATCHES":"patch"}.get(category,"")
+	var slot:String={"JACKETS":"jacket","TROUSERS":"pants","GLASSES":"glasses","WATCHES":"watch","PATCHES":"patch","HEADWEAR":"hat"}.get(category,"")
 	var result:Array=[]
 	if slot.is_empty():
 		return result

@@ -100,7 +100,7 @@ func set_look(id:String,slots:Dictionary) -> bool:
 		return false
 	if id==outfit_id and slots==clothing_slots:
 		return true
-	for slot in ["glasses","watch"]:
+	for slot in ["glasses","watch","hat"]:
 		var item_id:String=str(slots.get(slot,""))
 		if not item_id.is_empty() and not _accessories.has(item_id):
 			var attachment:=Accessories.build(skeleton,item_id)
