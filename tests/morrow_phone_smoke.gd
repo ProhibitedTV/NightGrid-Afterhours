@@ -212,9 +212,13 @@ func _verify() -> void:
 	if not world.call("_start_music","busk","copper_cup") or not actor.get("input_blocked"):
 		_fail("Busking must start at a safe physical spot")
 		return
+	var rig: Node3D = actor.get_node("Visual")
+	if rig.get("current_pose") != &"music_strum" or not rig.get_node("AcousticGuitar").visible:
+		_fail("Performance should show guitar and authored strum clip")
+		return
 	world.call("_tick_music",.25)
 	world.call("_stop_music")
-	if actor.get("input_blocked") or world.get("cash") != music_cash-85:
+	if actor.get("input_blocked") or rig.get_node("AcousticGuitar").visible or rig.get("current_pose")==&"music_strum" or world.get("cash") != music_cash-85:
 		_fail("Interrupted set must restore input and not pay")
 		return
 	for set_index in range(3):
@@ -302,5 +306,5 @@ func _verify() -> void:
 		_fail("Phone must not open while driving")
 		return
 	world.set("current_car",null)
-	print("MORROW_PHONE PASS: eight apps, live state, offer rotation, duty gate, workboard, alternate contact progression, physical diagnostics, staged investigation, music career and driving gate")
+	print("MORROW_PHONE PASS: eight apps, live state, offer rotation, duty gate, workboard, alternate contact progression, physical diagnostics, staged investigation, music career, band progression, instrument pose and driving gate")
 	quit(0)
