@@ -32,6 +32,38 @@ func _ready() -> void:
 		"WORKPLACE WELLNESS / 2036","TAKE CARE OF YOURSELF.",
 		"Wellness sessions are available off the clock.\nUnpaid participation is strongly encouraged.")
 
+	# Each department gets its own contradictions, rather than repeating one gag.
+	_board("OfficeAttendance",Vector3(-8.31,2.06,4.10),PI/2,Vector2(2.65,1.62),NAVY,AQUA,WHITE,
+		"WORKPLACE EXPERIENCE / BADGE METRICS","TOGETHER, IN PERSON.",
+		"5 days a week. No exceptions.\nYour manager will join remotely.\nParking subscriptions: $169/month.")
+	_board("Calibration",Vector3(-.108,1.87,-3.8),-PI/2,Vector2(2.4,1.55),PAPER,RED,INK,
+		"PEOPLE OPERATIONS / PERFORMANCE","EXCEED EXPECTATIONS.\nNOT THE BUDGET.",
+		"95% of staff met all objectives.\nCalibration requires 15% below expectations.\nManagers: please reconcile.")
+	_board("AIPledge",Vector3(8.31,1.85,6.3),-PI/2,Vector2(2.9,1.65),NAVY,AQUA,WHITE,
+		"SYNAXIS ASSISTANT ENTERPRISE","YOUR AI COLLEAGUE\nNEEDS YOU.",
+		"Record your daily workflow.\nTrain the future of your role.\nA more human workplace, with fewer humans.")
+	_board("PTOFreeze",Vector3(-8.31,1.96,-.65),PI/2,Vector2(2.2,1.55),PAPER,RED,INK,
+		"Q4 DELIVERY READINESS / ACTION REQUIRED","UNLIMITED PTO*",
+		"*Requests paused until further notice.\nUnused unlimited days have no cash value.\nThank you for your flexibility.")
+	_board("Meetings",Vector3(.108,1.85,-1.6),PI/2,Vector2(1.9,1.5),BLUE,GOLD,WHITE,
+		"COLLABORATION EXCELLENCE","LESS TALK.\nMORE ACTION.",
+		"Mandatory 90-minute alignment meeting.\nAgenda: reducing meeting overhead.\nPre-read: 78 slides.")
+	_board("SpeakUp",Vector3(-.108,1.85,-6.1),-PI/2,Vector2(1.85,1.55),NAVY,AQUA,WHITE,
+		"ETHICS / CONFIDENTIAL CHANNEL","SEE SOMETHING?\nSAY SOMETHING.",
+		"Anonymous reports require your employee ID.\nAll reports routed to your leadership chain.")
+	_board("Equity",Vector3(.108,1.85,-6.1),PI/2,Vector2(1.85,1.55),NAVY,GOLD,WHITE,
+		"TOTAL REWARDS / EQUITY","OWN THE FUTURE.",
+		"Liquidity event: postponed.\nExecutive cash bonus: paid.\nYour patience is a competitive advantage.")
+	_board("Water",Vector3(-8.31,1.94,7.65),PI/2,Vector2(2.45,1.48),PAPER,BLUE,INK,
+		"BREAKROOM / SUSTAINABILITY","BYO MUG. BYO COFFEE.",
+		"Company-provided coffee discontinued.\nWe saved 0.002% of operating expense.\nWater remains complimentary for now.")
+	_board("Recruiting",Vector3(5.25,1.97,-9.84),0.0,Vector2(2.9,1.58),NAVY,AQUA,WHITE,
+		"TALENT ACQUISITION / CAREERS","WE'RE HIRING!",
+		"Entry level: 12 years of experience.\nCompensation: competitive exposure.\nInternal candidates need not apply.")
+	_board("LobbySurveillance",Vector3(-5.25,1.97,-9.84),0.0,Vector2(2.9,1.58),PAPER,RED,INK,
+		"FACILITIES / SMART WORKPLACE","PRIVACY MATTERS.",
+		"Badge, camera and keystroke monitoring active.\nWe respect your right to be informed.\nContinued entry constitutes acknowledgment.")
+
 func _board(id: String,at: Vector3,yaw: float,dimensions: Vector2,background: Color,accent: Color,ink: Color,eyebrow: String,headline: String,body: String) -> void:
 	var root := Node3D.new()
 	root.name=id

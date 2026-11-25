@@ -63,6 +63,7 @@ func _ready() -> void:
 	_build_lobby(desk,accent,screen)
 	_build_office_details(desk,accent,screen)
 	_build_breakroom(desk,accent)
+	_build_corporate_relics(desk,accent,screen)
 	var propaganda := Propaganda.new()
 	propaganda.name="CorporatePropaganda"
 	add_child(propaganda)
@@ -162,6 +163,28 @@ func _build_breakroom(desk: Material,accent: Material) -> void:
 	_sign("GLOBAL TALENT APPRECIATION DAY",Vector3(-3.77,3.07,9.76),.004).rotation.y=PI
 	_sign("SPONSORSHIP TEAM / PHOTO BEFORE FOOD",Vector3(-3.77,2.86,9.76),.003).rotation.y=PI
 	_sign("CATERING BUDGET: $48\nATTENDANCE GOAL: 65",Vector3(-2.85,1.40,8.14),.0028).rotation.y=PI
+
+func _build_corporate_relics(desk: Material,accent: Material,screen: Material) -> void:
+	# Actual desk objects, not floating tutorial text. Keep the circulation aisle clear.
+	var trophy_gold := _material("recognition_gold",Brand.GOLD)
+	_visual("RecognitionPlinth",Vector3(-6.0,1.125,2.59),Vector3(.30,.09,.22),desk)
+	_visual("RecognitionStem",Vector3(-6.0,1.30,2.59),Vector3(.075,.27,.075),trophy_gold)
+	_visual("RecognitionAward",Vector3(-6.0,1.46,2.59),Vector3(.24,.13,.065),trophy_gold)
+	_sign("ABOVE & BEYOND\n$0 CASH VALUE",Vector3(-6.0,1.50,2.635),.0014)
+	_visual("DeskTimeTracker",Vector3(-4.0,1.15,2.81),Vector3(.24,.12,.12),desk)
+	_visual("TimeTrackerDisplay",Vector3(-4.0,1.15,2.878),Vector3(.20,.07,.007),screen)
+	_sign("IDLE: 00:01",Vector3(-4.0,1.15,2.886),.0009)
+	# A real executive-only amenity contrasts with the employee catering table.
+	_solid("ExecutiveRefreshmentCabinet",Vector3(7.62,.49,-.25),Vector3(.85,.98,1.5),desk)
+	_visual("ExecutiveCoffeeMachine",Vector3(7.62,1.18,-.52),Vector3(.42,.40,.41),accent)
+	_visual("ExecutiveCoffeeDisplay",Vector3(7.385,1.24,-.52),Vector3(.012,.12,.26),screen)
+	_sign("EXECUTIVE RESERVE\nNO EMPLOYEE ACCESS",Vector3(7.13,1.49,-.25),.003).rotation.y=-PI/2
+	_visual("ExecutivePorcelainCup",Vector3(7.57,1.07,.12),Vector3(.13,.16,.13),_material("porcelain",Brand.WHITE))
+	# Exit packaging price: consistent with the existing HR line. No charge until a future shop transaction.
+	_visual("CartonPriceCard",Vector3(5.47,1.13,6.19),Vector3(.20,.11,.018),_material("exit_card",Brand.PAPER))
+	var price_label:=_sign("BOX $4.99",Vector3(5.47,1.13,6.176),.0018)
+	price_label.rotation.y=PI
+	price_label.modulate=Brand.INK
 
 func breakroom_reachable(at: Vector3) -> bool:
 	return _prologue_active and at.is_finite() and at.distance_to(to_global(BREAKROOM_POINT))<1.35

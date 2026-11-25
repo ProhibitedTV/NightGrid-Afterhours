@@ -398,9 +398,17 @@ func _verify() -> void:
 		_fail("Physical office must have real enclosed collision geometry")
 		return
 	var propaganda: Node3D=office.get_node_or_null("CorporatePropaganda")
-	if not is_instance_valid(propaganda) or propaganda.get_child_count()!=6:
-		_fail("Six physical corporate propaganda boards must be present")
+	if not is_instance_valid(propaganda) or propaganda.get_child_count()!=16:
+		_fail("Sixteen physical corporate propaganda boards must be present")
 		return
+	for id in ["OfficeAttendance","Calibration","AIPledge","PTOFreeze","Meetings","SpeakUp","Equity","Water","Recruiting","LobbySurveillance"]:
+		if not is_instance_valid(propaganda.get_node_or_null(id+"/Headline")):
+			_fail("Missing environmental workplace satire: "+id)
+			return
+	for id in ["RecognitionAward","DeskTimeTracker","ExecutiveCoffeeMachine","CartonPriceCard"]:
+		if not is_instance_valid(office.get_node_or_null(id)):
+			_fail("Missing physical workplace storytelling prop: "+id)
+			return
 	for board in propaganda.get_children():
 		var logo:=board.get_node_or_null("BrandLockup") as MeshInstance3D
 		if logo==null or logo.material_override.albedo_texture==null:
