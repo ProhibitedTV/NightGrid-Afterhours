@@ -9,6 +9,13 @@ const VenueAmbience = preload("res://scripts/venue_ambience.gd")
 const MusicCareer = preload("res://scripts/music_career.gd")
 const InstrumentArt = preload("res://scripts/instrument_art.gd")
 const MusicContactVisual = preload("res://scenes/pedestrian_visual.tscn")
+const STREET_SET = preload("res://assets/audio/music/busker_demo.wav")
+const NIGHT_SET = preload("res://assets/audio/music/band_demo.wav")
+const AMBIENT_MUSICIANS = [
+	{"id":"ash","name":"Ash / acoustic","site":"lantern_cup","role":"guitar","model":"casual-walker","start":9.0,"end":21.0,"x":-3.25},
+	{"id":"switch","name":"Switch / street synth","site":"static_room","role":"synth","model":"hiker","start":21.0,"end":3.0,"x":-3.05},
+	{"id":"coil","name":"Coil / bass","site":"blue_hour","role":"bass","model":"road-worker","start":19.0,"end":2.0,"x":-3.05}
+]
 const CELL = 58.0
 const INTERACT_RANGE = 5.5
 
@@ -52,6 +59,11 @@ var _patrons: Dictionary = {}
 var _music_contacts: Dictionary = {}
 var _music_setups: Dictionary = {}
 var _active_ensemble: Node3D
+var _ambient_musicians: Dictionary = {}
+var _ambient_music: AudioStreamPlayer3D
+var _ambient_source := ""
+var _player_performing := false
+var _music_volume := .65
 var _lights: Array[OmniLight3D] = []
 var _focus := Vector3.ZERO
 var _hour := 19.25
@@ -64,6 +76,7 @@ func _ready() -> void:
 		_build_venue(venue)
 	_build_music_contacts()
 	_build_music_setups()
+	_build_ambient_musicians()
 	for index in range(2):
 		var pool_light := OmniLight3D.new()
 		pool_light.name = "LocalVenueLight_%d" % index
@@ -281,6 +294,7 @@ func _build_music_contacts() -> void:
 			visual.rotation.y = PI
 			contact.add_child(visual)
 			visual.call("set_activity","STOREFRONT")
+			visual.call("set_music_role","bass" if id=="rhea" else "synth")
 			if id=="rhea":
 				InstrumentArt.place(visual,"punk_bass",Vector3(.07,1.08,.24),Vector3(0,0,-29))
 			else:
@@ -343,7 +357,7 @@ func show_player_band(site: String, at: Vector3) -> void:
 		visual.position = Vector3(-1.25 if id=="rhea" else 1.25,0,0)
 		visual.rotation.y = PI
 		_active_ensemble.add_child(visual)
-		visual.call("set_activity","SOCIALIZE")
+		visual.call("set_music_role","bass" if id=="rhea" else "synth")
 		if id=="rhea":
 			InstrumentArt.place(visual,"punk_bass",Vector3(.06,1.08,.25),Vector3(0,0,-32))
 			InstrumentArt.place(_active_ensemble,"combo_amp",Vector3(-1.8,.17,.45),Vector3(0,180,0))
@@ -356,6 +370,91 @@ func hide_player_band() -> void:
 		_active_ensemble.hide()
 		_active_ensemble.queue_free()
 		_active_ensemble = null
+
+func _build_ambient_musicians() -> void:
+	for entry in AMBIENT_MUSICIANS:
+		var site: String = entry["site"]
+		var id: String = entry["id"]
+		var anchor: Node3D = _nodes[site]
+		var setup := Node3D.new()
+		setup.name = "Busker_"+id
+		setup.position = Vector3(float(entry["x"]),.21,-1.85)
+		anchor.add_child(setup)
+		var model := load("res://assets/models/nightgrid/pedestrians/"+str(entry["model"])+".glb") as PackedScene
+		if model!=null:
+			var visual := MusicContactVisual.instantiate() as Node3D
+			visual.call("set_pedestrian_model",model)
+			visual.rotation.y = PI
+			setup.add_child(visual)
+			visual.call("set_music_role",str(entry["role"]))
+			if entry["role"]!="synth":
+				InstrumentArt.place(visual,"acoustic_guitar" if entry["role"]=="guitar" else "punk_bass",Vector3(.06,1.08,.25),Vector3(0,0,-32))
+			else:
+				InstrumentArt.place(setup,"portable_synth",Vector3(0,.91,-.42),Vector3(-90,180,0))
+				_box(setup,Vector3(0,.45,-.42),Vector3(.60,.87,.34),Color("363e47"),"METAL")
+		InstrumentArt.place(setup,"combo_amp",Vector3(.52,.18,.20),Vector3(0,180,0))
+		InstrumentArt.place(setup,"road_case",Vector3(.45,.08,-.55),Vector3(0,90,0))
+		var tag := _make_label(setup,str(entry["name"]),Vector3(0,2.1,0),Color("e6a8cf"),21)
+		tag.visibility_range_end = 10.0
+		_ambient_musicians[id] = setup
+	_ambient_music = AudioStreamPlayer3D.new()
+	_ambient_music.name = "NearestStreetPerformance"
+	_ambient_music.bus = AudioMix.STREET_MUSIC
+	_ambient_music.max_distance = 22.0
+	_ambient_music.unit_size = 3.5
+	add_child(_ambient_music)
+
+func set_music_volume(volume: float) -> void:
+	_music_volume = clampf(volume,0.0,1.0)
+	if is_instance_valid(_ambient_music):
+		_ambient_music.volume_db = linear_to_db(maxf(.001,_music_volume))-16.0
+		if _music_volume<=0.0:
+			_ambient_music.stop()
+			_ambient_source = ""
+
+func set_player_performing(active: bool) -> void:
+	_player_performing = active
+	if active and is_instance_valid(_ambient_music):
+		_ambient_music.stop()
+		_ambient_source = ""
+
+func _music_scheduled(entry: Dictionary) -> bool:
+	var start: float = entry["start"]
+	var end: float = entry["end"]
+	return _hour>=start and _hour<end if start<end else _hour>=start or _hour<end
+
+func _refresh_ambient_musicians() -> void:
+	var nearest := ""
+	var nearest_distance := 22.0*22.0
+	var use_band := false
+	for entry in AMBIENT_MUSICIANS:
+		var id: String = entry["id"]
+		var setup: Node3D = _ambient_musicians[id]
+		var distance := setup.global_position.distance_squared_to(_focus)
+		var active := _music_scheduled(entry) and is_open(str(entry["site"])) and distance<48.0*48.0
+		setup.visible = active
+		setup.process_mode = Node.PROCESS_MODE_INHERIT if active else Node.PROCESS_MODE_DISABLED
+		if active and distance<nearest_distance:
+			nearest = id
+			nearest_distance = distance
+			use_band = entry["role"]!="guitar"
+	if _player_performing or _music_volume<=0.0:
+		nearest = ""
+	if nearest==_ambient_source:
+		return
+	_ambient_music.stop()
+	_ambient_source = nearest
+	if nearest.is_empty():
+		return
+	var loop := (NIGHT_SET if use_band else STREET_SET).duplicate() as AudioStreamWAV
+	loop.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	loop.loop_begin = 0
+	loop.loop_end = roundi(loop.get_length()*loop.mix_rate)
+	_ambient_music.stream = loop
+	var setup: Node3D = _ambient_musicians[nearest]
+	_ambient_music.global_position = setup.global_position+Vector3.UP
+	_ambient_music.volume_db = linear_to_db(maxf(.001,_music_volume))-16.0
+	_ambient_music.play()
 
 func music_contact_position(id: String) -> Vector3:
 	var contact: Node3D = _music_contacts.get(id)
@@ -544,6 +643,7 @@ func _night_factor() -> float:
 	return 0.0
 
 func _refresh() -> void:
+	_refresh_ambient_musicians()
 	var darkness := _night_factor()
 	for id in _music_contacts:
 		var contact: Node3D = _music_contacts[id]

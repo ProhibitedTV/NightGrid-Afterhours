@@ -733,6 +733,7 @@ func _start_music(kind: String, site: String) -> bool:
 	suspend_weapon()
 	_music_site = site
 	_music_start_cred = int(_street_cred()["music"])
+	venue_system.call("set_player_performing",true)
 	player.set("input_blocked",true)
 	player.get_node("Visual").call("set_music_prop",true)
 	if kind in ["band","rehearse","encore"]:
@@ -762,6 +763,7 @@ func _stop_music() -> void:
 	music_career.stop()
 	_music_site = ""
 	venue_system.call("hide_player_band")
+	venue_system.call("set_player_performing",false)
 	if is_instance_valid(_music_audio):
 		_music_audio.stop()
 	if is_instance_valid(player):
@@ -917,6 +919,8 @@ func _journal_context() -> Dictionary:
 	}
 
 func _apply_game_settings(options: Dictionary) -> void:
+	if is_instance_valid(venue_system):
+		venue_system.call("set_music_volume",float(options.get("music_volume",.65)))
 	mouse_sensitivity = clampf(float(options.get("mouse_sensitivity", 0.0032)), 0.001, 0.010)
 	stick_sensitivity = clampf(float(options.get("stick_sensitivity", 2.6)), 0.5, 5.0)
 	invert_look_y = bool(options.get("invert_look_y", false))
@@ -2063,6 +2067,7 @@ func _build_world_systems() -> void:
 	venue_system.name = "SocialVenues"
 	add_child(venue_system)
 	venue_system.call("set_hour", float(day_night.get("hour")))
+	venue_system.call("set_music_volume",float(game_menu.call("get_settings").get("music_volume",.65)) if is_instance_valid(game_menu) else .65)
 	civic_services = CivicServicesScript.new()
 	civic_services.name = "CivicServices"
 	add_child(civic_services)

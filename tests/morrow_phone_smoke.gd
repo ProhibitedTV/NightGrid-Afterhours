@@ -206,6 +206,27 @@ func _verify() -> void:
 	var career = world.get("music_career")
 	var music_cash: int = world.get("cash")
 	var venues = world.get("venue_system")
+	var musicians: Dictionary = venues.get("_ambient_musicians")
+	if musicians.size()!=3:
+		_fail("Expected three persistent ambient musicians")
+		return
+	var ash: Node3D = musicians["ash"]
+	venues.call("set_focus",ash.global_position)
+	venues.call("set_hour",13.0)
+	if not ash.visible or venues.get("_ambient_source")!="ash":
+		_fail("Scheduled nearby street musician must appear and source audio")
+		return
+	venues.call("set_player_performing",true)
+	venues.call("_refresh")
+	if not str(venues.get("_ambient_source")).is_empty():
+		_fail("Ambient music must yield to player performance")
+		return
+	venues.call("set_player_performing",false)
+	venues.call("set_hour",23.0)
+	if ash.visible:
+		_fail("Off-hours musician must be hidden")
+		return
+	venues.call("set_focus",Vector3.ZERO)
 	venues.call("set_hour",16.0)
 	actor.global_position = venues.call("venue_position","copper_cup")
 	world.call("_toggle_venue")
