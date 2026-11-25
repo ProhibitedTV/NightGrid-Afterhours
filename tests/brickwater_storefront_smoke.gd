@@ -2,6 +2,7 @@ extends SceneTree
 ## Uses the actual permanent Brickwater parcel and the normal player controller.
 const GAME = preload("res://scenes/main.tscn")
 const Shop = preload("res://scripts/brickwater_storefront.gd")
+const RoadCars = preload("res://scripts/road_car_catalog.gd")
 const BLOCK = Vector2i(-2, 1)
 var world: Node3D
 var player: CharacterBody3D
@@ -102,28 +103,28 @@ func _run() -> void:
 	world.call("_venue_action", 2)
 	if not _expect(not ledger.owns_vehicle(vehicle_id) and world.get("cash") == before_title, "unaffordable title rejected without debit"):
 		return
-	world.set("cash", 600)
+	world.set("cash", RoadCars.title_price(vehicle_id)+100)
 	world.call("_update_venue_panel")
 	world.call("_venue_action", 2)
-	if not _expect(world.get("_title_quote_id") == vehicle_id and world.get("cash") == 600 and not ledger.owns_vehicle(vehicle_id), "review binds exact ID without debit"):
+	if not _expect(world.get("_title_quote_id") == vehicle_id and world.get("cash") == RoadCars.title_price(vehicle_id)+100 and not ledger.owns_vehicle(vehicle_id), "review binds exact ID without debit"):
 		return
 	world.call("_venue_action", 1)
-	if not _expect(str(world.get("_title_quote_id")).is_empty() and world.get("cash") == 600, "cancel does not repair or charge"):
+	if not _expect(str(world.get("_title_quote_id")).is_empty() and world.get("cash") == RoadCars.title_price(vehicle_id)+100, "cancel does not repair or charge"):
 		return
 	world.call("_venue_action", 2)
 	var parked_at := car.global_position
 	car.global_position = Vector3(0,1,0)
 	world.call("_venue_action", 2)
-	if not _expect(not ledger.owns_vehicle(vehicle_id) and world.get("cash") == 600, "stale selected vehicle refuses confirmation"):
+	if not _expect(not ledger.owns_vehicle(vehicle_id) and world.get("cash") == RoadCars.title_price(vehicle_id)+100, "stale selected vehicle refuses confirmation"):
 		return
 	car.global_position = parked_at
 	world.call("_update_venue_panel")
 	world.call("_venue_action", 2)
-	world.set("cash", 499)
+	world.set("cash", RoadCars.title_price(vehicle_id)-1)
 	world.call("_venue_action", 2)
-	if not _expect(not ledger.owns_vehicle(vehicle_id) and world.get("cash") == 499, "affordability rechecked at confirmation"):
+	if not _expect(not ledger.owns_vehicle(vehicle_id) and world.get("cash") == RoadCars.title_price(vehicle_id)-1, "affordability rechecked at confirmation"):
 		return
-	world.set("cash", 500)
+	world.set("cash", RoadCars.title_price(vehicle_id))
 	world.call("_update_venue_panel")
 	world.call("_venue_action", 2)
 	world.call("_venue_action", 2)
@@ -140,7 +141,7 @@ func _run() -> void:
 	# Exercise the same physical counter with a titled Cinder.
 	var cinder: CharacterBody3D = world.get("cars")[2]
 	var cinder_id := str(cinder.get_meta("vehicle_id"))
-	world.set("cash",2500)
+	world.set("cash",RoadCars.title_price(cinder_id))
 	if not _expect(ledger.buy_vehicle(cinder_id),"prepare paid Cinder title"):
 		return
 	cinder.global_position = parked_at + Vector3(2,0,0)
@@ -149,7 +150,7 @@ func _run() -> void:
 	world.set("heat",0.0)
 	world.call("_update_venue_panel")
 	world.call("_venue_action",3)
-	if not _expect(world.get("_sale_quote_id")==cinder_id and world.get("_sale_quote_amount")==1200 and world.get("cash")==0,"condition-adjusted sale quote"):
+	if not _expect(world.get("_sale_quote_id")==cinder_id and world.get("_sale_quote_amount")==RoadCars.resale_price(cinder_id,80.0) and world.get("cash")==0,"condition-adjusted sale quote"):
 		return
 	world.call("_venue_action",1)
 	if not _expect(ledger.owns_vehicle(cinder_id) and world.get("cash")==0,"cancel retains ownership"):
@@ -162,13 +163,13 @@ func _run() -> void:
 	world.call("_venue_action",3)
 	world.call("_venue_action",3)
 	world.call("_venue_action",3)
-	if not _expect(not ledger.owns_vehicle(cinder_id) and world.get("cash")==900 and world.get("cars").size()==12,"sale credits once and transfers existing car"):
+	if not _expect(not ledger.owns_vehicle(cinder_id) and world.get("cash")==RoadCars.resale_price(cinder_id,60.0) and world.get("cars").size()==12,"sale credits once and transfers existing car"):
 		return
 	var sale_save: Dictionary = session.call("make_snapshot",world.call("_capture_snapshot"))
 	if not _expect(session.call("is_valid_snapshot",sale_save),"sale snapshot valid"):
 		return
 	world.call("_apply_snapshot",sale_save)
-	if not _expect(not ledger.owns_vehicle(cinder_id) and world.get("cash")==900,"sale persists"):
+	if not _expect(not ledger.owns_vehicle(cinder_id) and world.get("cash")==RoadCars.resale_price(cinder_id,60.0),"sale persists"):
 		return
 	world.call("_close_venue")
 	player.global_position = shop.to_global(Vector3(-1.42, 0.95, 0))

@@ -1,6 +1,7 @@
 extends SceneTree
 const Garage = preload("res://scripts/starter_garage.gd")
 const Home = preload("res://scripts/starter_home.gd")
+const RoadCars = preload("res://scripts/road_car_catalog.gd")
 func _initialize() -> void:
 	call_deferred("_verify")
 func check(ok: bool,reason: String) -> bool:
@@ -32,13 +33,16 @@ func _verify() -> void:
 		return
 	ledger.credit_once(Home.ACCESS_RECEIPT,100)
 	world.get("story_mission").restore({"version":1,"id":Home.ACCESS_RECEIPT,"status":"complete","step":3})
-	world.set("cash",200)
+	world.set("cash",Home.move_in_price())
+	if not check(ledger.activate_home_tenancy(),"paid tenancy"):
+		return
+	world.set("cash",RoadCars.title_price(Garage.IDS[0])+200)
 	world.set("heat",0.0)
 	await physics_frame
 	world.call("_toggle_interaction")
 	world.call("_venue_action",1)
 	var car: CharacterBody3D = cars[0]
-	if not check(ledger.owns_vehicle(Garage.IDS[0]) and garage.call("parked_at",car.global_position,0) and world.get("cash")==200 and cars.size()==12,"starter grant uses original car, no debit or spawn"):
+	if not check(ledger.owns_vehicle(Garage.IDS[0]) and garage.call("parked_at",car.global_position,0) and world.get("cash")==200 and cars.size()==12,"paid starter title uses original car, no duplicate spawn"):
 		return
 	world.call("_venue_action",1)
 	if not check(world.get("cash")==200,"already parked costs nothing"):

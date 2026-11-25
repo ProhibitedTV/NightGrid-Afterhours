@@ -223,6 +223,15 @@ func _verify() -> void:
 	var ledger = world.get("progression")
 	ledger.credit_once(Home.ACCESS_RECEIPT,100)
 	world.get("story_mission").restore({"version":1,"id":Home.ACCESS_RECEIPT,"status":"complete","step":3})
+	world.set("cash",Home.move_in_price()-1)
+	world.call("_toggle_interior")
+	world.call("_venue_action",3)
+	if not check(not ledger.owns_home() and world.get("cash")==Home.move_in_price()-1,"unaffordable tenancy refused"):
+		return
+	world.set("cash",Home.move_in_price())
+	world.call("_venue_action",3)
+	if not check(ledger.owns_home() and world.get("cash")==0,"paid tenancy activated at door"):
+		return
 	world.call("_toggle_interior")
 	for i in 48:
 		await physics_frame
