@@ -237,6 +237,13 @@ func settle_blue_hour_set(sequence:int)->bool:
 	balance+=Rhythm.REWARD
 	return true
 
+## The loaner street sampler has no contact or ownership prerequisite.
+func settle_busking_set(sequence:int)->bool:
+	if balance>MAX_CASH-Rhythm.BUSKING_REWARD or not _street_cred.settle_run("busking",sequence):
+		return false
+	balance+=Rhythm.BUSKING_REWARD
+	return true
+
 func snapshot() -> Dictionary:
 	var ids: Array = _receipts.keys()
 	ids.sort()

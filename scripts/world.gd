@@ -157,6 +157,8 @@ var _cal_pending:Dictionary={}
 var _cal_tracking:=false
 var _cal_nav_clock:=0.0
 const CAL_PICKUP="moon_noodles"
+const BUSKING_SITES=["moon_noodles","copper_cup"]
+var _music_session_site:=""
 var city_perimeter: Node3D
 var flora: Node3D
 var day_night: Node
@@ -444,13 +446,28 @@ func _on_menu_action(action: String) -> void:
 				_cal_pending={"id":_street_contact_id,"action":action}
 			_street_contact_id=""
 		"rhythm_claim":
-			var sequence:int=game_menu.call("consume_blue_hour_result")
-			if sequence>0 and _blue_hour_set_reachable() and progression.settle_blue_hour_set(sequence):
-				_notify("BLUE HOUR / SET COMPLETE +$45 • +12 STREET CRED")
-			else:
-				_notify("BLUE HOUR / Set not settled.")
+			var site:=_music_session_site
+			_music_session_site=""
+			if site in BUSKING_SITES:
+				var sequence:int=game_menu.call("consume_busking_result")
+				if sequence>0 and _busking_reachable(site) and progression.settle_busking_set(sequence):
+					_notify("BUSKING / SET COMPLETE +$8 • +4 STREET CRED")
+				else:
+					_notify("BUSKING / Set not settled.")
+			elif site=="blue_hour":
+				var sequence:int=game_menu.call("consume_blue_hour_result")
+				if sequence>0 and _blue_hour_set_reachable() and progression.settle_blue_hour_set(sequence):
+					_notify("BLUE HOUR / SET COMPLETE +$45 • +12 STREET CRED")
+				else:
+					_notify("BLUE HOUR / Set not settled.")
 		"rhythm_cancel":
-			_notify("BLUE HOUR / Set ended. No reward.")
+			_music_session_site=""
+			_notify("MUSIC / Set ended. No reward.")
+		"busking_waypoint":
+			var site:="moon_noodles" if venue_system.call("is_open","moon_noodles") or not venue_system.call("is_open","copper_cup") else "copper_cup"
+			var point:Vector3=venue_system.call("venue_position",site)
+			set_navigation_waypoint(Vector2(point.x,point.z))
+			game_menu.call("open_journal",_journal_context())
 		"music_waypoint":
 			if progression.street_cred()>=100 and not progression.has_receipt("venue:soundcheck_pass"):
 				var point:Vector3=venue_system.call("venue_position","blue_hour" if venue_job_active=="soundcheck_pass" else "static_room")
@@ -649,6 +666,7 @@ func _journal_context() -> Dictionary:
 		"street_cred_summary":progression.street_cred_summary(),
 		"street_cred_sources":progression.street_cred_sources(),
 		"music_contact":_music_contact_status(),
+		"busking_status":"STREET MUSIC / Moon Noodles or Copper Cup • %d sets completed"%progression.street_activity_runs("busking"),
 		"music_can_navigate":progression.street_cred()>=100 and not progression.has_receipt("venue:soundcheck_pass"),
 		"cal_can_navigate":_cal_target().is_finite(),
 		"civic_job": _civic_job_text(),
@@ -3088,9 +3106,10 @@ func _update_venue_panel() -> void:
 		venue_job_button.text = "2 / X  •  SIDE JOB"
 	if venue_talk_button != null:
 		var music_set:=venue_selected_id=="blue_hour" and progression.has_receipt("venue:soundcheck_pass")
-		venue_talk_button.visible = is_mara or music_set
-		venue_talk_button.disabled = not is_mara and not (music_set and open_now and _blue_hour_set_reachable())
-		venue_talk_button.text="3 / Y  •  PLAY OPENING SET" if music_set else "3 / Y  •  TALK TO MARA"
+		var busk:=venue_selected_id in BUSKING_SITES and not interiors.call("is_inside")
+		venue_talk_button.visible = is_mara or music_set or busk
+		venue_talk_button.disabled = not is_mara and not (music_set and open_now and _blue_hour_set_reachable()) and not (busk and _busking_reachable(venue_selected_id))
+		venue_talk_button.text="3 / Y  •  PLAY OPENING SET" if music_set else ("3 / Y  •  BUSK WITH LOANER SAMPLER" if busk else "3 / Y  •  TALK TO MARA")
 
 func _mara_context() -> Dictionary:
 	return {
@@ -3245,9 +3264,17 @@ func _venue_action(option: int) -> void:
 		return
 	# Dialogue is no-cost and remains accessible even near closing time.
 	if option == 3:
+		if _busking_reachable(venue_selected_id):
+			var site:=venue_selected_id
+			var sequence:=progression.street_activity_runs("busking")+1
+			_close_venue()
+			_music_session_site=site
+			game_menu.call("open_busking_set",sequence)
+			return
 		if venue_selected_id=="blue_hour" and _blue_hour_set_reachable():
 			var sequence:=progression.street_activity_runs("live_gig")+1
 			_close_venue()
+			_music_session_site="blue_hour"
 			game_menu.call("open_blue_hour_set",sequence)
 			return
 		if venue_selected_id == "lantern_cup" and interiors.call("is_inside"):
@@ -3974,6 +4001,7 @@ func get_map_state() -> Dictionary:
 	}
 
 func _cancel_street_interactions()->void:
+	_music_session_site=""
 	_street_contact_id=""
 	_cal_pending={}
 	if is_instance_valid(pedestrians) and is_instance_valid(dialogue_director):
@@ -4084,4 +4112,10 @@ func _blue_hour_set_reachable()->bool:
 	if interiors.call("is_inside"):
 		return str(interiors.call("active_site_id"))=="blue_hour" and bool(interiors.call("counter_reachable",player.global_position))
 	var point:Vector3=venue_system.call("venue_position","blue_hour")
+	return player.global_position.distance_to(point)<=5.5
+
+func _busking_reachable(site:String)->bool:
+	if site not in BUSKING_SITES or not is_instance_valid(player) or current_car!=null or current_transit!=null or interiors.call("is_inside") or weapons.equipped!="holstered" or not venue_system.call("is_open",site):
+		return false
+	var point:Vector3=venue_system.call("venue_position",site)
 	return player.global_position.distance_to(point)<=5.5

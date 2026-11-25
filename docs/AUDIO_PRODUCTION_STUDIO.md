@@ -193,3 +193,5 @@ Soundcheck Pass adds Nyx and Rae as original synthetic voice identities, with tw
 
 ### Blue Hour performance pilot
 Three original offline-authored short sampler WAVs (`assets/audio/rehearsal/{kick,clap,hat}.wav`) are directly embedded and preloaded in the menu; see that directory's provenance README. They are authored mathematical musical percussion, not generated speech/SFX candidates, and are explicitly documented original musical assets. Cue IDs `music.rehearsal.kick`, `.clap`, `.hat` trigger on pad strikes, nonspatial via one Music-bus player. They stop when the activity ends; timing remains visual even if muted. No AI inference or runtime synthesis. Native listening and review pending.
+
+Street sampler busking reuses the existing three original `music.rehearsal.*` percussion cues and bounded Music-bus player; no new audio files, voice recordings or runtime synthesis. Menu-only performance pilot, not spatial audience audio.

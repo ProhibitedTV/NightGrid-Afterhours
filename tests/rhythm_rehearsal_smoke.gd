@@ -25,6 +25,20 @@ func _initialize()->void:
 	if rhythm.claim():
 		quit(1)
 		return
+	rhythm.start(1,"busking")
+	if rhythm.pattern.size()!=8 or rhythm.required_hits!=6 or rhythm.hit_window!=0.30:
+		quit(1)
+		return
+	for lane in rhythm.pattern:
+		rhythm.advance(rhythm.target_time()-rhythm.elapsed)
+		rhythm.strike(lane)
+	if not rhythm.claim() or rhythm.claim():
+		quit(1)
+		return
+	var street:=Ledger.new()
+	if not street.settle_busking_set(1) or street.settle_busking_set(1) or street.settle_busking_set(3) or street.balance!=8 or street.street_cred()!=4 or street.street_activity_runs("live_gig")!=0:
+		quit(1)
+		return
 	var p:=Ledger.new()
 	if p.settle_blue_hour_set(1):
 		quit(1)

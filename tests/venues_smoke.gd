@@ -256,6 +256,24 @@ func _verify() -> void:
 	if music_ledger.street_activity_runs("live_gig")!=1 or int(world.get("cash"))!=cash_before_set+45:
 		_fail("Direct settlement replay awarded a second set")
 		return
+	# Street music is accessible before the underground introduction.
+	var busk_ledger=world.get("progression")
+	venues.call("set_hour",12.0)
+	player.global_position=venues.call("venue_position","moon_noodles")
+	world.call("_toggle_venue")
+	world.call("_venue_action",3)
+	if menu.get("screen")!="blue_hour_set" or menu.get("_rhythm").mode!="busking":
+		_fail("Street sampler menu did not open")
+		return
+	var street_run=menu.get("_rhythm")
+	for lane in street_run.pattern:
+		street_run.advance(street_run.target_time()-street_run.elapsed)
+		street_run.strike(lane)
+	var cash_before_busk:int=world.get("cash")
+	menu.call("_choice","rhythm_claim")
+	if paused or busk_ledger.street_activity_runs("busking")!=1 or busk_ledger.street_activity_runs("live_gig")!=1 or int(world.get("cash"))!=cash_before_busk+8:
+		_fail("Busking settlement crossed activity streams")
+		return
 	print("VENUE_SMOKE PASS: ", kind_counts, " / quests=", catalog.SIDE_JOBS.size(),
 		" / saved_seed=", old_seed, " / venue_lights=", venues.call("get_active_light_count"))
 	quit(0)

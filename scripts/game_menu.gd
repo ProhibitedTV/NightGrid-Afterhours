@@ -6,6 +6,7 @@ const Ui = preload("res://scripts/ui_style.gd")
 const Rhythm=preload("res://scripts/rhythm_rehearsal.gd")
 var _rhythm=Rhythm.new()
 var _rhythm_sequence:=0
+var _rhythm_focus_set:=false
 var _rhythm_status:Label
 var _rhythm_meter:ProgressBar
 var _rhythm_claim:Button
@@ -491,6 +492,8 @@ func _render() -> void:
 				bar.show_percentage=false
 				bar.custom_minimum_size=Vector2(0,12)
 				col.add_child(bar)
+			_label(col,str(_journal_data.get("busking_status","")),16,Ui.ACCENT)
+			_button(col,"busking_waypoint","SET STREET MUSIC WAYPOINT","busking_waypoint")
 			_label(col,str(_journal_data.get("music_contact","")),16,Ui.ACCENT)
 			if bool(_journal_data.get("music_can_navigate",false)):
 				_button(col,"music_waypoint","SET UNDERGROUND MUSIC CONTACT WAYPOINT","music_waypoint")
@@ -761,7 +764,7 @@ func _choice(action: String) -> void:
 			open_map()
 		"journal":
 			action_requested.emit("journal")
-		"restart_courier", "abandon_story", "home_waypoint", "garage_waypoint", "story_waypoint", "synaxis_waypoint", "cal_waypoint", "music_waypoint":
+		"restart_courier", "abandon_story", "home_waypoint", "garage_waypoint", "story_waypoint", "synaxis_waypoint", "cal_waypoint", "music_waypoint", "busking_waypoint":
 			action_requested.emit(action)
 		"back":
 			_open(_back_screen)
@@ -785,18 +788,31 @@ func _choice(action: String) -> void:
 			get_tree().quit()
 
 func open_blue_hour_set(sequence:int)->void:
+	_open_music_set(sequence,"live_gig")
+
+func open_busking_set(sequence:int)->void:
+	_open_music_set(sequence,"busking")
+
+func _open_music_set(sequence:int,source:String)->void:
 	_rhythm_sequence=sequence
-	_rhythm.start(sequence)
+	_rhythm_focus_set=false
+	_rhythm.start(sequence,source)
 	_open("blue_hour_set")
 
+func consume_busking_result()->int:
+	if screen=="blue_hour_set" and _rhythm.mode=="busking" and _rhythm.claim():
+		return _rhythm_sequence
+	return 0
+
 func consume_blue_hour_result()->int:
-	if screen=="blue_hour_set" and _rhythm.claim():
+	if screen=="blue_hour_set" and _rhythm.mode=="live_gig" and _rhythm.claim():
 		return _rhythm_sequence
 	return 0
 
 func _render_rhythm(col:VBoxContainer)->void:
-	_title(col,"BLUE HOUR / OPENING SET",24,Ui.AMBER)
-	_label(col,"Borrow Rae's three-pad sampler. Hit the indicated pad in the timing window. 9 of 12 required.",16,Ui.TEXT)
+	var street:=_rhythm.mode=="busking"
+	_title(col,"STREET SAMPLER / BUSKING" if street else "BLUE HOUR / OPENING SET",24,Ui.AMBER)
+	_label(col,("Borrow the neighborhood loaner sampler." if street else "Borrow Rae's three-pad sampler.")+" Hit the indicated pad in the timing window. %d of %d required."%[_rhythm.required_hits,_rhythm.pattern.size()],16,Ui.TEXT)
 	_label(col,"1 / A: kick   2 / X: clap   3 / Y: hat",16,Ui.MUTED)
 	_rhythm_status=Label.new()
 	_rhythm_status.add_theme_font_size_override("font_size",22)
@@ -808,7 +824,7 @@ func _render_rhythm(col:VBoxContainer)->void:
 	for lane in range(3):
 		var key:="rhythm_pad_%d"%lane
 		_button(col,key,["1 / A  KICK","2 / X  CLAP","3 / Y  HI-HAT"][lane],key)
-	_button(col,"rhythm_claim","COLLECT $45 / +12 STREET CRED","rhythm_claim",false)
+	_button(col,"rhythm_claim","COLLECT $8 / +4 STREET CRED" if street else "COLLECT $45 / +12 STREET CRED","rhythm_claim",false)
 	_rhythm_claim=_buttons["rhythm_claim"]
 	_button(col,"rhythm_cancel","LEAVE SET","rhythm_cancel")
 	_refresh_rhythm()
@@ -840,15 +856,16 @@ func _refresh_rhythm()->void:
 	if not is_instance_valid(_rhythm_status) or not is_instance_valid(_rhythm_meter) or not is_instance_valid(_rhythm_claim):
 		return
 	if _rhythm.finished:
-		_rhythm_status.text="%s / %d of 12 correct"%["SET COMPLETE" if _rhythm.passed() else "TRY ANOTHER SET",_rhythm.hits]
+		_rhythm_status.text="%s / %d of %d correct"%["SET COMPLETE" if _rhythm.passed() else "TRY ANOTHER SET",_rhythm.hits,_rhythm.pattern.size()]
 		_rhythm_meter.value=0.0
 		_rhythm_claim.disabled=not _rhythm.passed()
-		if _rhythm.passed() and not _rhythm_claim.has_focus():
+		if _rhythm.passed() and not _rhythm_focus_set:
+			_rhythm_focus_set=true
 			_rhythm_claim.grab_focus()
 		return
 	var remaining:=_rhythm.target_time()-_rhythm.elapsed
 	var lane:int=_rhythm.pattern[_rhythm.index]
-	var window:=absf(remaining)<=Rhythm.WINDOW
-	_rhythm_status.text="%s / %s / %d of 12  •  %d hits"%[["KICK","CLAP","HI-HAT"][lane],"HIT NOW" if window else "READY %.1fs"%maxf(0.0,remaining),_rhythm.index+1,_rhythm.hits]
+	var window:=absf(remaining)<=_rhythm.hit_window
+	_rhythm_status.text="%s / %s / %d of %d  •  %d hits"%[["KICK","CLAP","HI-HAT"][lane],"HIT NOW" if window else "READY %.1fs"%maxf(0.0,remaining),_rhythm.index+1,_rhythm.pattern.size(),_rhythm.hits]
 	_rhythm_status.modulate=Ui.ACCENT if window else Ui.TEXT
-	_rhythm_meter.value=clampf(1.0-maxf(0.0,remaining)/Rhythm.BEAT,0.0,1.0)
+	_rhythm_meter.value=clampf(1.0-maxf(0.0,remaining)/_rhythm.beat_seconds,0.0,1.0)
