@@ -30,3 +30,40 @@ static func garment_slot(name: String) -> String:
 	if normalized.contains("cargo") or normalized.contains("pants"):
 		return "pants"
 	return ""
+
+# Individual material-compatible pieces. Future mesh pieces use the same
+# stable slot/item identities, with a separate validated visual asset contract.
+const SLOTS=["jacket","pants"]
+const PIECE_IDS=["jacket_ash","jacket_oxide","jacket_midnight","pants_charcoal","pants_sand","pants_teal"]
+const PIECES={
+	"jacket_ash":{"name":"Ash work jacket","slot":"jacket","price":18,"tint":Color(.73,.77,.79),"finish":1.0},
+	"jacket_oxide":{"name":"Oxide street jacket","slot":"jacket","price":32,"tint":Color(1.0,.53,.38),"finish":.9},
+	"jacket_midnight":{"name":"Midnight jacket","slot":"jacket","price":65,"tint":Color(.43,.48,.68),"finish":.82},
+	"pants_charcoal":{"name":"Charcoal cargo trousers","slot":"pants","price":15,"tint":Color(.42,.45,.49),"finish":1.0},
+	"pants_sand":{"name":"Sand cargo trousers","slot":"pants","price":24,"tint":Color(1.0,.89,.72),"finish":1.0},
+	"pants_teal":{"name":"Deep teal cargo trousers","slot":"pants","price":35,"tint":Color(.52,.87,.79),"finish":.92}
+}
+
+static func piece_valid(id:Variant) -> bool:
+	return id is String and PIECES.has(id)
+
+static func piece_price(id:String) -> int:
+	return Economy.price_2036(int(PIECES[id]["price"])) if piece_valid(id) else 0
+
+static func valid_slots(value:Variant) -> bool:
+	if not value is Dictionary or value.size()>SLOTS.size():
+		return false
+	for slot in value:
+		if slot not in SLOTS or not piece_valid(value[slot]) or PIECES[value[slot]]["slot"]!=slot:
+			return false
+	return true
+
+static func browse_ids() -> Array:
+	return IDS+PIECE_IDS
+
+static func listing(id:String) -> Dictionary:
+	if valid_id(id):
+		return {"name":ITEMS[id]["name"],"rarity":ITEMS[id]["rarity"],"price":price(id),"type":"OUTFIT"}
+	if piece_valid(id):
+		return {"name":PIECES[id]["name"],"rarity":"INDIVIDUAL","price":piece_price(id),"type":str(PIECES[id]["slot"]).to_upper()}
+	return {}

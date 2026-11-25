@@ -358,8 +358,32 @@ func _verify() -> void:
 	if not check(ledger.owns_outfit("tideline") and ledger.outfit_id=="tideline" and world.get("cash")==28,"retail purchase and equip before tenancy"):
 		return
 	world.call("_close_venue")
+	# Individual purchases preserve the original full outfit and other slots.
+	world.set("cash",100)
+	player.global_position=store.call("clothing_counter")
+	world.call("_toggle_interaction")
+	var catalog=preload("res://scripts/wardrobe_catalog.gd")
+	world.set("_wardrobe_index",catalog.browse_ids().find("jacket_ash"))
+	world.call("_update_venue_panel")
+	if not check(ledger.clothing_slots.is_empty() and player.get_node("Visual").get("clothing_slots").get("jacket")=="jacket_ash","preview does not mutate saved look"):
+		return
+	world.call("_venue_action",3)
+	world.call("_venue_action",1)
+	if not check(world.get("cash")==100 and not ledger.owns_piece("jacket_ash"),"cancel piece quote without debit"):
+		return
+	world.call("_venue_action",3)
+	world.call("_venue_action",3)
+	world.call("_venue_action",3)
+	world.set("_wardrobe_index",catalog.browse_ids().find("pants_charcoal"))
+	world.call("_update_venue_panel")
+	world.call("_venue_action",3)
+	world.call("_venue_action",3)
+	world.call("_venue_action",3)
+	world.call("_close_venue")
+	if not check(ledger.outfit_id=="tideline" and ledger.clothing_slots=={"jacket":"jacket_ash","pants":"pants_charcoal"} and world.get("cash")==100-catalog.piece_price("jacket_ash")-catalog.piece_price("pants_charcoal"),"independent paid pieces mix and persist"):
+		return
 	var retail_save:Dictionary=ledger.snapshot()
-	if not check(fresh.restore(28,retail_save) and fresh.outfit_id=="tideline" and not fresh.owns_home(),"pre-tenancy wardrobe save round trip"):
+	if not check(fresh.restore(world.get("cash"),retail_save) and fresh.outfit_id=="tideline" and fresh.clothing_slots==ledger.clothing_slots and not fresh.owns_home(),"pre-tenancy wardrobe save round trip"):
 		return
 	print("WALK_IN_LOT PASS: physical doors, multiple rooms, upper floor ascent/descent, bounded walls, streamed finish, world-coordinate restore and exit")
 	quit(0)

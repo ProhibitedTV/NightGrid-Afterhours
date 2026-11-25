@@ -8,6 +8,8 @@ var _meal_bag: Node3D
 var _meal_bag_carried := false
 const Wardrobe = preload("res://scripts/wardrobe_catalog.gd")
 var outfit_id := Wardrobe.DEFAULT
+var clothing_slots:Dictionary={}
+var _piece_materials:Dictionary={}
 var _wardrobe_surfaces: Array[Dictionary] = []
 var _wardrobe_materials: Dictionary = {}
 var _corporate_mesh: MeshInstance3D
@@ -76,27 +78,40 @@ func _cache_wardrobe_surfaces(model: Node3D) -> void:
 				_wardrobe_surfaces.append({"mesh":mesh,"surface":index,"material":material,"slot":slot})
 
 func set_outfit(id: String) -> bool:
-	if corporate_attire or not Wardrobe.valid_id(id) or _wardrobe_surfaces.is_empty():
+	return set_look(id,{})
+
+func set_look(id:String,slots:Dictionary) -> bool:
+	if corporate_attire or not Wardrobe.valid_id(id) or not Wardrobe.valid_slots(slots) or _wardrobe_surfaces.is_empty():
 		return false
-	if id == outfit_id:
+	if id==outfit_id and slots==clothing_slots:
 		return true
-	# Cache only the two authored alternatives, and only for this character.
-	# Never change shared mesh/import materials or duplicate skinned geometry.
-	if id != Wardrobe.DEFAULT and not _wardrobe_materials.has(id):
-		var variants: Array[StandardMaterial3D] = []
+	if id!=Wardrobe.DEFAULT and not _wardrobe_materials.has(id):
+		var variants:Array[StandardMaterial3D]=[]
 		for entry in _wardrobe_surfaces:
-			var original: StandardMaterial3D = entry["material"]
-			var variant := original.duplicate() as StandardMaterial3D
-			variant.albedo_color = original.albedo_color * Wardrobe.ITEMS[id][entry["slot"]]
-			variant.roughness = clampf(original.roughness * float(Wardrobe.ITEMS[id]["finish"]),.2,1.0)
+			var original:StandardMaterial3D=entry["material"]
+			var variant:=original.duplicate() as StandardMaterial3D
+			variant.albedo_color=original.albedo_color*Wardrobe.ITEMS[id][entry["slot"]]
+			variant.roughness=clampf(original.roughness*float(Wardrobe.ITEMS[id]["finish"]),.2,1.0)
 			variants.append(variant)
-		_wardrobe_materials[id] = variants
+		_wardrobe_materials[id]=variants
 	for index in _wardrobe_surfaces.size():
-		var entry: Dictionary = _wardrobe_surfaces[index]
-		var mesh: MeshInstance3D = entry["mesh"]
-		var override: Material = null if id == Wardrobe.DEFAULT else _wardrobe_materials[id][index]
+		var entry:Dictionary=_wardrobe_surfaces[index]
+		var mesh:MeshInstance3D=entry["mesh"]
+		var override:Material=null if id==Wardrobe.DEFAULT else _wardrobe_materials[id][index]
+		var piece_id:String=str(slots.get(entry["slot"],""))
+		if not piece_id.is_empty():
+			var key:="%s:%d" % [piece_id,index]
+			if not _piece_materials.has(key):
+				var original:StandardMaterial3D=entry["material"]
+				var variant:=original.duplicate() as StandardMaterial3D
+				var piece:Dictionary=Wardrobe.PIECES[piece_id]
+				variant.albedo_color=original.albedo_color*piece["tint"]
+				variant.roughness=clampf(original.roughness*float(piece["finish"]),.2,1.0)
+				_piece_materials[key]=variant
+			override=_piece_materials[key]
 		mesh.set_surface_override_material(entry["surface"],override)
-	outfit_id = id
+	outfit_id=id
+	clothing_slots=slots.duplicate()
 	return true
 
 # Swap only the weighted clothing/body mesh; keep the live rig, equipment and animation player.
@@ -110,7 +125,7 @@ func set_corporate_attire(active: bool) -> bool:
 		corporate_attire = false
 		var selected := outfit_id
 		outfit_id = ""
-		set_outfit(selected)
+		set_look(selected,clothing_slots)
 		_corporate_mesh = null
 		_street_mesh = null
 		_street_skin = null

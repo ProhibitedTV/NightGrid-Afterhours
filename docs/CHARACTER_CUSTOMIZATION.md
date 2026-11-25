@@ -1,0 +1,13 @@
+# Character customization: San Andreas milestone
+
+## Delivery stack
+1. Threadline physical store: fixed address, walk-in checkout, persistent USD/BTC ownership before housing. Initial 9 full colorways (default free).
+2. Fitting and independent slots: live avatar preview, cancel/close restores committed look; 3 jackets and 3 trousers purchasable separately, mix with owned base outfits; optional backward-compatible save fields. This revision implements material-level slots only.
+3. Garment geometry: inspect pinned Ara/MakeHuman assets and author separate shirt, jacket, trousers and shoe donor meshes. Validate skeleton hierarchy/rest transforms, joint maps, coverage and clipping across idle, gait, seated driving, combat and all wardrobe combinations. Never replace the active animation controller. Bake reusable UV/PBR assets offline, record source/license/hash; no runtime generation. Add true per-slot asset IDs after visual acceptance.
+4. Accessories: hats, glasses, watches, earrings and bags; validate bone attachment transforms, body/hat/hair overlap, hand/equipment conflict and seated camera. Add removable default per slot and optional appearance previews.
+5. Retail UX: dedicated category tabs, full-body orbit and details zoom, color/size cards, preview comparison, fitting room lighting and clerk animations; keyboard/mouse/controller parity, no hidden purchases, outfit restore on every exit. Add favorite looks and owned-only home wardrobe.
+6. District fashion: Threadline value streetwear (Vesper), Quay Standard workwear (North Quay), Vesper Line tailoring and Nocturne/Obscura boutiques (Glassline/Afterhours). Fixed physical stores, own signage, stock lists, staff and soundscape; no pay-to-win or real currency. Economy balance against gig income and rent.
+7. Acceptance: old save defaults, duplicate/insufficient payment rejection, corrupt or unowned slot rejection, preview cancel/exit/reload, outfit and piece persistence, no clipped animation, native screenshots, frame traces and controller test. No claim of full mesh customization until native visual evidence.
+
+## Initial separate pieces
+Ash, Oxide, Midnight jackets; Charcoal, Sand, Deep Teal cargo trousers. Catalog prices are fictional 2036 inflation-adjusted. A selected full outfit clears independent overrides; selecting individual pieces modifies only its slot. Ownership and equipped state are separate. No unapproved cosmetic becomes permanently equipped by preview. Asset cache is bounded by catalog and source material count, not combination count.
