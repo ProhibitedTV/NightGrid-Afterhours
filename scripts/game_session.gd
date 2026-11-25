@@ -70,6 +70,8 @@ func is_valid_snapshot(value: Variant) -> bool:
 		return false
 	if not data["carrying"] is bool or not CourierMission.valid_run_count(data["deliveries"]):
 		return false
+	if data.has("courier_on_duty") and (not data["courier_on_duty"] is bool or (data["carrying"] and not data["courier_on_duty"])):
+		return false
 	if data.has("courier_offer_offset") and not _whole_number(data["courier_offer_offset"], 0, CourierMission.GIG_ORDERS.size() - 1):
 		return false
 	if not ProgressionLedger.valid_cash(data["cash"]):
