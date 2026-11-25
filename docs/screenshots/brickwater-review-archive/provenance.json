@@ -1,0 +1,42 @@
+{
+  "source_pull_request": 157,
+  "archive_source_commit": "36955f37f58524001a7ae536ee82b94d40918f6b",
+  "rendered_source_revision": "05938393ecfd15354b55cf2c3d06c4daf156717c",
+  "images": {
+    "01-alley-night-north.png": {
+      "git_blob_sha": "7138d5c1338307a9e3fef34a57b4041fd6ddd316",
+      "bytes": 1220342,
+      "recorded_sha256": "5a7a685b703410ea64d87889b084c4e597d36313bb535f9a379d1cb12de49ef9"
+    },
+    "02-alley-daylight-matched.png": {
+      "git_blob_sha": "3106455c556ac4f84ecb8254c8c96cb1b9fb7eac",
+      "bytes": 1409376,
+      "recorded_sha256": "58e2e2fec5d31e7b153b87d819f11027afff8716e4d576d5c691109bbb08d68a"
+    },
+    "03-alley-night-south.png": {
+      "git_blob_sha": "058113fb896543e652abf725562b9c031e2b30b6",
+      "bytes": 1323210,
+      "recorded_sha256": "483189f76e2ccb0b67006f84e08edc5c99ce3ba659c0cebb52e827252f4d5617"
+    },
+    "04-wet-ground-and-drain.png": {
+      "git_blob_sha": "cd41b5ba1f6720a1bbb19e701d19fc70f23a4f52",
+      "bytes": 1043224,
+      "recorded_sha256": "c37bddd565776bb0101ef63092fc90378aa66094e2762ed27ff279e7b475d73a"
+    },
+    "05-graffiti-and-service-front.png": {
+      "git_blob_sha": "ff4b9390c1b2e9028390da3573c213831e8a69fe",
+      "bytes": 1196548,
+      "recorded_sha256": "83fd724d17d70bb61c5bf6049580e3d1bf9b7307cf1eebe67d32dc9f88d4b70c"
+    },
+    "06-overhead-infrastructure.png": {
+      "git_blob_sha": "f96e495f0650603420c83cf8b30128658d312590",
+      "bytes": 1223291,
+      "recorded_sha256": "29f30f5a7f143415d8b2160821a64747a73a8f84924b89b5461ce58b240c591b"
+    },
+    "07-driving-height-approach.png": {
+      "git_blob_sha": "109172df9d34aee12aceff4a3a71850bcc14597e",
+      "bytes": 1260578,
+      "recorded_sha256": "1df2c01cf183dfe8268a0b769371b5d33f81b1fbffc371f72e5750ec422df800"
+    }
+  }
+}
