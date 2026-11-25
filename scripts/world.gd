@@ -464,6 +464,7 @@ func _journal_context() -> Dictionary:
 		"main_objective": "%s  •  STEP %d/%d  •  %dm  •  $%d" % [objective["title"], objective["step"], objective["total_steps"], remaining, objective["reward"]],
 		"courier_can_restart": carrying,
 		"story_objective": story_mission.journal(),
+		"conditioning": courier_mission.conditioning_text(),
 		"story_can_navigate": story_mission.status != "complete",
 		"story_can_abandon": story_mission.status == "active",
 		"venue_job": _venue_job_text(),
@@ -1123,6 +1124,7 @@ func _advance_mission() -> void:
 			_refresh_courier_target()
 			_notify("Package secured! Follow the cyan beacon.")
 		"delivered":
+			player.call("set_courier_conditioning",courier_mission.conditioning_rank())
 			world_audio.call("play_event", "DELIVERY", _actor().global_position)
 			_refresh_courier_target()
 			_notify("Delivery done! +$%d. Next pickup marked in amber." % int(result["reward"]))
@@ -1841,6 +1843,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 		if p.is_finite() and absf(p.x) <= 390.0 and absf(p.z) <= 390.0 and absf(p.y) <= 25.0 and heat >= Wanted.MIN_HEAT:
 			wanted.last_known = p
 	courier_mission.restore(data.get("deliveries", 0), data.get("carrying", false))
+	player.call("set_courier_conditioning",courier_mission.conditioning_rank())
 	story_mission.restore(data.get("story_mission", StoryMission.new().snapshot()))
 	yaw = float(data.get("camera_yaw", 0.0))
 	var position_data: Array = data["player_position"]

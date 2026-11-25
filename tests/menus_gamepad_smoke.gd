@@ -359,6 +359,15 @@ func _verify() -> void:
 	if int(world.get("deliveries")) != initial_runs + 1 or int(world.get("cash")) != initial_cash + 250 + 50 * mini(initial_runs,8):
 		_fail("Real mission reward was not paid exactly once")
 		return
+	var conditioned: Dictionary = world.call("_capture_snapshot")
+	conditioned["deliveries"] = 10
+	conditioned["carrying"] = false
+	world.call("_apply_snapshot",conditioned)
+	player.call("restore_stamina",100.0)
+	player.call("tick_stamina",1.0,true,true,false)
+	if not is_equal_approx(float(player.get("stamina")),88.1) or not str(world.call("_journal_context")["conditioning"]).contains("MAX RANK"):
+		_fail("Restored courier milestones must apply real bounded sprint benefit and journal state")
+		return
 	menu.call("hide_for_game")
 	print("MENU_GAMEPAD_SMOKE PASS: action_count=", input_spec.ACTIONS.size(),
 		" / settings saved / pause & focus / controller context / title confirmation")

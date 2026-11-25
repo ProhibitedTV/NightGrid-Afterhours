@@ -77,6 +77,13 @@ func _verify() -> void:
 		player.call("tick_stamina",1.0/60.0,true,true,false)
 	if not check(is_equal_approx(float(player.get("stamina")),86.0),"sprint drains at fixed rate"):
 		return
+	player.call("set_courier_conditioning",3)
+	player.call("restore_stamina",100.0)
+	for i in 60:
+		player.call("tick_stamina",1.0/60.0,true,true,false)
+	if not check(is_equal_approx(float(player.get("stamina")),88.1),"max rank reduces sprint drain by fifteen percent"):
+		return
+	player.call("set_courier_conditioning",0)
 	player.call("restore_stamina",10.0)
 	var denied: Vector2i = player.call("tick_stamina",.01,false,false,true)
 	if not check(denied.y==0,"jump requires stamina"):

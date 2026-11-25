@@ -13,6 +13,23 @@ const OBJECTIVES = [
 	{"id":"deliver","kind":"deliver","title":"Deliver package","hud":"DELIVER PACKAGE","point":"dropoff"}
 ]
 const RADIUS = 5.3
+# Milestone-based courier conditioning. Derive from the existing validated
+# successful-run count; no second XP balance or farmable frame counter.
+const CONDITIONING_MILESTONES = [2,5,10]
+const CONDITIONING_REDUCTION = .05
+
+func conditioning_rank() -> int:
+	var rank := 0
+	for milestone in CONDITIONING_MILESTONES:
+		if completed_runs >= milestone:
+			rank += 1
+	return rank
+
+func conditioning_text() -> String:
+	var rank := conditioning_rank()
+	var detail := "MAX RANK" if rank == CONDITIONING_MILESTONES.size() else "NEXT: %d deliveries" % CONDITIONING_MILESTONES[rank]
+	return "COURIER CONDITIONING  %d/%d  |  %d%% less sprint drain  |  %s" % [rank,CONDITIONING_MILESTONES.size(),rank*5,detail]
+
 var completed_runs: int = 0
 var step: int = 0
 
