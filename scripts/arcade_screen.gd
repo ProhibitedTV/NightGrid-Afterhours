@@ -10,6 +10,7 @@ const DeluxeView = preload("res://scripts/arcade_grand_delay_view.gd")
 var deluxe_view := DeluxeView.new()
 var deluxe_lane := 1.0
 var deluxe_pulse := 0.0
+var deluxe_cabinet: Node3D
 const Scores = preload("res://scripts/arcade_scores.gd")
 const AudioMix = preload("res://scripts/audio_mix.gd")
 const CUES := {
@@ -88,6 +89,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	queue_redraw()
 
 func _show_selection() -> void:
+	_reset_deluxe_controls()
 	state = "select"
 	elapsed = 0.0
 	set_process(false)
@@ -130,6 +132,8 @@ func _process(delta: float) -> void:
 	if round.game_id == "grand_delay":
 		deluxe_lane = move_toward(deluxe_lane,float(round.lane),delta*9.0)
 		deluxe_pulse = move_toward(deluxe_pulse,0.0,delta*5.0)
+		if is_instance_valid(deluxe_cabinet):
+			deluxe_cabinet.call("set_deluxe_controls",deluxe_lane,deluxe_pulse)
 		queue_redraw()
 	# Limit catch-up after a stall; no unfair instant loss of multiple lives.
 	elapsed += minf(delta, interval)
@@ -164,6 +168,7 @@ func _finish_if_needed() -> void:
 			_play_cue("record")
 			score_recorded.emit(round.game_id,round.score)
 		state = "result"
+		_reset_deluxe_controls()
 		set_process(false)
 
 func _play_cue(id: String) -> void:
@@ -381,3 +386,15 @@ func _draw_classic(accent: Color) -> void:
 			_line("ENTER / A LAUNCH",Vector2(310,310),accent,18)
 	_line("HOLD LEFT / RIGHT   ENTER / A FIRE OR LAUNCH",Vector2(32,428),Color.WHITE,16)
 	_line("ESC / B ABANDON",Vector2(570,428),Color("a0b0ba"),16)
+
+func bind_deluxe_cabinet(cabinet: Node3D) -> void:
+	deluxe_cabinet = cabinet
+
+func _reset_deluxe_controls() -> void:
+	deluxe_lane = 1.0
+	deluxe_pulse = 0.0
+	if is_instance_valid(deluxe_cabinet):
+		deluxe_cabinet.call("set_deluxe_controls",1.0,0.0)
+
+func _exit_tree() -> void:
+	_reset_deluxe_controls()

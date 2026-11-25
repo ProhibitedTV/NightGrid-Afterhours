@@ -17,7 +17,7 @@ func panel(c: Control, rect: Rect2, color: Color, border: Color) -> void:
 	c.draw_rect(rect,color)
 	c.draw_rect(rect,border,false,1.0)
 
-func render(c: Control, fraction: float, visual_lane: float, button_pulse: float) -> void:
+func render(c, fraction: float, visual_lane: float, button_pulse: float) -> void:
 	c.draw_rect(Rect2(0,0,800,480),INK)
 	c.draw_texture_rect(Marquee,Rect2(20,12,760,67),false)
 	if c.state == "play":
@@ -47,7 +47,7 @@ func render(c: Control, fraction: float, visual_lane: float, button_pulse: float
 			label(c,"ENTER / A  REPLAY MENU",286,344,TEAL,19)
 	_deck(c,visual_lane if c.state == "play" else 1.0,button_pulse)
 
-func _drive(c: Control, fraction: float, visual_lane: float) -> void:
+func _drive(c, fraction: float, visual_lane: float) -> void:
 	var round = c.round
 	var phase := float(round.step)+fraction
 	panel(c,Rect2(20,91,760,276),Color("101d2b"),Color("41545e"))
@@ -58,8 +58,8 @@ func _drive(c: Control, fraction: float, visual_lane: float) -> void:
 	c.draw_circle(Vector2(400,155),47,Color("fac397"))
 	for side in [-1,1]:
 		for i in range(11):
-			var x := 400.0 + side*(58.0+i*31.0)
-			var h := 21.0+float(posmod(i*37+side*19,61))
+			var x: float = 400.0 + float(side)*(58.0+i*31.0)
+			var h: float = 21.0+float(posmod(i*37+int(side)*19,61))
 			var r := Rect2(x-13,196-h,26,h)
 			c.draw_rect(r,Color("202c44"))
 			for j in range(2):

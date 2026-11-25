@@ -33,6 +33,14 @@ func _verify() -> void:
 	var deluxe = room.cabinets[0]
 	if not check(deluxe.get_node_or_null("DeluxeBacklitMarquee") != null and deluxe.get_node_or_null("MarqueeSpill") is OmniLight3D and deluxe.get_node_or_null("CoinReturnTray") != null, "deluxe cabinet has authored physical detail"):
 		return
+	var wheel: Node3D = deluxe.get_node("SteeringMount/SteeringWheel")
+	var button: Node3D = deluxe.get_node("NitroButton")
+	deluxe.set_deluxe_controls(2.0,1.0)
+	if not check(is_equal_approx(wheel.rotation.y,.68) and button.position.y < 1.14, "physical wheel and button respond to controls"):
+		return
+	deluxe.set_deluxe_controls(1.0,0.0)
+	if not check(is_zero_approx(wheel.rotation.y) and is_equal_approx(button.position.y,1.14), "physical controls return to neutral"):
+		return
 	if not check(room.cabinets[1].get_node_or_null("DeluxeBacklitMarquee") == null, "hero details isolated to one cabinet"):
 		return
 	if not check(room.cabinet_near(Vector3(0,1.1,5.8)).is_empty(), "entry aisle clear"):

@@ -90,6 +90,12 @@ func regular_near(at: Vector3) -> Dictionary:
 func talk_regular(at: Vector3) -> Dictionary:
 	return dressing.call("talk",at) if is_instance_valid(dressing) else {}
 
+func cabinet_node(id: String) -> Node3D:
+	for cabinet in cabinets:
+		if is_instance_valid(cabinet) and cabinet.game_id == id:
+			return cabinet
+	return null
+
 func cabinet_near(at: Vector3) -> String:
 	for cabinet in cabinets:
 		if is_instance_valid(cabinet) and cabinet.reachable(at):

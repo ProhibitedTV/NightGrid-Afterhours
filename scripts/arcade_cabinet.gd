@@ -20,6 +20,8 @@ const CRT = preload("res://assets/arcade/attract_crt.gdshader")
 const DeluxeCRT = preload("res://assets/arcade/grand_delay_crt.gdshader")
 const DeluxeMarquee = preload("res://assets/arcade/grand_delay_marquee.svg")
 var game_id := "grand_delay"
+var _deluxe_wheel: Node3D
+var _deluxe_button: MeshInstance3D
 static var materials: Dictionary = {}
 static var screens: Dictionary = {}
 
@@ -50,13 +52,14 @@ func _ready() -> void:
 	_box("SpeakerGrille", Vector3(0,1.98,.275), Vector3(.59,.09,.035), black)
 	for n in range(5):
 		_box("Vent", Vector3(-.23+n*.115,1.98,.299), Vector3(.07,.015,.01), steel)
-	_cylinder("JoystickStem", Vector3(-.22,1.18,.36), .018,.16,steel)
-	var ball := SphereMesh.new()
-	ball.radius = .047
-	ball.height = .094
-	_mesh("JoystickBall", ball, Vector3(-.22,1.28,.36), trim)
-	for n in range(3):
-		_cylinder("Button", Vector3(.04+n*.105,1.13,.36), .035,.035,trim if n == 0 else black)
+	if game_id != "grand_delay":
+		_cylinder("JoystickStem", Vector3(-.22,1.18,.36), .018,.16,steel)
+		var ball := SphereMesh.new()
+		ball.radius = .047
+		ball.height = .094
+		_mesh("JoystickBall", ball, Vector3(-.22,1.28,.36), trim)
+		for n in range(3):
+			_cylinder("Button", Vector3(.04+n*.105,1.13,.36), .035,.035,trim if n == 0 else black)
 	var screen := QuadMesh.new()
 	screen.size = Vector2(.59,.65)
 	if not screens.has(game_id):
@@ -178,9 +181,42 @@ func _deluxe_details() -> void:
 	_box("CoinReturnLip",Vector3(0,.45,.456),Vector3(.16,.014,.04),chrome)
 	for i in range(7):
 		_box("CoolingLouver",Vector3(0,.78+i*.025,-.4),Vector3(.36,.009,.025),rubber)
-	_cylinder("JoystickBoot",Vector3(-.22,1.127,.36),.067,.022,rubber)
+	_cylinder("SteeringColumn",Vector3(-.17,1.16,.36),.055,.10,chrome)
+	var mount := Node3D.new()
+	mount.name = "SteeringMount"
+	mount.position = Vector3(-.17,1.24,.36)
+	mount.rotation.x = deg_to_rad(35.0)
+	add_child(mount)
+	_deluxe_wheel = Node3D.new()
+	_deluxe_wheel.name = "SteeringWheel"
+	mount.add_child(_deluxe_wheel)
+	var rim := TorusMesh.new()
+	rim.inner_radius = .105
+	rim.outer_radius = .135
+	rim.rings = 24
+	rim.ring_segments = 12
+	var ring := _mesh("SteeringRim",rim,Vector3.ZERO,rubber)
+	ring.reparent(_deluxe_wheel,false)
 	for i in range(3):
-		_cylinder("ButtonCollar",Vector3(.04+i*.105,1.118,.36),.043,.012,chrome)
+		var spoke_mesh := BoxMesh.new()
+		spoke_mesh.size = Vector3(.025,.022,.11)
+		var angle := i*TAU/3.0
+		var spoke := _mesh("SteeringSpoke",spoke_mesh,Vector3.ZERO,chrome)
+		spoke.reparent(_deluxe_wheel,false)
+		spoke.position = Vector3(0,0,.055).rotated(Vector3.UP,angle)
+		spoke.rotation.y = angle
+	var hub_mesh := CylinderMesh.new()
+	hub_mesh.top_radius = .047
+	hub_mesh.bottom_radius = .047
+	hub_mesh.height = .026
+	var hub := _mesh("SteeringHub",hub_mesh,Vector3.ZERO,led)
+	hub.reparent(_deluxe_wheel,false)
+	_cylinder("NitroCollar",Vector3(.18,1.12,.36),.065,.018,chrome)
+	var cap := CylinderMesh.new()
+	cap.top_radius = .052
+	cap.bottom_radius = .052
+	cap.height = .032
+	_deluxe_button = _mesh("NitroButton",cap,Vector3(.18,1.14,.36),warm)
 	_box("FreePlayLamp",Vector3(.27,.69,.42),Vector3(.075,.025,.014),led)
 	_box("SerialPlate",Vector3(.26,.36,.419),Vector3(.22,.08,.01),chrome)
 	_deluxe_label("Serial","MM-006 / ROOK 014",Vector3(.26,.36,.427),Color("162833"),12,.0008)
@@ -208,3 +244,10 @@ func _deluxe_label(label: String, message: String, at: Vector3, tint: Color, fon
 	node.modulate = tint
 	node.outline_size = 0
 	add_child(node)
+
+# Called by the active modal only; no idle processing or input polling.
+func set_deluxe_controls(lane: float, pulse: float) -> void:
+	if is_instance_valid(_deluxe_wheel):
+		_deluxe_wheel.rotation.y = (clampf(lane,0.0,2.0)-1.0)*.68
+	if is_instance_valid(_deluxe_button):
+		_deluxe_button.position.y = 1.14-clampf(pulse,0.0,1.0)*.014
