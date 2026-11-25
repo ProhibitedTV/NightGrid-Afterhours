@@ -19,6 +19,11 @@ const REHEARSAL_SECONDS = 24.0
 const BAND_SECONDS = 60.0
 const BAND_PAY = 240
 const ENCORE_PAY = 120
+const SHOWCASE_SITE = "static_room"
+const SHOWCASE_RECEIPT = "music:static_room_showcase"
+const SHOWCASE_PAY = 480
+const SHOWCASE_SECONDS = 75.0
+const BAND_NAMES = ["Signal Rot","Layoff Choir","Dead Air Union","Rust Cathedral","No Future Lease","Static Saints"]
 const StreetCred = preload("res://scripts/street_cred.gd")
 const GIG = "dock_nine"
 const GIG_RECEIPT = "music:dock_nine_debut"
@@ -35,6 +40,7 @@ var cooldown := 0.0
 var members: Array[String] = []
 var rehearsals := 0
 var encores := 0
+var band_name := ""
 
 func buy(wallet: RefCounted) -> bool:
 	return buy_gear("acoustic_guitar",wallet)
@@ -74,11 +80,23 @@ func band_ready() -> bool:
 func can_band_gig(wallet: RefCounted) -> bool:
 	return owned and band_ready() and rehearsals >= 2 and not wallet.call("has_receipt",BAND_RECEIPT)
 
+func display_band_name() -> String:
+	return band_name if not band_name.is_empty() else "Unsigned Trio"
+
+func choose_band_name(id: int) -> bool:
+	if not band_ready() or not mode.is_empty() or id<0 or id>=BAND_NAMES.size() or not band_name.is_empty():
+		return false
+	band_name = BAND_NAMES[id]
+	return true
+
+func can_showcase(wallet: RefCounted) -> bool:
+	return owned and band_ready() and wallet.call("has_receipt",BAND_RECEIPT) and encores>=2 and int(StreetCred.scores(wallet,self)["music"])>=65 and not wallet.call("has_receipt",SHOWCASE_RECEIPT)
+
 func can_encore(wallet: RefCounted) -> bool:
 	return owned and band_ready() and wallet.call("has_receipt",BAND_RECEIPT) and int(StreetCred.scores(wallet,self)["music"])>=50
 
 func start(kind: String, wallet: RefCounted) -> bool:
-	if not owned or not gear.has(equipped) or not mode.is_empty() or cooldown > 0.0 or kind not in ["busk","gig","rehearse","band","encore"]:
+	if not owned or not gear.has(equipped) or not mode.is_empty() or cooldown > 0.0 or kind not in ["busk","gig","rehearse","band","encore","showcase"]:
 		return false
 	if kind == "gig" and not can_gig(wallet):
 		return false
@@ -87,6 +105,8 @@ func start(kind: String, wallet: RefCounted) -> bool:
 	if kind == "band" and not can_band_gig(wallet):
 		return false
 	if kind=="encore" and not can_encore(wallet):
+		return false
+	if kind=="showcase" and not can_showcase(wallet):
 		return false
 	mode = kind
 	elapsed = 0.0
@@ -101,17 +121,17 @@ func tick(delta: float, wallet: RefCounted) -> Dictionary:
 		cooldown = maxf(0.0,cooldown-delta)
 		return {}
 	elapsed += clampf(delta,0.0,0.25)
-	var duration := GIG_SECONDS if mode=="gig" else (BAND_SECONDS if mode in ["band","encore"] else (REHEARSAL_SECONDS if mode=="rehearse" else SET_SECONDS))
+	var duration := SHOWCASE_SECONDS if mode=="showcase" else GIG_SECONDS if mode=="gig" else (BAND_SECONDS if mode in ["band","encore"] else (REHEARSAL_SECONDS if mode=="rehearse" else SET_SECONDS))
 	if elapsed < duration:
 		return {}
 	var kind := mode
-	var amount := 95 if kind=="gig" else (BAND_PAY if kind=="band" else (ENCORE_PAY if kind=="encore" else (0 if kind=="rehearse" else 8+mini(completed_sets,8))))
+	var amount := SHOWCASE_PAY if kind=="showcase" else 95 if kind=="gig" else (BAND_PAY if kind=="band" else (ENCORE_PAY if kind=="encore" else (0 if kind=="rehearse" else 8+mini(completed_sets,8))))
 	var paid := false
 	if kind=="rehearse":
 		rehearsals = mini(rehearsals+1,MAX_SETS)
 		paid = true
-	elif kind in ["gig","band"]:
-		paid = wallet.call("credit_once",GIG_RECEIPT if kind=="gig" else BAND_RECEIPT,amount)
+	elif kind in ["gig","band","showcase"]:
+		paid = wallet.call("credit_once",SHOWCASE_RECEIPT if kind=="showcase" else (GIG_RECEIPT if kind=="gig" else BAND_RECEIPT),amount)
 	else:
 		paid = wallet.call("credit",amount)
 	if paid and kind=="encore":
@@ -123,7 +143,7 @@ func tick(delta: float, wallet: RefCounted) -> Dictionary:
 	return {"paid":paid,"amount":amount if paid else 0,"kind":kind}
 
 func snapshot() -> Dictionary:
-	return {"owned":owned,"sets":completed_sets,"members":members.duplicate(),"rehearsals":rehearsals,"encores":encores,"gear":gear.duplicate(),"equipped":equipped}
+	return {"owned":owned,"sets":completed_sets,"members":members.duplicate(),"rehearsals":rehearsals,"encores":encores,"gear":gear.duplicate(),"equipped":equipped,"band_name":band_name}
 
 static func valid_snapshot(data: Variant) -> bool:
 	if not data is Dictionary or not data.get("owned") is bool:
@@ -155,6 +175,9 @@ static func valid_snapshot(data: Variant) -> bool:
 		if not id is String or not MEMBERS.has(id) or seen.has(id):
 			return false
 		seen.append(id)
+	var name: Variant = data.get("band_name","")
+	if not name is String or (name!="" and (name not in BAND_NAMES or seen.size()!=MEMBERS.size())):
+		return false
 	return (seen.is_empty() or (data["owned"] and n>=3)) and (count==0 or seen.size()==MEMBERS.size())
 
 func restore(data: Variant) -> void:
@@ -167,6 +190,7 @@ func restore(data: Variant) -> void:
 	members.clear()
 	rehearsals = 0
 	encores = 0
+	band_name = ""
 	if valid_snapshot(data):
 		owned = data["owned"]
 		if data.has("gear"):
@@ -179,3 +203,4 @@ func restore(data: Variant) -> void:
 		members.assign(data.get("members",[]))
 		rehearsals = int(data.get("rehearsals",0))
 		encores = int(data.get("encores",0))
+		band_name = str(data.get("band_name",""))

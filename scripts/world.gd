@@ -450,6 +450,12 @@ func _build_world_audio() -> void:
 		float(options.get("sfx_volume", 0.75)))
 
 func _on_menu_action(action: String) -> void:
+	if action.begins_with("phone_band_name:"):
+		var choice := action.trim_prefix("phone_band_name:")
+		if phone_available() and game_menu.get("screen")=="phone" and game_menu.get("_phone_app")=="music" and choice.is_valid_int() and music_career.choose_band_name(int(choice)):
+			_sync_band_promotion()
+			game_menu.call("refresh_phone",_phone_context())
+		return
 	if action.begins_with("phone_music_equip:"):
 		if phone_available() and game_menu.get("screen")=="phone" and game_menu.get("_phone_app")=="music" and music_career.equip(action.trim_prefix("phone_music_equip:")):
 			game_menu.call("refresh_phone",_phone_context())
@@ -512,7 +518,7 @@ func _on_menu_action(action: String) -> void:
 			_phone_decline_offer()
 		"phone_toggle_duty":
 			_phone_toggle_duty()
-		"phone_route_order", "phone_route_mara", "phone_route_home", "phone_route_rail", "phone_route_bus", "phone_route_music_shop", "phone_route_music_gig", "phone_route_music_band":
+		"phone_route_order", "phone_route_mara", "phone_route_home", "phone_route_rail", "phone_route_bus", "phone_route_music_shop", "phone_route_music_gig", "phone_route_music_band", "phone_route_music_showcase":
 			_phone_route(action)
 		"restart_courier":
 			if courier_mission.restart():
@@ -740,6 +746,8 @@ func _music_counter_reachable(site: String) -> bool:
 	return _music_near_spot()==site
 
 func _start_music(kind: String, site: String) -> bool:
+	if kind=="showcase" and (site!=MusicCareer.SHOWCASE_SITE or not interiors.call("is_inside") or not venue_system.call("is_open",site)):
+		return false
 	if interiors.call("is_inside") and kind=="busk":
 		return false
 	if (kind=="rehearse" and site!=MusicCareer.SHOP) or (kind in ["band","encore"] and (site!=MusicCareer.BAND_SITE or not venue_system.call("is_open",site))) or (kind=="gig" and (site!=MusicCareer.GIG or not venue_system.call("is_open",site))):
@@ -755,7 +763,7 @@ func _start_music(kind: String, site: String) -> bool:
 	if interiors.call("is_inside"):
 		player.get_node("Visual").rotation.y = 0.0
 	player.get_node("Visual").call("set_music_prop",true,music_career.equipped)
-	if kind in ["band","rehearse","encore"]:
+	if kind in ["band","rehearse","encore","showcase"]:
 		venue_system.call("show_player_band",site,player.global_position,bool(interiors.call("is_inside")))
 	if not is_instance_valid(_music_audio):
 		_music_audio = AudioStreamPlayer3D.new()
@@ -764,7 +772,7 @@ func _start_music(kind: String, site: String) -> bool:
 		_music_audio.max_distance = 22.0
 		_music_audio.unit_size = 4.0
 		player.add_child(_music_audio)
-	var source: AudioStreamWAV = BandTrack if kind in ["band","rehearse","encore"] else (BassTrack if music_career.equipped=="punk_bass" else (SynthTrack if music_career.equipped=="portable_synth" else BuskerTrack))
+	var source: AudioStreamWAV = BandTrack if kind in ["band","rehearse","encore","showcase"] else (BassTrack if music_career.equipped=="punk_bass" else (SynthTrack if music_career.equipped=="portable_synth" else BuskerTrack))
 	var loop := source.duplicate() as AudioStreamWAV
 	loop.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	loop.loop_begin = 0
@@ -796,6 +804,7 @@ func _tick_music(delta: float) -> void:
 	var result := music_career.tick(delta,progression)
 	if not result.is_empty():
 		_stop_music()
+		_sync_band_promotion()
 		if result["kind"]=="rehearse":
 			_notify("Rehearsal complete. %d / 2 for Blue Hour debut." % music_career.rehearsals)
 		else:
@@ -814,6 +823,10 @@ func _music_contacts_context() -> Array[Dictionary]:
 func _street_cred() -> Dictionary:
 	return StreetCred.scores(progression,music_career)
 
+func _sync_band_promotion() -> void:
+	if is_instance_valid(venue_system):
+		venue_system.call("set_band_promotion",music_career.display_band_name(),progression.has_receipt(MusicCareer.BAND_RECEIPT),music_career.can_showcase(progression),progression.has_receipt(MusicCareer.SHOWCASE_RECEIPT))
+
 func _phone_context() -> Dictionary:
 	var transit := _phone_transit()
 	var origin: Vector2 = transit["origin"]
@@ -828,7 +841,7 @@ func _phone_context() -> Dictionary:
 		"deposit":StarterHome.move_in_price(), "notice":Opening.app_notice(deliveries),
 		"street_cred":_street_cred(),"music_encore":music_career.can_encore(progression),"workboard":_phone_workboard(), "music_owned":music_career.owned,"music_gear":music_career.gear_context(), "music_sets":music_career.completed_sets,
 		"music_near":not interiors.call("is_inside") and not _music_near_spot().is_empty(), "music_gig":music_career.can_gig(progression), "music_cooldown":music_career.cooldown>0.0,
-		"music_contacts":_music_contacts_context(),"music_rehearsals":music_career.rehearsals,"music_band_ready":music_career.band_ready(),"music_rehearsal_near":_music_near_spot()==MusicCareer.SHOP,"music_band_gig":music_career.can_band_gig(progression),"music_band_done":progression.has_receipt(MusicCareer.BAND_RECEIPT),
+		"music_band_name":music_career.band_name,"music_showcase":music_career.can_showcase(progression),"music_showcase_done":progression.has_receipt(MusicCareer.SHOWCASE_RECEIPT),"music_encores":music_career.encores,"music_contacts":_music_contacts_context(),"music_rehearsals":music_career.rehearsals,"music_band_ready":music_career.band_ready(),"music_rehearsal_near":_music_near_spot()==MusicCareer.SHOP,"music_band_gig":music_career.can_band_gig(progression),"music_band_done":progression.has_receipt(MusicCareer.BAND_RECEIPT),
 		"rail_available":rail_point.is_finite(), "bus_available":bus_point.is_finite(),
 		"rail_name":"%d m away (direct)" % roundi(origin.distance_to(rail_point)) if rail_point.is_finite() else "Unavailable",
 		"bus_name":"%d m away (direct)" % roundi(origin.distance_to(bus_point)) if bus_point.is_finite() else "Unavailable"
@@ -880,8 +893,8 @@ func _phone_route(action: String) -> void:
 		"phone_route_home":
 			var p := StarterHome.entry()
 			destination = Vector2(p.x,p.z)
-		"phone_route_music_shop", "phone_route_music_gig", "phone_route_music_band":
-			var site := MusicCareer.SHOP if action == "phone_route_music_shop" else (MusicCareer.BAND_SITE if action=="phone_route_music_band" else MusicCareer.GIG)
+		"phone_route_music_shop", "phone_route_music_gig", "phone_route_music_band", "phone_route_music_showcase":
+			var site := MusicCareer.SHOWCASE_SITE if action=="phone_route_music_showcase" else (MusicCareer.SHOP if action == "phone_route_music_shop" else (MusicCareer.BAND_SITE if action=="phone_route_music_band" else MusicCareer.GIG))
 			var p: Vector3 = venue_system.call("venue_position",site)
 			destination = Vector2(p.x,p.z)
 		"phone_route_rail":
@@ -2386,6 +2399,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 	investigation.restore(int(data.get("investigation_stage",0)),progression)
 	_stop_music()
 	music_career.restore(data.get("music_career",{}))
+	_sync_band_promotion()
 	player.call("set_courier_conditioning",courier_mission.conditioning_rank())
 	story_mission.restore(data.get("story_mission", StoryMission.new().snapshot()))
 	yaw = float(data.get("camera_yaw", 0.0))
@@ -2605,6 +2619,8 @@ func _toggle_interaction() -> void:
 			kind = "gig"
 		elif site==MusicCareer.BAND_SITE:
 			kind = "band" if music_career.can_band_gig(progression) else ("encore" if music_career.can_encore(progression) else "")
+		elif site==MusicCareer.SHOWCASE_SITE and music_career.can_showcase(progression):
+			kind = "showcase"
 		if kind.is_empty() or not venue_system.call("is_open",site):
 			_notify("Stage unavailable. Check Music for your next booking or rehearsal.")
 		else:
@@ -3539,6 +3555,10 @@ func _update_venue_panel() -> void:
 			venue_talk_button.show()
 			venue_talk_button.disabled = not open_now or music_career.cooldown>0.0
 			venue_talk_button.text = "3 / Y  •  RESIDENT SET $%d" % MusicCareer.ENCORE_PAY
+		elif venue_selected_id==MusicCareer.SHOWCASE_SITE and music_career.can_showcase(progression):
+			venue_talk_button.show()
+			venue_talk_button.disabled = not open_now
+			venue_talk_button.text = "3 / Y  •  SHOWCASE DETAILS"
 
 func _update_music_shop() -> void:
 	var id: String = MusicCareer.GEAR_IDS[_music_shop_index]
@@ -3773,6 +3793,10 @@ func _venue_action(option: int) -> void:
 			_notify("Booking ready. Walk to the lit stage and press G / X.")
 		else:
 			_start_music("encore",MusicCareer.BAND_SITE)
+		return
+	if option==3 and venue_selected_id==MusicCareer.SHOWCASE_SITE and music_career.can_showcase(progression):
+		_close_venue()
+		_notify("Static Room: $480 headline showcase. Enter and play at the lit indoor stage.")
 		return
 	# Dialogue is no-cost and remains accessible even near closing time.
 	if option == 3:

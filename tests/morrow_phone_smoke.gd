@@ -449,6 +449,58 @@ func _verify() -> void:
 		_fail("Copper Strings indoor inventory display missing")
 		return
 	actor.global_position = interior.call("leave")
+	world.call("_open_phone",false)
+	menu.call("_choice","phone_app_music")
+	menu.call("_choice","phone_band_name:1")
+	menu.call("hide_for_game")
+	if career.band_name!="Layoff Choir" or career.choose_band_name(2):
+		_fail("Band name must be selected once through Music")
+		return
+	career.restore(career.snapshot())
+	if career.band_name!="Layoff Choir":
+		_fail("Band name must survive restore")
+		return
+	var flyer: Label3D = venues.get("_band_posters")["blue_hour"]
+	if not flyer.visible or not flyer.text.contains("LAYOFF CHOIR"):
+		_fail("Named resident band should appear on venue flyer")
+		return
+	# Complete one more busk and one more resident set to reach 66 cred.
+	actor.global_position = venues.call("venue_position","copper_cup")
+	if not world.call("_start_music","busk","copper_cup"):
+		_fail("Busking before headline unlock")
+		return
+	for tick in range(96):
+		world.call("_tick_music",.25)
+	for tick in range(60):
+		world.call("_tick_music",.25)
+	actor.global_position = venues.call("venue_position","blue_hour")
+	if not world.call("_start_music","encore","blue_hour"):
+		_fail("Second residency before headline unlock")
+		return
+	for tick in range(240):
+		world.call("_tick_music",.25)
+	for tick in range(60):
+		world.call("_tick_music",.25)
+	if not career.can_showcase(wallet) or not flyer.text.contains("STATIC ROOM"):
+		_fail("Cred and residency must unlock headline and promote it")
+		return
+	actor.global_position = venues.call("venue_position","static_room")
+	if world.call("_start_music","showcase","static_room"):
+		_fail("Headline must require indoor stage")
+		return
+	actor.global_position = interior.call("enter",venues.call("venue_by_id","static_room"),"VENUE",actor.global_position)
+	actor.global_position = interior.call("music_stage_point")
+	var headline_cash: int = world.get("cash")
+	world.call("_toggle_interaction")
+	if career.mode!="showcase":
+		_fail("Eligible indoor headline should start")
+		return
+	for tick in range(300):
+		world.call("_tick_music",.25)
+	if world.get("cash")!=headline_cash+480 or career.can_showcase(wallet) or not wallet.has_receipt("music:static_room_showcase"):
+		_fail("Headline must settle once")
+		return
+	actor.global_position = interior.call("leave")
 	world.set("current_car",world.get("cars")[0])
 	if world.call("phone_available"):
 		_fail("Phone must not open while driving")

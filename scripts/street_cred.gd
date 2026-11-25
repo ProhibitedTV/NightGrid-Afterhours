@@ -13,6 +13,8 @@ static func scores(wallet: RefCounted, career: RefCounted) -> Dictionary:
 		music += 16
 	if wallet.call("has_receipt","music:blue_hour_debut"):
 		music += 30
+	if wallet.call("has_receipt","music:static_room_showcase"):
+		music += 20
 	var community := 0
 	for id in COMMUNITY_RECEIPTS:
 		if wallet.call("has_receipt",id):

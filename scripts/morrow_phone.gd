@@ -1,4 +1,5 @@
 extends RefCounted
+const MusicCareer = preload("res://scripts/music_career.gd")
 ## Read-only presentation model. World actions are dispatched by the existing
 ## menu/world adapter; no duplicated wallet, delivery, property or save state.
 const StreetCred = preload("res://scripts/street_cred.gd")
@@ -100,6 +101,11 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 					row["action_label"] = "Invite to band" if member["near"] else "Meet musician"
 				rows.append(row)
 			if state.get("music_band_ready",false):
+				var chosen_name := str(state.get("music_band_name",""))
+				rows.append({"label":"Band identity","value":chosen_name if not chosen_name.is_empty() else "Choose your permanent stage name."})
+				if chosen_name.is_empty():
+					for index in MusicCareer.BAND_NAMES.size():
+						rows.append({"label":MusicCareer.BAND_NAMES[index],"value":"Stage name","action":"phone_band_name:"+str(index),"action_label":"Choose"})
 				rows.append({"label":"Band rehearsals","value":"%d completed / 2 for Blue Hour" % int(state.get("music_rehearsals",0))})
 				if state.get("music_rehearsal_near",false) and not state.get("music_cooldown",false):
 					actions.append({"label":"Rehearse with band","action":"phone_music_rehearse"})
@@ -111,6 +117,13 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 			if state.get("music_encore",false):
 				rows.append({"label":"Resident booking","value":"Blue Hour · repeatable $120 set"})
 				actions.append({"label":"Route to resident set","action":"phone_route_music_band"})
+			if state.get("music_showcase",false):
+				rows.append({"label":"Static Room headline showcase","value":"$480 · indoor stage · 75s"})
+				actions.append({"label":"Route to Static Room","action":"phone_route_music_showcase"})
+			elif state.get("music_showcase_done",false):
+				rows.append({"label":"Static Room","value":"Headliner showcase completed"})
+			elif state.get("music_band_done",false):
+				rows.append({"label":"Next tier","value":"65 music cred + two resident sets (%d/2)" % int(state.get("music_encores",0))})
 		"wallet":
 			subtitle = "Available funds"
 			rows.append({"label":"Cash on hand","value":"$%d" % int(state.get("cash",0))})
