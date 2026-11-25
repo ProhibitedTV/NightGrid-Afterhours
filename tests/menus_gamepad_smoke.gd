@@ -397,6 +397,13 @@ func _verify() -> void:
 	if not is_instance_valid(office) or office.find_children("*","CollisionShape3D",true,false).size()<10:
 		_fail("Physical office must have real enclosed collision geometry")
 		return
+	var propaganda: Node3D=office.get_node_or_null("CorporatePropaganda")
+	if not is_instance_valid(propaganda) or propaganda.get_child_count()!=6:
+		_fail("Six physical corporate propaganda boards must be present")
+		return
+	if not str(propaganda.get_node("QuarterlyRecord/Headline").text).contains("$14.8 BILLION") or not str(propaganda.get_node("HealthRenewal/Headline").text).contains("24%") or not str(propaganda.get_node("HealthRenewal/FinePrint").text).contains("$231"):
+		_fail("Profit celebration and increased health premium must be actual in-world text")
+		return
 	world.call("_opening_interact")
 	if menu.call("is_open"):
 		_fail("Cannot interact with office workstation remotely")
@@ -450,6 +457,9 @@ func _verify() -> void:
 		return
 	if world.get("cash") != before_severance+75 or not world.get("courier_mission").gig_economy or menu.call("is_open"):
 		_fail("Opening credits severance once and enables real QuotaDrop work")
+		return
+	if office.get_node_or_null("CorporatePropaganda")!=propaganda:
+		_fail("Propaganda is permanent headquarters dressing, not a tutorial overlay")
 		return
 	world.call("_toggle_interior")
 	if not str(world.get("notification")).contains("Public lobby open") or world.get("_opening_office")!=null:

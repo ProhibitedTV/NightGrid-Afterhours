@@ -31,3 +31,7 @@ The office is the actual ground floor of the fixed Synaxis tower at Glassline bl
 ### Public lobby and authored environment
 
 The street door now opens onto a small publicly accessible vestibule; a full-width physical restricted checkpoint behind it remains closed after termination. Visitors can read signage and interact with the checkpoint. The permanent lobby includes a visitor kiosk and red access readers, while the office contains original IT racks, monitor bank, carpet and satirical corporate wall displays. Local lobby illumination is updated on the existing city focus cadence rather than running a new per-frame system. The journal exposes a return waypoint after severance. No actual badge acquisition, security AI, elevator traversal or combat breach is implemented yet. Native collision and visual acceptance remain required.
+
+### Corporate propaganda art
+
+Six original wall-mounted corporate print designs persist with headquarters: quarterly profit celebration ($14.8B), a 24% rounded health premium increase ($186 to $231 per pay period), open enrollment and deductible reminder ($6,200), shareholder celebration of 8,400 eliminated roles, exit campaign and off-clock wellness poster. All numbers are fictional world-building figures, not real-company claims or active wallet charges. Boards use fixed transforms, static quads and metric-fitted 3D text, no animated screens or additional simulation. The smoke checks placement in the real office scene and retention after termination; native legibility and framing remain to be checked.

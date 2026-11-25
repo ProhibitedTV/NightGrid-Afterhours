@@ -15,6 +15,7 @@ var _lobby_active := false
 var _prologue_active := false
 const Patron = preload("res://scripts/lantern_patron.gd")
 const Assistant = preload("res://scripts/synaxis_assistant.gd")
+const Propaganda = preload("res://scripts/synaxis_propaganda.gd")
 var _assistant: Node3D
 var _ceo: Node3D
 var _hr: Node3D
@@ -57,6 +58,9 @@ func _ready() -> void:
 	_solid("ExecutivePartition",Vector3(0,1.5,-3.8),Vector3(.18,3.0,6.8),wall)
 	_build_lobby(desk,accent,screen)
 	_build_office_details(desk,accent,screen)
+	var propaganda := Propaganda.new()
+	propaganda.name="CorporatePropaganda"
+	add_child(propaganda)
 	_solid("Workstation",Vector3(-5,.54,2.55),Vector3(2.6,1.08,.85),desk)
 	_solid("ExecutiveDesk",Vector3(5,.54,-5.4),Vector3(3.8,1.08,1.0),desk)
 	_solid("HRDesk",Vector3(-5,.54,-5.4),Vector3(2.7,1.08,1.0),desk)
@@ -129,7 +133,7 @@ func _build_office_details(desk: Material,accent: Material,screen: Material) -> 
 		_visual("ITMonitorDisplay",Vector3(x,1.37,2.53),Vector3(.58,.33,.015),screen)
 	_sign("SYSTEM HEALTH: GREEN\nEXECUTIVE OVERRIDE ACTIVE",Vector3(-5.1,1.39,2.58),.0025)
 	_sign("EMPLOYEE RETENTION\n100% OF DEPARTURES ARE SUCCESSFUL",Vector3(-8.32,2.36,-3),.005).rotation.y=PI/2
-	_sign("EARNINGS / RECORD QUARTER\nWORKFORCE / OPTIMIZED",Vector3(8.32,2.4,-2.6),.005).rotation.y=-PI/2
+	_sign("EARNINGS / RECORD QUARTER\nWORKFORCE / OPTIMIZED",Vector3(8.32,2.4,-3.6),.005).rotation.y=-PI/2
 	for x in [-6.4,6.4]:
 		_visual("DeskNamePlate",Vector3(x,1.13,-5.05),Vector3(.47,.13,.08),accent)
 	_visual("ExecutiveCarpet",Vector3(5,.012,-3.3),Vector3(5,.015,3.1),_material("carpet",Color("383d49")))
