@@ -1179,6 +1179,10 @@ func _advance_mission() -> void:
 
 func _refresh_courier_target() -> void:
 	_set_mission_target(courier_mission.target() - Vector3.UP * 0.2, carrying)
+	if is_instance_valid(player):
+		var visual: Node3D = player.get("visual")
+		if is_instance_valid(visual):
+			visual.call("set_meal_bag",courier_mission.gig_economy and carrying)
 
 func _set_mission_target(pos: Vector3, has_package: bool) -> void:
 	mission_position = pos + Vector3.UP * 0.2
@@ -1466,6 +1470,9 @@ func _respawn() -> void:
 	wanted.reset()
 	_pending_theft = null
 	var failed_story := story_mission.interrupt("failed")
+	var lost_order := courier_mission.gig_economy and courier_mission.restart()
+	if lost_order:
+		_refresh_courier_target()
 	progression.charge_up_to(100)
 	for officer in officers + returning_units:
 		if is_instance_valid(officer):
@@ -1475,7 +1482,7 @@ func _respawn() -> void:
 	dispatch.update_case(Vector3.INF, 0)
 	city_details.call("set_focus", player.global_position)
 	_snap_camera()
-	_notify("Back at the safehouse. Medical and towing fee: up to $100." + (" Contact mission failed; speak to Mara to retry." if failed_story else ""))
+	_notify("Returned to the street. Emergency recovery fee: up to $100." + (" Order canceled without pay." if lost_order else "") + (" Contact mission failed; speak to Mara to retry." if failed_story else ""))
 
 func _notify(message: String) -> void:
 	notification = message

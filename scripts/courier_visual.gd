@@ -3,6 +3,9 @@ extends Node3D
 const Model = preload("res://assets/models/nightgrid/courier/morrow_courier.glb")
 const Materials = preload("res://scripts/material_library.gd")
 const ProductArt = preload("res://scripts/consumable_prop.gd")
+const DeliveryBag = preload("res://scripts/quotadrop_bag.gd")
+var _meal_bag: Node3D
+var _meal_bag_carried := false
 const Wardrobe = preload("res://scripts/wardrobe_catalog.gd")
 var outfit_id := Wardrobe.DEFAULT
 var _wardrobe_surfaces: Array[Dictionary] = []
@@ -90,6 +93,23 @@ func set_outfit(id: String) -> bool:
 
 func wardrobe_surface_count() -> int:
 	return _wardrobe_surfaces.size()
+
+# Presentation only; the courier director remains the sole order owner.
+# Instantiate once on first successful pickup, then reuse on subsequent orders.
+func set_meal_bag(carried: bool) -> void:
+	_meal_bag_carried = carried
+	if carried and not is_instance_valid(_meal_bag):
+		if skeleton == null or skeleton.find_bone("LeftHand") < 0:
+			return
+		var hand := BoneAttachment3D.new()
+		hand.name = "LeftHandDelivery"
+		hand.bone_name = "LeftHand"
+		skeleton.add_child(hand)
+		_meal_bag = DeliveryBag.build()
+		hand.add_child(_meal_bag)
+		_meal_bag.position = Vector3(0,.04,.02)
+	if is_instance_valid(_meal_bag):
+		_meal_bag.visible = carried and not _seat
 
 func _prepare_library() -> void:
 	for clip in LOOPS:
@@ -226,6 +246,7 @@ func sit_in_vehicle(car: Node3D, play_entry: bool, ground_y: float) -> void:
 	position = _driver_seat
 	rotation = Vector3(0.0, PI, 0.0)
 	_seat = true
+	set_meal_bag(_meal_bag_carried)
 	_clear_product()
 	_horizontal = Vector3.ZERO
 	# The combat controller holsters while driving. Forget the last on-foot
@@ -253,6 +274,7 @@ func return_to_player(player: Node3D) -> void:
 	position = Vector3.UP * FOOT_OFFSET
 	rotation = Vector3(0.0, facing, 0.0)
 	_seat = false
+	set_meal_bag(_meal_bag_carried)
 	_clear_product()
 	_grounded = true
 	_action = &""

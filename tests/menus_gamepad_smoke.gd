@@ -391,11 +391,25 @@ func _verify() -> void:
 	if not order.has_package():
 		_fail("Explicit on-foot pickup at actual restaurant")
 		return
+	var courier_visual: Node3D = player.get("visual")
+	var bag: Node3D = courier_visual.get("_meal_bag")
+	if not is_instance_valid(bag) or not bag.visible:
+		_fail("Collected meal must appear as the actual reusable held bag")
+		return
 	var opening_save: Dictionary = world.call("_capture_snapshot")
 	world.get("courier_mission").gig_economy = false
 	world.call("_apply_snapshot",opening_save)
 	if not world.get("courier_mission").gig_economy or world.get("cash") != before_severance+75:
 		_fail("Opening economy survives save restore")
+		return
+	if not bag.visible or courier_visual.get("_meal_bag")!=bag:
+		_fail("Restored meal must reuse the same held bag")
+		return
+	player.global_position = order.target()
+	var order_pay: int = order.payout()
+	world.call("_toggle_interaction")
+	if order.has_package() or bag.visible or world.get("cash")!=before_severance+75+order_pay:
+		_fail("Physical handoff removes bag and pays actual order exactly once")
 		return
 	menu.call("hide_for_game")
 	print("MENU_GAMEPAD_SMOKE PASS: action_count=", input_spec.ACTIONS.size(),
