@@ -5,6 +5,7 @@ import tempfile
 import unittest
 
 import production
+import qc
 import studio
 import test_studio
 
@@ -35,9 +36,15 @@ class ProductionTests(unittest.TestCase):
     @staticmethod
     def review(folder):
         rec = production.load(folder / "take.json")
-        studio.write_json(folder / "review.json", {
-            "take_sha256": rec["sha256"], "record_sha256": studio.digest(folder / "take.json"),
-            "reviewer": "fixture", "notes": "test only", "license_and_reference_checked": True})
+        review = {"take_sha256": rec["sha256"], "record_sha256": studio.digest(folder / "take.json"),
+                  "reviewer": "fixture", "notes": "test only", "license_and_reference_checked": True}
+        if rec["settings"]["model"] == production.BASE:
+            report = qc.create_report(folder, rec["spec"], rec["spec"]["line"]["text"], "c"*64,
+                                      {"faster-whisper":"fixture","ctranslate2":"fixture"})
+            studio.write_json(folder / "qc.json", report)
+            review["qc_sha256"] = studio.digest(folder / "qc.json")
+            review["qc_override"] = "synthetic unit-test fixture only"
+        studio.write_json(folder / "review.json", review)
 
     def make_take(self, spec=None, cast=None):
         spec = spec or self.spec
@@ -99,6 +106,31 @@ class ProductionTests(unittest.TestCase):
         production.publish(second, self.library / second_spec["line"]["id"], second_spec, second_cast)
         with self.assertRaises(ValueError):
             production.verify_library(dict(self.specs, **{second_spec["line"]["id"]: second_spec}), self.library)
+
+    def test_qc_tamper_rejected(self):
+        folder = self.make_take()
+        self.review(folder)
+        report = production.load(folder / "qc.json")
+        report["transcript"] = "Changed words"
+        studio.write_json(folder / "qc.json", report)
+        with self.assertRaises(ValueError):
+            production.verify_take(folder, self.spec, self.cast, approved=True)
+
+    def test_flagged_take_requires_override(self):
+        folder = self.make_take()
+        self.review(folder)
+        report = qc.create_report(folder, self.spec, "Wrong words", "c"*64,
+                                  {"faster-whisper":"fixture","ctranslate2":"fixture"})
+        studio.write_json(folder / "qc.json", report)
+        review = production.load(folder / "review.json")
+        review["qc_sha256"] = studio.digest(folder / "qc.json")
+        review["qc_override"] = ""
+        studio.write_json(folder / "review.json", review)
+        with self.assertRaises(ValueError):
+            production.publish(folder, self.library / self.spec["line"]["id"], self.spec, self.cast)
+        review["qc_override"] = "test-only override"
+        studio.write_json(folder / "review.json", review)
+        production.publish(folder, self.library / self.spec["line"]["id"], self.spec, self.cast)
 
     def test_no_partial_destination(self):
         dest = self.root / "broken"
