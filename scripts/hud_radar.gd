@@ -167,7 +167,8 @@ func _draw() -> void:
 			_target(state["side_quest"],Color("fff0ad"),true)
 		if bool(state.get("civic_quest_active", false)):
 			_target(state["civic_quest"],Color("95e7bc"),true)
-		_target(state["mission"],Color("38e5e4") if state["carrying"] else Color("ffba56"))
+		if bool(state.get("mission_active",true)):
+			_target(state["mission"],Color("38e5e4") if state["carrying"] else Color("ffba56"))
 		var heading: Vector2 = state.get("player_heading",Vector2.UP)
 		if not heading.is_finite() or heading.length_squared() < 0.001:
 			heading = Vector2.UP

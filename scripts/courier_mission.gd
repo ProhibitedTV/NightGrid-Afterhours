@@ -21,6 +21,7 @@ const GIG_ORDERS = [
 var _gig_routes: Array[Dictionary] = []
 # Declining rotates offers without incrementing paid delivery progress.
 var offer_offset := 0
+var on_duty := true
 
 func configure_gig_routes(venues: Node, civic: Node) -> bool:
 	var routes: Array[Dictionary] = []
@@ -83,7 +84,7 @@ func restore(runs: Variant, carrying: Variant) -> bool:
 	return true
 
 func can_decline_offer() -> bool:
-	return gig_economy and step == 0 and _gig_routes.size() > 1
+	return gig_economy and on_duty and step == 0 and _gig_routes.size() > 1
 
 func decline_offer() -> bool:
 	if not can_decline_offer():
@@ -93,6 +94,18 @@ func decline_offer() -> bool:
 
 func restore_offer_offset(value: Variant) -> void:
 	offer_offset = int(value) if valid_run_count(value) and int(value) < GIG_ORDERS.size() else 0
+
+func mission_active() -> bool:
+	return not gig_economy or on_duty
+
+func set_on_duty(value: bool) -> bool:
+	if not gig_economy or (not value and has_package()):
+		return false
+	on_duty = value
+	return true
+
+func restore_duty(value: Variant) -> void:
+	on_duty = not gig_economy or has_package() or not value is bool or bool(value)
 
 func has_package() -> bool:
 	return step == 1
@@ -130,6 +143,8 @@ func objective() -> Dictionary:
 ## Events must match the current objective ID and the actual target.
 ## Final step pays before mutating the run counter; no per-run receipt growth.
 func advance(event_id: String, at: Vector3, wallet: RefCounted) -> Dictionary:
+	if not mission_active():
+		return {}
 	if event_id != OBJECTIVES[step]["id"] or not at.is_finite() or at.distance_to(target()) >= RADIUS:
 		return {}
 	if step == 0:

@@ -59,6 +59,11 @@ func _verify() -> void:
 		gig.advance("deliver",gig.target(),gig_wallet)
 	if not check(gig.completed_runs==6 and gig_wallet.balance==141,"six starter deliveries use the inflation-adjusted catalog"):
 		return
+	if not check(gig.set_on_duty(false) and not gig.mission_active() and not gig.decline_offer() and gig.advance("collect",gig.target(),gig_wallet).is_empty() and gig.completed_runs==6, "off duty rejects work without losing progress"):
+		return
+	gig.restore_duty(false)
+	if not check(not gig.mission_active() and gig.set_on_duty(true) and gig.mission_active() and not job.set_on_duty(false), "duty restores, legacy courier remains active"):
+		return
 	var first_route: String = gig.objective()["route_id"]
 	var earned: int = gig_wallet.balance
 	if not check(gig.decline_offer() and gig.objective()["route_id"] != first_route and gig.completed_runs == 6 and gig_wallet.balance == earned, "decline changes only offer"):
@@ -66,7 +71,7 @@ func _verify() -> void:
 	var offset: int = gig.offer_offset
 	var changed_route: String = gig.objective()["route_id"]
 	gig.advance("collect",gig.target(),gig_wallet)
-	if not check(not gig.can_decline_offer() and not gig.decline_offer() and gig.objective()["route_id"] == changed_route, "cannot decline collected cargo"):
+	if not check(not gig.can_decline_offer() and not gig.decline_offer() and not gig.set_on_duty(false) and gig.objective()["route_id"] == changed_route, "cannot decline collected cargo"):
 		return
 	var gig_copy := Director.new()
 	gig_copy.gig_economy = true
