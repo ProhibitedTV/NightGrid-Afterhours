@@ -54,6 +54,31 @@ func _verify() -> void:
 		_fail("real route must resume gameplay without changing wallet or mission")
 		return
 	world.call("clear_navigation_waypoint")
+	var courier: RefCounted = world.get("courier_mission")
+	courier.set("gig_economy",true)
+	world.call("_refresh_courier_target")
+	var original_route: String = courier.call("objective")["route_id"]
+	menu.call("open_pause")
+	menu.call("_choice","phone")
+	menu.call("_choice","phone_app_wallet")
+	world.call("_on_menu_action","phone_work_decline")
+	if courier.call("objective")["route_id"] != original_route:
+		_fail("decline rejected outside work app")
+		return
+	menu.call("_choice","phone_back")
+	menu.call("_choice","phone_app_work")
+	if not (menu.call("get_buttons") as Dictionary).has("phone_work_decline"):
+		_fail("decline button visible for available offer")
+		return
+	menu.call("_choice","phone_work_decline")
+	if menu.get("screen") != "phone" or not paused or courier.call("objective")["route_id"] == original_route or ledger.get("balance") != cash_before or int(courier.get("completed_runs")) != 0:
+		_fail("decline refreshes live order without paying or closing phone")
+		return
+	var snap: Dictionary = world.call("_capture_snapshot")
+	if int(snap.get("courier_offer_offset",0)) != 1:
+		_fail("offer offset captured")
+		return
+	menu.call("hide_for_game")
 	menu.call("open_pause")
 	menu.call("_choice","phone")
 	menu.call("_choice","phone_back")

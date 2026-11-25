@@ -47,6 +47,8 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 				rows.append({"label":"Estimated payout","value":"$%d" % int(state.get("payout",0))})
 				rows.append({"label":"Completed deliveries","value":str(state.get("deliveries",0))})
 				actions.append({"label":"Navigate to current order","action":"phone_route_order"})
+				if bool(state.get("can_decline_order",false)) and not bool(state.get("carrying",false)):
+					actions.append({"label":"Decline / next offer","action":"phone_work_decline"})
 			else:
 				rows.append({"label":"QuotaDrop","value":"Available after your Synaxis offboarding."})
 		"opportunities":
