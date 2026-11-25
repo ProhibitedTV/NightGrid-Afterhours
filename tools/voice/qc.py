@@ -122,40 +122,56 @@ def verify_report(folder, spec):
 def main():
     import production
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--id", required=True)
-    parser.add_argument("--take", required=True)
+    parser.add_argument("--id", action="append", required=True)
+    parser.add_argument("--take", action="append", required=True)
     parser.add_argument("--model-dir", type=Path, required=True)
     parser.add_argument("--device", choices=["cpu","cuda"], default="cpu")
     parser.add_argument("--manifest", type=Path, default=studio.MANIFEST)
     args = parser.parse_args()
     specs = studio.read_manifest(args.manifest)
-    if args.id not in specs or not studio.SHA.fullmatch(args.take):
-        parser.error("Select a known line and exact production fingerprint")
-    spec = specs[args.id]
-    char = spec["line"]["character"]
-    cast = production.read_cast(production.CAST/char,char,spec["voice"])
-    folder = production.TAKES/args.id/args.take
-    production.verify_take(folder,spec,cast)
+    if (len(args.id)!=len(args.take) or len(set(zip(args.id,args.take)))!=len(args.id)
+            or any(i not in specs for i in args.id)
+            or any(not studio.SHA.fullmatch(t) for t in args.take)):
+        parser.error("Supply matching, unique --id and --take pairs")
+    jobs=[]
+    for ident,take in zip(args.id,args.take):
+        spec=specs[ident]
+        char=spec["line"]["character"]
+        cast=production.read_cast(production.CAST/char,char,spec["voice"])
+        folder=production.TAKES/ident/take
+        production.verify_take(folder,spec,cast)
+        jobs.append((folder,spec))
     fingerprint = model_digest(args.model_dir)
     os.environ["HF_HUB_OFFLINE"]="1"
     os.environ["TRANSFORMERS_OFFLINE"]="1"
     from faster_whisper import WhisperModel
-    model = WhisperModel(str(args.model_dir.resolve()),device=args.device,
-                         compute_type="int8" if args.device=="cpu" else "float16",
-                         local_files_only=True)
-    segments, _ = model.transcribe(str(folder/"take.wav"),language=LANG[spec["line"]["language"]],
-                                  beam_size=5,condition_on_previous_text=False,
-                                  vad_filter=False,temperature=0.0)
-    # Deliberately no expected-text prompt, which could bias the transcription.
-    transcript = " ".join(s.text.strip() for s in segments)
     packages = {k:importlib.metadata.version(k) for k in ("faster-whisper","ctranslate2")}
-    report = create_report(folder,spec,transcript,fingerprint,packages)
-    temp=folder/"qc.json.tmp"
-    studio.write_json(temp,report)
-    temp.replace(folder/"qc.json")
-    verify_report(folder,spec)
-    print("QC:",report["metrics"])
-    print("Recognized:",transcript)
+    model=None
+    for folder,spec in jobs:
+        # Reuse reports only when the exact model and dependency versions match.
+        try:
+            previous=verify_report(folder,spec)
+            if previous["model_sha256"]==fingerprint and previous["packages"]==packages:
+                print("Verified cached QC:",folder)
+                continue
+        except (FileNotFoundError,ValueError,KeyError):
+            pass
+        if model is None:
+            model = WhisperModel(str(args.model_dir.resolve()),device=args.device,
+                                 compute_type="int8" if args.device=="cpu" else "float16",
+                                 local_files_only=True)
+        segments, _ = model.transcribe(str(folder/"take.wav"),language=LANG[spec["line"]["language"]],
+                                      beam_size=5,condition_on_previous_text=False,
+                                      vad_filter=False,temperature=0.0)
+        # No expected-text prompt; avoid biasing recognition.
+        transcript = " ".join(s.text.strip() for s in segments)
+        report = create_report(folder,spec,transcript,fingerprint,packages)
+        temp=folder/"qc.json.tmp"
+        studio.write_json(temp,report)
+        temp.replace(folder/"qc.json")
+        verify_report(folder,spec)
+        print("QC:",folder,report["metrics"])
+        print("Recognized:",transcript)
 
 
 if __name__=="__main__":
