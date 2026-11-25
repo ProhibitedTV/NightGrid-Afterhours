@@ -189,6 +189,10 @@ func _paperwork(at: Vector3,yaw: float) -> void:
 	_part("furniture","blue",at+Vector3(.09,.029,0),Vector3(.13,.008,.012),yaw)
 
 func _workplaces() -> void:
+	_desk(Vector3(4.5,0,1.7),2.25,.85,"laminate")
+	_monitor(Vector3(4.85,1.39,1.62),1.0,"blue")
+	_keyboard(Vector3(4.85,1.10,1.96))
+	_chair(Vector3(4.5,0,.8),1.0)
 	_desk(Vector3(-5,0,2.55),2.6,.85,"laminate")
 	_desk(Vector3(5,0,-5.4),3.8,1.0,"walnut",true)
 	_desk(Vector3(-5,0,-5.4),2.7,1.0,"laminate")
@@ -222,9 +226,9 @@ func _workplaces() -> void:
 func _lobby() -> void:
 	# Physical gate is unchanged; stainless skin and recessed reader details.
 	for side in [-1.0,1.0]:
-		_part("interior","steel",Vector3(side*.65,1.36,-7.81),Vector3(1.24,2.62,.035))
-		_part("interior","black",Vector3(side*.65,1.65,-7.835),Vector3(.90,.72,.025))
-		_part("interior","glass",Vector3(side*.65,1.65,-7.854),Vector3(.84,.66,.015))
+		_part("gate","steel",Vector3(side*.65,1.36,-7.81),Vector3(1.24,2.62,.035))
+		_part("gate","black",Vector3(side*.65,1.65,-7.835),Vector3(.90,.72,.025))
+		_part("gate","glass",Vector3(side*.65,1.65,-7.854),Vector3(.84,.66,.015))
 		_part("interior","trim",Vector3(side*1.55,1.10,-8.1),Vector3(.26,.045,.28))
 		_part("interior","red",Vector3(side*1.55,1.197,-8.1),Vector3(.11,.012,.13))
 	_part("interior","red",Vector3(0,2.92,-7.80),Vector3(.37,.04,.035))

@@ -495,17 +495,27 @@ func _start_opening_office() -> void:
 	get_node("HUD").hide()
 	marker.hide()
 	game_menu.call("open_opening",true)
-	_snap_camera()
+	_opening_office.call("start_arrival",player,camera)
 
 func _opening_interact() -> void:
 	if not is_instance_valid(_opening_office) or game_menu.call("is_open"):
 		return
+	if _opening_office.call("arrival_active"):
+		_opening_office.call("finish_arrival",player,camera)
+		_snap_camera()
+		return
+	if not _opening_office.call("errand_complete"):
+		if _opening_office.call("try_errand",player):
+			return
+		# Optional exploration remains available even before the folder handoff.
+		if not _opening_office.call("breakroom_reachable",player.global_position):
+			return
 	var stage := int(game_menu.get("_opening_stage"))
 	if _opening_office.call("breakroom_reachable",player.global_position) and not bool(_opening_office.get("_breakroom_seen")):
 		_opening_office.call("breakroom_camera",camera)
 		game_menu.call("open_breakroom")
 		return
-	if _opening_office.call("reachable",stage,player.global_position):
+	if _opening_office.call("errand_complete") and _opening_office.call("reachable",stage,player.global_position):
 		if stage in [2,4]:
 			_opening_office.call("dialogue_camera",camera,stage,int(game_menu.get("_briefing_beat")))
 		game_menu.call("open_opening_stage")
@@ -627,7 +637,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not event.is_pressed():
 		return
 	if is_instance_valid(_opening_office):
-		if event.is_action_pressed("interact"):
+		if event.is_action_pressed("interact") or (_opening_office.call("arrival_active") and event.is_action_pressed("game_pause")):
 			_opening_interact()
 		return
 	if event.is_action_pressed("game_pause"):
@@ -797,12 +807,16 @@ func _process(delta: float) -> void:
 	if not is_instance_valid(player):
 		return
 	if is_instance_valid(_opening_office):
+		if _opening_office.call("arrival_active"):
+			if not _opening_office.call("tick_arrival",delta,player,camera):
+				_snap_camera()
+			return
 		var look := GameInput.look_vector()
 		yaw -= look.x * stick_sensitivity * delta
 		pitch = clampf(pitch+look.y*stick_sensitivity*delta*(-1.0 if invert_look_y else 1.0),.20,.85)
 		player.set("camera_yaw",yaw)
 		_update_camera(delta)
-		_opening_office.call("update_prompt",int(game_menu.get("_opening_stage")),player.global_position,gamepad_active)
+		_opening_office.call("update_prompt",int(_opening_office.call("objective_stage",int(game_menu.get("_opening_stage")))),player.global_position,gamepad_active)
 		return
 	var actor := _actor()
 	if current_car != null and current_car.get("model_id") == RoadCars.R9:
@@ -916,7 +930,7 @@ func _physics_process(delta: float) -> void:
 		return
 	if is_instance_valid(_opening_office):
 		if player.global_position.y < OpeningOffice.ORIGIN.y-2.0:
-			player.global_position = _opening_office.to_global(OpeningOffice.START)
+			player.global_position = _opening_office.to_global(OpeningOffice.CUBICLE_POINT)
 			player.velocity = Vector3.ZERO
 			_snap_camera()
 		return

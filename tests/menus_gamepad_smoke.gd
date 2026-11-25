@@ -436,8 +436,16 @@ func _verify() -> void:
 	if not str(propaganda.get_node("QuarterlyRecord/Headline").text).contains("$14.8 BILLION") or not str(propaganda.get_node("HealthRenewal/Headline").text).contains("24%") or not str(propaganda.get_node("HealthRenewal/FinePrint").text).contains("$231"):
 		_fail("Profit celebration and increased health premium must be actual in-world text")
 		return
+	if not office.call("arrival_active") or not player.get("input_blocked"):
+		_fail("New game begins with a controlled arrival cinematic")
+		return
+	world.call("_opening_interact") # skip uses the same completion path
+	if office.call("arrival_active") or player.get("input_blocked") or int(office.call("objective_stage",0))!=-2:
+		_fail("Skipping arrival restores player movement at the cubicle")
+		return
+	player.global_position=office.to_global(Vector3(0,1.15,0))
 	world.call("_opening_interact")
-	if menu.call("is_open"):
+	if menu.call("is_open") or int(office.call("objective_stage",0))!=-2:
 		_fail("Cannot interact with office workstation remotely")
 		return
 	var breakroom_hq=preload("res://scripts/synaxis_office.gd")
@@ -456,6 +464,24 @@ func _verify() -> void:
 		_fail("Party cannot be replayed repeatedly in the same prologue")
 		return
 	player.global_position = office.call("point",0)
+	world.call("_opening_interact")
+	if menu.call("is_open") or office.call("errand_complete"):
+		_fail("IT alert cannot be opened before collecting the folder")
+		return
+	player.global_position=office.call("point",-2)
+	world.call("_opening_interact")
+	if int(office.call("objective_stage",0))!=-1 or office.get("_folder_desk").visible:
+		_fail("Folder pickup updates objective and removes desk prop")
+		return
+	world.call("_opening_interact")
+	if office.call("errand_complete"):
+		_fail("Folder cannot be handed over remotely")
+		return
+	player.global_position=office.call("point",-1)
+	world.call("_opening_interact")
+	if not office.call("errand_complete") or not office.get("_folder_desk").visible or world.get("cash")!=before_severance:
+		_fail("Actual IT handoff must precede alert without changing wages")
+		return
 	world.call("_opening_interact")
 	menu.call("_choice","opening_inspect")
 	menu.call("_choice","opening_brief")

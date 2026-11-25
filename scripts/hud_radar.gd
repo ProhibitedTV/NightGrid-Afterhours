@@ -10,6 +10,14 @@ var _center := Vector2.ZERO
 var _radius := 0.0
 var _scale := 1.0
 var _origin := Vector2.ZERO
+var _office_mode := false
+var _office_actor := Vector2.ZERO
+var _office_target := Vector2.ZERO
+
+func set_office_state(actor: Vector2,target: Vector2) -> void:
+	_office_mode=true
+	_office_actor=actor
+	_office_target=target
 
 func _process(delta: float) -> void:
 	_redraw_clock += delta
@@ -85,7 +93,9 @@ func _draw() -> void:
 	_scale = _radius / RANGE_METRES
 	draw_circle(_center, _radius + 4.0, Color(0.025, 0.038, 0.057, 0.88), true, -1.0, true)
 	draw_circle(_center, _radius, Color(0.075, 0.095, 0.125, 0.96), true, -1.0, true)
-	if is_instance_valid(world_node):
+	if _office_mode:
+		_draw_office()
+	elif is_instance_valid(world_node):
 		var state: Dictionary = world_node.call("get_map_state")
 		_origin = state["player"]
 		var extent: float = float(Plan.GRID_RADIUS) * Plan.BLOCK_SIZE
@@ -160,3 +170,24 @@ func _draw() -> void:
 	draw_arc(_center,_radius+2.0,0.0,TAU,96,Color("8599a5"),1.8,true)
 	# North remains fixed; no atlas/camera rotation or mirrored bearings.
 	draw_string(ThemeDB.fallback_font,_center+Vector2(-6.0,-_radius+16.0),"N",HORIZONTAL_ALIGNMENT_LEFT,-1,15,Color("e7edf0"))
+
+# Same radar renderer, tighter indoor scale and authored walls; no street
+# routing, hidden mission handholding or false route through the partition.
+func _draw_office() -> void:
+	_origin=_office_actor
+	_scale=_radius/14.0
+	var wall := Color("87959d")
+	for edge in [
+		[Vector2(-8.5,-10),Vector2(-1.3,-10)],
+		[Vector2(1.3,-10),Vector2(8.5,-10)],
+		[Vector2(-8.5,-10),Vector2(-8.5,10)],
+		[Vector2(8.5,-10),Vector2(8.5,10)],
+		[Vector2(-8.5,10),Vector2(8.5,10)],
+		[Vector2(-8.5,-7.65),Vector2(8.5,-7.65)],
+		[Vector2(0,-7.2),Vector2(0,-.4)]
+	]:
+		_segment(edge[0],edge[1],wall,2.6)
+	for desk in [Vector2(-5,2.55),Vector2(4.5,1.7),Vector2(-5,-5.4),Vector2(5,-5.4),Vector2(5,6.5),Vector2(-4.2,8.12)]:
+		_segment(desk-Vector2(1.1,0),desk+Vector2(1.1,0),Color("52616e"),5.0)
+	_target(_office_target,Color("ffba56"),true)
+	draw_circle(_center,5.0,Color("e7edf0"),true,-1.0,true)

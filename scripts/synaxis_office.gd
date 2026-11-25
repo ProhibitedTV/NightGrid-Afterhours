@@ -18,14 +18,26 @@ const Assistant = preload("res://scripts/synaxis_assistant.gd")
 const Propaganda = preload("res://scripts/synaxis_propaganda.gd")
 const Brand = preload("res://scripts/synaxis_brand.gd")
 const Finish = preload("res://scripts/synaxis_office_finish.gd")
+const Radar = preload("res://scripts/hud_radar.gd")
+const Arrival = preload("res://scripts/synaxis_arrival.gd")
+const CUBICLE_POINT = Vector3(4.5,1.15,3.8)
+var _arrival: RefCounted
+var _arrival_canvas: CanvasLayer
+var _arrival_caption: Label
+var _radar: Control
+var _folder: Node3D
+var _folder_hand: BoneAttachment3D
+var _folder_desk: Node3D
+var _errand_phase := 0
+var _arrival_fov := 68.0
 var _assistant: Node3D
 var _ceo: Node3D
 var _hr: Node3D
 const START = Vector3(0,1.15,7)
 const BREAKROOM_POINT = Vector3(-4.2,1.15,6.85)
 var _breakroom_seen := false
-const POINTS = {0:Vector3(-5,1.15,4),2:Vector3(5,1.15,-4),4:Vector3(-5,1.15,-4),5:Vector3(5,1.15,5)}
-const TITLES = {0:"IT DESK / REVIEW THE ALERT",2:"EXECUTIVE OFFICE / ATTEND BRIEFING",4:"PEOPLE EXPERIENCE / EXIT INTERVIEW",5:"RECEPTION / COLLECT FINAL NOTICE"}
+const POINTS = {-2:CUBICLE_POINT,-1:Vector3(-5,1.15,4),0:Vector3(-5,1.15,4),2:Vector3(5,1.15,-4),4:Vector3(-5,1.15,-4),5:Vector3(5,1.15,5)}
+const TITLES = {-2:"SYSTEMS OPERATIONS / COLLECT THE FOLDER",-1:"IT DEPARTMENT / DROP OFF THE FOLDER",0:"IT DESK / REVIEW THE ALERT",2:"EXECUTIVE OFFICE / ATTEND BRIEFING",4:"PEOPLE EXPERIENCE / EXIT INTERVIEW",5:"RECEPTION / COLLECT FINAL NOTICE"}
 var _target_sign: Label3D
 var _hint: Label
 var _mat: Dictionary = {}
@@ -46,7 +58,7 @@ func _ready() -> void:
 		_solid("SecurityFlank",Vector3(side*4.9,1.75,-7.65),Vector3(7.2,3.5,.24),wall)
 	_solid("SecurityGate",Vector3(0,1.4,-7.65),Vector3(2.6,2.8,.25),_material("security",Color("293842")))
 	_solid("SecurityHeader",Vector3(0,3.15,-7.65),Vector3(2.6,.7,.25),wall)
-	_sign("RESTRICTED / BADGE ACCESS",Vector3(0,2.45,-7.80),.005).rotation.y=PI
+	_sign("RESTRICTED / BADGE ACCESS",Vector3(0,2.96,-7.80),.004).rotation.y=PI
 	Brand.wall_logo(self,"EntranceBrand",Vector3(0,3.12,-10.17),PI,2.15)
 	_sign("PUBLIC LOBBY",Vector3(0,2.65,-10.17),.0045).rotation.y = PI
 	# Fixed upper-floor shell, not a second generic building intersecting the office.
@@ -75,6 +87,12 @@ func _ready() -> void:
 	var finish := Finish.new()
 	finish.name = "ArchitecturalFinish"
 	add_child(finish)
+	_collision("EmployeeCubicle",Vector3(4.5,.54,1.7),Vector3(2.25,1.08,.85))
+	_solid("CubicleDivider",Vector3(5.65,.82,1.7),Vector3(.075,1.64,1.0),_material("cubicle_fabric",Color("606d71")))
+	_sign("SYSTEMS OPERATIONS / 04",Vector3(4.5,1.80,1.22),.003)
+	_folder_desk = _make_folder()
+	_folder_desk.position = Vector3(4.05,1.10,1.93)
+	add_child(_folder_desk)
 	_visual("ExitBox",Vector3(5,1.25,6.5),Vector3(.42,.34,.4),_material("cardboard",Color("a88a63")))
 	for z in [-7.5,-2.5,2.5,7.5]:
 		_visual("CeilingStrip",Vector3(0,3.28,z),Vector3(12,.055,.18),_material("light",Color("c9dfdf"),true))
@@ -107,6 +125,17 @@ func _ready() -> void:
 	_hint = Label.new()
 	_hint.add_theme_font_size_override("font_size",20)
 	panel.add_child(_hint)
+	_radar = Radar.new()
+	_radar.name = "OfficeRadar"
+	_radar.anchor_top = 1.0
+	_radar.anchor_bottom = 1.0
+	_radar.offset_left = 24.0
+	_radar.offset_right = 264.0
+	_radar.offset_top = -264.0
+	_radar.offset_bottom = -24.0
+	_radar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas.add_child(_radar)
+	_build_arrival_canvas()
 	set_stage(0)
 	_target_sign.hide()
 	_intro_canvas.hide()
@@ -201,6 +230,8 @@ func public_checkpoint_reachable(at: Vector3) -> bool:
 
 func begin_prologue() -> void:
 	_prologue_active=true
+	_errand_phase=0
+	_folder_desk.show()
 	_breakroom_seen=false
 	if not is_instance_valid(_cast):
 		_build_cast()
@@ -208,10 +239,15 @@ func begin_prologue() -> void:
 	_intro_canvas.show()
 	for light in find_children("*","OmniLight3D",true,false):
 		light.show()
-	set_stage(0)
+	set_stage(-2)
 
 func finish_prologue() -> void:
 	_prologue_active=false
+	_arrival=null
+	_arrival_canvas.hide()
+	_set_gate_open(false)
+	_clear_folder()
+	_folder_desk.hide()
 	end_dialogue()
 	_target_sign.hide()
 	_intro_canvas.hide()
@@ -325,6 +361,159 @@ func _sign(value: String,at: Vector3,pixel: float) -> Label3D:
 	add_child(label)
 	return label
 
+func _build_arrival_canvas() -> void:
+	_arrival_canvas = CanvasLayer.new()
+	_arrival_canvas.layer = 6
+	add_child(_arrival_canvas)
+	for top in [true,false]:
+		var bar := ColorRect.new()
+		bar.color=Color("080b10")
+		bar.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		bar.anchor_right=1.0
+		bar.anchor_top=0.0 if top else 1.0
+		bar.anchor_bottom=bar.anchor_top
+		bar.offset_top=0.0 if top else -74.0
+		bar.offset_bottom=74.0 if top else 0.0
+		_arrival_canvas.add_child(bar)
+	_arrival_caption=Label.new()
+	_arrival_caption.anchor_left=.0
+	_arrival_caption.anchor_right=1.0
+	_arrival_caption.anchor_top=1.0
+	_arrival_caption.anchor_bottom=1.0
+	_arrival_caption.offset_top=-69.0
+	_arrival_caption.offset_bottom=-30.0
+	_arrival_caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	_arrival_caption.add_theme_font_size_override("font_size",22)
+	_arrival_canvas.add_child(_arrival_caption)
+	var skip := Label.new()
+	skip.text="INTERACT / SKIP"
+	skip.anchor_left=1.0
+	skip.anchor_right=1.0
+	skip.offset_left=-220
+	skip.offset_top=22
+	skip.add_theme_font_size_override("font_size",16)
+	_arrival_canvas.add_child(skip)
+	_arrival_canvas.hide()
+
+func _set_gate_open(value: bool) -> void:
+	get_node("SecurityGate").visible=not value
+	get_node("SecurityGateCollision/CollisionShape3D").set_deferred("disabled",value)
+	for child in get_node("ArchitecturalFinish").get_children():
+		if str(child.name).begins_with("gate_"):
+			child.visible=not value
+
+func start_arrival(player: Node3D,camera: Camera3D) -> void:
+	_arrival=Arrival.new()
+	_arrival_fov=camera.fov
+	player.set("input_blocked",true)
+	_intro_canvas.hide()
+	_target_sign.hide()
+	_arrival_canvas.show()
+	tick_arrival(0.0,player,camera)
+
+func arrival_active() -> bool:
+	return _arrival!=null
+
+func tick_arrival(delta: float,player: Node3D,camera: Camera3D) -> bool:
+	if _arrival==null:
+		return false
+	if not _arrival.call("advance",delta):
+		finish_arrival(player,camera)
+		return false
+	var shot: Dictionary=_arrival.call("sample")
+	player.global_position=to_global(shot["position"])
+	player.set("velocity",Vector3.ZERO)
+	var motion: Vector3=shot["motion"]
+	var visual: Node3D=player.get("visual")
+	if is_instance_valid(visual):
+		if motion.length_squared()>.01:
+			visual.rotation.y=atan2(motion.x,motion.z)
+		elif bool(shot["desk"]):
+			visual.rotation.y=PI
+		visual.call("update_motion",visual.global_basis.inverse()*motion,true,false,false,false)
+	_set_gate_open(bool(shot["gate_open"]))
+	camera.global_position=to_global(shot["camera"])
+	camera.look_at(to_global(shot["look"]),Vector3.UP)
+	camera.fov=60.0
+	_arrival_caption.text=shot["caption"]
+	return true
+
+func finish_arrival(player: Node3D,camera: Camera3D) -> void:
+	if _arrival==null:
+		return
+	_arrival=null
+	_set_gate_open(false)
+	camera.fov=_arrival_fov
+	player.global_position=to_global(CUBICLE_POINT)
+	player.set("velocity",Vector3.ZERO)
+	player.set("input_blocked",false)
+	var visual: Node3D=player.get("visual")
+	if is_instance_valid(visual):
+		visual.rotation.y=PI
+		visual.call("update_motion",Vector3.ZERO,true,false,false,false)
+	_arrival_canvas.hide()
+	_intro_canvas.show()
+	_target_sign.show()
+	set_stage(-2)
+
+func objective_stage(story_stage: int) -> int:
+	return -2 if _errand_phase==0 else (-1 if _errand_phase==1 else story_stage)
+
+func errand_complete() -> bool:
+	return _errand_phase==2
+
+func _make_folder() -> Node3D:
+	var folder := Node3D.new()
+	folder.name="AuditFolder"
+	for spec in [
+		{"size":Vector3(.245,.012,.315),"at":Vector3.ZERO,"color":"b69b6c"},
+		{"size":Vector3(.224,.016,.288),"at":Vector3(0,.014,0),"color":"e2e0d7"},
+		{"size":Vector3(.245,.009,.315),"at":Vector3(0,.029,0),"color":"b69b6c"},
+		{"size":Vector3(.092,.006,.042),"at":Vector3(.065,.035,-.095),"color":"b54c4b"}
+	]:
+		var part := MeshInstance3D.new()
+		var mesh := BoxMesh.new()
+		mesh.size=spec["size"]
+		part.mesh=mesh
+		part.position=spec["at"]
+		part.material_override=_material("folder_"+str(spec["color"]),Color(spec["color"]))
+		part.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		folder.add_child(part)
+	return folder
+
+func _clear_folder() -> void:
+	if is_instance_valid(_folder_hand):
+		_folder_hand.hide()
+		_folder_hand.queue_free()
+	_folder_hand=null
+	_folder=null
+
+func try_errand(player: Node3D) -> bool:
+	if _arrival!=null or _errand_phase>=2 or not reachable(objective_stage(0),player.global_position):
+		return false
+	if _errand_phase==0:
+		_folder_desk.hide()
+		var visual: Node3D=player.get("visual")
+		var skel: Skeleton3D=visual.get("skeleton") if is_instance_valid(visual) else null
+		if skel!=null and skel.find_bone("LeftHand")>=0:
+			_folder_hand=BoneAttachment3D.new()
+			_folder_hand.name="SynaxisFolderHand"
+			_folder_hand.bone_name="LeftHand"
+			skel.add_child(_folder_hand)
+			_folder=_make_folder()
+			_folder.position=Vector3(0,.03,.10)
+			_folder.rotation.z=PI/2
+			_folder_hand.add_child(_folder)
+		_errand_phase=1
+	else:
+		_clear_folder()
+		_folder_desk.position=Vector3(-5.15,1.10,2.88)
+		_folder_desk.show()
+		_errand_phase=2
+	player.call("play_visual_action",&"interact")
+	set_stage(objective_stage(0))
+	return true
+
 func point(stage: int) -> Vector3:
 	return to_global(POINTS.get(stage,Vector3.INF))
 
@@ -340,6 +529,15 @@ func set_stage(stage: int) -> void:
 func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 	if not POINTS.has(stage):
 		return
-	_hint.text = "SYNAXIS / EXECUTIVE PRIVILEGE\n%s\n%s" % [TITLES[stage],("X / INTERACT" if gamepad else "G / INTERACT") if reachable(stage,at) else "%dm to objective" % roundi(at.distance_to(point(stage)))]
+	var local := to_local(at)
+	var goal: Vector3=POINTS[stage]
+	_radar.call("set_office_state",Vector2(local.x,local.z),Vector2(goal.x,goal.z))
+	_hint.text = "SYNAXIS / EXECUTIVE PRIVILEGE\n%s" % TITLES[stage]
+	if stage==-2:
+		_hint.text += "\nSupervisor: Can you take this folder to IT?"
+	elif stage==-1:
+		_hint.text += "\nIT is across the aisle, by the server racks."
+	if reachable(stage,at):
+		_hint.text += "\n"+("X / INTERACT" if gamepad else "G / INTERACT")
 	if breakroom_reachable(at) and not _breakroom_seen:
 		_hint.text += "\n" + ("X" if gamepad else "G") + " / OPTIONAL: BREAKROOM PARTY"
