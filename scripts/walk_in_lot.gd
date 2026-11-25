@@ -258,6 +258,21 @@ func _dress_retail_feature(id:String,theme:Dictionary,base:Material,wood:Materia
 			for i in range(3):
 				_visual("Worktop",Vector3(x-.09,2.50,z-.48+i*.48),Vector3(.06,.32,.39),wood)
 				_shop_label(["DIY","FIX","REUSE"][i],Vector3(x-.14,2.50,z-.48+i*.48),.0028,-PI/2)
+			# Printed merch cards on the wall, using the exact wearable art.
+			for i in range(4):
+				var patch_id:String=["patch_deadcarrier","patch_voltage","patch_ghostshift","patch_nightgrid"][i]
+				var card:=MeshInstance3D.new()
+				var quad:=QuadMesh.new()
+				quad.size=Vector2(.24,.24)
+				card.mesh=quad
+				var material:=StandardMaterial3D.new()
+				material.albedo_texture=load("res://assets/textures/fashion/"+patch_id+".svg") as Texture2D
+				material.roughness=.94
+				card.material_override=material
+				card.position=Vector3(x-.16,1.99,z-.54+i*.36)
+				card.rotation.y=-PI/2
+				card.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				add_child(card)
 		"obscura":
 			# Sparse brass display and a single folded signature piece.
 			for edge in [-.68,.68]:

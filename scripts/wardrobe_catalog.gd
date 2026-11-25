@@ -41,9 +41,9 @@ static func garment_slot(name: String) -> String:
 
 # Individual material-compatible pieces. Future mesh pieces use the same
 # stable slot/item identities, with a separate validated visual asset contract.
-const SLOTS=["jacket","pants","glasses","watch"]
-const RESET_IDS=["reset_jacket","reset_pants","reset_glasses","reset_watch"]
-const PIECE_IDS=["jacket_ash","jacket_oxide","jacket_midnight","pants_charcoal","pants_sand","pants_teal","glasses_night","glasses_clear","watch_shift","watch_brass","jacket_ink","jacket_patch","jacket_signal","pants_salvage","pants_indigo"]
+const SLOTS=["jacket","pants","glasses","watch","patch"]
+const RESET_IDS=["reset_jacket","reset_pants","reset_glasses","reset_watch","reset_patch"]
+const PIECE_IDS=["jacket_ash","jacket_oxide","jacket_midnight","pants_charcoal","pants_sand","pants_teal","glasses_night","glasses_clear","watch_shift","watch_brass","jacket_ink","jacket_patch","jacket_signal","pants_salvage","pants_indigo","patch_deadcarrier","patch_voltage","patch_ghostshift","patch_nightgrid"]
 const PIECES={
 	"jacket_ash":{"name":"Ash work jacket","slot":"jacket","price":18,"tint":Color(.73,.77,.79),"finish":1.0},
 	"jacket_oxide":{"name":"Oxide street jacket","slot":"jacket","price":32,"tint":Color(1.0,.53,.38),"finish":.9},
@@ -59,7 +59,11 @@ const PIECES={
 	"jacket_patch":{"name":"Rivet patched jacket","slot":"jacket","price":10,"tint":Color(.89,.63,.43),"finish":1.0},
 	"jacket_signal":{"name":"Static faded jacket","slot":"jacket","price":9,"tint":Color(.62,.51,.79),"finish":1.0},
 	"pants_salvage":{"name":"Salvaged work trousers","slot":"pants","price":6,"tint":Color(.72,.67,.49),"finish":1.0},
-	"pants_indigo":{"name":"Faded indigo trousers","slot":"pants","price":7,"tint":Color(.49,.57,.78),"finish":1.0}
+	"pants_indigo":{"name":"Faded indigo trousers","slot":"pants","price":7,"tint":Color(.49,.57,.78),"finish":1.0},
+	"patch_deadcarrier":{"name":"Dead Carrier / Signal Lost","slot":"patch","price":5},
+	"patch_voltage":{"name":"Voltage Debt / Live Wire","slot":"patch","price":6},
+	"patch_ghostshift":{"name":"Ghost Shift / After Work","slot":"patch","price":4},
+	"patch_nightgrid":{"name":"NightGrid FM / Local Signal","slot":"patch","price":5}
 }
 
 static func piece_valid(id:Variant) -> bool:
@@ -92,13 +96,13 @@ static func listing(id:String) -> Dictionary:
 		return {"name":"Restore base "+slot if slot in ["jacket","pants"] else "Remove "+slot,"rarity":"NO CHARGE","price":0,"type":"RESET"}
 	return {}
 
-const CATEGORIES=["ALL","OUTFITS","JACKETS","TROUSERS","GLASSES","WATCHES","OWNED","LOOKS"]
+const CATEGORIES=["ALL","OUTFITS","JACKETS","TROUSERS","GLASSES","WATCHES","PATCHES","OWNED","LOOKS"]
 static func category_ids(category:String) -> Array:
 	if category in ["ALL","OWNED"]:
 		return browse_ids()
 	if category=="OUTFITS":
 		return IDS.duplicate()
-	var slot:String={"JACKETS":"jacket","TROUSERS":"pants","GLASSES":"glasses","WATCHES":"watch"}.get(category,"")
+	var slot:String={"JACKETS":"jacket","TROUSERS":"pants","GLASSES":"glasses","WATCHES":"watch","PATCHES":"patch"}.get(category,"")
 	var result:Array=[]
 	if slot.is_empty():
 		return result

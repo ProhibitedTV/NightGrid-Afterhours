@@ -15,11 +15,11 @@ const STORES={
 	"vesper_line":{"name":"VESPER LINE","district":"VESPER MARKET","block":Vector2i(-1,-2),"lot":1,"style":"TAILORING","stock":["dispatch","vesper_tailored","vesper_ink","jacket_ink","pants_charcoal","pants_teal","glasses_clear","watch_brass"]},
 	"nocturne":{"name":"NOCTURNE","district":"AFTERHOURS","block":Vector2i(0,2),"lot":0,"style":"NIGHTLIFE","stock":["dispatch","nocturne_atelier","nocturne_veil","jacket_midnight","pants_charcoal","glasses_night","watch_brass"]},
 	"obscura":{"name":"OBSCURA","district":"GLASSLINE","block":Vector2i(1,-3),"lot":0,"style":"DESIGNER","stock":["dispatch","obscura_signature","obscura_sable","jacket_midnight","pants_charcoal","glasses_clear","watch_brass"]},
-	"second_signal":{"name":"SECOND SIGNAL","district":"BRICKWATER","block":Vector2i(-3,1),"lot":1,"style":"THRIFT / DIY","stock":["dispatch","signal_reclaimed","jacket_ash","pants_charcoal","signal_rivet","signal_static","signal_union","jacket_patch","jacket_signal","pants_salvage","pants_indigo"]}
+	"second_signal":{"name":"SECOND SIGNAL","district":"BRICKWATER","block":Vector2i(-3,1),"lot":1,"style":"THRIFT / DIY","stock":["dispatch","signal_reclaimed","jacket_ash","pants_charcoal","signal_rivet","signal_static","signal_union","jacket_patch","jacket_signal","pants_salvage","pants_indigo","patch_deadcarrier","patch_voltage","patch_ghostshift","patch_nightgrid"]}
 }
-const EXCLUSIVE=["quay_dock","vesper_ink","nocturne_veil","obscura_sable","jacket_ink","signal_reclaimed","signal_rivet","signal_static","signal_union","jacket_patch","jacket_signal","pants_salvage","pants_indigo"]
+const EXCLUSIVE=["quay_dock","vesper_ink","nocturne_veil","obscura_sable","jacket_ink","signal_reclaimed","signal_rivet","signal_static","signal_union","jacket_patch","jacket_signal","pants_salvage","pants_indigo","patch_deadcarrier","patch_voltage","patch_ghostshift","patch_nightgrid"]
 const THRIFT_ROTATIONS=[["signal_rivet","jacket_patch","pants_salvage"],["signal_static","jacket_signal","pants_indigo"],["signal_union","jacket_patch","pants_indigo"]]
-const THRIFT_STAPLES=["dispatch","signal_reclaimed","jacket_ash","pants_charcoal"]
+const THRIFT_STAPLES=["dispatch","signal_reclaimed","jacket_ash","pants_charcoal","patch_deadcarrier","patch_voltage","patch_ghostshift","patch_nightgrid"]
 
 static func for_lot(block:Vector2i,lot:int) -> String:
 	for id in IDS:

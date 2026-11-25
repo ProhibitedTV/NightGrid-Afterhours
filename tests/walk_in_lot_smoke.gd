@@ -505,6 +505,17 @@ func _verify() -> void:
 	if not check(not "signal_rivet" in world.call("_wardrobe_visible_ids") and "signal_static" in world.call("_wardrobe_visible_ids"),"reopen rotates stock"):
 		return
 	world.call("_close_venue")
+	world.call("_toggle_interaction")
+	world.set("_wardrobe_index",catalog.browse_ids().find("patch_deadcarrier"))
+	world.call("_update_venue_panel")
+	if not check(visual.get("clothing_slots").get("patch")=="patch_deadcarrier" and not ledger.owns_piece("patch_deadcarrier"),"fitted patch preview"):
+		return
+	world.call("_venue_action",3)
+	world.call("_venue_action",3)
+	world.call("_venue_action",3)
+	world.call("_close_venue")
+	if not check(ledger.owns_piece("patch_deadcarrier") and ledger.clothing_slots.get("patch")=="patch_deadcarrier","collectible patch purchase and equip"):
+		return
 	var retail_save:Dictionary=ledger.snapshot()
 	var invalid_look:Dictionary=retail_save.duplicate(true)
 	invalid_look["saved_looks"]["look_2"]={"outfit":"obscura_sable","slots":{}}

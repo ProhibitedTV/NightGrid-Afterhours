@@ -10,6 +10,14 @@ const Wardrobe = preload("res://scripts/wardrobe_catalog.gd")
 var outfit_id := Wardrobe.DEFAULT
 var clothing_slots:Dictionary={}
 var _piece_materials:Dictionary={}
+var _patch_surfaces:Array[Dictionary]=[]
+var _patch_materials:Dictionary={}
+const PATCH_TEXTURES={
+	"patch_deadcarrier":preload("res://assets/textures/fashion/patch_deadcarrier.svg"),
+	"patch_voltage":preload("res://assets/textures/fashion/patch_voltage.svg"),
+	"patch_ghostshift":preload("res://assets/textures/fashion/patch_ghostshift.svg"),
+	"patch_nightgrid":preload("res://assets/textures/fashion/patch_nightgrid.svg")
+}
 const Accessories=preload("res://scripts/wardrobe_accessories.gd")
 var _accessories:Dictionary={}
 var _wardrobe_surfaces: Array[Dictionary] = []
@@ -75,6 +83,9 @@ func _cache_wardrobe_surfaces(model: Node3D) -> void:
 			var material := mesh.mesh.surface_get_material(index) as StandardMaterial3D
 			if material == null:
 				continue
+			if material.resource_name.to_lower().contains("morrow dispatch woven patch"):
+				_patch_surfaces.append({"mesh":mesh,"surface":index,"material":material})
+				continue
 			var slot := Wardrobe.garment_slot(material.resource_name)
 			if not slot.is_empty():
 				_wardrobe_surfaces.append({"mesh":mesh,"surface":index,"material":material,"slot":slot})
@@ -84,6 +95,8 @@ func set_outfit(id: String) -> bool:
 
 func set_look(id:String,slots:Dictionary) -> bool:
 	if corporate_attire or not Wardrobe.valid_id(id) or not Wardrobe.valid_slots(slots) or _wardrobe_surfaces.is_empty():
+		return false
+	if slots.has("patch") and (_patch_surfaces.is_empty() or not PATCH_TEXTURES.has(slots["patch"])):
 		return false
 	if id==outfit_id and slots==clothing_slots:
 		return true
@@ -120,6 +133,21 @@ func set_look(id:String,slots:Dictionary) -> bool:
 				_piece_materials[key]=variant
 			override=_piece_materials[key]
 		mesh.set_surface_override_material(entry["surface"],override)
+	var patch_id:String=slots.get("patch","")
+	for entry in _patch_surfaces:
+		var mesh:MeshInstance3D=entry["mesh"]
+		var surface:int=entry["surface"]
+		var patch:Material=null
+		if not patch_id.is_empty():
+			var key:="%s:%d" % [patch_id,surface]
+			if not _patch_materials.has(key):
+				var original:StandardMaterial3D=entry["material"]
+				var variant:=original.duplicate() as StandardMaterial3D
+				variant.albedo_texture=PATCH_TEXTURES[patch_id]
+				variant.albedo_color=Color.WHITE
+				_patch_materials[key]=variant
+			patch=_patch_materials[key]
+		mesh.set_surface_override_material(surface,patch)
 	for item_id in _accessories:
 		_accessories[item_id].visible=slots.get(Wardrobe.PIECES[item_id]["slot"],"")==item_id
 	outfit_id=id
