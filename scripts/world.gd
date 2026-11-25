@@ -66,6 +66,7 @@ const CourierMission = preload("res://scripts/courier_mission.gd")
 const StoryMission = preload("res://scripts/story_mission.gd")
 const StarterHome = preload("res://scripts/starter_home.gd")
 var _home_panel := false
+var _storage_upgrade_quote := false
 const StarterGarage = preload("res://scripts/starter_garage.gd")
 var _garage_panel := false
 # Transient quote; never serialized, never charges on selection.
@@ -471,7 +472,7 @@ func _journal_context() -> Dictionary:
 		"owned_vehicles": _owned_vehicle_text(),
 		"home_owned": progression.owns_home(),
 		"garage_text": "GARAGE: Two reserved bays / recovery desk" if progression.owns_home() else "GARAGE: Locked services",
-		"home_text": "HOME: %s / %d stored provisions" % [StarterHome.NAME,progression.home_supplies] if progression.owns_home() else "HOME: Complete Mara’s contact mission to unlock.",
+		"home_text": "HOME: %s / %d of %d stored provisions" % [StarterHome.NAME,progression.home_supplies,progression.home_capacity()] if progression.owns_home() else "HOME: Complete Mara’s contact mission to unlock.",
 		"weapons": weapons.inventory_text(),
 		"dispatch": dispatch.status(),
 		"ambient_civic_open": ambient_civic.open_count(),
@@ -2547,6 +2548,7 @@ func _close_venue() -> void:
 	_clear_sale_quote()
 	_sale_offer_id = ""
 	_home_panel = false
+	_storage_upgrade_quote = false
 	_garage_panel = false
 	_vending_machine = null
 	for button in [venue_service_button,venue_job_button,venue_talk_button]:
@@ -2575,13 +2577,24 @@ func _update_venue_panel() -> void:
 		venue_talk_button.hide()
 		return
 	if _home_panel:
-		venue_label.text = "HOME STORAGE / %d of %d provisions\nCarrying %d / 99" % [progression.home_supplies,StarterHome.MAX_STORAGE,ration_packs]
+		if _storage_upgrade_quote:
+			venue_label.text = "HOME / STORAGE EXPANSION\nCapacity %d → %d provisions\nPrice $%d  |  Cash after $%d\n[1 / A] Cancel  •  [3 / Y] Confirm" % [StarterHome.MAX_STORAGE,StarterHome.EXPANDED_STORAGE,StarterHome.STORAGE_UPGRADE_PRICE,cash-StarterHome.STORAGE_UPGRADE_PRICE]
+			venue_service_button.text = "1 / A  •  CANCEL"
+			venue_service_button.disabled = false
+			venue_job_button.hide()
+			venue_talk_button.show()
+			venue_talk_button.text = "3 / Y  •  CONFIRM UPGRADE"
+			venue_talk_button.disabled = progression.home_storage_expanded or cash < StarterHome.STORAGE_UPGRADE_PRICE
+			return
+		venue_label.text = "HOME STORAGE / %d of %d provisions\nCarrying %d / 99" % [progression.home_supplies,progression.home_capacity(),ration_packs]
 		venue_service_button.text = "1 / A  •  STORE ONE"
-		venue_service_button.disabled = ration_packs <= 0 or progression.home_supplies >= StarterHome.MAX_STORAGE
+		venue_service_button.disabled = ration_packs <= 0 or progression.home_supplies >= progression.home_capacity()
 		venue_job_button.show()
 		venue_job_button.text = "2 / X  •  TAKE ONE"
 		venue_job_button.disabled = ration_packs >= 99 or progression.home_supplies <= 0
-		venue_talk_button.hide()
+		venue_talk_button.visible = not progression.home_storage_expanded
+		venue_talk_button.text = "3 / Y  •  REVIEW UPGRADE $%d" % StarterHome.STORAGE_UPGRADE_PRICE
+		venue_talk_button.disabled = cash < StarterHome.STORAGE_UPGRADE_PRICE
 		return
 	if is_instance_valid(_vending_machine):
 		var items: Array = _vending_machine.get_meta("items",[])
@@ -2713,10 +2726,21 @@ func _venue_action(option: int) -> void:
 		if not venue_panel.visible or not is_instance_valid(lot) or lot.call("home_action",player.global_position) != "storage" or not progression.owns_home():
 			_close_venue()
 			return
-		if option == 1:
+		if _storage_upgrade_quote:
+			if option == 1:
+				_storage_upgrade_quote = false
+			elif option == 3:
+				_storage_upgrade_quote = false
+				if progression.expand_home_storage():
+					_notify("Storage expanded to %d provisions." % progression.home_capacity())
+				else:
+					_notify("Upgrade unavailable. No payment taken.")
+		elif option == 1:
 			ration_packs -= progression.deposit_supply(ration_packs)
 		elif option == 2:
 			ration_packs += progression.withdraw_supply(ration_packs)
+		elif option == 3 and not progression.home_storage_expanded and cash >= StarterHome.STORAGE_UPGRADE_PRICE:
+			_storage_upgrade_quote = true
 		_update_venue_panel()
 		return
 	if is_instance_valid(_vending_machine):

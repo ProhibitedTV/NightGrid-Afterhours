@@ -250,14 +250,35 @@ func _verify() -> void:
 	world.call("_close_venue")
 	if not check(world.get("ration_packs")==2 and ledger.home_supplies==1,"storage conserves carried and stored provisions"):
 		return
+	world.set("cash",Home.STORAGE_UPGRADE_PRICE)
+	world.call("_toggle_interaction")
+	world.call("_venue_action",3)
+	if not check(world.get("_storage_upgrade_quote") and world.get("cash")==Home.STORAGE_UPGRADE_PRICE,"upgrade review does not charge"):
+		return
+	world.call("_venue_action",1)
+	if not check(not ledger.home_storage_expanded and world.get("cash")==Home.STORAGE_UPGRADE_PRICE,"cancel retains original storage and cash"):
+		return
+	world.call("_venue_action",3)
+	world.set("cash",Home.STORAGE_UPGRADE_PRICE-1)
+	world.call("_venue_action",3)
+	if not check(not ledger.home_storage_expanded and world.get("cash")==Home.STORAGE_UPGRADE_PRICE-1,"recheck affordability at confirmation"):
+		return
+	world.set("cash",Home.STORAGE_UPGRADE_PRICE)
+	world.call("_venue_action",3)
+	world.call("_venue_action",3)
+	world.call("_venue_action",3)
+	if not check(ledger.home_capacity()==Home.EXPANDED_STORAGE and world.get("cash")==0 and ledger.home_supplies==1,"capacity upgrade paid once without losing stored supplies"):
+		return
+	world.call("_close_venue")
 	var home_save: Dictionary = world.call("_capture_snapshot")
 	var session := root.get_node("GameSession")
 	if not check(session.call("is_valid_snapshot",session.call("make_snapshot",home_save)),"home state valid on disk schema"):
 		return
 	ledger.home_supplies=0
+	ledger.home_storage_expanded=false
 	world.set("ration_packs",0)
 	world.call("_apply_snapshot",home_save)
-	if not check(ledger.home_supplies==1 and ledger.owns_home() and world.get("ration_packs")==2 and player.global_position.distance_to(home.call("home_action_point","storage"))<.1,"home entitlement and stash round trip"):
+	if not check(ledger.home_supplies==1 and ledger.owns_home() and ledger.home_capacity()==Home.EXPANDED_STORAGE and world.get("ration_packs")==2 and player.global_position.distance_to(home.call("home_action_point","storage"))<.1,"home entitlement and stash round trip"):
 		return
 	print("WALK_IN_LOT PASS: physical doors, multiple rooms, upper floor ascent/descent, bounded walls, streamed finish, world-coordinate restore and exit")
 	quit(0)
