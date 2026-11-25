@@ -68,5 +68,37 @@ func _verify() -> void:
 		if not is_equal_approx(float(path["road_m"]), float(reverse["road_m"])):
 			_fail("Bidirectional street distances must be symmetric")
 			return
+	var trial := preload("res://scripts/driving_trial.gd").new()
+	if trial.start(Vector2.ZERO,1,100.0,0.0) or trial.start(trial.START,1,100.0,3.0) or not trial.start(trial.START,1,100.0,0.0):
+		_fail("Driving trial start gates")
+		return
+	if trial.tick(1.0/60.0,trial.GATES[2],1,100.0)!="ROUTE RESET" or trial.active:
+		_fail("Teleport cannot skip driving checkpoints")
+		return
+	trial.start(trial.START,1,100.0,0.0)
+	var pos:Vector2=trial.START
+	for gate in trial.GATES:
+		if Route.road_anchor(gate)!=gate:
+			_fail("Circuit gate is not on the fixed road network")
+			return
+		while pos.distance_to(gate)>0.01:
+			pos=pos.move_toward(gate,0.2)
+			trial.tick(1.0/60.0,pos,1,100.0)
+	if trial.result!="COMPLETE" or trial.active or trial.index!=trial.GATES.size():
+		_fail("All authored checkpoints must settle in sequence")
+		return
+	var ledger:=preload("res://scripts/progression_ledger.gd").new()
+	if not ledger.credit_once(trial.RECEIPT,trial.REWARD) or ledger.credit_once(trial.RECEIPT,trial.REWARD) or ledger.balance!=90:
+		_fail("Circuit first finish reward must settle once")
+		return
+	trial.start(trial.START,1,100.0,0.0)
+	if trial.tick(1.0/60.0,trial.START,2,100.0)!="ABANDONED":
+		_fail("Changing cars must invalidate a circuit")
+		return
+	trial.start(trial.START,1,100.0,0.0)
+	trial.elapsed=89.99
+	if trial.tick(1.0/60.0,trial.START,1,100.0)!="TIME EXPIRED":
+		_fail("Circuit timeout")
+		return
 	print("STREET_ROUTE_SMOKE PASS: 250 deterministic paired routes, bounds, turn directions, access links")
 	quit(0)
