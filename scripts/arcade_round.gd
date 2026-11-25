@@ -28,6 +28,9 @@ var streak := 0
 var nitro_charge := 0
 var nitro_ticks := 0
 var feedback := ""
+var parries := 0
+var claw_combo := 0
+var claw_flash := 0
 const FEATURE_NAMES = ["WORKING AI","OFFLINE MODE","TRAFFIC AI","SAVE SLOT","ACTUAL ENDING","RADIO STATIONS","FREE PATCH"]
 const WALL_NAMES = ["PREORDER","SEASON PASS","ACCOUNT","DELUXE TAX","ROADMAP","DAY ONE DLC"]
 
@@ -45,6 +48,9 @@ func start(id: String) -> bool:
 	nitro_charge = 0
 	nitro_ticks = 0
 	feedback = "NO ACCOUNT REQUIRED"
+	parries = 0
+	claw_combo = 0
+	claw_flash = 0
 	return true
 
 func steer(direction: int) -> void:
@@ -68,6 +74,14 @@ func strike() -> bool:
 		if int(item["lane"]) == lane and int(item["row"]) >= 3:
 			objects.remove_at(i)
 			score += 100
+			claw_combo += 1
+			claw_flash = 2
+			if int(item["row"]) == END_ROW-1:
+				parries += 1
+				score += 25
+				feedback = "PERFECT PARRY / NO COMMITTEE REQUIRED"
+			else:
+				feedback = "AUDIT DRONE DISABLED"
 			return true
 	return false
 
@@ -75,6 +89,7 @@ func advance() -> void:
 	if finished:
 		return
 	step += 1
+	claw_flash = maxi(0,claw_flash-1)
 	for i in range(objects.size() - 1, -1, -1):
 		var item: Dictionary = objects[i]
 		item["row"] = int(item["row"]) + 1
@@ -91,6 +106,9 @@ func advance() -> void:
 					feedback = "PAYWALL BYPASSED / NO EXTRA CHARGE"
 				else:
 					lives -= 1
+					if game_id == "claw_compliance":
+						claw_combo = 0
+						feedback = "AUDIT HIT / RECOVER"
 					if game_id == "grand_delay":
 						streak = 0
 						feedback = "PAYWALL: " + str(item.get("label","DELUXE TAX"))

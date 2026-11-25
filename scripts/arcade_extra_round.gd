@@ -28,6 +28,10 @@ var moves := 0
 var tiles: Array = []
 var blank := Vector2i(2,2)
 var feedback := ""
+var shots_fired := 0
+var hits := 0
+var puzzle_total_moves := 0
+var puzzle_optimal := 0
 
 func start(id: String) -> bool:
 	if id != "annual_warfare" and id != "day_one_dlc":
@@ -44,6 +48,10 @@ func start(id: String) -> bool:
 	stage = 0
 	moves = 0
 	tiles.clear()
+	shots_fired = 0
+	hits = 0
+	puzzle_total_moves = 0
+	puzzle_optimal = 0
 	if id == "annual_warfare":
 		_spawn_targets()
 		feedback = "Reloads included in the base game."
@@ -64,7 +72,10 @@ func _move(delta: Vector2i) -> void:
 		cursor = Vector2i(clampi(cursor.x + delta.x,0,2),clampi(cursor.y + delta.y,0,2))
 	elif _slide(delta):
 		moves += 1
+		puzzle_total_moves += 1
 		if tiles == SOLVED:
+			if moves <= SCRAMBLES[stage].size():
+				puzzle_optimal += 1
 			score += 500 + (MOVE_LIMIT - moves) * 10
 			stage += 1
 			if stage == SCRAMBLES.size():
@@ -85,9 +96,11 @@ func strike() -> bool:
 		feedback = "Reloaded. No premium ammunition pack."
 		return true
 	ammo -= 1
+	shots_fired += 1
 	if cursor == target and not target_hit:
 		target_hit = true
 		streak += 1
+		hits += 1
 		score += 100 + mini(streak - 1, 9) * 20
 		feedback = "Nice shot! Same bot since 2031."
 	elif cursor == decoy:
@@ -142,3 +155,6 @@ func _slide(delta: Vector2i) -> bool:
 
 func result() -> Dictionary:
 	return {"game_id":game_id,"score":score,"lives":lives,"steps":step if game_id == "annual_warfare" else stage,"finished":finished,"cleared":cleared}
+
+func accuracy() -> int:
+	return roundi(100.0*hits/maxi(1,shots_fired))

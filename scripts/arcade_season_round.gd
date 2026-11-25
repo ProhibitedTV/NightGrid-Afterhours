@@ -24,6 +24,10 @@ var time_left := 0
 var chain: Array[int] = []
 var progress := 0
 var feedback := ""
+var clean_waves := 0
+var command_errors := 0
+var perfect_seasons := 0
+var season_errors := 0
 
 func start(id: String) -> bool:
 	if id != "open_world_checklist" and id != "battle_pass_hero":
@@ -41,6 +45,10 @@ func start(id: String) -> bool:
 	progress = 0
 	time_left = 0
 	chain.clear()
+	clean_waves = 0
+	command_errors = 0
+	perfect_seasons = 0
+	season_errors = 0
 	if id == "open_world_checklist":
 		feedback = "Your map is now 90 percent icons."
 		_spawn_icons(0)
@@ -87,6 +95,7 @@ func _collect() -> bool:
 	feedback = ["Tower liberated. Sock unlocked.","Shard 1 of approximately infinity.","Chest found. Actual loot!"][kind]
 	if icons.is_empty():
 		score += 200
+		clean_waves += 1
 		feedback = "Map cleared! Go enjoy the scenery."
 	return true
 
@@ -99,6 +108,7 @@ func _spawn_icons(wave: int) -> void:
 
 func _load_season() -> void:
 	progress = 0
+	season_errors = 0
 	time_left = SEASON_TICKS
 	chain.clear()
 	for i in range(3 + floori(float(season)/2.0)):
@@ -109,12 +119,17 @@ func _command(value: int) -> bool:
 	if finished or game_id != "battle_pass_hero":
 		return false
 	if value != chain[progress]:
+		command_errors += 1
+		season_errors += 1
 		progress = 0
 		feedback = "Combo reset. You can try again."
 		return false
 	progress += 1
 	if progress == chain.size():
 		score += 200 + time_left * 10
+		if season_errors==0:
+			perfect_seasons += 1
+			score += 20
 		completed += 1
 		_next_season()
 	return true

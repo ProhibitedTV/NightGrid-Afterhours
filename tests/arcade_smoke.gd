@@ -252,6 +252,14 @@ func _verify() -> void:
 	race.advance(true)
 	if not check(race.result()==competitive_result, "competitive finish remains immutable"):
 		return
+	var parry := Round.new()
+	parry.start("claw_compliance")
+	parry.objects.append({"lane":1,"row":Round.END_ROW-1,"kind":"drone"})
+	if not check(parry.strike() and parry.parries==1 and parry.score==125 and parry.claw_combo==1,"last-tick parry grants unique bonus"):
+		return
+	parry.start("claw_compliance")
+	if not check(parry.parries==0 and parry.claw_combo==0,"parry reset"):
+		return
 	var patch := Alt.new()
 	if not check(patch.start("patch_day") and patch.strike() and patch.score == 150 and not patch.strike(), "patch repairs exactly once"):
 		return
@@ -271,8 +279,15 @@ func _verify() -> void:
 		patch.advance()
 	if not check(not patch.result()["cleared"] and patch.lives == 0, "unrepaired bugs crash servers"):
 		return
+	patch.start("patch_day")
+	patch.bugs[patch.cursor]=2
+	if not check(patch.strike() and patch.urgent_repairs==1 and patch.repair_combo==1,"urgent repair tracked"):
+		return
 	var indie := Alt.new()
 	indie.start("indie_dev")
+	var preview := indie.studio_preview(0)
+	if not check(preview["quality"]==3 and preview["energy"]==4 and indie.quality==0,"studio preview is read-only"):
+		return
 	for action in [0, 0, 1, 2, 0, 1, 3, 2]:
 		indie.choice = action
 		if not check(indie.strike(), "studio action affordable"):

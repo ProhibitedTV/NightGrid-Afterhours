@@ -299,6 +299,11 @@ func _draw() -> void:
 		draw_rect(Rect2(player_center - Vector2(22, 13), Vector2(44, 26)), accent)
 		if id == "claw_compliance":
 			draw_rect(Rect2(player_center - Vector2(28, 100), Vector2(56, 100)), accent, false, 1.0)
+			_line("PARRIES %02d" % round.parries,Vector2(32,211),accent,18)
+			_line("COMBO %02d" % round.claw_combo,Vector2(32,238),Color.WHITE,18)
+			if round.claw_flash>0:
+				draw_arc(player_center-Vector2(0,40),42,PI,TAU,24,accent,4,true)
+			_line(round.feedback,Vector2(32,407),accent,14)
 		_line("ARROWS / D-PAD  MOVE    ENTER / A  STRIKE" if id == "claw_compliance" else "ARROWS / D-PAD  STEER", Vector2(32, 428), Color.WHITE, 16)
 		_line("ESC / B  ABANDON", Vector2(570, 428), Color("a0b0ba"), 16)
 
@@ -319,6 +324,7 @@ func _draw_patch(accent: Color) -> void:
 				_line("OK", at + Vector2(35, 31), Color("69d8c2"), 16)
 			if cell == round.cursor:
 				draw_rect(bounds, accent, false, 3.0)
+	_line("COMBO %d / FIXED %d" % [round.repair_combo,round.repaired],Vector2(32,175),accent,15)
 	_line(round.feedback, Vector2(32, 391), accent, 17)
 	_line("ARROWS / D-PAD  MOVE    ENTER / A  REPAIR", Vector2(32, 428), Color.WHITE, 16)
 	_line("ESC / B  ABANDON", Vector2(570, 428), Color("a0b0ba"), 16)
@@ -334,7 +340,12 @@ func _draw_studio(accent: Color) -> void:
 			draw_rect(Rect2(at, Vector2(736, 36)), tint, false, 2.0)
 		_line(AltRound.ACTIONS[n], at + Vector2(12, 24), tint, 19)
 		_line(AltRound.DETAILS[n], at + Vector2(180, 24), Color.WHITE, 17)
-	_line(round.feedback, Vector2(32, 391), accent, 17)
+	var preview: Dictionary = round.studio_preview(round.choice)
+	if not preview.is_empty():
+		_line("NEXT: Q %d  BUGS %d  ENERGY %d  FANS %d" % [preview["quality"],preview["debt"],preview["energy"],preview["fans"]],Vector2(32,376),accent,14)
+	else:
+		_line("NOT ENOUGH ENERGY / REST",Vector2(32,376),Color("ed777e"),14)
+	_line(round.feedback, Vector2(32, 397), accent, 15)
 	_line("LEFT / RIGHT  CHOOSE    ENTER / A  COMMIT WEEK", Vector2(32, 428), Color.WHITE, 16)
 	_line("ESC / B  ABANDON", Vector2(570, 428), Color("a0b0ba"), 16)
 
@@ -363,6 +374,7 @@ func _draw_extra(accent: Color, gallery: bool) -> void:
 					draw_rect(bounds,accent,false,2.0)
 				else:
 					_line("%d" % value,at+Vector2(37,40),accent if value == y*3+x+1 else Color.WHITE,30)
+	_line("ACCURACY %d%% / STREAK %d" % [round.accuracy(),round.streak] if gallery else "TOTAL MOVES %d / EFFICIENT PACKS %d" % [round.puzzle_total_moves,round.puzzle_optimal],Vector2(32,180),accent,14)
 	_line(round.feedback,Vector2(32,391),accent,17)
 	_line("ARROWS / D-PAD AIM   ENTER / A FIRE OR RELOAD" if gallery else "ARROWS / D-PAD SLIDE EMPTY SPACE",Vector2(32,428),Color.WHITE,16)
 	_line("ESC / B ABANDON",Vector2(570,428),Color("a0b0ba"),16)
@@ -383,6 +395,7 @@ func _draw_checklist(accent: Color) -> void:
 			if cell == round.cursor:
 				draw_rect(bounds,accent,false,3.0)
 				draw_circle(at+Vector2(49,42),7.0,accent)
+	_line("CLEARED MAPS %d" % round.clean_waves,Vector2(32,180),accent,14)
 	_line(round.feedback,Vector2(32,391),accent,17)
 	_line("ARROWS / D-PAD MOVE AND COLLECT",Vector2(32,428),Color.WHITE,16)
 	_line("ESC / B ABANDON",Vector2(570,428),Color("a0b0ba"),16)
@@ -400,6 +413,7 @@ func _draw_season(accent: Color) -> void:
 		draw_rect(bounds,Color("35463e") if done else Color("26343e"))
 		draw_rect(bounds,accent if next else Color("53606b"),false,3.0 if next else 1.0)
 		_line(SeasonRound.COMMANDS[round.chain[i]],at+Vector2(14,44),Color("69d8c2") if done else Color.WHITE,22)
+	_line("PERFECT SEASONS %d / ERRORS %d" % [round.perfect_seasons,round.command_errors],Vector2(32,346),accent,15)
 	_line(round.feedback,Vector2(32,391),accent,17)
 	_line("ARROWS / D-PAD + ENTER / A MATCH COMMANDS",Vector2(32,428),Color.WHITE,16)
 	_line("ESC / B ABANDON",Vector2(570,428),Color("a0b0ba"),16)
@@ -421,7 +435,9 @@ func _draw_classic(accent: Color) -> void:
 		for shot in round.enemy_shots:
 			draw_circle(origin+shot,3.0,Color("f1cd82"))
 		var ship := origin+Vector2(round.player_x,ClassicRound.SHIP_Y)
-		draw_colored_polygon(PackedVector2Array([ship+Vector2(-13,8),ship+Vector2(0,-11),ship+Vector2(13,8),ship+Vector2(0,3)]),accent)
+		if round.respawn_ticks==0 or round.respawn_ticks%6<3:
+			draw_colored_polygon(PackedVector2Array([ship+Vector2(-13,8),ship+Vector2(0,-11),ship+Vector2(13,8),ship+Vector2(0,3)]),accent)
+		_line("HITS %d" % round.alien_hits,Vector2(610,146),accent,14)
 	else:
 		for brick in round.bricks:
 			var bounds: Rect2 = brick
@@ -429,6 +445,7 @@ func _draw_classic(accent: Color) -> void:
 			draw_rect(Rect2(origin+bounds.position,bounds.size),tint)
 		draw_rect(Rect2(origin+Vector2(round.player_x-ClassicRound.PADDLE_HALF,ClassicRound.SHIP_Y),Vector2(ClassicRound.PADDLE_HALF*2,7)),accent)
 		draw_circle(origin+round.ball,ClassicRound.BALL_RADIUS,Color.WHITE)
+		_line("CHAIN %d" % round.brick_chain,Vector2(610,146),accent,14)
 		if not round.launched:
 			_line("ENTER / A LAUNCH",Vector2(310,310),accent,18)
 	_line("HOLD LEFT / RIGHT   ENTER / A FIRE OR LAUNCH",Vector2(32,428),Color.WHITE,16)
