@@ -1,6 +1,12 @@
 extends RefCounted
 ## Recreational music state. All funds still belong to the existing wallet.
 const PRICE = 85
+const GEAR_IDS = ["acoustic_guitar","punk_bass","portable_synth"]
+const GEAR = {
+	"acoustic_guitar":{"name":"Copper Strings used acoustic","price":85,"style":"Warm fingerpicked street folk"},
+	"punk_bass":{"name":"Coilback plum bass","price":165,"style":"Low-end post-punk groove"},
+	"portable_synth":{"name":"Switchboard portable synth","price":230,"style":"Analog underground electronics"}
+}
 const SHOP = "copper_cup"
 const SPOTS = ["copper_cup","lantern_cup","dock_nine","blue_hour"]
 const MEMBERS = {
@@ -20,6 +26,8 @@ const SET_SECONDS = 24.0
 const GIG_SECONDS = 40.0
 const MAX_SETS = 100000
 var owned := false
+var gear: Array[String] = []
+var equipped := ""
 var completed_sets := 0
 var elapsed := 0.0
 var mode := ""
@@ -29,10 +37,27 @@ var rehearsals := 0
 var encores := 0
 
 func buy(wallet: RefCounted) -> bool:
-	if owned or not wallet.call("spend",PRICE):
+	return buy_gear("acoustic_guitar",wallet)
+
+func buy_gear(id: String, wallet: RefCounted) -> bool:
+	if not mode.is_empty() or not GEAR.has(id) or gear.has(id) or not wallet.call("spend",int(GEAR[id]["price"])):
 		return false
+	gear.append(id)
 	owned = true
+	equipped = id
 	return true
+
+func equip(id: String) -> bool:
+	if not mode.is_empty() or not gear.has(id):
+		return false
+	equipped = id
+	return true
+
+func gear_context() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for id in GEAR_IDS:
+		result.append({"id":id,"name":GEAR[id]["name"],"style":GEAR[id]["style"],"price":GEAR[id]["price"],"owned":gear.has(id),"equipped":equipped==id})
+	return result
 
 func can_gig(wallet: RefCounted) -> bool:
 	return owned and completed_sets >= 3 and not wallet.call("has_receipt",GIG_RECEIPT)
@@ -53,7 +78,7 @@ func can_encore(wallet: RefCounted) -> bool:
 	return owned and band_ready() and wallet.call("has_receipt",BAND_RECEIPT) and int(StreetCred.scores(wallet,self)["music"])>=50
 
 func start(kind: String, wallet: RefCounted) -> bool:
-	if not owned or not mode.is_empty() or cooldown > 0.0 or kind not in ["busk","gig","rehearse","band","encore"]:
+	if not owned or not gear.has(equipped) or not mode.is_empty() or cooldown > 0.0 or kind not in ["busk","gig","rehearse","band","encore"]:
 		return false
 	if kind == "gig" and not can_gig(wallet):
 		return false
@@ -98,11 +123,23 @@ func tick(delta: float, wallet: RefCounted) -> Dictionary:
 	return {"paid":paid,"amount":amount if paid else 0,"kind":kind}
 
 func snapshot() -> Dictionary:
-	return {"owned":owned,"sets":completed_sets,"members":members.duplicate(),"rehearsals":rehearsals,"encores":encores}
+	return {"owned":owned,"sets":completed_sets,"members":members.duplicate(),"rehearsals":rehearsals,"encores":encores,"gear":gear.duplicate(),"equipped":equipped}
 
 static func valid_snapshot(data: Variant) -> bool:
 	if not data is Dictionary or not data.get("owned") is bool:
 		return false
+	if data.has("gear") or data.has("equipped"):
+		var items: Variant = data.get("gear")
+		var selected: Variant = data.get("equipped")
+		if not items is Array or not selected is String or items.size()>GEAR_IDS.size() or bool(data["owned"])!=(not items.is_empty()):
+			return false
+		var unique: Array[String] = []
+		for id in items:
+			if not id is String or not GEAR.has(id) or unique.has(id):
+				return false
+			unique.append(id)
+		if (items.is_empty() and selected!="") or (not items.is_empty() and not unique.has(selected)):
+			return false
 	var n: Variant = data.get("sets")
 	if not ((n is int or n is float) and is_finite(float(n)) and floor(float(n))==float(n) and n>=0 and n<=MAX_SETS and (data["owned"] or n==0)):
 		return false
@@ -124,12 +161,20 @@ func restore(data: Variant) -> void:
 	stop()
 	cooldown = 0.0
 	owned = false
+	gear.clear()
+	equipped = ""
 	completed_sets = 0
 	members.clear()
 	rehearsals = 0
 	encores = 0
 	if valid_snapshot(data):
 		owned = data["owned"]
+		if data.has("gear"):
+			gear.assign(data["gear"])
+			equipped = str(data["equipped"])
+		elif owned:
+			gear.append("acoustic_guitar")
+			equipped = "acoustic_guitar"
 		completed_sets = int(data["sets"])
 		members.assign(data.get("members",[]))
 		rehearsals = int(data.get("rehearsals",0))

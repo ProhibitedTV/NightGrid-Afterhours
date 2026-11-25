@@ -78,7 +78,12 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 			rows.append({"label":"No decay","value":"Successful performances, local work and investigations build reputation. No daily obligation."})
 		"music":
 			subtitle = "Morrow Bay music scene"
-			rows.append({"label":"Instrument","value":"Used acoustic guitar" if state.get("music_owned",false) else "Copper Strings · inside Copper Cup · $85"})
+			for item in state.get("music_gear",[]):
+				var row := {"label":item["name"],"value":("Equipped" if item["equipped"] else ("Owned" if item["owned"] else "$%d · Copper Strings" % int(item["price"])))+" / "+str(item["style"])}
+				if item["owned"] and not item["equipped"]:
+					row["action"] = "phone_music_equip:"+str(item["id"])
+					row["action_label"] = "Equip instrument"
+				rows.append(row)
 			actions.append({"label":"Route to Copper Strings","action":"phone_route_music_shop"})
 			rows.append({"label":"Street sets","value":"%d completed / 3 for first booking" % int(state.get("music_sets",0))})
 			rows.append({"label":"Busking spots","value":"Copper Cup, Lantern Cup, Dock Nine and Blue Hour exterior frontages."})

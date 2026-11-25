@@ -231,6 +231,8 @@ func _verify() -> void:
 	actor.global_position = venues.call("venue_position","copper_cup")
 	world.call("_toggle_venue")
 	world.call("_venue_action",3)
+	world.call("_venue_action",3)
+	world.call("_venue_action",3)
 	if not career.owned or world.get("cash") != music_cash-85:
 		_fail("Physical instrument purchase must debit once")
 		return
@@ -373,6 +375,37 @@ func _verify() -> void:
 		_fail("Music cred cap must not bleed into other scenes")
 		return
 	career.completed_sets = before_cap
+	var gear_cash: int = world.get("cash")
+	actor.global_position = venues.call("venue_position","copper_cup")
+	venues.call("set_hour",16.0)
+	world.call("_toggle_venue")
+	world.call("_venue_action",3)
+	world.call("_venue_action",2)
+	world.call("_venue_action",3)
+	world.call("_venue_action",3)
+	if career.equipped!="punk_bass" or world.get("cash")!=gear_cash-165:
+		_fail("Bass purchase must charge and equip once")
+		return
+	world.call("_venue_action",2)
+	world.call("_venue_action",3)
+	world.call("_venue_action",3)
+	if career.equipped!="portable_synth" or world.get("cash")!=gear_cash-395:
+		_fail("Synth purchase must charge and equip once")
+		return
+	world.call("_close_venue")
+	career.restore(career.snapshot())
+	if career.gear.size()!=3 or career.equipped!="portable_synth":
+		_fail("Instrument collection and equipped selection must persist")
+		return
+	world.call("_open_phone",false)
+	menu.call("_choice","phone_app_music")
+	menu.call("_choice","phone_music_equip:punk_bass")
+	menu.call("hide_for_game")
+	if career.equipped!="punk_bass" or not world.call("_start_music","busk","copper_cup") or rig.get("current_pose")!=&"music_bass":
+		_fail("Equipped bass must use its own performance pose")
+		return
+	world.call("_stop_music")
+	venues.call("set_hour",21.0)
 	# The indoor stage uses the existing enter/exit lifecycle.
 	for tick in range(60):
 		world.call("_tick_music",.25)

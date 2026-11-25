@@ -287,14 +287,14 @@ func _build_music_room(room: Node3D, accent: Color, shop: bool) -> void:
 		for index in range(2):
 			var x := 3.15+float(index)*1.40
 			InstrumentArt.place(root,"acoustic_guitar" if index==0 else "punk_bass",Vector3(x,1.65,-8.26))
-			_label(root,"USED ACOUSTIC / $85" if index==0 else "PLUM BASS / DISPLAY",Vector3(x,.84,-8.24),Color("e5ce89"),18,true)
+			_label(root,"USED ACOUSTIC / $85" if index==0 else "PLUM BASS / $165",Vector3(x,.84,-8.24),Color("e5ce89"),18,true)
 		_box(root,Vector3(5.8,.82,-6.72),Vector3(1.45,.14,.82),Color("5a4842"),true,"WOOD")
 		_box(root,Vector3(5.8,.39,-6.72),Vector3(.17,.76,.22),Color("41404a"))
 		InstrumentArt.place(root,"portable_synth",Vector3(5.8,.94,-6.72),Vector3(-90,0,0))
 		InstrumentArt.place(root,"combo_amp",Vector3(6.60,.18,-7.6))
 		InstrumentArt.place(root,"road_case",Vector3(3.25,.09,-7.55))
 		_label(root,"COPPER STRINGS / USED & REPAIRED",Vector3(4.45,3.44,-8.24),Color("e6a8cf"),26,true)
-		_label(root,"ASK AT COUNTER / SYNTH DISPLAY",Vector3(5.8,1.55,-7.15),Color("e5ce89"),17,true)
+		_label(root,"SWITCHBOARD SYNTH / $230",Vector3(5.8,1.55,-7.15),Color("e5ce89"),17,true)
 	else:
 		# Permanent backline behind the play position, no obstruction of the band.
 		InstrumentArt.place(root,"punk_bass",Vector3(-6.35,.53,-8.15),Vector3(0,0,-9))
