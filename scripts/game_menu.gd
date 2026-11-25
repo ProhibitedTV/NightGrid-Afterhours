@@ -30,7 +30,7 @@ const HELP_SECTIONS = [
 		"pad": "RT accelerate · LT reverse · Left stick steer · B brake · D-pad Right radio · D-pad Up next · D-pad Left Cinder view"},
 	{"title": "SHOP / CONTACTS", "keyboard": "G interact/close · 1 buy/use · 2 contract · Esc close",
 		"pad": "X interact/contract · A service · B close · D-pad navigate"},
-	{"title": "SYSTEM", "keyboard": "Esc pause · M map · Tab journal · F5 save · F9 load · F6 new world · F3 FPS · F8 CSV · F10 photo",
+	{"title": "SYSTEM", "keyboard": "Esc pause · M map · Tab journal · F5 save at hotel · F9 load · F6 new world · F3 FPS · F8 CSV · F10 photo",
 		"pad": "Start pause · View/Select map · B back · Save/Load/New in pause menu"}
 ]
 
@@ -38,6 +38,7 @@ var screen := "hidden"
 var _back_screen := "pause"
 var _confirmation_origin := "pause"
 var _has_save := false
+var _save_feedback := ""
 var _world: Node3D
 var _journal_data: Dictionary = {}
 var settings: Dictionary = DEFAULT_SETTINGS.duplicate(true)
@@ -86,6 +87,9 @@ func open_journal(context: Dictionary) -> void:
 func set_has_save(value: bool) -> void:
 	_has_save = value
 
+func set_save_feedback(value: String) -> void:
+	_save_feedback = value
+
 func is_open() -> bool:
 	return visible and screen != "hidden"
 
@@ -96,6 +100,7 @@ func open_opening() -> void:
 	_open("opening")
 
 func open_pause() -> void:
+	_save_feedback = ""
 	_open("pause")
 
 func open_settings() -> void:
@@ -247,7 +252,12 @@ func _render() -> void:
 			_button(col, "opening_accept", "ACCEPT TERMS / START DELIVERING", "opening_accept")
 		"pause":
 			_button(col, "resume", "RESUME GAME", "resume")
-			_button(col, "save", "SAVE WORLD  •  SLOT 1", "save")
+			var save_info: Dictionary = _world.call("save_availability") if is_instance_valid(_world) else {"allowed": false, "reason": "Visit Lantern Court to save."}
+			var can_save := bool(save_info["allowed"])
+			_button(col, "save", "SAVE PROGRESS" if can_save else "SAVE PROGRESS  /  UNAVAILABLE", "save", can_save)
+			_label(col, _save_feedback if not _save_feedback.is_empty() else str(save_info["reason"]), 15, Ui.ACCENT if can_save else Ui.MUTED)
+			if not can_save:
+				_button(col, "save_waypoint", "ROUTE TO LANTERN COURT", "save_waypoint")
 			_button(col, "map", "CITY MAP / DISTRICTS", "map")
 			_button(col, "journal", "JOURNAL / OBJECTIVES", "journal")
 			_button(col, "load", "LOAD SAVED WORLD", "load", _has_save)
@@ -522,6 +532,8 @@ func _choice(action: String) -> void:
 		"save":
 			action_requested.emit("save")
 			_open("pause")
+		"save_waypoint":
+			action_requested.emit("save_waypoint")
 		"title":
 			open_title()
 		"quit":
