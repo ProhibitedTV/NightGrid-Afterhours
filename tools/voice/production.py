@@ -13,6 +13,7 @@ import subprocess
 import tempfile
 
 import studio
+import qc
 
 BASE = "Qwen/Qwen3-TTS-12Hz-1.7B-Base"
 CAST = studio.ROOT / "dist/voice-cast"
@@ -107,9 +108,12 @@ def verify_take(folder, spec, cast, approved=False, published=False):
     if record["sha256"] != studio.digest(wav) or record["stats"] != stats or stats["peak"] > 23200:
         raise ValueError("Invalid production PCM")
     if approved:
+        report = qc.verify_report(folder, spec)
         review = load(folder / "review.json")
         if (review["take_sha256"] != record["sha256"]
                 or review["record_sha256"] != studio.digest(folder / "take.json")
+                or review.get("qc_sha256") != studio.digest(folder / "qc.json")
+                or (report["metrics"]["flags"] and not str(review.get("qc_override","")).strip())
                 or not review["reviewer"].strip() or not review["notes"].strip()
                 or review["license_and_reference_checked"] is not True):
             raise ValueError("Review missing or stale")
@@ -120,7 +124,7 @@ def publish(folder, dest, spec, cast):
     verify_take(folder, spec, cast, approved=True)
 
     def write(stage):
-        for name in ("take.wav", "take.json", "review.json"):
+        for name in ("take.wav", "take.json", "qc.json", "review.json"):
             shutil.copyfile(folder / name, stage / name)
         verify_take(stage, spec, cast, approved=True, published=True)
 
@@ -216,6 +220,7 @@ def main():
     parser.add_argument("--reviewer")
     parser.add_argument("--notes")
     parser.add_argument("--rights-checked", action="store_true")
+    parser.add_argument("--qc-override", help="Specific listening-based justification for QC flags")
     args = parser.parse_args()
     specs = studio.read_manifest()
     if args.action == "verify-library":
@@ -241,9 +246,14 @@ def main():
     if args.action == "approve":
         if not args.rights_checked or not (args.reviewer or "").strip() or not (args.notes or "").strip():
             parser.error("Require performance listening, rights confirmation and review notes")
+        report = qc.verify_report(folder, spec)
+        if report["metrics"]["flags"] and not (args.qc_override or "").strip():
+            parser.error("QC flagged this take: regenerate or supply a specific listening-based override")
         studio.write_json(folder / "review.json", {"take_sha256": record["sha256"],
                           "record_sha256": studio.digest(folder / "take.json"),
                           "reviewer": args.reviewer, "notes": args.notes,
+                          "qc_sha256": studio.digest(folder / "qc.json"),
+                          "qc_override": args.qc_override or "",
                           "license_and_reference_checked": True})
         verify_take(folder, spec, cast, approved=True)
         print("Approved:", folder)
