@@ -82,10 +82,26 @@ def rig(doc,binary):
     binds=accessor_bytes(doc,binary,skin["inverseBindMatrices"])
     return rows,binds
 
-def variants(spec):
-    axes=[spec["axes"][k] for k in ("top","bottom","shoe")]
-    for combo in itertools.product(*axes):
-        yield "_".join(x["id"] for x in combo),combo
+def variants(spec, collection=None):
+    require(collection is None or collection in spec["collections"],"Unknown collection")
+    if collection is None or collection=="matrix":
+        axes=[spec["axes"][k] for k in ("top","bottom","shoe")]
+        for combo in itertools.product(*axes):
+            yield "_".join(x["id"] for x in combo),combo
+    for entry in spec.get("curated",[]):
+        require(entry["collection"] in spec["collections"] and entry["collection"]!="matrix","Unknown curated collection")
+        if collection is None or entry["collection"]==collection:
+            yield entry["id"],(entry,)
+
+def candidate_rows(spec, collection=None):
+    all_rows=list(variants(spec))
+    ids=[ident for ident,_ in all_rows]
+    require(len(ids)==len(set(ids)),"Duplicate candidate ID")
+    require(all(re.fullmatch(r"[a-z0-9_]+",ident) for ident in ids),"Unsafe candidate ID")
+    require(0<len(ids)<=spec["limits"]["max_variants"],"Matrix budget exceeded")
+    for group in spec["collections"]:
+        require(0<len(list(variants(spec,group)))<=spec["limits"]["max_collection_variants"],"Collection budget exceeded")
+    return dict(variants(spec,collection))
 
 def profile(spec,combo):
     result=json.loads((ROOT/spec["base"]).read_text())
@@ -132,12 +148,12 @@ def main():
     parser.add_argument("action",choices=["list","prepare","build","verify"])
     parser.add_argument("--out",type=Path,default=ROOT/"dist/wardrobe-candidates")
     parser.add_argument("--id",action="append",default=[])
+    parser.add_argument("--collection",default=None,help="Build or list only one named collection")
     args=parser.parse_args()
     spec=json.loads(SPEC.read_text())
-    rows=dict(variants(spec))
-    require(len(rows)<=spec["limits"]["max_variants"],"Matrix budget exceeded")
+    rows=candidate_rows(spec,args.collection)
     require(set(args.id)<=set(rows),"Unknown candidate")
-    selected=args.id or list(rows)
+    selected=list(dict.fromkeys(args.id)) or list(rows)
     if args.action=="list":
         print("\n".join(selected));return
     reference=glb(BASE) if args.action in ("build","verify") else None
@@ -153,8 +169,10 @@ def main():
         if args.action=="build":
             subprocess.run(["npx","--yes",spec["source"],"export","--params",str(params),"--out",str(folder),"--animations","idle"],check=True)
         if args.action in ("build","verify"):
+            require(json.loads(params.read_text())==profile(spec,combo),"Candidate profile differs from selected configuration")
             result=validate(candidate,reference,combo,spec["limits"])
-            result.update(id=ident,source=spec["source"],source_revision=spec["source_revision"],
+            group=combo[0].get("collection","matrix")
+            result.update(id=ident,collection=group,retailers=spec["collections"][group]["retailers"],source=spec["source"],source_revision=spec["source_revision"],
                           base_sha256=hashlib.sha256(reference[1]).hexdigest(),
                           profile_sha256=hashlib.sha256(params.read_bytes()).hexdigest())
             (folder/"candidate.json").write_text(json.dumps(result,indent=2)+"\n")

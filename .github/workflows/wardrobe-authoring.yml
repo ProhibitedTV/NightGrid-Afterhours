@@ -17,6 +17,10 @@ jobs:
   candidates:
     runs-on: ubuntu-22.04
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        collection: [matrix, tailored, technical]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -29,7 +33,7 @@ jobs:
         run: python -m unittest discover -s tools/wardrobe -p 'test_*.py'
       - name: Generate and validate fitted combinations offline
         run: |
-          python tools/wardrobe/author.py build --out assets/models/nightgrid/wardrobe_candidates
+          python tools/wardrobe/author.py build --collection ${{ matrix.collection }} --out assets/models/nightgrid/wardrobe_candidates
       - uses: chickensoft-games/setup-godot@v2
         with:
           version: 4.7.2
@@ -40,14 +44,15 @@ jobs:
           godot --headless --path . --import --quit 2>&1 | tee /tmp/wardrobe-import.log
           ! grep -q 'SCRIPT ERROR:' /tmp/wardrobe-import.log
           export NIGHTGRID_WARDROBE_CANDIDATES="$(find assets/models/nightgrid/wardrobe_candidates -name Morrow_Courier.glb | sort | sed 's|^|res://|' | paste -sd, -)"
-          test "$(find assets/models/nightgrid/wardrobe_candidates -name Morrow_Courier.glb | wc -l)" = 8
+          expected="$(python tools/wardrobe/author.py list --collection ${{ matrix.collection }} | wc -l)"
+          test "$(find assets/models/nightgrid/wardrobe_candidates -name Morrow_Courier.glb | wc -l)" = "$expected"
           godot --headless --path . --script res://tests/wardrobe_geometry_smoke.gd 2>&1 | tee /tmp/wardrobe-smoke.log
           ! grep -q 'SCRIPT ERROR:' /tmp/wardrobe-smoke.log
           grep -q 'WARDROBE_GEOMETRY PASS:' /tmp/wardrobe-smoke.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: threadline-review-candidates
+          name: threadline-review-candidates-${{ matrix.collection }}
           path: |
             assets/models/nightgrid/wardrobe_candidates/**/appearance.json
             assets/models/nightgrid/wardrobe_candidates/**/Morrow_Courier.glb

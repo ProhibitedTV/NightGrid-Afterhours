@@ -1,7 +1,9 @@
 """Small structural fixtures; these are never game assets."""
 import struct
+import copy
+import json
 import unittest
-from author import validate_weights
+from author import validate_weights, candidate_rows, profile, SPEC
 
 def fixture(joints=(0,1,2,3), weights=(0.25,0.25,0.25,0.25), integer=False):
     jb=struct.pack("<4B",*joints)
@@ -48,6 +50,41 @@ class WeightValidation(unittest.TestCase):
         doc["accessors"][1]["normalized"]=False
         with self.assertRaisesRegex(ValueError,"Integer weights"):
             validate_weights(doc,raw,attrs,4)
+
+class CollectionValidation(unittest.TestCase):
+    def setUp(self):
+        self.spec=json.loads(SPEC.read_text())
+
+    def test_collections_and_stable_ids(self):
+        self.assertEqual(len(candidate_rows(self.spec)),12)
+        self.assertEqual(len(candidate_rows(self.spec,"matrix")),8)
+        self.assertIn("tee_denim_trainer",candidate_rows(self.spec,"matrix"))
+        self.assertEqual(len(candidate_rows(self.spec,"tailored")),2)
+        self.assertEqual(len(candidate_rows(self.spec,"technical")),2)
+
+    def test_curated_profiles_keep_identity(self):
+        rows=candidate_rows(self.spec,"tailored")
+        p=profile(self.spec,rows["vesper_meridian_suit"])["params"]
+        q=profile(self.spec,rows["obscura_monolith_suit"])["params"]
+        self.assertEqual(p["seed"],q["seed"])
+        self.assertEqual(p["rig"],q["rig"])
+        self.assertEqual(p["outfit"],"set_suit_tie")
+        self.assertEqual(p["shoes"],"oxfords")
+        self.assertEqual(p["carry"],"none")
+        self.assertNotEqual(p["garmentStyles"],q["garmentStyles"])
+
+    def test_duplicate_and_unsafe_ids(self):
+        for bad_id in ["tee_denim_trainer","../invalid"]:
+            bad=copy.deepcopy(self.spec)
+            bad["curated"][0]["id"]=bad_id
+            with self.assertRaises(ValueError):
+                candidate_rows(bad)
+
+    def test_collection_budget(self):
+        bad=copy.deepcopy(self.spec)
+        bad["limits"]["max_collection_variants"]=1
+        with self.assertRaisesRegex(ValueError,"Collection budget"):
+            candidate_rows(bad)
 
 if __name__=="__main__":
     unittest.main()

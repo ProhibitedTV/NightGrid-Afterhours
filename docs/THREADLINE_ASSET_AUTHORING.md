@@ -27,3 +27,9 @@ godot --path . --script res://tools/wardrobe/review_station.gd -- res://assets/m
 ```
 
 Provide additional candidate paths after `--` to cycle them with N/P. Arrow keys orbit and change the six live animation clips, B compares the original courier, +/- zooms, F10 records a genuine viewport PNG with pose and candidate ID. This isolated development scene never writes saves or installs gameplay garments. It rejects incompatible imported skin bind names, indices and poses, and the automated candidate smoke now checks actual pose existence and samples four phases per clip. Native visual review is still required; the screenshots are evidence only when actually captured. Do not publish candidate GLBs or list them for sale based solely on this harness.
+
+## District garment collection expansion
+
+The eight stable streetwear candidate IDs remain. Four curated review-only profiles now cover tailoring and technical fashion using existing suit and technical jacket profile keys: Vesper Meridian suit, Obscura Monolith suit, Quay Forge utility and Nocturne Afterimage utility. The first pair share the suit/tie/oxford silhouette; the second pair use technical jackets, cargo trousers and either combat boots or sneakers. The manifest associates collections with intended retailers, not runtime entitlements.
+
+`python tools/wardrobe/author.py list --collection tailored` lists the tailored candidates. Use `prepare`, `build` or `verify` with the same collection flag. CI shards the three collections (8 / 2 / 2) independently and produces separate artifacts. Verification rejects mismatched profiles, duplicate or unsafe IDs and exceeded budgets. No GLB output or successful native import is claimed by this change.
