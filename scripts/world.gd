@@ -1032,6 +1032,19 @@ func _update_camera(delta: float, teleport: bool = false) -> void:
 func _snap_camera() -> void:
 	_update_camera(0.0, true)
 
+# Same reachability rule for the actual action and reduced-HUD prompt.
+func _nearby_drivable_car() -> CharacterBody3D:
+	var nearest: CharacterBody3D
+	var nearest_distance := 5.0
+	for car in cars:
+		if not is_instance_valid(car):
+			continue
+		var dist := player.global_position.distance_to(car.global_position)
+		if dist < nearest_distance:
+			nearest = car
+			nearest_distance = dist
+	return nearest
+
 func _toggle_car() -> void:
 	if venue_panel != null and venue_panel.visible:
 		_close_venue()
@@ -1076,15 +1089,7 @@ func _toggle_car() -> void:
 		frame_time_recorder.mark_vehicle_stage(exit_trace,"log_hud")
 		frame_time_recorder.finish_vehicle_transition(exit_trace,"ok")
 		return
-	var nearest: CharacterBody3D
-	var nearest_distance := 5.0
-	for car in cars:
-		if not is_instance_valid(car):
-			continue
-		var dist := player.global_position.distance_to(car.global_position)
-		if dist < nearest_distance:
-			nearest = car
-			nearest_distance = dist
+	var nearest := _nearby_drivable_car()
 	if nearest == null:
 		_notify("No vehicle nearby. Stand beside a parked car and press E.")
 		return
@@ -3443,6 +3448,11 @@ func _update_hud() -> void:
 			prompts.append("%s %s building door" % [enter_key,"Close" if leaf.call("is_requested_open") else "Open"])
 		if is_instance_valid(city_details.call("nearby_vending",player.global_position)):
 			prompts.append("%s  Vending machine" % interact_key)
+		if not show_control_hints:
+			if _nearby_drivable_car() != null:
+				prompts.append("Y Enter vehicle" if gamepad_active else "E Enter vehicle")
+			if rail.call("lift_at", player.global_position) != null or bool(rail.call("boardable_from", player.global_position)) or traffic.call("get_boardable_bus", player.global_position) != null:
+				prompts.append("RB Board transit" if gamepad_active else "F Board transit")
 		if prompts.is_empty() and show_control_hints:
 			prompts.append("Y Vehicle  •  RB Transit  •  X Interact" if gamepad_active else "E Vehicle  •  F Transit  •  G Interact")
 	if _can_use_weapon() and (show_control_hints or weapons.equipped != "holstered"):
