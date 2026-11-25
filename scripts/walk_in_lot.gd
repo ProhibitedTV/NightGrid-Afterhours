@@ -273,6 +273,7 @@ func _dress_retail_feature(id:String,theme:Dictionary,base:Material,wood:Materia
 				card.rotation.y=-PI/2
 				card.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				add_child(card)
+				_shop_label("$%d" % Wardrobe.piece_price(patch_id),Vector3(x-.17,1.84,z-.54+i*.36),.002,-PI/2)
 		"obscura":
 			# Sparse brass display and a single folded signature piece.
 			for edge in [-.68,.68]:

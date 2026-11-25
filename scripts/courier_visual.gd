@@ -139,7 +139,7 @@ func set_look(id:String,slots:Dictionary) -> bool:
 		var surface:int=entry["surface"]
 		var patch:Material=null
 		if not patch_id.is_empty():
-			var key:="%s:%d" % [patch_id,surface]
+			var key:="%s:%d:%d" % [patch_id,mesh.get_instance_id(),surface]
 			if not _patch_materials.has(key):
 				var original:StandardMaterial3D=entry["material"]
 				var variant:=original.duplicate() as StandardMaterial3D

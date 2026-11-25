@@ -516,6 +516,12 @@ func _verify() -> void:
 	world.call("_close_venue")
 	if not check(ledger.owns_piece("patch_deadcarrier") and ledger.clothing_slots.get("patch")=="patch_deadcarrier","collectible patch purchase and equip"):
 		return
+	world.call("_toggle_interaction")
+	world.set("_wardrobe_index",catalog.browse_ids().find("patch_voltage"))
+	world.call("_update_venue_panel")
+	world.call("_close_venue")
+	if not check(visual.get("clothing_slots").get("patch")=="patch_deadcarrier" and not ledger.owns_piece("patch_voltage"),"unbought patch preview restores paid art"):
+		return
 	var retail_save:Dictionary=ledger.snapshot()
 	var invalid_look:Dictionary=retail_save.duplicate(true)
 	invalid_look["saved_looks"]["look_2"]={"outfit":"obscura_sable","slots":{}}

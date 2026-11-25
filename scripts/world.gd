@@ -680,6 +680,19 @@ func _input(event: InputEvent) -> void:
 	if game_menu != null and game_menu.call("is_open"):
 		return
 	if _wardrobe_panel and venue_panel.visible:
+		# Route venue shortcuts before GUI focus can consume controller A.
+		if event is InputEventKey and event.echo:
+			get_viewport().set_input_as_handled()
+			return
+		for index in range(3):
+			if event.is_action_pressed(["service_one","service_two","service_three"][index]):
+				_venue_action(index+1)
+				get_viewport().set_input_as_handled()
+				return
+		if event.is_action_pressed("game_back"):
+			_close_venue()
+			get_viewport().set_input_as_handled()
+			return
 		if event.is_action_pressed("interior_toggle") or event.is_action_pressed("transit_toggle"):
 			_cycle_wardrobe_category(-1 if event.is_action_pressed("interior_toggle") else 1)
 			get_viewport().set_input_as_handled()
@@ -1186,7 +1199,11 @@ func _update_camera(delta: float, teleport: bool = false) -> void:
 		var stick:=GameInput.look_vector()
 		_fitting_rotation=wrapf(_fitting_rotation+stick.x*delta*2.2,-PI,PI)
 		_fitting_zoom=clampf(_fitting_zoom-stick.y*delta*.8,0.0,1.0)
-		visual.rotation.y=PI/2+_fitting_rotation
+		var patch_view:=false
+		if _wardrobe_category!="LOOKS" and _wardrobe_index>=0 and _wardrobe_index<Wardrobe.browse_ids().size():
+			var selected:String=Wardrobe.browse_ids()[_wardrobe_index]
+			patch_view=Wardrobe.reset_slot(selected)=="patch" or (Wardrobe.piece_valid(selected) and Wardrobe.PIECES[selected]["slot"]=="patch")
+		visual.rotation.y=PI/2+_fitting_rotation+(PI if patch_view else 0.0)
 		var focus:=player.global_position+Vector3.UP*lerpf(.03,.58,_fitting_zoom)
 		var offset:=Vector3(2.25,.26,1.05)*lerpf(1.0,.53,_fitting_zoom)
 		camera.global_position=_camera_clearance(focus,focus+offset)
@@ -2946,6 +2963,9 @@ func _cycle_wardrobe_category(direction:int) -> void:
 		return
 	var index:=Wardrobe.CATEGORIES.find(_wardrobe_category)
 	_wardrobe_category=Wardrobe.CATEGORIES[posmod(index+direction,Wardrobe.CATEGORIES.size())]
+	player.get_node("Visual").call("set_look",progression.outfit_id,progression.clothing_slots)
+	_fitting_rotation=0.0
+	_fitting_zoom=0.0
 	_look_save_pending=false
 	_look_index=0
 	var visible_ids:=_wardrobe_visible_ids()
@@ -3024,6 +3044,8 @@ func _step_wardrobe(direction:int) -> void:
 	var index:=visible_ids.find(current)
 	_wardrobe_index=Wardrobe.browse_ids().find(visible_ids[clampi(index+direction,0,visible_ids.size()-1)])
 	_fitting_compare=false
+	_fitting_rotation=0.0
+	_fitting_zoom=0.0
 
 func _clothing_owned(id:String) -> bool:
 	if not Wardrobe.reset_slot(id).is_empty():
@@ -3082,6 +3104,12 @@ func _update_venue_panel() -> void:
 		var price:=int(item["price"])
 		var visible_ids:=_wardrobe_visible_ids()
 		var visible_index:=visible_ids.find(id)
+		if visible_index<0 and _wardrobe_quote_id.is_empty() and not visible_ids.is_empty():
+			id=visible_ids[0]
+			_wardrobe_index=Wardrobe.browse_ids().find(id)
+			item=Wardrobe.listing(id)
+			price=int(item["price"])
+			visible_index=0
 		var preview_ok:=true
 		if _clothing_retail:
 			preview_ok=bool(player.get_node("Visual").call("set_look",progression.outfit_id,progression.clothing_slots)) if _fitting_compare else _preview_clothing(id)
@@ -3113,6 +3141,8 @@ func _update_venue_panel() -> void:
 		venue_job_button.text = "2 / X  •  NEXT"
 		venue_job_button.disabled = visible_index>=visible_ids.size()-1
 		venue_talk_button.text = ("3 / Y  •  REMOVE / RESTORE" if not Wardrobe.reset_slot(id).is_empty() else "3 / Y  •  EQUIP") if owned else "3 / Y  •  REVIEW PURCHASE"
+		if _clothing_retail and Wardrobe.piece_valid(id) and Wardrobe.PIECES[id]["slot"]=="patch":
+			venue_label.text+="\nBACKPACK ART / "+("CURRENT PATCH" if _fitting_compare else "ROTATE TO INSPECT")
 		venue_talk_button.disabled = not preview_ok or _clothing_selected(id) or (not owned and not progression.can_pay(price,"USD") and not progression.can_pay(price,"BTC"))
 		return
 	if _garage_panel:
