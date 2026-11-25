@@ -259,6 +259,8 @@ func _verify() -> void:
 	if paused or menu.call("is_open"):
 		_fail("Resume button did not restore live player controls")
 		return
+	menu.call("update_setting", "show_control_hints", true)
+	menu.call("update_setting", "show_hud_inventory", true)
 	world.call("_update_hud")
 	var status := world.get_node_or_null("HUD/PlayerStatus")
 	var objective: Label = world.get("hud_objective")
@@ -276,17 +278,47 @@ func _verify() -> void:
 		_fail("Gamepad HUD retained stale keyboard instructions")
 		return
 	world.set("gamepad_active", false)
+	menu.call("update_setting", "show_control_hints", false)
+	menu.call("update_setting", "show_hud_inventory", false)
+	world.call("_update_hud")
+	var vitals: Label = world.get("hud_label")
+	if prompt.text.contains("M Map") or vitals.text.contains("snacks") or not objective.visible or not health_bar.visible:
+		_fail("Reduced HUD must keep objectives and vitals without generic reminders or inventory clutter")
+		return
+	var reduced_settings := ConfigFile.new()
+	if reduced_settings.load("user://settings.cfg") != OK or bool(reduced_settings.get_value("player", "show_control_hints", true)) or bool(reduced_settings.get_value("player", "show_hud_inventory", true)):
+		_fail("Reduced HUD preferences must persist")
+		return
 	var b_event := InputEventJoypadButton.new()
 	b_event.pressed = true
 	b_event.button_index = JOY_BUTTON_B
 	# Back must NOT pause while driving: B is the car's handbrake.
 	var parked: Array = world.get("cars")
+	var old_position: Vector3 = player.global_position
+	player.global_position = parked[0].global_position + Vector3(2.0,0.0,0.0)
+	world.call("_update_hud")
+	if not prompt.text.contains("E Enter vehicle"):
+		_fail("Reduced HUD hid a reachable vehicle action")
+		return
+	player.global_position = old_position
 	world.set("current_car", parked[0])
+	world.call("_update_hud")
+	var drive_card: PanelContainer = world.get("hud_drive_card")
+	var speed_label: Label = world.get("hud_drive_speed")
+	if not drive_card.visible or not speed_label.text.ends_with("km/h") or not prompt.text.contains("E Exit vehicle") or (world.get("_weapon_card") as Control).visible:
+		_fail("Driving HUD must show measured speed and exit action in the exclusive lower-right slot")
+		return
 	world.call("_unhandled_input", b_event)
 	if paused or menu.call("is_open"):
 		_fail("Gamepad B incorrectly opens pause instead of braking")
 		return
 	world.set("current_car", null)
+	world.call("_update_hud")
+	if drive_card.visible:
+		_fail("Driving HUD remains visible on foot")
+		return
+	menu.call("update_setting", "show_control_hints", saved_settings["show_control_hints"])
+	menu.call("update_setting", "show_hud_inventory", saved_settings["show_hud_inventory"])
 	# Menu interaction should enable cursor, stop movement, and have three
 	# focusable buttons suitable for both controller and mouse.
 	var venues := world.get_node_or_null("SocialVenues")
