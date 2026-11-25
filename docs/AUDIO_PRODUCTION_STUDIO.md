@@ -117,3 +117,34 @@ python tools/voice/chapter.py require-complete --source scripts/opening_story.gd
 ```
 
 The status inventory distinguishes needs_cast, needs_render, needs_qc, flagged, needs_review, approved and published. It verifies each published asset, reports invalid candidate fingerprints, and never approves or publishes automatically. Cache reuse requires unchanged source, settings, audio and QC provenance. The explicit release command fails on changed mission text, missing clips or failed published verification. The ordinary authoring CI tolerates missing clips while production is underway. The current fixture audition manifest is not the publishable chapter inventory; use the chapter manifest consistently and do not publish fixture-only IDs into the production library. A future integrated release workflow must invoke the strict gate before declaring the chapter voiced. No actual neural clips, gameplay triggering, lip sync, or native proof is supplied by this catalog.
+
+
+## Anubis quick start (WSL2 Ubuntu)
+
+Use a clean worktree/clone of this branch and a dedicated Python environment. GPU driver must support the chosen CUDA PyTorch wheels; verify CUDA before starting. No native Windows or WSL hardware validation has been performed yet.
+
+```bash
+sudo apt-get update
+sudo apt-get install -y python3-venv ffmpeg sox
+python3 -m venv .venv-voice
+source .venv-voice/bin/activate
+python -m pip install --upgrade pip
+# Example CUDA 12.8 wheels; adjust to supported driver/Python per pytorch.org.
+python -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128
+python -m pip install qwen-tts soundfile faster-whisper
+python -c "import torch; print(torch.cuda.is_available()); assert torch.cuda.is_available()"
+python tools/voice/anubis.py setup
+python tools/voice/anubis.py bake --all
+```
+
+Setup resolves and records the exact VoiceDesign, Base and multilingual Whisper model revisions in dist/voice-models.json before downloading them, so rerunning setup resumes those revisions. Back up that file and dist/voice-cast. Reserve space for both Qwen models, Whisper, the environment and candidate WAVs. Bake is offline, first generates two auditions per missing character, prompts to choose and explicitly confirm rights/listening review, then renders selected lines with locked voices and runs CPU QC. Enter to defer a cast; use --non-interactive to create auditions without prompting. Rerun the same command after interruption. Generated audio is in dist/voice-production, not the shipped library. Final take review and publication remain separate commands above. A different --seed makes another take for selected unpublished lines; existing published assets are not overwritten.
+
+```bash
+python tools/voice/anubis.py list
+python tools/voice/anubis.py bake --id synaxis.conference.01
+python tools/voice/anubis.py bake --character lin
+python tools/voice/anubis.py bake --id synaxis.conference.01 --seed 311
+python tools/voice/anubis.py status
+```
+
+Current scope is the 27-line chapter voice catalog. For environmental SFX, the separate corporate branch still owns tools/audio/generate_sfx.py; its model-specific installation and license review remain separate until integration. No claim that this generates the entire future city audio library or runs on Anubis without a first hardware smoke.
