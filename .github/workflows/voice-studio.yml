@@ -27,4 +27,6 @@ jobs:
       - run: python -m unittest discover -s tools/voice -v
       - run: python tools/voice/studio.py list
 
-      - run: python tools/voice/production.py verify-library
+      - run: python tools/voice/chapter.py validate
+      - run: python tools/voice/chapter.py status
+      - run: python tools/voice/production.py verify-library --manifest tools/voice/synaxis_chapter.json
