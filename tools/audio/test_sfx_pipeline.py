@@ -1,0 +1,45 @@
+"""CPU-only tests of the authoring path; no model or GPU dependency."""
+import array
+import math
+import tempfile
+import unittest
+import wave
+from pathlib import Path
+import shutil
+import generate_sfx as sfx
+
+
+class AuthoringTests(unittest.TestCase):
+    def test_manifest(self):
+        import json
+        data = json.loads(sfx.MANIFEST.read_text(encoding="utf-8"))
+        assets = data["assets"]
+        ids = [x["id"] for x in assets]
+        self.assertEqual(len(ids), len(set(ids)))
+        self.assertEqual(len(ids), 36)
+        self.assertTrue(all(x["duration"] > 0 and x["prompt"] for x in assets))
+
+    @unittest.skipUnless(shutil.which("ffmpeg"), "FFmpeg required for conversion")
+    def test_loop_and_oneshot(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "test.wav"
+            samples = array.array("h", (int(2000*math.sin(i*math.tau*110/sfx.RATE)) for i in range(sfx.RATE*2)))
+            with wave.open(str(source), "wb") as wav:
+                wav.setparams((1,2,sfx.RATE,0,"NONE","not compressed"))
+                wav.writeframes(samples.tobytes())
+            for loop in (False, True):
+                dest = root / f"{loop}.wav"
+                sfx.prepare(source, dest, {"duration":2,"loop":loop}, "ffmpeg")
+                data = sfx.read_pcm(dest)
+                self.assertLess(max(abs(x) for x in data), 24000)
+                self.assertEqual(len(data), sfx.RATE*2 - (sfx.RATE//4 if loop else 0))
+                if not loop:
+                    self.assertEqual(data[0],0)
+                    self.assertEqual(data[-1],0)
+                else:
+                    self.assertLess(abs(data[0]-data[-1]),1000)
+
+
+if __name__ == "__main__":
+    unittest.main()

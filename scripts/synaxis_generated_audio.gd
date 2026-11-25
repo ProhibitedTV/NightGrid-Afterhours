@@ -1,6 +1,7 @@
 extends RefCounted
 ## Optional imported authored WAVs. No inference, downloads, or external services in game.
 const ROOT="res://assets/audio/generated/synaxis/"
+const AudioMix=preload("res://scripts/audio_mix.gd")
 
 static func stream(id:String,loop:bool=false) -> AudioStreamWAV:
 	var path:=ROOT+id+".wav"
@@ -22,6 +23,8 @@ static func emitter(parent:Node3D,id:String,at:Vector3,db:float,distance:float,l
 		return null
 	var player:=AudioStreamPlayer3D.new()
 	player.name=id
+	AudioMix.ensure()
+	player.bus=AudioMix.AMBIENCE if loop else AudioMix.ROOM_EFFECTS
 	player.stream=audio
 	player.position=at
 	player.volume_db=db

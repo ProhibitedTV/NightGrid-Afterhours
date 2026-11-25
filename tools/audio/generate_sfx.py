@@ -75,6 +75,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=["list", "generate", "publish", "verify"])
     parser.add_argument("--id", action="append", help="Select one or more IDs; defaults to all")
+    parser.add_argument("--group", choices=["office","city","steps"], help="Select a sound family")
+    parser.add_argument("--skip-existing", action="store_true", help="Resume candidate generation")
     parser.add_argument("--cli", default="stable-audio", help="Path to upstream executable")
     parser.add_argument("--ffmpeg", default="ffmpeg")
     parser.add_argument("--device", choices=["cpu", "cuda"], default="cpu")
@@ -86,6 +88,13 @@ def main():
     if args.id and any(x not in known for x in args.id):
         parser.error("Unknown asset ID")
     selected = [known[x] for x in args.id] if args.id else list(known.values())
+    if args.group:
+        def family(spec):
+            name = spec["id"]
+            return "steps" if name.startswith("step_") else ("city" if name.startswith(("city_", "event_")) or name == "road_roll" else "office")
+        selected = [x for x in selected if family(x) == args.group]
+    if not selected:
+        parser.error("No selected assets")
     if args.action == "publish" and not args.reviewed:
         parser.error("Listen to candidates and confirm model license eligibility with --reviewed")
     for spec in selected:
@@ -98,6 +107,11 @@ def main():
             print(name, spec["duration"], "loop" if spec["loop"] else "one-shot", spec["prompt"])
         elif args.action == "generate":
             if candidate.exists() and not args.replace:
+                if args.skip_existing and metadata.exists():
+                    existing = json.loads(metadata.read_text(encoding="utf-8"))
+                    if existing["spec"] == spec and existing["sha256"] == digest(candidate):
+                        print("Existing candidate:", candidate)
+                        continue
                 raise FileExistsError(f"{candidate}; use --replace")
             with tempfile.TemporaryDirectory() as tmp:
                 raw = Path(tmp) / "raw.wav"

@@ -46,6 +46,216 @@
       "loop": false,
       "seed": 4016,
       "prompt": "Short understated corporate elevator arrival bell, one soft electronic ding, clean isolated sound effect, no voices or music"
+    },
+    {
+      "id": "city_wind",
+      "duration": 20,
+      "loop": true,
+      "seed": 4100,
+      "prompt": "Steady quiet wind moving through urban building canyons, subtle airy turbulence, realistic field recording, no music or intelligible speech"
+    },
+    {
+      "id": "city_traffic",
+      "duration": 20,
+      "loop": true,
+      "seed": 4101,
+      "prompt": "Distant layered urban traffic wash, intermittent passing cars far away, no close horns, realistic field recording, no music or intelligible speech"
+    },
+    {
+      "id": "city_industrial",
+      "duration": 20,
+      "loop": true,
+      "seed": 4102,
+      "prompt": "Distant industrial district machinery, ventilation rumble and faint metallic resonance, realistic field recording, no music or intelligible speech"
+    },
+    {
+      "id": "city_water",
+      "duration": 20,
+      "loop": true,
+      "seed": 4103,
+      "prompt": "Harbor water lapping against a concrete quay, gentle irregular ripples and distant wind, realistic field recording, no music or intelligible speech"
+    },
+    {
+      "id": "road_roll",
+      "duration": 12,
+      "loop": true,
+      "seed": 4104,
+      "prompt": "Steady interior passenger car tire rumble on asphalt, no engine revving, realistic field recording, no music or intelligible speech"
+    },
+    {
+      "id": "event_door",
+      "duration": 2,
+      "loop": false,
+      "seed": 4105,
+      "prompt": "Single close car door shutting, solid latch and brief body resonance, one isolated event near the start, no music or speech"
+    },
+    {
+      "id": "event_transit",
+      "duration": 2,
+      "loop": false,
+      "seed": 4106,
+      "prompt": "Soft public transport arrival chime with a short mechanical click, one isolated event near the start, no music or speech"
+    },
+    {
+      "id": "event_pickup",
+      "duration": 2,
+      "loop": false,
+      "seed": 4107,
+      "prompt": "One cardboard parcel lifted from a hard surface, short rustle, one isolated event near the start, no music or speech"
+    },
+    {
+      "id": "event_delivery",
+      "duration": 2,
+      "loop": false,
+      "seed": 4108,
+      "prompt": "One cardboard parcel set down on a counter, soft thud, one isolated event near the start, no music or speech"
+    },
+    {
+      "id": "event_jump",
+      "duration": 2,
+      "loop": false,
+      "seed": 4109,
+      "prompt": "Short shoe push-off scuff on concrete, one isolated event near the start, no music or speech"
+    },
+    {
+      "id": "event_land",
+      "duration": 2,
+      "loop": false,
+      "seed": 4110,
+      "prompt": "Single heavy two-foot landing on concrete, one isolated event near the start, no music or speech"
+    },
+    {
+      "id": "event_brake",
+      "duration": 3,
+      "loop": false,
+      "seed": 4111,
+      "prompt": "Short tire braking squeak and mechanical deceleration, one isolated event near the start, no music or speech"
+    },
+    {
+      "id": "event_bus_door",
+      "duration": 3,
+      "loop": false,
+      "seed": 4112,
+      "prompt": "Pneumatic city bus door opening with air hiss and mechanical clunk, one isolated event near the start, no music or speech"
+    },
+    {
+      "id": "event_rail_door",
+      "duration": 3,
+      "loop": false,
+      "seed": 4113,
+      "prompt": "Passenger train sliding door moving and latching, short motor whir, one isolated event near the start, no music or speech"
+    },
+    {
+      "id": "step_stone_1",
+      "duration": 2,
+      "loop": false,
+      "seed": 4114,
+      "prompt": "Single isolated adult shoe footstep on concrete sidewalk, one short natural heel-to-toe contact and decay, close foley, no walking sequence, no speech or music"
+    },
+    {
+      "id": "step_stone_2",
+      "duration": 2,
+      "loop": false,
+      "seed": 4115,
+      "prompt": "Single isolated adult shoe footstep on concrete sidewalk, one short natural heel-to-toe contact and decay, close foley, no walking sequence, no speech or music"
+    },
+    {
+      "id": "step_stone_3",
+      "duration": 2,
+      "loop": false,
+      "seed": 4116,
+      "prompt": "Single isolated adult shoe footstep on concrete sidewalk, one short natural heel-to-toe contact and decay, close foley, no walking sequence, no speech or music"
+    },
+    {
+      "id": "step_stone_4",
+      "duration": 2,
+      "loop": false,
+      "seed": 4117,
+      "prompt": "Single isolated adult shoe footstep on concrete sidewalk, one short natural heel-to-toe contact and decay, close foley, no walking sequence, no speech or music"
+    },
+    {
+      "id": "step_tile_1",
+      "duration": 2,
+      "loop": false,
+      "seed": 4118,
+      "prompt": "Single isolated adult shoe footstep on hard interior floor tile, one short natural heel-to-toe contact and decay, close foley, no walking sequence, no speech or music"
+    },
+    {
+      "id": "step_tile_2",
+      "duration": 2,
+      "loop": false,
+      "seed": 4119,
+      "prompt": "Single isolated adult shoe footstep on hard interior floor tile, one short natural heel-to-toe contact and decay, close foley, no walking sequence, no speech or music"
+    },
+    {
+      "id": "step_tile_3",
+      "duration": 2,
+      "loop": false,
+      "seed": 4120,
+      "prompt": "Single isolated adult shoe footstep on hard interior floor tile, one short natural heel-to-toe contact and decay, close foley, no walking sequence, no speech or music"
+    },
+    {
+      "id": "step_tile_4",
+      "duration": 2,
+      "loop": false,
+      "seed": 4121,
+      "prompt": "Single isolated adult shoe footstep on hard interior floor tile, one short natural heel-to-toe contact and decay, close foley, no walking sequence, no speech or music"
+    },
+    {
+      "id": "step_asphalt_1",
+      "duration": 2,
+      "loop": false,
+      "seed": 4122,
+      "prompt": "Single isolated adult shoe footstep on asphalt roadway, one short natural heel-to-toe contact and decay, close foley, no walking sequence, no speech or music"
+    },
+    {
+      "id": "step_asphalt_2",
+      "duration": 2,
+      "loop": false,
+      "seed": 4123,
+      "prompt": "Single isolated adult shoe footstep on asphalt roadway, one short natural heel-to-toe contact and decay, close foley, no walking sequence, no speech or music"
+    },
+    {
+      "id": "step_asphalt_3",
+      "duration": 2,
+      "loop": false,
+      "seed": 4124,
+      "prompt": "Single isolated adult shoe footstep on asphalt roadway, one short natural heel-to-toe contact and decay, close foley, no walking sequence, no speech or music"
+    },
+    {
+      "id": "step_asphalt_4",
+      "duration": 2,
+      "loop": false,
+      "seed": 4125,
+      "prompt": "Single isolated adult shoe footstep on asphalt roadway, one short natural heel-to-toe contact and decay, close foley, no walking sequence, no speech or music"
+    },
+    {
+      "id": "step_gravel_1",
+      "duration": 2,
+      "loop": false,
+      "seed": 4126,
+      "prompt": "Single isolated adult shoe footstep on loose gravel, one short natural heel-to-toe contact and decay, close foley, no walking sequence, no speech or music"
+    },
+    {
+      "id": "step_gravel_2",
+      "duration": 2,
+      "loop": false,
+      "seed": 4127,
+      "prompt": "Single isolated adult shoe footstep on loose gravel, one short natural heel-to-toe contact and decay, close foley, no walking sequence, no speech or music"
+    },
+    {
+      "id": "step_gravel_3",
+      "duration": 2,
+      "loop": false,
+      "seed": 4128,
+      "prompt": "Single isolated adult shoe footstep on loose gravel, one short natural heel-to-toe contact and decay, close foley, no walking sequence, no speech or music"
+    },
+    {
+      "id": "step_gravel_4",
+      "duration": 2,
+      "loop": false,
+      "seed": 4129,
+      "prompt": "Single isolated adult shoe footstep on loose gravel, one short natural heel-to-toe contact and decay, close foley, no walking sequence, no speech or music"
     }
   ]
 }

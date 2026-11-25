@@ -111,6 +111,7 @@ func _build_hum() -> void:
 	audio.data=pcm
 	_hum=AudioStreamPlayer3D.new()
 	_hum.name="ServerRoomHum"
+	_hum.bus=GeneratedSFX.AudioMix.AMBIENCE
 	_hum.stream=audio
 	_hum.volume_db=-23.0
 	_hum.max_distance=18.0
