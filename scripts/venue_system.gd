@@ -474,7 +474,7 @@ func _refresh() -> void:
 		else:
 			lamp.light_energy = 0.0
 
-static func job_unlocked(job:Dictionary,cred:int)->bool:
+func job_unlocked(job:Dictionary,cred:int)->bool:
 	return not job.is_empty() and cred>=int(job.get("min_cred",0))
 
 static func _job_details(job:Dictionary)->Dictionary:

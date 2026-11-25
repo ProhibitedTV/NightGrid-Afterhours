@@ -198,6 +198,10 @@ func _verify() -> void:
 	if int(world.get("cash")) != 264 or not str(world.get("venue_job_active")).is_empty():
 		_fail("Pre-ledger completed job replay changed wallet or remained active")
 		return
+	var music_job:Dictionary=venues.call("job_by_id","soundcheck_pass")
+	if venues.call("job_unlocked",music_job,99) or not venues.call("job_unlocked",music_job,100):
+		_fail("Exact music reputation threshold")
+		return
 	# A direct button/action call cannot bypass the reputation gate.
 	world.call("_close_venue")
 	world.set("venue_job_active","")
