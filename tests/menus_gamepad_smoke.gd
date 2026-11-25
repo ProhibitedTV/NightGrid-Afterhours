@@ -504,9 +504,24 @@ func _verify() -> void:
 		if int(office.get("_active_floor"))!=level or absf(office.to_local(player.global_position).y-(level*3.65+1.15))>.01:
 			_fail("Lift travels to actual upper floor elevations")
 			return
+	var ambient_count:=0
+	for index in range(1,5):
+		var floor_people:Node3D=office.get_node("Workfloor%d/DepartmentStaff" % index)
+		var people_stats:Dictionary=floor_people.call("stats")
+		ambient_count+=int(people_stats["people"])
+		if int(people_stats["animated"])!=0 or int(people_stats["seated"])!=6:
+			_fail("Off-floor office NPCs must be paused and have authored seat anchors")
+			return
+	if ambient_count!=32:
+		_fail("Four departments have 32 additional background employees")
+		return
 	var engineering_deck:Node3D=office.get_node("Workfloor1")
 	var robotics_lab:Node3D=engineering_deck.get_node("RoboticsLab")
 	engineering_deck.call("set_occupied",true)
+	var engineering_people:Node3D=engineering_deck.get_node("DepartmentStaff")
+	if int(engineering_people.call("stats")["animated"])!=8 or not str(engineering_deck.call("observe_worker",engineering_deck.to_global(Vector3(-5.3,1.15,5.65)))).contains("Faye"):
+		_fail("Occupied floor animates staff and provides incidental coworker conversation")
+		return
 	var lab_stats:Dictionary=robotics_lab.call("lab_stats")
 	if int(lab_stats["prototypes"])!=2 or int(lab_stats["barriers"])!=4 or not bool(lab_stats["active"]):
 		_fail("Robotics lab has two articulated display prototypes and a closed collision bay")

@@ -4,6 +4,7 @@ extends Node3D
 const Rage=preload("res://scripts/synaxis_keyboard_rage.gd")
 const Eggs=preload("res://scripts/synaxis_office_easter_eggs.gd")
 const Robotics=preload("res://scripts/synaxis_robotics_lab.gd")
+const FloorStaff=preload("res://scripts/synaxis_workfloor_staff.gd")
 const FLOOR_COUNT=4
 const FLOOR_HEIGHT=3.65
 const LIFT=Vector2(0,5.0)
@@ -33,6 +34,7 @@ var _lights: Array[OmniLight3D]=[]
 var _rage:Node3D
 var _eggs:Node3D
 var _robotics:Node3D
+var _people:Node3D
 
 static func desk_positions() -> Array[Vector2]:
 	var result: Array[Vector2]=[]
@@ -65,7 +67,12 @@ func _ready() -> void:
 				_solid(Vector3(x,.95,mid),Vector3(.06,.86,1.72))
 	_shared_area(accent)
 	_architecture(accent)
+	_noticeboard(accent)
 	_flush()
+	_people=FloorStaff.new()
+	_people.name="DepartmentStaff"
+	_people.level=level
+	add_child(_people)
 	if level==1:
 		_robotics=Robotics.new()
 		_robotics.name="RoboticsLab"
@@ -94,6 +101,8 @@ func set_occupied(active: bool) -> void:
 		_eggs.call("set_active",active)
 	if is_instance_valid(_robotics):
 		_robotics.call("set_active",active)
+	if is_instance_valid(_people):
+		_people.call("set_active",active)
 
 func _material(key: String) -> StandardMaterial3D:
 	if not _materials.has(key):
@@ -184,6 +193,24 @@ func _station(at: Vector3,face: float,row: int,col: int,accent: String) -> void:
 	if (row*7+col+level)%5==0:
 		_plant(at+Vector3(-.71,.85,-face*.23),.18)
 	_chair(at+Vector3(0,0,face*.85),-face)
+	# Varied desk clutter, kept within the existing desktop.
+	var variant: int=(level*7+row*11+col*3)%6
+	if variant==0:
+		_part("black",at+Vector3(.42,.89,-face*.22),Vector3(.14,.09,.20))
+		_part("steel",at+Vector3(.42,.94,-face*.22),Vector3(.12,.012,.17))
+	elif variant==1:
+		for book in range(3):
+			_part(accent if book==1 else "paper",at+Vector3(-.64,.87+book*.026,-face*.18),Vector3(.21,.023,.22))
+	elif variant==2:
+		_part(accent,at+Vector3(.53,.96,-face*.22),Vector3(.10,.22,.10),0.0,"cyl")
+		_part("black",at+Vector3(.53,1.075,-face*.22),Vector3(.105,.02,.105),0.0,"cyl")
+	elif variant==3:
+		_part("white",at+Vector3(.42,.875,face*.20),Vector3(.16,.045,.09))
+		_part("black",at+Vector3(.42,.90,face*.20),Vector3(.13,.009,.065))
+	elif variant==4:
+		_part("black",at+Vector3(-.68,.94,-face*.18),Vector3(.09,.16,.09),0.0,"cyl")
+		for pen in range(3):
+			_part("steel",at+Vector3(-.70+pen*.022,1.045,-face*.18),Vector3(.009,.13,.009))
 	# Small personal items make desk banks less uniform.
 	if (row+col)%4==0:
 		_part(accent,at+Vector3(.40,.91,-face*.21),Vector3(.15,.13,.045))
@@ -271,11 +298,38 @@ func _label(value: String,at: Vector3,pixel: float,yaw: float=0.0) -> void:
 func observe_worker(at:Vector3) -> String:
 	if is_instance_valid(_rage):
 		_rage.call("observe",at)
+	var ambient:String=str(_people.call("observe",at)) if is_instance_valid(_people) else ""
 	if is_instance_valid(_eggs):
-		return str(_eggs.call("observe",at))
+		var egg_line:String=_eggs.call("observe",at)
+		if not egg_line.is_empty():
+			return egg_line
 	if is_instance_valid(_robotics):
-		return str(_robotics.call("observe",at))
-	return ""
+		var robot_line:String=_robotics.call("observe",at)
+		if not robot_line.is_empty():
+			return robot_line
+	return ambient
+
+func _noticeboard(accent:String) -> void:
+	_part("oak_edge",Vector3(-8.24,1.94,6.8),Vector3(.085,1.38,2.75))
+	_part("white",Vector3(-8.18,1.94,6.8),Vector3(.025,1.30,2.65))
+	_part(accent,Vector3(-8.158,2.44,6.8),Vector3(.012,.19,2.53))
+	_label("TEAM DELIVERY BOARD",Vector3(-8.145,2.44,6.8),.0027,PI/2)
+	for col in range(3):
+		var z:float=5.98+col*.81
+		_part("steel",Vector3(-8.154,1.9,z+.39),Vector3(.012,.77,.012))
+		for note in range(2+col%2):
+			_part("paper" if note%2==0 else accent,Vector3(-8.14,2.15-note*.22,z),Vector3(.014,.15,.22))
+			_part("steel",Vector3(-8.129,2.15-note*.22,z),Vector3(.006,.009,.15))
+	_label("BACKLOG",Vector3(-8.12,2.25,6.0),.0016,PI/2)
+	_label("IN PROGRESS",Vector3(-8.12,2.25,6.8),.0016,PI/2)
+	_label("BLOCKED",Vector3(-8.12,2.25,7.62),.0016,PI/2)
+	_label("ALL HANDS / THURSDAY / ATTENDANCE REQUIRED",Vector3(-8.20,1.10,6.8),.002,PI/2)
+	_part("white",Vector3(-4.7,2.00,9.76),Vector3(2.65,1.0,.05))
+	_part("steel",Vector3(-4.7,1.48,9.69),Vector3(2.65,.045,.16))
+	_label("THIS WEEK: ALIGN ON THE ALIGNMENT",Vector3(-4.7,2.29,9.72),.0024,PI)
+	_label("OWNER?      DUE DATE?      FOLLOW UP?",Vector3(-4.7,1.98,9.72),.0020,PI)
+	for marker in range(3):
+		_part(accent if marker==1 else "black",Vector3(-5.6+marker*.22,1.52,9.66),Vector3(.15,.018,.018))
 
 func _architecture(accent: String) -> void:
 	# Light oak wall panels, accent bands, acoustic ceiling and corporate banners.

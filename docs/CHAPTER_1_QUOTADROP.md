@@ -86,3 +86,6 @@ Business Operations has Arthur Bell, a possessive procurement clerk with a small
 
 ### AI and robotics engineering
 Level 2 retains 28 desks but replaces its east collaboration lounge with a sealed transparent robotics showcase. CARETAKER-03 and HARMONY-08 are original articulated noncombat demonstration props with animated head gimbals, shoulders and status strips; no real weapon or targeting systems. Four physical glass barriers prevent entry. Robotics validation engineer Imani Reed provides optional satirical remarks. The deck features a fictional workforce-complementarity display and corporate safety slogans. Animation pauses off-floor. Native asset quality and collision review remain pending.
+
+### Department occupancy and everyday detail
+32 additional named office employees (six seated and two conversation anchors on each workfloor) use existing seats and shared areas. Only the occupied floor shows and animates this background cast. Each department has incidental conversation, varied desk accessories, physical team delivery boards, meeting whiteboards and notice slips. All new furniture details reuse existing material batches. No full navigation or voice audio yet; native visual and performance verification pending.
