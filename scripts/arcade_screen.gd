@@ -18,7 +18,7 @@ var deluxe_lane := 1.0
 var deluxe_pulse := 0.0
 var deluxe_cabinet: Node3D
 const Scores = preload("res://scripts/arcade_scores.gd")
-const CabinetArt = preload("res://scripts/arcade_cabinet.gd")
+const KeyArt = preload("res://scripts/arcade_key_art.gd")
 const Guide = preload("res://scripts/arcade_play_guide.gd")
 const AudioMix = preload("res://scripts/audio_mix.gd")
 const CUES = {
@@ -245,7 +245,7 @@ func _draw() -> void:
 	_line(str(info["title"]), Vector2(32, 89), accent, 30)
 	_line(str(info["studio"]) + "  /  " + str(info["tagline"]), Vector2(32, 117), Color("e0e6e9"), 17)
 	if state == "select":
-		draw_texture_rect(CabinetArt.ART[id],Rect2(32,141,145,180),false)
+		_draw_title_art(id,Rect2(32,141,145,180))
 		_line(str(Guide.TIPS[id][0]), Vector2(195, 163), Color.WHITE, 17)
 		_line(str(Guide.TIPS[id][1]), Vector2(195, 186), accent, 16)
 		_line("NEIGHBORHOOD LEADERBOARD", Vector2(195, 223), accent, 18)
@@ -464,3 +464,10 @@ func _reset_deluxe_controls() -> void:
 
 func _exit_tree() -> void:
 	_reset_deluxe_controls()
+
+func _draw_title_art(id: String, frame: Rect2) -> void:
+	var image := KeyArt.texture(id)
+	if image == null:
+		return
+	var dims := KeyArt.fit(id,frame.size)
+	draw_texture_rect(image,Rect2(frame.get_center()-dims*.5,dims),false)
