@@ -94,7 +94,7 @@ Production publication now requires qc.json and a review tied to its exact bytes
 
 ## Canonical Chapter One production batch
 
-`tools/voice/synaxis_chapter.json` is a production manifest for 27 spoken rows, six original characters, seven scene blocks and both Mandarin utterances with English captions. Its source is the pinned corporate branch revision 6225d774650b116aa92a4945f4b484f1902726cf. Written ticket text, automated notices and nonspoken HR labels are intentionally excluded; the catalog is not yet the full office, guard or city dialogue inventory. The audio branch still has the older prologue script, so the pinned snapshot can be validated here but **live source parity cannot be claimed until integration**.
+`tools/voice/synaxis_chapter.json` is a production manifest for 27 spoken rows, six original characters, seven scene blocks and both Mandarin utterances with English captions. Its source is the pinned corporate branch revision 6225d774650b116aa92a4945f4b484f1902726cf. Written ticket text, automated notices and nonspoken HR labels are intentionally excluded; the catalog is not yet the full office, guard or city dialogue inventory. The integrated corporate prologue now matches these seven source constants. CI checks local source parity; this is not yet full chapter or optional dialogue coverage.
 
 ```sh
 python tools/voice/chapter.py validate
@@ -112,16 +112,16 @@ python tools/voice/production.py generate --manifest tools/voice/synaxis_chapter
 python tools/voice/qc.py --manifest tools/voice/synaxis_chapter.json --id synaxis.conference.01 --take TAKE_HASH_1 --id synaxis.conference_end.04 --take TAKE_HASH_2 --model-dir /path/to/whisper
 # Approve and publish each exact take separately, never automatically.
 python tools/voice/chapter.py status
-# On the integrated branch only:
+# Strict release check, after approved assets exist:
 python tools/voice/chapter.py require-complete --source scripts/opening_story.gd
 ```
 
-The status inventory distinguishes needs_cast, needs_render, needs_qc, flagged, needs_review, approved and published. It verifies each published asset, reports invalid candidate fingerprints, and never approves or publishes automatically. Cache reuse requires unchanged source, settings, audio and QC provenance. The explicit release command fails on changed mission text, missing clips or failed published verification. The ordinary authoring CI tolerates missing clips while production is underway. The current fixture audition manifest is not the publishable chapter inventory; use the chapter manifest consistently and do not publish fixture-only IDs into the production library. A future integrated release workflow must invoke the strict gate before declaring the chapter voiced. No actual neural clips, gameplay triggering, lip sync, or native proof is supplied by this catalog.
+The status inventory distinguishes needs_cast, needs_render, needs_qc, flagged, needs_review, approved and published. It verifies each published asset, reports invalid candidate fingerprints, and never approves or publishes automatically. Cache reuse requires unchanged source, settings, audio and QC provenance. The explicit release command fails on changed mission text, missing clips or failed published verification. The ordinary authoring CI tolerates missing clips while production is underway. The current fixture audition manifest is not the publishable chapter inventory; use the chapter manifest consistently and do not publish fixture-only IDs into the production library. Invoke the strict gate before declaring the chapter voiced; the normal development workflow tolerates missing clips. No actual neural clips, gameplay triggering, lip sync, or native proof is supplied by this catalog.
 
 
 ## Anubis quick start (WSL2 Ubuntu)
 
-Use a clean worktree/clone of this branch and a dedicated Python environment. GPU driver must support the chosen CUDA PyTorch wheels; verify CUDA before starting. No native Windows or WSL hardware validation has been performed yet.
+Use a clean worktree/clone of the integrated repository and a dedicated Python environment. GPU driver must support the chosen CUDA PyTorch wheels; verify CUDA before starting. No native Windows or WSL hardware validation has been performed yet.
 
 ```bash
 sudo apt-get update
