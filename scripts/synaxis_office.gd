@@ -10,6 +10,8 @@ const NAME = "SYNAXIS OMNISYSTEMS"
 var _intro_canvas: CanvasLayer
 var _cast: Node3D
 const LOBBY_CHECKPOINT = Vector3(0,1.15,-9.0)
+const STAFF_EXIT=Vector3(-8.5,1.15,4.5)
+var _staff_exit_open:=false
 var _lobby_light: OmniLight3D
 var _lobby_active := false
 var _prologue_active := false
@@ -95,7 +97,15 @@ func _ready() -> void:
 	Brand.wall_logo(self,"TowerBrandFront",Vector3(0,48.2,-10.24),PI,11.8)
 	Brand.wall_logo(self,"TowerBrandRear",Vector3(0,48.2,10.24),0.0,11.8)
 	_solid("SouthWall",Vector3(0,1.75,10),Vector3(17,3.5,.25),wall)
-	_solid("WestWall",Vector3(-8.5,1.75,0),Vector3(.25,3.5,20),wall)
+	_solid("WestWallNorth",Vector3(-8.5,1.75,-3.25),Vector3(.25,3.5,13.5),wall)
+	_solid("WestWallSouth",Vector3(-8.5,1.75,7.75),Vector3(.25,3.5,4.5),wall)
+	_solid("StaffExitHeader",Vector3(-8.5,3.05,4.5),Vector3(.25,.90,2.0),wall)
+	_solid("StaffExitDoor",Vector3(-8.5,1.30,4.5),Vector3(.16,2.60,2.0),desk)
+	_visual("StaffExitFrameNorth",Vector3(-8.5,1.30,3.48),Vector3(.29,2.60,.10),accent)
+	_visual("StaffExitFrameSouth",Vector3(-8.5,1.30,5.52),Vector3(.29,2.60,.10),accent)
+	_sign("STAFF EXIT / PARKING",Vector3(-8.33,2.85,4.5),.004).rotation.y=PI/2
+	_sign("STAFF BADGE ACCESS",Vector3(-8.67,2.85,4.5),.004).rotation.y=-PI/2
+	_visual("StaffExitReader",Vector3(-8.66,1.18,3.25),Vector3(.065,.18,.12),screen)
 	_solid("EastWall",Vector3(8.5,1.75,0),Vector3(.25,3.5,20),wall)
 	# Leave a physical turning vestibule behind the security gate.
 	var partition_length: float=Arrival.PARTITION_FAR_Z-Arrival.PARTITION_NEAR_Z
@@ -185,6 +195,8 @@ func _build_workfloor_shell(wall: Material,floor_mat: Material) -> void:
 		for side in [-1.0,1.0]:
 			_solid("UpperSide",Vector3(side*8.5,base+1.675,0),Vector3(.25,3.35,20),wall)
 			_solid("UpperEnd",Vector3(0,base+1.675,side*10),Vector3(17,3.35,.25),wall)
+	# Seal the gap between level four walls and the retained upper core.
+	_solid("WorkfloorCap",Vector3(0,(Workfloor.FLOOR_COUNT+1)*Workfloor.FLOOR_HEIGHT-.15,0),Vector3(17,.3,20),floor_mat)
 	# Crown suite sits at the top of the retained exterior tower core.
 	var top:=ExecutiveFloor.BASE
 	_solid("CrownSuiteSlab",Vector3(0,top-.15,0),Vector3(17,.3,20),floor_mat)
@@ -202,6 +214,14 @@ func _build_workfloor_shell(wall: Material,floor_mat: Material) -> void:
 		var bounds:Vector2=interval
 		_solid("CrownWindow",Vector3(8.5,top+1.675,(bounds.x+bounds.y)*.5),Vector3(.10,3.35,bounds.y-bounds.x),clear)
 	_solid("CrownDoorHeader",Vector3(8.5,top+3.07,-4),Vector3(.25,.56,2),wall)
+	var frame:=_material("crown_mullion",Color("59666a"))
+	for z in [-9.95,-7.5,-5.05,-2.95,-.75]:
+		_visual("CrownMullion",Vector3(8.5,top+1.675,z),Vector3(.19,3.35,.08),frame)
+	for interval in [Vector2(-10,-5),Vector2(-3,-.7)]:
+		var bounds:Vector2=interval
+		for y in [.07,3.29]:
+			_visual("CrownWindowFrame",Vector3(8.5,top+y,(bounds.x+bounds.y)*.5),Vector3(.18,.10,bounds.y-bounds.x),frame)
+	_visual("CrownDoorThreshold",Vector3(8.5,top+.018,-4),Vector3(.30,.036,2.0),frame)
 	_solid("CrownTerraceSlab",Vector3(9.85,top-.15,-5),Vector3(2.7,.3,7.4),floor_mat)
 	# Outside the terrace extent, retain a barrier to prevent stepping into the void.
 	_collision("CrownCornerGuard",Vector3(8.5,top+1.675,-9.35),Vector3(.10,3.35,1.3))
@@ -279,15 +299,27 @@ func lift_direction(at: Vector3) -> int:
 		return -1
 	return 0
 
+func lift_destination(direction:int) -> int:
+	if direction>0 and _active_floor==Workfloor.FLOOR_COUNT:
+		return ExecutiveFloor.FLOOR
+	if direction<0 and _active_floor==ExecutiveFloor.FLOOR:
+		return Workfloor.FLOOR_COUNT
+	return clampi(_active_floor+direction,Basement.FLOOR,ExecutiveFloor.FLOOR)
+
+func floor_title(level:int) -> String:
+	if level==Basement.FLOOR:
+		return "B1 IT"
+	if level==0:
+		return "GROUND / LOBBY"
+	if level==ExecutiveFloor.FLOOR:
+		return "14 / EXECUTIVE LEADERSHIP"
+	return "%d / %s" % [level+1,Workfloor.DEPARTMENTS[level-1]]
+
 func try_lift(player: CharacterBody3D) -> bool:
 	var direction:=lift_direction(player.global_position)
 	if direction==0:
 		return false
-	var destination:=_active_floor+direction
-	if direction>0 and _active_floor==Workfloor.FLOOR_COUNT:
-		destination=ExecutiveFloor.FLOOR
-	elif direction<0 and _active_floor==ExecutiveFloor.FLOOR:
-		destination=Workfloor.FLOOR_COUNT
+	var destination:=lift_destination(direction)
 	_select_floor(destination)
 	player.global_position=to_global(Vector3(0,_active_floor*Workfloor.FLOOR_HEIGHT+1.15,Workfloor.LIFT.y))
 	player.velocity=Vector3.ZERO
@@ -404,8 +436,14 @@ func update_parking_guard(at:Vector3) -> void:
 func public_checkpoint_reachable(at: Vector3) -> bool:
 	return at.is_finite() and at.distance_to(to_global(LOBBY_CHECKPOINT))<1.5
 
+func _set_staff_exit(open:bool) -> void:
+	_staff_exit_open=open
+	get_node("StaffExitDoor").visible=not open
+	get_node("StaffExitDoorCollision").get_child(0).set_deferred("disabled",open)
+
 func begin_prologue() -> void:
 	_prologue_active=true
+	_set_staff_exit(true)
 	_restrooms.call("begin_visit")
 	_errand_phase=0
 	_folder_desk.position=Vector3(4.05,1.10,1.93)
@@ -421,6 +459,7 @@ func begin_prologue() -> void:
 
 func finish_prologue() -> void:
 	_prologue_active=false
+	_set_staff_exit(false)
 	_select_floor(0)
 	_restrooms.call("end_visit")
 	_arrival=null
@@ -803,7 +842,7 @@ func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 			_hint.text+="\n"+("X" if gamepad else "G")+" / TALK TO "+str(interview["name"])
 		var direction:=lift_direction(at)
 		if direction!=0:
-			_hint.text+="\n"+("X" if gamepad else "G")+" / LIFT "+("UP" if direction>0 else "DOWN")
+			_hint.text+="\n"+("X" if gamepad else "G")+" / LIFT TO "+floor_title(lift_destination(direction))
 		return
 	_hint.text = "SYNAXIS / EXECUTIVE PRIVILEGE\n%s" % TITLES[stage]
 	if stage==-2:
@@ -816,7 +855,7 @@ func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 		_hint.text += "\n" + ("X" if gamepad else "G") + " / OPTIONAL: BREAKROOM PARTY"
 	var lift:=lift_direction(at)
 	if lift!=0:
-		_hint.text+="\n"+("X" if gamepad else "G")+(" / LIFT UP / WORKFLOORS" if lift>0 else " / LIFT DOWN / BASEMENT IT")
+		_hint.text+="\n"+("X" if gamepad else "G")+" / LIFT TO "+floor_title(lift_destination(lift))
 	if parking_guard_reachable(at):
 		_hint.text+="\n"+("X" if gamepad else "G")+" / TALK TO PARKING SECURITY"
 	var remark:=update_staff_attention(stage,at)
