@@ -559,7 +559,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		if frame_time_recorder.recording or frame_time_recorder.capture_full:
 			frame_time_recorder.end_capture()
 			var exported: String = frame_time_recorder.export_csv()
-			_log_playtest("frame_trace_saved", {"path": exported, "frames": frame_time_recorder.captured_frames()})
+			var transitions: String = frame_time_recorder.export_vehicle_trace(exported)
+			_log_playtest("frame_trace_saved", {"path": exported, "vehicle_transitions":transitions,"frames": frame_time_recorder.captured_frames()})
 			_notify("Drive trace saved: " + exported if not exported.is_empty() else "Drive trace export failed.")
 		else:
 			var stream_start: Dictionary = city_details.call("get_streaming_stats")
@@ -948,32 +949,42 @@ func _toggle_car() -> void:
 		_notify("You're a passenger. Press F to leave at the next stop.")
 		return
 	if current_car != null:
+		var exit_trace: int = frame_time_recorder.begin_vehicle_transition("exit",str(current_car.get("model_id")))
 		if int(current_car.call("speed_kph")) > 15:
 			_log_playtest("vehicle_exit_blocked", {"reason": "speed"})
 			_notify("Slow down before exiting.")
+			frame_time_recorder.finish_vehicle_transition(exit_trace,"blocked_speed")
 			return
 		var exit_position := _clear_car_exit(current_car)
+		frame_time_recorder.mark_vehicle_stage(exit_trace,"clearance")
 		if not exit_position.is_finite():
 			_log_playtest("vehicle_exit_blocked", {"reason": "clearance"})
 			_notify("Both sides are blocked. Pull forward to make room.")
+			frame_time_recorder.finish_vehicle_transition(exit_trace,"blocked_clearance")
 			return
 		player.global_position = exit_position
 		player.velocity = Vector3.ZERO
 		player.collision_layer = 1
 		player.collision_mask = 1
 		player.visible = true
+		frame_time_recorder.mark_vehicle_stage(exit_trace,"capsule_visibility")
 		player.set("driving", false)
 		player.call("play_visual_action", &"alight_car")
+		frame_time_recorder.mark_vehicle_stage(exit_trace,"rig_reparent_animation")
 		if current_car.get("model_id") == RoadCars.R9:
 			current_car.call("play_access_door", exit_position, true, player.get_rid())
 		else:
 			world_audio.call("play_event", "DOOR", current_car.global_position)
+		frame_time_recorder.mark_vehicle_stage(exit_trace,"door_audio")
 		current_car.set("occupied", false)
 		current_car = null
 		_cinder_cockpit = false
 		_snap_camera()
+		frame_time_recorder.mark_vehicle_stage(exit_trace,"occupancy_camera")
 		_log_playtest("vehicle_exit", {"exit_x": exit_position.x, "exit_z": exit_position.z})
 		_notify("Back on foot. Find your next pickup.")
+		frame_time_recorder.mark_vehicle_stage(exit_trace,"log_hud")
+		frame_time_recorder.finish_vehicle_transition(exit_trace,"ok")
 		return
 	var nearest: CharacterBody3D
 	var nearest_distance := 5.0
@@ -987,18 +998,23 @@ func _toggle_car() -> void:
 	if nearest == null:
 		_notify("No vehicle nearby. Stand beside a parked car and press E.")
 		return
+	var entry_trace: int = frame_time_recorder.begin_vehicle_transition("enter",str(nearest.get("model_id")))
 	current_car = nearest
 	if nearest.get("model_id") == RoadCars.R9:
 		nearest.call("play_access_door", player.global_position, false, player.get_rid())
 	else:
 		world_audio.call("play_event", "DOOR", nearest.global_position)
+	frame_time_recorder.mark_vehicle_stage(entry_trace,"door_audio")
 	_log_playtest("vehicle_enter", {"vehicle": nearest.name})
+	frame_time_recorder.mark_vehicle_stage(entry_trace,"log")
 	current_car.set("occupied", true)
 	player.set("driving", true)
 	player.visible = false
 	player.collision_layer = 0
 	player.collision_mask = 0
+	frame_time_recorder.mark_vehicle_stage(entry_trace,"occupancy_capsule_visibility")
 	player.call("show_vehicle_rider", current_car, true)
+	frame_time_recorder.mark_vehicle_stage(entry_trace,"rig_reparent_animation")
 	if not current_car.has_meta("claimed"):
 		current_car.set_meta("claimed", true)
 		# Capture the entry position before the player is hidden. Resolve the
@@ -1007,6 +1023,8 @@ func _toggle_car() -> void:
 		_notify("Vehicle acquired.")
 	else:
 		_notify("Drive with WASD. Space is the handbrake.")
+	frame_time_recorder.mark_vehicle_stage(entry_trace,"claim_hud")
+	frame_time_recorder.finish_vehicle_transition(entry_trace,"ok")
 
 func _clear_car_exit(car: CharacterBody3D) -> Vector3:
 	var space := get_world_3d().direct_space_state
