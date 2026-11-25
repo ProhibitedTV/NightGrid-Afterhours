@@ -142,8 +142,8 @@ func can_pay(usd: int, tender: String) -> bool:
 		return balance >= usd
 	return tender == "BTC" and bitcoin_sats >= Economy.sats_for_usd(usd)
 
-func buy_outfit(id: String, tender: String = "USD") -> bool:
-	if not owns_home() or not Wardrobe.valid_id(id) or owns_outfit(id):
+func buy_outfit(id: String, tender: String = "USD", retail:bool=false) -> bool:
+	if (not owns_home() and not retail) or not Wardrobe.valid_id(id) or owns_outfit(id):
 		return false
 	var price := Wardrobe.price(id)
 	if not can_pay(price,tender):
@@ -155,8 +155,8 @@ func buy_outfit(id: String, tender: String = "USD") -> bool:
 	_purchased_outfits[id] = true
 	return true
 
-func select_outfit(id: String) -> bool:
-	if not owns_home() or not owns_outfit(id):
+func select_outfit(id: String, retail:bool=false) -> bool:
+	if (not owns_home() and not retail) or not owns_outfit(id):
 		return false
 	outfit_id = id
 	return true
@@ -213,7 +213,7 @@ static func valid_snapshot(value: Variant) -> bool:
 	if not (sats is int or sats is float) or not is_finite(float(sats)) or float(sats)<0 or float(sats)>Economy.MAX_SATS or floor(float(sats))!=float(sats):
 		return false
 	var purchased: Variant = data.get("purchased_outfits",[])
-	if not purchased is Array or purchased.size() > Wardrobe.IDS.size() or (not purchased.is_empty() and not tenancy):
+	if not purchased is Array or purchased.size() > Wardrobe.IDS.size():
 		return false
 	var closet: Dictionary = {}
 	for id in purchased:
@@ -221,7 +221,7 @@ static func valid_snapshot(value: Variant) -> bool:
 			return false
 		closet[id] = true
 	var outfit: Variant = data.get("outfit_id",Wardrobe.DEFAULT)
-	if not Wardrobe.valid_id(outfit) or (outfit != Wardrobe.DEFAULT and not tenancy):
+	if not Wardrobe.valid_id(outfit):
 		return false
 	if outfit != Wardrobe.DEFAULT and not closet.has(outfit):
 		return false

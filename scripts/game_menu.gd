@@ -439,6 +439,7 @@ func _render() -> void:
 			_label(col, str(_journal_data.get("owned_vehicles", "VEHICLE TITLES: None")), 16, Color("c4d6da"))
 			_label(col, str(_journal_data.get("conditioning", "")), 16, Ui.ACCENT)
 			_label(col, str(_journal_data.get("outfit", "")), 16, Ui.ACCENT)
+			_label(col,str(_journal_data.get("clothing_store","")),14,Ui.MUTED)
 			_label(col, "BTC WALLET: %d sats" % int(_journal_data.get("bitcoin_sats",0)), 16, Ui.ACCENT)
 			if not str(_journal_data.get("synaxis_site","")).is_empty():
 				_label(col,str(_journal_data["synaxis_site"]),16,Ui.MUTED)

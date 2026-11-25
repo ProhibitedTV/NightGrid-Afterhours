@@ -24,6 +24,9 @@ var _height: float
 var _dressed := false
 var physical_venue_id := ""
 var home_id := ""
+var clothing_store_id := ""
+const ClothingStore = preload("res://scripts/clothing_store.gd")
+const Wardrobe = preload("res://scripts/wardrobe_catalog.gd")
 var door: AnimatableBody3D
 var _lamp: OmniLight3D
 var _pending_visuals: Dictionary = {}
@@ -150,6 +153,60 @@ func dress(district: String, accent: Color, variant: int) -> void:
 		_visual("UpperFixture",Vector3(0,UPPER_HEIGHT-.13,z),Vector3(3.0,.12,.42),_mat(Color("d8dad2"),true))
 		_section("UpperWorkstation",Vector3(3.55,ROOM_HEIGHT+.52,z),Vector3(1.65,1.04,1.45),counter)
 	_flush_interior_visuals()
+
+## Original shop dressing, with the same collision-first streamed shell.
+func dress_clothing_store() -> void:
+	if _dressed:
+		return
+	_dressed=true
+	clothing_store_id=ClothingStore.ID
+	var black:=_mat(Color("252c33"))
+	var oak:=_mat(Color("8e7660"))
+	var brass:=_mat(Color("b9a277"))
+	# Counter against west wall; center route and side passages remain open.
+	_section("Furnishing",Vector3(-3.55,.52,2.8),Vector3(1.65,1.04,1.7),black)
+	_visual("Worktop",Vector3(-3.55,1.07,2.8),Vector3(1.75,.10,1.8),oak)
+	_visual("Worktop",Vector3(-3.35,1.22,2.65),Vector3(.32,.23,.22),black)
+	# Two collision-backed garment display fixtures with folded colorways.
+	for z in [2.6,6.3,11.8]:
+		_section("Furnishing",Vector3(3.58,.45,z),Vector3(1.45,.90,1.55),black)
+		_visual("Worktop",Vector3(3.58,.93,z),Vector3(1.52,.08,1.63),oak)
+		_visual("Worktop",Vector3(4.19,1.53,z),Vector3(.055,1.15,1.43),brass)
+		for i in range(3):
+			var id:String=Wardrobe.IDS[(int(z)+i)%Wardrobe.IDS.size()]
+			var item:Dictionary=Wardrobe.ITEMS[id]
+			var tint:Color=item["jacket"]
+			var at:=Vector3(3.48,1.15,z-.48+float(i)*.48)
+			for layer in range(3):
+				_visual("Worktop",Vector3(at.x,1.00+float(layer)*.065,at.z),Vector3(.60,.058,.36),_mat(tint.darkened(.24+float(layer)*.06)))
+			# Shoulder/sleeve garment silhouettes on a display rail.
+			_visual("Worktop",Vector3(4.04,1.58,at.z),Vector3(.15,.62,.35),_mat(tint.darkened(.25)))
+			_visual("Worktop",Vector3(4.04,1.74,at.z),Vector3(.16,.23,.45),_mat(tint.darkened(.25)))
+	for z in [2.3,6.1,10.7,14.5]:
+		_visual("CeilingFixture",Vector3(0,ROOM_HEIGHT-.13,z),Vector3(2.6,.12,.42),_mat(Color("f4d9b0"),true))
+	# Static poster, no simulated reflection or new skeleton.
+	_visual("Worktop",Vector3(4.68,2.0,8.2),Vector3(.07,1.1,1.2),black)
+	_shop_label("THREADLINE / VESPER MARKET",Vector3(0,2.95,4.1),.005,PI)
+	_shop_label("FITTING / CHECKOUT",Vector3(-3.55,2.28,2.8),.004,PI)
+	_shop_label("WORKWEAR / STREET / AFTER DARK",Vector3(3.45,2.25,2.6),.003,PI)
+	_flush_interior_visuals()
+
+func _shop_label(value:String,at:Vector3,pixel:float,yaw:float) -> void:
+	var label:=Label3D.new()
+	label.text=value
+	label.position=at
+	label.rotation.y=yaw
+	label.font_size=40
+	label.pixel_size=pixel
+	label.modulate=Color("f4d9b0")
+	label.outline_size=3
+	add_child(label)
+
+func clothing_counter() -> Vector3:
+	return to_global(ClothingStore.COUNTER)
+
+func clothing_reachable(at:Vector3) -> bool:
+	return clothing_store_id==ClothingStore.ID and contains(at) and at.distance_to(clothing_counter())<1.4
 
 ## Prototype furnishings, installed with collision in stage zero.
 func dress_home(id: String) -> void:

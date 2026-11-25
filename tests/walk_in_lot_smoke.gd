@@ -335,5 +335,31 @@ func _verify() -> void:
 	world.call("_apply_snapshot",home_save)
 	if not check(ledger.home_supplies==1 and ledger.owns_home() and ledger.home_capacity()==Home.EXPANDED_STORAGE and ledger.outfit_id=="vesper_tailored" and ledger.owns_outfit("vesper_tailored") and ledger.owns_outfit("rustline") and ledger.bitcoin_sats==15200 and player.get_node("Visual").get("outfit_id")=="vesper_tailored" and world.get("ration_packs")==2 and player.global_position.distance_to(home.call("home_action_point","storage"))<.1,"home entitlement and stash round trip"):
 		return
+	# A new renter can shop before unlocking the pod. Existing save schema
+	# must preserve the paid cosmetic without a home entitlement.
+	var fresh=preload("res://scripts/progression_ledger.gd").new()
+	ledger.restore(75,fresh.snapshot())
+	player.get_node("Visual").call("set_outfit","dispatch")
+	var Store=preload("res://scripts/clothing_store.gd")
+	city.call("set_focus",Store.entry())
+	var store:Node3D=city.call("nearby_walk_in",Store.entry())
+	if not check(is_instance_valid(store) and store.get("clothing_store_id")==Store.ID,"fixed Threadline physical shop"):
+		return
+	player.global_position=store.call("clothing_counter")
+	world.call("_toggle_interaction")
+	if not check(world.get("_clothing_retail") and world.get("_wardrobe_panel") and not ledger.owns_home(),"retail available before pod"):
+		return
+	world.call("_venue_action",2)
+	world.call("_venue_action",3)
+	if not check(world.get("_wardrobe_quote_id")=="tideline" and world.get("cash")==75,"retail quote is not debit"):
+		return
+	world.call("_venue_action",3)
+	world.call("_venue_action",3)
+	if not check(ledger.owns_outfit("tideline") and ledger.outfit_id=="tideline" and world.get("cash")==28,"retail purchase and equip before tenancy"):
+		return
+	world.call("_close_venue")
+	var retail_save:Dictionary=ledger.snapshot()
+	if not check(fresh.restore(28,retail_save) and fresh.outfit_id=="tideline" and not fresh.owns_home(),"pre-tenancy wardrobe save round trip"):
+		return
 	print("WALK_IN_LOT PASS: physical doors, multiple rooms, upper floor ascent/descent, bounded walls, streamed finish, world-coordinate restore and exit")
 	quit(0)

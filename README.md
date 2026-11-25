@@ -39,3 +39,6 @@ See [Offline SFX authoring](docs/SFX_AUTHORING.md) for the optional local Stable
 
 ### Unified audio production
 See [Anubis audio studio](docs/AUDIO_PRODUCTION_STUDIO.md) for dialogue, NPC choices, SFX and ambience. Neural processing is development-only; game assets require review.
+
+### Threadline streetwear (development)
+Visit Threadline in Vesper Market, block (-3,-2), east lot, northwest of Lantern Court. Open the physical door and walk to the fitting/checkout counter. Browse, review USD or fictional BTC prices, buy and equip persistent cosmetic outfits even before renting a capsule. The initial collection uses existing rig-compatible garment colorways (not separate interchangeable clothing meshes yet). Native visual and route verification pending.
