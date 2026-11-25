@@ -579,6 +579,17 @@ func _verify() -> void:
 	if int(engineering_people.call("stats")["meetings_completed"])<1:
 		_fail("Completed appliance round leads to a coordinated department stand-up")
 		return
+	meeting_model.begin(true)
+	if not meeting_model.line(1).contains("access notice") or meeting_model.line(1).contains("safety review"):
+		_fail("Late-shift stand-up reflects only public department notices")
+		return
+	meeting_model.reset()
+	engineering_people.call("set_story_stage",4)
+	var late_line:=str(engineering_people.call("observe",engineering_deck.to_global(Vector3(-5.3,1.15,5.65))))
+	if not late_line.contains("internal matters") or not bool(engineering_people.call("stats")["offboarding"]):
+		_fail("Employee remarks change when offboarding begins")
+		return
+	engineering_people.call("set_story_stage",-2)
 	# Reset circulation before testing player-owned cycles independently.
 	engineering_people.call("set_active",false)
 	services.call("set_active",false)

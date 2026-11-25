@@ -4,6 +4,13 @@ const Staff=preload("res://scripts/synaxis_staff.gd")
 const Meeting=preload("res://scripts/synaxis_department_meeting.gd")
 var _meeting:=Meeting.new()
 var _rounds:=0
+var _offboarding:=false
+const LATE_CHAT=[
+	["Nora: They just restricted access to the prototype folder.","Faye: We received a reminder about discussing internal matters.","Sam: I think everyone is keeping their heads down today."],
+	["Ruth: The review meeting disappeared from my calendar.","Dana: Legal has asked us to preserve all project notes.","Jules: I was told not to speculate. So here we are."],
+	["Evan: They froze the release sign-off.","Avery: Our manager says it is a routine administrative change.","Milo: We should keep the test records exactly as they are."],
+	["Morgan: They have stopped approving new access requests.","Ellis: HR sent an updated confidentiality reminder.","Lee: I hope whoever is affected is okay."]
+]
 const SEATS=[Vector3(-6,0,-6.45),Vector3(0,0,-6.45),Vector3(4,0,-3.80),Vector3(-2,0,.25),Vector3(2,0,.25),Vector3(6,0,2.90),Vector3(-5.3,0,5.65),Vector3(-3.35,0,6.12)]
 const YAW=[0.0,0.0,PI,0.0,0.0,PI,PI/2,-PI/2]
 const NAMES=[
@@ -74,6 +81,23 @@ func _ready() -> void:
 	_services=get_parent().get_node_or_null("OfficeServices")
 	set_active(false)
 
+func set_story_stage(stage:int) -> void:
+	var late:=stage>=4
+	if late==_offboarding:
+		return
+	_offboarding=late
+	_last_near=-1
+	_line=""
+	# Never reveal the private briefing or a specific employee accusation.
+	# Cancel an obsolete stand-up and let the current route finish normally.
+	if _meeting.active:
+		_meeting.reset()
+		for i in [6,WALKER]:
+			_people[i].call("set_scene_beat",-1)
+			_people[i].call("set_routine_pose","")
+		_task="idle"
+		_wait=6.0
+
 func set_active(active:bool) -> void:
 	_active=active
 	set_process(active)
@@ -116,6 +140,10 @@ func _process(delta:float) -> void:
 		_walking=false
 		actor.call("set_walk_speed",0.0)
 		_wait=maxf(_wait,1.0)
+		if _meeting.active:
+			for i in [6,WALKER]:
+				_people[i].call("set_scene_beat",-1)
+				_people[i].call("set_routine_pose","")
 		return
 	if _meeting.active:
 		_tick_meeting(step)
@@ -153,7 +181,7 @@ func _process(delta:float) -> void:
 			_held=""
 			actor.call("set_routine_pose","")
 			actor.rotation.y=YAW[WALKER]
-			_meeting.begin()
+			_meeting.begin(_offboarding)
 			_task="meeting"
 		elif _route_index==4:
 			_wait=5.0
@@ -274,7 +302,8 @@ func observe(at:Vector3) -> String:
 			best=distance
 	if closest!=_last_near:
 		_last_near=closest
-		_line="" if closest<0 else str(CHAT[level-1][0 if closest==0 else closest-5])
+		var lines:Array=LATE_CHAT[level-1] if _offboarding else CHAT[level-1]
+		_line="" if closest<0 else str(lines[0 if closest==0 else closest-5])
 	for i in _people.size():
 		if i==6 and _task=="chat" and closest<0:
 			_people[i].call("attend",_people[WALKER].global_position,true)
@@ -283,7 +312,8 @@ func observe(at:Vector3) -> String:
 	if closest<0 and _meeting.active and local.distance_to(_people[WALKER].position+Vector3.UP*1.15)<5.0:
 		return _meeting.line(level)
 	if closest<0 and _task=="chat" and local.distance_to(_people[WALKER].position+Vector3.UP*1.15)<5.0:
-		return str(EXCHANGES[level-1][0 if _chat_elapsed<2.5 else 1])
+		var exchange:Array=Meeting.LATE_AGENDA[level-1] if _offboarding else EXCHANGES[level-1]
+		return str(exchange[0 if _chat_elapsed<2.5 else 1])
 	return _line
 
 func stats() -> Dictionary:
@@ -291,4 +321,4 @@ func stats() -> Dictionary:
 	for actor in _people:
 		if actor.process_mode!=Node.PROCESS_MODE_DISABLED:
 			animated+=1
-	return {"people":_people.size(),"animated":animated,"seated":6,"standing":2,"walking":_walking,"walk_distance":_walk_distance,"route_index":_route_index,"task":_task,"board_visits":_board_visits,"chat_visits":_chat_visits,"print_visits":_print_visits,"coffee_visits":_coffee_visits,"rounds":_rounds,"meeting":_meeting.active,"meetings_completed":_meeting.completed}
+	return {"people":_people.size(),"animated":animated,"seated":6,"standing":2,"walking":_walking,"walk_distance":_walk_distance,"route_index":_route_index,"task":_task,"board_visits":_board_visits,"chat_visits":_chat_visits,"print_visits":_print_visits,"coffee_visits":_coffee_visits,"rounds":_rounds,"meeting":_meeting.active,"meetings_completed":_meeting.completed,"offboarding":_offboarding}

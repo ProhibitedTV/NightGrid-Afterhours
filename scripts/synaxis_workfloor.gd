@@ -102,6 +102,10 @@ func _ready() -> void:
 func get_floor_stats() -> Dictionary:
 	return {"level":level,"department":DEPARTMENTS[level-1],"desks":_desks,"chairs":_chairs,"plants":_plants,"parts":_parts,"colliders":_colliders,"batches":get_children().filter(func(n):return n is MultiMeshInstance3D).size()}
 
+func set_story_stage(stage:int) -> void:
+	if is_instance_valid(_people):
+		_people.call("set_story_stage",stage)
+
 func set_occupied(active: bool) -> void:
 	GeneratedAudio.activate(_office_ambience,active)
 	if is_instance_valid(_services):

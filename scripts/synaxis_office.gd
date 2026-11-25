@@ -801,6 +801,8 @@ func staff_floor(id:String) -> int:
 	return Basement.FLOOR if id=="eli" else 0
 
 func set_stage(stage: int) -> void:
+	for deck in _workfloors:
+		deck.call("set_story_stage",stage)
 	if not POINTS.has(stage):
 		return
 	_target_sign.position = POINTS[stage]+Vector3.UP*1.15

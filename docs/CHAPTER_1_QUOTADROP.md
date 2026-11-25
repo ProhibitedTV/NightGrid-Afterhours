@@ -131,3 +131,6 @@ The standing walker visits the west printer and coffee station along the perimet
 
 ### Department stand-up schedules
 The two standing employees hold a nine-second, three-beat stand-up after each completed circulation/equipment round, with department-specific agendas, alternating speakers, facing, gestures and local overheard text. A wall schedule advertises the routine. Meetings pause when a player approaches, reset safely when the floor is deactivated and do not add animated actors or mission flags. Inter-round idle times vary by department. This is a local schedule rather than a simulated city-wide shift/lunch calendar. Tests cover meeting timing and full-round completion; native presentation remains pending.
+
+### Story-aware office reactions
+When the player enters the HR offboarding stage, department staff change their local remarks and future stand-up agendas to reflect public access notices, approval freezes, record retention and cautious coworker reactions. They do not know the private briefing or accuse specific employees. Existing meetings stop cleanly when the story phase changes; approaching the speaking actors suspends their gesturing until the player leaves. Normal dialogue is restored on a fresh prologue. Tests exercise both agendas and actual proximity remarks. CI and native playtesting of this revision remain pending.
