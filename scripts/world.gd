@@ -2709,7 +2709,7 @@ func _update_civic_panel() -> void:
 	venue_label.text = title
 	if venue_service_button != null:
 		venue_service_button.disabled = not opened
-		venue_service_button.text = "1 / A  ·  %s  $%d" % [str(venue["item"]), int(venue["price"])]
+		venue_service_button.text = "1 / A  ·  %s  $%d" % [_civic_service_text(site), int(site["price"])]
 	if venue_job_button != null:
 		var offered: Dictionary = civic_services.call("order_from", civic_selected_id) if civic_job_active.is_empty() else civic_services.call("order_by_id", civic_job_active)
 		var available := not offered.is_empty() and (
