@@ -72,6 +72,7 @@ var _wardrobe_index := 0
 var _wardrobe_quote_id := ""
 var _wardrobe_tender := "USD"
 var _exchange_panel := false
+var _tenancy_panel := false
 const Economy = preload("res://scripts/economy.gd")
 const Wardrobe = preload("res://scripts/wardrobe_catalog.gd")
 const StarterGarage = preload("res://scripts/starter_garage.gd")
@@ -482,7 +483,7 @@ func _journal_context() -> Dictionary:
 		"owned_vehicles": _owned_vehicle_text(),
 		"home_owned": progression.owns_home(),
 		"garage_text": "GARAGE: Two reserved bays / recovery desk" if progression.owns_home() else "GARAGE: Locked services",
-		"home_text": "HOME: %s / %d of %d stored provisions" % [StarterHome.NAME,progression.home_supplies,progression.home_capacity()] if progression.owns_home() else "HOME: Complete Mara’s contact mission to unlock.",
+		"home_text": "HOME: %s / %d of %d stored provisions" % [StarterHome.NAME,progression.home_supplies,progression.home_capacity()] if progression.owns_home() else "HOME: Complete Mara’s contact mission and pay the move-in cost.",
 		"weapons": weapons.inventory_text(),
 		"dispatch": dispatch.status(),
 		"ambient_civic_open": ambient_civic.open_count(),
@@ -1990,7 +1991,12 @@ func _toggle_interior() -> void:
 	var civic: Dictionary = civic_services.call("nearest_site", player.global_position)
 	var physical_lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
 	if is_instance_valid(physical_lot) and not str(physical_lot.get("home_id")).is_empty() and not progression.owns_home() and not physical_lot.call("contains",player.global_position):
-		_notify("Locked residence. Speak to Mara at Lantern Cup.")
+		if progression.has_receipt(StarterHome.ACCESS_RECEIPT) and physical_lot.call("doorway_reachable",player.global_position):
+			_tenancy_panel = true
+			_show_venue_dialogue()
+			_update_venue_panel()
+		else:
+			_notify("Locked residence. Speak to Mara at Lantern Cup first.")
 		return
 	# Migrated café has no remote-room entry. Approach the actual hinge.
 	if str(venue.get("id","")) == "helix_espresso":
@@ -2237,8 +2243,9 @@ func _recover_garage_vehicle(garage: Node3D,index: int) -> void:
 		_notify("Vehicle unavailable for recovery.")
 		return
 	if garage.call("parked_at",car.global_position,index):
-		if not owned:
-			progression.grant_starter_vehicle()
+		if not owned and not progression.grant_starter_vehicle():
+			_notify("Not enough cash for the Kestrel title.")
+			return
 		_notify("Vehicle already parked in its bay.")
 		return
 	var collider := car.get_node("CollisionShape3D") as CollisionShape3D
@@ -2260,6 +2267,7 @@ func _recover_garage_vehicle(garage: Node3D,index: int) -> void:
 			_notify("Not enough cash for recovery.")
 			return
 	elif not progression.grant_starter_vehicle():
+		_notify("Not enough cash for the Kestrel title.")
 		return
 	car.global_position = target
 	car.rotation.y = 0.0
@@ -2280,7 +2288,7 @@ func _title_eligible(car: CharacterBody3D) -> bool:
 	var id := str(car.get_meta("vehicle_id", ""))
 	if not RoadCars.TITLES.has(id) or progression.owns_vehicle(id):
 		return false
-	# Once Mara grants access, this specific Kestrel is free at the garage.
+	# With residence access, the Kestrel title is sold at the garage.
 	if progression.owns_home() and id == StarterGarage.IDS[0]:
 		return false
 	return not bool(car.get("occupied")) and absf(float(car.get("speed"))) <= .28 and car.global_position.distance_to(player.global_position) < 18.0
@@ -2308,7 +2316,7 @@ func _open_title_quote() -> void:
 	if not _title_eligible(car):
 		_notify("That vehicle is no longer eligible. Select a new offer.")
 		return
-	var price: int = RoadCars.TITLES[_title_offer_id]["price"]
+	var price: int = RoadCars.title_price(_title_offer_id)
 	if cash < price:
 		_notify("Not enough cash for this vehicle title.")
 		return
@@ -2577,6 +2585,7 @@ func _close_venue() -> void:
 	_wardrobe_quote_id = ""
 	_wardrobe_tender = "USD"
 	_exchange_panel = false
+	_tenancy_panel = false
 	_garage_panel = false
 	_vending_machine = null
 	for button in [venue_service_button,venue_job_button,venue_talk_button]:
@@ -2593,6 +2602,17 @@ func _close_venue() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _update_venue_panel() -> void:
+	if _tenancy_panel:
+		var price := StarterHome.move_in_price()
+		venue_label.text = "LANTERN COURT / TENANCY\nMove-in payment $%d  |  CASH $%d\nPaid residence access. [1 / A] Cancel  [3 / Y] Confirm" % [price,cash]
+		venue_service_button.show()
+		venue_service_button.text = "1 / A  •  CANCEL"
+		venue_service_button.disabled = false
+		venue_job_button.hide()
+		venue_talk_button.show()
+		venue_talk_button.text = "3 / Y  •  PAY MOVE-IN COST"
+		venue_talk_button.disabled = cash < price
+		return
 	if _exchange_panel:
 		venue_label.text = "MORROW EXCHANGE / HOME TERMINAL\nUSD $%d  |  BTC %d sats\n$100 buy: +39,200 sats\n40,000 sats sell: +$98\n2%% fee each trade; fictional fixed rate." % [cash,progression.bitcoin_sats]
 		venue_service_button.show()
@@ -2637,8 +2657,8 @@ func _update_venue_panel() -> void:
 			var id: String = StarterGarage.IDS[i]
 			var owned := progression.owns_vehicle(id)
 			buttons[i].show()
-			buttons[i].text = "%d / %s  •  %s" % [i+1,"A" if i==0 else "X",("RECOVER " + str(RoadCars.TITLES[id]["name"])) if owned else ("CLAIM STARTER KESTREL" if i==0 else "CINDER TITLE REQUIRED")]
-			buttons[i].disabled = (not owned and i!=0) or (owned and cash<StarterGarage.RECOVERY_FEE)
+			buttons[i].text = "%d / %s  •  %s" % [i+1,"A" if i==0 else "X",("RECOVER " + str(RoadCars.TITLES[id]["name"])) if owned else ("BUY KESTREL TITLE $%d" % RoadCars.title_price(id) if i==0 else "CINDER TITLE REQUIRED")]
+			buttons[i].disabled = (not owned and (i!=0 or cash<RoadCars.title_price(id))) or (owned and cash<StarterGarage.RECOVERY_FEE)
 		venue_talk_button.hide()
 		return
 	if _home_panel:
@@ -2690,12 +2710,12 @@ func _update_venue_panel() -> void:
 			var title: Dictionary = RoadCars.TITLES[_title_quote_id]
 			var quoted_car := _title_by_id(_title_quote_id)
 			var condition := "%.0f%%" % float(quoted_car.get("condition")) if is_instance_valid(quoted_car) else "Unavailable"
-			venue_label.text = "CONFIRM VEHICLE TITLE\n%s / %s\nCondition %s   |   Price $%d\nCash $%d  →  $%d\n[2 / X] Confirm  •  [1 / A] Cancel" % [title["name"],_title_quote_id,condition,title["price"],cash,cash-int(title["price"])]
+			venue_label.text = "CONFIRM VEHICLE TITLE\n%s / %s\nCondition %s   |   Price $%d\nCash $%d  →  $%d\n[2 / X] Confirm  •  [1 / A] Cancel" % [title["name"],_title_quote_id,condition,RoadCars.title_price(_title_quote_id),cash,cash-RoadCars.title_price(_title_quote_id)]
 			venue_service_button.text = "1 / A  •  CANCEL"
 			venue_service_button.disabled = false
 			venue_job_button.show()
 			venue_job_button.text = "2 / X  •  CONFIRM TITLE"
-			venue_job_button.disabled = not _title_eligible(quoted_car) or cash < int(title["price"])
+			venue_job_button.disabled = not _title_eligible(quoted_car) or cash < RoadCars.title_price(_title_quote_id)
 			venue_talk_button.hide()
 			return
 		venue_label.text = "NIGHT SHIFT REPAIRS\nLeave the vehicle outside and bring the keys to the counter.\n[1 / A] Repair parked vehicle  $%d\n[G / B] Close   |   CASH $%d" % [BrickwaterRepair.PRICE, cash]
@@ -2708,11 +2728,11 @@ func _update_venue_panel() -> void:
 		venue_job_button.text = "2 / X  •  REGISTER VEHICLE TITLE"
 		if candidate != null:
 			var title: Dictionary = RoadCars.TITLES[str(candidate.get_meta("vehicle_id"))]
-			venue_job_button.text = "2 / X  •  REVIEW %s TITLE  $%d" % [title["name"], title["price"]]
-			venue_job_button.disabled = cash < int(title["price"])
+			venue_job_button.text = "2 / X  •  REVIEW %s TITLE  $%d" % [title["name"], RoadCars.title_price(_title_offer_id)]
+			venue_job_button.disabled = cash < RoadCars.title_price(_title_offer_id)
 		venue_label.text += "\nTitle desk: bring eligible parked stock to the shop."
 		if progression.owns_home() and not progression.owns_vehicle(StarterGarage.IDS[0]):
-			venue_label.text += "\nYour starter Kestrel is free at Lantern Garage."
+			venue_label.text += "\nKestrel title available at Lantern Garage."
 		var sale := _nearby_sale_candidate()
 		_sale_offer_id = str(sale.get_meta("vehicle_id")) if sale != null else ""
 		venue_talk_button.visible = sale != null
@@ -2778,6 +2798,20 @@ func _mara_context() -> Dictionary:
 	}
 
 func _venue_action(option: int) -> void:
+	if _tenancy_panel:
+		var lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
+		if not venue_panel.visible or not is_instance_valid(lot) or lot.get("home_id") != StarterHome.ID or not lot.call("doorway_reachable",player.global_position) or current_car != null or current_transit != null:
+			_close_venue()
+			return
+		if option == 1:
+			_close_venue()
+		elif option == 3:
+			if progression.activate_home_tenancy():
+				_close_venue()
+				_notify("Move-in payment accepted. Unit 01 is unlocked.")
+			else:
+				_notify("Payment declined. Earn more from courier contracts.")
+		return
 	if _exchange_panel:
 		var lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
 		if not venue_panel.visible or not is_instance_valid(lot) or lot.call("home_action",player.global_position) != "exchange" or not progression.owns_home() or current_car != null or current_transit != null:
@@ -2918,7 +2952,7 @@ func _venue_action(option: int) -> void:
 						mara_dialogue_line = "Mara: I need someone who knows these streets. Finish a courier run, then come tell me how it went."
 						_notify("NIGHT SHIFT CONTACT / New mission")
 					"complete":
-						mara_dialogue_line = "Mara: You made it back. Keep the extra hundred. Unit 01 next door is yours to use. The key’s at the entrance."
+						mara_dialogue_line = "Mara: You made it back. Keep the extra hundred. I can get you approved for Unit 01 next door. Pay the move-in cost at the entrance."
 						_notify("NIGHT SHIFT CONTACT COMPLETE +$%d" % StoryMission.REWARD)
 					"blocked":
 						_notify("Wallet full. Speak to Mara again after spending some cash.")
@@ -3317,7 +3351,7 @@ func _update_hud() -> void:
 		var physical_lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
 		if physical_lot != null and not str(physical_lot.get("home_id")).is_empty():
 			var home_action := str(physical_lot.call("home_action",player.global_position))
-			prompts.append("HOME / " + (interact_key + " " + home_action.capitalize() if progression.owns_home() and not home_action.is_empty() else ("Unit 01" if progression.owns_home() else "Locked — meet Mara")))
+			prompts.append("HOME / " + (interact_key + " " + home_action.capitalize() if progression.owns_home() and not home_action.is_empty() else ("Unit 01" if progression.owns_home() else "Locked — tenancy payment required")))
 		if physical_lot != null and physical_lot.call("service_reachable",player.global_position):
 			prompts.append("%s Order at HELIX ESPRESSO" % interact_key)
 		if physical_lot != null and physical_lot.call("doorway_reachable",player.global_position):

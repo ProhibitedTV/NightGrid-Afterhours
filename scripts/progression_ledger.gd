@@ -16,6 +16,7 @@ var _receipts: Dictionary = {}
 var _owned_vehicles: Dictionary = {}
 var home_supplies: int = 0
 var home_storage_expanded := false
+var home_tenancy_paid := false
 var outfit_id := Wardrobe.DEFAULT
 var _purchased_outfits: Dictionary = {}
 
@@ -81,7 +82,7 @@ func owned_vehicle_ids() -> Array:
 func buy_vehicle(id: String) -> bool:
 	if not RoadCars.TITLES.has(id) or owns_vehicle(id):
 		return false
-	if not spend(int(RoadCars.TITLES[id]["price"])):
+	if not spend(RoadCars.title_price(id)):
 		return false
 	_owned_vehicles[id] = true
 	return true
@@ -97,14 +98,19 @@ func sell_vehicle(id: String, condition: float) -> bool:
 	return true
 
 func owns_home() -> bool:
-	return has_receipt(StarterHome.ACCESS_RECEIPT)
+	return home_tenancy_paid and has_receipt(StarterHome.ACCESS_RECEIPT)
+
+func activate_home_tenancy() -> bool:
+	if not has_receipt(StarterHome.ACCESS_RECEIPT) or home_tenancy_paid:
+		return false
+	if not spend(StarterHome.move_in_price()):
+		return false
+	home_tenancy_paid = true
+	return true
 
 func grant_starter_vehicle() -> bool:
-	var id := "street:kestrel_01"
-	if not owns_home() or owns_vehicle(id):
-		return false
-	_owned_vehicles[id] = true
-	return true
+	# Historical API retained for garage callers; now a paid title.
+	return owns_home() and buy_vehicle("street:kestrel_01")
 
 func owns_outfit(id: String) -> bool:
 	return Wardrobe.valid_id(id) and (id == Wardrobe.DEFAULT or _purchased_outfits.has(id))
@@ -182,7 +188,7 @@ func withdraw_supply(carried: int) -> int:
 func snapshot() -> Dictionary:
 	var ids: Array = _receipts.keys()
 	ids.sort()
-	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "bitcoin_sats":bitcoin_sats}
+	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "bitcoin_sats":bitcoin_sats}
 
 static func valid_snapshot(value: Variant) -> bool:
 	if not value is Dictionary:
@@ -199,11 +205,15 @@ static func valid_snapshot(value: Variant) -> bool:
 		if not valid_id(id) or seen.has(id):
 			return false
 		seen[id] = true
+	# Older saves already granted residence access; grandfather it, not new missions.
+	var tenancy: Variant = data.get("home_tenancy_paid",seen.has(StarterHome.ACCESS_RECEIPT))
+	if not tenancy is bool or (tenancy and not seen.has(StarterHome.ACCESS_RECEIPT)):
+		return false
 	var sats: Variant = data.get("bitcoin_sats",0)
 	if not (sats is int or sats is float) or not is_finite(float(sats)) or float(sats)<0 or float(sats)>Economy.MAX_SATS or floor(float(sats))!=float(sats):
 		return false
 	var purchased: Variant = data.get("purchased_outfits",[])
-	if not purchased is Array or purchased.size() > Wardrobe.IDS.size() or (not purchased.is_empty() and not seen.has(StarterHome.ACCESS_RECEIPT)):
+	if not purchased is Array or purchased.size() > Wardrobe.IDS.size() or (not purchased.is_empty() and not tenancy):
 		return false
 	var closet: Dictionary = {}
 	for id in purchased:
@@ -211,16 +221,16 @@ static func valid_snapshot(value: Variant) -> bool:
 			return false
 		closet[id] = true
 	var outfit: Variant = data.get("outfit_id",Wardrobe.DEFAULT)
-	if not Wardrobe.valid_id(outfit) or (outfit != Wardrobe.DEFAULT and not seen.has(StarterHome.ACCESS_RECEIPT)):
+	if not Wardrobe.valid_id(outfit) or (outfit != Wardrobe.DEFAULT and not tenancy):
 		return false
 	if outfit != Wardrobe.DEFAULT and not closet.has(outfit):
 		return false
 	var expanded: Variant = data.get("home_storage_expanded", false)
-	if not expanded is bool or (expanded and not seen.has(StarterHome.ACCESS_RECEIPT)):
+	if not expanded is bool or (expanded and not tenancy):
 		return false
 	var limit := StarterHome.EXPANDED_STORAGE if expanded else StarterHome.MAX_STORAGE
 	var stored: Variant = data.get("home_supplies", 0)
-	if not valid_cash(stored) or int(stored) > limit or (int(stored) > 0 and not seen.has(StarterHome.ACCESS_RECEIPT)):
+	if not valid_cash(stored) or int(stored) > limit or (int(stored) > 0 and not tenancy):
 		return false
 	var owned: Variant = data.get("owned_vehicles", [])
 	if not owned is Array or owned.size() > RoadCars.TITLES.size():
@@ -245,6 +255,7 @@ func restore(amount: Variant, data: Variant) -> bool:
 		titles[id] = true
 	balance = int(amount)
 	_receipts = next
+	home_tenancy_paid = data.get("home_tenancy_paid",next.has(StarterHome.ACCESS_RECEIPT))
 	_owned_vehicles = titles
 	home_supplies = int(data.get("home_supplies",0))
 	home_storage_expanded = data.get("home_storage_expanded",false)

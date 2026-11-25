@@ -1,6 +1,8 @@
 extends SceneTree
 const Catalog = preload("res://scripts/consumables.gd")
 const Ledger = preload("res://scripts/progression_ledger.gd")
+const RoadCars = preload("res://scripts/road_car_catalog.gd")
+const Home = preload("res://scripts/starter_home.gd")
 func _initialize() -> void:
 	call_deferred("_verify")
 func check(ok: bool,label: String) -> bool:
@@ -28,8 +30,8 @@ func _verify() -> void:
 	if not check(not restored.credit_once("story:overflow", 1) and not restored.has_receipt("story:overflow"), "overflow has no receipt"):
 		return
 	var title_wallet := Ledger.new()
-	title_wallet.set_balance(600)
-	if not check(not title_wallet.buy_vehicle("unknown") and not title_wallet.buy_vehicle("street:cinder_01") and title_wallet.balance == 600, "unknown and unaffordable title rollback"):
+	title_wallet.set_balance(RoadCars.title_price("street:kestrel_01")+100)
+	if not check(not title_wallet.buy_vehicle("unknown") and not title_wallet.buy_vehicle("street:cinder_01") and title_wallet.balance == RoadCars.title_price("street:kestrel_01")+100, "unknown and unaffordable title rollback"):
 		return
 	if not check(title_wallet.buy_vehicle("street:kestrel_01") and not title_wallet.buy_vehicle("street:kestrel_01") and title_wallet.balance == 100, "registered title exactly once"):
 		return
@@ -39,7 +41,7 @@ func _verify() -> void:
 	if not check(not title_copy.restore(0, {"version":1,"receipts":[],"owned_vehicles":["street:kestrel_01","street:kestrel_01"]}) and title_copy.balance == 100 and title_copy.owns_vehicle("street:kestrel_01"), "duplicate title save rejected atomically"):
 		return
 	var resale := Ledger.new()
-	resale.set_balance(3000)
+	resale.set_balance(RoadCars.title_price("street:cinder_01")+RoadCars.title_price("street:kestrel_01"))
 	if not check(resale.buy_vehicle("street:cinder_01") and resale.buy_vehicle("street:kestrel_01"),"paid title setup"):
 		return
 	if not check(not resale.sell_vehicle("street:kestrel_01",100.0) and not resale.sell_vehicle("street:cinder_01",NAN),"starter cannot be sold; invalid condition rejected"):
@@ -48,13 +50,16 @@ func _verify() -> void:
 	if not check(not resale.sell_vehicle("street:cinder_01",100.0) and resale.owns_vehicle("street:cinder_01"),"overflow leaves title intact"):
 		return
 	resale.set_balance(0)
-	if not check(resale.sell_vehicle("street:cinder_01",50.0) and resale.balance==750 and not resale.sell_vehicle("street:cinder_01",50.0),"condition payout exactly once"):
+	if not check(resale.sell_vehicle("street:cinder_01",50.0) and resale.balance==RoadCars.resale_price("street:cinder_01",50.0) and not resale.sell_vehicle("street:cinder_01",50.0),"condition payout exactly once"):
 		return
 	var home := Ledger.new()
 	home.set_balance(500)
 	if not check(not home.expand_home_storage() and home.balance==500,"locked home cannot upgrade"):
 		return
 	home.credit_once("story:night_shift_contact",100)
+	home.set_balance(Home.move_in_price()+Home.STORAGE_UPGRADE_PRICE+250)
+	if not check(home.activate_home_tenancy() and not home.activate_home_tenancy(),"pay tenancy once"):
+		return
 	if not check(home.expand_home_storage() and not home.expand_home_storage() and home.balance==250,"single paid upgrade"):
 		return
 	for i in range(61):
@@ -71,6 +76,9 @@ func _verify() -> void:
 	if not check(not closet.buy_outfit("vesper_tailored") and not closet.select_outfit("vesper_tailored"),"locked wardrobe"):
 		return
 	closet.credit_once("story:night_shift_contact",100)
+	closet.set_balance(Home.move_in_price()+600)
+	if not check(closet.activate_home_tenancy(),"paid home unlocks wardrobe"):
+		return
 	if not check(not closet.buy_outfit("obscura_signature") and not closet.select_outfit("vesper_tailored") and closet.balance==600,"unaffordable and unowned refused"):
 		return
 	if not check(closet.buy_outfit("vesper_tailored") and not closet.buy_outfit("vesper_tailored") and closet.select_outfit("vesper_tailored") and closet.balance==197,"rare title paid once"):
