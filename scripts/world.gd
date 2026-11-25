@@ -3184,7 +3184,8 @@ func _toggle_venue() -> void:
 func _show_venue_dialogue() -> void:
 	if venue_selected_id == "lantern_cup" and interiors.call("is_inside"):
 		interiors.call("set_mara_attention", true)
-	ambient_caption.call("clear")
+	if is_instance_valid(ambient_caption):
+		ambient_caption.call("clear")
 	venue_panel.visible = true
 	player.set("input_blocked", true)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
