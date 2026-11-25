@@ -525,6 +525,19 @@ func _verify() -> void:
 			if not menu.call("get_buttons").has("interview_back"):
 				_fail("Employee reply and return option missing")
 				return
+			menu.call("_choice","interview_back")
+			menu.call("_choice","interview_0")
+			if (menu.get("_investigation_notes") as Dictionary).size()!=level:
+				_fail("Repeated interviews must not duplicate private notes")
+				return
+			menu.call("_choice","notes_open")
+			if menu.get("screen")!="investigation_notes" or not menu.call("get_buttons").has("notes_back"):
+				_fail("Interview notes can be reviewed from the conversation")
+				return
+			menu.call("_choice","notes_back")
+			if menu.get("screen")!="staff_interview":
+				_fail("Notebook returns to the originating conversation")
+				return
 			menu.call("_choice","interview_leave")
 			if menu.call("is_open") or int(menu.get("_opening_stage"))!=before_stage or int(office.call("objective_stage",0))!=-2:
 				_fail("Optional interviews cannot advance the mission or strand gameplay")
