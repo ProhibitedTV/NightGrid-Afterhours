@@ -36,3 +36,7 @@ The two new close views use the actual four-bus/25-car fleet rather than a separ
 ## Historical 33-frame development gallery
 
 [Browse the archived November 21 capture set](archive-20261121/GALLERY.md). This preserves the original images and manifest from PR #127 without replacing the current nine-frame, native Windows, or skybox showcases. Visual acceptance is pending; the archive is not a capture of current main. The expanded capture automation remains separate from this documentation-only port.
+
+## Historical road and wheel comparison
+
+[View nine original matched-camera frames](road-wheel-comparison/GALLERY.md) preserved from PR #122. This historical Mesa comparison is separate from the current baseline, 33-frame archive, and native Windows captures. It does not demonstrate the performance of the later integrated MultiMesh implementation.
