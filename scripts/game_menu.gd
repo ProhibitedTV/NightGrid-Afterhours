@@ -418,6 +418,9 @@ func _render() -> void:
 			_button(col,"music_desk_buy","BUY POCKETBEAT M3 / $40","music_desk_buy",not bool(_music_desk.get("owned",false)) and int(_music_desk.get("cash",0))>=Instruments.price(Instruments.STARTER))
 			_button(col,"music_desk_practice","PRACTICE OWNED SAMPLER","music_desk_practice",bool(_music_desk.get("owned",false)))
 			_button(col,"music_desk_owned","PERSONAL SET / $14 +4 STREET CRED","music_desk_owned",bool(_music_desk.get("owned_set",false)))
+			_label(col,str(_music_desk.get("band","")),16,Ui.TEXT)
+			if bool(_music_desk.get("recruit_rhea",false)):
+				_button(col,"music_desk_recruit","INVITE RHEA VALE / BASS","music_desk_recruit")
 			_button(col,"music_desk_leave","LEAVE","music_desk_leave")
 		"blue_hour_set":
 			_render_rhythm(col)
@@ -1005,7 +1008,7 @@ func _choice(action: String) -> void:
 				action_requested.emit("begin_opening")
 			else:
 				hide_for_game()
-		"music_desk_buy","music_desk_busk","music_desk_practice","music_desk_owned":
+		"music_desk_buy","music_desk_busk","music_desk_practice","music_desk_owned","music_desk_recruit":
 			if screen=="music_desk":
 				action_requested.emit(action)
 		"music_desk_leave":

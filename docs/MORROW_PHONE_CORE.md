@@ -10,3 +10,6 @@ Workboard lists two optional one-time diagnosis contracts at Crane & Gear and Gr
 
 ## The Paper City
 After either technical consulting contract, a four-stage evidence investigation opens at Harbor Reading Room, Southworks Records and Dock Watch. Workboard routes to the current lead and the journal tracks progress. The final choice distinguishes documented inconsistencies from unsupported accusations. The existing ledger pays once; a bounded optional save stage is validated against prerequisites and completion receipt. Legacy saves remain valid.
+
+## Band recruitment
+After buying and practicing the PocketBeat M3 three times and completing a legitimate Blue Hour opening set, invite Rhea Vale at Copper Cup's music desk and Milo Static at Dock Nine's staffed counter. Both choices cost nothing and award no cash or cred. The bounded roster lives in the existing progression ledger and the Music app reports collaborators. Older saves default to no recruits. Rehearsals, instrument-specific band performance, naming and merchandise remain later slices.

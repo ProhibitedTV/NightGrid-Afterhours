@@ -87,5 +87,29 @@ func _initialize()->void:
 	if restored.settle_blue_hour_set(3) or restored.street_activity_runs("live_gig")!=2:
 		quit(1)
 		return
+	var band:=Ledger.new()
+	if band.recruit_band_member("rhea"):
+		quit(1)
+		return
+	band.set_balance(40)
+	band.buy_instrument("pocketbeat_m3")
+	for n in range(1,4):
+		band.complete_sampler_practice(n)
+	band.credit_once("venue:soundcheck_pass",125)
+	band.settle_blue_hour_set(1)
+	var before:=band.balance
+	var cred:=band.street_cred()
+	if not band.recruit_band_member("rhea") or band.recruit_band_member("rhea") or band.recruit_band_member("unknown") or not band.recruit_band_member("milo") or band.balance!=before or band.street_cred()!=cred:
+		quit(1)
+		return
+	var band_copy:=Ledger.new()
+	if not band_copy.restore(before,JSON.parse_string(JSON.stringify(band.snapshot()))) or band_copy.band_recruit_available("milo") or not band_copy.band_summary().begins_with("UNSIGNED TRIO"):
+		quit(1)
+		return
+	var bad:=band.snapshot()
+	bad["band_members"]=["rhea","rhea"]
+	if band_copy.restore(before,bad):
+		quit(1)
+		return
 	print("RHYTHM_REHEARSAL PASS: timing, cancellation, once-only claims, sequence and atomic payout")
 	quit(0)
