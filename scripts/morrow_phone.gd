@@ -10,6 +10,15 @@ const APPS = [
 	{"id":"messages","name":"Messages","mark":"••","color":"b4c9cb"}
 ]
 
+const ICONS = {
+	"work": preload("res://assets/phone/work.svg"),
+	"wallet": preload("res://assets/phone/wallet.svg"),
+	"contacts": preload("res://assets/phone/contacts.svg"),
+	"housing": preload("res://assets/phone/housing.svg"),
+	"transit": preload("res://assets/phone/transit.svg"),
+	"messages": preload("res://assets/phone/messages.svg")
+}
+
 static func app(id: String) -> Dictionary:
 	for entry in APPS:
 		if entry["id"] == id:

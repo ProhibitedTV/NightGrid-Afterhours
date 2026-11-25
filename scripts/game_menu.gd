@@ -580,7 +580,12 @@ func _render_phone(col: VBoxContainer) -> void:
 			var id: String = entry["id"]
 			var app_button := Button.new()
 			app_button.name = "Menu_phone_app_" + id
-			app_button.text = "%s\n%s" % [entry["mark"],entry["name"]]
+			app_button.text = str(entry["name"])
+			app_button.icon = Phone.ICONS[id]
+			app_button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			app_button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+			app_button.expand_icon = true
+			app_button.add_theme_constant_override("icon_max_width",42)
 			app_button.custom_minimum_size = Vector2(0,100)
 			app_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			app_button.add_theme_font_size_override("font_size",20)
