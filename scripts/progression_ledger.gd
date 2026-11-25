@@ -227,6 +227,15 @@ func street_activity_runs(source:String)->int:
 func settle_street_activity(source:String,sequence:int)->bool:
 	return _street_cred.settle_run(source,sequence)
 
+## Atomic, catalog-priced repeatable set settlement. No caller-selected cash.
+func settle_blue_hour_set(sequence:int)->bool:
+	if not has_receipt("venue:soundcheck_pass") or balance>MAX_CASH-45:
+		return false
+	if not _street_cred.settle_run("live_gig",sequence):
+		return false
+	balance+=45
+	return true
+
 func snapshot() -> Dictionary:
 	var ids: Array = _receipts.keys()
 	ids.sort()

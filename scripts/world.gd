@@ -443,6 +443,14 @@ func _on_menu_action(action: String) -> void:
 			if not _street_contact_id.is_empty():
 				_cal_pending={"id":_street_contact_id,"action":action}
 			_street_contact_id=""
+		"rhythm_claim":
+			var sequence:int=game_menu.call("consume_blue_hour_result")
+			if sequence>0 and _blue_hour_set_reachable() and progression.settle_blue_hour_set(sequence):
+				_notify("BLUE HOUR / SET COMPLETE +$45 • +12 STREET CRED")
+			else:
+				_notify("BLUE HOUR / Set not settled.")
+		"rhythm_cancel":
+			_notify("BLUE HOUR / Set ended. No reward.")
 		"music_waypoint":
 			if progression.street_cred()>=100 and not progression.has_receipt("venue:soundcheck_pass"):
 				var point:Vector3=venue_system.call("venue_position","blue_hour" if venue_job_active=="soundcheck_pass" else "static_room")
@@ -3079,8 +3087,10 @@ func _update_venue_panel() -> void:
 		venue_job_button.disabled = not open_now or not available
 		venue_job_button.text = "2 / X  •  SIDE JOB"
 	if venue_talk_button != null:
-		venue_talk_button.visible = is_mara
-		venue_talk_button.disabled = not is_mara
+		var music_set:=venue_selected_id=="blue_hour" and progression.has_receipt("venue:soundcheck_pass")
+		venue_talk_button.visible = is_mara or music_set
+		venue_talk_button.disabled = not is_mara and not (music_set and open_now and _blue_hour_set_reachable())
+		venue_talk_button.text="3 / Y  •  PLAY OPENING SET" if music_set else "3 / Y  •  TALK TO MARA"
 
 func _mara_context() -> Dictionary:
 	return {
@@ -3235,6 +3245,11 @@ func _venue_action(option: int) -> void:
 		return
 	# Dialogue is no-cost and remains accessible even near closing time.
 	if option == 3:
+		if venue_selected_id=="blue_hour" and _blue_hour_set_reachable():
+			var sequence:=progression.street_activity_runs("live_gig")+1
+			_close_venue()
+			game_menu.call("open_blue_hour_set",sequence)
+			return
 		if venue_selected_id == "lantern_cup" and interiors.call("is_inside"):
 			var response: Dictionary = interiors.call("mara_talk", _mara_context())
 			if not response.is_empty():
@@ -4047,7 +4062,7 @@ func _update_cal_navigation(delta:float)->void:
 
 func _music_contact_status()->String:
 	if progression.has_receipt("venue:soundcheck_pass"):
-		return "UNDERGROUND / Rae at Blue Hour knows your name. Introduction complete."
+		return "UNDERGROUND / Rae at Blue Hour: Opening sets available • %d completed"%progression.street_activity_runs("live_gig")
 	if venue_job_active=="soundcheck_pass":
 		return "UNDERGROUND / Deliver Nyx's demo to Blue Hour."
 	if progression.street_cred()>=100:
@@ -4062,3 +4077,11 @@ func _play_music_contact_cue(id:String,beat:String)->void:
 	# bounded nonspatial voice channel rather than inventing a world speaker.
 	dialogue_director.call("cancel_scope","venue:music_contact")
 	dialogue_director.call("enqueue",str(cue["id"]),str(cue["text"]),DialogueDirector.STORY,null,"venue:music_contact")
+
+func _blue_hour_set_reachable()->bool:
+	if not progression.has_receipt("venue:soundcheck_pass") or not is_instance_valid(player) or current_car!=null or current_transit!=null or weapons.equipped!="holstered" or not venue_system.call("is_open","blue_hour"):
+		return false
+	if interiors.call("is_inside"):
+		return str(interiors.call("active_site_id"))=="blue_hour" and bool(interiors.call("counter_reachable",player.global_position))
+	var point:Vector3=venue_system.call("venue_position","blue_hour")
+	return player.global_position.distance_to(point)<=5.5

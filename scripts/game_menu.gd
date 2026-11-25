@@ -3,6 +3,14 @@ const AudioMix = preload("res://scripts/audio_mix.gd")
 const MinimapScript = preload("res://scripts/minimap.gd")
 const CityFoley = preload("res://scripts/city_foley.gd")
 const Ui = preload("res://scripts/ui_style.gd")
+const Rhythm=preload("res://scripts/rhythm_rehearsal.gd")
+var _rhythm=Rhythm.new()
+var _rhythm_sequence:=0
+var _rhythm_status:Label
+var _rhythm_meter:ProgressBar
+var _rhythm_claim:Button
+var _rhythm_player:AudioStreamPlayer
+const PAD_CLIPS=[preload("res://assets/audio/rehearsal/kick.wav"),preload("res://assets/audio/rehearsal/clap.wav"),preload("res://assets/audio/rehearsal/hat.wav")]
 const Opening = preload("res://scripts/opening_story.gd")
 const SynaxisBrand = preload("res://scripts/synaxis_brand.gd")
 ## Keyboard/mouse/controller-friendly menu layer. It remains interactive while
@@ -80,6 +88,11 @@ func _ready() -> void:
 	_ui_click.stream = CityFoley.sound("UI")
 	_ui_click.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(_ui_click)
+	_rhythm_player=AudioStreamPlayer.new()
+	_rhythm_player.bus=AudioMix.MUSIC
+	_rhythm_player.process_mode=Node.PROCESS_MODE_ALWAYS
+	_rhythm_player.volume_db=-8.0
+	add_child(_rhythm_player)
 	visible = false
 
 func set_world_node(world: Node3D) -> void:
@@ -163,6 +176,9 @@ func confirm_new_game() -> void:
 	_open("confirm_new")
 
 func hide_for_game() -> void:
+	if screen=="blue_hour_set":
+		_rhythm_player.stop()
+		_rhythm.cancel()
 	screen = "hidden"
 	visible = false
 	get_tree().paused = false
@@ -205,6 +221,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				_choice("guard_leave")
 			"street_contact":
 				_choice("street_leave")
+			"blue_hour_set":
+				_choice("rhythm_cancel")
 			_:
 				pass
 		get_viewport().set_input_as_handled()
@@ -306,6 +324,8 @@ func _render() -> void:
 			_title(col,"AIR QUALITY INCIDENT" if _restroom_id==Restrooms.MEN else "FACILITIES / REQUIRED TRAINING",23,Ui.AMBER)
 			_label(col,Restrooms.MEN_DIALOGUE if _restroom_id==Restrooms.MEN else Restrooms.WOMEN_DIALOGUE,16,Ui.TEXT)
 			_button(col,"restroom_leave","BACK TO WORK","restroom_leave")
+		"blue_hour_set":
+			_render_rhythm(col)
 		"street_contact":
 			_title(col,str(_street_contact["name"]).to_upper(),23,Ui.AMBER)
 			_label(col,str(_street_contact["role"]),16,Ui.MUTED)
@@ -659,6 +679,17 @@ func _choice(action: String) -> void:
 				action_requested.emit("begin_opening")
 			else:
 				hide_for_game()
+		"rhythm_pad_0","rhythm_pad_1","rhythm_pad_2":
+			if screen=="blue_hour_set":
+				_rhythm_strike(int(action.right(1)))
+		"rhythm_claim":
+			if screen=="blue_hour_set" and _rhythm.passed():
+				action_requested.emit("rhythm_claim")
+				hide_for_game()
+		"rhythm_cancel":
+			if screen=="blue_hour_set":
+				hide_for_game()
+				action_requested.emit("rhythm_cancel")
 		"street_reply_0","street_reply_1","street_leave","cal_accept","cal_complete":
 			if screen=="street_contact":
 				_street_contact={}
@@ -752,3 +783,72 @@ func _choice(action: String) -> void:
 			open_title()
 		"quit":
 			get_tree().quit()
+
+func open_blue_hour_set(sequence:int)->void:
+	_rhythm_sequence=sequence
+	_rhythm.start(sequence)
+	_open("blue_hour_set")
+
+func consume_blue_hour_result()->int:
+	if screen=="blue_hour_set" and _rhythm.claim():
+		return _rhythm_sequence
+	return 0
+
+func _render_rhythm(col:VBoxContainer)->void:
+	_title(col,"BLUE HOUR / OPENING SET",24,Ui.AMBER)
+	_label(col,"Borrow Rae's three-pad sampler. Hit the indicated pad in the timing window. 9 of 12 required.",16,Ui.TEXT)
+	_label(col,"1 / A: kick   2 / X: clap   3 / Y: hat",16,Ui.MUTED)
+	_rhythm_status=Label.new()
+	_rhythm_status.add_theme_font_size_override("font_size",22)
+	col.add_child(_rhythm_status)
+	_rhythm_meter=ProgressBar.new()
+	_rhythm_meter.max_value=1.0
+	_rhythm_meter.show_percentage=false
+	col.add_child(_rhythm_meter)
+	for lane in range(3):
+		var key:="rhythm_pad_%d"%lane
+		_button(col,key,["1 / A  KICK","2 / X  CLAP","3 / Y  HI-HAT"][lane],key)
+	_button(col,"rhythm_claim","COLLECT $45 / +12 STREET CRED","rhythm_claim",false)
+	_rhythm_claim=_buttons["rhythm_claim"]
+	_button(col,"rhythm_cancel","LEAVE SET","rhythm_cancel")
+	_refresh_rhythm()
+
+func _process(delta:float)->void:
+	if screen!="blue_hour_set":
+		return
+	_rhythm.advance(delta)
+	_refresh_rhythm()
+
+func _input(event:InputEvent)->void:
+	if screen!="blue_hour_set" or _rhythm.finished or not event.is_pressed() or event.is_echo():
+		return
+	for lane in range(3):
+		if event.is_action_pressed(["service_one","service_two","service_three"][lane]):
+			_rhythm_strike(lane)
+			get_viewport().set_input_as_handled()
+			return
+
+func _rhythm_strike(lane:int)->void:
+	if _rhythm.finished:
+		return
+	_rhythm_player.stream=PAD_CLIPS[lane]
+	_rhythm_player.play()
+	_rhythm.strike(lane)
+	_refresh_rhythm()
+
+func _refresh_rhythm()->void:
+	if not is_instance_valid(_rhythm_status) or not is_instance_valid(_rhythm_meter) or not is_instance_valid(_rhythm_claim):
+		return
+	if _rhythm.finished:
+		_rhythm_status.text="%s / %d of 12 correct"%["SET COMPLETE" if _rhythm.passed() else "TRY ANOTHER SET",_rhythm.hits]
+		_rhythm_meter.value=0.0
+		_rhythm_claim.disabled=not _rhythm.passed()
+		if _rhythm.passed() and not _rhythm_claim.has_focus():
+			_rhythm_claim.grab_focus()
+		return
+	var remaining:=_rhythm.target_time()-_rhythm.elapsed
+	var lane:int=_rhythm.pattern[_rhythm.index]
+	var window:=absf(remaining)<=Rhythm.WINDOW
+	_rhythm_status.text="%s / %s / %d of 12  •  %d hits"%[["KICK","CLAP","HI-HAT"][lane],"HIT NOW" if window else "READY %.1fs"%maxf(0.0,remaining),_rhythm.index+1,_rhythm.hits]
+	_rhythm_status.modulate=Ui.ACCENT if window else Ui.TEXT
+	_rhythm_meter.value=clampf(1.0-maxf(0.0,remaining)/Rhythm.BEAT,0.0,1.0)
