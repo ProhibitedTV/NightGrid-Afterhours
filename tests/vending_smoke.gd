@@ -1,5 +1,6 @@
 extends SceneTree
 const Catalog = preload("res://scripts/consumables.gd")
+const Ledger = preload("res://scripts/progression_ledger.gd")
 func _initialize() -> void:
 	call_deferred("_verify")
 func check(ok: bool,label: String) -> bool:
@@ -8,6 +9,24 @@ func check(ok: bool,label: String) -> bool:
 		quit(1)
 	return ok
 func _verify() -> void:
+	var ledger := Ledger.new()
+	if not check(ledger.balance == 0 and ledger.credit(100), "fresh progression wallet"):
+		return
+	if not check(not ledger.spend(101) and not ledger.spend(-1) and ledger.balance == 100, "invalid purchase has no effects"):
+		return
+	if not check(ledger.credit_once("story:night_shift", 50) and not ledger.credit_once("story:night_shift", 50) and ledger.balance == 150, "reward paid once"):
+		return
+	if not check(not ledger.credit_once("story:unpaid", 0) and not ledger.has_receipt("story:unpaid") and not ledger.credit_once("../ invalid", 1), "invalid reward is atomic"):
+		return
+	var encoded: Variant = JSON.parse_string(JSON.stringify(ledger.snapshot()))
+	var restored := Ledger.new()
+	if not check(restored.restore(150.0, encoded) and not restored.credit_once("story:night_shift", 50) and restored.balance == 150, "JSON round trip retains receipts"):
+		return
+	if not check(not restored.restore(1, {"version":1,"receipts":["a","a"]}) and not restored.restore(1, {"version":99,"receipts":[]}) and not restored.restore(1.5, encoded) and restored.balance == 150 and restored.has_receipt("story:night_shift"), "malformed state rejected without mutation"):
+		return
+	restored.set_balance(Ledger.MAX_CASH)
+	if not check(not restored.credit_once("story:overflow", 1) and not restored.has_receipt("story:overflow"), "overflow has no receipt"):
+		return
 	var world := (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	root.add_child(world)
 	await process_frame
@@ -78,17 +97,27 @@ func _verify() -> void:
 	world.call("_toggle_interaction")
 	world.call("_venue_action",1)
 	world.call("_close_venue")
+	var live_ledger = world.get("progression")
+	if not check(live_ledger.credit_once("story:roundtrip", 20), "world uses live ledger"):
+		return
 	var saved: Dictionary = world.call("_capture_snapshot")
+	world.set("cash", 0)
+	live_ledger.restore(0, {"version":1,"receipts":[]})
 	world.set("consumable_inventory",{})
 	player.call("restore_stamina",100.0)
 	world.call("_apply_snapshot",saved)
+	if not check(int(world.get("cash")) == int(saved["cash"]) and live_ledger.has_receipt("story:roundtrip") and not live_ledger.credit_once("story:roundtrip", 20), "world restores single balance and reward receipt"):
+		return
 	if not check(int(world.get("consumable_inventory").get("water",0))==1 and float(player.get("stamina"))==55.0,"inventory and stamina round trip"):
 		return
 	if not check(Catalog.count(Catalog.restore({"water":100,"energy":100,"invalid":999}))==Catalog.MAX_ITEMS,"bounded validated saved inventory"):
 		return
+	saved.erase("progression")
 	saved.erase("stamina")
 	saved.erase("consumables")
 	world.call("_apply_snapshot",saved)
+	if not check(not live_ledger.has_receipt("story:roundtrip") and int(world.get("cash")) == int(saved["cash"]), "pre-ledger saves keep cash and clear receipts"):
+		return
 	if not check(float(player.get("stamina"))==100.0 and Catalog.count(world.get("consumable_inventory"))==0,"legacy saves default safely"):
 		return
 	print("VENDING_SMOKE PASS: stamina, real machine, purchase, consumption, bounded save migration")

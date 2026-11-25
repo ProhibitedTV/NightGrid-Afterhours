@@ -188,7 +188,14 @@ var world_environment: WorldEnvironment
 var sun_light: DirectionalLight3D
 var yaw := 0.0
 var pitch := 0.42
-var cash := 0
+const ProgressionLedger = preload("res://scripts/progression_ledger.gd")
+var progression := ProgressionLedger.new()
+# Keep the existing HUD/test/gameplay cash interface; one live wallet owns it.
+var cash: int:
+	get:
+		return progression.balance
+	set(value):
+		progression.set_balance(value)
 var health := 100.0
 var heat := 0.0
 var deliveries := 0
@@ -1042,11 +1049,13 @@ func _advance_mission() -> void:
 		_set_mission_target(DROPOFFS[deliveries % DROPOFFS.size()], true)
 		_notify("Package secured! Follow the cyan beacon.")
 	else:
+		var payout := 250 + 50 * mini(deliveries, 8)
+		if not progression.credit(payout):
+			_notify("Wallet is full. Spend some cash before delivering.")
+			return
 		carrying = false
 		world_audio.call("play_event", "DELIVERY", _actor().global_position)
 		deliveries += 1
-		var payout := 250 + 50 * mini(deliveries - 1, 8)
-		cash += payout
 		_set_mission_target(PICKUPS[deliveries % PICKUPS.size()], false)
 		_notify("Delivery done! +$%d. Next pickup marked in amber." % payout)
 
@@ -1335,7 +1344,7 @@ func _respawn() -> void:
 	heat = 0.0
 	wanted.reset()
 	_pending_theft = null
-	cash = maxi(0, cash - 100)
+	progression.charge_up_to(100)
 	for officer in officers + returning_units:
 		if is_instance_valid(officer):
 			officer.queue_free()
@@ -1690,7 +1699,7 @@ func _capture_snapshot() -> Dictionary:
 		saved_at = _active_station_lift.call("destination")
 	var state := {
 		"player_position": [saved_at.x, saved_at.y, saved_at.z],
-		"camera_yaw": yaw, "cash": cash, "health": health, "heat": heat,
+		"camera_yaw": yaw, "cash": cash, "progression": progression.snapshot(), "health": health, "heat": heat,
 		"deliveries": deliveries, "carrying": carrying,
 		"hour": day_night.get("hour"), "cars": stored_cars,
 		"occupied_car": cars.find(current_car),
@@ -1723,6 +1732,9 @@ func _capture_snapshot() -> Dictionary:
 	return state
 
 func _apply_snapshot(data: Dictionary) -> void:
+	if not progression.restore(data.get("cash", 0), data.get("progression", {"version": ProgressionLedger.VERSION, "receipts": []})):
+		push_error("Invalid progression snapshot")
+		return
 	_cinder_cockpit = false
 	_cockpit_look = Vector2.ZERO
 	# Geometry is already reconstructed from the saved immutable seed.
@@ -1743,7 +1755,6 @@ func _apply_snapshot(data: Dictionary) -> void:
 	traffic.call("restore", data["traffic"])
 	rail.call("restore", data["rail"])
 	signal_controller.set("elapsed", fposmod(float(data.get("signal_elapsed", 0.0)), 72.0))
-	cash = maxi(0, int(data.get("cash", 0)))
 	health = clampf(float(data.get("health", 100.0)), 1.0, 100.0)
 	heat = clampf(float(data.get("heat", 0.0)), 0.0, 5.0)
 	wanted.reset()
@@ -2080,10 +2091,9 @@ func _repair_nearby_vehicle(price: int) -> void:
 			nearest = distance
 	if selected_car == null:
 		_notify("Park a damaged vehicle near the shop.")
-	elif cash < price:
+	elif not progression.spend(price):
 		_notify("Not enough cash to repair this vehicle.")
 	else:
-		cash -= price
 		selected_car.call("repair")
 		_notify("Vehicle repaired. Roadworthiness restored.")
 
@@ -2160,10 +2170,9 @@ func _civic_action(option: int) -> void:
 				_notify("The warehouse shift board lists work under option [2].")
 				return
 		if purchase:
-			if cash < price:
+			if not progression.spend(price):
 				_notify("Not enough cash; visit a courier pickup or complete a work order.")
 				return
-			cash -= price
 		match kind:
 			"GROCERY":
 				ration_packs += 2
@@ -2200,7 +2209,14 @@ func _civic_action(option: int) -> void:
 				var destination: Dictionary = civic_services.call("site_by_id", str(active["to"]))
 				_notify("Work in progress. Destination: %s" % str(destination["name"]))
 				return
-			cash += int(active["reward"])
+			if civic_job_completed.has(civic_job_active) or progression.has_receipt("civic:" + civic_job_active):
+				civic_job_active = ""
+				_notify("Work order already paid.")
+				_update_civic_panel()
+				return
+			if not progression.credit_once("civic:" + civic_job_active, int(active["reward"])):
+				_notify("Unable to settle work order. Check wallet capacity.")
+				return
 			civic_job_completed.append(civic_job_active)
 			civic_job_active = ""
 			_notify("WORK ORDER COMPLETE +$%d: %s" % [int(active["reward"]), str(active["ending"])])
@@ -2358,10 +2374,9 @@ func _venue_action(option: int) -> void:
 			return
 		var id: String = items[option-1]
 		var item: Dictionary = Consumables.ITEMS[id]
-		if cash < int(item["price"]) or Consumables.count(consumable_inventory) >= Consumables.MAX_ITEMS:
+		if Consumables.count(consumable_inventory) >= Consumables.MAX_ITEMS or not progression.spend(int(item["price"])):
 			_notify("Not enough cash or inventory is full.")
 			return
-		cash -= int(item["price"])
 		consumable_inventory[id] = int(consumable_inventory.get(id,0))+1
 		var facing := _vending_machine.global_position-player.global_position
 		player.get_node("Visual").rotation.y = atan2(facing.x,facing.z)
@@ -2410,10 +2425,9 @@ func _venue_action(option: int) -> void:
 		if cover > 0.0 and heat < 0.01:
 			_notify("No police attention to shake. Enjoy the atmosphere.")
 			return
-		if cash < price:
+		if not progression.spend(price):
 			_notify("Not enough cash for %s. Try a courier or side job." % str(venue["item"]))
 			return
-		cash -= price
 		health = minf(100.0, health + healing)
 		player.call("add_stamina",energy)
 		if energy>0.0:
@@ -2442,7 +2456,14 @@ func _venue_action(option: int) -> void:
 					str(contract["title"]),
 					str(venue_system.call("venue_by_id", str(contract["to"]))["name"])])
 				return
-			cash += int(contract["reward"])
+			if venue_job_completed.has(venue_job_active) or progression.has_receipt("venue:" + venue_job_active):
+				venue_job_active = ""
+				_notify("Side job already paid.")
+				_update_venue_panel()
+				return
+			if not progression.credit_once("venue:" + venue_job_active, int(contract["reward"])):
+				_notify("Unable to settle side job. Check wallet capacity.")
+				return
 			venue_job_completed.append(venue_job_active)
 			venue_job_active = ""
 			_notify("SIDE JOB COMPLETE +$%d: %s" % [int(contract["reward"]), str(contract["ending"])])
