@@ -466,6 +466,7 @@ func _render() -> void:
 				16, Color("bfced5"))
 			_label(col, str(_journal_data.get("civic_job", "No freight work")),
 				16, Color("bfced5"))
+			_label(col,str(_journal_data.get("street_cred","")),16,Ui.AMBER)
 			if not str(_journal_data.get("investigation","")).is_empty():
 				_label(col,str(_journal_data["investigation"]),16,Ui.AMBER)
 			_divider(col)

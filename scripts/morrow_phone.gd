@@ -1,6 +1,7 @@
 extends RefCounted
 ## Read-only presentation model. World actions are dispatched by the existing
 ## menu/world adapter; no duplicated wallet, delivery, property or save state.
+const StreetCred = preload("res://scripts/street_cred.gd")
 const APPS = [
 	{"id":"work","name":"QuotaDrop","mark":"QD","color":"ffbb80"},
 	{"id":"wallet","name":"Wallet","mark":"$","color":"81e0d4"},
@@ -9,7 +10,8 @@ const APPS = [
 	{"id":"transit","name":"Transit","mark":"M","color":"8ebce8"},
 	{"id":"messages","name":"Messages","mark":"••","color":"b4c9cb"},
 	{"id":"opportunities","name":"Workboard","mark":"W","color":"e5ce89"},
-	{"id":"music","name":"Music","mark":"♪","color":"e6a8cf"}
+	{"id":"music","name":"Music","mark":"♪","color":"e6a8cf"},
+	{"id":"cred","name":"Street cred","mark":"★","color":"e9a45e"}
 ]
 
 const ICONS = {
@@ -20,7 +22,8 @@ const ICONS = {
 	"transit": preload("res://assets/phone/transit.svg"),
 	"messages": preload("res://assets/phone/messages.svg"),
 	"opportunities": preload("res://assets/phone/opportunities.svg"),
-	"music": preload("res://assets/phone/music.svg")
+	"music": preload("res://assets/phone/music.svg"),
+	"cred": preload("res://assets/phone/cred.svg")
 }
 
 static func app(id: String) -> Dictionary:
@@ -64,6 +67,15 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 					"action":"phone_route_contract:"+str(listing["id"]),
 					"action_label":str(listing.get("action_label",status))+" · navigate"
 				})
+		"cred":
+			subtitle = "Reputation belongs to the streets, not your wallet."
+			var scores_now: Dictionary = state.get("street_cred",{})
+			for scene in StreetCred.SCENES:
+				var score := int(scores_now.get(scene,0))
+				rows.append({"label":StreetCred.LABELS[scene],"value":"%d / 100 · %s" % [score,StreetCred.rank(score)]})
+			rows.append({"label":"Community perk","value":"10% off café and stall services" if int(scores_now.get("community",0))>=20 else "Earn 20 community cred for local discounts."})
+			rows.append({"label":"Music perk","value":"Blue Hour resident sets available" if state.get("music_encore",false) else "Complete the Blue Hour debut and reach 50 music cred for resident sets."})
+			rows.append({"label":"No decay","value":"Successful performances, local work and investigations build reputation. No daily obligation."})
 		"music":
 			subtitle = "Morrow Bay music scene"
 			rows.append({"label":"Instrument","value":"Used acoustic guitar" if state.get("music_owned",false) else "Copper Strings · Copper Cup counter · $85"})
@@ -91,6 +103,9 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 				actions.append({"label":"Route to Blue Hour","action":"phone_route_music_band"})
 			elif state.get("music_band_done",false):
 				rows.append({"label":"Blue Hour","value":"Band debut completed"})
+			if state.get("music_encore",false):
+				rows.append({"label":"Resident booking","value":"Blue Hour · repeatable $120 set"})
+				actions.append({"label":"Route to resident set","action":"phone_route_music_band"})
 		"wallet":
 			subtitle = "Available funds"
 			rows.append({"label":"Cash on hand","value":"$%d" % int(state.get("cash",0))})

@@ -182,6 +182,7 @@ var investigation := IndependentInvestigation.new()
 var _investigation_open := false
 var _investigation_feedback := ""
 const MusicCareer = preload("res://scripts/music_career.gd")
+const StreetCred = preload("res://scripts/street_cred.gd")
 const BuskerTrack = preload("res://assets/audio/music/busker_demo.wav")
 const BandTrack = preload("res://assets/audio/music/band_demo.wav")
 var music_career := MusicCareer.new()
@@ -723,7 +724,7 @@ func _music_counter_reachable(site: String) -> bool:
 	return venue_panel.visible and venue_selected_id == site and _music_near_spot() == site and venue_system.call("is_open",site)
 
 func _start_music(kind: String, site: String) -> bool:
-	if (kind=="rehearse" and site!=MusicCareer.SHOP) or (kind=="band" and (site!=MusicCareer.BAND_SITE or not venue_system.call("is_open",site))) or (kind=="gig" and (site!=MusicCareer.GIG or not venue_system.call("is_open",site))):
+	if (kind=="rehearse" and site!=MusicCareer.SHOP) or (kind in ["band","encore"] and (site!=MusicCareer.BAND_SITE or not venue_system.call("is_open",site))) or (kind=="gig" and (site!=MusicCareer.GIG or not venue_system.call("is_open",site))):
 		return false
 	if site.is_empty() or _music_near_spot() != site or venue_panel.visible or heat > .01 or carrying or not music_career.start(kind,progression):
 		_notify("Music: need an instrument, safe public spot and no carried order. Rest between sets.")
@@ -739,7 +740,7 @@ func _start_music(kind: String, site: String) -> bool:
 		_music_audio.max_distance = 22.0
 		_music_audio.unit_size = 4.0
 		player.add_child(_music_audio)
-	var source: AudioStreamWAV = BandTrack if kind in ["band","rehearse"] else BuskerTrack
+	var source: AudioStreamWAV = BandTrack if kind in ["band","rehearse","encore"] else BuskerTrack
 	var loop := source.duplicate() as AudioStreamWAV
 	loop.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	loop.loop_begin = 0
@@ -766,13 +767,15 @@ func _tick_music(delta: float) -> void:
 	if not music_career.mode.is_empty() and (_music_near_spot()!=_music_site or heat>.01 or health<=0.0):
 		_stop_music()
 		return
+	var before_cred := _street_cred()
 	var result := music_career.tick(delta,progression)
 	if not result.is_empty():
 		_stop_music()
 		if result["kind"]=="rehearse":
 			_notify("Rehearsal complete. %d / 2 for Blue Hour debut." % music_career.rehearsals)
 		else:
-			_notify("Set complete. +$%d in tips / booking fee." % int(result["amount"]) if result["paid"] else "Set complete. Wallet cannot accept payment.")
+			var gain := int(_street_cred()["music"])-int(before_cred["music"])
+			_notify("Set complete. +$%d / +%d music cred." % [int(result["amount"]),gain] if result["paid"] else "Set complete. Wallet cannot accept payment.")
 
 func _music_contacts_context() -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
@@ -782,6 +785,9 @@ func _music_contacts_context() -> Array[Dictionary]:
 		var entry: Dictionary = MusicCareer.MEMBERS[id]
 		result.append({"id":id,"name":entry["name"],"role":entry["role"],"site":venue_system.call("venue_by_id",entry["site"])["name"],"line":entry["line"],"joined":music_career.members.has(id),"near":not interiors.call("is_inside") and venue_system.call("music_contact_near",id,player.global_position)})
 	return result
+
+func _street_cred() -> Dictionary:
+	return StreetCred.scores(progression,music_career)
 
 func _phone_context() -> Dictionary:
 	var transit := _phone_transit()
@@ -795,7 +801,7 @@ func _phone_context() -> Dictionary:
 		"cash":cash, "bitcoin_sats":progression.bitcoin_sats, "story":story_mission.journal(),
 		"home_owned":progression.owns_home(), "home_access":progression.has_receipt(StarterHome.ACCESS_RECEIPT),
 		"deposit":StarterHome.move_in_price(), "notice":Opening.app_notice(deliveries),
-		"workboard":_phone_workboard(), "music_owned":music_career.owned, "music_sets":music_career.completed_sets,
+		"street_cred":_street_cred(),"music_encore":music_career.can_encore(progression),"workboard":_phone_workboard(), "music_owned":music_career.owned, "music_sets":music_career.completed_sets,
 		"music_near":not _music_near_spot().is_empty(), "music_gig":music_career.can_gig(progression), "music_cooldown":music_career.cooldown>0.0,
 		"music_contacts":_music_contacts_context(),"music_rehearsals":music_career.rehearsals,"music_band_ready":music_career.band_ready(),"music_rehearsal_near":_music_near_spot()==MusicCareer.SHOP,"music_band_gig":music_career.can_band_gig(progression),"music_band_done":progression.has_receipt(MusicCareer.BAND_RECEIPT),
 		"rail_available":rail_point.is_finite(), "bus_available":bus_point.is_finite(),
@@ -887,6 +893,7 @@ func _journal_context() -> Dictionary:
 		"venue_job": _venue_job_text(),
 		"civic_job": _civic_job_text(),
 		"investigation": investigation.journal(progression),
+		"street_cred":StreetCred.summary(_street_cred()),
 		"cash": cash, "health": health, "heat": heat,
 		"owned_vehicles": _owned_vehicle_text(),
 		"home_owned": progression.owns_home(),
@@ -3429,13 +3436,20 @@ func _update_venue_panel() -> void:
 	var body := "%s | %s | %s (%s)\n%s: %s\n" % [
 		str(venue["name"]), str(venue["kind"]), status, hours_text,
 		str(venue["host"]), str(venue["flavor"])]
+	var cred := _street_cred()
+	if venue_selected_id in MusicCareer.SPOTS and int(cred["music"])>=20:
+		body += "\n%s: Good to see a familiar face from the local music scene." % str(venue["host"])
+	if venue_selected_id in ["ink_tonic","static_room","afterimage"] and int(cred["underground"])>=20:
+		body += "\nWord travels. People here respect independent work."
+	if str(venue["kind"]) in ["CAFE","STALL"] and int(cred["community"])>=20:
+		body += "\nNeighborhood regular: 10%% service discount."
 	var is_mara := venue_selected_id == "lantern_cup" and bool(interiors.call("is_inside"))
 	if is_mara:
 		var introduction := str(interiors.call("mara_greeting", _mara_context()))
 		body += "\n" + (mara_dialogue_line if not mara_dialogue_line.is_empty() else introduction)
 		body += "\n[3 / Y] TALK TO MARA"
 	if open_now:
-		body += "[1 / A] %s  $%d   " % [str(venue["item"]), int(venue["price"])]
+		body += "[1 / A] %s  $%d   " % [str(venue["item"]), _venue_service_price(venue)]
 		if venue_job_active.is_empty():
 			var offer: Dictionary = venue_system.call("job_from", venue_selected_id)
 			if not offer.is_empty() and not venue_job_completed.has(str(offer["id"])):
@@ -3473,6 +3487,14 @@ func _update_venue_panel() -> void:
 			venue_talk_button.show()
 			venue_talk_button.disabled = not open_now
 			venue_talk_button.text = "3 / Y  •  BAND DEBUT $%d" % MusicCareer.BAND_PAY
+		elif venue_selected_id == MusicCareer.BAND_SITE and music_career.can_encore(progression):
+			venue_talk_button.show()
+			venue_talk_button.disabled = not open_now or music_career.cooldown>0.0
+			venue_talk_button.text = "3 / Y  •  RESIDENT SET $%d" % MusicCareer.ENCORE_PAY
+
+func _venue_service_price(venue: Dictionary) -> int:
+	var price := int(venue["price"])
+	return StreetCred.community_price(price,_street_cred()) if str(venue["kind"]) in ["CAFE","STALL"] else price
 
 func _mara_context() -> Dictionary:
 	return {
@@ -3638,6 +3660,10 @@ func _venue_action(option: int) -> void:
 		_close_venue()
 		_start_music("band",MusicCareer.BAND_SITE)
 		return
+	if option == 3 and venue_selected_id == MusicCareer.BAND_SITE and music_career.can_encore(progression) and _music_counter_reachable(MusicCareer.BAND_SITE):
+		_close_venue()
+		_start_music("encore",MusicCareer.BAND_SITE)
+		return
 	# Dialogue is no-cost and remains accessible even near closing time.
 	if option == 3:
 		if venue_selected_id == "lantern_cup" and interiors.call("is_inside"):
@@ -3662,7 +3688,7 @@ func _venue_action(option: int) -> void:
 		_update_venue_panel()
 		return
 	if option == 1:
-		var price := int(venue["price"])
+		var price := _venue_service_price(venue)
 		var service: Dictionary = venue_system.call("service_effect", str(venue["kind"]))
 		var healing := float(service.get("heal", 0.0))
 		var cover := float(service.get("heat", 0.0))

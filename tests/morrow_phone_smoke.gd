@@ -301,10 +301,30 @@ func _verify() -> void:
 	if world.get("cash")!=band_cash+240 or career.can_band_gig(wallet) or not wallet.has_receipt("music:blue_hour_debut"):
 		_fail("Band debut must settle once")
 		return
+	var cred: Dictionary = world.call("_street_cred")
+	if cred["music"]!=55 or cred["community"]!=12 or cred["underground"]!=40 or not career.can_encore(wallet):
+		_fail("Cred must derive from successful performances, technical work and investigation")
+		return
+	for tick in range(60):
+		world.call("_tick_music",.25)
+	world.call("_toggle_venue")
+	world.call("_venue_action",3)
+	if career.mode!="encore":
+		_fail("Respected musicians must unlock repeatable resident set")
+		return
+	for tick in range(240):
+		world.call("_tick_music",.25)
+	if career.encores!=1 or world.call("_street_cred")["music"]!=59 or world.get("cash")!=band_cash+360:
+		_fail("Completed encore must pay and build music cred")
+		return
+	career.restore(career.snapshot())
+	if world.call("_street_cred")["music"]!=59:
+		_fail("Reputation must survive restore")
+		return
 	world.set("current_car",world.get("cars")[0])
 	if world.call("phone_available"):
 		_fail("Phone must not open while driving")
 		return
 	world.set("current_car",null)
-	print("MORROW_PHONE PASS: eight apps, live state, offer rotation, duty gate, workboard, alternate contact progression, physical diagnostics, staged investigation, music career, band progression, instrument pose and driving gate")
+	print("MORROW_PHONE PASS: nine apps, live state, offer rotation, duty gate, workboard, alternate contact progression, physical diagnostics, staged investigation, music career, band progression, instrument pose, scene cred and resident booking and driving gate")
 	quit(0)
