@@ -31,6 +31,7 @@ var _exchange_result:=""
 var _exchange_elapsed:=0.0
 var _exchange_check:=0.0
 var _exchange_gap:=0.0
+var _street_dialogue:WeakRef
 const EXCHANGE_SCOPE="street:exchange"
 
 func configure(city: Node, seed_value: int, links: Array[Dictionary], approved_visual: PackedScene,
@@ -191,6 +192,15 @@ func stats() -> Dictionary:
 
 ## For level destruction or explicit transition only, not ordinary streaming.
 func shutdown() -> void:
+	if _street_dialogue!=null:
+		var speech:=_street_dialogue.get_ref() as Node
+		if is_instance_valid(speech):
+			if not _exchange.is_empty():
+				_end_exchange(speech)
+			if not _street_lease.is_empty():
+				speech.call("cancel_scope","street:"+_street_lease)
+	_street_dialogue=null
+	_street_lease=""
 	_running = false
 	if is_instance_valid(_pool):
 		_pool.call("disable_all")
@@ -207,6 +217,7 @@ func _exit_tree() -> void:
 func update_street_dialogue(dialogue:Node, listener:Vector3, listener_rid:RID, allowed:bool, delta:float) -> void:
 	if not _running or not is_instance_valid(dialogue):
 		return
+	_street_dialogue=weakref(dialogue)
 	if not dialogue.is_connected("line_ended",_on_street_line_ended):
 		dialogue.connect("line_ended",_on_street_line_ended)
 	if not _exchange.is_empty():
