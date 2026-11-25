@@ -529,6 +529,9 @@ func _opening_interact() -> void:
 			_opening_office.call("dialogue_camera",camera,stage,int(game_menu.get("_briefing_beat")))
 		game_menu.call("open_opening_stage")
 		return
+	if _opening_office.call("terminal_reachable",player.global_position):
+		game_menu.call("open_cubicle_terminal")
+		return
 	# Optional interviews are subordinate to lift, folder, and main objective
 	# interactions, and never mutate the main opening stage or economy.
 	var objective: int = _opening_office.call("objective_stage",stage)
