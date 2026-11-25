@@ -19,7 +19,7 @@ Eight cabinets now have playable screens and deterministic bounded simulation. A
 
 ## Run the pilot
 From repo root: `godot --path . res://scenes/arcade_pilot.tscn`.
-Use left/right arrows or D-pad (all four directions for Patch Day); Enter/A to start, strike, repair or commit a studio week, Escape/B to abandon or return. Default Godot UI mappings provide keyboard/controller support; native controller testing remains required. Escape/B from selection emits exit_requested for a future owner; when running standalone close the window to quit. Best scores last only for the screen instance.
+Use left/right arrows or D-pad (all four directions for Patch Day); Enter/A to start, strike, repair or commit a studio week, Escape/B to abandon or return. Default Godot UI mappings provide keyboard/controller support; native controller testing remains required. Escape/B from selection emits exit_requested for a future owner; when running standalone close the window to quit. Standalone preview scores last only for the screen instance; world play saves personal bests in the normal slot.
 
 Headless: `godot --headless --path . --script res://tests/arcade_smoke.gd`.
 
@@ -41,7 +41,7 @@ Driving cabinet attract: "Seamless open world. Some districts require a separate
 Self-own poster: "AFTERHOURS: early access to your own bad decisions."
 
 ## Integration boundary
-The in-city vertical slice adds INSERT COIN as a fixed legacy-transition venue in block (1,2), west lot. Free practice pauses the world and uses four cabinet-specific screens. Session highs are retained in the world instance only. No wallet debit, persistent score or reward changes. Native placement and controller acceptance remain outstanding.
+The in-city vertical slice adds INSERT COIN as a fixed legacy-transition venue in block (1,2), west lot. Free practice pauses the world and uses four cabinet-specific screens. Personal bests persist in an optional, validated per-save field. Completed results settle immediately; abandoned runs do not. No wallet debit or reward changes. Native placement and controller acceptance remain outstanding.
 
 ## Player-first writing rule
 The games are free practice during this isolated pilot. Celebrate bug reporters, fan artists, friends, speedrunners and players who waited patiently. No real studio allegations or copied assets. Rest is a positive strategic action in Indie Dev, not a punishment.
@@ -50,3 +50,6 @@ The six-cabinet layout preserves the original four positions; two more are near 
 
 ## Complete eight-cabinet lineup
 Open World Checklist uses a 5×3 city grid, three icon types and bounded waves; route planning and full-map bonuses reward exploration efficiency. Battle Pass Hero uses six short command-sequence seasons with three lives; wrong commands reset only the combo and the full game remains free. Two original cabinet skins occupy the rear side positions, preserving entry and central aisle. All eight cabinets now share the same ID catalog and have physical marquee labels. Native readability and frame pacing still require validation.
+
+## Neighborhood leaderboard
+Three fictional authored local rivals per cabinet, plus the player's personal best if earned. Sort descending with established rivals winning ties. Save data uses optional `arcade_best` (eight stable IDs, finite whole scores 0–20000). Legacy saves omit it; invalid values reject the snapshot. No network calls, score history or currency rewards. A new game starts fresh.

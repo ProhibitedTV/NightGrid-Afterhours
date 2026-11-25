@@ -5,20 +5,23 @@ const Round = preload("res://scripts/arcade_round.gd")
 const AltRound = preload("res://scripts/arcade_alt_round.gd")
 const ExtraRound = preload("res://scripts/arcade_extra_round.gd")
 const SeasonRound = preload("res://scripts/arcade_season_round.gd")
+const Scores = preload("res://scripts/arcade_scores.gd")
 signal exit_requested
+signal score_recorded(id: String, value: int)
 var round = Round.new()
 var selection := 0
 var state := "select"
 var elapsed := 0.0
 var best: Dictionary = {}
 var locked_cabinet := ""
+var new_record := false
 
 func configure_cabinet(id: String, previous_best: Dictionary) -> bool:
 	if not Round.IDS.has(id):
 		return false
 	locked_cabinet = id
 	selection = Round.IDS.find(id)
-	best = previous_best.duplicate()
+	best = Scores.normalized(previous_best)
 	return true
 
 func _ready() -> void:
@@ -77,6 +80,7 @@ func _start_round() -> void:
 	if not round.start(id):
 		return
 	state = "play"
+	new_record = false
 	elapsed = 0.0
 	set_process(id != "indie_dev" and id != "day_one_dlc")
 	queue_redraw()
@@ -99,7 +103,9 @@ func _process(delta: float) -> void:
 
 func _finish_if_needed() -> void:
 	if state == "play" and round.finished:
-		best[round.game_id] = maxi(int(best.get(round.game_id, 0)), round.score)
+		new_record = Scores.record(best,round.game_id,round.score)
+		if new_record:
+			score_recorded.emit(round.game_id,round.score)
 		state = "result"
 		set_process(false)
 
@@ -121,12 +127,18 @@ func _draw() -> void:
 	_line(str(info["studio"]) + "  /  " + str(info["tagline"]), Vector2(32, 117), Color("e0e6e9"), 17)
 	if state == "select":
 		_line(str(info["instructions"]), Vector2(32, 190), Color.WHITE, 18)
-		_line("LOCAL BEST  %06d" % int(best.get(id, 0)), Vector2(32, 235), accent, 24)
+		_line("NEIGHBORHOOD LEADERBOARD", Vector2(32, 230), accent, 20)
+		var board: Array = Scores.board(id,best)
+		for i in range(board.size()):
+			var record: Array = board[i]
+			_line("%d.  %s   %06d" % [i+1,record[0],record[1]], Vector2(32+(i%2)*355,257+floori(float(i)/2.0)*27), accent if record[0] == "YOU" else Color.WHITE, 18)
 		_line("<  SELECT CABINET  >  %d / %d" % [selection + 1, Round.IDS.size()] if locked_cabinet.is_empty() else "FREE PRACTICE / NO SERVER REQUIRED", Vector2(32, 325), accent, 22)
 		_line("ENTER / A  PLAY     ESC / B  EXIT", Vector2(32, 428), Color.WHITE, 18)
 	elif state == "result":
 		_line("CREDITS ROLL" if round.result()["cleared"] else "GAME OVER", Vector2(32, 195), accent, 34)
 		_line("SCORE  %06d  /  BEST  %06d" % [round.score, int(best.get(id, 0))], Vector2(32, 245), Color.WHITE, 24)
+		if new_record:
+			_line("NEW PERSONAL BEST!", Vector2(32, 275), accent, 19)
 		var joke := "Next-gen features sold separately." if id == "grand_delay" else "Your combat performance is pending stakeholder approval."
 		if round is AltRound or round is ExtraRound or round is SeasonRound:
 			joke = round.feedback

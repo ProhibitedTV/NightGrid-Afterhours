@@ -173,6 +173,7 @@ var game_menu: CanvasLayer
 var _arcade_layer: CanvasLayer
 var _arcade_best: Dictionary = {}
 const ArcadeScreen = preload("res://scenes/arcade_pilot.tscn")
+const ArcadeScores = preload("res://scripts/arcade_scores.gd")
 var nightgrid_fm: Node
 var world_audio: Node
 var frame_time_recorder = FrameTimeRecorder.new()
@@ -2036,7 +2037,7 @@ func _capture_snapshot() -> Dictionary:
 		"civic_job_active": civic_job_active, "civic_job_completed": civic_job_completed.duplicate(),
 		"civic_intel": civic_intel.duplicate(), "ration_packs": ration_packs,
 		"consumables": consumable_inventory.duplicate(), "stamina": player.get("stamina"),
-		"interior": interiors.call("snapshot"),
+		"interior": interiors.call("snapshot"), "arcade_best": _arcade_best.duplicate(),
 		"navigation_waypoint": [] if navigation_waypoint == null else [navigation_waypoint.x, navigation_waypoint.y],
 		"weapons": weapons.snapshot(),
 		"ambient_civic": ambient_civic.snapshot(),
@@ -2057,12 +2058,14 @@ func _capture_snapshot() -> Dictionary:
 	return state
 
 func _apply_snapshot(data: Dictionary) -> void:
+	_close_arcade()
 	_cancel_street_interactions()
 	if is_instance_valid(dialogue_director):
 		dialogue_director.call("cancel_all")
 	if not progression.restore(data.get("cash", 0), data.get("progression", {"version": ProgressionLedger.VERSION, "receipts": []})):
 		push_error("Invalid progression snapshot")
 		return
+	_arcade_best = ArcadeScores.normalized(data.get("arcade_best", {}))
 	var saved_visual: Node3D = player.get("visual")
 	if is_instance_valid(saved_visual):
 		saved_visual.call("set_outfit",progression.outfit_id)
@@ -2238,6 +2241,7 @@ func _open_arcade(id: String) -> bool:
 	add_child(_arcade_layer)
 	_arcade_layer.add_child(screen)
 	screen.connect("exit_requested", _close_arcade)
+	screen.connect("score_recorded", _record_arcade_score)
 	suspend_weapon()
 	player.set("input_blocked", true)
 	player.velocity = Vector3.ZERO
@@ -2245,11 +2249,13 @@ func _open_arcade(id: String) -> bool:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	return true
 
+func _record_arcade_score(id: String, value: int) -> void:
+	ArcadeScores.record(_arcade_best,id,value)
+
 func _close_arcade() -> void:
 	if not is_instance_valid(_arcade_layer):
 		return
-	var screen := _arcade_layer.get_child(0)
-	_arcade_best = screen.get("best").duplicate()
+	# Completed results are recorded immediately; abandoned rounds do not settle.
 	_arcade_layer.hide()
 	_arcade_layer.process_mode = Node.PROCESS_MODE_DISABLED
 	_arcade_layer.queue_free()
