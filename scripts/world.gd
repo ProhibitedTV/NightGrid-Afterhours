@@ -74,6 +74,8 @@ var _storage_upgrade_quote := false
 var _wardrobe_panel := false
 var _clothing_retail := false
 var _retail_id:=""
+var _retail_stock:Array=[]
+var _retail_day:=0
 var _fitting_yaw:=0.0
 var _fitting_rotation:=0.0
 var _fitting_zoom:=0.0
@@ -2044,7 +2046,7 @@ func _capture_snapshot() -> Dictionary:
 		"player_position": [saved_at.x, saved_at.y, saved_at.z],
 		"camera_yaw": yaw, "cash": cash, "progression": progression.snapshot(), "health": health, "heat": heat,
 		"deliveries": deliveries, "carrying": carrying, "story_mission": story_mission.snapshot(),
-		"hour": day_night.get("hour"), "cars": stored_cars,
+		"hour": day_night.get("hour"), "day_index":day_night.get("day_index"), "cars": stored_cars,
 		"occupied_car": cars.find(current_car),
 		"traffic": traffic.call("snapshot"), "rail": rail.call("snapshot"),
 		"signal_elapsed": signal_controller.get("elapsed"),
@@ -2150,6 +2152,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 		elif saved_transit == "TRAIN":
 			_board_transit(rail.get_node("MorrowLineTrain"), "TRAIN", false)
 			_rail_platform_rider = bool(data.get("rail_platform_rider", false))
+	day_night.set("day_index",int(data.get("day_index",0)))
 	day_night.call("set_hour", float(data.get("hour", 19.25)))
 	venue_system.call("set_hour", float(day_night.get("hour")))
 	civic_services.call("set_hour", float(day_night.get("hour")))
@@ -2390,13 +2393,15 @@ func _toggle_interaction() -> void:
 		if physical_lot.call("clothing_reachable",player.global_position):
 			_clothing_retail=true
 			_retail_id=str(physical_lot.get("clothing_store_id"))
+			_retail_day=int(day_night.get("day_index"))
+			_retail_stock=ClothingStore.stock_for_day(_retail_id,_retail_day)
 			_fitting_yaw=player.get_node("Visual").rotation.y
 			_fitting_rotation=0.0
 			_fitting_zoom=0.0
 			_fitting_compare=false
 			_wardrobe_category="ALL"
 			_wardrobe_panel=true
-			_wardrobe_index=Wardrobe.browse_ids().find(progression.outfit_id if ClothingStore.carries(_retail_id,progression.outfit_id) else "dispatch")
+			_wardrobe_index=Wardrobe.browse_ids().find(progression.outfit_id if progression.outfit_id in _retail_stock else "dispatch")
 			var greeting:String=physical_lot.call("clothing_greeting")
 			if not greeting.is_empty():
 				_notify(greeting)
@@ -2896,6 +2901,7 @@ func _close_venue() -> void:
 	_wardrobe_panel = false
 	_clothing_retail=false
 	_retail_id=""
+	_retail_stock.clear()
 	_fitting_compare=false
 	_wardrobe_category="ALL"
 	_look_index=0
@@ -2929,7 +2935,7 @@ func _wardrobe_visible_ids() -> Array:
 				result.append(id)
 			continue
 		if _clothing_retail:
-			if ClothingStore.carries(_retail_id,id):
+			if id in _retail_stock or id in Wardrobe.RESET_IDS:
 				result.append(id)
 		elif id not in ClothingStore.EXCLUSIVE or _clothing_owned(id):
 			result.append(id)
@@ -3080,7 +3086,7 @@ func _update_venue_panel() -> void:
 		if _clothing_retail:
 			preview_ok=bool(player.get_node("Visual").call("set_look",progression.outfit_id,progression.clothing_slots)) if _fitting_compare else _preview_clothing(id)
 		_wardrobe_controls.show()
-		_wardrobe_category_label.text=_wardrobe_category+"  /  "+str(visible_index+1)+" of "+str(visible_ids.size())
+		_wardrobe_category_label.text=_wardrobe_category+"  /  "+str(visible_index+1)+" of "+str(visible_ids.size())+("  •  DROP "+str(_retail_day%3+1) if _retail_id==ClothingStore.THRIFT else "")
 		_wardrobe_compare_button.visible=_clothing_retail
 		_wardrobe_compare_button.text="R / ↓  PREVIEW" if _fitting_compare else "R / ↓  COMPARE"
 		for button in _wardrobe_controls.get_children():

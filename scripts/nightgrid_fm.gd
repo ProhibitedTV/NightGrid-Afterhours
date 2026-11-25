@@ -46,6 +46,7 @@ const PLAYLISTS = {
 	"retail_vesper": ["save_point","phosphor_ghosts","memory_address"],
 	"retail_nocturne": ["null_district","packet_loss","rasterburn"],
 	"retail_obscura": ["phosphor_ghosts","carrier_signal","neon_checksum"],
+	"retail_thrift": ["rasterburn","blackout_bonus_round","the_coin_slot_is_taped","high_score_with_no_name"],
 	"stall": ["door_on_the_spin_cycle", "midnight_bus", "carrier_signal",
 		"second_controller", "the_coin_slot_is_taped"]
 }

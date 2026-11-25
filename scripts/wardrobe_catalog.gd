@@ -3,7 +3,7 @@ extends RefCounted
 ## No new body, geometry, skeleton, texture or collision assets.
 const Economy = preload("res://scripts/economy.gd")
 const DEFAULT = "dispatch"
-const IDS = ["dispatch","tideline","rustline","quay_basic","vesper_tailored","nocturne_atelier","obscura_signature","threadline_basics","night_shift","quay_dock","vesper_ink","nocturne_veil","obscura_sable"]
+const IDS = ["dispatch","tideline","rustline","quay_basic","vesper_tailored","nocturne_atelier","obscura_signature","threadline_basics","night_shift","quay_dock","vesper_ink","nocturne_veil","obscura_sable","signal_reclaimed","signal_rivet","signal_static","signal_union"]
 const ITEMS = {
 	"dispatch":{"name":"Morrow Dispatch","rarity":"COMMON","tier":0,"price":45,"jacket":Color.WHITE,"pants":Color.WHITE,"finish":1.0},
 	"tideline":{"name":"Tideline","rarity":"COMMON","tier":0,"price":35,"jacket":Color(.55,.88,1.0),"pants":Color(.65,.83,.95),"finish":1.0},
@@ -17,7 +17,11 @@ const ITEMS = {
 	"quay_dock":{"name":"Quay Standard / Dock Canvas","rarity":"UNCOMMON","tier":1,"price":85,"jacket":Color(.75,.88,.65),"pants":Color(.58,.68,.55),"finish":1.0},
 	"vesper_ink":{"name":"Vesper Line / Ink","rarity":"RARE","tier":2,"price":360,"jacket":Color(.50,.59,.83),"pants":Color(.45,.48,.66),"finish":.84},
 	"nocturne_veil":{"name":"Nocturne / Violet Veil","rarity":"LUXURY","tier":3,"price":620,"jacket":Color(.82,.49,.94),"pants":Color(.43,.35,.56),"finish":.70},
-	"obscura_sable":{"name":"Obscura / Sable Collection","rarity":"EXCLUSIVE","tier":4,"price":1800,"jacket":Color(.44,.43,.46),"pants":Color(.48,.44,.41),"finish":.62}
+	"obscura_sable":{"name":"Obscura / Sable Collection","rarity":"EXCLUSIVE","tier":4,"price":1800,"jacket":Color(.44,.43,.46),"pants":Color(.48,.44,.41),"finish":.62},
+	"signal_reclaimed":{"name":"Second Signal / Reclaimed","rarity":"SECONDHAND","tier":0,"price":8,"jacket":Color(.69,.68,.57),"pants":Color(.61,.66,.60),"finish":1.0},
+	"signal_rivet":{"name":"Second Signal / Rivet","rarity":"ROTATING FIND","tier":0,"price":17,"jacket":Color(.88,.48,.36),"pants":Color(.45,.46,.47),"finish":.96},
+	"signal_static":{"name":"Second Signal / Static","rarity":"ROTATING FIND","tier":0,"price":14,"jacket":Color(.68,.49,.88),"pants":Color(.60,.54,.70),"finish":1.0},
+	"signal_union":{"name":"Second Signal / Union Surplus","rarity":"ROTATING FIND","tier":0,"price":12,"jacket":Color(.69,.84,.47),"pants":Color(.76,.70,.51),"finish":1.0}
 }
 
 # Catalog values are estimated 2026 USD anchors, not final shelf prices.
@@ -39,7 +43,7 @@ static func garment_slot(name: String) -> String:
 # stable slot/item identities, with a separate validated visual asset contract.
 const SLOTS=["jacket","pants","glasses","watch"]
 const RESET_IDS=["reset_jacket","reset_pants","reset_glasses","reset_watch"]
-const PIECE_IDS=["jacket_ash","jacket_oxide","jacket_midnight","pants_charcoal","pants_sand","pants_teal","glasses_night","glasses_clear","watch_shift","watch_brass","jacket_ink"]
+const PIECE_IDS=["jacket_ash","jacket_oxide","jacket_midnight","pants_charcoal","pants_sand","pants_teal","glasses_night","glasses_clear","watch_shift","watch_brass","jacket_ink","jacket_patch","jacket_signal","pants_salvage","pants_indigo"]
 const PIECES={
 	"jacket_ash":{"name":"Ash work jacket","slot":"jacket","price":18,"tint":Color(.73,.77,.79),"finish":1.0},
 	"jacket_oxide":{"name":"Oxide street jacket","slot":"jacket","price":32,"tint":Color(1.0,.53,.38),"finish":.9},
@@ -51,7 +55,11 @@ const PIECES={
 	"glasses_clear":{"name":"Threadline clear frames","slot":"glasses","price":19},
 	"watch_shift":{"name":"Quay Shift digital watch","slot":"watch","price":38},
 	"watch_brass":{"name":"Nocturne brass watch","slot":"watch","price":110},
-	"jacket_ink":{"name":"Vesper ink jacket","slot":"jacket","price":175,"tint":Color(.48,.60,.82),"finish":.8}
+	"jacket_ink":{"name":"Vesper ink jacket","slot":"jacket","price":175,"tint":Color(.48,.60,.82),"finish":.8},
+	"jacket_patch":{"name":"Rivet patched jacket","slot":"jacket","price":10,"tint":Color(.89,.63,.43),"finish":1.0},
+	"jacket_signal":{"name":"Static faded jacket","slot":"jacket","price":9,"tint":Color(.62,.51,.79),"finish":1.0},
+	"pants_salvage":{"name":"Salvaged work trousers","slot":"pants","price":6,"tint":Color(.72,.67,.49),"finish":1.0},
+	"pants_indigo":{"name":"Faded indigo trousers","slot":"pants","price":7,"tint":Color(.49,.57,.78),"finish":1.0}
 }
 
 static func piece_valid(id:Variant) -> bool:

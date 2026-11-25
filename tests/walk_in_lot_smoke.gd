@@ -477,6 +477,34 @@ func _verify() -> void:
 	if not check(world.get("_wardrobe_category")=="OWNED" and "tideline" in world.call("_wardrobe_visible_ids") and not "obscura_sable" in world.call("_wardrobe_visible_ids"),"owned-only inventory spans retailers"):
 		return
 	world.call("_close_venue")
+	var first:Array=Store.stock_for_day(Store.THRIFT,0)
+	var next:Array=Store.stock_for_day(Store.THRIFT,1)
+	if not check("signal_rivet" in first and not "signal_rivet" in next and "signal_static" in next and Store.stock_for_day(Store.THRIFT,3)==first,"three deterministic thrift drops"):
+		return
+	city.call("set_focus",Store.entry(Store.THRIFT))
+	var thrift:Node3D=city.call("nearby_walk_in",Store.entry(Store.THRIFT))
+	if not check(is_instance_valid(thrift) and thrift.get("clothing_store_id")==Store.THRIFT,"Brickwater thrift shop physical"):
+		return
+	player.global_position=thrift.call("clothing_counter")
+	var clock:Node=world.get("day_night")
+	clock.set("day_index",0)
+	clock.call("set_hour",23.5)
+	world.set("cash",100)
+	world.call("_toggle_interaction")
+	world.set("_wardrobe_index",catalog.browse_ids().find("signal_rivet"))
+	world.call("_update_venue_panel")
+	world.call("_venue_action",3)
+	clock.call("advance_hour",1.0)
+	if not check(clock.get("day_index")==1 and "signal_rivet" in world.call("_wardrobe_visible_ids"),"midnight retains open checkout stock"):
+		return
+	world.call("_venue_action",3)
+	if not check(ledger.owns_outfit("signal_rivet") and world.get("cash")==100-catalog.price("signal_rivet"),"quoted secondhand item purchased once"):
+		return
+	world.call("_close_venue")
+	world.call("_toggle_interaction")
+	if not check(not "signal_rivet" in world.call("_wardrobe_visible_ids") and "signal_static" in world.call("_wardrobe_visible_ids"),"reopen rotates stock"):
+		return
+	world.call("_close_venue")
 	var retail_save:Dictionary=ledger.snapshot()
 	var invalid_look:Dictionary=retail_save.duplicate(true)
 	invalid_look["saved_looks"]["look_2"]={"outfit":"obscura_sable","slots":{}}

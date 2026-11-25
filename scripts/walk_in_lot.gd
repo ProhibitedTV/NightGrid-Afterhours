@@ -252,6 +252,12 @@ func _dress_retail_feature(id:String,theme:Dictionary,base:Material,wood:Materia
 			for i in range(5):
 				_visual("Worktop",Vector3(x-.08,2.2+i*.14,z),Vector3(.06,.036,1.28-i*.17),glow)
 			_visual("Worktop",Vector3(x-.09,2.53,z),Vector3(.05,.60,.035),trim)
+		"second_signal":
+			for i in range(5):
+				_visual("Worktop",Vector3(x-.08,2.12,z-.56+i*.28),Vector3(.05,.28,.21),_mat(tint.lerp(Color("d9bd58"),i*.18)))
+			for i in range(3):
+				_visual("Worktop",Vector3(x-.09,2.50,z-.48+i*.48),Vector3(.06,.32,.39),wood)
+				_shop_label(["DIY","FIX","REUSE"][i],Vector3(x-.14,2.50,z-.48+i*.48),.0028,-PI/2)
 		"obscura":
 			# Sparse brass display and a single folded signature piece.
 			for edge in [-.68,.68]:

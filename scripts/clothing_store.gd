@@ -7,15 +7,19 @@ const LOT=1
 const COUNTER=Vector3(-2.25,1.15,2.8)
 const Plan=preload("res://scripts/world_plan.gd")
 const Wardrobe=preload("res://scripts/wardrobe_catalog.gd")
-const IDS=["vesper_threadline","quay_standard","vesper_line","nocturne","obscura"]
+const THRIFT="second_signal"
+const IDS=["vesper_threadline","quay_standard","vesper_line","nocturne","obscura",THRIFT]
 const STORES={
 	"vesper_threadline":{"name":"THREADLINE","district":"VESPER MARKET","block":Vector2i(-3,-2),"lot":1,"style":"STREETWEAR","stock":["dispatch","tideline","rustline","threadline_basics","night_shift","jacket_ash","jacket_oxide","pants_charcoal","pants_sand","glasses_night","glasses_clear","watch_shift"]},
 	"quay_standard":{"name":"QUAY STANDARD","district":"NORTH QUAY","block":Vector2i(0,-4),"lot":0,"style":"WORKWEAR","stock":["dispatch","quay_basic","quay_dock","rustline","jacket_ash","pants_sand","pants_teal","watch_shift","glasses_clear"]},
 	"vesper_line":{"name":"VESPER LINE","district":"VESPER MARKET","block":Vector2i(-1,-2),"lot":1,"style":"TAILORING","stock":["dispatch","vesper_tailored","vesper_ink","jacket_ink","pants_charcoal","pants_teal","glasses_clear","watch_brass"]},
 	"nocturne":{"name":"NOCTURNE","district":"AFTERHOURS","block":Vector2i(0,2),"lot":0,"style":"NIGHTLIFE","stock":["dispatch","nocturne_atelier","nocturne_veil","jacket_midnight","pants_charcoal","glasses_night","watch_brass"]},
-	"obscura":{"name":"OBSCURA","district":"GLASSLINE","block":Vector2i(1,-3),"lot":0,"style":"DESIGNER","stock":["dispatch","obscura_signature","obscura_sable","jacket_midnight","pants_charcoal","glasses_clear","watch_brass"]}
+	"obscura":{"name":"OBSCURA","district":"GLASSLINE","block":Vector2i(1,-3),"lot":0,"style":"DESIGNER","stock":["dispatch","obscura_signature","obscura_sable","jacket_midnight","pants_charcoal","glasses_clear","watch_brass"]},
+	"second_signal":{"name":"SECOND SIGNAL","district":"BRICKWATER","block":Vector2i(-3,1),"lot":1,"style":"THRIFT / DIY","stock":["dispatch","signal_reclaimed","jacket_ash","pants_charcoal","signal_rivet","signal_static","signal_union","jacket_patch","jacket_signal","pants_salvage","pants_indigo"]}
 }
-const EXCLUSIVE=["quay_dock","vesper_ink","nocturne_veil","obscura_sable","jacket_ink"]
+const EXCLUSIVE=["quay_dock","vesper_ink","nocturne_veil","obscura_sable","jacket_ink","signal_reclaimed","signal_rivet","signal_static","signal_union","jacket_patch","jacket_signal","pants_salvage","pants_indigo"]
+const THRIFT_ROTATIONS=[["signal_rivet","jacket_patch","pants_salvage"],["signal_static","jacket_signal","pants_indigo"],["signal_union","jacket_patch","pants_indigo"]]
+const THRIFT_STAPLES=["dispatch","signal_reclaimed","jacket_ash","pants_charcoal"]
 
 static func for_lot(block:Vector2i,lot:int) -> String:
 	for id in IDS:
@@ -32,6 +36,11 @@ static func entry(id:String=ID) -> Vector3:
 
 static func carries(id:String,item:String) -> bool:
 	return STORES.has(id) and (item in STORES[id]["stock"] or item in Wardrobe.RESET_IDS)
+
+static func stock_for_day(id:String,day:int) -> Array:
+	if id==THRIFT:
+		return THRIFT_STAPLES+THRIFT_ROTATIONS[posmod(day,THRIFT_ROTATIONS.size())]
+	return (STORES.get(id,{}).get("stock",[]) as Array).duplicate()
 
 static func directory() -> String:
 	var lines:PackedStringArray=[]
@@ -120,5 +129,21 @@ const THEMES={
     "receipt": "An excellent selection. It is exclusively yours to wear.",
     "feature": "SABLE / PRIVATE COLLECTION",
     "featured": "obscura_sable"
-  }
+  },
+  "second_signal": {
+  "clerk": "Rook Serrano",
+  "hair": "cropped",
+  "palette": 4,
+  "base": "343b32",
+  "wood": "665548",
+  "trim": "d9bd58",
+  "light": "d8dbb5",
+  "tag": "REPAIR THE FUTURE.",
+  "music": "retail_thrift",
+  "coat": "4a4b35",
+  "greet": "Someone else paid full price. You get to make it yours.",
+  "receipt": "Another good piece saved from the landfill.",
+  "feature": "NO REFUNDS TO THE MEGACORP / FIX IT YOURSELF",
+  "featured": "signal_reclaimed"
+}
 }

@@ -68,6 +68,9 @@ func is_valid_snapshot(value: Variant) -> bool:
 		return false
 	if not _finite_number(data["health"]) or not _finite_number(data["hour"]):
 		return false
+	var day:Variant=data.get("day_index",0)
+	if not _finite_number(day) or float(day)<0 or float(day)>1000000 or floor(float(day))!=float(day):
+		return false
 	if not data["carrying"] is bool or not CourierMission.valid_run_count(data["deliveries"]):
 		return false
 	if not ProgressionLedger.valid_cash(data["cash"]):
