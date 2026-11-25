@@ -4,6 +4,9 @@ const AudioMix = preload("res://scripts/audio_mix.gd")
 ## authored; transient geometry is allocated on entry and freed on exit.
 ## This is a separate interior space, not a cut-through doorway in building mesh.
 const Materials = preload("res://scripts/material_library.gd")
+const InstrumentArt = preload("res://scripts/instrument_art.gd")
+const MUSIC_STAGE_LOCAL = Vector3(-4.35,1.18,-6.75)
+const MUSIC_ROOMS = ["copper_cup","dock_nine","blue_hour","static_room"]
 const VenueAmbience = preload("res://scripts/venue_ambience.gd")
 const LanternCupHero = preload("res://scripts/lantern_cup_hero.gd")
 const HumanoidVisual = preload("res://scripts/humanoid_visual.gd")
@@ -38,6 +41,13 @@ func get_counter_point() -> Vector3:
 
 func get_exit_point() -> Vector3:
 	return EXIT_POINT
+
+func music_stage_point() -> Vector3:
+	return ORIGIN+MUSIC_STAGE_LOCAL if active_group=="VENUE" and active_id in MUSIC_ROOMS else Vector3.INF
+
+func music_stage_reachable(at: Vector3) -> bool:
+	var stage := music_stage_point()
+	return stage.is_finite() and at.distance_to(stage)<=.85
 
 func counter_reachable(at: Vector3) -> bool:
 	return is_inside() and at.distance_to(COUNTER_POINT) <= COUNTER_RADIUS
@@ -227,6 +237,8 @@ func _build_room(site: Dictionary) -> void:
 				_lounge(room, accent, kind)
 		"BAR", "CLUB":
 			_lounge(room, accent, kind)
+	if active_group=="VENUE" and active_id in MUSIC_ROOMS:
+		_build_music_room(room,accent,active_id=="copper_cup")
 	# Set dressing and light fixtures remain bounded to the active room.
 	for x in [-4.55, 4.55]:
 		_box(room, Vector3(x, 4.97, -1.0), Vector3(3.1, 0.16, 1.0), Color("8c9299"))
@@ -248,6 +260,46 @@ func _build_room(site: Dictionary) -> void:
 		sound.max_distance = 24.0
 		room.add_child(sound)
 		sound.play()
+
+func _build_music_room(room: Node3D, accent: Color, shop: bool) -> void:
+	var root := Node3D.new()
+	root.name = "CopperStrings" if shop else "LiveMusicStage"
+	room.add_child(root)
+	# Floor-level stage: keep the existing central service path and exit clear.
+	_box(root,Vector3(-4.35,.055,-6.75),Vector3(4.45,.07,2.45),Color("382b3d"),false,"WOOD")
+	_box(root,Vector3(-4.35,.105,-5.56),Vector3(4.40,.035,.065),accent)
+	_label(root,"REHEARSAL CORNER" if shop else "LIVE / INDEPENDENT SOUND",Vector3(-4.35,3.35,-8.52),accent,29,true)
+	_label(root,"G / X  •  PLAY SET",Vector3(-4.35,1.60,-8.49),Color("e5ce89"),22,true)
+	InstrumentArt.place(root,"combo_amp",Vector3(-6.1,.22,-7.98))
+	InstrumentArt.place(root,"mic_stand",Vector3(-3.0,.58,-7.94))
+	InstrumentArt.place(root,"road_case",Vector3(-5.75,.13,-7.65))
+	for x in [-6.3,-2.45]:
+		var lamp := OmniLight3D.new()
+		lamp.position = Vector3(x,2.95,-7.95)
+		lamp.omni_range = 4.5
+		lamp.light_energy = .5
+		lamp.light_color = accent
+		lamp.shadow_enabled = false
+		root.add_child(lamp)
+	if shop:
+		# Physical inventory display in the other rear bay.
+		_box(root,Vector3(4.5,1.7,-8.43),Vector3(4.9,2.9,.12),Color("463b36"),false,"WOOD")
+		for index in range(2):
+			var x := 3.15+float(index)*1.40
+			InstrumentArt.place(root,"acoustic_guitar" if index==0 else "punk_bass",Vector3(x,1.65,-8.26))
+			_label(root,"USED ACOUSTIC / $85" if index==0 else "PLUM BASS / DISPLAY",Vector3(x,.84,-8.24),Color("e5ce89"),18,true)
+		_box(root,Vector3(5.8,.82,-6.72),Vector3(1.45,.14,.82),Color("5a4842"),true,"WOOD")
+		_box(root,Vector3(5.8,.39,-6.72),Vector3(.17,.76,.22),Color("41404a"))
+		InstrumentArt.place(root,"portable_synth",Vector3(5.8,.94,-6.72),Vector3(-90,0,0))
+		InstrumentArt.place(root,"combo_amp",Vector3(6.60,.18,-7.6))
+		InstrumentArt.place(root,"road_case",Vector3(3.25,.09,-7.55))
+		_label(root,"COPPER STRINGS / USED & REPAIRED",Vector3(4.45,3.44,-8.24),Color("e6a8cf"),26,true)
+		_label(root,"ASK AT COUNTER / SYNTH DISPLAY",Vector3(5.8,1.55,-7.15),Color("e5ce89"),17,true)
+	else:
+		# Permanent backline behind the play position, no obstruction of the band.
+		InstrumentArt.place(root,"punk_bass",Vector3(-6.35,.53,-8.15),Vector3(0,0,-9))
+		InstrumentArt.place(root,"combo_amp",Vector3(-2.35,.20,-8.0))
+		InstrumentArt.place(root,"road_case",Vector3(-3.1,.09,-8.06))
 
 func _stocked_market(room: Node3D, accent: Color) -> void:
 	for x in [-5.3, 5.3]:

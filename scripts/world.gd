@@ -713,8 +713,10 @@ func _phone_workboard() -> Array[Dictionary]:
 	return listings
 
 func _music_near_spot() -> String:
-	if interiors.call("is_inside") or current_car != null or current_transit != null:
+	if current_car != null or current_transit != null:
 		return ""
+	if interiors.call("is_inside"):
+		return str(interiors.call("active_site_id")) if interiors.call("music_stage_reachable",player.global_position) else ""
 	for site in MusicCareer.SPOTS:
 		var point: Vector3 = venue_system.call("venue_position",site)
 		if player.global_position.distance_to(point) <= 5.0:
@@ -722,9 +724,15 @@ func _music_near_spot() -> String:
 	return ""
 
 func _music_counter_reachable(site: String) -> bool:
-	return venue_panel.visible and venue_selected_id == site and _music_near_spot() == site and venue_system.call("is_open",site)
+	if not venue_panel.visible or venue_selected_id!=site or current_car!=null or current_transit!=null or not venue_system.call("is_open",site):
+		return false
+	if interiors.call("is_inside"):
+		return interiors.call("active_site_group")=="VENUE" and interiors.call("active_site_id")==site and interiors.call("counter_reachable",player.global_position)
+	return _music_near_spot()==site
 
 func _start_music(kind: String, site: String) -> bool:
+	if interiors.call("is_inside") and kind=="busk":
+		return false
 	if (kind=="rehearse" and site!=MusicCareer.SHOP) or (kind in ["band","encore"] and (site!=MusicCareer.BAND_SITE or not venue_system.call("is_open",site))) or (kind=="gig" and (site!=MusicCareer.GIG or not venue_system.call("is_open",site))):
 		return false
 	if site.is_empty() or _music_near_spot() != site or venue_panel.visible or heat > .01 or carrying or not music_career.start(kind,progression):
@@ -735,9 +743,11 @@ func _start_music(kind: String, site: String) -> bool:
 	_music_start_cred = int(_street_cred()["music"])
 	venue_system.call("set_player_performing",true,site,player.global_position)
 	player.set("input_blocked",true)
+	if interiors.call("is_inside"):
+		player.get_node("Visual").rotation.y = 0.0
 	player.get_node("Visual").call("set_music_prop",true)
 	if kind in ["band","rehearse","encore"]:
-		venue_system.call("show_player_band",site,player.global_position)
+		venue_system.call("show_player_band",site,player.global_position,bool(interiors.call("is_inside")))
 	if not is_instance_valid(_music_audio):
 		_music_audio = AudioStreamPlayer3D.new()
 		_music_audio.name = "LiveBusker"
@@ -808,7 +818,7 @@ func _phone_context() -> Dictionary:
 		"home_owned":progression.owns_home(), "home_access":progression.has_receipt(StarterHome.ACCESS_RECEIPT),
 		"deposit":StarterHome.move_in_price(), "notice":Opening.app_notice(deliveries),
 		"street_cred":_street_cred(),"music_encore":music_career.can_encore(progression),"workboard":_phone_workboard(), "music_owned":music_career.owned, "music_sets":music_career.completed_sets,
-		"music_near":not _music_near_spot().is_empty(), "music_gig":music_career.can_gig(progression), "music_cooldown":music_career.cooldown>0.0,
+		"music_near":not interiors.call("is_inside") and not _music_near_spot().is_empty(), "music_gig":music_career.can_gig(progression), "music_cooldown":music_career.cooldown>0.0,
 		"music_contacts":_music_contacts_context(),"music_rehearsals":music_career.rehearsals,"music_band_ready":music_career.band_ready(),"music_rehearsal_near":_music_near_spot()==MusicCareer.SHOP,"music_band_gig":music_career.can_band_gig(progression),"music_band_done":progression.has_receipt(MusicCareer.BAND_RECEIPT),
 		"rail_available":rail_point.is_finite(), "bus_available":bus_point.is_finite(),
 		"rail_name":"%d m away (direct)" % roundi(origin.distance_to(rail_point)) if rail_point.is_finite() else "Unavailable",
@@ -2577,6 +2587,20 @@ func _toggle_interaction() -> void:
 	if venue_panel.visible:
 		_close_venue()
 		return
+	if interiors.call("is_inside") and interiors.call("music_stage_reachable",player.global_position):
+		var site := str(interiors.call("active_site_id"))
+		var kind := ""
+		if site==MusicCareer.SHOP and music_career.band_ready():
+			kind = "rehearse"
+		elif site==MusicCareer.GIG and music_career.can_gig(progression):
+			kind = "gig"
+		elif site==MusicCareer.BAND_SITE:
+			kind = "band" if music_career.can_band_gig(progression) else ("encore" if music_career.can_encore(progression) else "")
+		if kind.is_empty() or not venue_system.call("is_open",site):
+			_notify("Stage unavailable. Check Music for your next booking or rehearsal.")
+		else:
+			_start_music(kind,site)
+		return
 	if interiors.call("is_inside"):
 		# Mara's collectible, one-time shift note is a real world interaction,
 		# available only beside the flagship café booth. Reuse the already
@@ -3663,15 +3687,24 @@ func _venue_action(option: int) -> void:
 		return
 	if option == 3 and venue_selected_id == MusicCareer.GIG and music_career.can_gig(progression) and _music_counter_reachable(MusicCareer.GIG):
 		_close_venue()
-		_start_music("gig",MusicCareer.GIG)
+		if interiors.call("is_inside"):
+			_notify("Booking ready. Walk to the lit stage and press G / X.")
+		else:
+			_start_music("gig",MusicCareer.GIG)
 		return
 	if option == 3 and venue_selected_id == MusicCareer.BAND_SITE and music_career.can_band_gig(progression) and _music_counter_reachable(MusicCareer.BAND_SITE):
 		_close_venue()
-		_start_music("band",MusicCareer.BAND_SITE)
+		if interiors.call("is_inside"):
+			_notify("Booking ready. Walk to the lit stage and press G / X.")
+		else:
+			_start_music("band",MusicCareer.BAND_SITE)
 		return
 	if option == 3 and venue_selected_id == MusicCareer.BAND_SITE and music_career.can_encore(progression) and _music_counter_reachable(MusicCareer.BAND_SITE):
 		_close_venue()
-		_start_music("encore",MusicCareer.BAND_SITE)
+		if interiors.call("is_inside"):
+			_notify("Booking ready. Walk to the lit stage and press G / X.")
+		else:
+			_start_music("encore",MusicCareer.BAND_SITE)
 		return
 	# Dialogue is no-cost and remains accessible even near closing time.
 	if option == 3:

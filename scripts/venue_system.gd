@@ -341,7 +341,7 @@ func _build_music_setups() -> void:
 			InstrumentArt.place(setup,"portable_synth",Vector3(1.75,1.05,.65),Vector3(-90,180,0))
 			_box(setup,Vector3(1.75,.61,.65),Vector3(.65,.85,.35),Color("30363d"),"METAL")
 
-func show_player_band(site: String, at: Vector3) -> void:
+func show_player_band(site: String, at: Vector3, indoor: bool = false) -> void:
 	hide_player_band()
 	if not _nodes.has(site):
 		return
@@ -359,15 +359,15 @@ func show_player_band(site: String, at: Vector3) -> void:
 		visual.call("set_pedestrian_model",model)
 		visual.call("set_pedestrian_style",2 if id=="rhea" else 5)
 		visual.position = Vector3(-1.25 if id=="rhea" else 1.25,0,0)
-		visual.rotation.y = PI
+		visual.rotation.y = 0.0 if indoor else PI
 		_active_ensemble.add_child(visual)
 		visual.call("set_music_role","bass" if id=="rhea" else "synth")
 		if id=="rhea":
 			InstrumentArt.place(visual,"punk_bass",Vector3(.06,1.08,.25),Vector3(0,0,-32))
 			InstrumentArt.place(_active_ensemble,"combo_amp",Vector3(-1.8,.17,.45),Vector3(0,180,0))
 		else:
-			InstrumentArt.place(_active_ensemble,"portable_synth",Vector3(1.25,.91,-.38),Vector3(-90,180,0))
-			_box(_active_ensemble,Vector3(1.25,.45,-.38),Vector3(.60,.87,.34),Color("363e47"),"METAL")
+			InstrumentArt.place(_active_ensemble,"portable_synth",Vector3(1.25,.91,.38 if indoor else -.38),Vector3(-90,0 if indoor else 180,0))
+			_box(_active_ensemble,Vector3(1.25,.45,.38 if indoor else -.38),Vector3(.60,.87,.34),Color("363e47"),"METAL")
 
 func hide_player_band() -> void:
 	if is_instance_valid(_active_ensemble):

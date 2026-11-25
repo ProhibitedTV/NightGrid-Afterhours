@@ -78,14 +78,14 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 			rows.append({"label":"No decay","value":"Successful performances, local work and investigations build reputation. No daily obligation."})
 		"music":
 			subtitle = "Morrow Bay music scene"
-			rows.append({"label":"Instrument","value":"Used acoustic guitar" if state.get("music_owned",false) else "Copper Strings · Copper Cup counter · $85"})
+			rows.append({"label":"Instrument","value":"Used acoustic guitar" if state.get("music_owned",false) else "Copper Strings · inside Copper Cup · $85"})
 			actions.append({"label":"Route to Copper Strings","action":"phone_route_music_shop"})
 			rows.append({"label":"Street sets","value":"%d completed / 3 for first booking" % int(state.get("music_sets",0))})
 			rows.append({"label":"Busking spots","value":"Copper Cup, Lantern Cup, Dock Nine and Blue Hour exterior frontages."})
 			if state.get("music_owned",false) and state.get("music_near",false) and not state.get("music_cooldown",false):
 				actions.append({"label":"Play street set","action":"phone_music_play"})
 			if state.get("music_gig",false):
-				rows.append({"label":"Debut booking","value":"Dock Nine Social · $95 · visit the open counter"})
+				rows.append({"label":"Debut booking","value":"Dock Nine Social · $95 · counter or indoor stage"})
 				actions.append({"label":"Route to Dock Nine","action":"phone_route_music_gig"})
 			for member in state.get("music_contacts",[]):
 				var id: String = member["id"]
@@ -99,7 +99,7 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 				if state.get("music_rehearsal_near",false) and not state.get("music_cooldown",false):
 					actions.append({"label":"Rehearse with band","action":"phone_music_rehearse"})
 			if state.get("music_band_gig",false):
-				rows.append({"label":"Band booking","value":"Blue Hour · $240 · outdoor debut"})
+				rows.append({"label":"Band booking","value":"Blue Hour · $240 · indoor stage or outdoor debut"})
 				actions.append({"label":"Route to Blue Hour","action":"phone_route_music_band"})
 			elif state.get("music_band_done",false):
 				rows.append({"label":"Blue Hour","value":"Band debut completed"})

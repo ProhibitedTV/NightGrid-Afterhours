@@ -373,6 +373,33 @@ func _verify() -> void:
 		_fail("Music cred cap must not bleed into other scenes")
 		return
 	career.completed_sets = before_cap
+	# The indoor stage uses the existing enter/exit lifecycle.
+	for tick in range(60):
+		world.call("_tick_music",.25)
+	var interior = world.get("interiors")
+	var outside: Vector3 = venues.call("venue_position","blue_hour")
+	actor.global_position = interior.call("enter",venues.call("venue_by_id","blue_hour"),"VENUE",outside)
+	var stage: Vector3 = interior.call("music_stage_point")
+	if not stage.is_finite() or not is_instance_valid(interior.get("_room").get_node_or_null("LiveMusicStage")):
+		_fail("Blue Hour needs a physical stage room")
+		return
+	actor.global_position = stage
+	var before_indoor: int = world.get("cash")
+	world.call("_toggle_interaction")
+	if career.mode!="encore" or not is_instance_valid(venues.get("_active_ensemble")):
+		_fail("Indoor stage interaction must start resident booking")
+		return
+	world.call("_tick_music",.25)
+	world.call("_stop_music")
+	if world.get("cash")!=before_indoor or is_instance_valid(venues.get("_active_ensemble")):
+		_fail("Cancelled indoor set must clean up without pay")
+		return
+	actor.global_position = interior.call("leave")
+	actor.global_position = interior.call("enter",venues.call("venue_by_id","copper_cup"),"VENUE",venues.call("venue_position","copper_cup"))
+	if not is_instance_valid(interior.get("_room").get_node_or_null("CopperStrings")):
+		_fail("Copper Strings indoor inventory display missing")
+		return
+	actor.global_position = interior.call("leave")
 	world.set("current_car",world.get("cars")[0])
 	if world.call("phone_available"):
 		_fail("Phone must not open while driving")
