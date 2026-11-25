@@ -20,6 +20,7 @@ const CYAN = Color("65dacd")
 var _paint := Color("6e9ea9")
 var _police := false
 var _built := false
+var _parking_display:=false
 var _materials: Dictionary = {}
 var _wheel_rotors: Array[Node3D] = []
 var _steering_pivots: Array[Node3D] = []
@@ -54,6 +55,10 @@ func configure(paint: Color, police: bool = false) -> void:
 	_paint = paint
 	_police = police
 
+func configure_parking_display(paint:Color) -> void:
+	configure(paint,false)
+	_parking_display=true
+
 func _ready() -> void:
 	if _built:
 		return
@@ -63,6 +68,12 @@ func _ready() -> void:
 	_build_road_gear()
 	_build_lights()
 	_build_interior()
+	if _parking_display:
+		for beam in _beams:
+			beam.hide()
+		set_process(false)
+		set_physics_process(false)
+		return
 	_build_sound()
 	if _police:
 		_build_police_equipment()

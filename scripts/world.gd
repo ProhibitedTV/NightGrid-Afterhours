@@ -65,6 +65,8 @@ const VEHICLE_COLORS = [
 const CourierMission = preload("res://scripts/courier_mission.gd")
 const StoryMission = preload("res://scripts/story_mission.gd")
 const Opening = preload("res://scripts/opening_story.gd")
+const OpeningOffice = preload("res://scripts/synaxis_office.gd")
+var _opening_office: Node3D
 const StarterHome = preload("res://scripts/starter_home.gd")
 var _home_panel := false
 var _storage_upgrade_quote := false
@@ -277,7 +279,7 @@ func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	if bool(session.get("opening_pending")) and restore.is_empty():
 		session.set("opening_pending",false)
-		game_menu.call("open_opening")
+		_start_opening_office()
 	elif DisplayServer.get_name() != "headless" and not bool(session.get("boot_menu_shown")):
 		session.set("boot_menu_shown", true)
 		game_menu.call("open_title")
@@ -423,9 +425,26 @@ func _on_menu_action(action: String) -> void:
 	match action:
 		"begin_opening":
 			if not progression.has_receipt(Opening.RECEIPT):
-				game_menu.call("open_opening")
+				_start_opening_office()
 			else:
 				game_menu.call("hide_for_game")
+		"guard_leave":
+			_snap_camera()
+		"restroom_leave":
+			if is_instance_valid(_opening_office):
+				_snap_camera()
+		"breakroom_leave":
+			if is_instance_valid(_opening_office):
+				_opening_office.call("mark_breakroom_seen")
+				_snap_camera()
+		"opening_walk":
+			if is_instance_valid(_opening_office):
+				_opening_office.call("end_dialogue")
+				_opening_office.call("set_stage",int(game_menu.get("_opening_stage")))
+				_snap_camera()
+		"opening_camera":
+			if is_instance_valid(_opening_office):
+				_opening_office.call("dialogue_camera",camera,int(game_menu.get("_opening_stage")),int(game_menu.get("_briefing_beat")))
 		"accept_opening":
 			_accept_opening()
 		"save":
@@ -451,6 +470,9 @@ func _on_menu_action(action: String) -> void:
 				var entry := StarterGarage.entry()
 				set_navigation_waypoint(Vector2(entry.x,entry.z))
 			game_menu.call("open_journal", _journal_context())
+		"synaxis_waypoint":
+			set_navigation_waypoint(Vector2(OpeningOffice.ENTRY.x,OpeningOffice.ENTRY.z))
+			game_menu.call("open_journal",_journal_context())
 		"home_waypoint":
 			if progression.has_receipt(StarterHome.ACCESS_RECEIPT):
 				var entry := StarterHome.entry()
@@ -461,8 +483,87 @@ func _on_menu_action(action: String) -> void:
 				_notify("Contact mission abandoned. Speak to Mara to retry.")
 			game_menu.call("open_journal", _journal_context())
 
+func _start_opening_office() -> void:
+	if is_instance_valid(_opening_office) or progression.has_receipt(Opening.RECEIPT):
+		return
+	city_details.call("set_focus",OpeningOffice.ENTRY)
+	_opening_office = city_details.call("synaxis_headquarters")
+	if not is_instance_valid(_opening_office):
+		# Fail safely to the accessible dialogue rather than strand a new game.
+		game_menu.call("open_opening")
+		return
+	_opening_office.call("begin_prologue")
+	player.get("visual").call("set_corporate_attire",true)
+	player.global_position = _opening_office.to_global(OpeningOffice.START)
+	player.velocity = Vector3.ZERO
+	yaw = 0.0
+	player.set("camera_yaw",yaw)
+	get_node("HUD").hide()
+	marker.hide()
+	game_menu.call("open_opening",true)
+	_opening_office.call("start_arrival",player,camera)
+
+func _opening_interact() -> void:
+	if not is_instance_valid(_opening_office) or game_menu.call("is_open"):
+		return
+	if _opening_office.call("arrival_active"):
+		_opening_office.call("finish_arrival",player,camera)
+		_snap_camera()
+		return
+	if _opening_office.call("lift_active"):
+		return
+	if _opening_office.call("exit_active"):
+		_opening_office.call("try_exit_step",player)
+		return
+	if _opening_office.call("try_lift",player):
+		return
+	if _opening_office.call("try_office_service",player.global_position):
+		player.call("play_visual_action",&"interact")
+		return
+	if _opening_office.call("parking_guard_reachable",player.global_position):
+		game_menu.call("open_parking_guard",false)
+		return
+	if not _opening_office.call("errand_complete"):
+		if _opening_office.call("try_errand",player):
+			return
+		# Optional exploration remains available even before the folder handoff.
+		if not _opening_office.call("breakroom_reachable",player.global_position):
+			return
+	var stage := int(game_menu.get("_opening_stage"))
+	if _opening_office.call("breakroom_reachable",player.global_position) and not bool(_opening_office.get("_breakroom_seen")):
+		_opening_office.call("breakroom_camera",camera)
+		game_menu.call("open_breakroom")
+		return
+	if _opening_office.call("errand_complete") and _opening_office.call("reachable",stage,player.global_position):
+		if stage in [2,4]:
+			_opening_office.call("dialogue_camera",camera,stage,int(game_menu.get("_briefing_beat")))
+		game_menu.call("open_opening_stage")
+
+func _finish_opening_office() -> void:
+	if not is_instance_valid(_opening_office):
+		return
+	var old := _opening_office
+	_opening_office = null
+	old.call("finish_prologue")
+	player.get("visual").call("set_corporate_attire",false)
+	player.global_position = OpeningOffice.ENTRY
+	player.velocity = Vector3.ZERO
+	player.call("restore_stamina",100.0)
+	get_node("HUD").show()
+	marker.show()
+	city_details.call("set_focus",player.global_position)
+	_snap_camera()
+
 func _accept_opening() -> void:
+	if is_instance_valid(_opening_office):
+		if not _opening_office.call("exit_active"):
+			if int(game_menu.get("_opening_stage"))==5:
+				_opening_office.call("begin_exit",player.global_position)
+			return
+		if not _opening_office.call("exit_ready",player.global_position):
+			return
 	if progression.credit_once(Opening.RECEIPT,Opening.SEVERANCE):
+		_finish_opening_office()
 		courier_mission.gig_economy = true
 		_refresh_courier_target()
 		_notify("SYNAXIS: $75 severance credited. QUOTADROP: Your first delivery is ready. Earn your pod deposit.")
@@ -486,6 +587,8 @@ func _journal_context() -> Dictionary:
 		"district": district if landmark.is_empty() else "%s / %s" % [district, landmark],
 		"clock": day_night.call("clock_string"),
 		"seed": session.get("world_seed"),
+		"platform_notice": Opening.app_notice(deliveries) if courier_mission.gig_economy else "",
+		"synaxis_site": "SYNAXIS HQ / Glassline / Access revoked" if progression.has_receipt(Opening.RECEIPT) else "",
 		"opening_goal": "QUOTADROP / POD DEPOSIT: $%d of $%d saved" % [mini(cash,StarterHome.move_in_price()),StarterHome.move_in_price()] if courier_mission.gig_economy and not progression.owns_home() else "",
 		"main_objective": "%s  •  STEP %d/%d  •  %dm  •  $%d" % [objective["title"], objective["step"], objective["total_steps"], remaining, objective["reward"]],
 		"courier_can_restart": carrying,
@@ -559,6 +662,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.echo:
 		return
 	if not event.is_pressed():
+		return
+	if is_instance_valid(_opening_office):
+		if event.is_action_pressed("interact") or (_opening_office.call("arrival_active") and event.is_action_pressed("game_pause")):
+			_opening_interact()
 		return
 	if event.is_action_pressed("game_pause"):
 		if venue_panel.visible:
@@ -726,6 +833,31 @@ func _capture_playtest_frame() -> void:
 func _process(delta: float) -> void:
 	if not is_instance_valid(player):
 		return
+	if is_instance_valid(_opening_office):
+		if _opening_office.call("arrival_active"):
+			if not _opening_office.call("tick_arrival",delta,player,camera):
+				_snap_camera()
+			return
+		if _opening_office.call("lift_active"):
+			if _opening_office.call("tick_lift",delta,player):
+				_snap_camera()
+			return
+		var look := GameInput.look_vector()
+		yaw -= look.x * stick_sensitivity * delta
+		pitch = clampf(pitch+look.y*stick_sensitivity*delta*(-1.0 if invert_look_y else 1.0),.20,.85)
+		player.set("camera_yaw",yaw)
+		_update_camera(delta)
+		_opening_office.call("update_prompt",int(_opening_office.call("objective_stage",int(game_menu.get("_opening_stage")))),player.global_position,gamepad_active)
+		if _opening_office.call("exit_ready",player.global_position):
+			_accept_opening()
+			return
+		if _opening_office.call("exit_active"):
+			return
+		if not game_menu.call("is_open"):
+			var restroom := str(_opening_office.call("restroom_encounter",player.global_position))
+			if not restroom.is_empty():
+				game_menu.call("open_restroom",restroom)
+		return
 	var actor := _actor()
 	if current_car != null and current_car.get("model_id") == RoadCars.R9:
 		current_car.set("road_wetness", day_night.call("surface_film"))
@@ -788,6 +920,9 @@ func _process(delta: float) -> void:
 				traversal_velocity = (actor as CharacterBody3D).velocity
 			city_details.call("request_focus", actor.global_position, traversal_velocity)
 		city_details.call("update_walk_in_light", actor.global_position if not indoors and current_car == null and current_transit == null else Vector3.INF)
+		var headquarters: Node3D = city_details.call("synaxis_headquarters")
+		if is_instance_valid(headquarters):
+			headquarters.call("update_public_light",actor.global_position if not indoors and current_car == null and current_transit == null else Vector3.INF)
 		var started := StreamProfile.begin()
 		street_lights.call("set_focus", interiors.get("exterior_position") if indoors else actor.global_position)
 		StreamProfile.end(started, "street_light_focus")
@@ -832,6 +967,14 @@ func _process(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	# Gameplay mission/heat/damage timers are fixed-tick, not render-tick.
 	if not is_instance_valid(player):
+		return
+	if is_instance_valid(_opening_office):
+		if _opening_office.call("lift_active"):
+			return
+		if player.global_position.y < float(_opening_office.call("recovery_floor")):
+			player.global_position = _opening_office.call("recovery_position")
+			player.velocity = Vector3.ZERO
+			_snap_camera()
 		return
 	if _active_station_lift != null and not bool(_active_station_lift.get("travelling")):
 		var landing: Vector3 = _active_station_lift.call("destination")
@@ -925,7 +1068,7 @@ func _camera_focus() -> Vector3:
 		1.65 if current_car != null or current_transit != null else 1.45)
 
 func _camera_goal() -> Vector3:
-	var distance := (3.0 if interiors.call("is_inside") else
+	var distance := (3.0 if is_instance_valid(_opening_office) or interiors.call("is_inside") else
 		(21.0 if transit_kind == "TRAIN" else
 		(15.0 if transit_kind == "BUS" else
 		(13.0 if current_car != null else 7.5))))
@@ -2000,6 +2143,28 @@ func _apply_snapshot(data: Dictionary) -> void:
 	_log_playtest("save_restored", {"seed": int(session.get("world_seed"))})
 	_notify("Save loaded. Seed %d; Morrow Bay restored." % int(session.get("world_seed")))
 
+func _parking_guard_near() -> bool:
+	if current_car!=null or current_transit!=null or interiors.call("is_inside"):
+		return false
+	var hq:Node3D=city_details.call("synaxis_headquarters")
+	return is_instance_valid(hq) and bool(hq.call("parking_guard_reachable",player.global_position))
+
+func _try_parking_guard() -> bool:
+	if _parking_guard_near():
+		game_menu.call("open_parking_guard",progression.has_receipt(Opening.RECEIPT))
+		return true
+	return false
+
+func _synaxis_access_notice() -> bool:
+	var hq: Node3D = city_details.call("synaxis_headquarters")
+	if is_instance_valid(hq) and hq.call("public_checkpoint_reachable",player.global_position):
+		_notify("SYNAXIS SECURITY: Badge access revoked. Your concern has been resolved. Authorized visitors only beyond this checkpoint.")
+		return true
+	if OpeningOffice.entrance_reachable(player.global_position):
+		_notify("SYNAXIS: Public lobby open. Badge access revoked for the restricted offices.")
+		return true
+	return false
+
 func _toggle_interior() -> void:
 	if interiors.call("is_inside"):
 		if not interiors.call("exit_reachable", player.global_position):
@@ -2018,6 +2183,8 @@ func _toggle_interior() -> void:
 		return
 	if current_car != null or current_transit != null:
 		_notify("Exit your vehicle before entering a building.")
+		return
+	if _synaxis_access_notice():
 		return
 	var repair := _repair_storefront()
 	if repair != null:
@@ -2121,6 +2288,10 @@ func _toggle_interaction() -> void:
 		return
 	if current_car != null or current_transit != null:
 		_notify("Get out of the vehicle before interacting with neighborhood businesses.")
+		return
+	if _try_parking_guard():
+		return
+	if _synaxis_access_notice():
 		return
 	if courier_mission.gig_economy and player.global_position.distance_to(mission_position) < CourierMission.RADIUS:
 		_advance_mission()
@@ -3372,6 +3543,8 @@ func _update_hud() -> void:
 			prompts.append("%s   |   %s" % [str(nightgrid_fm.call("get_now_playing")), radio_keys])
 	elif current_transit != null:
 		prompts.append("RB Leave at next stop" if gamepad_active else "F Leave at next stop")
+	elif _parking_guard_near():
+		prompts.append("%s  Talk to Marcus Vale  •  Synaxis security" % interact_key)
 	elif repair != null and repair.door_reachable(player.global_position):
 		prompts.append("%s %s door  •  NIGHT SHIFT REPAIRS" % [enter_key, "Close" if repair.door.is_requested_open() else "Open"])
 		if repair.door.movement_blocked:

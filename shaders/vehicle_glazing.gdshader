@@ -3,6 +3,7 @@ render_mode blend_mix, cull_disabled, diffuse_burley, specular_schlick_ggx, shad
 
 global uniform float cinder_surface_film;
 uniform sampler2D rain_beads : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform float privacy_tint : hint_range(0.0, 0.3) = 0.0;
 // Same per-instance damage slot as the paint shader on mixed-material meshes.
 instance uniform float impact = 0.0;
 
@@ -38,7 +39,7 @@ void fragment() {
 	ROUGHNESS = mix(.092, .049, film);
 	CLEARCOAT = .86;
 	CLEARCOAT_ROUGHNESS = mix(.095, .046, film);
-	ALPHA = mix(.57, .94, grazing) + film * .029;
+	ALPHA = min(.99, mix(.57, .94, grazing) + film * .029 + privacy_tint);
 	// Cracked laminated glass stays in the frame; no fake detached glass bodies.
 	if (impact > .48) {
 		vec2 grid = UV * vec2(23.0, 17.0);

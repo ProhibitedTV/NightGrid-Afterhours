@@ -2,6 +2,7 @@ extends Node
 ## Runtime audio for city travel and player action. Musical programming is
 ## handled separately by NightGridFM. This layer uses original cached WAVs.
 const Foley = preload("res://scripts/city_foley.gd")
+const GeneratedAudio = preload("res://scripts/synaxis_generated_audio.gd")
 const TrafficSpatialAudio = preload("res://scripts/traffic_spatial_audio.gd")
 const SoundscapeSites = preload("res://scripts/soundscape_sites.gd")
 const AudioMix = preload("res://scripts/audio_mix.gd")
@@ -52,6 +53,8 @@ var _footsteps: AudioStreamPlayer3D
 var _events: Array[AudioStreamPlayer3D] = []
 var _event_cursor := 0
 var _event_count := 0
+var _event_bank:Dictionary={}
+var _road_stream:AudioStream
 var _traffic_audio: Node3D
 var _sites: Node3D
 var _listener := Vector3.ZERO
@@ -71,7 +74,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	AudioMix.ensure()
 	for kind in EVENTS:
-		Foley.sound(kind) # Prewarm transient PCM before first interaction.
+		var approved:=GeneratedAudio.stream("event_"+kind.to_lower())
+		_event_bank[kind]=approved if approved!=null else Foley.sound(kind) # Prewarm once.
 	for kind in BEDS:
 		var player := AudioStreamPlayer.new()
 		player.name = "MorrowBay_" + kind
@@ -95,7 +99,8 @@ func _ready() -> void:
 		for variant in range(4):
 			var path := STEP_ROOT + ("%s_%d.wav" % [STEPS[surface], variant + 1])
 			var stream := load(path) as AudioStream if ResourceLoader.exists(path) else null
-			samples.append(stream if stream != null else Foley.sound("STEP_TILE" if surface == "TILE" else "STEP_CONCRETE", variant))
+			var approved:=GeneratedAudio.stream("step_%s_%d" % [STEPS[surface],variant+1])
+			samples.append(approved if approved!=null else (stream if stream!=null else Foley.sound("STEP_TILE" if surface=="TILE" else "STEP_CONCRETE",variant)))
 		_step_bank[surface] = samples
 	for index in range(EVENT_VOICES):
 		var voice := AudioStreamPlayer3D.new()
@@ -117,11 +122,17 @@ func _ready() -> void:
 	_cabin = AudioStreamPlayer.new()
 	_cabin.name = "PassengerRoadAndRail"
 	_cabin.bus = AudioMix.EFFECTS
-	_cabin.stream = Foley.sound("ROAD_ROLL")
+	_road_stream=GeneratedAudio.stream("road_roll",true)
+	if _road_stream==null:
+		_road_stream=Foley.sound("ROAD_ROLL")
+	_cabin.stream = _road_stream
 	_cabin.volume_db = -80.0
 	add_child(_cabin)
 
 func _bed_stream(kind: String) -> AudioStream:
+	var approved:=GeneratedAudio.stream("city_"+kind.to_lower(),true)
+	if approved!=null:
+		return approved
 	if kind == "TRAFFIC":
 		var traffic := load("res://assets/audio/morrow_bay/traffic.ogg") as AudioStreamOggVorbis
 		if traffic != null:
@@ -216,7 +227,7 @@ func play_event(kind: String, at: Vector3) -> void:
 	var voice: AudioStreamPlayer3D = _events[_event_cursor]
 	_event_cursor = (_event_cursor + 1) % _events.size()
 	voice.stop()
-	voice.stream = Foley.sound(kind)
+	voice.stream = _event_bank[kind]
 	voice.bus = AudioMix.ROOM_EFFECTS if _indoors else AudioMix.EFFECTS
 	voice.global_position = at
 	voice.volume_db = -12.0 if kind in ["BRAKE", "BUS_DOOR", "RAIL_DOOR"] else -6.0

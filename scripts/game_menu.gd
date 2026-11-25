@@ -4,6 +4,7 @@ const MinimapScript = preload("res://scripts/minimap.gd")
 const CityFoley = preload("res://scripts/city_foley.gd")
 const Ui = preload("res://scripts/ui_style.gd")
 const Opening = preload("res://scripts/opening_story.gd")
+const SynaxisBrand = preload("res://scripts/synaxis_brand.gd")
 ## Keyboard/mouse/controller-friendly menu layer. It remains interactive while
 ## the 3D SceneTree is paused; all buttons use Godot's built-in focus navigation.
 signal action_requested(action: String)
@@ -39,6 +40,17 @@ var _confirmation_origin := "pause"
 var _has_save := false
 var _world: Node3D
 var _journal_data: Dictionary = {}
+var _opening_stage := 0
+var _opening_report := ""
+var _opening_exit := ""
+var _physical_opening := false
+var _briefing_beat := 0
+var _breakroom_choice := ""
+const ParkingDialogue=preload("res://scripts/synaxis_parking_dialogue.gd")
+var _guard_topic:=""
+var _guard_former:=false
+const Restrooms = preload("res://scripts/synaxis_restrooms.gd")
+var _restroom_id := ""
 var settings: Dictionary = DEFAULT_SETTINGS.duplicate(true)
 var _root: Control
 var _screen_nodes: Array[Control] = []
@@ -91,8 +103,41 @@ func is_open() -> bool:
 func open_title() -> void:
 	_open("title")
 
-func open_opening() -> void:
+func open_opening(physical: bool = false) -> void:
+	_physical_opening = physical
+	_opening_stage = 0
+	_briefing_beat = 0
+	_opening_report = ""
+	_opening_exit = ""
+	if physical:
+		hide_for_game()
+	else:
+		_open("opening")
+
+func open_restroom(id: String) -> void:
+	if id not in [Restrooms.MEN,Restrooms.WOMEN]:
+		return
+	_restroom_id=id
+	_open("restroom")
+
+func open_parking_guard(former:bool) -> void:
+	_guard_former=former
+	_guard_topic=""
+	_open("parking_guard")
+
+func open_breakroom() -> void:
+	_breakroom_choice=""
+	_open("breakroom")
+
+func open_opening_stage() -> void:
 	_open("opening")
+
+func _opening_next_location() -> void:
+	if _physical_opening:
+		hide_for_game()
+		action_requested.emit("opening_walk")
+	else:
+		_render()
 
 func open_pause() -> void:
 	_open("pause")
@@ -144,6 +189,12 @@ func _unhandled_input(event: InputEvent) -> void:
 				_open(_confirmation_origin)
 			"pause":
 				hide_for_game()
+			"restroom":
+				_choice("restroom_leave")
+			"breakroom":
+				_choice("breakroom_leave")
+			"parking_guard":
+				_choice("guard_leave")
 			_:
 				pass
 		get_viewport().set_input_as_handled()
@@ -191,25 +242,28 @@ func _render() -> void:
 	_buttons.clear()
 	_focus_order.clear()
 	_first_focus = null
+	var staged := screen in ["breakroom","restroom","parking_guard"] or (screen=="opening" and _physical_opening and _opening_stage in [2,4])
 	var shade := ColorRect.new()
 	shade.name = "Scrim"
-	shade.color = Color(0.028, 0.045, 0.060, 0.94)
+	shade.color = Color(0.028, 0.045, 0.060, .12 if staged else .94)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(shade)
 	var center := CenterContainer.new()
 	center.name = "Center"
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if staged:
+		center.anchor_left = .5
 	_root.add_child(center)
 	var panel := PanelContainer.new()
 	panel.name = "MenuPanel"
-	panel.custom_minimum_size = Vector2(760.0, 0.0)
+	panel.custom_minimum_size = Vector2(500.0 if staged else 760.0, 0.0)
 	panel.add_theme_stylebox_override("panel", Ui.card(0.99, 26))
 	center.add_child(panel)
 	var shell := VBoxContainer.new()
 	shell.add_theme_constant_override("separation", 16)
 	panel.add_child(shell)
 	_label(shell, "MORROW BAY   /   NIGHT SHIFT", 16, Ui.AMBER)
-	_title(shell, "NIGHTGRID: AFTERHOURS", 40, Ui.TEXT)
+	_title(shell, "EXECUTIVE PRIVILEGE" if staged else "NIGHTGRID: AFTERHOURS", 26 if staged else 40, Ui.TEXT)
 	_divider(shell)
 	_body_scroll = ScrollContainer.new()
 	_body_scroll.name = "MenuScroll"
@@ -237,13 +291,80 @@ func _render() -> void:
 			_button(col, "settings", "SETTINGS", "settings")
 			_button(col, "controls", "CONTROLS & GAMEPAD", "controls")
 			_button(col, "quit", "QUIT TO DESKTOP", "quit")
+		"restroom":
+			SynaxisBrand.ui_lockup(col)
+			_title(col,"AIR QUALITY INCIDENT" if _restroom_id==Restrooms.MEN else "FACILITIES / REQUIRED TRAINING",23,Ui.AMBER)
+			_label(col,Restrooms.MEN_DIALOGUE if _restroom_id==Restrooms.MEN else Restrooms.WOMEN_DIALOGUE,16,Ui.TEXT)
+			_button(col,"restroom_leave","BACK TO WORK","restroom_leave")
+		"parking_guard":
+			SynaxisBrand.ui_lockup(col)
+			_title(col,"MARCUS VALE / PARKING SECURITY",23,Ui.AMBER)
+			if _guard_topic.is_empty():
+				_label(col,ParkingDialogue.greeting(_guard_former),16,Ui.TEXT)
+				for topic in ParkingDialogue.TOPICS:
+					if ParkingDialogue.available(topic,_guard_former):
+						_button(col,topic,str(ParkingDialogue.TOPICS[topic]["question"]),topic)
+			else:
+				_label(col,str(ParkingDialogue.TOPICS[_guard_topic]["question"]),16,Ui.MUTED)
+				_label(col,ParkingDialogue.reply(_guard_topic,_guard_former),17,Ui.TEXT)
+				_button(col,"guard_back","ASK SOMETHING ELSE","guard_back")
+			_button(col,"guard_leave","SEE YOU AROUND","guard_leave")
+		"breakroom":
+			SynaxisBrand.ui_lockup(col)
+			_title(col,Opening.BREAKROOM_TITLE,23,Ui.AMBER)
+			if _breakroom_choice.is_empty():
+				_label(col,Opening.BREAKROOM_PARTY,16,Ui.TEXT)
+				_button(col,"breakroom_photo","JOIN THE CORPORATE PHOTO","breakroom_photo")
+				_button(col,"breakroom_decline","SKIP THE PHOTO","breakroom_decline")
+			else:
+				_label(col,Opening.BREAKROOM_PHOTO if _breakroom_choice=="breakroom_photo" else Opening.BREAKROOM_DECLINE,17,Ui.TEXT)
+				_button(col,"breakroom_leave","BACK TO WORK","breakroom_leave")
 		"opening":
-			_title(col, Opening.EMPLOYER + " / PEOPLE OPERATIONS", 21, Ui.AMBER)
-			_title(col, Opening.HEADLINE, 29, Color("e3a39b"))
-			_label(col, Opening.NOTICE, 17, Color("cbd8e3"))
-			_divider(col)
-			_label(col, Opening.OFFER, 17, Ui.TEXT)
-			_button(col, "opening_accept", "ACCEPT TERMS / START DELIVERING", "opening_accept")
+			SynaxisBrand.ui_lockup(col)
+			_label(col, "OMNISYSTEMS / INTERNAL USE ONLY / 2036", 14, SynaxisBrand.AQUA)
+			_label(col, "CHAPTER ONE / EXECUTIVE PRIVILEGE  •  %d/6" % (_opening_stage+1), 16, Ui.MUTED)
+			match _opening_stage:
+				0:
+					_title(col, "ONE LAST TICKET", 29, Ui.TEXT)
+					_label(col, Opening.TICKET, 17, Color("cbd8e3"))
+					_label(col, "Eli: The override came from the executive floor. Your job is to establish who accessed the IP and whether they were authorized.", 16, Ui.MUTED)
+					_button(col, "opening_inspect", "REVIEW ACCESS ALERT", "opening_inspect")
+				1:
+					_title(col, "EXECUTIVE EXCEPTION", 29, Ui.TEXT)
+					_label(col, Opening.AUDIT, 17, Color("cbd8e3"))
+					_label(col, "The security policy applies to everyone. Except, apparently, the people who wrote it.", 16, Ui.MUTED)
+					_button(col, "opening_brief", "ATTEND EXECUTIVE BRIEFING", "opening_brief")
+				2:
+					_title(col, "A PERSONNEL MATTER", 29, Ui.TEXT)
+					match _briefing_beat:
+						0:
+							_label(col, Opening.CONFERENCE, 17, Color("cbd8e3"))
+							_button(col, "opening_phone", "WAIT FOR THE CALL", "opening_phone")
+						1:
+							_label(col, "INCOMING CALL / MANDARIN", 16, Ui.AMBER)
+							_label(col, Opening.CALL_SUBTITLES, 17, Ui.TEXT)
+							_button(col, "opening_hangup", "CONTINUE BRIEFING", "opening_hangup")
+						2:
+							_label(col, Opening.CONFERENCE_END, 17, Color("cbd8e3"))
+							_button(col, "opening_security", "ESCALATE TO SECURITY DIRECTOR", "opening_security")
+							_button(col, "opening_legal", "ASK LEGAL TO PRESERVE AUDIT", "opening_legal")
+				3:
+					_title(col, "YOUR CONCERN HAS BEEN RECEIVED", 29, Ui.TEXT)
+					_label(col, Opening.REPORT_RESPONSE if _opening_report == "opening_security" else Opening.LEGAL_RESPONSE, 17, Color("cbd8e3"))
+					_label(col, "Company share price: record high. Employee access: revoked.", 16, Ui.AMBER)
+					_button(col, "opening_read_notice", "OPEN PEOPLE OPERATIONS NOTICE", "opening_read_notice")
+				4:
+					_title(col, "WE VALUE YOUR FEEDBACK", 29, Ui.TEXT)
+					_label(col, Opening.OFFBOARDING, 17, Color("cbd8e3"))
+					_button(col, "opening_exit_accept", "SUBMIT EXIT FEEDBACK", "opening_exit_accept")
+					_button(col, "opening_exit_decline", "DECLINE EXIT INTERVIEW", "opening_exit_decline")
+				5:
+					_label(col, Opening.EXIT_ACCEPT if _opening_exit == "opening_exit_accept" else Opening.EXIT_DECLINE, 16, Ui.MUTED)
+					_title(col, Opening.HEADLINE, 29, Color("e3a39b"))
+					_label(col, Opening.NOTICE, 17, Color("cbd8e3"))
+					_divider(col)
+					_label(col, Opening.OFFER, 17, Ui.TEXT)
+					_button(col, "opening_accept", "ACCEPT TERMS / RETURN COMPANY PROPERTY" if _physical_opening else "ACCEPT TERMS / START DELIVERING", "opening_accept")
 		"pause":
 			_title(col, "PAUSED / SAFE MOMENT", 22, Color("f0dfcd"))
 			_button(col, "resume", "RESUME GAME", "resume")
@@ -298,6 +419,8 @@ func _render() -> void:
 			_title(col, "ACTIVE DELIVERIES", 18, Color("f0d1a0"))
 			if not str(_journal_data.get("opening_goal","")).is_empty():
 				_label(col, str(_journal_data["opening_goal"]), 17, Ui.AMBER)
+			if not str(_journal_data.get("platform_notice","")).is_empty():
+				_label(col, str(_journal_data["platform_notice"]), 16, Ui.MUTED)
 			_label(col, str(_journal_data.get("main_objective", "Explore Morrow Bay")),
 				17, Color("e1ebef"))
 			_button(col, "restart_courier", "ABANDON PACKAGE / RETRY ROUTE", "restart_courier", bool(_journal_data.get("courier_can_restart", false)))
@@ -317,6 +440,9 @@ func _render() -> void:
 			_label(col, str(_journal_data.get("conditioning", "")), 16, Ui.ACCENT)
 			_label(col, str(_journal_data.get("outfit", "")), 16, Ui.ACCENT)
 			_label(col, "BTC WALLET: %d sats" % int(_journal_data.get("bitcoin_sats",0)), 16, Ui.ACCENT)
+			if not str(_journal_data.get("synaxis_site","")).is_empty():
+				_label(col,str(_journal_data["synaxis_site"]),16,Ui.MUTED)
+				_button(col,"synaxis_waypoint","SET WAYPOINT TO SYNAXIS HQ","synaxis_waypoint")
 			_label(col, str(_journal_data.get("home_text", "")), 16, Ui.ACCENT)
 			if bool(_journal_data.get("home_can_navigate", false)):
 				_button(col, "home_waypoint", "SET WAYPOINT TO POD", "home_waypoint")
@@ -490,9 +616,62 @@ func _choice(action: String) -> void:
 				action_requested.emit("begin_opening")
 			else:
 				hide_for_game()
+		"guard_r9", "guard_parking", "guard_robots", "guard_access", "guard_shift", "guard_layoff":
+			if screen=="parking_guard" and ParkingDialogue.available(action,_guard_former):
+				_guard_topic=action
+				_render()
+		"guard_back":
+			if screen=="parking_guard":
+				_guard_topic=""
+				_render()
+		"guard_leave":
+			if screen=="parking_guard":
+				hide_for_game()
+				action_requested.emit("guard_leave")
+		"breakroom_photo", "breakroom_decline":
+			if screen=="breakroom" and _breakroom_choice.is_empty():
+				_breakroom_choice=action
+				_render()
+		"restroom_leave":
+			if screen=="restroom":
+				hide_for_game()
+				action_requested.emit("restroom_leave")
+		"breakroom_leave":
+			if screen=="breakroom":
+				hide_for_game()
+				action_requested.emit("breakroom_leave")
+		"opening_inspect":
+			if screen == "opening" and _opening_stage == 0:
+				_opening_stage = 1
+				_render()
+		"opening_brief":
+			if screen == "opening" and _opening_stage == 1:
+				_opening_stage = 2
+				_opening_next_location()
+		"opening_phone", "opening_hangup":
+			if screen == "opening" and _opening_stage == 2 and ((action=="opening_phone" and _briefing_beat==0) or (action=="opening_hangup" and _briefing_beat==1)):
+				_briefing_beat += 1
+				if _physical_opening:
+					action_requested.emit("opening_camera")
+				_render()
+		"opening_security", "opening_legal":
+			if screen == "opening" and _opening_stage == 2 and _briefing_beat == 2:
+				_opening_report = action
+				_opening_stage = 3
+				_render()
+		"opening_read_notice":
+			if screen == "opening" and _opening_stage == 3:
+				_opening_stage = 4
+				_opening_next_location()
+		"opening_exit_accept", "opening_exit_decline":
+			if screen == "opening" and _opening_stage == 4:
+				_opening_exit = action
+				_opening_stage = 5
+				_opening_next_location()
 		"opening_accept":
-			hide_for_game()
-			action_requested.emit("accept_opening")
+			if screen == "opening" and _opening_stage == 5:
+				hide_for_game()
+				action_requested.emit("accept_opening")
 		"resume":
 			hide_for_game()
 		"settings":
@@ -503,7 +682,7 @@ func _choice(action: String) -> void:
 			open_map()
 		"journal":
 			action_requested.emit("journal")
-		"restart_courier", "abandon_story", "home_waypoint", "garage_waypoint", "story_waypoint":
+		"restart_courier", "abandon_story", "home_waypoint", "garage_waypoint", "story_waypoint", "synaxis_waypoint":
 			action_requested.emit(action)
 		"back":
 			_open(_back_screen)
