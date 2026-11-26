@@ -131,8 +131,18 @@ func _verify() -> void:
 		_fail("Vehicle-door cue did not play")
 		return
 	var first := voices[next_voice] as AudioStreamPlayer3D
-	if first.stream != Foley.sound("DOOR") or first.global_position.distance_to(Vector3(1.0, 1.0, 2.0)) > 0.01:
-		_fail("Door sound does not follow its physical source")
+	var bank:Dictionary=director.get("_event_bank")
+	if first.stream != bank["DOOR"] or first.global_position.distance_to(Vector3(1.0, 1.0, 2.0)) > 0.01:
+		_fail("Door sound does not follow its physical source or cached cue")
+		return
+	var generated:=preload("res://scripts/synaxis_generated_audio.gd").stream("event_door")
+	if generated!=null:
+		var played:=first.stream as AudioStreamWAV
+		if played==null or played.data!=generated.data or played.loop_mode!=AudioStreamWAV.LOOP_DISABLED:
+			_fail("Accepted generated door cue must take priority and remain one-shot")
+			return
+	elif first.stream!=Foley.sound("DOOR"):
+		_fail("Missing generated cue must use the existing cached fallback")
 		return
 	# Real courier delivery and vehicle entry/exit must call the shared director.
 	var courier = game.get("courier_mission")

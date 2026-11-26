@@ -538,6 +538,34 @@ func _verify() -> void:
 	if office.call("arrival_active") or player.get("input_blocked") or int(office.call("objective_stage",0))!=-2:
 		_fail("Skipping arrival restores player movement at the cubicle")
 		return
+	var bounds=preload("res://scripts/synaxis_office.gd")
+	for level in [-1,0,1,2,3,4,13]:
+		var height:float=level*3.65+1.15
+		if not bounds.within_chapter_bounds(Vector3(0,height,5),level,true,false):
+			_fail("Valid lift landing rejected by chapter bounds")
+			return
+		for invalid in [Vector3(80,height,0),Vector3(0,height,-30),Vector3(0,height,40),Vector3(0,height-5,5),Vector3(0,height+5,5)]:
+			if bounds.within_chapter_bounds(invalid,level,true,false):
+				_fail("Chapter escaped active floor envelope: %s" % invalid)
+				return
+	if not bounds.within_chapter_bounds(Vector3(-9.14,1.15,5),0,true,false) or not bounds.within_chapter_bounds(Vector3(-6.55,1.15,18.55),0,true,false):
+		_fail("Optional parking visit must remain available")
+		return
+	if bounds.within_chapter_bounds(Vector3(-6.55,1.15,18.55),0,false,false):
+		_fail("Closed staff door must revoke parking access")
+		return
+	if bounds.within_chapter_bounds(Vector3(0,1.15,-12.32),0,true,false) or not bounds.within_chapter_bounds(Vector3(0,1.15,-12.32),0,false,true):
+		_fail("Street exit is authorized only after final offboarding")
+		return
+	if not bounds.within_chapter_bounds(Vector3(10,13*3.65+1.15,-4),13,true,false) or bounds.within_chapter_bounds(Vector3(12,13*3.65+1.15,-4),13,true,false):
+		_fail("Terrace must be accessible but bounded")
+		return
+	player.global_position=office.to_global(Vector3(-30,1.15,12))
+	player.velocity=Vector3(4,0,3)
+	world.call("_physics_process",0.016)
+	if player.global_position.distance_to(office.to_global(bounds.CUBICLE_POINT))>.01 or player.velocity!=Vector3.ZERO or int(office.call("objective_stage",0))!=-2:
+		_fail("Escaped player must recover without changing chapter progress")
+		return
 	player.global_position=office.to_global(Vector3(0,1.15,0))
 	world.call("_opening_interact")
 	if menu.call("is_open") or int(office.call("objective_stage",0))!=-2:
