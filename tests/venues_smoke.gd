@@ -90,6 +90,25 @@ func _verify() -> void:
 	if venues.call("is_open", "copper_cup", 23.0) or not venues.call("is_open", "copper_cup", 9.0):
 		_fail("Daytime cafe operating hours are broken")
 		return
+	venues.call("set_focus", venues.call("venue_position", "blue_hour"))
+	venues.call("set_hour", 23.0)
+	var performer:Node3D=venues.get_node_or_null("blue_hour/AmbientSamplerPerformer")
+	if performer==null or not performer.visible or not performer.has_node("StageSampler") or performer.get_node("PerformerRig").get("_music_role")!="sampler":
+		_fail("Open nearby Blue Hour has no animated sampler performer")
+		return
+	venues.call("set_hour",12.0)
+	if performer.visible or performer.get_node("PerformerRig").is_processing():
+		_fail("Closed venue retained active performer")
+		return
+	venues.call("set_hour",23.0)
+	if not performer.visible or performer!=venues.get_node_or_null("blue_hour/AmbientSamplerPerformer"):
+		_fail("Venue performer was not reused")
+		return
+	venues.call("set_focus",Vector3(9999,0,9999))
+	venues.call("set_hour",23.0)
+	if performer.visible or performer.get_node("PerformerRig").is_processing():
+		_fail("Far venue retained active performer")
+		return
 	var player: CharacterBody3D = world.get("player")
 	var ui: PanelContainer = world.get("venue_panel")
 	world.set("cash", 100)
