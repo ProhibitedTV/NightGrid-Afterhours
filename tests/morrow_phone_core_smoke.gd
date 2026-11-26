@@ -80,6 +80,29 @@ func _verify() -> void:
 		_fail("Circuit marker is missing, misplaced or colliding")
 		return
 	world.call("clear_navigation_waypoint")
+	var taxi = preload("res://scripts/taxi_job.gd")
+	var freight = preload("res://scripts/freight_job.gd")
+	for listing_id in ["taxi:current","freight:current"]:
+		menu.call("open_pause")
+		menu.call("_choice","phone")
+		menu.call("_choice","phone_app_opportunities")
+		var route_action: String = "phone_route_contract:"+listing_id
+		var expected: Vector2 = taxi.offer(0)["pickup"] if listing_id=="taxi:current" else freight.offer(0)["pickup"]
+		if not (menu.call("get_buttons") as Dictionary).has(route_action):
+			_fail("vehicle job is discoverable in workboard: "+listing_id)
+			return
+		menu.call("_choice",route_action)
+		if paused or world.get("navigation_waypoint")!=expected or ledger.get("balance")!=cash_before:
+			_fail("vehicle job routes to exact road stop, not a nearby pin: "+listing_id)
+			return
+		world.call("clear_navigation_waypoint")
+	var venue: Node = world.get("venue_system")
+	var entrance: Vector3 = venue.call("venue_position","lantern_cup")
+	var near_pin := Vector2(entrance.x,entrance.z)+Vector2(1,0)
+	if world.call("set_navigation_waypoint",near_pin,false)!=near_pin or world.call("set_navigation_waypoint",near_pin)==near_pin:
+		_fail("exact route opt-out must preserve ordinary manual map snapping")
+		return
+	world.call("clear_navigation_waypoint")
 	var courier: RefCounted = world.get("courier_mission")
 	courier.set("gig_economy",true)
 	world.call("_refresh_courier_target")
