@@ -38,6 +38,7 @@ material_python="$ANUBIS_VISUAL_HOME/mesh/bin/python"
 [[ -x "$material_python" ]] || { echo "Existing mesh Python environment required for materials"; exit 2; }
 "$material_python" tools/asset_refinement/materials.py --raw "$ANUBIS_VISUAL_OUT" --output "$root/Materials/material-001" --size "$size" "${extra[@]}"
 python3 tools/asset_refinement/review_queue.py --raw "$ANUBIS_VISUAL_OUT" --refined "$root/refined-001" --size "$size" --output "$root/refined-001/review-$size.json"
+python3 tools/asset_refinement/budgets.py --raw "$ANUBIS_VISUAL_OUT" --refined "$root/refined-001" --size "$size" --output "$root/refined-001/budgets-$size.json"
 if [[ -n "${ANUBIS_GODOT:-}" ]]; then
   python3 tools/asset_refinement/godot_gate.py --raw "$ANUBIS_VISUAL_OUT" --refined "$root/refined-001" --size "$size" --godot "$ANUBIS_GODOT" --output "$root/refined-001/godot-$size.json"
 else

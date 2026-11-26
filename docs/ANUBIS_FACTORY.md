@@ -58,3 +58,7 @@ Set ANUBIS_PROJECT_NORMALS=1 for selected-to-active Cycles tangent normal baking
 ## Experimental geometry ambient occlusion
 
 Set ANUBIS_BAKE_AO=1 to bake each LOD self-occlusion through a Cycles ambient-occlusion shader (16 samples, ray distance 8% of maximum source extent, only-local). Outputs are linear grayscale AO candidates, with coverage/range checks and recorded parameters. These are standalone maps, not automatically wired into GLBs or exported for runtime use. They are based on geometry, not luminance guesses, but cannot restore occlusion removed by decimation. Human review and explicit material integration are required. Opt-in until fixture and native asset validation complete.
+
+## Texture budget report
+
+Every factory run writes budgets-<size>.json, estimating per-LOD and all-LOD resident RGBA8 texture bytes including full mip chains. Provisional warning threshold 16 MiB per prop across all LODs. This is an uncompressed estimate, not measured RTX 3060 VRAM; mesh buffers, render targets, standalone AO, surface library, compression, streaming and runtime copies are excluded. Alternative versions are listed separately, never summed as a live scene. Use native Godot measurements before selecting budgets.
