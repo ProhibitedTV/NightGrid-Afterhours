@@ -21,6 +21,12 @@ static func offer(completed:int)->Dictionary:
 		return {}
 	return ROUTES[completed%ROUTES.size()].duplicate()
 
+## Venue frontages sit on the south sidewalk of the north road.
+## Place the rider on the sidewalk, not the road loading point.
+static func waiting_point(offer:Dictionary)->Vector3:
+	var pickup:Vector2=offer["pickup"]
+	return Vector3(pickup.x,.16,pickup.y+6.45)
+
 static func near(at:Vector2,target:Vector2)->bool:
 	return at.is_finite() and at.distance_to(target)<=RADIUS
 
