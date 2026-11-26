@@ -131,7 +131,7 @@ func generate() -> void:
 func get_city_stats() -> Dictionary:
 	# The atlas counts all authored lots; streaming metrics count only live nodes.
 	var result := _statistics.duplicate()
-	result["buildings"] = GRID_RADIUS * GRID_RADIUS * 8 - WorldPlan.LANDMARK_BLOCKS.size() * 2
+	result["buildings"] = GRID_RADIUS * GRID_RADIUS * 8 - WorldPlan.LANDMARK_BLOCKS.size() * 2 - 1
 	result["authored_lots"] = result["buildings"]
 	result["storefronts"] = result["buildings"]
 	result["landmarks"] = WorldPlan.LANDMARK_BLOCKS.size()
@@ -259,7 +259,7 @@ func _count_loaded_buildings() -> int:
 	for key in _loaded:
 		var grid: Vector2i = key
 		if WorldPlan.landmark_for_block(grid.x, grid.y).is_empty():
-			count += 2
+			count += 1 if grid==SynaxisHQ.BLOCK else 2
 	return count
 
 func set_streaming_enabled(value: bool) -> void:
@@ -720,6 +720,8 @@ func _build_block_shells(ix: int, iz: int) -> void:
 		_build_building(Vector3(x, 0.0, z), profile, district, ix, iz, which, true)
 
 func _build_block_lot(ix: int, iz: int, which: int) -> void:
+	if Vector2i(ix,iz)==SynaxisHQ.BLOCK and which!=SynaxisHQ.LOT:
+		return # consolidated lot is owned by the single HQ scene
 	var center := Vector3((float(ix) + 0.5) * CELL, 0.0, (float(iz) + 0.5) * CELL)
 	var profile := _block_lot_profile(ix, iz, which)
 	if (not WorldPlan.is_core_block(ix, iz)) or WorldPlan.lot_variant_index(ix, iz, world_seed) > 0:
@@ -817,7 +819,7 @@ func _build_block_street(ix: int, iz: int) -> void:
 	var center := Vector3((float(ix) + 0.5) * CELL, 0.0, (float(iz) + 0.5) * CELL)
 	var district := get_district_at(center)
 	# The pilot replaces the old raised decorative slab and ghost dumpster.
-	if Vector2i(ix,iz) != BrickwaterAlley.PILOT_BLOCK:
+	if Vector2i(ix,iz) != BrickwaterAlley.PILOT_BLOCK and Vector2i(ix,iz)!=SynaxisHQ.BLOCK:
 		_detail(center + Vector3(0.0, 0.155, 3.0), Vector3(3.8, 0.035, 25.0), Color("353e48"))
 		for mark in range(4):
 			_detail(center + Vector3(0.0, 0.175, -6.0 + float(mark) * 6.0), Vector3(3.4, 0.02, 0.10), Color("62686e"))
@@ -952,6 +954,9 @@ func _build_building(center: Vector3, profile: Dictionary, district: String, ix:
 	var wall := Color(str(profile["wall"]))
 	var surface_kind: String = profile["material"]
 	var front := center.z - depth / 2.0
+	# Synaxis owns both lot slots. The west tower owns the connected east podium.
+	if Vector2i(ix,iz)==SynaxisHQ.BLOCK and which!=SynaxisHQ.LOT:
+		return
 	if Vector2i(ix,iz) == SynaxisHQ.BLOCK and which == SynaxisHQ.LOT:
 		if not shell_prebuilt:
 			var headquarters := SynaxisHQ.new()

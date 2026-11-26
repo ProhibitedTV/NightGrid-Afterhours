@@ -13,7 +13,7 @@ const BLUE = Brand.BLUE
 
 func _ready() -> void:
 	# Local coordinates match the permanent Synaxis ground floor.
-	_board("QuarterlyRecord",Vector3(8.31,1.95,2.0),-PI/2,Vector2(3.6,1.75),NAVY,GOLD,WHITE,
+	_board("QuarterlyRecord",Vector3(8.31,1.95,1.25),-PI/2,Vector2(3.6,1.75),NAVY,GOLD,WHITE,
 		"INVESTOR RELATIONS / Q3 2036","$14.8 BILLION\nQUARTERLY PROFIT",
 		"OUR BEST QUARTER YET.\nThank you for doing more with less.")
 	_board("HealthRenewal",Vector3(-8.31,1.92,-5.5),PI/2,Vector2(2.55,1.8),PAPER,RED,INK,
@@ -39,7 +39,7 @@ func _ready() -> void:
 	_board("Calibration",Vector3(-.108,1.87,-3.8),-PI/2,Vector2(2.4,1.55),PAPER,RED,INK,
 		"PEOPLE OPERATIONS / PERFORMANCE","EXCEED EXPECTATIONS.\nNOT THE BUDGET.",
 		"95% of staff met all objectives.\nCalibration requires 15% below expectations.\nManagers: please reconcile.")
-	_board("AIPledge",Vector3(8.31,1.85,6.3),-PI/2,Vector2(2.9,1.65),NAVY,AQUA,WHITE,
+	_board("AIPledge",Vector3(8.31,1.85,-1.85),-PI/2,Vector2(2.9,1.65),NAVY,AQUA,WHITE,
 		"SYNAXIS ASSISTANT ENTERPRISE","YOUR AI COLLEAGUE\nNEEDS YOU.",
 		"Record your daily workflow.\nTrain the future of your role.\nA more human workplace, with fewer humans.")
 	_board("PTOFreeze",Vector3(-5.8,1.96,.34),0.0,Vector2(2.2,1.55),PAPER,RED,INK,
@@ -54,7 +54,7 @@ func _ready() -> void:
 	_board("Equity",Vector3(.108,1.85,-6.1),PI/2,Vector2(1.85,1.55),NAVY,GOLD,WHITE,
 		"TOTAL REWARDS / EQUITY","OWN THE FUTURE.",
 		"Liquidity event: postponed.\nExecutive cash bonus: paid.\nYour patience is a competitive advantage.")
-	_board("Water",Vector3(-8.31,1.94,7.65),PI/2,Vector2(2.45,1.48),PAPER,BLUE,INK,
+	_board("Water",Vector3(29.39,1.94,20.0),-PI/2,Vector2(2.45,1.48),PAPER,BLUE,INK,
 		"BREAKROOM / SUSTAINABILITY","BYO MUG. BYO COFFEE.",
 		"Company-provided coffee discontinued.\nWe saved 0.002% of operating expense.\nWater remains complimentary for now.")
 	_board("Recruiting",Vector3(5.25,1.97,-9.84),0.0,Vector2(2.9,1.58),NAVY,AQUA,WHITE,

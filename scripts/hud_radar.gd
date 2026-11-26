@@ -6,6 +6,7 @@ const Restrooms = preload("res://scripts/synaxis_restrooms.gd")
 const Arrival = preload("res://scripts/synaxis_arrival.gd")
 const LiftFrontage=preload("res://scripts/synaxis_lift_frontage.gd")
 const GroundLayout=preload("res://scripts/synaxis_ground_layout.gd")
+const Campus=preload("res://scripts/synaxis_campus_layout.gd")
 const RANGE_METRES = 116.0
 const BORDER = 9.0
 var world_node: Node3D
@@ -223,18 +224,21 @@ func _draw_office() -> void:
 		[Vector2(1.3,-10),Vector2(8.5,-10)],
 		[Vector2(-8.5,-10),Vector2(-8.5,3.5)],
 		[Vector2(-8.5,5.5),Vector2(-8.5,10)],
-		[Vector2(8.5,-10),Vector2(8.5,10)],
+		[Vector2(8.5,-10),Vector2(8.5,3.35)],
+		[Vector2(8.5,5.65),Vector2(8.5,10)],
 		[Vector2(-8.5,10),Vector2(8.5,10)],
 		[Vector2(-8.5,-7.65),Vector2(8.5,-7.65)],
 		[Vector2(0,Arrival.PARTITION_NEAR_Z),Vector2(0,Arrival.PARTITION_FAR_Z)]
 	]:
+		_segment(edge[0],edge[1],wall,2.6)
+	for edge in Campus.WALL_EDGES:
 		_segment(edge[0],edge[1],wall,2.6)
 	for edge in GroundLayout.BREAKROOM_EDGES:
 		_segment(edge[0],edge[1],wall,2.6)
 	var offset:=Vector2(Restrooms.OFFSET.x,Restrooms.OFFSET.z)
 	for edge in Restrooms.WALL_EDGES:
 		_segment(edge[0]+offset,edge[1]+offset,wall,2.6)
-	for desk in [Vector2(-5,2.55),Vector2(4.5,1.7),Vector2(-5,-5.4),Vector2(5,-5.4),Vector2(5,6.5),Vector2(-4.2,8.12)]:
+	for desk in [Vector2(-5,2.55),Vector2(4.5,1.7),Vector2(-5,-5.4),Vector2(5,-5.4),Vector2(5,6.5),Vector2(23,22.57),Vector2(13.5,-1.3),Vector2(24,-1.3)]:
 		_segment(desk-Vector2(1.1,0),desk+Vector2(1.1,0),Color("52616e"),5.0)
 	_target(_office_target,Color("ffba56"),true)
 	draw_circle(_center,5.0,Color("e7edf0"),true,-1.0,true)
