@@ -40,6 +40,7 @@ var _attention_applied:=false
 # Office-only opt-in. Existing street actors keep their original gaze behavior.
 var office_conversation_gestures:=false
 var _conversation_phase:=0.0
+var _attention_target_active:=false
 static var _materials_by_source := {}
 static var _street_surface_by_source := {}
 
@@ -159,11 +160,13 @@ func set_activity(activity: String) -> void:
 # pooled pedestrians retain their existing idle/walk behavior by default.
 func set_attention_target(target:Vector3,active:bool) -> void:
 	_attention_goal=0.0
+	_attention_target_active=false
 	if not _valid or _attention_bone<0 or not active or not target.is_finite():
 		return
 	var local:=to_local(target)
 	if Vector2(local.x,local.z).length_squared()<.0025:
 		return
+	_attention_target_active=true
 	_attention_goal=clampf(atan2(local.x,maxf(.10,local.z)),-.60,.60)
 
 func _restore_attention() -> void:
@@ -174,7 +177,7 @@ func _restore_attention() -> void:
 func _apply_attention(delta:float) -> void:
 	_attention_yaw=move_toward(_attention_yaw,0.0 if _walking else _attention_goal,delta*2.8)
 	var nod:=0.0
-	if office_conversation_gestures and not _walking and absf(_attention_goal)>.01:
+	if office_conversation_gestures and not _walking and _attention_target_active:
 		_conversation_phase=fposmod(_conversation_phase+delta,4.2)
 		nod=.075*pow(maxf(0.0,sin(_conversation_phase*TAU/4.2)),8.0)
 	else:
@@ -217,6 +220,8 @@ func reset_pedestrian_visual() -> void:
 	_restore_attention()
 	_attention_goal=0.0
 	_attention_yaw=0.0
+	_attention_target_active=false
+	_conversation_phase=0.0
 	clear_music_performance()
 	_measured_speed = 0.0
 	_filtered_speed = 0.0
@@ -234,6 +239,8 @@ func pose_taxi_seated()->Dictionary:
 	_restore_attention()
 	_attention_goal=0.0
 	_attention_yaw=0.0
+	_attention_target_active=false
+	_conversation_phase=0.0
 	clear_music_performance()
 	_player.stop()
 	set_process(false)
