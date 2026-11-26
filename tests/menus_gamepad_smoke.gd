@@ -959,6 +959,19 @@ func _verify() -> void:
 			_fail("Restroom scene is optional, once per visit and cannot affect mission or wallet")
 			return
 	var breakroom_hq=preload("res://scripts/synaxis_office.gd")
+	for id in ["BreakroomFront0Collision","BreakroomFront1Collision","BreakroomDoorHeaderCollision"]:
+		if not office.has_node(id):
+			_fail("Breakroom must have collision-backed room separation")
+			return
+	if office.call("breakroom_reachable",office.to_global(Vector3(-4.2,1.15,5.90))):
+		_fail("Breakroom party cannot trigger through the corridor wall")
+		return
+	if not office.call("breakroom_reachable",office.to_global(breakroom_hq.BREAKROOM_POINT)):
+		_fail("Breakroom encounter must still work inside the doorway")
+		return
+	if office.find_children("ElevatorFloorDirection*","MeshInstance3D",false,false).size()!=4:
+		_fail("Desk 04 and main aisle need physical elevator direction cues")
+		return
 	player.global_position=office.to_global(breakroom_hq.BREAKROOM_POINT)
 	world.call("_opening_interact")
 	if not (menu.call("get_buttons") as Dictionary).has("breakroom_photo") or not is_instance_valid(office.get_node_or_null("PartyBannerBacking")):

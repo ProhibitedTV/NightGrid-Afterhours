@@ -42,6 +42,7 @@ var _ground_ambience:AudioStreamPlayer3D
 var _lift_audio:AudioStreamPlayer3D
 const LiftTransition=preload("res://scripts/synaxis_lift_transition.gd")
 const LiftFrontage=preload("res://scripts/synaxis_lift_frontage.gd")
+const GroundLayout=preload("res://scripts/synaxis_ground_layout.gd")
 var _lift_transition:CanvasLayer
 var _lift_target:=0
 var _restrooms: Node3D
@@ -63,7 +64,7 @@ var _personal_bag:Node3D
 var _assistant: Node3D
 var _ceo: Node3D
 var _hr: Node3D
-const START = Vector3(0,1.15,7)
+const START = Vector3(0,1.15,4.9)
 const BREAKROOM_POINT = Vector3(-4.2,1.15,6.85)
 var _breakroom_seen := false
 const POINTS = {-2:CUBICLE_POINT,-1:Vector3(-5,1.15-Workfloor.FLOOR_HEIGHT,4),0:Vector3(-5,1.15-Workfloor.FLOOR_HEIGHT,4),2:ExecutiveFloor.CEO_GOAL+Vector3.UP*ExecutiveFloor.BASE,4:ExecutiveFloor.HR_GOAL+Vector3.UP*ExecutiveFloor.BASE,5:Vector3(5,1.15,5),6:Vector3(5,1.15,5),7:CUBICLE_POINT,8:Vector3(0,1.15,-12.32)}
@@ -120,6 +121,7 @@ func _ready() -> void:
 	_build_lobby(desk,accent,screen)
 	_build_office_details(desk,accent,screen)
 	_build_breakroom(desk,accent)
+	_build_ground_wayfinding(wall,accent)
 	_build_corporate_relics(desk,accent,screen)
 	_restrooms=Restrooms.new()
 	_restrooms.name="Restrooms"
@@ -520,6 +522,44 @@ func _build_office_details(desk: Material,accent: Material,screen: Material) -> 
 	carpet.roughness=.96
 	_visual("ExecutiveCarpet",Vector3(5,.012,-3.3),Vector3(5,.015,3.1),carpet)
 
+func _build_ground_wayfinding(wall:Material,accent:Material) -> void:
+	# Rear shaft side, exterior walls and these two spans form a separate
+	# room. Its 1.9 m open doorway leaves the staff exit and main aisle clear.
+	for i in GroundLayout.BREAKROOM_EDGES.size():
+		var edge:Array=GroundLayout.BREAKROOM_EDGES[i]
+		var center:Vector2=(edge[0]+edge[1])*.5
+		_solid("BreakroomFront"+str(i),Vector3(center.x,1.675,center.y),Vector3(edge[0].distance_to(edge[1]),3.35,.16),wall)
+	var door_center:float=(GroundLayout.DOOR_LEFT+GroundLayout.DOOR_RIGHT)*.5
+	_solid("BreakroomDoorHeader",Vector3(door_center,2.925,GroundLayout.BREAKROOM_FRONT),Vector3(1.90,.85,.16),wall)
+	for x in [GroundLayout.DOOR_LEFT,GroundLayout.DOOR_RIGHT]:
+		_visual("BreakroomJamb",Vector3(x,1.25,GroundLayout.BREAKROOM_FRONT),Vector3(.065,2.5,.24),accent)
+	_visual("BreakroomSill",Vector3(door_center,.012,GroundLayout.BREAKROOM_FRONT),Vector3(1.9,.015,.27),accent)
+	_plaque("EMPLOYEE BREAKROOM",Vector3(door_center,2.83,GroundLayout.BREAKROOM_FRONT-.105),PI,Vector2(1.76,.29))
+	_plaque("MAIN OFFICE",Vector3(door_center,2.83,GroundLayout.BREAKROOM_FRONT+.105),0,Vector2(1.76,.29))
+	_plaque("ELEVATORS / B1 IT",Vector3(-6.62,2.20,GroundLayout.BREAKROOM_FRONT-.105),PI,Vector2(2.30,.32))
+	# The approach from the arrival corridor and desk 04 uses flush,
+	# contrasting arrows. No collision or hovering billboard.
+	for at in [Vector3(2.15,.018,-.15),Vector3(2.15,.018,2.55)]:
+		_floor_arrow(at,0.0)
+	_floor_arrow(Vector3(3.10,.018,4.55),-PI/2)
+	_floor_arrow(Vector3(1.70,.018,4.55),-PI/2)
+
+func _floor_arrow(at:Vector3,yaw:float) -> void:
+	var node:=MeshInstance3D.new()
+	node.name="ElevatorFloorDirection"
+	var mesh:=QuadMesh.new()
+	mesh.size=Vector2(.70,.70)
+	node.mesh=mesh
+	var mat:=_material("lift_route_art",Color.WHITE)
+	mat.albedo_texture=preload("res://assets/synaxis/elevator_floor_arrow.svg")
+	mat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.roughness=.85
+	node.material_override=mat
+	node.position=at
+	node.basis=Basis(Vector3.UP,yaw)*Basis(Vector3.RIGHT,-PI/2)
+	node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(node)
+
 func _build_breakroom(desk: Material,accent: Material) -> void:
 	# Furniture is permanent; the short party performance is intro-only.
 	_collision("BreakroomTable",Vector3(-4.2,.47,8.12),Vector3(3.4,.94,1.02))
@@ -566,7 +606,7 @@ func restroom_encounter(at: Vector3) -> String:
 	return str(_restrooms.call("encounter",local))
 
 func breakroom_reachable(at: Vector3) -> bool:
-	return _prologue_active and at.is_finite() and at.distance_to(to_global(BREAKROOM_POINT))<1.35
+	return _prologue_active and _active_floor==0 and at.is_finite() and GroundLayout.in_breakroom(to_local(at)) and at.distance_to(to_global(BREAKROOM_POINT))<1.35
 
 func mark_breakroom_seen() -> void:
 	_breakroom_seen=true
@@ -693,7 +733,7 @@ func dialogue_camera(camera: Camera3D,stage: int,beat: int) -> void:
 		_hr.call("set_scene_beat",2 if stage==4 else -1)
 
 func breakroom_camera(camera: Camera3D) -> void:
-	camera.global_position=to_global(Vector3(-6.1,1.9,5.0))
+	camera.global_position=to_global(Vector3(-7.25,2.15,6.65))
 	camera.look_at(to_global(Vector3(-3.7,1.5,8.7)),Vector3.UP)
 
 func end_dialogue() -> void:
@@ -998,7 +1038,7 @@ func _lift_hint(stage:int,local:Vector3) -> String:
 		return ""
 	var distance:=Vector2(local.x,local.z).distance_to(Workfloor.LIFT)
 	var button:="RIGHT / DOWN" if desired<_active_floor else "LEFT / UP"
-	return "\nElevators (rear central corridor) · %.0f m · %s toward %s" % [distance,button,floor_title(desired)]
+	return "\nFollow the marked aisle to ELEVATORS · %.0f m · %s toward %s" % [distance,button,floor_title(desired)]
 
 func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 	if not POINTS.has(stage):
