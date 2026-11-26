@@ -69,6 +69,16 @@ func _verify() -> void:
 			_fail("Bidirectional street distances must be symmetric")
 			return
 	var freight:=preload("res://scripts/freight_job.gd").new()
+	if not freight.supports_vehicle("",false) or freight.supports_vehicle("cinder_r9",false) or freight.supports_vehicle("",true):
+		_fail("Cargo capacity must reject sports cars and service cruisers")
+		return
+	var case_view:=preload("res://scripts/freight_cargo_case.gd").new()
+	case_view.configure("Cold Chain transfer")
+	root.add_child(case_view)
+	if case_view.find_children("*","MeshInstance3D",true,false).size()!=8 or not case_view.find_children("*","CollisionShape3D",true,false).is_empty():
+		_fail("Sealed cargo case has bounded geometry and no collision")
+		return
+	case_view.queue_free()
 	var freight_ledger:=preload("res://scripts/progression_ledger.gd").new()
 	for run in range(3):
 		var offer:=freight.offer(run)
@@ -82,9 +92,13 @@ func _verify() -> void:
 			return
 		freight.begin(run,pickup,55,100.0,0.0)
 		var freight_pos:=pickup
-		while freight_pos.distance_to(drop)>.01:
-			freight_pos=freight_pos.move_toward(drop,.2)
-			freight.tick(freight_pos,55,100.0,1.0/60.0)
+		var road:=Route.plan(pickup,drop)
+		var road_points:Array[Vector2]=road["points"]
+		road_points.append(drop)
+		for waypoint in road_points:
+			while freight_pos.distance_to(waypoint)>.01:
+				freight_pos=freight_pos.move_toward(waypoint,.2)
+				freight.tick(freight_pos,55,100.0,1.0/60.0)
 		if not freight.ready_to_deliver(drop,55,100.0,0.0) or not freight_ledger.settle_freight(freight.sequence) or freight_ledger.settle_freight(freight.sequence):
 			_fail("Freight exactly-once settlement and original vehicle")
 			return

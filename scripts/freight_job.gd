@@ -34,6 +34,10 @@ func begin(completed:int,at:Vector2,id:int,condition:float,speed:float)->bool:
 	meters=0.0
 	return true
 
+## Current civilian Kestrel has a rear cabin, unlike the two-seat Cinder.
+static func supports_vehicle(model_id:String,police:bool)->bool:
+	return model_id.is_empty() and not police
+
 static func roadworthy(condition:float,speed:float)->bool:
 	return is_finite(condition) and condition>18.0 and is_finite(speed) and absf(speed)<=2.0
 
