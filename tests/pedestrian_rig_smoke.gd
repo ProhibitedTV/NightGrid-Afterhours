@@ -1,5 +1,6 @@
 extends SceneTree
 const Rig = preload("res://scripts/pedestrian_rig_visual.gd")
+const MusicPose = preload("res://scripts/music_performance_pose.gd")
 func _initialize() -> void:
 	call_deferred("_verify")
 func _check(ok: bool,message: String) -> bool:
@@ -86,5 +87,38 @@ func _verify() -> void:
 	rig.reset_pedestrian_visual()
 	if not _check(not rig.animation_state()["walking"] and rig.animation_state()["clip"]=="idle","pooled reset"):
 		return
+	# Synthetic arms exercise the reversible layer independently of mesh art.
+	var body := Node3D.new()
+	root.add_child(body)
+	var arms := Skeleton3D.new()
+	body.add_child(arms)
+	arms.add_bone("Spine")
+	for side in ["Left","Right"]:
+		var upper := arms.get_bone_count()
+		var sign_x := 1.0 if side=="Left" else -1.0
+		arms.add_bone(side+"Arm")
+		arms.set_bone_parent(upper,0)
+		arms.set_bone_rest(upper,Transform3D(Basis.IDENTITY,Vector3(sign_x*.2,1,0)))
+		arms.add_bone(side+"ForeArm")
+		arms.set_bone_parent(upper+1,upper)
+		arms.set_bone_rest(upper+1,Transform3D(Basis.IDENTITY,Vector3(sign_x*.3,0,0)))
+		arms.add_bone(side+"Hand")
+		arms.set_bone_parent(upper+2,upper+1)
+		arms.set_bone_rest(upper+2,Transform3D(Basis.IDENTITY,Vector3(sign_x*.25,0,0)))
+	arms.reset_bone_poses()
+	arms.force_update_all_bone_transforms()
+	var bindings := MusicPose.bind(arms)
+	if not _check(bindings.size()==2 and MusicPose.bind(rig.get_node("Skeleton")).is_empty(),"arm chain resolution and unsupported rig guard"):
+		return
+	for role in MusicPose.ROLES:
+		var saved := MusicPose.apply(arms,body,bindings,role,.25)
+		if not _check(saved.size()==4 and arms.get_bone_pose_rotation(1).is_finite() and arms.get_bone_pose_rotation(1)!=saved[1],"finite changed arm pose "+role):
+			return
+		MusicPose.restore(arms,saved)
+		if not _check(arms.get_bone_pose_rotation(1)==saved[1],"restore exact prior arm rotation"):
+			return
+	if not _check(MusicPose.apply(arms,body,bindings,"sampler",NAN).is_empty(),"reject invalid phase"):
+		return
+	body.queue_free()
 	print("PEDESTRIAN_RIG_SMOKE PASS: weighted rig, looping walk/idle, palette reuse, measured speed and reset")
 	quit(0)
