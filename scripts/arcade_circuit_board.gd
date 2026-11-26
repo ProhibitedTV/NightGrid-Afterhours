@@ -70,7 +70,7 @@ func _draw_mastery(accent: Color) -> void:
 		var at := Vector2(25+(i%2)*380,108+floori(float(i)/2.0)*62)
 		draw_rect(Rect2(at,Vector2(365,56)),Color("25313c"))
 		_line(str(Catalog.GAMES[row["id"]]["title"]),at+Vector2(9,19),Color.WHITE,14)
-		_line("%05d / %05d" % [row["best"],row["next"]],at+Vector2(9,40),accent,14)
+		_line("%05d / GOLD COMPLETE" % row["best"] if row["gold"] else "%05d / %05d" % [row["best"],row["next"]],at+Vector2(9,40),accent,14)
 		for n in range(3):
 			var center := at+Vector2(273+n*30,34)
 			draw_circle(center,9,colors[n] if n<int(row["level"]) else Color("394653"))

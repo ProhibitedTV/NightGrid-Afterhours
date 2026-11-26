@@ -279,7 +279,7 @@ func _draw() -> void:
 		if round is AltRound or round is ExtraRound or round is SeasonRound or round is ClassicRound:
 			joke = round.feedback
 		_line(joke, Vector2(32, 308), accent, 19)
-		_line("MASTERY %d / 3   •   NEXT: %05d" % [Scores.mastery_level(id,int(best.get(id,0))),int(Scores.MASTERY[id][mini(2,Scores.mastery_level(id,int(best.get(id,0))))])],Vector2(32,382),Color("e9c283"),16)
+		_line(Scores.mastery_status(id,int(best.get(id,0))),Vector2(32,382),Color("e9c283"),16)
 		_line("ENTER / A  CABINETS     ESC / B  BACK", Vector2(32, 428), Color.WHITE, 18)
 	elif id == "patch_day":
 		_draw_patch(accent)
