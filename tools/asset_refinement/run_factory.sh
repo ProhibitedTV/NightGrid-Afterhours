@@ -26,7 +26,9 @@ runs="$root/FactoryRuns"
 if [[ "$batch" != visual-001 ]]; then
   preview_out="$root/Previews/$batch"
   runs="$root/FactoryRuns/$batch"
-  [[ -n "${ANUBIS_VISUAL_CATALOG:-}" ]] || { echo "Custom batch requires ANUBIS_VISUAL_CATALOG"; exit 2; }
+  if [[ "$mode" != status ]]; then
+    [[ -n "${ANUBIS_VISUAL_CATALOG:-}" ]] || { echo "Custom batch requires ANUBIS_VISUAL_CATALOG"; exit 2; }
+  fi
 fi
 # Factory owns explicit output selection, not the standalone default NAS flag.
 unset ANUBIS_VISUAL_NAS
@@ -43,8 +45,8 @@ run_dir="$(python3 "$ledger" start --root "$runs" --mode "$mode")"
 finish() {
   local rc=$?
   trap - EXIT
-  python3 "$ledger" finish --run "$run_dir" --code "$rc" || true
   if mountpoint -q /mnt/z; then
+    python3 "$ledger" finish --run "$run_dir" --code "$rc" || true
     python3 tools/asset_refinement/dashboard.py --root "$root" || echo "Dashboard refresh failed" >&2
   fi
   exit "$rc"
@@ -59,11 +61,16 @@ stage() {
   python3 "$ledger" begin --run "$run_dir" --stage "$name"
   local -a result
   set +e
-  "$@" 2>&1 | tee "$run_dir/$name.log"
+  local guard_dir="$ANUBIS_VISUAL_HOME/guard-logs"
+  mkdir -p "$guard_dir"
+  local guard_log="$guard_dir/$(basename "$run_dir")-$name.jsonl"
+  python3 tools/asset_refinement/resource_guard.py --log "$guard_log" --interval "${ANUBIS_MONITOR_INTERVAL:-15}" --max-temp "${ANUBIS_MAX_GPU_TEMP:-85}" -- "$@" 2>&1 | tee "$run_dir/$name.log"
   result=("${PIPESTATUS[@]}")
   set -e
   local rc="${result[0]}"
   if [[ "${result[1]}" != 0 && "$rc" == 0 ]]; then rc=74; fi
+  mountpoint -q /mnt/z || { echo "NAS lost; ledger may remain running" >&2; return 74; }
+  if [[ -f "$guard_log" ]]; then cp "$guard_log" "$run_dir/$name.resources.jsonl" || echo "Resource log copy failed" >&2; fi
   python3 "$ledger" end --run "$run_dir" --stage "$name" --code "$rc"
   return "$rc"
 }
@@ -72,8 +79,15 @@ echo "Factory run: $run_dir"
 df -h /mnt/c /mnt/z
 python3 -c 'import shutil; assert shutil.disk_usage("/mnt/c").free >= 25*1024**3, "Windows SSD reserve: 25 GiB"; assert shutil.disk_usage("/mnt/z").free >= 10*1024**3, "NAS reserve: 10 GiB"'
 command -v blender >/dev/null || { echo "Install Blender and python3-numpy in Ubuntu first"; exit 2; }
+generation="${ANUBIS_GENERATION_REPO:-$repo}"
+material_python="$ANUBIS_VISUAL_HOME/mesh/bin/python"
+[[ -x "$material_python" ]] || { echo "Existing mesh Python environment required for materials"; exit 2; }
+"$material_python" tools/asset_refinement/readiness.py --generation "$generation" --batch "$batch" --raw "$ANUBIS_VISUAL_OUT"
+if [[ -n "${ANUBIS_GODOT:-}" ]]; then
+  [[ -x "$ANUBIS_GODOT" ]] || { echo "Configured Godot executable missing"; exit 2; }
+  [[ "$("$ANUBIS_GODOT" --version)" =~ ^4\.7\.2([.\-+]|$) ]] || { echo "Godot 4.7.2 required"; exit 2; }
+fi
 if [[ "$mode" == full ]]; then
-  generation="${ANUBIS_GENERATION_REPO:-$(dirname "$repo")/NightGrid-Visual}"
   [[ -f "$generation/tools/visual_studio/batch.py" ]] || { echo "Missing generation checkout: $generation"; exit 2; }
   (cd "$generation/tools/visual_studio"; python3 -c 'import os,batch; from pathlib import Path; assert batch.OUT.resolve() == Path(os.environ["ANUBIS_VISUAL_OUT"]).resolve(), "Generation checkout lacks NAS output override"')
   stage generation bash -c 'set -e; cd "$1"; bash tools/visual_studio/run_anubis_visual.sh full' _ "$generation"
@@ -82,6 +96,7 @@ else
 fi
 exec 9>"$ANUBIS_VISUAL_HOME/run.lock"
 flock -n 9 || { echo "Generation still running; retry after it finishes"; exit 2; }
+python3 tools/asset_refinement/readiness.py --generation "$generation" --batch "$batch" --raw "$ANUBIS_VISUAL_OUT" --coverage "$mode"
 extra=()
 size=1024
 if [[ "$mode" == smoke ]]; then extra=(--limit 1); size=128; fi
@@ -89,8 +104,6 @@ normal_args=()
 if [[ "${ANUBIS_PROJECT_NORMALS:-0}" == 1 ]]; then normal_args=(--project-normals); fi
 if [[ "${ANUBIS_BAKE_AO:-0}" == 1 ]]; then normal_args+=(--bake-ao); fi
 stage refinement bash tools/asset_refinement/run_refine.sh --bake-size "$size" "${normal_args[@]}" "${extra[@]}" "$@"
-material_python="$ANUBIS_VISUAL_HOME/mesh/bin/python"
-[[ -x "$material_python" ]] || { echo "Existing mesh Python environment required for materials"; exit 2; }
 stage materials "$material_python" tools/asset_refinement/materials.py --raw "$ANUBIS_VISUAL_OUT" --output "$material_out" --size "$size" "${extra[@]}"
 stage review python3 tools/asset_refinement/review_queue.py --raw "$ANUBIS_VISUAL_OUT" --refined "$ANUBIS_REFINED_OUT" --size "$size" --output "$ANUBIS_REFINED_OUT/review-$size.json"
 stage budgets python3 tools/asset_refinement/budgets.py --raw "$ANUBIS_VISUAL_OUT" --refined "$ANUBIS_REFINED_OUT" --size "$size" --output "$ANUBIS_REFINED_OUT/budgets-$size.json"
