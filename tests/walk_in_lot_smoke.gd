@@ -335,6 +335,19 @@ func _verify() -> void:
 	world.call("_close_venue")
 	if not check(world.get("ration_packs")==2 and ledger.home_supplies==1,"storage conserves carried and stored provisions"):
 		return
+	# Storage transfer boundaries and stale panel actions must conserve inventory.
+	if not check(ledger.deposit_supply(100)==0 and ledger.deposit_supply(-1)==0 and ledger.withdraw_supply(-1)==0 and ledger.withdraw_supply(99)==0 and ledger.home_supplies==1,"invalid carried counts cannot transfer provisions"):
+		return
+	ledger.home_supplies=Home.MAX_STORAGE
+	if not check(ledger.deposit_supply(2)==0 and ledger.home_supplies==Home.MAX_STORAGE,"full storage rejects deposit"):
+		return
+	ledger.home_supplies=1
+	world.call("_toggle_interaction")
+	world.set("current_car",(world.get("cars") as Array)[0])
+	world.call("_venue_action",1)
+	world.set("current_car",null)
+	if not check(not world.get("venue_panel").visible and world.get("ration_packs")==2 and ledger.home_supplies==1,"stale storage panel in vehicle cannot transfer"):
+		return
 	world.set("cash",Home.STORAGE_UPGRADE_PRICE)
 	world.call("_toggle_interaction")
 	world.call("_venue_action",3)
