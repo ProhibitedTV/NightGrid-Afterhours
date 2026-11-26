@@ -3,10 +3,12 @@ on:
   push:
     paths:
       - 'tools/audio/**'
+      - 'assets/audio/generated/synaxis/**'
       - '.github/workflows/sfx-authoring.yml'
   pull_request:
     paths:
       - 'tools/audio/**'
+      - 'assets/audio/generated/synaxis/**'
       - '.github/workflows/sfx-authoring.yml'
 permissions:
   contents: read
@@ -21,3 +23,4 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: python -m unittest discover -s tools/audio -v
       - run: python tools/audio/generate_sfx.py list
+      - run: python tools/audio/generate_sfx.py verify-staged
