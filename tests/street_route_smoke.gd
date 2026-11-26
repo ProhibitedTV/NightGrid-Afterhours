@@ -123,5 +123,31 @@ func _verify() -> void:
 	if trial.tick(1.0/60.0,trial.START,1,100.0)!="TIME EXPIRED":
 		_fail("Circuit timeout")
 		return
+	var brick:=preload("res://scripts/driving_trial.gd").new()
+	if not brick.start(brick.BRICK_START,7,100.0,0.0) or brick.course_id!=brick.BRICK or brick.time_limit()!=120.0 or brick.receipt()==trial.RECEIPT:
+		_fail("Second course must select its own rules from the physical start")
+		return
+	var brick_pos:Vector2=brick.BRICK_START
+	for gate in brick.gates():
+		if Route.road_anchor(gate)!=gate:
+			_fail("Brickwater gate must lie on the fixed road network")
+			return
+		while brick_pos.distance_to(gate)>0.01:
+			brick_pos=brick_pos.move_toward(gate,0.2)
+			brick.tick(1.0/60.0,brick_pos,7,100.0)
+	if brick.result!="COMPLETE" or not ledger.record_circuit_time(brick.elapsed,brick.BRICK) or not ledger.credit_once(brick.receipt(),brick.reward()) or ledger.credit_once(brick.receipt(),brick.reward()) or ledger.balance!=230 or ledger.circuit_best_ms!=40125:
+		_fail("Second course has independent settlement and personal record")
+		return
+	var combined:Dictionary=JSON.parse_string(JSON.stringify(ledger.snapshot()))
+	if not restored.restore(230,combined) or restored.brickwater_best_ms!=ledger.brickwater_best_ms or restored.circuit_best_ms!=40125:
+		_fail("Both records persist independently")
+		return
+	if not str(phone.view("opportunities",{"brickwater_best_ms":12345,"brickwater_completed":true})["rows"]).contains("12.345s"):
+		_fail("Second course personal best visible in phone")
+		return
+	combined["brickwater_best_ms"]=120001
+	if restored.restore(0,combined) or restored.balance!=230:
+		_fail("Invalid second course record cannot mutate progression")
+		return
 	print("STREET_ROUTE_SMOKE PASS: 250 deterministic paired routes, bounds, turn directions, access links")
 	quit(0)
