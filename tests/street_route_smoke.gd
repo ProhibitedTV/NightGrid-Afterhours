@@ -179,5 +179,26 @@ func _verify() -> void:
 	if restored.restore(0,combined) or restored.balance!=230:
 		_fail("Invalid second course record cannot mutate progression")
 		return
+	# Reference rivals follow only fixed authored road segments and never
+	# affect a checkpoint, payout or saved record.
+	for reference in [trial,brick]:
+		var start_point:Vector2=reference.BRICK_START if reference.course_id==reference.BRICK else reference.START
+		var start_pose:Dictionary=reference.pace_pose(0.0)
+		var end_pose:Dictionary=reference.pace_pose(reference.pace_time())
+		if start_pose["position"]!=start_point or end_pose["position"]!=start_point or not reference.pace_pose(NAN).is_empty():
+			_fail("Reference rival start, finish and input guards")
+			return
+		var prior:Vector2=start_pose["position"]
+		for sample in range(1,121):
+			var pose:Dictionary=reference.pace_pose(reference.pace_time()*float(sample)/120.0)
+			var point:Vector2=pose["position"]
+			var heading:Vector2=pose["heading"]
+			if Route.road_anchor(point).distance_to(point)>.02 or not is_equal_approx(heading.length(),1.0) or point.distance_to(prior)>5.0:
+				_fail("Reference rival remains on authored streets with bounded continuous movement")
+				return
+			prior=point
+	if not is_finite(brick.pace_split()) or ledger.balance!=230:
+		_fail("Reference split does not affect progression")
+		return
 	print("STREET_ROUTE_SMOKE PASS: 250 deterministic paired routes, bounds, turn directions, access links")
 	quit(0)

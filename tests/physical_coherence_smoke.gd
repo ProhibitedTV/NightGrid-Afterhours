@@ -141,6 +141,25 @@ func _check_horizon_camera() -> void:
 	Input.action_release("move_forward")
 	_expect(player.global_position.z < 36.0 and player.global_position.y > 0.7,
 		"The pavilion must stay walkable beneath the new roof collision")
+	if is_instance_valid(garden):
+		var ledger:RefCounted=world.get("progression")
+		var before_cash:int=ledger.get("balance")
+		var before_cred:int=ledger.call("street_cred")
+		_expect(garden.find_children("GardenTrailPanel_*","Node3D",false,false).size()==4,"Four authored interpretive panels")
+		player.global_position=garden.global_position+Vector3(0,1.12,0)
+		_expect(not bool(world.call("_garden_trail_interact")),"No trail interaction from across the park")
+		for i in range(4):
+			var stop:Vector3=garden.STOPS[i]["point"]
+			player.global_position=garden.global_position+Vector3(stop.x,1.12,stop.z)
+			_expect(int(city.call("horizon_trail_stop",player.global_position))==i,"Physical trail stop is reachable on foot")
+			_expect(bool(world.call("_garden_trail_interact")),"Read trail panel")
+			_expect(bool(world.call("_garden_trail_interact")),"Repeated reading is safe")
+			if i<3:
+				_expect(int(ledger.get("balance"))==before_cash,"No payout before all four unique stops")
+		_expect(int(ledger.get("balance"))==before_cash+25 and int(ledger.call("street_cred"))==before_cred+10 and ledger.call("has_receipt","civic:horizon_garden_trail"),"Trail reward and cred settle exactly once")
+		var snapshot:Dictionary=ledger.call("snapshot")
+		var restored:=preload("res://scripts/progression_ledger.gd").new()
+		_expect(restored.restore(ledger.get("balance"),snapshot) and restored.has_receipt("civic:horizon_garden_trail"),"Trail completion survives save/load")
 
 func _check_market() -> void:
 	_set_driving(Vector3(-35.0, 0.65, -228.0), PI, 9.0)

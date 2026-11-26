@@ -61,10 +61,10 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 			var listings: Array = state.get("workboard",[])
 			var best_ms:=int(state.get("circuit_best_ms",0))
 			var record_text:="Personal best: %.3fs"%(float(best_ms)/1000.0) if best_ms>0 else "No personal record"
-			rows.append({"label":"Southworks Circuit","value":"Driving challenge / 8 checkpoints / 90 seconds\n"+("Practice replay / first prize claimed" if bool(state.get("circuit_completed",false)) else "First finish $90")+"\n"+record_text,"action":"phone_route_circuit","action_label":"Navigate to circuit start"})
+			rows.append({"label":"Southworks Circuit","value":"Driving challenge / 8 checkpoints / 90 seconds / ghost pace 34s\n"+("Practice replay / first prize claimed" if bool(state.get("circuit_completed",false)) else "First finish $90")+"\n"+record_text,"action":"phone_route_circuit","action_label":"Navigate to circuit start"})
 			var brick_ms:=int(state.get("brickwater_best_ms",0))
 			var brick_record:="Personal best: %.3fs"%(float(brick_ms)/1000.0) if brick_ms>0 else "No personal record"
-			rows.append({"label":"Brickwater Loop","value":"Driving challenge / 9 checkpoints / 120 seconds\n"+("Practice replay / first prize claimed" if bool(state.get("brickwater_completed",false)) else "First finish $140")+"\n"+brick_record,"action":"phone_route_brickwater","action_label":"Navigate to loop start"})
+			rows.append({"label":"Brickwater Loop","value":"Driving challenge / 9 checkpoints / 120 seconds / ghost pace 48s\n"+("Practice replay / first prize claimed" if bool(state.get("brickwater_completed",false)) else "First finish $140")+"\n"+brick_record,"action":"phone_route_brickwater","action_label":"Navigate to loop start"})
 			if listings.is_empty():
 				rows.append({"label":"No contracts remaining","value":"Explore the city or return to QuotaDrop for repeatable income."})
 			for listing in listings:
