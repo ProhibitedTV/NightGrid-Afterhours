@@ -12,6 +12,7 @@ const PALETTE = {
 	"food": Color("d9a951")
 }
 const ChairAsset=preload("res://scripts/synaxis_chair_asset.gd")
+const Desktop=preload("res://scripts/synaxis_desktop_material.gd")
 var _chair_poses:Array[Transform3D]=[]
 var _groups: Dictionary = {}
 var _materials: Dictionary = {}
@@ -28,6 +29,8 @@ func get_detail_stats() -> Dictionary:
 	return {"parts": _part_count, "batches": get_child_count()}
 
 func _material(key: String) -> StandardMaterial3D:
+	if key.begins_with("desktop"):
+		return Desktop.material(key)
 	if not _materials.has(key):
 		var mat := StandardMaterial3D.new()
 		mat.albedo_color = PALETTE[key]
@@ -59,6 +62,8 @@ func _part(zone: String,key: String,at: Vector3,size: Vector3,yaw: float=0.0,pri
 func _flush() -> void:
 	var box := BoxMesh.new()
 	box.size = Vector3.ONE
+	var quad:=QuadMesh.new()
+	quad.size=Vector2.ONE
 	var cylinder := CylinderMesh.new()
 	cylinder.top_radius = .5
 	cylinder.bottom_radius = .5
@@ -68,7 +73,7 @@ func _flush() -> void:
 		var parts: Array = _groups[id]
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.mesh = cylinder if str(id).ends_with("_cyl") else box
+		mm.mesh = quad if str(id).ends_with("_quad") else (cylinder if str(id).ends_with("_cyl") else box)
 		mm.instance_count = parts.size()
 		for i in range(parts.size()):
 			mm.set_instance_transform(i,parts[i])
@@ -165,14 +170,11 @@ func _desk(at: Vector3,width: float,depth: float,finish: String,executive: bool=
 
 func _monitor(at: Vector3,face: float,key: String) -> void:
 	_part("furniture","black",at,Vector3(.71,.43,.065))
-	_part("furniture","screen",at+Vector3(0,0,face*.038),Vector3(.66,.38,.012))
+	_part("furniture","desktop"+key,at+Vector3(0,0,face*.038),Vector3(.66,.38,1.0),0.0 if face>0 else PI,"quad")
 	_part("furniture","steel",at-Vector3.UP*.27,Vector3(.07,.19,.08))
 	_part("furniture","steel",at-Vector3.UP*.315,Vector3(.37,.04,.23))
-	_part("furniture",key,at+Vector3(0,.145,face*.047),Vector3(.60,.045,.006))
-	for i in range(5):
-		_part("furniture","blue",at+Vector3(-.13,.075-i*.045,face*.047),Vector3(.27-(i%3)*.045,.015,.005))
-		_part("furniture",key,at+Vector3(.16,.075-i*.045,face*.047),Vector3(.17+(i%2)*.06,.015,.005))
 	_part("furniture","signal",at+Vector3(.30,-.195,face*.037),Vector3(.025,.013,.008))
+
 
 func _keyboard(at: Vector3) -> void:
 	_part("furniture","black",at,Vector3(.43,.035,.155))
