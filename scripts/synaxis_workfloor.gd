@@ -29,6 +29,7 @@ const SLOGANS=["INNOVATE WITH INTENT","YOUR IDEAS. OUR INTELLECTUAL PROPERTY.","
 const SUBLINES=["ALIGN. EXECUTE. REPEAT.","ALL SUBMISSIONS BECOME COMPANY PROPERTY.","*EXECUTIVE EXCEPTIONS MAY APPLY.","PLEASE DO NOT DISCUSS HEADCOUNT."]
 var level:=1
 const ChairAsset=preload("res://scripts/synaxis_chair_asset.gd")
+const Desktop=preload("res://scripts/synaxis_desktop_material.gd")
 var _chair_poses:Array[Transform3D]=[]
 var _groups: Dictionary={}
 var _materials: Dictionary={}
@@ -114,6 +115,10 @@ func set_occupied(active: bool) -> void:
 	var chairs:=get_node_or_null("AuthoredTaskChairs") as MultiMeshInstance3D
 	if chairs!=null:
 		chairs.visible=active
+	for key in ["desktopblue","desktopsignal","desktopamber"]:
+		var screen:=get_node_or_null(key+"_quad") as MultiMeshInstance3D
+		if screen!=null:
+			screen.visible=active
 	if is_instance_valid(_services):
 		_services.call("set_active",active)
 	for lamp in _lights:
@@ -128,10 +133,18 @@ func set_occupied(active: bool) -> void:
 		_people.call("set_active",active)
 
 func _material(key: String) -> StandardMaterial3D:
+	if key.begins_with("desktop"):
+		return Desktop.material(key)
 	if not _materials.has(key):
 		var mat:=StandardMaterial3D.new()
 		mat.albedo_color=COLORS[key]
 		mat.roughness=.82
+		if key=="carpet":
+			mat.albedo_color=Color.WHITE
+			mat.albedo_texture=preload("res://assets/synaxis/office_carpet.svg")
+			mat.uv1_triplanar=true
+			mat.uv1_scale=Vector3(2,2,2)
+			mat.roughness=.96
 		if key in ["oak","oak_edge","white","glass"]:
 			mat.roughness=.48
 		if key=="steel":
@@ -166,6 +179,8 @@ func _solid(at: Vector3,size: Vector3) -> void:
 func _flush() -> void:
 	var box:=BoxMesh.new()
 	box.size=Vector3.ONE
+	var quad:=QuadMesh.new()
+	quad.size=Vector2.ONE
 	var cyl:=CylinderMesh.new()
 	cyl.top_radius=.5
 	cyl.bottom_radius=.5
@@ -180,7 +195,7 @@ func _flush() -> void:
 		var transforms: Array=_groups[key]
 		var mm:=MultiMesh.new()
 		mm.transform_format=MultiMesh.TRANSFORM_3D
-		mm.mesh=cyl if str(key).ends_with("|cyl") else (leaf if str(key).ends_with("|leaf") else box)
+		mm.mesh=quad if str(key).ends_with("|quad") else (cyl if str(key).ends_with("|cyl") else (leaf if str(key).ends_with("|leaf") else box))
 		mm.instance_count=transforms.size()
 		for i in transforms.size():
 			mm.set_instance_transform(i,transforms[i])
@@ -243,12 +258,11 @@ func _station(at: Vector3,face: float,row: int,col: int,accent: String) -> void:
 
 func _monitor(at: Vector3,face: float) -> void:
 	_part("black",at,Vector3(.56,.34,.042))
-	_part("screen",at+Vector3(0,0,face*.024),Vector3(.525,.305,.008))
+	var key:="desktopblue" if level<=0 or level==1 else ("desktopamber" if level==3 else "desktopsignal")
+	_part(key,at+Vector3(0,0,face*.024),Vector3(.525,.305,1.0),0.0 if face>0 else PI,"quad")
 	_part("steel",at+Vector3(0,-.205,0),Vector3(.055,.10,.055))
 	_part("black",at+Vector3(0,-.26,0),Vector3(.23,.028,.16))
-	_part("ui",at+Vector3(0,.125,face*.030),Vector3(.48,.026,.004))
-	for line in range(3):
-		_part("ui",at+Vector3(-.11,.06-line*.055,face*.030),Vector3(.22-line*.035,.014,.004))
+
 
 func _chair(at: Vector3,face: float) -> void:
 	_chairs+=1
