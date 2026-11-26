@@ -61,12 +61,16 @@ stage() {
   python3 "$ledger" begin --run "$run_dir" --stage "$name"
   local -a result
   set +e
-  "$@" 2>&1 | tee "$run_dir/$name.log"
+  local guard_dir="$ANUBIS_VISUAL_HOME/guard-logs"
+  mkdir -p "$guard_dir"
+  local guard_log="$guard_dir/$(basename "$run_dir")-$name.jsonl"
+  python3 tools/asset_refinement/resource_guard.py --log "$guard_log" --interval "${ANUBIS_MONITOR_INTERVAL:-15}" --max-temp "${ANUBIS_MAX_GPU_TEMP:-85}" -- "$@" 2>&1 | tee "$run_dir/$name.log"
   result=("${PIPESTATUS[@]}")
   set -e
   local rc="${result[0]}"
   if [[ "${result[1]}" != 0 && "$rc" == 0 ]]; then rc=74; fi
   mountpoint -q /mnt/z || { echo "NAS lost; ledger may remain running" >&2; return 74; }
+  if [[ -f "$guard_log" ]]; then cp "$guard_log" "$run_dir/$name.resources.jsonl" || echo "Resource log copy failed" >&2; fi
   python3 "$ledger" end --run "$run_dir" --stage "$name" --code "$rc"
   return "$rc"
 }
