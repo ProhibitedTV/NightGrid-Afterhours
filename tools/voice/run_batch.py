@@ -142,6 +142,7 @@ def main():
             command([sys.executable, "-c",
                      "import torch; assert torch.cuda.is_available()" if args.device == "cuda" else "import torch"],
                     timeout=120)
+            command([sys.executable, anubis.HERE / "recover_cached.py", "--rights-checked"], timeout=900)
             voice_pass(specs, args.seeds, errors, args.device)
         except (subprocess.SubprocessError, OSError, ValueError, KeyError) as exc:
             errors.append({"stage":"voice", "error":str(exc)})

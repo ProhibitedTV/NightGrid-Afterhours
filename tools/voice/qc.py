@@ -12,7 +12,8 @@ import sys
 
 import studio
 
-SCHEMA = 1
+SCHEMA = 2
+LEGACY_SCHEMA = 1
 LANG = {"English": "en", "Chinese": "zh"}
 
 
@@ -23,6 +24,44 @@ def tokens(text, language):
         return [c for c in text if unicodedata.category(c)[0] in "LN"]
     clean = "".join(c if c.isalnum() or c == "'" else " " for c in text)
     return clean.split()
+
+
+# Scoped aliases only. Never globally ignore spaces or accept fuzzy edit distance.
+# Nick is not Nyx, and chum is not necessarily choom; retain those flags.
+ALIASES = {
+    "synaxis.conference_end.08": [(("off", "site"), ("offsite",))],
+    "synaxis.conference_end.09": [(("off", "site"), ("offsite",))],
+    "synaxis.breakroom_party.01": [(("h", "1b"), ("h1b",))],
+    "street.nothing_happens.03": [(("nothingburger",), ("nothing", "burger"))],
+    "street.nothing_happens.urgent": [(("nothingburger",), ("nothing", "burger"))],
+    "street.subscription_skeptic.traffic": [(("car's",), ("car", "is"))],
+    "street.night_regular.incident": [(("queue",), ("cue",))],
+    "street.robot_romantic.quest.complete": [(("eighty", "five"), ("85",))],
+    "street.nyx.soundcheck.brief": [(("rae",), ("ray",))],
+}
+
+
+def comparison_tokens(text, line, schema):
+    result = tokens(text, line["language"])
+    if schema == LEGACY_SCHEMA or line["language"] != "English":
+        return result
+    if schema != SCHEMA:
+        raise ValueError("Unknown QC schema")
+    for canonical, variant in ALIASES.get(line.get("id"), ()):
+        if list(canonical) not in [tokens(line["text"], "English")[i:i+len(canonical)]
+                                  for i in range(len(tokens(line["text"], "English")))]:
+            continue
+        normalized = []
+        i = 0
+        while i < len(result):
+            if tuple(result[i:i+len(variant)]) == variant:
+                normalized.extend(canonical)
+                i += len(variant)
+            else:
+                normalized.append(result[i])
+                i += 1
+        result = normalized
+    return result
 
 
 def distance(a, b):
@@ -56,9 +95,9 @@ def acoustic(path):
             "peak":stats["peak"], "rms":stats["rms"]}
 
 
-def assess(path, line, transcript):
-    expected = tokens(line["text"], line["language"])
-    observed = tokens(transcript, line["language"])
+def assess(path, line, transcript, schema=SCHEMA):
+    expected = comparison_tokens(line["text"], line, schema)
+    observed = comparison_tokens(transcript, line, schema)
     if not expected or len(expected) > 2000 or len(observed) > 4000:
         raise ValueError("Invalid transcript length")
     edits = distance(expected, observed)
@@ -97,23 +136,25 @@ def model_digest(root):
     return h.hexdigest()
 
 
-def create_report(folder, spec, transcript, model, packages):
-    return {"schema":SCHEMA, "wav_sha256":studio.digest(folder/"take.wav"),
+def create_report(folder, spec, transcript, model, packages, schema=SCHEMA):
+    if schema not in (LEGACY_SCHEMA, SCHEMA):
+        raise ValueError("Unknown QC schema")
+    return {"schema":schema, "wav_sha256":studio.digest(folder/"take.wav"),
             "take_sha256":studio.digest(folder/"take.json"),
             "line_sha256":studio.key(spec["line"]), "model_sha256":model,
             "packages":packages, "transcript":transcript,
-            "metrics":assess(folder/"take.wav",spec["line"],transcript)}
+            "metrics":assess(folder/"take.wav",spec["line"],transcript,schema)}
 
 
 def verify_report(folder, spec):
     import json
     report = json.loads((folder/"qc.json").read_text(encoding="utf-8"))
-    if report["schema"] != SCHEMA or not studio.SHA.fullmatch(report["model_sha256"]):
+    if report["schema"] not in (LEGACY_SCHEMA, SCHEMA) or not studio.SHA.fullmatch(report["model_sha256"]):
         raise ValueError("Invalid QC provenance")
     if not all(isinstance(report["packages"].get(k),str) and report["packages"][k]
                for k in ("faster-whisper","ctranslate2")):
         raise ValueError("Missing ASR package provenance")
-    actual = create_report(folder,spec,report["transcript"],report["model_sha256"],report["packages"])
+    actual = create_report(folder,spec,report["transcript"],report["model_sha256"],report["packages"],report["schema"])
     if report != actual:
         raise ValueError("Stale or modified QC report")
     return report
@@ -153,7 +194,15 @@ def main():
         try:
             previous=verify_report(folder,spec)
             if previous["model_sha256"]==fingerprint and previous["packages"]==packages:
-                print("Verified cached QC:",folder)
+                if previous["schema"] != SCHEMA and not (folder/"review.json").exists():
+                    report = create_report(folder,spec,previous["transcript"],fingerprint,packages)
+                    temp = folder/"qc.json.tmp"
+                    studio.write_json(temp,report)
+                    temp.replace(folder/"qc.json")
+                    verify_report(folder,spec)
+                    print("Reclassified cached QC:",folder,report["metrics"])
+                else:
+                    print("Verified cached QC:",folder)
                 continue
         except (FileNotFoundError,ValueError,KeyError):
             pass
