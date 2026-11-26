@@ -213,6 +213,11 @@ func _station(at: Vector3,face: float,row: int,col: int,accent: String) -> void:
 	_desks+=1
 	_part("oak",at+Vector3(0,.82,0),Vector3(1.72,.055,.78))
 	_part("oak_edge",at+Vector3(0,.81,face*.39),Vector3(1.72,.055,.018))
+	# Under-desk power raceway inside the existing desk collision envelope.
+	_part("steel",at+Vector3(-.18,.73,-face*.26),Vector3(1.05,.07,.11))
+	_part("black",at+Vector3(-.18,.695,-face*.26),Vector3(.88,.02,.07))
+	if (row+col+level)%3==0:
+		_part("black",at+Vector3(-.66,.53,-face*.24),Vector3(.022,.29,.025))
 	for side in [-1.0,1.0]:
 		_part("steel",at+Vector3(side*.78,.40,0),Vector3(.055,.80,.64))
 	_part("white",at+Vector3(.61,.39,0),Vector3(.36,.72,.62))
