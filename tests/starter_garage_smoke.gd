@@ -44,11 +44,23 @@ func _verify() -> void:
 	var car: CharacterBody3D = cars[0]
 	if not check(ledger.owns_vehicle(Garage.IDS[0]) and garage.call("parked_at",car.global_position,0) and world.get("cash")==200 and cars.size()==12,"paid starter title uses original car, no duplicate spawn"):
 		return
+	var button: Button = world.get("venue_service_button")
+	if not check(button.disabled and button.text.contains("PARKED") and button.text.contains("NO FEE"),"parked vehicle status is explicit"):
+		return
 	world.call("_venue_action",1)
 	if not check(world.get("cash")==200,"already parked costs nothing"):
 		return
 	car.global_position = Garage.entry()+Vector3(0,0,-8)
 	car.set("condition",45.0)
+	world.call("_update_venue_panel")
+	if not check(not button.disabled and button.text.contains("$75"),"recoverable vehicle shows fee"):
+		return
+	car.set("occupied",true)
+	world.call("_update_venue_panel")
+	if not check(button.disabled and button.text.contains("UNAVAILABLE"),"occupied vehicle cannot be requested"):
+		return
+	car.set("occupied",false)
+	world.call("_update_venue_panel")
 	var blocker: CharacterBody3D = cars[1]
 	var previous := blocker.global_position
 	var bay: Vector3 = garage.call("bay_point",0)
