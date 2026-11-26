@@ -55,4 +55,15 @@ if [[ "${ANUBIS_PREVIEWS:-0}" == 1 ]]; then
   env -u PYTHONPATH "$material_python" tools/asset_refinement/contact_sheet.py --raw "$ANUBIS_VISUAL_OUT" --previews "$root/Previews" --size "$size"
 fi
 env -u PYTHONPATH "$material_python" tools/asset_refinement/duplicates.py --raw "$ANUBIS_VISUAL_OUT" --output "$root/refined-001/duplicate-concepts.json"
+if [[ -n "${ANUBIS_AUDIO_PYTHON:-}" ]]; then
+  audio_args=()
+  if [[ -n "${ANUBIS_SFX_CLI:-}" ]]; then audio_args=(--sfx-cli "$ANUBIS_SFX_CLI"); fi
+  if [[ "$mode" == smoke ]]; then
+    echo "Audio stage skipped in visual smoke mode; use existing or full."
+  else
+    python3 tools/asset_refinement/audio_stage.py --checkout "${ANUBIS_AUDIO_REPO:-$repo}" --python "$ANUBIS_AUDIO_PYTHON" --output /mnt/z/NightGrid-Afterhours/Audio/factory-001 --seed "${ANUBIS_AUDIO_SEED:-308}" --sfx-device "${ANUBIS_SFX_DEVICE:-cpu}" "${audio_args[@]}"
+  fi
+else
+  echo "Audio stage pending: set ANUBIS_AUDIO_PYTHON to existing voice venv executable."
+fi
 echo "Factory output is on the NAS. Review queue is not approval or a Git commit."

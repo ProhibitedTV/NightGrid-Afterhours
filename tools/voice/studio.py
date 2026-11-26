@@ -14,7 +14,7 @@ import wave
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = ROOT / "tools/voice/auditions.json"
-WORK = ROOT / "dist/voice-candidates"
+WORK = Path(os.environ.get("ANUBIS_AUDIO_OUT", str(ROOT / "dist"))) / "voice-candidates"
 MODEL = "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign"
 RATE = 48000
 ID = re.compile(r"[a-z][a-z0-9_.-]{0,100}\Z")

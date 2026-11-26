@@ -17,7 +17,7 @@ import qc
 
 BASE = "Qwen/Qwen3-TTS-12Hz-1.7B-Base"
 CAST = studio.ROOT / "tools/voice/cast-library"
-TAKES = studio.ROOT / "dist/voice-production"
+TAKES = Path(os.environ.get("ANUBIS_AUDIO_OUT", str(studio.ROOT / "dist"))) / "voice-production"
 PUBLISHED = studio.ROOT / "assets/audio/voiced"
 
 
