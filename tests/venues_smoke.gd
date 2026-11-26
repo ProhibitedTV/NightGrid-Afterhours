@@ -109,6 +109,26 @@ func _verify() -> void:
 	if performer.visible or performer.get_node("PerformerRig").is_processing():
 		_fail("Far venue retained active performer")
 		return
+	var flyer:Label3D=venues.get_node("blue_hour/BandFlyer")
+	if flyer.visible:
+		_fail("Unbooked band has a visible flyer")
+		return
+	venues.call("set_band_promotion","Signal Rot",true,false,false,false)
+	if not flyer.visible or not flyer.text.contains("SIGNAL ROT") or not flyer.text.contains("RESIDENT ACT"):
+		_fail("Band debut flyer missing")
+		return
+	venues.call("set_band_promotion","Signal Rot",true,true,false,true)
+	if not flyer.text.contains("NEXT SHOWCASE") or not flyer.text.contains("OUT NOW"):
+		_fail("Showcase and release promotion must coexist")
+		return
+	venues.call("set_band_promotion","Signal Rot",true,false,true,true)
+	if not flyer.text.contains("HEADLINER"):
+		_fail("Completed showcase promotion missing")
+		return
+	world.call("_sync_band_flyers")
+	if flyer.visible or not flyer.text.is_empty():
+		_fail("Authoritative empty ledger clears stale promotion")
+		return
 	var player: CharacterBody3D = world.get("player")
 	var ui: PanelContainer = world.get("venue_panel")
 	world.set("cash", 100)
