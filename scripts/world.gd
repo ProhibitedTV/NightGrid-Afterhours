@@ -1636,6 +1636,7 @@ func _taxi_interact()->void:
 				var fare:=int(_taxi.route["reward"])
 				if progression.settle_taxi(_taxi.sequence):
 					ambient_caption.call("present",str(_taxi.route["rider"]),str(_taxi.route["arrival"]))
+					_show_taxi_arrival()
 					_taxi.cancel()
 					_notify("TAXI / fare complete +$%d"%fare)
 					_log_playtest("taxi_finish",{"sequence":progression.taxi_runs,"paid":fare})
@@ -1670,7 +1671,29 @@ func _update_taxi(delta:float)->void:
 	if not _taxi.tick(at,current_car.get_instance_id(),float(current_car.get("condition")),delta):
 		_notify("Taxi fare failed / retry at pickup.")
 
+func _show_taxi_arrival()->void:
+	var point:=TaxiJob.arrival_point(_taxi.route)
+	# Select the short sidewalk segment toward the block center, away
+	# from the nearest crossing. Do not move the rider through a fixture.
+	var midpoint:float=(floorf(point.x/58.0)+.5)*58.0
+	var direction:=signf(midpoint-point.x)
+	var goal:=point+Vector3(direction*3.0,0,0)
+	var space:=get_world_3d().direct_space_state
+	var ray:=PhysicsRayQueryParameters3D.create(point+Vector3.UP*.8,goal+Vector3.UP*.8,1,[current_car.get_rid(),player.get_rid()])
+	if not space.intersect_ray(ray).is_empty():
+		goal=point
+	if not is_instance_valid(_taxi_rider):
+		_taxi_rider=TaxiRider.new()
+		_taxi_rider.name="WaitingTaxiRider"
+		add_child(_taxi_rider)
+	_taxi_rider.call("begin_departure",_taxi.sequence-1,str(_taxi.route["rider"]),point,goal)
+
 func _update_taxi_waiting_rider(delta:float)->void:
+	if is_instance_valid(_taxi_rider) and _taxi_rider.call("is_departing"):
+		if _taxi.active or _freight.active or _driving_trial.active or interiors.call("is_inside") or current_transit!=null or _actor().global_position.distance_squared_to(_taxi_rider.global_position)>42.0*42.0:
+			_taxi_rider.call("hide_rider")
+		elif _taxi_rider.call("advance_departure",delta):
+			return
 	_taxi_visual_timer+=delta
 	if _taxi_visual_timer<.25:
 		return

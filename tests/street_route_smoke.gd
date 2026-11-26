@@ -80,6 +80,19 @@ func _verify() -> void:
 	if rider.visible:
 		_fail("Taxi boarding removes curbside visual")
 		return
+	var arrival:=taxi.arrival_point(taxi.offer(0))
+	var goal:=arrival+Vector3(-3,0,0)
+	rider.begin_departure(0,"Nina",arrival,goal)
+	for step in range(180):
+		rider.advance_departure(1.0/60.0)
+	if not rider.is_departing() or rider.global_position.distance_to(goal)>.06:
+		_fail("Taxi arrival actor walks a bounded sidewalk segment")
+		return
+	for step in range(310):
+		rider.advance_departure(1.0/60.0)
+	if rider.visible or rider.is_departing():
+		_fail("Taxi departure terminates and releases visual")
+		return
 	rider.queue_free()
 	var taxi_ledger:=preload("res://scripts/progression_ledger.gd").new()
 	for run in range(3):

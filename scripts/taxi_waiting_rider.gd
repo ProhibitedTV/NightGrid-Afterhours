@@ -11,6 +11,9 @@ const MODELS=[
 var _visual:Node3D
 var _label:Label3D
 var _style:=-1
+var _departing:=false
+var _departure_elapsed:=0.0
+var _departure_goal:=Vector3.ZERO
 func _ready()->void:
 	_label=Label3D.new()
 	_label.position.y=2.05
@@ -36,13 +39,51 @@ func show_rider(style:int,rider:String,point:Vector3)->void:
 		add_child(_visual)
 		_visual.call("set_activity","STOREFRONT")
 		_style=selected
+	_departing=false
+	_visual.call("set_locomotion",0.0)
+	_visual.call("set_activity","STOREFRONT")
 	global_position=point
 	rotation.y=PI
 	_label.text=rider+" / WAITING FOR TAXI"
 	_visual.process_mode=Node.PROCESS_MODE_INHERIT
 	show()
 
+## Presentation-only sidewalk departure after the temporary captioned
+## alighting transition. The world supplies a collision-checked path.
+func begin_departure(style:int,rider:String,point:Vector3,goal:Vector3)->void:
+	show_rider(style,rider,point)
+	if not visible or not goal.is_finite() or point.distance_to(goal)>5.0:
+		hide_rider()
+		return
+	_departing=true
+	_departure_elapsed=0.0
+	_departure_goal=goal
+	_label.text=rider+" / ARRIVED"
+	_visual.call("set_activity","WALK")
+
+func advance_departure(delta:float)->bool:
+	if not _departing or not is_finite(delta) or delta<=0.0 or delta>.1:
+		return false
+	_departure_elapsed+=delta
+	var offset:=_departure_goal-global_position
+	if offset.length()>.05:
+		var direction:=offset.normalized()
+		rotation.y=atan2(direction.x,direction.z)
+		_visual.call("set_locomotion",1.2)
+		global_position=global_position.move_toward(_departure_goal,1.2*delta)
+	else:
+		_visual.call("set_locomotion",0.0)
+		_visual.call("set_activity","STOREFRONT")
+	if _departure_elapsed>=8.0:
+		hide_rider()
+		return false
+	return true
+
+func is_departing()->bool:
+	return _departing
+
 func hide_rider()->void:
+	_departing=false
 	hide()
 	if is_instance_valid(_visual):
 		_visual.process_mode=Node.PROCESS_MODE_DISABLED

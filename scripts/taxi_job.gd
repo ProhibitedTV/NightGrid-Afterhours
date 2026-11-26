@@ -27,6 +27,10 @@ static func waiting_point(offer:Dictionary)->Vector3:
 	var pickup:Vector2=offer["pickup"]
 	return Vector3(pickup.x,.16,pickup.y+6.45)
 
+static func arrival_point(offer:Dictionary)->Vector3:
+	var drop:Vector2=offer["drop"]
+	return Vector3(drop.x,.16,drop.y+6.45)
+
 static func near(at:Vector2,target:Vector2)->bool:
 	return at.is_finite() and at.distance_to(target)<=RADIUS
 
