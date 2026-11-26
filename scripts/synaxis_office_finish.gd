@@ -12,6 +12,7 @@ const PALETTE = {
 	"food": Color("d9a951")
 }
 const ChairAsset=preload("res://scripts/synaxis_chair_asset.gd")
+const Campus=preload("res://scripts/synaxis_campus_layout.gd")
 var _chair_poses:Array[Transform3D]=[]
 var _groups: Dictionary = {}
 var _materials: Dictionary = {}
@@ -100,8 +101,11 @@ func _architecture() -> void:
 				_part("interior","steel",Vector3(-8.32,.09,(bounds.x+bounds.y)*.5),Vector3(.055,.18,bounds.y-bounds.x))
 				_part("interior","trim",Vector3(-8.30,.19,(bounds.x+bounds.y)*.5),Vector3(.06,.025,bounds.y-bounds.x))
 		else:
-			_part("interior","steel",Vector3(side*8.32,.09,0),Vector3(.055,.18,19.7))
-			_part("interior","trim",Vector3(side*8.30,.19,0),Vector3(.06,.025,19.7))
+			# East portal at z3.35..5.65: do not render skirting across it.
+			for span in [Vector2(-9.85,3.35),Vector2(5.65,9.85)]:
+				var bounds:Vector2=span
+				_part("interior","steel",Vector3(8.32,.09,(bounds.x+bounds.y)*.5),Vector3(.055,.18,bounds.y-bounds.x))
+				_part("interior","trim",Vector3(8.30,.19,(bounds.x+bounds.y)*.5),Vector3(.06,.025,bounds.y-bounds.x))
 	_part("interior","steel",Vector3(0,.09,9.82),Vector3(16.7,.18,.05))
 	_part("interior","steel",Vector3(4.9,.09,-9.82),Vector3(7,.18,.05))
 	_part("interior","steel",Vector3(-4.9,.09,-9.82),Vector3(7,.18,.05))
@@ -239,7 +243,7 @@ func _lobby() -> void:
 		_part("interior","black",Vector3(x,2.965,-8.0),Vector3(.11,.045,.11),0.0,"cyl")
 
 func _breakroom() -> void:
-	var at := Vector3(-4.2,0,8.12)
+	var at := Vector3(-4.2,0,8.12)+Campus.PARTY_OFFSET
 	_part("furniture","laminate",at+Vector3.UP*.89,Vector3(3.4,.10,1.02))
 	for x in [-1.45,1.45]:
 		for z in [-.39,.39]:
@@ -247,11 +251,11 @@ func _breakroom() -> void:
 	_part("furniture","steel",at+Vector3(0,.24,0),Vector3(2.92,.06,.06))
 	for i in range(3):
 		var x := -3.62+i*.22
-		_part("furniture","paper",Vector3(x,1.055,8.10),Vector3(.11,.23,.11),0.0,"cyl")
-		_part("furniture","black",Vector3(x,1.172,8.10),Vector3(.096,.008,.096),0.0,"cyl")
-		_part("furniture","card",Vector3(x,1.025,8.10),Vector3(.116,.09,.116),0.0,"cyl")
+		_part("furniture","paper",Vector3(x,1.055,8.10)+Campus.PARTY_OFFSET,Vector3(.11,.23,.11),0.0,"cyl")
+		_part("furniture","black",Vector3(x,1.172,8.10)+Campus.PARTY_OFFSET,Vector3(.096,.008,.096),0.0,"cyl")
+		_part("furniture","card",Vector3(x,1.025,8.10)+Campus.PARTY_OFFSET,Vector3(.116,.09,.116),0.0,"cyl")
 	# Raised lid and grease marks on the existing catering carton.
-	_part("furniture","card",Vector3(-4.28,1.22,8.43),Vector3(.68,.42,.035))
-	_part("furniture","paper",Vector3(-4.28,1.22,8.406),Vector3(.54,.30,.008))
+	_part("furniture","card",Vector3(-4.28,1.22,8.43)+Campus.PARTY_OFFSET,Vector3(.68,.42,.035))
+	_part("furniture","paper",Vector3(-4.28,1.22,8.406)+Campus.PARTY_OFFSET,Vector3(.54,.30,.008))
 	for i in range(5):
 		_part("furniture","red",Vector3(-4.43+i*.07,1.065,8.11+(i%2)*.08),Vector3(.045,.012,.045),0.0,"cyl")

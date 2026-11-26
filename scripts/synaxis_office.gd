@@ -43,6 +43,7 @@ var _lift_audio:AudioStreamPlayer3D
 const LiftTransition=preload("res://scripts/synaxis_lift_transition.gd")
 const LiftFrontage=preload("res://scripts/synaxis_lift_frontage.gd")
 const GroundLayout=preload("res://scripts/synaxis_ground_layout.gd")
+const Campus=preload("res://scripts/synaxis_campus_layout.gd")
 var _lift_transition:CanvasLayer
 var _lift_target:=0
 var _restrooms: Node3D
@@ -65,7 +66,7 @@ var _assistant: Node3D
 var _ceo: Node3D
 var _hr: Node3D
 const START = Vector3(0,1.15,4.9)
-const BREAKROOM_POINT = Vector3(-4.2,1.15,6.85)
+const BREAKROOM_POINT = Vector3(-4.2,1.15,6.85)+Campus.PARTY_OFFSET
 var _breakroom_seen := false
 const POINTS = {-2:CUBICLE_POINT,-1:Vector3(-5,1.15-Workfloor.FLOOR_HEIGHT,4),0:Vector3(-5,1.15-Workfloor.FLOOR_HEIGHT,4),2:ExecutiveFloor.CEO_GOAL+Vector3.UP*ExecutiveFloor.BASE,4:ExecutiveFloor.HR_GOAL+Vector3.UP*ExecutiveFloor.BASE,5:Vector3(5,1.15,5),6:Vector3(5,1.15,5),7:CUBICLE_POINT,8:Vector3(0,1.15,-12.32)}
 const TITLES = {-2:"CORPORATE IP SECURITY / COLLECT THE FOLDER",-1:"B1 IT DEPARTMENT / DROP OFF THE FOLDER",0:"B1 IT DESK / REVIEW THE ALERT",2:"EXECUTIVE OFFICE / ATTEND BRIEFING",4:"PEOPLE EXPERIENCE / EXIT INTERVIEW",5:"RECEPTION / COLLECT FINAL NOTICE",6:"RECEPTION / RETURN LAPTOP AND BADGE",7:"DESK 04 / COLLECT PERSONAL BELONGINGS",8:"EXIT / LEAVE SYNAXIS"}
@@ -114,7 +115,13 @@ func _ready() -> void:
 	_sign("STAFF EXIT / PARKING",Vector3(-8.33,2.85,4.5),.004).rotation.y=PI/2
 	_sign("STAFF BADGE ACCESS",Vector3(-8.67,2.85,4.5),.004).rotation.y=-PI/2
 	_visual("StaffExitReader",Vector3(-8.66,1.18,3.25),Vector3(.065,.18,.12),screen)
-	_solid("EastWall",Vector3(8.5,1.75,0),Vector3(.25,3.5,20),wall)
+	_solid("EastWallNorth",Vector3(8.5,1.75,-3.325),Vector3(.25,3.5,13.35),wall)
+	_solid("EastWallSouth",Vector3(8.5,1.75,7.825),Vector3(.25,3.5,4.35),wall)
+	_solid("CampusEntryHeader",Vector3(8.5,3.025,4.50),Vector3(.25,.95,2.30),wall)
+	for z in [3.35,5.65]:
+		_visual("CampusEntryJamb",Vector3(8.5,1.275,z),Vector3(.34,2.55,.09),accent)
+	_visual("CampusEntryThreshold",Vector3(8.5,.012,4.5),Vector3(.42,.015,2.30),accent)
+	_build_campus_podium(wall,floor_mat,desk,accent)
 	# Leave a physical turning vestibule behind the security gate.
 	var partition_length: float=Arrival.PARTITION_FAR_Z-Arrival.PARTITION_NEAR_Z
 	_solid("ExecutivePartition",Vector3(0,1.5,Arrival.PARTITION_NEAR_Z+partition_length*.5),Vector3(.18,3.0,partition_length),wall)
@@ -171,7 +178,7 @@ func _ready() -> void:
 	_plaque("PEOPLE EXPERIENCE",Vector3(-8.31,2.94,-5.0),PI/2,Vector2(1.7,.24))
 	_plaque("EXECUTIVE AFFAIRS",Vector3(8.31,2.94,-4.9),-PI/2,Vector2(1.7,.24))
 	_plaque("RECEPTION / EXIT PROCESSING",Vector3(5.2,2.34,9.81),PI,Vector2(2.40,.26))
-	_plaque("ELEVATORS / B1 IT + OFFICES",Vector3(8.31,2.64,4.25),-PI/2,Vector2(2.3,.30))
+	_plaque("EMPLOYEE SERVICES",Vector3(8.31,2.98,4.50),-PI/2,Vector2(2.18,.30))
 	var canvas := CanvasLayer.new()
 	_intro_canvas = canvas
 	canvas.layer = 5
@@ -461,6 +468,8 @@ static func within_chapter_bounds(local:Vector3,level:int,parking_open:bool,exit
 	if level==0:
 		if absf(local.x)<=8.6 and local.z>=-7.8 and local.z<=10.1:
 			return true
+		if Campus.contains(local):
+			return true
 		# The only ground-floor street exit is the completed offboarding route.
 		if exit_unlocked and absf(local.x)<=1.6 and local.z>=-14.2 and local.z<=-7.6:
 			return true
@@ -522,6 +531,61 @@ func _build_office_details(desk: Material,accent: Material,screen: Material) -> 
 	carpet.roughness=.96
 	_visual("ExecutiveCarpet",Vector3(5,.012,-3.3),Vector3(5,.015,3.1),carpet)
 
+func _build_campus_podium(wall:Material,floor_mat:Material,desk:Material,accent:Material) -> void:
+	var region:Rect2=Campus.PODIUM
+	var center:=region.get_center()
+	_solid("CampusFloor",Vector3(center.x,-.15,center.y),Vector3(region.size.x,.30,region.size.y),floor_mat)
+	_solid("CampusRoof",Vector3(center.x,3.50,center.y),Vector3(region.size.x,.30,region.size.y),wall)
+	for i in Campus.WALL_EDGES.size():
+		var edge:Array=Campus.WALL_EDGES[i]
+		var mid:Vector2=(edge[0]+edge[1])*.5
+		var span:Vector2=(edge[1]-edge[0]).abs()
+		_solid("CampusWall"+str(i),Vector3(mid.x,1.675,mid.y),Vector3(maxf(span.x,.16),3.35,maxf(span.y,.16)),wall)
+	for entry in [Vector3(12,2.925,3.25),Vector3(23,2.925,3.25),Vector3(11,2.925,6.25),Vector3(22,2.925,6.25)]:
+		_solid("CampusRoomHeader",entry,Vector3(2.0,.85,.16),wall)
+	_solid("CampusBreakroomHeader",Vector3(17,2.925,20.5),Vector3(.16,.85,2.0),wall)
+	_plaque("CONFERENCE",Vector3(12,2.88,3.36),0,Vector2(1.8,.30))
+	_plaque("TRAINING",Vector3(23,2.88,3.36),0,Vector2(1.8,.30))
+	_plaque("FACILITIES",Vector3(11,2.88,6.14),PI,Vector2(1.8,.30))
+	_plaque("EMPLOYEE LOUNGE",Vector3(22,2.88,6.14),PI,Vector2(1.8,.30))
+	_plaque("BREAKROOM",Vector3(16.89,2.88,20.5),-PI/2,Vector2(1.8,.30))
+	_plaque("MAIN OFFICE / ELEVATORS",Vector3(8.65,2.98,4.50),PI/2,Vector2(2.18,.30))
+	_plaque("← ELEVATORS / MAIN OFFICE",Vector3(17.0-.105,2.30,15.6),-PI/2,Vector2(2.4,.32))
+	_plaque("← MAIN OFFICE",Vector3(19.8,2.30,3.36),0,Vector2(1.9,.32))
+	_plaque("← BREAKROOM",Vector3(14.0+.105,2.30,17.0),PI/2,Vector2(1.8,.32))
+	# Furnished destinations rather than an empty enlarged shell.
+	for at in [Vector3(13.5,0,-1.3),Vector3(24.0,0,-1.3)]:
+		_solid("CampusMeetingTable",at+Vector3.UP*.47,Vector3(4.2,.94,1.5),desk)
+		_visual("CampusMeetingWorktop",at+Vector3.UP*.98,Vector3(4.25,.08,1.55),accent)
+		for x in [-1.45,0.0,1.45]:
+			for side in [-1.0,1.0]:
+				_solid("CampusMeetingSeat",at+Vector3(x,.25,side*1.25),Vector3(.48,.50,.48),accent)
+	for x in [19.0,25.0]:
+		_solid("CampusLoungeBench",Vector3(x,.35,13.5),Vector3(3.6,.70,.85),desk)
+		_visual("CampusLoungeBack",Vector3(x,.95,13.85),Vector3(3.6,.60,.16),accent)
+	_solid("CampusKitchenCounter",Vector3(28.85,.47,21.3),Vector3(.80,.94,4.6),desk)
+	_visual("CampusKitchenWorktop",Vector3(28.85,.97,21.3),Vector3(.88,.08,4.7),accent)
+	_solid("CampusFridge",Vector3(28.85,1.05,18.25),Vector3(.8,2.1,.95),accent)
+	_visual("CampusSink",Vector3(28.85,1.02,21.25),Vector3(.50,.025,.58),desk)
+	for z in [8.0,13.0,18.0,23.0]:
+		_campus_lamp(Vector3(15.5,3.23,z))
+	for x in [12.5,24.0]:
+		for z in [-1.5,4.75,10.5,21.5]:
+			_campus_lamp(Vector3(x,3.23,z))
+	# Shallow exterior cornice and grounded company identity.
+	_visual("CampusCornice",Vector3(center.x,3.70,-5.57),Vector3(21.2,.32,.24),desk)
+	Brand.wall_logo(self,"CampusBrand",Vector3(19,2.75,-5.61),PI,4.2)
+
+func _campus_lamp(at:Vector3) -> void:
+	_visual("CampusDiffuser",at,Vector3(1.2,.045,.28),_material("campus_fixture",Color("eee8da"),true))
+	var lamp:=OmniLight3D.new()
+	lamp.position=at-Vector3.UP*.24
+	lamp.omni_range=5.5
+	lamp.light_energy=.50
+	lamp.light_color=Color("fff0da")
+	lamp.shadow_enabled=false
+	add_child(lamp)
+
 func _build_ground_wayfinding(wall:Material,accent:Material) -> void:
 	# Rear shaft side, exterior walls and these two spans form a separate
 	# room. Its 1.9 m open doorway leaves the staff exit and main aisle clear.
@@ -534,7 +598,9 @@ func _build_ground_wayfinding(wall:Material,accent:Material) -> void:
 	for x in [GroundLayout.DOOR_LEFT,GroundLayout.DOOR_RIGHT]:
 		_visual("BreakroomJamb",Vector3(x,1.25,GroundLayout.BREAKROOM_FRONT),Vector3(.065,2.5,.24),accent)
 	_visual("BreakroomSill",Vector3(door_center,.012,GroundLayout.BREAKROOM_FRONT),Vector3(1.9,.015,.27),accent)
-	_plaque("EMPLOYEE BREAKROOM",Vector3(door_center,2.83,GroundLayout.BREAKROOM_FRONT-.105),PI,Vector2(1.76,.29))
+	_plaque("RECORDS STORAGE",Vector3(door_center,2.83,GroundLayout.BREAKROOM_FRONT-.105),PI,Vector2(1.76,.29))
+	for x in [-7.3,-6.2]:
+		_solid("ArchiveStorage",Vector3(x,1.0,9.30),Vector3(.92,2.0,.75),accent)
 	_plaque("MAIN OFFICE",Vector3(door_center,2.83,GroundLayout.BREAKROOM_FRONT+.105),0,Vector2(1.76,.29))
 	_plaque("ELEVATORS / B1 IT",Vector3(-6.62,2.20,GroundLayout.BREAKROOM_FRONT-.105),PI,Vector2(2.30,.32))
 	# The approach from the arrival corridor and desk 04 uses flush,
@@ -562,19 +628,19 @@ func _floor_arrow(at:Vector3,yaw:float) -> void:
 
 func _build_breakroom(desk: Material,accent: Material) -> void:
 	# Furniture is permanent; the short party performance is intro-only.
-	_collision("BreakroomTable",Vector3(-4.2,.47,8.12),Vector3(3.4,.94,1.02))
+	_collision("BreakroomTable",Vector3(-4.2,.47,8.12)+Campus.PARTY_OFFSET,Vector3(3.4,.94,1.02))
 	var card:=_material("party_cardboard",Color("c3a880"))
 	var cheese:=_material("party_food",Color("d5aa56"))
 	var paper:=_material("party_paper",Color("eceae1"))
-	_visual("CateringCarton",Vector3(-5.12,1.01,8.12),Vector3(.67,.12,.64),card)
-	_visual("OpenPizzaCarton",Vector3(-4.28,.98,8.12),Vector3(.68,.07,.66),card)
-	_visual("LastTwoSlices",Vector3(-4.28,1.04,8.12),Vector3(.36,.035,.31),cheese)
-	_visual("NapkinStack",Vector3(-2.90,1.00,8.18),Vector3(.22,.09,.22),paper)
-	_visual("PartyBannerBacking",Vector3(-4.2,2.98,9.80),Vector3(4.7,.66,.04),_material("party_navy",Brand.NAVY))
-	Brand.wall_logo(self,"PartyBrand",Vector3(-6.03,2.98,9.765),PI,.72)
-	_sign("GLOBAL TALENT APPRECIATION DAY",Vector3(-3.77,3.07,9.76),.004).rotation.y=PI
-	_sign("SPONSORSHIP TEAM / PHOTO BEFORE FOOD",Vector3(-3.77,2.86,9.76),.003).rotation.y=PI
-	_sign("CATERING BUDGET: $48\nATTENDANCE GOAL: 65",Vector3(-2.85,1.40,8.14),.0028).rotation.y=PI
+	_visual("CateringCarton",Vector3(-5.12,1.01,8.12)+Campus.PARTY_OFFSET,Vector3(.67,.12,.64),card)
+	_visual("OpenPizzaCarton",Vector3(-4.28,.98,8.12)+Campus.PARTY_OFFSET,Vector3(.68,.07,.66),card)
+	_visual("LastTwoSlices",Vector3(-4.28,1.04,8.12)+Campus.PARTY_OFFSET,Vector3(.36,.035,.31),cheese)
+	_visual("NapkinStack",Vector3(-2.90,1.00,8.18)+Campus.PARTY_OFFSET,Vector3(.22,.09,.22),paper)
+	_visual("PartyBannerBacking",Vector3(-4.2,2.98,9.80)+Campus.PARTY_OFFSET,Vector3(4.7,.66,.04),_material("party_navy",Brand.NAVY))
+	Brand.wall_logo(self,"PartyBrand",Vector3(-6.03,2.98,9.765)+Campus.PARTY_OFFSET,PI,.72)
+	_sign("GLOBAL TALENT APPRECIATION DAY",Vector3(-3.77,3.07,9.76)+Campus.PARTY_OFFSET,.004).rotation.y=PI
+	_sign("SPONSORSHIP TEAM / PHOTO BEFORE FOOD",Vector3(-3.77,2.86,9.76)+Campus.PARTY_OFFSET,.003).rotation.y=PI
+	_sign("CATERING BUDGET: $48\nATTENDANCE GOAL: 65",Vector3(-2.85,1.40,8.14)+Campus.PARTY_OFFSET,.0028).rotation.y=PI
 
 func _build_corporate_relics(desk: Material,accent: Material,screen: Material) -> void:
 	# Actual desk objects, not floating tutorial text. Keep the circulation aisle clear.
@@ -606,7 +672,7 @@ func restroom_encounter(at: Vector3) -> String:
 	return str(_restrooms.call("encounter",local))
 
 func breakroom_reachable(at: Vector3) -> bool:
-	return _prologue_active and _active_floor==0 and at.is_finite() and GroundLayout.in_breakroom(to_local(at)) and at.distance_to(to_global(BREAKROOM_POINT))<1.35
+	return _prologue_active and _active_floor==0 and at.is_finite() and Campus.in_breakroom(to_local(at)) and at.distance_to(to_global(BREAKROOM_POINT))<1.35
 
 func mark_breakroom_seen() -> void:
 	_breakroom_seen=true
@@ -733,8 +799,8 @@ func dialogue_camera(camera: Camera3D,stage: int,beat: int) -> void:
 		_hr.call("set_scene_beat",2 if stage==4 else -1)
 
 func breakroom_camera(camera: Camera3D) -> void:
-	camera.global_position=to_global(Vector3(-7.25,2.15,6.65))
-	camera.look_at(to_global(Vector3(-3.7,1.5,8.7)),Vector3.UP)
+	camera.global_position=to_global(Vector3(-7.25,2.15,6.65)+Campus.PARTY_OFFSET)
+	camera.look_at(to_global(Vector3(-3.7,1.5,8.7)+Campus.PARTY_OFFSET),Vector3.UP)
 
 func end_dialogue() -> void:
 	if is_instance_valid(_assistant):
