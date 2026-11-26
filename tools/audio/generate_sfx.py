@@ -5,6 +5,7 @@ import array
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -14,7 +15,7 @@ import wave
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = ROOT / "tools/audio/synaxis_sfx.json"
-CANDIDATES = ROOT / "dist/sfx-candidates"
+CANDIDATES = Path(os.environ.get("ANUBIS_AUDIO_OUT", str(ROOT / "dist"))) / "sfx-candidates"
 DEST = ROOT / "assets/audio/generated/synaxis"
 RATE = 48000
 

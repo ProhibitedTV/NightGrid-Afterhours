@@ -1,0 +1,33 @@
+name: Asset refinement checks
+on:
+  pull_request:
+    paths:
+      - 'tools/asset_refinement/**'
+      - '.github/workflows/asset-refinement.yml'
+  workflow_dispatch:
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python3 -m compileall -q tools/asset_refinement
+      - run: bash -n tools/asset_refinement/run_refine.sh && bash -n tools/asset_refinement/run_factory.sh && bash -n tools/asset_refinement/run_queue.sh
+      - run: python3 -m pip install numpy==1.26.4 Pillow==10.4.0
+      - run: python3 -m unittest discover -s tools/asset_refinement -p 'test_*.py'
+  blender-fixture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Blender using signed Ubuntu sources only
+        run: |
+          sudo apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- update
+          sudo apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- install -y blender python3-numpy
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - run: ANUBIS_TEST_GODOT=$(command -v godot) PYTHONPATH=/usr/lib/python3/dist-packages blender -b -t 2 --python-use-system-env --python-exit-code 1 --python tools/asset_refinement/smoke_blender.py
