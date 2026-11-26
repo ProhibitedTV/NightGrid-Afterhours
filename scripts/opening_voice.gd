@@ -51,7 +51,7 @@ func select_scene(scene: String) -> void:
 	_scene = scene
 	# Only load the small scene's resources, never the full city bank.
 	for id in line_ids(scene):
-		var path := "res://assets/audio/voiced/%s/take.wav" % id
+		var path := "res://assets/audio" + ("/voiced/%s/take.wav" % id)
 		if not ResourceLoader.exists(path):
 			continue
 		var clip := load(path) as AudioStream
