@@ -10,6 +10,11 @@ const ROAD_STEP = WorldPlan.BLOCK_SIZE
 const CRANE_SCENE = preload("res://assets/models/nightgrid/harbor_crane/harbor_crane.gltf")
 const HarborShader = preload("res://shaders/harbor_water.gdshader")
 var _harbor_material: ShaderMaterial
+# Off by default: preserve canonical geography and existing regression tests.
+var ridge_pilot_enabled := false
+const RIDGE_HALF_WIDTH = 54.0
+const RIDGE_LENGTH = 108.0
+const RIDGE_OPEN_HALF = 11.0
 
 var _stats := {"barriers": 0, "road_gates": 0, "sea_surfaces": 0, "landscapes": 0,
 	"port_piers": 0, "industrial_landmarks": 0}
@@ -25,6 +30,8 @@ func _ready() -> void:
 	_build_port_infrastructure()
 	_build_physical_edges()
 	_build_road_terminals()
+	if ridge_pilot_enabled:
+		_build_ridge_pilot()
 
 func _box(label: String, position: Vector3, dimensions: Vector3,
 		surface: String, tint: Color) -> MeshInstance3D:
@@ -119,6 +126,10 @@ func _build_eastern_ridges() -> void:
 		for z_index in range(rows):
 			var z0 := -810.0 + float(z_index) * 54.0
 			var z1 := z0 + 54.0
+			# Reserve the first two bands and two central cells for the
+			# experimental traversable terrace; do not render buried hills.
+			if ridge_pilot_enabled and x_index < 2 and z0 >= -54.0 and z1 <= 54.0:
+				continue
 			var a := Vector3(x0, _elevation(x0, z0), z0)
 			var b := Vector3(x1, _elevation(x1, z0), z0)
 			var c := Vector3(x1, _elevation(x1, z1), z1)
@@ -215,8 +226,16 @@ func _build_physical_edges() -> void:
 		"CONCRETE", Color("69757a"))
 	_solid_edge("WestDocks_QuaySafetyWall", west, Vector3(1.4, 1.98, SPAN),
 		"CONCRETE", Color("626b71"))
-	_solid_edge("HorizonGardens_HillsideSoundwall", east,
-		Vector3(1.4, 1.98, SPAN), "CONCRETE", Color("596967"))
+	if ridge_pilot_enabled:
+		var length := SPAN * 0.5 - RIDGE_OPEN_HALF
+		for direction in [-1.0, 1.0]:
+			var middle: float = direction * (RIDGE_OPEN_HALF + length * 0.5)
+			_solid_edge("HorizonRidge_ApproachWall_%s" % str(direction),
+				Vector3(EDGE, east.y, middle), Vector3(1.4, 1.98, length),
+				"CONCRETE", Color("596967"))
+	else:
+		_solid_edge("HorizonGardens_HillsideSoundwall", east,
+			Vector3(1.4, 1.98, SPAN), "CONCRETE", Color("596967"))
 	_solid_edge("Southworks_SecurityWall", south,
 		Vector3(SPAN, 1.98, 1.4), "CONCRETE", Color("59616a"))
 	# Crown rails and repeated steel uprights visibly reinforce the industrial
@@ -225,17 +244,30 @@ func _build_physical_edges() -> void:
 		var cross: bool = side == "NORTH" or side == "SOUTH"
 		var fixed: float = -EDGE if side == "NORTH" or side == "WEST" else EDGE
 		var rail_position := Vector3(0.0, 1.98, fixed) if cross else Vector3(fixed, 1.98, 0.0)
-		_box(side + "_PerimeterCrown", rail_position,
-			Vector3(SPAN, 0.14, 0.17) if cross else Vector3(0.17, 0.14, SPAN),
-			"METAL", Color("778789"))
+		if side == "EAST" and ridge_pilot_enabled:
+			var length := SPAN * 0.5 - RIDGE_OPEN_HALF
+			for direction in [-1.0, 1.0]:
+				var middle: float = direction * (RIDGE_OPEN_HALF + length * 0.5)
+				_box("Ridge_ApproachCrown_%s" % str(direction), Vector3(EDGE, 1.98, middle),
+					Vector3(0.17, 0.14, length), "METAL", Color("778789"))
+		else:
+			_box(side + "_PerimeterCrown", rail_position,
+				Vector3(SPAN, 0.14, 0.17) if cross else Vector3(0.17, 0.14, SPAN),
+				"METAL", Color("778789"))
 		var posts := MultiMesh.new()
 		posts.transform_format = MultiMesh.TRANSFORM_3D
 		var post_mesh := BoxMesh.new()
 		post_mesh.size = Vector3.ONE
 		posts.mesh = post_mesh
-		posts.instance_count = 29
+		var offsets: Array[float] = []
 		for index in range(29):
 			var offset := -238.0 + float(index) * 17.0
+			if side == "EAST" and ridge_pilot_enabled and absf(offset) < RIDGE_OPEN_HALF:
+				continue
+			offsets.append(offset)
+		posts.instance_count = offsets.size()
+		for index in range(offsets.size()):
+			var offset := offsets[index]
 			var at := Vector3(offset, 1.25, fixed) if cross else Vector3(fixed, 1.25, offset)
 			posts.set_instance_transform(index, Transform3D(Basis().scaled(Vector3(0.23, 2.5, 0.23)), at))
 		var posts_node := MultiMeshInstance3D.new()
@@ -249,6 +281,8 @@ func _build_road_terminals() -> void:
 		var cross: bool = side == "NORTH" or side == "SOUTH"
 		var edge_coordinate: float = -EDGE if side == "NORTH" or side == "WEST" else EDGE
 		for index in range(-WorldPlan.GRID_RADIUS, WorldPlan.GRID_RADIUS + 1):
+			if ridge_pilot_enabled and side == "EAST" and index == 0:
+				continue
 			var axis := float(index) * ROAD_STEP
 			var center := Vector3(axis, 0.08, edge_coordinate - 2.8) if cross else Vector3(edge_coordinate - 2.8, 0.08, axis)
 			if side == "WEST":
@@ -262,3 +296,61 @@ func _build_road_terminals() -> void:
 				_box("%s_RoadEndChevron_%d_%d" % [side, index, mark],
 					at, Vector3(0.82, 0.045, 0.90), "PAVERS", Color("d0a34b"))
 			_stats["road_gates"] += 1
+
+func _build_ridge_pilot() -> void:
+	# Circulation/landform engineering blockout, not production art. Top of
+	# the terrace matches the existing ground at y=-0.08. Extend 1 m into
+	# the old foundation to avoid a collision seam at the street endpoint.
+	var near_x := EDGE - 1.0
+	var far_x := EDGE + RIDGE_LENGTH
+	var center_x := (near_x + far_x) * 0.5
+	var width := far_x - near_x
+	var floor_body := StaticBody3D.new()
+	floor_body.name = "HorizonRidge_TerraceFloor"
+	floor_body.collision_layer = 1
+	floor_body.collision_mask = 1
+	floor_body.position = Vector3(center_x, -0.58, 0.0)
+	var collision := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(width, 1.0, RIDGE_HALF_WIDTH * 2.0)
+	collision.shape = shape
+	floor_body.add_child(collision)
+	add_child(floor_body)
+	# Authored surface bands, explicit meter-scale UVs, reused materials.
+	_ridge_surface("Ridge_CentralAccess", near_x, far_x, -7.8, 7.8,
+		"CONCRETE", Color("41494b"), -0.06)
+	_ridge_surface("Ridge_NorthWalk", near_x, far_x, -11.0, -7.8,
+		"PHOTO_SIDEWALK", Color("b5b4ae"), -0.05)
+	_ridge_surface("Ridge_SouthWalk", near_x, far_x, 7.8, 11.0,
+		"PHOTO_SIDEWALK", Color("b5b4ae"), -0.05)
+	_ridge_surface("Ridge_NorthDevelopmentParcel", near_x, far_x, -RIDGE_HALF_WIDTH, -11.0,
+		"CONCRETE", Color("65716a"), -0.07)
+	_ridge_surface("Ridge_SouthDevelopmentParcel", near_x, far_x, 11.0, RIDGE_HALF_WIDTH,
+		"CONCRETE", Color("65716a"), -0.07)
+	# Visible retaining edges keep the pilot inside the supported land.
+	_solid_edge("Ridge_EastRetainingWall", Vector3(far_x, 0.89, 0.0),
+		Vector3(1.4, 1.98, RIDGE_HALF_WIDTH * 2.0), "CONCRETE", Color("596967"))
+	for direction in [-1.0, 1.0]:
+		_solid_edge("Ridge_SideRetainingWall_%s" % str(direction),
+			Vector3(center_x, 0.89, direction * RIDGE_HALF_WIDTH),
+			Vector3(width, 1.98, 1.4), "CONCRETE", Color("596967"))
+	_stats["ridge_pilot"] = 1
+	_stats["ridge_area_m2"] = int(RIDGE_LENGTH * RIDGE_HALF_WIDTH * 2.0)
+
+func _ridge_surface(label: String, x0: float, x1: float, z0: float, z1: float,
+		kind: String, tint: Color, elevation: float) -> void:
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var a := Vector3(x0, elevation, z0)
+	var b := Vector3(x1, elevation, z0)
+	var c := Vector3(x1, elevation, z1)
+	var d := Vector3(x0, elevation, z1)
+	for vertex in [a, b, c, a, c, d]:
+		surface.set_uv(Vector2(vertex.x, vertex.z))
+		surface.add_vertex(vertex)
+	surface.generate_normals()
+	var node := MeshInstance3D.new()
+	node.name = label
+	node.mesh = surface.commit()
+	node.material_override = Materials.surface(kind, tint)
+	add_child(node)

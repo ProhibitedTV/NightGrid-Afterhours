@@ -2525,6 +2525,7 @@ func _build_city_perimeter() -> void:
 	# Permanent geography is independent of streamed lots and saved seeds.
 	city_perimeter = CityPerimeterScript.new()
 	city_perimeter.name = "MorrowBayPerimeter"
+	city_perimeter.set("ridge_pilot_enabled", "--horizon-ridge" in OS.get_cmdline_user_args())
 	add_child(city_perimeter)
 
 func _build_world_systems() -> void:
