@@ -38,11 +38,12 @@ func tick(delta: float, arrived: bool) -> void:
 		return
 	task["elapsed"] = float(task["elapsed"]) + delta
 	if task["phase"] == "EN_ROUTE":
-		if arrived:
+		# Arrival observed after the travel deadline must not resurrect a case.
+		if float(task["elapsed"]) >= MAX_TRAVEL_SECONDS:
+			finish("EXPIRED")
+		elif arrived:
 			task["phase"] = "SERVICING"
 			task["elapsed"] = 0.0
-		elif float(task["elapsed"]) >= MAX_TRAVEL_SECONDS:
-			finish("EXPIRED")
 	elif task["phase"] == "SERVICING":
 		# A completed response requires continuous on-site service.
 		if not arrived:
