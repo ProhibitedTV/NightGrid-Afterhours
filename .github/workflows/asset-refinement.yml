@@ -10,8 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: python3 -m py_compile tools/asset_refinement/refine.py
-      - run: bash -n tools/asset_refinement/run_refine.sh
+      - run: python3 -m compileall -q tools/asset_refinement
+      - run: bash -n tools/asset_refinement/run_refine.sh && bash -n tools/asset_refinement/run_factory.sh
       - run: python3 -m unittest discover -s tools/asset_refinement -p 'test_*.py'
   blender-fixture:
     runs-on: ubuntu-24.04

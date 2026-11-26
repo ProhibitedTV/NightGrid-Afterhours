@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/../.."
+repo="$PWD"
+mode="${1:-full}"
+[[ "$mode" == full || "$mode" == existing || "$mode" == smoke ]] || { echo "Use full, existing, or smoke"; exit 2; }
+if [[ $# -gt 0 ]]; then shift; fi
+export PATH="/root/.local/share/nightgrid-python/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/wsl/lib"
+export ANUBIS_VISUAL_HOME="${ANUBIS_VISUAL_HOME:-/root/.local/share/nightgrid-visual-py311}"
+mkdir -p "$ANUBIS_VISUAL_HOME"
+exec 8>"$ANUBIS_VISUAL_HOME/factory.lock"
+flock -n 8 || { echo "Factory already running"; exit 2; }
+mkdir -p /mnt/z
+mountpoint -q /mnt/z || mount -t drvfs Z: /mnt/z
+mountpoint /mnt/z
+root=/mnt/z/NightGrid-Afterhours/Visual
+export ANUBIS_VISUAL_OUT="$root/visual-001"
+[[ -d "$root" ]] || { echo "NAS library missing"; exit 2; }
+df -h /mnt/c /mnt/z
+python3 -c 'import shutil; assert shutil.disk_usage("/mnt/c").free >= 25*1024**3, "Windows SSD reserve: 25 GiB"; assert shutil.disk_usage("/mnt/z").free >= 10*1024**3, "NAS reserve: 10 GiB"'
+command -v blender >/dev/null || { echo "Install Blender and python3-numpy in Ubuntu first"; exit 2; }
+if [[ "$mode" == full ]]; then
+  generation="${ANUBIS_GENERATION_REPO:-$(dirname "$repo")/NightGrid-Visual}"
+  [[ -f "$generation/tools/visual_studio/batch.py" ]] || { echo "Missing generation checkout: $generation"; exit 2; }
+  (cd "$generation/tools/visual_studio"; python3 -c 'import os,batch; from pathlib import Path; assert batch.OUT.resolve() == Path(os.environ["ANUBIS_VISUAL_OUT"]).resolve(), "Generation checkout lacks NAS output override"')
+  (cd "$generation"; bash tools/visual_studio/run_anubis_visual.sh full)
+fi
+exec 9>"$ANUBIS_VISUAL_HOME/run.lock"
+flock -n 9 || { echo "Generation still running; retry after it finishes"; exit 2; }
+extra=()
+size=1024
+if [[ "$mode" == smoke ]]; then extra=(--limit 1); size=128; fi
+bash tools/asset_refinement/run_refine.sh --bake-size "$size" "${extra[@]}" "$@"
+python3 tools/asset_refinement/review_queue.py --raw "$ANUBIS_VISUAL_OUT" --refined "$root/refined-001" --size "$size" --output "$root/refined-001/review-$size.json"
+echo "Factory output is on the NAS. Review queue is not approval or a Git commit."
