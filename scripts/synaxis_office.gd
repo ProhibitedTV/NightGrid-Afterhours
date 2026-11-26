@@ -558,7 +558,7 @@ func _floor_arrow(at:Vector3,yaw:float) -> void:
 	node.position=at
 	node.basis=Basis(Vector3.UP,yaw)*Basis(Vector3.RIGHT,-PI/2)
 	node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(node)
+	add_child(node,true)
 
 func _build_breakroom(desk: Material,accent: Material) -> void:
 	# Furniture is permanent; the short party performance is intro-only.
