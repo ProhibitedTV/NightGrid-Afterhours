@@ -34,7 +34,7 @@ def verify(actor):
     clips = {a["name"] for a in doc["animations"] if a.get("channels")}
     assert {"Idle", "Walk"} <= clips, clips
     manifest = {"model": model.name, "sha256": hashlib.sha256(raw).hexdigest(),
-                "profile_sha256": hashlib.sha256(profile.read_bytes()).hexdigest(),
+                "profile_sha256": hashlib.sha256(profile.read_bytes().replace(b"\r\n", b"\n")).hexdigest(),
                 "bytes": len(raw), "joints": len(doc["skins"][0]["joints"]),
                 "weighted_primitives": len(weighted), "clips": sorted(clips),
                 "source": "ara3d@0.13.0", "source_revision": "9d3b9f9933cbeb9529630a270ffc7fe01bd05511",

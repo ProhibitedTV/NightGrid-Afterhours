@@ -1,6 +1,13 @@
 extends "res://scripts/lantern_patron.gd"
 ## HQ-only actors; authored identities, reusable static detail and bounded pose updates.
 ## No navigation, physics or economy ownership. The scene owns mission progression.
+const RigVisual=preload("res://scripts/pedestrian_rig_visual.gd")
+const STAFF_MODEL_DIR="res://assets/models/nightgrid/synaxis_staff/"
+const STAFF_MODELS={"mika":"mika_torres.glb","security":"owen_pike.glb","eli":"eli_brooks.glb","reception":"nina_bell.glb"}
+
+static func pilot_model_path(id:String="mika") -> String:
+	return STAFF_MODEL_DIR+str(STAFF_MODELS[id]) if STAFF_MODELS.has(id) else ""
+var _imported_visual:Node3D
 var display_name := ""
 var outfit := "office"
 var hair_style := "parted"
@@ -159,8 +166,41 @@ func _ready() -> void:
 			_left_wrist=child
 			break
 
+	_install_imported_pilot()
+
+# Only standing named actors have approved Idle/Walk clips.
+func _install_imported_pilot() -> void:
+	var path:=pilot_model_path(resident_id)
+	if seated or path.is_empty() or not ResourceLoader.exists(path,"PackedScene"):
+		return
+	var model:=load(path) as PackedScene
+	if model==null:
+		return
+	var legacy:Array[Node3D]=[]
+	for child in get_children():
+		if child is Node3D:
+			legacy.append(child)
+	var visual:=RigVisual.new()
+	visual.name="ImportedStaffVisual"
+	visual.set_pedestrian_model(model)
+	visual.idle_clip=&"Idle"
+	visual.walk_clip=&"Walk"
+	# The old primitive actor used exaggerated nonuniform dimensions.
+	# Retain its logical transform but display the authored meter-scale human.
+	visual.scale=Vector3(1.0/scale.x,1.0/scale.y,1.0/scale.z)
+	add_child(visual)
+	if not visual.is_pedestrian_visual_ready():
+		visual.queue_free()
+		return
+	_imported_visual=visual
+	for child in legacy:
+		child.hide()
+
+func imported_staff_ready() -> bool:
+	return is_instance_valid(_imported_visual) and bool(_imported_visual.call("is_pedestrian_visual_ready"))
+
 func enable_walk_rig() -> void:
-	if seated or not _walk_rig.is_empty():
+	if imported_staff_ready() or seated or not _walk_rig.is_empty():
 		return
 	# Replace only the opted-in actor's rigid standing legs. Keep identity,
 	# upper-body detail, idle animation and material cache shared.
@@ -256,6 +296,8 @@ func _animate_walk(delta:float) -> void:
 
 func attend(target: Vector3,active: bool) -> void:
 	_attentive=active and target.is_finite()
+	if imported_staff_ready():
+		_imported_visual.call("set_attention_target",target,_attentive)
 	if _attentive:
 		var local:=to_local(target)
 		_attention_yaw=clampf(atan2(local.x,maxf(.2,local.z)),-.63,.63)
@@ -267,6 +309,10 @@ func get_staff_state() -> Dictionary:
 	return {"id":resident_id,"name":display_name,"outfit":outfit,"hair":hair_style,"attention":_attentive,"beat":_scene_beat,"activity":activity}
 
 func _process(delta: float) -> void:
+	if imported_staff_ready():
+		_imported_visual.call("set_locomotion",_walk_speed)
+		_imported_visual.call("set_activity","SOCIALIZE" if _attentive else "WALK")
+		return
 	super._process(delta)
 	if _head==null:
 		return

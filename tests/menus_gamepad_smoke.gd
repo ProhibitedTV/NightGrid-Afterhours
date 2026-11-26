@@ -942,6 +942,18 @@ func _verify() -> void:
 		_fail("Jetson has signature textured leather outerwear, zipper details and no tie")
 		return
 	var mika: Node3D=staff["mika"]
+	var imported_models:Array[PackedScene]=[]
+	for id in ["mika","security","eli","reception"]:
+		var actor:Node3D=staff[id]
+		if not actor.call("imported_staff_ready") or actor.get_node("BreathingTorso").visible:
+			_fail("Named staff must use imported humanoid, not fallback: "+id)
+			return
+		var visual:Node3D=actor.get_node("ImportedStaffVisual")
+		var model:=visual.get("_model") as PackedScene
+		if model==null or imported_models.has(model) or visual.find_children("*","Skeleton3D",true,false).is_empty() or visual.find_children("*","AnimationPlayer",true,false).is_empty():
+			_fail("Each named staff member requires a distinct weighted rig and animation player: "+id)
+			return
+		imported_models.append(model)
 	var staff_line: String=office.call("update_staff_attention",-2,mika.global_position+Vector3.UP*1.15)
 	if not staff_line.contains("Mika Torres") or not mika.call("get_staff_state")["attention"]:
 		_fail("Nearby supervisor reacts without a modal menu")
