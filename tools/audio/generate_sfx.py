@@ -73,7 +73,7 @@ def prepare(raw, output, spec, ffmpeg):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=["list", "generate", "publish", "verify"])
+    parser.add_argument("action", choices=["list", "generate", "publish", "verify", "verify-playtest"])
     parser.add_argument("--id", action="append", help="Select one or more IDs; defaults to all")
     parser.add_argument("--group", choices=["office","city","steps"], help="Select a sound family")
     parser.add_argument("--skip-existing", action="store_true", help="Resume candidate generation")
@@ -139,7 +139,12 @@ def main():
         else:
             record = json.loads(sidecar.read_text(encoding="utf-8"))
             data = read_pcm(final)
-            if record["spec"] != spec or not record["reviewed"] or record["sha256"] != digest(final) or not data:
+            accepted = record.get("reviewed") is True
+            if args.action == "verify-playtest":
+                accepted = accepted or (record.get("playtest_accepted") is True
+                    and record.get("rights_checked") is True
+                    and record.get("machine_qc_passed") is True)
+            if record["spec"] != spec or not accepted or record["sha256"] != digest(final) or not data:
                 raise ValueError(f"Invalid published sound: {name}")
             print("Verified:", final)
 

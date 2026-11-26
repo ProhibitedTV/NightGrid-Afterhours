@@ -5,3 +5,8 @@ assets/audio/voiced/**/review.json text eol=lf
 tools/voice/cast-library/**/*.json text eol=lf
 tools/voice/model-pins.json text eol=lf
 *.wav binary
+
+# WSL launcher must not receive CRLF on Windows checkout.
+*.sh text eol=lf
+*.cmd text eol=crlf
+assets/audio/generated/synaxis/*.json text eol=lf
