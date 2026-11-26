@@ -23,7 +23,7 @@ def verify():
     assert any("baseColorTexture" in m.get("pbrMetallicRoughness", {}) for m in doc["materials"])
     assert any("normalTexture" in m for m in doc["materials"])
     clips = {a["name"] for a in doc["animations"] if a.get("channels")}
-    assert {"idle", "walk"} <= clips, clips
+    assert {"Idle", "Walk"} <= clips, clips
     manifest = {"model": MODEL.name, "sha256": hashlib.sha256(raw).hexdigest(),
                 "profile_sha256": hashlib.sha256(PROFILE.read_bytes()).hexdigest(),
                 "bytes": len(raw), "joints": len(doc["skins"][0]["joints"]),

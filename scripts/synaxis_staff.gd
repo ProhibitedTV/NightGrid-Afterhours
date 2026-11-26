@@ -2,7 +2,9 @@ extends "res://scripts/lantern_patron.gd"
 ## HQ-only actors; authored identities, reusable static detail and bounded pose updates.
 ## No navigation, physics or economy ownership. The scene owns mission progression.
 const RigVisual=preload("res://scripts/pedestrian_rig_visual.gd")
-const PILOT_MODEL="res://assets/models/nightgrid/synaxis_staff/mika_torres.glb"
+const STAFF_MODEL_DIR="res://assets/models/nightgrid/synaxis_staff/"
+static func pilot_model_path() -> String:
+	return STAFF_MODEL_DIR+"mika_torres.glb"
 var _imported_visual:Node3D
 var display_name := ""
 var outfit := "office"
@@ -166,9 +168,9 @@ func _ready() -> void:
 # Start with one standing supervisor. Do not replace actors with seated,
 # prop or choreography requirements until their performances are retargeted.
 func _install_imported_pilot() -> void:
-	if resident_id!="mika" or seated or not ResourceLoader.exists(PILOT_MODEL,"PackedScene"):
+	if resident_id!="mika" or seated or not ResourceLoader.exists(pilot_model_path(),"PackedScene"):
 		return
-	var model:=load(PILOT_MODEL) as PackedScene
+	var model:=load(pilot_model_path()) as PackedScene
 	if model==null:
 		return
 	var legacy:Array[Node3D]=[]
@@ -178,6 +180,8 @@ func _install_imported_pilot() -> void:
 	var visual:=RigVisual.new()
 	visual.name="ImportedStaffVisual"
 	visual.set_pedestrian_model(model)
+	visual.idle_clip=&"Idle"
+	visual.walk_clip=&"Walk"
 	# The old primitive actor used exaggerated nonuniform dimensions.
 	# Retain its logical transform but display the authored meter-scale human.
 	visual.scale=Vector3(1.0/scale.x,1.0/scale.y,1.0/scale.z)

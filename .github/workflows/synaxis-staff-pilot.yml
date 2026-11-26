@@ -39,7 +39,9 @@ jobs:
           set -o pipefail
           godot --headless --path . --import --quit 2>&1 | tee /tmp/staff-import.log
           if grep -q 'SCRIPT ERROR:' /tmp/staff-import.log; then exit 1; fi
-          NIGHTGRID_REQUIRE_STAFF_PILOT=1 godot --headless --path . --script res://tests/menus_gamepad_smoke.gd
+          NIGHTGRID_REQUIRE_STAFF_PILOT=1 godot --headless --path . --script res://tests/menus_gamepad_smoke.gd 2>&1 | tee /tmp/staff-pilot.log
+          if grep -q 'SCRIPT ERROR:' /tmp/staff-pilot.log; then exit 1; fi
+          grep -q "MENU_GAMEPAD_SMOKE PASS" /tmp/staff-pilot.log
       - uses: actions/upload-artifact@v4
         with:
           name: synaxis-staff-pilot

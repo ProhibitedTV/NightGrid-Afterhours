@@ -899,7 +899,7 @@ func _verify() -> void:
 		return
 	var mika: Node3D=staff["mika"]
 	var imported_pilot:bool=mika.call("imported_staff_ready")
-	if ResourceLoader.exists("res://assets/models/nightgrid/synaxis_staff/mika_torres.glb","PackedScene") or OS.get_environment("NIGHTGRID_REQUIRE_STAFF_PILOT")=="1":
+	if ResourceLoader.exists(preload("res://scripts/synaxis_staff.gd").pilot_model_path(),"PackedScene") or OS.get_environment("NIGHTGRID_REQUIRE_STAFF_PILOT")=="1":
 		if not imported_pilot or mika.get_node("BreathingTorso").visible:
 			_fail("Mika must render the validated imported weighted humanoid instead of the primitive fallback")
 			return
