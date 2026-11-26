@@ -1,0 +1,14 @@
+{
+  "name": "Synaxis ergonomic task chair",
+  "author": "NightGrid original art",
+  "license": "Original project asset; no third-party geometry or textures",
+  "source": "tools/author_synaxis_task_chair.js",
+  "meters": true,
+  "front": "+Z",
+  "stats": {
+    "vertices": 5947,
+    "triangles": 9792,
+    "materials": 4
+  },
+  "notes": "Authored offline surface geometry, UVs and four PBR materials; no runtime geometry generation. Native visual approval and material texture refinement pending."
+}

@@ -16,7 +16,7 @@
     "caucasian": 0.47,
     "modifiers": {
       "head/head-scale-horiz": -0.04,
-      "head/head-rectangular": -0.1,
+      "head/head-rectangular": 0.1,
       "eyes/eye-bag": 0.12,
       "eyebrows/eyebrows-trans": 0.02
     },
