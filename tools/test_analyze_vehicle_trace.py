@@ -55,6 +55,38 @@ class TraceTests(unittest.TestCase):
             self.assertEqual(result["outside_transition_windows"]["count"],1)
             self.assertEqual(result["groups"]["enter/cinder_r9/ok"]["complete_windows"],1)
 
+    def test_first_repeat_stage_and_coverage(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            old, sidecar = self.fixture(root, "old", 80)
+            data = json.loads(sidecar.read_text())
+            first = data["transitions"][0]
+            second = dict(first, first_frame_index=2, following_frame_ms=[16]*12,
+                          following_stream_build_ms=0, total_cpu_ms=1,
+                          stages={"rig": 0.5})
+            data["transitions"] = [second, first]
+            sidecar.write_text(json.dumps(data))
+            before = summarize(*load_capture(old))
+            key = "enter/cinder_r9/ok"
+            group = before["groups"][key]
+            self.assertEqual(group["first_observed_window_peak"]["max_ms"], 80)
+            self.assertEqual(group["repeat_window_peaks"]["max_ms"], 16)
+            self.assertEqual(group["repeat_cpu"]["max_ms"], 1)
+            new, new_sidecar = self.fixture(root, "new", 40)
+            new_data = json.loads(new_sidecar.read_text())
+            new_data["transitions"][0]["stages"]["rig"] = 0.5
+            new_data["transitions"].append(dict(new_data["transitions"][0], kind="exit"))
+            new_sidecar.write_text(json.dumps(new_data))
+            after = summarize(*load_capture(new))
+            changes = compare(before, after)
+            self.assertEqual(changes["groups_only_after"], ["exit/cinder_r9/ok"])
+            self.assertEqual(changes["groups_only_before"], [])
+            self.assertEqual(changes["groups"][key]["events_before"], 2)
+            self.assertEqual(changes["groups"][key]["events_after"], 1)
+            self.assertEqual(changes["groups"][key]["repeat_window_peaks"], {})
+            self.assertEqual(changes["groups"][key]["stages"]["rig"]["max_ms"], -1)
+            self.assertEqual(after["groups"][key]["repeat_window_peaks"], {"count": 0})
+
     def test_percentiles(self):
         self.assertEqual(stats([10,20,40])["p95_ms"],40)
         self.assertEqual(stats([10,20,40])["hitches"],1)

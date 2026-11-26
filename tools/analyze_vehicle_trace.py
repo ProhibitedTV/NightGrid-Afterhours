@@ -116,8 +116,19 @@ def summarize(rows, events):
         for e in group:
             for stage, value in e["stages"].items():
                 stages[stage].append(number(value))
+        # First observed is not necessarily a cold shader/asset cache.
+        ordered = sorted(group, key=lambda e: e["first_frame_index"])
+        first = ordered[0]
+        repeat = ordered[1:]
+        def window_peaks(subset):
+            return stats([max(r[0] for r in rows[e["first_frame_index"]:e["first_frame_index"]+WINDOW])
+                          for e in subset if e["complete_window"]])
         result["groups"][key] = {
             "events": len(group), "complete_windows": len(complete),
+            "first_observed_window_peak": window_peaks([first]),
+            "repeat_window_peaks": window_peaks(repeat),
+            "first_observed_cpu": stats([number(first["total_cpu_ms"])] if "total_cpu_ms" in first else []),
+            "repeat_cpu": stats([number(e["total_cpu_ms"]) for e in repeat if "total_cpu_ms" in e]),
             "cpu": stats(cpu), "following_window_peak": stats(peaks),
             "stages": {name: stats(values) for name, values in sorted(stages.items())},
             "worst_events": sorted([{
@@ -135,10 +146,18 @@ def compare(before, after):
         if key in before and key in after:
             out[key] = delta(before[key], after[key])
     out["groups"] = {}
+    out["groups_only_before"] = sorted(before["groups"].keys() - after["groups"].keys())
+    out["groups_only_after"] = sorted(after["groups"].keys() - before["groups"].keys())
     for key in sorted(before["groups"].keys() & after["groups"].keys()):
         a, b = before["groups"][key], after["groups"][key]
         out["groups"][key] = {"cpu": delta(a["cpu"], b["cpu"]),
-                              "following_window_peak": delta(a["following_window_peak"], b["following_window_peak"])}
+                              "following_window_peak": delta(a["following_window_peak"], b["following_window_peak"]),
+                              "repeat_window_peaks": delta(a["repeat_window_peaks"], b["repeat_window_peaks"]),
+                              "events_before": a["events"], "events_after": b["events"],
+                              "complete_windows_before": a["complete_windows"],
+                              "complete_windows_after": b["complete_windows"],
+                              "stages": {stage: delta(a["stages"][stage], b["stages"][stage])
+                                         for stage in sorted(a["stages"].keys() & b["stages"].keys())}}
     return out
 
 def delta(a, b):
@@ -153,7 +172,7 @@ def main():
     try:
         current = summarize(*load_capture(args.capture))
         output = {"capture": str(args.capture), "summary": current,
-                  "note": "Compare matching hardware, settings and cold/warm scenarios. Render intervals are not GPU time; overlapping event windows are not exclusive attribution."}
+                  "note": "Compare matching hardware, settings and cold/warm scenarios. Render intervals are not GPU time; overlapping event windows are not exclusive attribution. First observed does not prove cold-cache state."}
         if args.baseline:
             baseline = summarize(*load_capture(args.baseline))
             output["baseline"] = baseline
