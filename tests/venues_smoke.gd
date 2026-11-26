@@ -171,6 +171,8 @@ func _verify() -> void:
 	if acoustic.visible or acoustic.get_node("PerformerRig").is_processing():
 		_fail("Distant acoustic musician still active")
 		return
+	# Restore the night fixture: noodle stall open, Copper Cup closed.
+	venues.call("set_hour",23.0)
 	var player: CharacterBody3D = world.get("player")
 	var ui: PanelContainer = world.get("venue_panel")
 	world.set("cash", 100)
