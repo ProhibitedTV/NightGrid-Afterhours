@@ -31,5 +31,8 @@ extra=()
 size=1024
 if [[ "$mode" == smoke ]]; then extra=(--limit 1); size=128; fi
 bash tools/asset_refinement/run_refine.sh --bake-size "$size" "${extra[@]}" "$@"
+material_python="$ANUBIS_VISUAL_HOME/mesh/bin/python"
+[[ -x "$material_python" ]] || { echo "Existing mesh Python environment required for materials"; exit 2; }
+"$material_python" tools/asset_refinement/materials.py --raw "$ANUBIS_VISUAL_OUT" --output "$root/Materials/material-001" --size "$size" "${extra[@]}"
 python3 tools/asset_refinement/review_queue.py --raw "$ANUBIS_VISUAL_OUT" --refined "$root/refined-001" --size "$size" --output "$root/refined-001/review-$size.json"
 echo "Factory output is on the NAS. Review queue is not approval or a Git commit."
