@@ -143,6 +143,7 @@ def main():
     sfx_report = OUT / "sfx-results.json"
     if sfx_report.is_file() and not args.voice_only:
         report["sfx_last_report"] = production.load(sfx_report)
+        report["sfx_report_may_be_from_previous_attempt"] = sfx_status != "worker completed"
     temp = OUT / "summary.json.tmp"
     studio.write_json(temp, report)
     temp.replace(OUT / "summary.json")

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-"""One-model-at-a-time Stable Audio SFX worker; provisional candidates only."""
+"""One-model-at-a-time Stable Audio SFX worker; provisional playtest intake."""
 import argparse
-import hashlib
 import json
 import math
 from pathlib import Path
@@ -39,9 +38,39 @@ def metrics(path, spec):
 def verify_candidate(wav, meta, spec, pin):
     record = json.loads(meta.read_text(encoding="utf-8"))
     if (record.get("spec") != spec or record.get("sha256") != sfx.digest(wav)
-            or record.get("provenance") != pin or record.get("metrics") != metrics(wav,spec)):
+            or any(record.get("provenance", {}).get(k) != pin[k]
+                   for k in ("repo","revision","upstream","steps","cfg_scale"))
+            or record.get("metrics") != metrics(wav,spec)
+            or record.get("machine_qc_passed") is not True):
         raise ValueError("Candidate manifest, provenance, hash or PCM mismatch")
     return record
+
+
+def stage_candidate(wav, meta, spec, pin, destination=None):
+    """Copy exact verified bytes; never replace an existing different asset."""
+    destination = destination or sfx.DEST
+    record = verify_candidate(wav,meta,spec,pin)
+    record = dict(record, reviewed=False, playtest_accepted=True,
+                  rights_checked=True, review_note="Machine QC only; human listening pending")
+    destination.mkdir(parents=True, exist_ok=True)
+    final = destination / wav.name
+    sidecar = destination / meta.name
+    if final.exists() and sfx.digest(final) != record["sha256"]:
+        raise FileExistsError("Refusing to replace published SFX: " + str(final))
+    if sidecar.exists():
+        old = json.loads(sidecar.read_text(encoding="utf-8"))
+        if old == record and final.exists():
+            return
+        if old != record:
+            raise FileExistsError("Refusing to replace existing SFX metadata: " + str(sidecar))
+    if not final.exists():
+        with tempfile.TemporaryDirectory(dir=destination) as tmp:
+            staged = Path(tmp)/wav.name
+            shutil.copyfile(wav, staged)
+            if sfx.digest(staged) != record["sha256"]:
+                raise ValueError("SFX staging hash mismatch")
+            staged.replace(final)
+    write_json(sidecar,record)
 
 
 def main():
@@ -128,7 +157,8 @@ def main():
                     final.replace(wav)
                     write_json(meta,record)
                 print("SFX candidate:", ident, measured, flush=True)
-            results.append({"id":ident,"state":"candidate_ready","sha256":sfx.digest(wav)})
+            stage_candidate(wav,meta,spec,pin)
+            results.append({"id":ident,"state":"playtest_ready","sha256":sfx.digest(wav)})
         except Exception as exc:
             if model is None:
                 raise
@@ -137,8 +167,8 @@ def main():
             if args.device == "cuda":
                 torch.cuda.empty_cache()
         write_json(OUT/"sfx-results.json",{"results":results,"total":len(manifest["assets"]),
-                                          "note":"Candidates only; no human listening or release approval"})
-    return 0 if all(r["state"]=="candidate_ready" for r in results) else 2
+                                          "note":"Provisional playtest assets; no human listening or final release approval"})
+    return 0 if all(r["state"]=="playtest_ready" for r in results) else 2
 
 
 if __name__ == "__main__":
