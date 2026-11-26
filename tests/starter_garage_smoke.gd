@@ -40,8 +40,29 @@ func _verify() -> void:
 	world.set("heat",0.0)
 	await physics_frame
 	world.call("_toggle_interaction")
-	world.call("_venue_action",1)
 	var car: CharacterBody3D = cars[0]
+	var title_button:Button=world.get("venue_service_button")
+	var title_cash:int=world.get("cash")
+	world.set("heat",1.0)
+	world.call("_update_venue_panel")
+	world.call("_venue_action",1)
+	if not check(title_button.disabled and not ledger.owns_vehicle(Garage.IDS[0]) and world.get("cash")==title_cash,"wanted player cannot register starter title"):
+		return
+	world.set("heat",0.0)
+	car.set("occupied",true)
+	world.call("_update_venue_panel")
+	world.call("_venue_action",1)
+	if not check(title_button.disabled and title_button.text.contains("UNAVAILABLE") and not ledger.owns_vehicle(Garage.IDS[0]) and world.get("cash")==title_cash,"occupied starter title cannot be purchased or relocated"):
+		return
+	car.set("occupied",false)
+	world.call("_update_venue_panel")
+	if not check(not title_button.disabled,"eligible starter purchase re-enabled"):
+		return
+	world.call("_recover_garage_vehicle",garage,-1)
+	world.call("_recover_garage_vehicle",garage,Garage.IDS.size())
+	if not check(world.get("cash")==title_cash and not ledger.owns_vehicle(Garage.IDS[0]),"invalid bay indices cannot transact"):
+		return
+	world.call("_venue_action",1)
 	if not check(ledger.owns_vehicle(Garage.IDS[0]) and garage.call("parked_at",car.global_position,0) and world.get("cash")==200 and cars.size()==12,"paid starter title uses original car, no duplicate spawn"):
 		return
 	var button: Button = world.get("venue_service_button")
