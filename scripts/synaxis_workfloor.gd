@@ -35,6 +35,7 @@ var _groups: Dictionary={}
 var _materials: Dictionary={}
 var _chairs:=0
 var _desks:=0
+var _raceways:=0
 var _plants:=0
 var _parts:=0
 var _colliders:=0
@@ -104,7 +105,7 @@ func _ready() -> void:
 	set_occupied(false)
 
 func get_floor_stats() -> Dictionary:
-	return {"level":level,"department":DEPARTMENTS[level-1],"desks":_desks,"chairs":_chairs,"plants":_plants,"parts":_parts,"colliders":_colliders,"batches":get_children().filter(func(n):return n is MultiMeshInstance3D).size()}
+	return {"level":level,"department":DEPARTMENTS[level-1],"desks":_desks,"raceways":_raceways,"chairs":_chairs,"plants":_plants,"parts":_parts,"colliders":_colliders,"batches":get_children().filter(func(n):return n is MultiMeshInstance3D).size()}
 
 func set_story_stage(stage:int) -> void:
 	if is_instance_valid(_people):
@@ -214,6 +215,7 @@ func _station(at: Vector3,face: float,row: int,col: int,accent: String) -> void:
 	_part("oak",at+Vector3(0,.82,0),Vector3(1.72,.055,.78))
 	_part("oak_edge",at+Vector3(0,.81,face*.39),Vector3(1.72,.055,.018))
 	# Under-desk power raceway inside the existing desk collision envelope.
+	_raceways+=1
 	_part("steel",at+Vector3(-.18,.73,-face*.26),Vector3(1.05,.07,.11))
 	_part("black",at+Vector3(-.18,.695,-face*.26),Vector3(.88,.02,.07))
 	if (row+col+level)%3==0:
