@@ -32,16 +32,33 @@ After the debut, two different Blue Hour encore arrangements (20 beats, 17 corre
 Choose one of six permanent names at Copper Cup after recruitment. After the debut and before the showcase, Copper Cup's music desk offers an offline pressing service: 12 After the Last Shift tapes for $60, $12 per tape at paid bookings. Up to four tapes sell on each encore and eight at the showcase. Sales occur only when the booking settles, use available inventory, and respect wallet capacity. Stock, sales, batches and band name survive saves; no passive income or duplicated claims. Three-batch cap, with a maximum stock of 36. This reconciles the original Off Grid Records business mechanic through the existing music desk instead of adding an unverified location. Remaining stage animation/ensemble audio, standalone record shop and physical merchandise assets are not delivered here.
 
 ## Scene reputation
-Music, Community and Underground ranks are read-only projections of the existing ledger's actual completed activities and receipts. Music counts completed street/solo sets, encores, soundcheck, debut and showcase. Community and Underground reflect authored favor, technical and investigation receipts. Each score is capped at 100; purchases, cash and waiting do not raise it. The journal and phone Cred app display these alongside unchanged global Street Cred. No new save schema, discounts, unlock rules or parallel XP wallet.
+Music, Community and Underground ranks are read-only projections of the existing ledger's actual completed activities and receipts. Music counts completed street/solo sets, encores, soundcheck, debut and showcase. Community includes authored favors, the garden trail, and capped taxi/freight contributions; Underground reflects relevant technical and investigation receipts. Each score is capped at 100; purchases, cash and waiting do not raise it. The journal and phone Cred app display these alongside unchanged global Street Cred. No new save schema, discounts, unlock rules or parallel XP wallet.
 
 ## Current Workboard and music navigation
 
 Workboard lists available local and civic contracts, technical consulting, the current Paper City lead, rotating taxi fares and freight jobs, and the Southworks Circuit and Brickwater Loop. Completed one-time jobs disappear; active work routes toward the current destination. Taxi and freight require physical pickup/delivery in an eligible vehicle. Racing records and first-prize receipts persist independently; the reference pace and responsive non-contact opponent are separate systems.
 
-Music shows instrument progress, current contacts, street and live set counts, and merchandise for a named band. It routes to Copper Cup, Blue Hour after soundcheck, Static Room for the music contact when eligible, Dock Nine when Milo can be recruited, and Static Room when the showcase becomes available. The world adapter rechecks career eligibility on selection. No remote recruitment, purchase or performance is performed by these actions.
+Music shows instrument progress, current contacts, street and live set counts, and merchandise for a named band. It routes to Copper Cup, Blue Hour after soundcheck, Static Room for the music contact when eligible, Blue Hour while the demo delivery is active, Dock Nine when Milo can be recruited, and Static Room when the showcase becomes available. The world adapter rechecks career eligibility on selection. No remote recruitment, purchase or performance is performed by these actions.
 
 Cred shows the three capped scores with ranks: Unknown (0), New face (1–19), Recognized (20–49), Respected (50–84), Scene icon (85–100). These are informational projections, not new purchase discounts or independent balances.
 
 ## Acceptance
 
 Run `godot --headless --path . --script res://tests/morrow_phone_core_smoke.gd` and full preflight/Windows export. On the exact tested build, inspect keyboard P and pause-menu controller access, launcher/app focus, readable rows at 720p and 1080p, route selection, rejection of unavailable actions, and restoration of input when closing. Verify carried-order guards, both duty states, physical music bookings, all three reputation rows, and unchanged wallet while browsing. Record actual screenshots and pass/fail results; automated tests alone do not establish native layout quality.
+
+## Native music presentation acceptance (merged #399, #403, #405, #406)
+
+These changes add a reversible skeletal performance layer, a physical sampler resident at Blue Hour, isolated solo/trio equipment previews and direct rhythm feedback. The ambient musician is not the player's ensemble; the preview shows equipment, not a live concert. Do not infer graphical quality from headless success.
+
+Record the full source SHA from BUILD-INFO.txt, resolution, renderer, input device and graphics preset. On a new or backed-up save:
+
+| Test | Pass condition |
+| --- | --- |
+| Blue Hour 19:00–04:00 | One visible sampler performer near the venue, correct feet/stand/pad alignment, no intersecting patrons or pavement. Leave beyond 24m, return, repeat after closing; no persistent animation or duplicate performer. |
+| Solo session | PocketBeat preview readable at 720p and 1080p; next lane, beat window, required hits, ON BEAT / WRONG PAD / MISSED and final outcome readable without clipping. |
+| Trio rehearsal and paid bookings | Bass/synth/sampler art visible and proportionate in the preview; menu focus, scrolling and keyboard/controller input work. No duplicate viewport after repeated cancellation/reopening. |
+| Audio | Original intro stops before playable timing window; pad cues audible and adjustable; no stuck loop on cancellation or return to the world. |
+| Settlement | Failed/cancelled sets cannot pay or advance career; successful valid claim once only; verify cash, ledger and merchandise after save/reload. |
+| Navigation | Before soundcheck, route to Static Room; active delivery routes to Blue Hour; completed demo removes the contact action. Verify Milo and showcase availability against actual progress. |
+
+Use F10 for real world captures and paired JSON, F7 for issue markers and F8 for comparable native frame traces. For the paused UI, capture the actual screen separately if F10 suppresses overlays; include source SHA and resolution. Report native results in #398 and #362. Keep visual alignment, audio mix, controller feel and 60 FPS target unverified until observed. Pending #407/#408 are not acceptance requirements for this baseline.
