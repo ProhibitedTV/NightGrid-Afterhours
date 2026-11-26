@@ -61,5 +61,24 @@ func _check() -> void:
 	if twilight <= midnight or twilight >= noon:
 		_fail("Dusk should transition between night and noon")
 		return
+	# Exercise the real world update with a driving actor, not just the rider model.
+	var taxi = preload("res://scripts/taxi_job.gd")
+	var point: Vector3 = taxi.waiting_point(taxi.offer(0))
+	var driver_car := CharacterBody3D.new()
+	world.add_child(driver_car)
+	driver_car.global_position = point + Vector3(0,0,-8)
+	world.set("current_car",driver_car)
+	world.call("_update_taxi_waiting_rider",.25)
+	var rider: Node3D = world.get("_taxi_rider")
+	if world.call("phone_available") or not is_instance_valid(rider) or not rider.visible or rider.global_position.distance_to(point)>.01:
+		_fail("Taxi rider must remain visible to a nearby driver with phone unavailable")
+		return
+	driver_car.global_position = point + Vector3(0,0,-60)
+	world.call("_update_taxi_waiting_rider",.25)
+	if rider.visible:
+		_fail("Taxi waiting rider must respect the distance budget")
+		return
+	world.set("current_car",null)
+	driver_car.queue_free()
 	print("WORLD_SYSTEMS PASS: ", stats, " / landmarks: ", anchors.size())
 	quit(0)
