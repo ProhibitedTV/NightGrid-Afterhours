@@ -5,6 +5,8 @@ const SOUNDCHECK="soundcheck_pass"
 const MUSIC_REPUTATION=100
 const PocketBeat=preload("res://assets/instruments/pocketbeat_m3.glb")
 var _sampler_display:Node3D
+const AmbientGuitar=preload("res://scripts/ambient_guitar_performer.gd")
+var _lantern_guitar:Node3D
 const AmbientSynth=preload("res://scripts/ambient_synth_performer.gd")
 var _static_room_performer:Node3D
 const MusicVisual=preload("res://scripts/pedestrian_rig_visual.gd")
@@ -269,7 +271,7 @@ func _build_venue(venue: Dictionary) -> void:
 	_box(front, Vector3(-3.75, 0.24, -1.55), Vector3(0.65, 0.14, 0.64), Color("6d7784"))
 	_box(front, Vector3(3.7, 0.24, -1.55), Vector3(0.64, 0.14, 0.65), Color("6d7784"))
 	var patrons: Array[Node3D] = []
-	for i in range(2 if kind != "CLUB" else (3 if venue_id in ["blue_hour","static_room"] else 4)):
+	for i in range(1 if venue_id=="lantern_cup" else 0,2 if kind != "CLUB" else (3 if venue_id in ["blue_hour","static_room"] else 4)):
 		var x := -3.2 + float(i) * 1.3
 		var patron := _build_patron(front, Vector3(x, 0.3, -2.1), kind, i)
 		patrons.append(patron)
@@ -465,6 +467,7 @@ func _night_factor() -> float:
 func _refresh() -> void:
 	_refresh_blue_hour_performer()
 	_refresh_static_room_performer()
+	_refresh_lantern_guitar()
 	if is_instance_valid(_sampler_display):
 		_sampler_display.visible=is_open("copper_cup") and venue_position("copper_cup").distance_squared_to(_focus)<35.0*35.0
 	if is_instance_valid(_string_display):
@@ -596,3 +599,16 @@ func set_band_promotion(name:String,debuted:bool,showcase:bool,headlined:bool,re
 	for flyer:Label3D in _band_flyers.values():
 		flyer.text=text
 		flyer.visible=not text.is_empty()
+
+## Use the former outer patron position, never the central entrance.
+func _refresh_lantern_guitar()->void:
+	var active:=is_open("lantern_cup") and _hour>=9.0 and _hour<21.0 and venue_position("lantern_cup").distance_squared_to(_focus)<24.0*24.0
+	if not is_instance_valid(_lantern_guitar):
+		if not active:
+			return
+		_lantern_guitar=AmbientGuitar.new()
+		_lantern_guitar.name="AmbientAcousticPerformer"
+		_lantern_guitar.position=Vector3(-3.2,.3,-2.1)
+		var front:Node3D=_nodes["lantern_cup"]
+		front.add_child(_lantern_guitar)
+	_lantern_guitar.call("set_active",active)
