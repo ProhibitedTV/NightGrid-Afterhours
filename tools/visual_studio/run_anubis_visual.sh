@@ -19,8 +19,10 @@ command -v python3 >/dev/null
 command -v git >/dev/null
 command -v nvidia-smi >/dev/null || { echo "WSL NVIDIA CUDA driver not visible"; exit 2; }
 nvidia-smi
+python3 -c 'import sys; assert sys.version_info >= (3,11), "Python 3.11+ required"'
 # Separate dependency stacks; use no system-wide installation.
 if [[ ! -f "$ANUBIS_VISUAL_HOME/setup-v1.ok" ]]; then
+  python3 -c 'import shutil,os; assert shutil.disk_usage(os.environ["ANUBIS_VISUAL_HOME"]).free >= 25*1024**3, "At least 25 GiB free required for initial setup"'
   for env in image mesh; do
     python3 -m venv "$ANUBIS_VISUAL_HOME/$env"
     "$ANUBIS_VISUAL_HOME/$env/bin/python" -m pip install --upgrade pip

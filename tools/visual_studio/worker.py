@@ -126,7 +126,7 @@ def main():
         if stage=="mesh" and (job["kind"]!="prop" or not verified(folder/"concept.png",folder/"image.json",job)):
             continue
         if verified(folder/filename,folder/meta_name,job):
-            if stage=="image" or json.loads((folder/meta_name).read_text())["input_sha256"]==digest(folder/"concept.png"):
+            if stage=="image" or json.loads((folder/meta_name).read_text()).get("input_sha256")==digest(folder/"concept.png"):
                 continue
         selected.append(job)
     if not selected:
@@ -142,7 +142,7 @@ def main():
         try:
             torch.cuda.reset_peak_memory_stats()
             info=generate(job,folder)
-            write_json(folder/meta_name,dict(info,job=job,sha256=digest(folder/filename),status="unapproved",seconds=round(time.monotonic()-started,2),peak_allocated_bytes=torch.cuda.max_memory_allocated(),torch=torch.__version__,device=torch.cuda.get_device_name(0)))
+            write_json(folder/meta_name,dict(info,job=job,sha256=digest(folder/filename),status="unapproved",seconds=round(time.monotonic()-started,2),peak_allocated_bytes=torch.cuda.max_memory_allocated(),torch=torch.__version__,device=torch.cuda.get_device_name(0),environment_freeze_sha256=digest(HOME/(stage+".freeze.txt"))))
         except Exception:
             failures+=1
             with (output/(stage+"-errors.log")).open("a",encoding="utf-8") as f:

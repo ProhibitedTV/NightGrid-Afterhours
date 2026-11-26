@@ -48,7 +48,7 @@ def verified(path, meta, job):
     try:
         info = json.loads(meta.read_text())
         return path.is_file() and path.stat().st_size > 0 and info["job"] == job and info["sha256"] == digest(path)
-    except (OSError, ValueError, KeyError):
+    except (OSError, ValueError, KeyError, TypeError):
         return False
 
 def inventory():
@@ -58,7 +58,7 @@ def inventory():
         image = verified(folder / "concept.png", folder / "image.json", job)
         mesh = image and verified(folder / "mesh.glb", folder / "mesh.json", job)
         if mesh:
-            mesh = json.loads((folder / "mesh.json").read_text())["input_sha256"] == digest(folder / "concept.png")
+            mesh = json.loads((folder / "mesh.json").read_text()).get("input_sha256") == digest(folder / "concept.png")
         rows.append(dict(job, image_ready=image, mesh_ready=mesh, status="candidate-only" if image and (mesh or job["kind"]=="material") else "pending"))
     return rows
 
