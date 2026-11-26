@@ -7,6 +7,7 @@ on:
       - 'tools/voice/**'
       - 'tools/audio/**'
       - 'assets/audio/voiced/**'
+      - 'assets/audio/generated/synaxis/**'
       - '.github/workflows/voice-studio.yml'
   push:
     branches: [main]
@@ -16,6 +17,7 @@ on:
       - 'tools/voice/**'
       - 'tools/audio/**'
       - 'assets/audio/voiced/**'
+      - 'assets/audio/generated/synaxis/**'
       - '.github/workflows/voice-studio.yml'
   workflow_dispatch:
 permissions:
@@ -38,3 +40,4 @@ jobs:
       - run: python tools/voice/chapter.py validate --source scripts/opening_story.gd
       - run: python tools/voice/chapter.py status
       - run: python tools/voice/production.py verify-library --manifest tools/voice/synaxis_chapter.json
+      - run: python tools/audio/generate_sfx.py verify-staged

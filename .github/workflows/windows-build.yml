@@ -67,6 +67,13 @@ jobs:
           count="${result##* }"
           [[ "$count" =~ ^[0-9]+$ ]]
           godot --headless --path . --script res://tests/voiced_asset_bank_smoke.gd -- "$count"
+      - name: Verify staged SFX provenance and imported playback contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          bank="$(python3 tools/audio/generate_sfx.py verify-staged)"
+          echo "$bank"
+          godot --headless --path . --script res://tests/generated_sfx_bank_smoke.gd -- "$bank"
       - name: Export Windows executable
         shell: bash
         run: |
