@@ -48,6 +48,13 @@ func counter_reachable(at: Vector3) -> bool:
 func exit_reachable(at: Vector3) -> bool:
 	return is_inside() and at.distance_to(EXIT_POINT) <= EXIT_RADIUS
 
+func refresh_arcade_scores(scores: Dictionary) -> void:
+	if active_id != "insert_coin" or _room == null:
+		return
+	var kit := _room.get_node_or_null("ArcadeRoom")
+	if kit != null:
+		kit.call("refresh_scores",scores)
+
 func arcade_cabinet_node(id: String) -> Node3D:
 	if active_id != "insert_coin" or _room == null:
 		return null
