@@ -52,6 +52,9 @@ func _verify() -> void:
 	if str(radio.call("_group", "interior:cafe:lantern_cup")) != "cafe":
 		_fail("Interior programming is broken")
 		return
+	if script.menu_music_factor("blue_hour_set")!=0.0 or script.menu_music_factor("pause")!=0.44 or script.menu_music_factor("hidden")!=1.0 or script.menu_music_factor("title")!=1.0:
+		_fail("Rhythm cues must own their mix without muting ordinary menu music")
+		return
 	var available: int = radio.call("available_tracks")
 	if available != tracks.size():
 		_fail("Incomplete audio pack: expected twenty original Ogg assets, found %d" % available)

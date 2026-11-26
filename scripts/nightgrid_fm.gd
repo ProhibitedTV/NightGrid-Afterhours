@@ -355,7 +355,7 @@ func _process(delta: float) -> void:
 	if not context.is_empty() and _active_deck_context == context and _front != null and _front.playing and _deck_request.is_empty():
 		if _front.stream.get_length() - _front.get_playback_position() <= FADE_SECONDS + 0.35:
 			_cue(context)
-	var paused_factor := 0.44 if _menu_screen() not in ["hidden", "title"] else 1.0
+	var paused_factor := menu_music_factor(_menu_screen())
 	var speech_factor := 0.58 if dialogue_active else 1.0
 	_music_gain = move_toward(_music_gain, music_volume * paused_factor * speech_factor, delta * 2.0)
 	_update_venue(delta)
@@ -369,3 +369,10 @@ func _process(delta: float) -> void:
 		if gain <= SILENCE and target == 0.0:
 			deck.stop()
 			deck.stream = null
+
+## The rhythm menu owns its own intro and pad cues. Duck only the soundtrack
+## director, not the shared music bus, so those cues stay audible.
+static func menu_music_factor(screen:String)->float:
+	if screen=="blue_hour_set":
+		return 0.0
+	return 1.0 if screen in ["hidden","title"] else 0.44
