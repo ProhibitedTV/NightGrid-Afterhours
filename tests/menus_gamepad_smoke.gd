@@ -472,6 +472,21 @@ func _verify() -> void:
 	if not is_instance_valid(finish) or finish.is_processing():
 		_fail("Office finish must be a static authored environment")
 		return
+	var stone:=office.get_node("Floor") as MeshInstance3D
+	var stone_mat:=stone.material_override as StandardMaterial3D
+	if stone_mat.albedo_texture==null or not stone_mat.normal_enabled or stone_mat.normal_texture==null or not stone_mat.uv1_triplanar:
+		_fail("Ground floor must retain mapped stone finish at world scale")
+		return
+	var downlights:=0
+	var shadows:=0
+	for child in office.get_children():
+		if child is SpotLight3D:
+			downlights+=1
+			if child.shadow_enabled:
+				shadows+=1
+	if downlights!=8 or shadows!=4:
+		_fail("Office light pools must preserve the bounded eight-fixture/four-shadow budget")
+		return
 	var detail_stats: Dictionary = finish.call("get_detail_stats")
 	if int(detail_stats["parts"]) < 500 or int(detail_stats["batches"]) > 75:
 		_fail("Office detail must use bounded static material batches")
