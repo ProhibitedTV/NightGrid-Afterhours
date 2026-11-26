@@ -600,6 +600,12 @@ func _verify() -> void:
 	if menu.call("is_open") or int(office.call("objective_stage",0))!=-2:
 		_fail("Cannot interact with office workstation remotely")
 		return
+	var ground_chairs:=finish.get_node("AuthoredTaskChairs") as MultiMeshInstance3D
+	for deck in office.get("_workfloors"):
+		var chairs:=deck.get_node_or_null("AuthoredTaskChairs") as MultiMeshInstance3D
+		if chairs==null or chairs.multimesh.mesh!=ground_chairs.multimesh.mesh or chairs.multimesh.instance_count<28 or chairs.visible:
+			_fail("Upper-floor chair batches must share one imported mesh and stay hidden outside the occupied floor")
+			return
 	var office_decks: Array=office.call("workfloor_stats")
 	var desk_total:=0
 	if office_decks.size()!=4:
@@ -633,6 +639,10 @@ func _verify() -> void:
 			_fail("Lift travels to actual upper floor elevations")
 			return
 		if level<=4:
+			var chair_batch:MultiMeshInstance3D=office.get("_workfloors")[level-1].get_node("AuthoredTaskChairs")
+			if not chair_batch.visible:
+				_fail("Occupied workfloor must display its chair batch")
+				return
 			var lift_arrival:Vector3=player.global_position
 			var before_stage:int=menu.get("_opening_stage")
 			player.global_position=office.to_global(Vector3(-6,level*3.65+1.15,-7.25))

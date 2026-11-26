@@ -111,6 +111,9 @@ func set_story_stage(stage:int) -> void:
 
 func set_occupied(active: bool) -> void:
 	GeneratedAudio.activate(_office_ambience,active)
+	var chairs:=get_node_or_null("AuthoredTaskChairs") as MultiMeshInstance3D
+	if chairs!=null:
+		chairs.visible=active
 	if is_instance_valid(_services):
 		_services.call("set_active",active)
 	for lamp in _lights:
