@@ -58,4 +58,10 @@ with tempfile.TemporaryDirectory() as tmp:
         result = load(report)
         assert result["passed"] == 1 and result["failed"] == 0
         assert len(result["rows"][0]["files"]) == 4
-    print("Blender fixture refinement, texture bake and resume passed")
+    from previews import run as preview_run, valid as preview_valid
+    previews = root/"previews"
+    assert preview_run(src,out,previews,128,128,4,1)==0
+    preview_row=load(previews/"review-128.json")["rows"][0]
+    preview_folder=previews/folder.name/preview_row["preview"]
+    assert preview_valid(preview_folder,load(preview_folder/"preview.json")["settings"])
+    print("Blender fixture refinement, texture bake, preview and resume passed")

@@ -40,4 +40,14 @@ if [[ -n "${ANUBIS_GODOT:-}" ]]; then
 else
   echo "Godot import gate pending: set ANUBIS_GODOT to an absolute Linux Godot 4.7.2 executable."
 fi
+if [[ "${ANUBIS_PREVIEWS:-0}" == 1 ]]; then
+  preview_size=256
+  samples=8
+  if [[ "$mode" == smoke ]]; then preview_size=128; samples=4; fi
+  if [[ "$(command -v blender)" == /usr/bin/blender ]]; then
+    export PYTHONPATH=/usr/lib/python3/dist-packages
+  fi
+  blender -b -t 2 --python-use-system-env --python-exit-code 1 --python tools/asset_refinement/previews.py -- --raw "$ANUBIS_VISUAL_OUT" --refined "$root/refined-001" --output "$root/Previews" --bake-size "$size" --size "$preview_size" --samples "$samples" "${extra[@]}"
+  env -u PYTHONPATH "$material_python" tools/asset_refinement/contact_sheet.py --raw "$ANUBIS_VISUAL_OUT" --previews "$root/Previews" --size "$size"
+fi
 echo "Factory output is on the NAS. Review queue is not approval or a Git commit."
