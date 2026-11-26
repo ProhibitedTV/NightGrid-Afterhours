@@ -3452,6 +3452,8 @@ func _garage_vehicle(id: String) -> CharacterBody3D:
 func _recover_garage_vehicle(garage: Node3D,index: int) -> void:
 	# Explicit recovery service only. Never spawn another vehicle or move an
 	# occupied one; test clearance before changing money or ownership.
+	if index < 0 or index >= StarterGarage.IDS.size() or not is_instance_valid(garage) or current_car != null or current_transit != null or not progression.owns_home():
+		return
 	var id: String = StarterGarage.IDS[index]
 	var owned := progression.owns_vehicle(id)
 	if not owned and index != 0:
@@ -4223,9 +4225,12 @@ func _update_venue_panel() -> void:
 			var owned := progression.owns_vehicle(id)
 			buttons[i].show()
 			var label := "BUY KESTREL TITLE $%d" % RoadCars.title_price(id) if i==0 else "CINDER TITLE REQUIRED"
-			var disabled := i!=0 or cash<RoadCars.title_price(id)
+			var disabled := i!=0 or cash<RoadCars.title_price(id) or heat>.01
+			var car := _garage_vehicle(id)
+			if not owned and i==0 and (not is_instance_valid(car) or car.get("occupied") or not is_finite(float(car.get("speed"))) or absf(float(car.get("speed")))>.5):
+				label = "KESTREL / UNAVAILABLE"
+				disabled = true
 			if owned:
-				var car := _garage_vehicle(id)
 				var name := str(RoadCars.TITLES[id]["name"])
 				if not is_instance_valid(car) or car.get("occupied") or not is_finite(float(car.get("speed"))) or absf(float(car.get("speed")))>.5:
 					label = name+" / UNAVAILABLE"
@@ -4488,7 +4493,7 @@ func _venue_action(option: int) -> void:
 		return
 	if _garage_panel:
 		var garage: Node3D = city_details.call("starter_garage",player.global_position)
-		if not venue_panel.visible or not is_instance_valid(garage) or not garage.call("desk_reachable",player.global_position) or not progression.owns_home():
+		if not venue_panel.visible or not is_instance_valid(garage) or not garage.call("desk_reachable",player.global_position) or not progression.owns_home() or current_car != null or current_transit != null:
 			_close_venue()
 			return
 		if option in [1,2]:
