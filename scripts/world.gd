@@ -892,6 +892,9 @@ func _phone_context() -> Dictionary:
 		"music_contact":_music_contact_status(), "music_sets":progression.street_activity_runs("busking"),
 		"live_sets":progression.street_activity_runs("live_gig"), "music_unlocked":progression.has_receipt("venue:soundcheck_pass"),
 		"music_contact_available":progression.street_cred()>=100,
+		"music_recruit_milo":progression.band_recruit_available("milo"),
+		"music_showcase":progression.band_showcase_available(),
+		"music_merch":progression.band_merch_summary() if not progression.band_name.is_empty() else "",
 		"rail_available":rail_point.is_finite(), "bus_available":bus_point.is_finite(),
 		"rail_name":"%d m away (direct)" % roundi(origin.distance_to(rail_point)) if rail_point.is_finite() else "Unavailable",
 		"bus_name":"%d m away (direct)" % roundi(origin.distance_to(bus_point)) if bus_point.is_finite() else "Unavailable"
@@ -953,6 +956,13 @@ func _phone_route(action: String) -> void:
 					return
 				var site := "copper_cup" if action == "phone_route_music_shop" else ("blue_hour" if action == "phone_route_music_gig" else "static_room")
 				var p: Vector3 = venue_system.call("venue_position",site)
+				destination = Vector2(p.x,p.z)
+		"phone_route_music_milo", "phone_route_music_showcase":
+			if app == "music":
+				var is_milo := action == "phone_route_music_milo"
+				if (is_milo and not progression.band_recruit_available("milo")) or (not is_milo and not progression.band_showcase_available()):
+					return
+				var p: Vector3 = venue_system.call("venue_position","dock_nine" if is_milo else "static_room")
 				destination = Vector2(p.x,p.z)
 		"phone_route_rail":
 			if app == "transit":
