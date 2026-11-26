@@ -4514,7 +4514,7 @@ func _venue_action(option: int) -> void:
 		return
 	if _home_panel:
 		var lot: Node3D = city_details.call("nearby_walk_in",player.global_position)
-		if not venue_panel.visible or not is_instance_valid(lot) or lot.call("home_action",player.global_position) != "storage" or not progression.owns_home():
+		if not venue_panel.visible or current_car != null or current_transit != null or not is_instance_valid(lot) or lot.get("home_id") != StarterHome.ID or lot.call("home_action",player.global_position) != "storage" or not progression.owns_home():
 			_close_venue()
 			return
 		if _storage_upgrade_quote:
