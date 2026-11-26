@@ -24,6 +24,8 @@ var _driving_trial := DrivingTrial.new()
 var _trial_beacon: Node3D
 var _trial_beacon_label: Label3D
 var _trial_ghost: Node3D
+const CircuitRival=preload("res://scripts/circuit_rival.gd")
+var _circuit_rival:=CircuitRival.new()
 const HorizonTrail=preload("res://scripts/horizon_commons_garden.gd")
 var _garden_trail_mask:=0
 const RoadRestrictions = preload("res://scripts/road_restrictions.gd")
@@ -1517,7 +1519,9 @@ func _toggle_driving_trial()->void:
 		return
 	var at:=Vector2(current_car.global_position.x,current_car.global_position.z)
 	if _driving_trial.start(at,current_car.get_instance_id(),float(current_car.get("condition")),float(current_car.get("speed"))):
-		_notify("%s / %d checkpoints. Ghost pace %.0fs. First finish $%d."%[DrivingTrial.name_for(_driving_trial.course_id),_driving_trial.gates().size(),_driving_trial.pace_time(),_driving_trial.reward()])
+		var origin:=DrivingTrial.BRICK_START if _driving_trial.course_id==DrivingTrial.BRICK else DrivingTrial.START
+		_circuit_rival.configure(origin,_driving_trial.gates())
+		_notify("%s / %d checkpoints. Rival on course. First finish $%d."%[DrivingTrial.name_for(_driving_trial.course_id),_driving_trial.gates().size(),_driving_trial.reward()])
 	else:
 		_notify("Driving challenge / stop at the start with a roadworthy car.")
 
@@ -1529,6 +1533,7 @@ func _update_driving_trial(delta:float)->void:
 		_notify(DrivingTrial.name_for(_driving_trial.course_id)+" abandoned.")
 		return
 	var at:=Vector2(current_car.global_position.x,current_car.global_position.z)
+	_tick_circuit_rival(delta)
 	var outcome:=_driving_trial.tick(delta,at,current_car.get_instance_id(),float(current_car.get("condition")))
 	if outcome=="GATE":
 		_notify("Checkpoint %d / %d • pace %+.1fs"%[_driving_trial.index,_driving_trial.gates().size(),_driving_trial.pace_split()])
@@ -1538,7 +1543,9 @@ func _update_driving_trial(delta:float)->void:
 		var paid:=progression.credit_once(_driving_trial.receipt(),_driving_trial.reward())
 		var best:=progression.brickwater_best_ms if course==DrivingTrial.BRICK else progression.circuit_best_ms
 		_notify("%s / %.2fs%s%s%s"%[DrivingTrial.name_for(course),_driving_trial.elapsed," / PERSONAL BEST" if record else ""," / PACE BEATEN" if _driving_trial.elapsed<_driving_trial.pace_time() else ""," +$%d"%_driving_trial.reward() if paid else " / practice finish"])
-		_log_playtest("driving_trial_finish",{"course":course,"seconds":_driving_trial.elapsed,"paid":paid,"personal_best":record,"best_ms":best,"pace_beaten":_driving_trial.elapsed<_driving_trial.pace_time()})
+		var won:=not _circuit_rival.finished or _driving_trial.elapsed<=_circuit_rival.elapsed
+		_notify("RIVAL / %s"%("FIRST TO FINISH" if won else "RIVAL FINISHED FIRST"))
+		_log_playtest("driving_trial_finish",{"course":course,"seconds":_driving_trial.elapsed,"paid":paid,"personal_best":record,"best_ms":best,"pace_beaten":_driving_trial.elapsed<_driving_trial.pace_time(),"rival_finished":_circuit_rival.finished,"rival_seconds":_circuit_rival.elapsed,"rival_beaten":won})
 	elif not outcome.is_empty():
 		_notify(DrivingTrial.name_for(_driving_trial.course_id)+" / "+outcome)
 
@@ -4743,24 +4750,15 @@ func _sync_trial_beacon()->void:
 	_trial_beacon.visible=is_instance_valid(player) and not is_instance_valid(_opening_office) and not interiors.call("is_inside") and _actor().global_position.distance_squared_to(at)<120.0*120.0
 
 func _create_trial_ghost()->void:
-	# Use the existing authored Cinder coachwork in its static display mode.
-	# No collision, drivetrain, lights, sound or autonomous simulation.
+	# Static Cinder coachwork; one visual opponent, no collision body.
 	_trial_ghost=Node3D.new()
-	_trial_ghost.name="CircuitPaceGhost"
+	_trial_ghost.name="CircuitRoadRival"
 	var visual:=RoadCarVisual.new()
 	visual.configure_founder_display()
 	_trial_ghost.add_child(visual)
 	add_child(_trial_ghost)
-	var material:=StandardMaterial3D.new()
-	material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.albedo_color=Color(.27,.83,1.0,.24)
-	for node in visual.find_children("*","MeshInstance3D",true,false):
-		var mesh:=node as MeshInstance3D
-		mesh.material_override=material
-		mesh.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var label:=Label3D.new()
-	label.text="PACE GHOST"
+	label.text="RIVAL / NON-CONTACT"
 	label.position.y=2.0
 	label.billboard=BaseMaterial3D.BILLBOARD_ENABLED
 	label.font_size=28
@@ -4768,16 +4766,37 @@ func _create_trial_ghost()->void:
 	label.modulate=Color("91eaff")
 	_trial_ghost.add_child(label)
 
+func _tick_circuit_rival(delta:float)->void:
+	if not _circuit_rival.active:
+		return
+	var at:=_circuit_rival.position
+	var forward:=_circuit_rival.heading
+	var right:=Vector2(-forward.y,forward.x)
+	var distance:=4.5+_circuit_rival.speed*.55
+	var space:=get_world_3d().direct_space_state
+	var blocked:=false
+	# Three forward samples cover the width of the visual coachwork.
+	for lane in [-.8,0.0,.8]:
+		var p:=at+right*float(lane)
+		var origin:=Vector3(p.x,.7,p.y)
+		var target:=origin+Vector3(forward.x,0,forward.y)*distance
+		var ray:=PhysicsRayQueryParameters3D.create(origin,target,1)
+		if not space.intersect_ray(ray).is_empty():
+			blocked=true
+			break
+	_circuit_rival.tick(delta,blocked)
+
 func _sync_trial_ghost()->void:
-	if not _driving_trial.active or _driving_trial.elapsed>=_driving_trial.pace_time():
+	if not _driving_trial.active or not _circuit_rival.active:
+		if not _driving_trial.active:
+			_circuit_rival.stop()
 		if is_instance_valid(_trial_ghost):
 			_trial_ghost.hide()
 		return
 	if not is_instance_valid(_trial_ghost):
 		_create_trial_ghost()
-	var pose:=_driving_trial.pace_pose(_driving_trial.elapsed)
-	var at:Vector2=pose["position"]
-	var forward:Vector2=pose["heading"]
+	var at:=_circuit_rival.position
+	var forward:=_circuit_rival.heading
 	_trial_ghost.position=Vector3(at.x,.825,at.y)
 	_trial_ghost.rotation.y=atan2(-forward.x,-forward.y)
 	_trial_ghost.visible=_actor().global_position.distance_squared_to(_trial_ghost.global_position)<100.0*100.0

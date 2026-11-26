@@ -199,6 +199,9 @@ jobs:
       - name: Validate deterministic road routes, intersection turns and off-road access
         timeout-minutes: 2
         run: timeout 75s godot --headless --path . --script res://tests/street_route_smoke.gd
+      - name: Validate bounded responsive circuit rival
+        timeout-minutes: 2
+        run: timeout 75s godot --headless --path . --script res://tests/circuit_rival_smoke.gd
       - name: Validate bounded civic street restrictions and alternate routing
         timeout-minutes: 2
         run: |
