@@ -148,6 +148,29 @@ func _verify() -> void:
 	if synth.visible or synth.get_node("PerformerRig").is_processing():
 		_fail("Distant synth performer still active")
 		return
+	venues.call("set_focus",venues.call("venue_position","lantern_cup"))
+	venues.call("set_hour",12.0)
+	var acoustic:Node3D=venues.get_node_or_null("lantern_cup/AmbientAcousticPerformer")
+	if acoustic==null or not acoustic.visible or not acoustic.has_node("PerformerRig/acoustic_guitar") or acoustic.get_node("PerformerRig").get("_music_role")!="guitar":
+		_fail("Lantern Cup acoustic musician missing")
+		return
+	venues.call("set_hour",8.0)
+	if acoustic.visible or acoustic.get_node("PerformerRig").is_processing():
+		_fail("Acoustic musician active before residency")
+		return
+	venues.call("set_hour",21.0)
+	if acoustic.visible or acoustic.get_node("PerformerRig").is_processing():
+		_fail("Acoustic musician active after residency")
+		return
+	venues.call("set_hour",12.0)
+	if not acoustic.visible or acoustic!=venues.get_node_or_null("lantern_cup/AmbientAcousticPerformer"):
+		_fail("Acoustic musician not reused")
+		return
+	venues.call("set_focus",Vector3(9999,0,9999))
+	venues.call("set_hour",12.0)
+	if acoustic.visible or acoustic.get_node("PerformerRig").is_processing():
+		_fail("Distant acoustic musician still active")
+		return
 	var player: CharacterBody3D = world.get("player")
 	var ui: PanelContainer = world.get("venue_panel")
 	world.set("cash", 100)
