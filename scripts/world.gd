@@ -884,7 +884,7 @@ func _phone_context() -> Dictionary:
 		"cash":cash, "bitcoin_sats":progression.bitcoin_sats, "story":story_mission.journal(),
 		"home_owned":progression.owns_home(), "home_access":progression.has_receipt(StarterHome.ACCESS_RECEIPT),
 		"deposit":StarterHome.move_in_price(), "notice":Opening.app_notice(deliveries),
-		"global_street_cred":progression.street_cred_summary(), "cred_sources":progression.street_cred_sources(), "scene_reputation":SceneReputation.summary(SceneReputation.scores(progression)),
+		"global_street_cred":progression.street_cred_summary(), "cred_sources":progression.street_cred_sources(), "scene_scores":SceneReputation.scores(progression),
 		"workboard":_phone_workboard(), "circuit_completed":progression.has_receipt(DrivingTrial.RECEIPT), "circuit_best_ms":progression.circuit_best_ms, "brickwater_completed":progression.has_receipt(DrivingTrial.BRICK_RECEIPT), "brickwater_best_ms":progression.brickwater_best_ms, "instrument_status":progression.instrument_summary(),
 		"music_contact":_music_contact_status(), "music_sets":progression.street_activity_runs("busking"),
 		"live_sets":progression.street_activity_runs("live_gig"), "music_unlocked":progression.has_receipt("venue:soundcheck_pass"),
