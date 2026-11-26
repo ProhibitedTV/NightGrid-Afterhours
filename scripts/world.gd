@@ -24,6 +24,8 @@ var _driving_trial := DrivingTrial.new()
 var _trial_beacon: Node3D
 var _trial_beacon_label: Label3D
 const RoadRestrictions = preload("res://scripts/road_restrictions.gd")
+const FreightJob = preload("res://scripts/freight_job.gd")
+var _freight := FreightJob.new()
 const Arsenal = preload("res://scripts/arsenal.gd")
 const Wanted = preload("res://scripts/wanted_system.gd")
 const PoliceDispatch = preload("res://scripts/police_dispatch.gd")
@@ -831,6 +833,11 @@ func _phone_workboard() -> Array[Dictionary]:
 				"site":record["name"],"open":service.call("is_open",site),
 				"active":id == active,"position":Vector2(position.x,position.z)
 			})
+	var freight_offer:=_freight.route if _freight.active else FreightJob.offer(progression.freight_runs)
+	if not freight_offer.is_empty():
+		var freight_site:String=freight_offer["to"] if _freight.active else freight_offer["from"]
+		var depot:Dictionary=civic_services.call("site_by_id",freight_site)
+		listings.append({"id":"freight:current","category":"Vehicle freight","title":freight_offer["name"],"brief":"Stop at the loading point in a roadworthy car. G/X to load or unload; same vehicle required.","reward":freight_offer["reward"],"site":depot["name"],"open":true,"active":_freight.active,"position":freight_offer["drop"] if _freight.active else freight_offer["pickup"],"action_label":"Deliver freight" if _freight.active else "Navigate to loading point"})
 	for site in TechnicalContracts.CASES:
 		if not TechnicalContracts.available(site,progression):
 			continue
@@ -1136,7 +1143,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("interior_toggle"):
 		_toggle_interior()
 	elif event.is_action_pressed("interact"):
-		if current_car != null and (_driving_trial.active or DrivingTrial.near_start(Vector2(current_car.global_position.x,current_car.global_position.z))):
+		if current_car!=null and not _driving_trial.active and _freight_interaction_available():
+			_freight_interact()
+		elif current_car != null and (_driving_trial.active or DrivingTrial.near_start(Vector2(current_car.global_position.x,current_car.global_position.z))):
 			_toggle_driving_trial()
 		else:
 			_toggle_interaction()
@@ -1455,6 +1464,7 @@ func _physics_process(delta: float) -> void:
 	StreamProfile.accumulate(started, "world_pedestrians")
 	started = StreamProfile.begin()
 	_update_combat(delta)
+	_update_freight(delta)
 	if not courier_mission.gig_economy and not indoors and current_transit == null and actor.global_position.distance_to(mission_position) < CourierMission.RADIUS:
 		_advance_mission()
 	if (actor.global_position.y < -15.0 or not indoors and
@@ -1511,6 +1521,57 @@ func _update_driving_trial(delta:float)->void:
 		_log_playtest("driving_trial_finish",{"course":course,"seconds":_driving_trial.elapsed,"paid":paid,"personal_best":record,"best_ms":best})
 	elif not outcome.is_empty():
 		_notify(DrivingTrial.name_for(_driving_trial.course_id)+" / "+outcome)
+
+func _freight_interaction_available()->bool:
+	if current_car==null:
+		return false
+	var at:=Vector2(current_car.global_position.x,current_car.global_position.z)
+	var offer:=FreightJob.offer(progression.freight_runs)
+	return _freight.active or (not offer.is_empty() and FreightJob.near(at,offer["pickup"]))
+
+func _freight_interact()->void:
+	if current_car==null or _driving_trial.active:
+		return
+	var at:=Vector2(current_car.global_position.x,current_car.global_position.z)
+	var id:=current_car.get_instance_id()
+	var condition:=float(current_car.get("condition"))
+	var speed:=float(current_car.get("speed"))
+	if _freight.active:
+		if FreightJob.near(at,_freight.route["drop"]):
+			if _freight.ready_to_deliver(at,id,condition,speed):
+				var pay:=int(_freight.route["reward"])
+				if progression.settle_freight(_freight.sequence):
+					_freight.cancel()
+					_notify("FREIGHT / cargo delivered +$%d"%pay)
+					_log_playtest("freight_finish",{"sequence":progression.freight_runs,"paid":pay})
+				else:
+					_notify("Freight settlement unavailable. Retry.")
+			else:
+				_notify("Freight / stop at the delivery point in the original vehicle.")
+		else:
+			_freight.cancel()
+			_notify("Freight cancelled. Return to the pickup.")
+		return
+	if Wanted.stars(heat)>0:
+		_notify("Freight / clear police attention first.")
+		return
+	if _freight.begin(progression.freight_runs,at,id,condition,speed):
+		var drop:Vector2=_freight.route["drop"]
+		set_navigation_waypoint(drop)
+		_notify("FREIGHT / %s • loaded. Deliver in this vehicle."%_freight.route["name"])
+	else:
+		_notify("Freight / stop a roadworthy vehicle at the loading point.")
+
+func _update_freight(delta:float)->void:
+	if not _freight.active:
+		return
+	if not is_instance_valid(current_car) or Wanted.stars(heat)>0:
+		_freight.cancel()
+		_notify("Freight lost / retry at pickup.")
+		return
+	var at:=Vector2(current_car.global_position.x,current_car.global_position.z)
+	if not _freight.tick(at,current_car.get_instance_id(),float(current_car.get("condition")),delta):
+		_notify("Freight lost / retry at pickup.")
 
 func _actor() -> Node3D:
 	if current_transit != null:
@@ -2130,6 +2191,7 @@ func _reset_pursuit_runtime() -> void:
 	police_cooldown = 0.0
 
 func _respawn() -> void:
+	_freight.cancel()
 	_driving_trial.stop("ABANDONED")
 	_cancel_street_interactions()
 	_log_playtest("respawn", {"health": health, "reason": "fall_or_boundary_or_damage"})
@@ -2579,6 +2641,7 @@ func _capture_snapshot() -> Dictionary:
 	return state
 
 func _apply_snapshot(data: Dictionary) -> void:
+	_freight.cancel()
 	_driving_trial.stop("ABANDONED")
 	_close_arcade()
 	_cancel_street_interactions()
@@ -4797,6 +4860,8 @@ func _update_hud() -> void:
 		jobs.append("POD DEPOSIT / $%d of $%d" % [mini(cash,StarterHome.move_in_price()),StarterHome.move_in_price()])
 	if story_mission.status != "complete":
 		jobs.append(story_mission.journal())
+	if _freight.active:
+		jobs.append("FREIGHT / %s • $%d"%[_freight.route["name"],_freight.route["reward"]])
 	if not venue_job_active.is_empty():
 		jobs.append(_venue_job_text())
 	if not civic_job_active.is_empty():
@@ -4819,6 +4884,9 @@ func _update_hud() -> void:
 	var repair := _repair_storefront()
 	if current_car != null:
 		prompts.append(("RT/LT Drive  •  B Brake  •  Y Exit" if gamepad_active else "W/S Drive  •  Space Brake  •  E Exit") if show_control_hints else ("Y Exit vehicle" if gamepad_active else "E Exit vehicle"))
+		if _freight_interaction_available() and not _driving_trial.active:
+			var freight_at:=Vector2(current_car.global_position.x,current_car.global_position.z)
+			prompts.append("%s %s"%[interact_key,("Unload freight" if FreightJob.near(freight_at,_freight.route["drop"]) else "Cancel freight") if _freight.active else "Load freight / stop"])
 		if _driving_trial.active:
 			prompts.append("%s Abandon circuit"%interact_key)
 		elif DrivingTrial.near_start(Vector2(current_car.global_position.x,current_car.global_position.z)):
