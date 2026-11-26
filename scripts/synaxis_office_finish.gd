@@ -11,6 +11,8 @@ const PALETTE = {
 	"glass_dark": Color("304656"), "glass_lit": Color("6a797e"), "rubber": Color("343a3d"),
 	"food": Color("d9a951")
 }
+const ChairAsset=preload("res://scripts/synaxis_chair_asset.gd")
+var _chair_poses:Array[Transform3D]=[]
 var _groups: Dictionary = {}
 var _materials: Dictionary = {}
 var _part_count := 0
@@ -81,6 +83,8 @@ func _flush() -> void:
 		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(node)
 	_groups.clear()
+	ChairAsset.install(self,_chair_poses)
+	_chair_poses.clear()
 
 func _architecture() -> void:
 	# Large-format stone tiles, recessed skirting, suspended acoustic ceiling.
@@ -179,17 +183,9 @@ func _keyboard(at: Vector3) -> void:
 	_part("furniture","black",at+Vector3(.33,.035,0),Vector3(.08,.055,.13))
 
 func _chair(at: Vector3,face: float,executive: bool=false) -> void:
-	_part("furniture","leather",at+Vector3(0,.57,0),Vector3(.60,.14,.56))
-	_part("furniture","leather",at+Vector3(0,1.04,-face*.27),Vector3(.60,.76 if executive else .61,.13))
-	_part("furniture","steel",at+Vector3(0,.31,0),Vector3(.10,.46,.10),0.0,"cyl")
-	for i in range(5):
-		var angle := float(i)*TAU/5.0
-		var axis := Vector3(sin(angle),0,cos(angle))
-		_part("furniture","steel",at+axis*.18+Vector3.UP*.105,Vector3(.06,.05,.36),angle)
-		_part("furniture","black",at+axis*.35+Vector3.UP*.065,Vector3(.075,.11,.075),0.0,"cyl")
-	for side in [-1.0,1.0]:
-		_part("furniture","steel",at+Vector3(side*.32,.76,0),Vector3(.05,.28,.05))
-		_part("furniture","leather",at+Vector3(side*.32,.91,0),Vector3(.09,.06,.33))
+	_chair_poses.append(ChairAsset.pose(at,face,1.13 if executive else 1.08))
+	_part_count+=1
+
 
 func _paperwork(at: Vector3,yaw: float) -> void:
 	_part("furniture","paper",at,Vector3(.29,.024,.22),yaw)

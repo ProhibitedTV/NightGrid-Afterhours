@@ -492,9 +492,23 @@ func _verify() -> void:
 		_fail("Office detail must use bounded static material batches")
 		return
 	for batch in finish.get_children():
-		if not batch is MultiMeshInstance3D or batch.multimesh.instance_count <= 0 or batch.material_override == null:
-			_fail("Office finish requires populated shared geometry and materials")
+		if not batch is MultiMeshInstance3D or batch.multimesh.instance_count <= 0:
+			_fail("Office finish requires populated shared geometry")
 			return
+		if batch.name=="AuthoredTaskChairs":
+			if batch.multimesh.mesh.get_surface_count()!=4 or batch.multimesh.instance_count!=3 or batch.material_override!=null:
+				_fail("Ground floor must use the original multi-material chair mesh")
+				return
+			for surface in range(batch.multimesh.mesh.get_surface_count()):
+				if batch.multimesh.mesh.surface_get_material(surface)==null:
+					_fail("Chair mesh requires imported PBR materials")
+					return
+		elif batch.material_override==null:
+			_fail("Primitive finish batch needs its shared material")
+			return
+	if finish.get_node_or_null("AuthoredTaskChairs")==null:
+		_fail("Missing authored task chairs")
+		return
 	for id in ["WorkstationCollision","ExecutiveDeskCollision","HRDeskCollision","ReceptionDeskCollision","BreakroomTableCollision"]:
 		if not is_instance_valid(office.get_node_or_null(id)):
 			_fail("Furniture art replacement must preserve physical occupancy: "+id)
