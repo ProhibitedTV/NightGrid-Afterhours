@@ -88,7 +88,7 @@ static func set_room_character(kind: String) -> void:
 			profile = Vector2(.52, .23)
 		"CAFE":
 			profile = Vector2(.24, .12)
-		"SYNAXIS_OFFICE":
+		"SYNAXIS_OFFICE", "SYNAXIS_CARPET":
 			profile = Vector2(.22, .06)
 		"SYNAXIS_LIFT":
 			profile = Vector2(.16, .09)
