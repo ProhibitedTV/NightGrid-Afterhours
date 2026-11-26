@@ -863,7 +863,7 @@ func _phone_context() -> Dictionary:
 		"home_owned":progression.owns_home(), "home_access":progression.has_receipt(StarterHome.ACCESS_RECEIPT),
 		"deposit":StarterHome.move_in_price(), "notice":Opening.app_notice(deliveries),
 		"global_street_cred":progression.street_cred_summary(), "cred_sources":progression.street_cred_sources(), "scene_reputation":SceneReputation.summary(SceneReputation.scores(progression)),
-		"workboard":_phone_workboard(), "circuit_completed":progression.has_receipt(DrivingTrial.RECEIPT), "circuit_best_ms":progression.circuit_best_ms, "instrument_status":progression.instrument_summary(),
+		"workboard":_phone_workboard(), "circuit_completed":progression.has_receipt(DrivingTrial.RECEIPT), "circuit_best_ms":progression.circuit_best_ms, "brickwater_completed":progression.has_receipt(DrivingTrial.BRICK_RECEIPT), "brickwater_best_ms":progression.brickwater_best_ms, "instrument_status":progression.instrument_summary(),
 		"music_contact":_music_contact_status(), "music_sets":progression.street_activity_runs("busking"),
 		"live_sets":progression.street_activity_runs("live_gig"), "music_unlocked":progression.has_receipt("venue:soundcheck_pass"),
 		"music_contact_available":progression.street_cred()>=100,
@@ -906,9 +906,9 @@ func _phone_route(action: String) -> void:
 				destination = listing["position"]
 				break
 	match action:
-		"phone_route_circuit":
+		"phone_route_circuit", "phone_route_brickwater":
 			if app == "opportunities":
-				destination = DrivingTrial.START
+				destination = DrivingTrial.BRICK_START if action=="phone_route_brickwater" else DrivingTrial.START
 		"phone_route_order":
 			if app == "work" and courier_mission.gig_economy and courier_mission.mission_active():
 				destination = Vector2(mission_position.x,mission_position.z)
@@ -937,6 +937,7 @@ func _phone_route(action: String) -> void:
 				destination = _phone_transit()["bus"]
 	if destination.is_finite():
 		set_navigation_waypoint(destination)
+		_sync_trial_beacon()
 		game_menu.call("hide_for_game")
 		_notify("Phone: route set.")
 
@@ -1479,35 +1480,37 @@ func _physics_process(delta: float) -> void:
 func _toggle_driving_trial()->void:
 	if _driving_trial.active:
 		_driving_trial.stop("ABANDONED")
-		_notify("Southworks Circuit abandoned. Return to the start to retry.")
+		_notify(DrivingTrial.name_for(_driving_trial.course_id)+" abandoned. Return to the start to retry.")
 		return
 	if current_car==null or current_transit!=null or Wanted.stars(heat)>0:
-		_notify("Southworks Circuit / park a roadworthy car and clear your wanted level.")
+		_notify("Driving challenge / park a roadworthy car and clear your wanted level.")
 		return
 	var at:=Vector2(current_car.global_position.x,current_car.global_position.z)
 	if _driving_trial.start(at,current_car.get_instance_id(),float(current_car.get("condition")),float(current_car.get("speed"))):
-		_notify("Southworks Circuit / follow all eight checkpoints. Obey traffic. First finish $90.")
+		_notify("%s / %d checkpoints. Obey traffic. First finish $%d."%[DrivingTrial.name_for(_driving_trial.course_id),_driving_trial.gates().size(),_driving_trial.reward()])
 	else:
-		_notify("Southworks Circuit / stop at the start with a roadworthy car.")
+		_notify("Driving challenge / stop at the start with a roadworthy car.")
 
 func _update_driving_trial(delta:float)->void:
 	if not _driving_trial.active:
 		return
 	if not is_instance_valid(current_car) or Wanted.stars(heat)>0:
 		_driving_trial.stop("ABANDONED")
-		_notify("Southworks Circuit abandoned.")
+		_notify(DrivingTrial.name_for(_driving_trial.course_id)+" abandoned.")
 		return
 	var at:=Vector2(current_car.global_position.x,current_car.global_position.z)
 	var outcome:=_driving_trial.tick(delta,at,current_car.get_instance_id(),float(current_car.get("condition")))
 	if outcome=="GATE":
-		_notify("Checkpoint %d / %d"%[_driving_trial.index,DrivingTrial.GATES.size()])
+		_notify("Checkpoint %d / %d"%[_driving_trial.index,_driving_trial.gates().size()])
 	elif outcome=="COMPLETE":
-		var record:=progression.record_circuit_time(_driving_trial.elapsed)
-		var paid:=progression.credit_once(DrivingTrial.RECEIPT,DrivingTrial.REWARD)
-		_notify("Southworks Circuit / %.2fs%s%s"%[_driving_trial.elapsed," / PERSONAL BEST" if record else ""," +$90" if paid else " / practice finish"])
-		_log_playtest("driving_trial_finish",{"seconds":_driving_trial.elapsed,"paid":paid,"personal_best":record,"best_ms":progression.circuit_best_ms})
+		var course:=_driving_trial.course_id
+		var record:=progression.record_circuit_time(_driving_trial.elapsed,course)
+		var paid:=progression.credit_once(_driving_trial.receipt(),_driving_trial.reward())
+		var best:=progression.brickwater_best_ms if course==DrivingTrial.BRICK else progression.circuit_best_ms
+		_notify("%s / %.2fs%s%s"%[DrivingTrial.name_for(course),_driving_trial.elapsed," / PERSONAL BEST" if record else ""," +$%d"%_driving_trial.reward() if paid else " / practice finish"])
+		_log_playtest("driving_trial_finish",{"course":course,"seconds":_driving_trial.elapsed,"paid":paid,"personal_best":record,"best_ms":best})
 	elif not outcome.is_empty():
-		_notify("Southworks Circuit / "+outcome)
+		_notify(DrivingTrial.name_for(_driving_trial.course_id)+" / "+outcome)
 
 func _actor() -> Node3D:
 	if current_transit != null:
@@ -4471,9 +4474,17 @@ func _create_trial_beacon() -> void:
 func _sync_trial_beacon()->void:
 	if not is_instance_valid(_trial_beacon):
 		return
-	var target:Vector2=DrivingTrial.GATES[_driving_trial.index] if _driving_trial.active else DrivingTrial.START
+	var selected:=_driving_trial.course_id
+	var target:=DrivingTrial.START
+	if _driving_trial.active:
+		target=_driving_trial.gates()[_driving_trial.index]
+	else:
+		var focus:=Vector2(_actor().global_position.x,_actor().global_position.z)
+		var routed:=DrivingTrial.course_at(navigation_waypoint) if navigation_waypoint is Vector2 else ""
+		selected=routed if not routed.is_empty() else (DrivingTrial.BRICK if focus.distance_squared_to(DrivingTrial.BRICK_START)<focus.distance_squared_to(DrivingTrial.START) else DrivingTrial.SOUTH)
+		target=DrivingTrial.BRICK_START if selected==DrivingTrial.BRICK else DrivingTrial.START
 	var at:=Vector3(target.x,0.0,target.y)
-	var title:="CHECKPOINT %d / %d"%[_driving_trial.index+1,DrivingTrial.GATES.size()] if _driving_trial.active else "SOUTHWORKS CIRCUIT / START"
+	var title:="CHECKPOINT %d / %d"%[_driving_trial.index+1,_driving_trial.gates().size()] if _driving_trial.active else DrivingTrial.name_for(selected).to_upper()+" / START"
 	if _trial_beacon.position!=at:
 		_trial_beacon.position=at
 	if _trial_beacon_label.text!=title:
@@ -4811,7 +4822,7 @@ func _update_hud() -> void:
 		if _driving_trial.active:
 			prompts.append("%s Abandon circuit"%interact_key)
 		elif DrivingTrial.near_start(Vector2(current_car.global_position.x,current_car.global_position.z)):
-			prompts.append("%s Southworks Circuit / stop to start"%interact_key)
+			prompts.append("%s %s / stop to start"%[interact_key,DrivingTrial.name_for(DrivingTrial.course_at(Vector2(current_car.global_position.x,current_car.global_position.z)))])
 		if is_instance_valid(nightgrid_fm) and show_control_hints:
 			prompts.append("D-pad → Radio  •  ↑ Next" if gamepad_active else "B Radio  •  N Next")
 	elif current_transit != null:
