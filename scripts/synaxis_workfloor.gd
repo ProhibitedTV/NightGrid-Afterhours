@@ -28,6 +28,8 @@ const ROWS=[-5.6,-4.65,1.1,2.05]
 const SLOGANS=["INNOVATE WITH INTENT","YOUR IDEAS. OUR INTELLECTUAL PROPERTY.","QUALITY IS EVERYONE'S RESPONSIBILITY*","TOGETHER WE DO MORE WITH LESS."]
 const SUBLINES=["ALIGN. EXECUTE. REPEAT.","ALL SUBMISSIONS BECOME COMPANY PROPERTY.","*EXECUTIVE EXCEPTIONS MAY APPLY.","PLEASE DO NOT DISCUSS HEADCOUNT."]
 var level:=1
+const ChairAsset=preload("res://scripts/synaxis_chair_asset.gd")
+var _chair_poses:Array[Transform3D]=[]
 var _groups: Dictionary={}
 var _materials: Dictionary={}
 var _chairs:=0
@@ -109,6 +111,9 @@ func set_story_stage(stage:int) -> void:
 
 func set_occupied(active: bool) -> void:
 	GeneratedAudio.activate(_office_ambience,active)
+	var chairs:=get_node_or_null("AuthoredTaskChairs") as MultiMeshInstance3D
+	if chairs!=null:
+		chairs.visible=active
 	if is_instance_valid(_services):
 		_services.call("set_active",active)
 	for lamp in _lights:
@@ -186,6 +191,8 @@ func _flush() -> void:
 		node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(node)
 	_groups.clear()
+	ChairAsset.install(self,_chair_poses)
+	_chair_poses.clear()
 
 func _station(at: Vector3,face: float,row: int,col: int,accent: String) -> void:
 	_desks+=1
@@ -245,17 +252,9 @@ func _monitor(at: Vector3,face: float) -> void:
 
 func _chair(at: Vector3,face: float) -> void:
 	_chairs+=1
-	_part("black",at+Vector3(0,.48,0),Vector3(.49,.09,.48))
-	_part("black",at+Vector3(0,.77,-face*.23),Vector3(.48,.48,.085))
-	_part("steel",at+Vector3(0,.24,0),Vector3(.07,.43,.07),0.0,"cyl")
-	for i in range(5):
-		var angle:=i*TAU/5.0
-		var axis:=Vector3(sin(angle),0,cos(angle))
-		_part("steel",at+axis*.16+Vector3.UP*.075,Vector3(.04,.04,.32),angle)
-		_part("black",at+axis*.31+Vector3.UP*.04,Vector3(.065,.08,.065),0.0,"cyl")
-	for side in [-1.0,1.0]:
-		_part("steel",at+Vector3(side*.26,.58,0),Vector3(.035,.20,.035))
-		_part("black",at+Vector3(side*.26,.68,0),Vector3(.065,.035,.29))
+	_parts+=1
+	_chair_poses.append(ChairAsset.pose(at,face,.92))
+
 
 func _plant(at: Vector3,size: float) -> void:
 	_plants+=1
