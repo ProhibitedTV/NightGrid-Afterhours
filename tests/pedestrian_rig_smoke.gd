@@ -120,5 +120,19 @@ func _verify() -> void:
 	if not _check(MusicPose.apply(arms,body,bindings,"sampler",NAN).is_empty(),"reject invalid phase"):
 		return
 	body.queue_free()
+	# Exercise the exact three imported weighted rigs already used by taxi riders.
+	for model in preload("res://scripts/taxi_waiting_rider.gd").MODELS:
+		var musician := Rig.new()
+		musician.set_pedestrian_model(model)
+		root.add_child(musician)
+		if not _check(musician.is_pedestrian_visual_ready() and musician.set_music_performance("sampler"),"imported musician arm chains"):
+			return
+		musician._process(.1)
+		if not _check(musician.get("_music_restore").size()==4,"imported pose layer applied"):
+			return
+		musician.reset_pedestrian_visual()
+		if not _check(musician.get("_music_restore").is_empty() and musician.get("_music_role")=="" and musician.animation_state()["clip"]=="idle","pool reset restores imported musician"):
+			return
+		musician.free()
 	print("PEDESTRIAN_RIG_SMOKE PASS: weighted rig, looping walk/idle, palette reuse, measured speed and reset")
 	quit(0)
