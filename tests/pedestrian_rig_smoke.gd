@@ -17,6 +17,9 @@ func _fixture() -> Node3D:
 	skeleton.add_bone("Root")
 	skeleton.add_bone("Leg")
 	skeleton.set_bone_parent(1,0)
+	skeleton.add_bone("Head")
+	skeleton.set_bone_parent(2,0)
+	skeleton.set_bone_rest(2,Transform3D(Basis.IDENTITY,Vector3(0,1.5,0)))
 	rig.add_child(skeleton)
 	var mesh := MeshInstance3D.new()
 	mesh.name = "Clothing"
@@ -86,6 +89,29 @@ func _verify() -> void:
 	rig._process(0.2)
 	rig.reset_pedestrian_visual()
 	if not _check(not rig.animation_state()["walking"] and rig.animation_state()["clip"]=="idle","pooled reset"):
+		return
+	# An additive head turn preserves the animated base pose and resets cleanly.
+	var head:=rig.get_node("Skeleton") as Skeleton3D
+	var base_rotation:=head.get_bone_pose_rotation(2)
+	rig.set_attention_target(Vector3(2,1.5,3),true)
+	for i in range(20):
+		rig._process(1.0/60.0)
+	if not _check(rig.get("_attention_applied") and head.get_bone_pose_rotation(2)!=base_rotation,"skinned attention turns the actual head bone"):
+		return
+	var turned:=head.get_bone_pose_rotation(2)
+	for i in range(60):
+		rig._process(1.0/60.0)
+	if not _check(head.get_bone_pose_rotation(2).is_equal_approx(turned),"attention pose does not accumulate"):
+		return
+	rig.set_attention_target(Vector3.INF,true)
+	for i in range(30):
+		rig._process(1.0/60.0)
+	if not _check(not rig.get("_attention_applied") and head.get_bone_pose_rotation(2).is_equal_approx(base_rotation),"invalid target releases gaze"):
+		return
+	rig.set_attention_target(Vector3(-2,1.5,3),true)
+	rig._process(.2)
+	rig.reset_pedestrian_visual()
+	if not _check(not rig.get("_attention_applied") and head.get_bone_pose_rotation(2).is_equal_approx(base_rotation),"pool reset clears gaze"):
 		return
 	# Synthetic arms exercise the reversible layer independently of mesh art.
 	var body := Node3D.new()
