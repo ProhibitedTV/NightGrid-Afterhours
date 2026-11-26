@@ -129,6 +129,25 @@ func _verify() -> void:
 	if flyer.visible or not flyer.text.is_empty():
 		_fail("Authoritative empty ledger clears stale promotion")
 		return
+	venues.call("set_focus",venues.call("venue_position","static_room"))
+	venues.call("set_hour",23.0)
+	var synth:Node3D=venues.get_node_or_null("static_room/AmbientSynthPerformer")
+	if synth==null or not synth.visible or not synth.has_node("portable_synth") or synth.get_node("PerformerRig").get("_music_role")!="synth":
+		_fail("Static Room late-night synth resident missing")
+		return
+	venues.call("set_hour",3.5)
+	if synth.visible or synth.get_node("PerformerRig").is_processing():
+		_fail("Synth performer outlived its residency hours")
+		return
+	venues.call("set_hour",23.0)
+	if not synth.visible or synth!=venues.get_node_or_null("static_room/AmbientSynthPerformer"):
+		_fail("Synth resident was not reused")
+		return
+	venues.call("set_focus",Vector3(9999,0,9999))
+	venues.call("set_hour",23.0)
+	if synth.visible or synth.get_node("PerformerRig").is_processing():
+		_fail("Distant synth performer still active")
+		return
 	var player: CharacterBody3D = world.get("player")
 	var ui: PanelContainer = world.get("venue_panel")
 	world.set("cash", 100)

@@ -5,6 +5,8 @@ const SOUNDCHECK="soundcheck_pass"
 const MUSIC_REPUTATION=100
 const PocketBeat=preload("res://assets/instruments/pocketbeat_m3.glb")
 var _sampler_display:Node3D
+const AmbientSynth=preload("res://scripts/ambient_synth_performer.gd")
+var _static_room_performer:Node3D
 const MusicVisual=preload("res://scripts/pedestrian_rig_visual.gd")
 const MusicianModel=preload("res://assets/models/nightgrid/pedestrians/casual-walker.glb")
 var _blue_hour_performer:Node3D
@@ -267,7 +269,7 @@ func _build_venue(venue: Dictionary) -> void:
 	_box(front, Vector3(-3.75, 0.24, -1.55), Vector3(0.65, 0.14, 0.64), Color("6d7784"))
 	_box(front, Vector3(3.7, 0.24, -1.55), Vector3(0.64, 0.14, 0.65), Color("6d7784"))
 	var patrons: Array[Node3D] = []
-	for i in range(2 if kind != "CLUB" else (3 if venue_id=="blue_hour" else 4)):
+	for i in range(2 if kind != "CLUB" else (3 if venue_id in ["blue_hour","static_room"] else 4)):
 		var x := -3.2 + float(i) * 1.3
 		var patron := _build_patron(front, Vector3(x, 0.3, -2.1), kind, i)
 		patrons.append(patron)
@@ -462,6 +464,7 @@ func _night_factor() -> float:
 
 func _refresh() -> void:
 	_refresh_blue_hour_performer()
+	_refresh_static_room_performer()
 	if is_instance_valid(_sampler_display):
 		_sampler_display.visible=is_open("copper_cup") and venue_position("copper_cup").distance_squared_to(_focus)<35.0*35.0
 	if is_instance_valid(_string_display):
@@ -504,6 +507,19 @@ func _refresh() -> void:
 			lamp.light_energy = 0.75 * darkness
 		else:
 			lamp.light_energy = 0.0
+
+## Static Room has a late-night synth resident; the retained visual is lazy.
+func _refresh_static_room_performer()->void:
+	var active:=is_open("static_room") and (_hour>=21.0 or _hour<3.0) and venue_position("static_room").distance_squared_to(_focus)<24.0*24.0
+	if not is_instance_valid(_static_room_performer):
+		if not active:
+			return
+		_static_room_performer=AmbientSynth.new()
+		_static_room_performer.name="AmbientSynthPerformer"
+		_static_room_performer.position=Vector3(.7,.34,-1.75)
+		var front:Node3D=_nodes["static_room"]
+		front.add_child(_static_room_performer)
+	_static_room_performer.call("set_active",active)
 
 func job_unlocked(job:Dictionary,cred:int)->bool:
 	return not job.is_empty() and cred>=int(job.get("min_cred",0))
