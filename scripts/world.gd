@@ -1016,7 +1016,7 @@ func _journal_context() -> Dictionary:
 		"music_can_navigate":progression.street_cred()>=100 and not progression.has_receipt("venue:soundcheck_pass"),
 		"cal_can_navigate":_cal_target().is_finite(),
 		"civic_job": _civic_job_text(),
-		"investigation": investigation.journal(progression),
+		"investigation": investigation.case_review(progression),
 		"cash": cash, "health": health, "heat": heat,
 		"stamina": float(player.get("stamina")),
 		"consumables": consumable_inventory.duplicate(true),
