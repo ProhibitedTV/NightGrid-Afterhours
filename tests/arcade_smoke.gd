@@ -18,6 +18,15 @@ func check(ok: bool, label: String) -> bool:
 	return ok
 
 func _verify() -> void:
+	var scores=preload("res://scripts/arcade_scores.gd")
+	for id in Round.IDS:
+		var goals:Array=scores.MASTERY[id]
+		for level in range(3):
+			var status:String=scores.mastery_status(id,goals[level]-1)
+			if not check(status.contains("NEXT: %05d" % goals[level]),"next medal threshold "+id):
+				return
+		if not check(scores.mastery_status(id,goals[2])=="MASTERY 3 / 3  •  GOLD COMPLETE" and scores.mastery_status(id,goals[2]+1)==scores.mastery_status(id,goals[2]),"gold completion has no next target "+id):
+			return
 	var a := Round.new()
 	if not check(not a.start("missing") and a.finished, "unknown title rejected"):
 		return

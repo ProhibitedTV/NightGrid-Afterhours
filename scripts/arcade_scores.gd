@@ -43,6 +43,15 @@ static func mastery_level(id: String, score: int) -> int:
 			level += 1
 	return level
 
+## A completed cabinet has no further score target.
+static func mastery_status(id:String,score:int)->String:
+	if not MASTERY.has(id):
+		return ""
+	var level:=mastery_level(id,score)
+	if level==3:
+		return "MASTERY 3 / 3  •  GOLD COMPLETE"
+	return "MASTERY %d / 3  •  NEXT: %05d" % [level,MASTERY[id][level]]
+
 static func mastery_rows(scores: Dictionary) -> Array:
 	var rows := []
 	for id in Catalog.IDS:
