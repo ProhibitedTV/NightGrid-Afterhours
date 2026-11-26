@@ -2987,6 +2987,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 		var room_id := str(restored_room.get("id", ""))
 		var room_site: Dictionary = civic_services.call("site_by_id", room_id) if group == "CIVIC" else venue_system.call("venue_by_id", room_id)
 		if interiors.call("restore", restored_room, room_site):
+			interiors.call("refresh_arcade_scores",_arcade_best)
 			player.global_position = Vector3(float(position_data[0]), float(position_data[1]), float(position_data[2]))
 			if player.global_position.distance_to(interiors.call("get_entry_point")) > 13.0:
 				player.global_position = interiors.call("get_entry_point")
@@ -3070,6 +3071,7 @@ func _present_arcade_overlay(screen: Control) -> bool:
 func _record_arcade_score(id: String, value: int) -> void:
 	var before := ArcadeScores.circuit_count(_arcade_best)
 	if ArcadeScores.record(_arcade_best,id,value):
+		interiors.call("refresh_arcade_scores",_arcade_best)
 		var after := ArcadeScores.circuit_count(_arcade_best)
 		if after > before:
 			_notify("ROOK: Local Legend! All eight stamps earned." if after == 8 else "ROOK: Circuit stamp earned. %d/8." % after)
@@ -3176,6 +3178,7 @@ func _toggle_interior() -> void:
 	var old_position := player.global_position
 	_close_venue()
 	player.global_position = interiors.call("enter", site, group, old_position)
+	interiors.call("refresh_arcade_scores",_arcade_best)
 	player.velocity = Vector3.ZERO
 	_log_playtest("interior_enter", {"site_id": str(site["id"]), "group": group})
 	_snap_camera()

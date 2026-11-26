@@ -19,6 +19,39 @@ class AuthoringTests(unittest.TestCase):
         self.assertEqual(len(ids), 37)
         self.assertTrue(all(x["duration"] > 0 and x["prompt"] for x in assets))
 
+    def test_partial_library_and_provenance(self):
+        import json
+        import sfx_batch
+        with tempfile.TemporaryDirectory() as tmp:
+            dest=Path(tmp)
+            manifest={"model":"small-sfx","weights":"weights","license":"license",
+                      "assets":[{"id":"a","duration":1,"loop":False},{"id":"b","duration":1,"loop":True}]}
+            self.assertEqual(sfx.verify_staged_library(manifest,dest),[])
+            wav=dest/"a.wav"
+            meta=dest/"a.json"
+            with wave.open(str(wav),"wb") as stream:
+                stream.setparams((1,2,sfx.RATE,0,"NONE","not compressed"))
+                stream.writeframes(array.array("h",[1000,-1000]*24000).tobytes())
+            with self.assertRaisesRegex(ValueError,"Incomplete"):
+                sfx.verify_staged_library(manifest,dest)
+            record={"spec":manifest["assets"][0],"sha256":sfx.digest(wav),
+                    "model":"small-sfx","weights":"weights","license":"license",
+                    "reviewed":False,"playtest_accepted":True,"rights_checked":True,
+                    "machine_qc_passed":True,"metrics":sfx_batch.metrics(wav,manifest["assets"][0]),
+                    "provenance":{"repo":"stabilityai/stable-audio-3-small-sfx",
+                                  "revision":"a"*40,"upstream":"b"*40}}
+            meta.write_text(json.dumps(record))
+            self.assertEqual(sfx.verify_staged_library(manifest,dest),[{"id":"a","loop":False,"reviewed":False}])
+            record["rights_checked"]=False
+            meta.write_text(json.dumps(record))
+            with self.assertRaisesRegex(ValueError,"acceptance"):
+                sfx.verify_staged_library(manifest,dest)
+            record["rights_checked"]=True
+            record["sha256"]="0"*64
+            meta.write_text(json.dumps(record))
+            with self.assertRaisesRegex(ValueError,"provenance"):
+                sfx.verify_staged_library(manifest,dest)
+
     @unittest.skipUnless(shutil.which("ffmpeg"), "FFmpeg required for conversion")
     def test_loop_and_oneshot(self):
         with tempfile.TemporaryDirectory() as tmp:

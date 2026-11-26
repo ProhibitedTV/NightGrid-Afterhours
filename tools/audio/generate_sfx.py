@@ -71,9 +71,63 @@ def prepare(raw, output, spec, ffmpeg):
         stream.writeframes(result.tobytes())
 
 
+def verify_staged_library(manifest, destination=DEST):
+    """Validate a partial playtest bank, not an assertion of full coverage."""
+    known = {spec["id"]: spec for spec in manifest["assets"]}
+    if len(known) != len(manifest["assets"]):
+        raise ValueError("Duplicate SFX cue ID")
+    if not destination.exists():
+        return []
+    files = list(destination.iterdir())
+    present = {p.stem for p in files if p.suffix in (".wav",".json")}
+    unknown = present - set(known)
+    if unknown:
+        raise ValueError("Unknown staged SFX: " + ", ".join(sorted(unknown)))
+    results = []
+    for ident in sorted(present):
+        spec = known[ident]
+        wav, meta = destination/(ident+".wav"), destination/(ident+".json")
+        if not wav.is_file() or not meta.is_file():
+            raise ValueError("Incomplete SFX pair: " + ident)
+        record = json.loads(meta.read_text(encoding="utf-8"))
+        if (record.get("spec") != spec or record.get("sha256") != digest(wav)
+                or record.get("model") != manifest["model"]
+                or record.get("weights") != manifest["weights"]
+                or record.get("license") != manifest["license"]):
+            raise ValueError("SFX provenance mismatch: " + ident)
+        if record.get("reviewed") is not True:
+            if not (record.get("reviewed") is False
+                    and record.get("playtest_accepted") is True
+                    and record.get("rights_checked") is True
+                    and record.get("machine_qc_passed") is True):
+                raise ValueError("Missing playtest acceptance: " + ident)
+            import re
+            provenance = record.get("provenance", {})
+            if (provenance.get("repo") != "stabilityai/stable-audio-3-small-sfx"
+                    or not re.fullmatch(r"[0-9a-f]{40}", provenance.get("revision",""))
+                    or not re.fullmatch(r"[0-9a-f]{40}", provenance.get("upstream",""))):
+                raise ValueError("Unpinned provisional effect: " + ident)
+        # Match the batch worker's measured PCM and duration gate.
+        pcm = read_pcm(wav)
+        seconds = len(pcm)/RATE
+        minimum = max(.25, spec["duration"] - (.5 if spec["loop"] else .15))
+        if not minimum <= seconds <= spec["duration"] + .05:
+            raise ValueError("SFX duration mismatch: " + ident)
+        peak = max(abs(x) for x in pcm)
+        rms = math.sqrt(sum(x*x for x in pcm)/len(pcm))
+        if not 100 <= peak <= 23200 or rms < 20:
+            raise ValueError("SFX acoustic gate: " + ident)
+        if record.get("reviewed") is not True and record.get("metrics") != {
+            "seconds":round(seconds,4),"peak":peak,"rms":round(rms,3)
+        }:
+            raise ValueError("Stale SFX metrics: " + ident)
+        results.append({"id":ident,"loop":spec["loop"],"reviewed":record["reviewed"]})
+    return results
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=["list", "generate", "publish", "verify", "verify-playtest"])
+    parser.add_argument("action", choices=["list", "generate", "publish", "verify", "verify-playtest", "verify-staged"])
     parser.add_argument("--id", action="append", help="Select one or more IDs; defaults to all")
     parser.add_argument("--group", choices=["office","city","steps"], help="Select a sound family")
     parser.add_argument("--skip-existing", action="store_true", help="Resume candidate generation")
@@ -84,6 +138,11 @@ def main():
     parser.add_argument("--replace", action="store_true")
     args = parser.parse_args()
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    if args.action == "verify-staged":
+        if args.id or args.group:
+            parser.error("verify-staged always checks the entire partial library")
+        print(json.dumps(verify_staged_library(manifest), separators=(",",":")))
+        return
     known = {x["id"]: x for x in manifest["assets"]}
     if args.id and any(x not in known for x in args.id):
         parser.error("Unknown asset ID")
