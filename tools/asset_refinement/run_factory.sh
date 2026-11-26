@@ -3,7 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 repo="$PWD"
 mode="${1:-full}"
-[[ "$mode" == full || "$mode" == existing || "$mode" == smoke || "$mode" == status ]] || { echo "Use full, existing, smoke, or status"; exit 2; }
+[[ "$mode" == full || "$mode" == existing || "$mode" == smoke || "$mode" == status || "$mode" == dashboard ]] || { echo "Use full, existing, smoke, status, or dashboard"; exit 2; }
 if [[ $# -gt 0 ]]; then shift; fi
 export PATH="/root/.local/share/nightgrid-python/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/wsl/lib"
 export ANUBIS_VISUAL_HOME="${ANUBIS_VISUAL_HOME:-/root/.local/share/nightgrid-visual-py311}"
@@ -11,6 +11,10 @@ mkdir -p /mnt/z
 mountpoint -q /mnt/z || mount -t drvfs Z: /mnt/z
 mountpoint /mnt/z
 root=/mnt/z/NightGrid-Afterhours/Visual
+if [[ "$mode" == dashboard ]]; then
+  [[ -d "$root" ]] || { echo "NAS library missing"; exit 2; }
+  exec python3 tools/asset_refinement/dashboard.py --root "$root"
+fi
 batch="${ANUBIS_BATCH:-visual-001}"
 [[ "$batch" =~ ^visual-[a-z0-9][a-z0-9-]{0,40}$ ]] || { echo "Invalid batch ID"; exit 2; }
 suffix="${batch#visual-}"
@@ -40,6 +44,9 @@ finish() {
   local rc=$?
   trap - EXIT
   python3 "$ledger" finish --run "$run_dir" --code "$rc" || true
+  if mountpoint -q /mnt/z; then
+    python3 tools/asset_refinement/dashboard.py --root "$root" || echo "Dashboard refresh failed" >&2
+  fi
   exit "$rc"
 }
 trap finish EXIT
