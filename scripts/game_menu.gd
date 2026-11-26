@@ -21,6 +21,8 @@ const BAND_INTRO=preload("res://assets/audio/music/band_demo.wav")
 const STREET_INTRO=preload("res://assets/audio/music/busker_demo.wav")
 const PAD_CLIPS=[preload("res://assets/audio/rehearsal/kick.wav"),preload("res://assets/audio/rehearsal/clap.wav"),preload("res://assets/audio/rehearsal/hat.wav")]
 const Opening = preload("res://scripts/opening_story.gd")
+const OpeningVoice = preload("res://scripts/opening_voice.gd")
+var _opening_voice: Node
 const Phone = preload("res://scripts/morrow_phone.gd")
 const SynaxisBrand = preload("res://scripts/synaxis_brand.gd")
 const Consumables = preload("res://scripts/consumables.gd")
@@ -113,6 +115,8 @@ func _ready() -> void:
 	_ui_click.stream = CityFoley.sound("UI")
 	_ui_click.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(_ui_click)
+	_opening_voice = OpeningVoice.new()
+	add_child(_opening_voice)
 	_rhythm_player=AudioStreamPlayer.new()
 	_rhythm_player.bus=AudioMix.MUSIC
 	_rhythm_player.process_mode=Node.PROCESS_MODE_ALWAYS
@@ -254,6 +258,8 @@ func confirm_new_game() -> void:
 	_open("confirm_new")
 
 func hide_for_game() -> void:
+	if is_instance_valid(_opening_voice):
+		_opening_voice.call("stop")
 	if screen=="blue_hour_set":
 		_stop_music_set_audio()
 		_rhythm.cancel()
@@ -357,6 +363,8 @@ func update_setting(key: String, value: Variant) -> void:
 	_save_settings()
 
 func _render() -> void:
+	if is_instance_valid(_opening_voice):
+		_opening_voice.call("select_scene", OpeningVoice.scene_for(screen, _opening_stage, _briefing_beat, _breakroom_choice))
 	# queue_free keeps the 3D world untouched; old menu controls are detached
 	# from the active input tree immediately before new controls gain focus.
 	for child in _root.get_children():
