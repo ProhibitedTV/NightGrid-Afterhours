@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "ce3c475ea82212ff691b5062f8ec3963e9a32fa4a2776b04ab40a580f8ea56e6",
+  "take_sha256": "4527adda72f94277570f14944c5733f8cf03a4db0187981a4a5f6dcd83774f25",
+  "line_sha256": "4fb03c2096e6660eb3b93c4ac97ca6557ec9fb690ffb31b9345bc84dd3ed0cb9",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "Can we put the premium increase in the caption?",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 9,
+    "observed_units": 9,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 2.64,
+      "leading_quiet_seconds": 0.46,
+      "trailing_quiet_seconds": 0.06,
+      "quiet_fraction": 0.273,
+      "peak": 15597,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

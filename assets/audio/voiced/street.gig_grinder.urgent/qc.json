@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "3374e1791d1cfa97b97f90f498cd77dda80437aaa4349ea09cde23fab18b75f7",
+  "take_sha256": "a159a2dc669b0e7ab2098253d80b7d2e9913848735362348d7ede6294c2c1de3",
+  "line_sha256": "a3129a0bdefa5385deb1fffe48a2950302f745f6d908325cfdf924e608c552a6",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "Well, there goes my on-time delivery bonus.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 8,
+    "observed_units": 8,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 2.96,
+      "leading_quiet_seconds": 0.42,
+      "trailing_quiet_seconds": 0.02,
+      "quiet_fraction": 0.284,
+      "peak": 18919,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}

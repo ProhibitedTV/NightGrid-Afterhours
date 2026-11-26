@@ -1,0 +1,91 @@
+{
+  "spec": {
+    "line": {
+      "id": "synaxis.breakroom_photo.03",
+      "character": "hr",
+      "language": "English",
+      "text": "Let's keep the messaging positive.",
+      "direction": "Natural workplace conversation, dry humor.",
+      "source": {
+        "constant": "BREAKROOM_PHOTO",
+        "row": 2
+      }
+    },
+    "voice": {
+      "direction": "Original adult voice, bright polished professional delivery, unnervingly cheerful."
+    }
+  },
+  "settings": {
+    "model": "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+    "revision": "fd4b254389122332181a7c3db7f27e918eec64e3",
+    "seed": 308,
+    "device": "cuda",
+    "dtype": "bfloat16",
+    "packages": {
+      "qwen-tts": "0.1.1",
+      "torch": "2.11.0+cu128",
+      "soundfile": "0.14.0",
+      "transformers": "4.57.3"
+    },
+    "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers",
+    "cast_sha256": "2786205df01f6ee3e299865300b3f6bdc3e7e7bf30c6b1f9f332047dd0c0e64d"
+  },
+  "cast": {
+    "schema": 1,
+    "character": "hr",
+    "transcript": "We are not replacing you with AI. We are replacing your position with a more scalable version of your contribution.",
+    "audition": {
+      "spec": {
+        "line": {
+          "id": "synaxis.offboarding.06",
+          "character": "hr",
+          "language": "English",
+          "text": "We are not replacing you with AI. We are replacing your position with a more scalable version of your contribution.",
+          "direction": "Restrained conversational performance; preserve the written meaning.",
+          "source": {
+            "constant": "OFFBOARDING",
+            "row": 5
+          }
+        },
+        "voice": {
+          "direction": "Original adult voice, bright polished professional delivery, unnervingly cheerful."
+        }
+      },
+      "settings": {
+        "model": "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+        "revision": "5ecdb67327fd37bb2e042aab12ff7391903235d3",
+        "seed": 309,
+        "device": "cuda",
+        "dtype": "bfloat16",
+        "reference": "original synthetic voice design",
+        "packages": {
+          "qwen-tts": "0.1.1",
+          "torch": "2.11.0+cu128",
+          "soundfile": "0.14.0",
+          "transformers": "4.57.3"
+        },
+        "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers"
+      },
+      "sha256": "9c3b450af19d6315d1551e4833911390524059f0d7414ee7dc2ffb39800103ff",
+      "stats": {
+        "frames": 341760,
+        "peak": 16095,
+        "rms": 2602.77
+      }
+    },
+    "review": {
+      "take_sha256": "9c3b450af19d6315d1551e4833911390524059f0d7414ee7dc2ffb39800103ff",
+      "record_sha256": "23f9363089cd81dd925fcae2c43f537dc9bf74b9cbf8ed86d66af7c944ef20d5",
+      "reviewer": "Creative director",
+      "notes": "Automated playtest cast selection; PCM verified. Human listening review pending.",
+      "license_and_reference_checked": true
+    }
+  },
+  "fingerprint": "1771b0586400e582a32bea9453ea0e3568cefbc30131555e9ac167fcba1d55f3",
+  "sha256": "edc1433b25c66e9f0aeef8c499c1fd7a469e16fbeafb1c5b6a6816f4237c399b",
+  "stats": {
+    "frames": 88320,
+    "peak": 17057,
+    "rms": 2602.78
+  }
+}

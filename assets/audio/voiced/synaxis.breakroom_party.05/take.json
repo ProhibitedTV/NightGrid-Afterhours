@@ -1,0 +1,91 @@
+{
+  "spec": {
+    "line": {
+      "id": "synaxis.breakroom_party.05",
+      "character": "dev",
+      "language": "English",
+      "text": "I said it sounded like a holiday. They said it sounded like a catering expense. We agreed to stop asking questions.",
+      "direction": "Natural workplace conversation, dry humor.",
+      "source": {
+        "constant": "BREAKROOM_PARTY",
+        "row": 4
+      }
+    },
+    "voice": {
+      "direction": "Original adult male coworker, natural conversational English, dry and understated."
+    }
+  },
+  "settings": {
+    "model": "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+    "revision": "fd4b254389122332181a7c3db7f27e918eec64e3",
+    "seed": 308,
+    "device": "cuda",
+    "dtype": "bfloat16",
+    "packages": {
+      "qwen-tts": "0.1.1",
+      "torch": "2.11.0+cu128",
+      "soundfile": "0.14.0",
+      "transformers": "4.57.3"
+    },
+    "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers",
+    "cast_sha256": "1b9d1a58d5b533cf1faf81df8d3a001e259745bbab04316eb1d20ccabb30a0b8"
+  },
+  "cast": {
+    "schema": 1,
+    "character": "dev",
+    "transcript": "I asked my parents back home. They've never heard of it.",
+    "audition": {
+      "spec": {
+        "line": {
+          "id": "synaxis.breakroom_party.03",
+          "character": "dev",
+          "language": "English",
+          "text": "I asked my parents back home. They've never heard of it.",
+          "direction": "Natural workplace conversation, dry humor.",
+          "source": {
+            "constant": "BREAKROOM_PARTY",
+            "row": 2
+          }
+        },
+        "voice": {
+          "direction": "Original adult male coworker, natural conversational English, dry and understated."
+        }
+      },
+      "settings": {
+        "model": "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+        "revision": "5ecdb67327fd37bb2e042aab12ff7391903235d3",
+        "seed": 309,
+        "device": "cuda",
+        "dtype": "bfloat16",
+        "reference": "original synthetic voice design",
+        "packages": {
+          "qwen-tts": "0.1.1",
+          "torch": "2.11.0+cu128",
+          "soundfile": "0.14.0",
+          "transformers": "4.57.3"
+        },
+        "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers"
+      },
+      "sha256": "57492c6ed52a9ed7f8af6f8ff4b489953756147f623e1095f649538f68d93af0",
+      "stats": {
+        "frames": 130560,
+        "peak": 16357,
+        "rms": 2602.77
+      }
+    },
+    "review": {
+      "take_sha256": "57492c6ed52a9ed7f8af6f8ff4b489953756147f623e1095f649538f68d93af0",
+      "record_sha256": "9e37506e79fcd3a3980a3b24b0545a9e5458fdc6597a22c0c13be285874917df",
+      "reviewer": "Creative director",
+      "notes": "Automated playtest cast selection; PCM verified. Human listening review pending.",
+      "license_and_reference_checked": true
+    }
+  },
+  "fingerprint": "85799f54004a3e71fa4bb0878d6748bbba90a1fe972eff2f96c6dbd897b8189e",
+  "sha256": "d1ca00bc97696b8cb103385bf24c37ae02769ce8d5273d6686b8fb953b2c7f42",
+  "stats": {
+    "frames": 334080,
+    "peak": 18544,
+    "rms": 2602.78
+  }
+}

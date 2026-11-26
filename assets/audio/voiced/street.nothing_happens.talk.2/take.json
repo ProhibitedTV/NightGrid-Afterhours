@@ -1,0 +1,94 @@
+{
+  "spec": {
+    "line": {
+      "id": "street.nothing_happens.talk.2",
+      "character": "nothing_happens",
+      "language": "English",
+      "text": "A software update that actually fixes something. Now that would be historic.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "nothing_happens",
+        "topic": 1,
+        "question": "What would actually surprise you?"
+      }
+    },
+    "voice": {
+      "direction": "Original adult male, flat deadpan internet cynic, casually dismissive."
+    }
+  },
+  "settings": {
+    "model": "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+    "revision": "fd4b254389122332181a7c3db7f27e918eec64e3",
+    "seed": 308,
+    "device": "cuda",
+    "dtype": "bfloat16",
+    "packages": {
+      "qwen-tts": "0.1.1",
+      "torch": "2.11.0+cu128",
+      "soundfile": "0.14.0",
+      "transformers": "4.57.3"
+    },
+    "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers",
+    "cast_sha256": "e32b1e1497bd41f0784fd88257d88b4319522e89858a5460d68acf2f3825810f"
+  },
+  "cast": {
+    "schema": 1,
+    "character": "nothing_happens",
+    "transcript": "Nothing ever happens.",
+    "audition": {
+      "spec": {
+        "line": {
+          "id": "street.nothing_happens.01",
+          "character": "nothing_happens",
+          "language": "English",
+          "text": "Nothing ever happens.",
+          "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+          "source": {
+            "catalog": "street_satire",
+            "character": "nothing_happens",
+            "index": 0
+          }
+        },
+        "voice": {
+          "direction": "Original adult male, flat deadpan internet cynic, casually dismissive."
+        }
+      },
+      "settings": {
+        "model": "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+        "revision": "5ecdb67327fd37bb2e042aab12ff7391903235d3",
+        "seed": 309,
+        "device": "cuda",
+        "dtype": "bfloat16",
+        "reference": "original synthetic voice design",
+        "packages": {
+          "qwen-tts": "0.1.1",
+          "torch": "2.11.0+cu128",
+          "soundfile": "0.14.0",
+          "transformers": "4.57.3"
+        },
+        "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers"
+      },
+      "sha256": "2494dd9ba4c6487e6dd6b55a2c0d3ff47b24507ae324de472e83b3052151e2ac",
+      "stats": {
+        "frames": 99840,
+        "peak": 23197,
+        "rms": 2023.95
+      }
+    },
+    "review": {
+      "take_sha256": "2494dd9ba4c6487e6dd6b55a2c0d3ff47b24507ae324de472e83b3052151e2ac",
+      "record_sha256": "835b4e79eb1cfcfee44c0f04755adcb0403d5c5a9413bc951d925538bf44de1f",
+      "reviewer": "Creative director",
+      "notes": "Automated playtest cast selection; PCM verified. Human listening review pending.",
+      "license_and_reference_checked": true
+    }
+  },
+  "fingerprint": "56ddcab945f1d792175e1a99f770a653606e3b8551eac3e9c8019429332ebd5e",
+  "sha256": "324d2e6d2e4af0d0f71e96357ca7cd5ff75e8921e669f4ac6c855203d385896b",
+  "stats": {
+    "frames": 284160,
+    "peak": 23197,
+    "rms": 2535.52
+  }
+}

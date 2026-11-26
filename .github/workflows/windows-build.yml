@@ -57,6 +57,16 @@ jobs:
           set -o pipefail
           godot --headless --path . --import --quit 2>&1 | tee /tmp/nightgrid-import.log
           if grep -Eq 'SCRIPT ERROR:|p_image->is_compressed\(\)|Cannot generate mipmaps from compressed image formats' /tmp/nightgrid-import.log; then exit 1; fi
+      - name: Verify authored dialogue and imported scene banks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/voice/chapter.py validate --source scripts/opening_story.gd
+          result="$(python3 tools/voice/production.py verify-library --manifest tools/voice/synaxis_chapter.json)"
+          echo "$result"
+          count="${result##* }"
+          [[ "$count" =~ ^[0-9]+$ ]]
+          godot --headless --path . --script res://tests/voiced_asset_bank_smoke.gd -- "$count"
       - name: Export Windows executable
         shell: bash
         run: |

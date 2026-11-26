@@ -1,0 +1,39 @@
+{
+  "spec": {
+    "line": {
+      "id": "synaxis.breakroom_party.03",
+      "character": "dev",
+      "language": "English",
+      "text": "I asked my parents back home. They've never heard of it.",
+      "direction": "Natural workplace conversation, dry humor.",
+      "source": {
+        "constant": "BREAKROOM_PARTY",
+        "row": 2
+      }
+    },
+    "voice": {
+      "direction": "Original adult male coworker, natural conversational English, dry and understated."
+    }
+  },
+  "settings": {
+    "model": "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+    "revision": "5ecdb67327fd37bb2e042aab12ff7391903235d3",
+    "seed": 309,
+    "device": "cuda",
+    "dtype": "bfloat16",
+    "reference": "original synthetic voice design",
+    "packages": {
+      "qwen-tts": "0.1.1",
+      "torch": "2.11.0+cu128",
+      "soundfile": "0.14.0",
+      "transformers": "4.57.3"
+    },
+    "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers"
+  },
+  "sha256": "57492c6ed52a9ed7f8af6f8ff4b489953756147f623e1095f649538f68d93af0",
+  "stats": {
+    "frames": 130560,
+    "peak": 16357,
+    "rms": 2602.77
+  }
+}

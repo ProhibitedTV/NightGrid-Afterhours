@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "600399beb8d88664d0e1344052595315ba75608dbf0e9d5dbcd0285b8c329e34",
+  "take_sha256": "b9f05e1b9bc4065366ac698c101f453b24a061262e22a9e374391b39c85dc0b4",
+  "line_sha256": "c5d66bb4dbec0025769af356deaeb022f2604c7b9d56f105b9d4d502a3d316eb",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "Find somewhere that plays real music and doesn't scan your credit score at the door. Good luck!",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 17,
+    "observed_units": 17,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 4.48,
+      "leading_quiet_seconds": 0.22,
+      "trailing_quiet_seconds": 0.08,
+      "quiet_fraction": 0.223,
+      "peak": 20687,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

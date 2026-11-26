@@ -1,0 +1,94 @@
+{
+  "spec": {
+    "line": {
+      "id": "street.night_regular.talk.2",
+      "character": "night_regular",
+      "language": "English",
+      "text": "I woke up with three loyalty accounts and a receipt for premium atmosphere.",
+      "direction": "Direct casual answer to a stranger in the street; understated, natural timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "topic": 1,
+        "question": "How was last night?"
+      }
+    },
+    "voice": {
+      "direction": "Original adult male, relaxed nightlife regular, wry and conversational."
+    }
+  },
+  "settings": {
+    "model": "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+    "revision": "fd4b254389122332181a7c3db7f27e918eec64e3",
+    "seed": 308,
+    "device": "cuda",
+    "dtype": "bfloat16",
+    "packages": {
+      "qwen-tts": "0.1.1",
+      "torch": "2.11.0+cu128",
+      "soundfile": "0.14.0",
+      "transformers": "4.57.3"
+    },
+    "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers",
+    "cast_sha256": "49020e7212119d7e1025a45e318076adf1664bbf1a3d07a9f8cb387cb6533438"
+  },
+  "cast": {
+    "schema": 1,
+    "character": "night_regular",
+    "transcript": "This club has a dress code and a credit score requirement.",
+    "audition": {
+      "spec": {
+        "line": {
+          "id": "street.night_regular.01",
+          "character": "night_regular",
+          "language": "English",
+          "text": "This club has a dress code and a credit score requirement.",
+          "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+          "source": {
+            "catalog": "street_satire",
+            "character": "night_regular",
+            "index": 0
+          }
+        },
+        "voice": {
+          "direction": "Original adult male, relaxed nightlife regular, wry and conversational."
+        }
+      },
+      "settings": {
+        "model": "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+        "revision": "5ecdb67327fd37bb2e042aab12ff7391903235d3",
+        "seed": 309,
+        "device": "cuda",
+        "dtype": "bfloat16",
+        "reference": "original synthetic voice design",
+        "packages": {
+          "qwen-tts": "0.1.1",
+          "torch": "2.11.0+cu128",
+          "soundfile": "0.14.0",
+          "transformers": "4.57.3"
+        },
+        "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers"
+      },
+      "sha256": "862d0ed258aaa68ed40c9d3ce69fcdae45de55b201659b424ee93dd88346506a",
+      "stats": {
+        "frames": 138240,
+        "peak": 15258,
+        "rms": 2602.78
+      }
+    },
+    "review": {
+      "take_sha256": "862d0ed258aaa68ed40c9d3ce69fcdae45de55b201659b424ee93dd88346506a",
+      "record_sha256": "fb4a888a82aed8da8220dbe901a7617a131c325a228fec044d2339a37d63bacb",
+      "reviewer": "Creative director",
+      "notes": "Automated playtest cast selection; PCM verified. Human listening review pending.",
+      "license_and_reference_checked": true
+    }
+  },
+  "fingerprint": "0cd614718c26013e6fbefd93106ce3dbc46b91c61b692788d8ff48bc1b21a2ae",
+  "sha256": "e1b0485d5d5af25b879b46a54192c380c2def72cf1397d440d9c0186dc28ae30",
+  "stats": {
+    "frames": 203520,
+    "peak": 19607,
+    "rms": 2602.78
+  }
+}

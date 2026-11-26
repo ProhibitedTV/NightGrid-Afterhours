@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "7e6464417217f51c7b69466e168b88458b70afd1d0e20d5b5071b32610b8de6a",
+  "take_sha256": "8cba9c1e82789a46130bdffaeeac4d3257d82803384da38f6e60d711b12fae59",
+  "line_sha256": "557a934800a2183175d74bda1d0f6a1775d71b3e89a521b7d1a99e429b8e5e4c",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "I asked my parents back home, they've never heard of it.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 11,
+    "observed_units": 11,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 3.36,
+      "leading_quiet_seconds": 0.66,
+      "trailing_quiet_seconds": 0.04,
+      "quiet_fraction": 0.411,
+      "peak": 17866,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "8b2aa04f1688adf50c2abd30adf6ac26e0d849de9d9e5eff135c81b870094093",
+  "take_sha256": "b8ef0fe9da171a25e424d2344d103df9476f652ad460c5189bfa334f3f29de4a",
+  "line_sha256": "9274828131a8d3537e34d77c9429367c6d79dc903bbad64c059af304cc8fc3e9",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "Sorry about the wait, just a quick call with our overseas logistics team.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 13,
+    "observed_units": 13,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 4.16,
+      "leading_quiet_seconds": 0.06,
+      "trailing_quiet_seconds": 0.1,
+      "quiet_fraction": 0.196,
+      "peak": 15947,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

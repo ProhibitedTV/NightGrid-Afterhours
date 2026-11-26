@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "e1b0485d5d5af25b879b46a54192c380c2def72cf1397d440d9c0186dc28ae30",
+  "take_sha256": "bf3079b5930b0f29c869e3abc81fe95f3dd546e23812607cf68f6ca7c1913490",
+  "line_sha256": "d299c4fa32f5d15debcfb4d699d62d8a80d7608b66b6192d982e067117e07f14",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "I woke up with three loyalty accounts and a receipt for premium atmosphere.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 13,
+    "observed_units": 13,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 4.24,
+      "leading_quiet_seconds": 0.64,
+      "trailing_quiet_seconds": 0.16,
+      "quiet_fraction": 0.222,
+      "peak": 19607,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

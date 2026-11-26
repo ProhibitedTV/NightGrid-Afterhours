@@ -1,0 +1,91 @@
+{
+  "spec": {
+    "line": {
+      "id": "synaxis.conference_end.03",
+      "character": "lin",
+      "language": "English",
+      "text": "It's a very senior customer.",
+      "direction": "Restrained conversational performance; preserve the written meaning.",
+      "source": {
+        "constant": "CONFERENCE_END",
+        "row": 2
+      }
+    },
+    "voice": {
+      "direction": "Original adult female voice, precise and controlled, conversational bilingual English and Mandarin."
+    }
+  },
+  "settings": {
+    "model": "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+    "revision": "fd4b254389122332181a7c3db7f27e918eec64e3",
+    "seed": 308,
+    "device": "cuda",
+    "dtype": "bfloat16",
+    "packages": {
+      "qwen-tts": "0.1.1",
+      "torch": "2.11.0+cu128",
+      "soundfile": "0.14.0",
+      "transformers": "4.57.3"
+    },
+    "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers",
+    "cast_sha256": "be71e58eb659e1bf17ac84b3a7637c54dc71026b4ac4c992d88559e9f9b947fe"
+  },
+  "cast": {
+    "schema": 1,
+    "character": "lin",
+    "transcript": "Sorry about the wait. Just a quick call with our overseas logistics team.",
+    "audition": {
+      "spec": {
+        "line": {
+          "id": "synaxis.conference.02",
+          "character": "lin",
+          "language": "English",
+          "text": "Sorry about the wait. Just a quick call with our overseas logistics team.",
+          "direction": "Restrained conversational performance; preserve the written meaning.",
+          "source": {
+            "constant": "CONFERENCE",
+            "row": 1
+          }
+        },
+        "voice": {
+          "direction": "Original adult female voice, precise and controlled, conversational bilingual English and Mandarin."
+        }
+      },
+      "settings": {
+        "model": "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+        "revision": "5ecdb67327fd37bb2e042aab12ff7391903235d3",
+        "seed": 309,
+        "device": "cuda",
+        "dtype": "bfloat16",
+        "reference": "original synthetic voice design",
+        "packages": {
+          "qwen-tts": "0.1.1",
+          "torch": "2.11.0+cu128",
+          "soundfile": "0.14.0",
+          "transformers": "4.57.3"
+        },
+        "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers"
+      },
+      "sha256": "6c9bc48696c57b6be3c41df807cbfa989e9846350055cb0e4433970d8677c896",
+      "stats": {
+        "frames": 211200,
+        "peak": 23197,
+        "rms": 2542.79
+      }
+    },
+    "review": {
+      "take_sha256": "6c9bc48696c57b6be3c41df807cbfa989e9846350055cb0e4433970d8677c896",
+      "record_sha256": "644b7ba63e00828cb3f46658495c1ffcc986342bde5b7c44ac0b8961eebeb8ec",
+      "reviewer": "Creative director",
+      "notes": "Automated playtest cast selection; PCM verified. Human listening review pending.",
+      "license_and_reference_checked": true
+    }
+  },
+  "fingerprint": "b11e0d1963ce537124cbb8fdc81ef2875b677fcae8547ae4901c0f7eaaa7f962",
+  "sha256": "2dd7d2283e6fc21a5e4da9af019c9659aeb9e7c02aee82fb492bc4e48eed686d",
+  "stats": {
+    "frames": 76802,
+    "peak": 19243,
+    "rms": 2602.77
+  }
+}

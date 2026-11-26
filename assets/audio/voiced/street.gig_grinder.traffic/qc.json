@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "0c36404f6da292c8f18106066d7a83b5200228c49211e199f183bf0a2e5ce865",
+  "take_sha256": "d4e9cae74cb2850b8071bfc1d328e379cbf03b63c0f410bc5ac0a3a73d3cb155",
+  "line_sha256": "a7010773e1bb7e51ff628292a2de518e3f0103ab9bab1fed5e04340f03a687ad",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "The app says traffic is light. I would like to invite the app outside",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 14,
+    "observed_units": 14,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 4.64,
+      "leading_quiet_seconds": 0.44,
+      "trailing_quiet_seconds": 0.18,
+      "quiet_fraction": 0.362,
+      "peak": 19400,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

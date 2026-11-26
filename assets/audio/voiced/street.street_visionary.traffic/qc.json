@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "4e2cf38587aa1df609d321f3c6b0367351ba010c9bbf004aa9c413ddbcfc35b9",
+  "take_sha256": "f38192ba64ba67e7c7a2107a9fc83676f2361fff617deb948840f83243b18d30",
+  "line_sha256": "334394c0bf6177d7431bbb6eb22e80b41f4a2773f5f52924f8fecc3c797e7566",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "We're going to monetize near misses, huge addressable market.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 9,
+    "observed_units": 9,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 3.76,
+      "leading_quiet_seconds": 0.2,
+      "trailing_quiet_seconds": 0.14,
+      "quiet_fraction": 0.202,
+      "peak": 16949,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

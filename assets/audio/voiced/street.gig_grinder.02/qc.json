@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "095a66b585b414f44eb934a65304c2241097f0a0523d939ee0eb8ea7283ad679",
+  "take_sha256": "5127cce0f366d67b8d52395da954e8369393263863fb139d757abfcae518b0e1",
+  "line_sha256": "1940ad1a79509e743a590176493d401ae4d7e2d10b345b7ce561b96fb9ce7ffa",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "My boss is a progress bar that hates me.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 9,
+    "observed_units": 9,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 2.64,
+      "leading_quiet_seconds": 0.42,
+      "trailing_quiet_seconds": 0.04,
+      "quiet_fraction": 0.258,
+      "peak": 16674,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

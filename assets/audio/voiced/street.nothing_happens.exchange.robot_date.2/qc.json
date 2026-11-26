@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "4942c4ca3a5c17e51475a7008cf07be1de92ef9068517c86821fead103036166",
+  "take_sha256": "dca95d4f91e6764bc522b0e3f0737b8b06cf9287a1a748f3af98b7c4c1666cb1",
+  "line_sha256": "f1311eb300bddea26ad23105d3ea077c38c3b74a21a594e535bcbbb7507f5510",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "Nothing ever happens.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 3,
+    "observed_units": 3,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 2.4,
+      "leading_quiet_seconds": 0.44,
+      "trailing_quiet_seconds": 0.28,
+      "quiet_fraction": 0.392,
+      "peak": 23197,
+      "rms": 2320.97
+    },
+    "flags": []
+  }
+}

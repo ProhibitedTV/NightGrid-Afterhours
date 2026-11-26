@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "40976a415df8dac521011227c2dd44942f3ab32ef63326a95fe0d485ef422ed5",
+  "take_sha256": "cd0d092282c28b26d1e21d0a94c36500b20592c6075b467ee74cba3ebd54ffdd",
+  "line_sha256": "59fddff970ae6a490a737607a6444d99d27346ada5254ac33520b0f062dae3f8",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "Never accept a job that pays in exposure unless your landlord is a photographer.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 14,
+    "observed_units": 14,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 5.2,
+      "leading_quiet_seconds": 0.5,
+      "trailing_quiet_seconds": 0.1,
+      "quiet_fraction": 0.265,
+      "peak": 18829,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}

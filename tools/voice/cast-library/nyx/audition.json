@@ -1,0 +1,41 @@
+{
+  "spec": {
+    "line": {
+      "id": "street.nyx.soundcheck.brief",
+      "character": "nyx",
+      "text": "People around here say you keep your word. Take this demo to Rae at Blue Hour. No algorithms, no auditions by committee. Just let someone hear it.",
+      "language": "English",
+      "direction": "Casual direct address to a trusted local; understated, sincere.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "nyx",
+        "venue_job": "soundcheck_pass",
+        "beat": "brief"
+      }
+    },
+    "voice": {
+      "direction": "Original adult nightlife promoter, low-key, independent music enthusiast, no celebrity likeness."
+    }
+  },
+  "settings": {
+    "model": "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+    "revision": "5ecdb67327fd37bb2e042aab12ff7391903235d3",
+    "seed": 309,
+    "device": "cuda",
+    "dtype": "bfloat16",
+    "reference": "original synthetic voice design",
+    "packages": {
+      "qwen-tts": "0.1.1",
+      "torch": "2.11.0+cu128",
+      "soundfile": "0.14.0",
+      "transformers": "4.57.3"
+    },
+    "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers"
+  },
+  "sha256": "ee5cdf64a565a8bc8ea4e86f0c2627cc5bd9d22dd695590691bf71c49398ffcb",
+  "stats": {
+    "frames": 430080,
+    "peak": 18052,
+    "rms": 2602.78
+  }
+}

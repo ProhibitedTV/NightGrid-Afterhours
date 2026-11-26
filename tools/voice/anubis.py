@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Anubis local audio driver. One model at a time; no automatic approval."""
+"""Anubis local audio driver. One model at a time; explicit opt-in provisional playtest acceptance."""
 import argparse
 import os
 from pathlib import Path
@@ -12,7 +12,7 @@ import production
 import studio
 
 HERE=Path(__file__).resolve().parent
-PINS=studio.ROOT/"dist/voice-models.json"
+PINS=studio.ROOT/"tools/voice/model-pins.json"
 MODELS={"design":studio.MODEL,"base":production.BASE,"asr":"Systran/faster-whisper-small"}
 
 
@@ -25,7 +25,7 @@ def load_pins():
     pins=production.load(PINS)
     if set(pins)!=set(MODELS) or any(pins[k].get("repo")!=v or
             not studio.REV.fullmatch(pins[k].get("revision","")) for k,v in MODELS.items()):
-        raise ValueError("Invalid model pins; restore or inspect dist/voice-models.json")
+        raise ValueError("Invalid model pins; restore or inspect tools/voice/model-pins.json")
     return pins
 
 
@@ -104,21 +104,28 @@ def ensure_casts(args,specs,selected,pins):
         print("\nCAST:",char,"|",specs[ident]["line"]["text"],flush=True)
         for i,folder in enumerate(options,1):
             print(f"  {i}: {folder/'take.wav'}",flush=True)
-        if args.non_interactive:
-            continue
-        answer=input("Listen to the files, select an audition number (Enter to defer): ").strip()
-        if not answer:
-            continue
-        if not answer.isdigit() or not 1<=int(answer)<=len(options):
-            raise ValueError("Invalid audition choice; rerun bake")
-        if input("Confirm original synthetic voice, listening review and model/output rights (type APPROVE): ").strip()!="APPROVE":
-            continue
-        notes=input("Listening / performance notes: ").strip()
-        if not notes:
-            raise ValueError("Review notes are required")
-        take=options[int(answer)-1].name
+        if args.auto_playtest:
+            if not options:
+                raise RuntimeError("No valid auditions for " + char)
+            take = options[0].name
+            notes = "Automated playtest cast selection; PCM verified. Human listening review pending."
+            print("Automatically selected:", char, take, flush=True)
+        else:
+            if args.non_interactive:
+                continue
+            answer=input("Listen to the files, select an audition number (Enter to defer): ").strip()
+            if not answer:
+                continue
+            if not answer.isdigit() or not 1<=int(answer)<=len(options):
+                raise ValueError("Invalid audition choice; rerun bake")
+            if input("Confirm original synthetic voice, listening review and model/output rights (type APPROVE): ").strip()!="APPROVE":
+                continue
+            notes=input("Listening / performance notes: ").strip()
+            if not notes:
+                raise ValueError("Review notes are required")
+            take=options[int(answer)-1].name
         run("studio.py","approve","--manifest",args.manifest,"--id",ident,"--take",take,
-            "--reviewer",args.reviewer,"--notes",notes,"--rights-checked")
+            "--reviewer",("Anubis automated playtest QC" if args.auto_playtest else args.reviewer),"--notes",notes,"--rights-checked")
         run("production.py","lock","--manifest",args.manifest,"--id",ident,"--take",take)
     outstanding=[c for c in missing if not (production.CAST/c).exists()]
     if outstanding:
@@ -154,8 +161,35 @@ def bake(args,specs,selected):
             raise ValueError("Unexpected production results")
         pairs=[p for row in rows for p in ("--id",row["id"],"--take",row["take"])]
         run("qc.py","--manifest",args.manifest,"--model-dir",asr_path,"--device","cpu",*pairs)
+    if args.auto_playtest:
+        passed = 0
+        flagged = []
+        for row in rows:
+            ident, take = row["id"], row["take"]
+            folder = production.TAKES / ident / take
+            report = production.qc.verify_report(folder, specs[ident])
+            flags = report["metrics"]["flags"]
+            if flags:
+                flagged.append((ident, flags))
+                continue
+            if not (folder / "review.json").exists():
+                run("production.py", "approve",
+                    "--manifest", args.manifest,
+                    "--id", ident, "--take", take,
+                    "--reviewer", "Anubis automated playtest QC",
+                    "--notes", "Machine QC passed; human listening review pending.",
+                    "--rights-checked")
+            run("production.py", "publish",
+                "--manifest", args.manifest,
+                "--id", ident, "--take", take)
+            passed += 1
+        print("Playtest takes staged:", passed)
+        print("Flagged for review:", flagged)
     run("chapter.py","status","--manifest",args.manifest)
-    print("Candidates ready for explicit listening review; nothing published automatically.")
+    if args.auto_playtest:
+        print("Machine-QC accepted assets staged for playtest; human release review pending.")
+    else:
+        print("Candidates ready for explicit listening review; nothing published automatically.")
 
 
 SFX_SCRIPT=studio.ROOT/"tools/audio/generate_sfx.py"
@@ -203,7 +237,12 @@ def main():
     parser.add_argument("--sfx-group",choices=["office","city","steps"])
     parser.add_argument("--sfx-cli",default="stable-audio")
     parser.add_argument("--sfx-device",choices=["cpu","cuda"],default="cpu")
+    parser.add_argument("--auto-playtest", action="store_true")
+    parser.add_argument("--rights-checked", action="store_true")
     args=parser.parse_args()
+    if args.auto_playtest and not args.rights_checked:
+        parser.error("Automatic playtest requires rights confirmation")
+
     args.manifest=args.manifest.resolve()
     if args.action=="setup":
         setup()

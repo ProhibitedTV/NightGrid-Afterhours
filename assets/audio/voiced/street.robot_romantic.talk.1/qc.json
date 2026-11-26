@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "67e5eba3436a20727c418301f956b05197add600401b5828671e1f3d27e4a955",
+  "take_sha256": "5c2f1c08c16a948393d164db12cef4748e2858f02b1ded9338901b3888eeb89d",
+  "line_sha256": "2bcca389c9bd2e1ea4e833461874b0332cd6a674ae4b84862b9ca0ae141c0004",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "at a trade show. I asked for her number and she gave me her serial number. We just clicked.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 19,
+    "observed_units": 19,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 5.68,
+      "leading_quiet_seconds": 0.2,
+      "trailing_quiet_seconds": 0.08,
+      "quiet_fraction": 0.218,
+      "peak": 20750,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}

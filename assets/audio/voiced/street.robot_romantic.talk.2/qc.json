@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "f9c8723a0826478f24fd043e3e9454e6444830ca28e03ae1c799f4fd896f3e0b",
+  "take_sha256": "9b1c5b0a404f21a57412a79cf148c5e90c623c5c05db3dc9969d11ba5f42a8e6",
+  "line_sha256": "f563549a9244f1f03411fcdd0e51030635dc4e5ef18bf379c686e86fa61ea141",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "No, she's charging, we have separate schedules, but at least she tells me when she's unavailable.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 16,
+    "observed_units": 16,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 6.72,
+      "leading_quiet_seconds": 0.46,
+      "trailing_quiet_seconds": 0.08,
+      "quiet_fraction": 0.22,
+      "peak": 20971,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

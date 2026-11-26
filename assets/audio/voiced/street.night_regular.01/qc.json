@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "5de13c96027c5ffc62b89bdec9ef606b4b4d63498302951d37faeb8d9b7cc4eb",
+  "take_sha256": "a7a28f5132d581a8796b1d121a8331bf05db28153360244b0c4c48a4fd7c9335",
+  "line_sha256": "64656038a37c955a811f1fad34ae3f3b1c41a7c309f1e6ada30f7766c16570c8",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "This club has a dress code and a credit score requirement.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 11,
+    "observed_units": 11,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 3.2,
+      "leading_quiet_seconds": 0.42,
+      "trailing_quiet_seconds": 0.12,
+      "quiet_fraction": 0.212,
+      "peak": 20553,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

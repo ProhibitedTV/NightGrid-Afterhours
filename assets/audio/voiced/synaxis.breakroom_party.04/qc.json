@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "c11d85050f43719d5dd7bd289c090df5fc2936cf2c9a12699be5c1bdd6e518d5",
+  "take_sha256": "82f94b8f22ca578d5e8fc150c3851ba9f7a1f9e3880f26de34b02d89e4c776e3",
+  "line_sha256": "253001a0517bde11b27bc2f477b76e5d65123356f279fe2f352e0f81f5abddfb",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "Neither has HR. They needed something for the diversity slide before earnings.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 12,
+    "observed_units": 12,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 5.36,
+      "leading_quiet_seconds": 0.3,
+      "trailing_quiet_seconds": 0.2,
+      "quiet_fraction": 0.272,
+      "peak": 16294,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}

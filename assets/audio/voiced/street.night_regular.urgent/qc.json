@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "0fb0468b7c6b2fea70cd77e0741ccc48cdca7b426628f90b0bec07eac402760f",
+  "take_sha256": "60f5e30c511acfb5dd84151ab97850df212b405dd0c5b51a8c9190c2e0601cc1",
+  "line_sha256": "47af8880ed020041d01c7391969ec7a068d01de5b625334913f1626ad78b0192",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "I came out for a quiet evening. Wrong district, apparently.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 10,
+    "observed_units": 10,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 3.28,
+      "leading_quiet_seconds": 0.3,
+      "trailing_quiet_seconds": 0.04,
+      "quiet_fraction": 0.226,
+      "peak": 20584,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}

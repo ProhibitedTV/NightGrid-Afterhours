@@ -1,0 +1,94 @@
+{
+  "spec": {
+    "line": {
+      "id": "street.street_visionary.exchange.side_hustle.3",
+      "character": "street_visionary",
+      "language": "English",
+      "text": "Incredible. You're an ecosystem.",
+      "direction": "Understated conversational delivery to another pedestrian, with natural sentence timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "street_visionary",
+        "exchange": "side_hustle",
+        "turn": 2
+      }
+    },
+    "voice": {
+      "direction": "Original adult female, enthusiastic self-styled entrepreneur."
+    }
+  },
+  "settings": {
+    "model": "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+    "revision": "fd4b254389122332181a7c3db7f27e918eec64e3",
+    "seed": 308,
+    "device": "cuda",
+    "dtype": "bfloat16",
+    "packages": {
+      "qwen-tts": "0.1.1",
+      "torch": "2.11.0+cu128",
+      "soundfile": "0.14.0",
+      "transformers": "4.57.3"
+    },
+    "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers",
+    "cast_sha256": "c63f008398947a4c2a405dac4874f3cd82ca58e8ba79b30db470643878e6e2ec"
+  },
+  "cast": {
+    "schema": 1,
+    "character": "street_visionary",
+    "transcript": "I'm disrupting the sidewalk industry. People are already walking all over my product.",
+    "audition": {
+      "spec": {
+        "line": {
+          "id": "street.street_visionary.01",
+          "character": "street_visionary",
+          "language": "English",
+          "text": "I'm disrupting the sidewalk industry. People are already walking all over my product.",
+          "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+          "source": {
+            "catalog": "street_satire",
+            "character": "street_visionary",
+            "index": 0
+          }
+        },
+        "voice": {
+          "direction": "Original adult female, enthusiastic self-styled entrepreneur."
+        }
+      },
+      "settings": {
+        "model": "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+        "revision": "5ecdb67327fd37bb2e042aab12ff7391903235d3",
+        "seed": 309,
+        "device": "cuda",
+        "dtype": "bfloat16",
+        "reference": "original synthetic voice design",
+        "packages": {
+          "qwen-tts": "0.1.1",
+          "torch": "2.11.0+cu128",
+          "soundfile": "0.14.0",
+          "transformers": "4.57.3"
+        },
+        "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers"
+      },
+      "sha256": "292528427035635bec62cfa8247d84bc41de94d85982b3b10d204bcd68d0a7e8",
+      "stats": {
+        "frames": 245760,
+        "peak": 14920,
+        "rms": 2602.77
+      }
+    },
+    "review": {
+      "take_sha256": "292528427035635bec62cfa8247d84bc41de94d85982b3b10d204bcd68d0a7e8",
+      "record_sha256": "b79f61c897718f5ff1a81c117fd2a14d0a13329f1d7dbf38b8cfd9d0e51e465e",
+      "reviewer": "Creative director",
+      "notes": "Automated playtest cast selection; PCM verified. Human listening review pending.",
+      "license_and_reference_checked": true
+    }
+  },
+  "fingerprint": "b67905eb6839202d6f196075b4667f4d9dfd164568e349dbd684cf9ef6ddcef0",
+  "sha256": "8f7ab30f9d09ee96a54a8c13e5ea85bfc6876e161c1219cc5b039679cf87e45f",
+  "stats": {
+    "frames": 134400,
+    "peak": 23197,
+    "rms": 2541.24
+  }
+}

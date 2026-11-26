@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "86e1905c92f04d3f1828e4a29609206537134f96717112e56cf5a2f598c6bc00",
+  "take_sha256": "ab6d80b737b12767658a7e3cd7025212590a1454ed8bd10dcc1b34405460bcd8",
+  "line_sha256": "56bf10d89a9d056eb9f9684c3d9d59bc0c929aaba990661a7e8ab5d3be96b70c",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "Don't worry, I'll save you a napkin. That's the only thing they ordered enough of.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 15,
+    "observed_units": 15,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 4.56,
+      "leading_quiet_seconds": 0.26,
+      "trailing_quiet_seconds": 0.1,
+      "quiet_fraction": 0.263,
+      "peak": 16705,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}

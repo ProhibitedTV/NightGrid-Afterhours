@@ -16,7 +16,7 @@ import studio
 import qc
 
 BASE = "Qwen/Qwen3-TTS-12Hz-1.7B-Base"
-CAST = studio.ROOT / "dist/voice-cast"
+CAST = studio.ROOT / "tools/voice/cast-library"
 TAKES = studio.ROOT / "dist/voice-production"
 PUBLISHED = studio.ROOT / "assets/audio/voiced"
 
@@ -150,6 +150,22 @@ def verify_library(specs, root=PUBLISHED):
     return count
 
 
+def provisional_review(review):
+    """Recognize the original batch and future unattended playtest reviews."""
+    return (review.get("reviewer") == "Anubis automated playtest QC"
+            or "human listening review pending" in review.get("notes", "").casefold())
+
+
+def verify_release_reviews(specs, root=PUBLISHED):
+    """Never confuse machine acceptance with human release approval."""
+    count = verify_library(specs, root)
+    for folder in sorted(root.iterdir()) if root.exists() else ():
+        record = load(folder / "take.json")
+        if provisional_review(load(folder / "review.json")) or provisional_review(record["cast"]["review"]):
+            raise ValueError("Provisional playtest dialogue is not release-reviewed: " + folder.name)
+    return count
+
+
 def generate(args, specs):
     if not args.revision or not studio.REV.fullmatch(args.revision):
         raise ValueError("Use exact Base model revision")
@@ -158,6 +174,7 @@ def generate(args, specs):
     import importlib.metadata as metadata
     import soundfile as sf
     import torch
+    from huggingface_hub import snapshot_download
     from qwen_tts import Qwen3TTSModel
     if args.device == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("CUDA unavailable")
@@ -183,7 +200,7 @@ def generate(args, specs):
             continue
         if model is None:
             model = Qwen3TTSModel.from_pretrained(
-                BASE, revision=args.revision, local_files_only=True, device_map=args.device,
+                snapshot_download(BASE, revision=args.revision, local_files_only=True), local_files_only=True, device_map=args.device,
                 dtype=torch.float32 if dtype == "float32" else torch.bfloat16,
                 attn_implementation="sdpa")
         torch.manual_seed(args.seed)
@@ -226,11 +243,12 @@ def main():
     parser.add_argument("--rights-checked", action="store_true")
     parser.add_argument("--qc-override", help="Specific listening-based justification for QC flags")
     parser.add_argument("--manifest", type=Path, default=studio.MANIFEST)
+    parser.add_argument("--release-reviewed", action="store_true", help="Reject provisional machine acceptance when verifying a library")
     parser.add_argument("--result-file", type=Path, help="Write exact generated candidate IDs and fingerprints")
     args = parser.parse_args()
     specs = studio.read_manifest(args.manifest)
     if args.action == "verify-library":
-        print("Verified published lines:", verify_library(specs))
+        print("Verified published lines:", (verify_release_reviews if args.release_reviewed else verify_library)(specs))
         return
     if not args.id or any(i not in specs for i in args.id):
         parser.error("Select known --id values")

@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "727364d49f65aea90676a5f03d35f17726fff65988f0849b180958821a99a961",
+  "take_sha256": "8ae1c9c645b7c76ea75257f7ef328c764462e0d0992a13a864740cd2dfabcde8",
+  "line_sha256": "fb9b047c98732c06802ce6d60e5a2bda59f853e51afcefc44dd034de3b8956e5",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "Of course, moving around is the premium tier.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 8,
+    "observed_units": 8,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 3.12,
+      "leading_quiet_seconds": 0.12,
+      "trailing_quiet_seconds": 0.12,
+      "quiet_fraction": 0.212,
+      "peak": 17798,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}

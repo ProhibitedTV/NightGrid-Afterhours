@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "fe7c71478e916122ca9d18af8e7ccc68ce7fe395832eae3f4d362aa4f05440e2",
+  "take_sha256": "927d4263814e171ca74432bbe6c470536dfacc60720e9f04745cdd3005efaa11",
+  "line_sha256": "b9c3f0ff8897392a384a1fc1fbdb2ddc8c33faa1726e193123ac1e32a56ef39a",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "My apartment has a subscription doorbell. I canceled it now visitors are downloadable content",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 14,
+    "observed_units": 14,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 6.16,
+      "leading_quiet_seconds": 0.28,
+      "trailing_quiet_seconds": 0.18,
+      "quiet_fraction": 0.221,
+      "peak": 18080,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}

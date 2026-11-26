@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "ac1d7a794d1122da9173eb0b106541c0996476539313d74fb0deead0791d9dc8",
+  "take_sha256": "454c86920a992d4cd898a8b4fa82cc0741d74fe594b0eff5913f602c8345f6af",
+  "line_sha256": "f50472d561ee280b3112450a24a25c903c048b2760ff45f240681c080eb32061",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "The DJ is an algorithm, somehow it still takes requests personally.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 11,
+    "observed_units": 11,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 4.24,
+      "leading_quiet_seconds": 0.26,
+      "trailing_quiet_seconds": 0.18,
+      "quiet_fraction": 0.255,
+      "peak": 23197,
+      "rms": 2300.63
+    },
+    "flags": []
+  }
+}

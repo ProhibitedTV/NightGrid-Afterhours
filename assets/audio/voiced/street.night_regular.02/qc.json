@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "ace191f43e6e1be78bf6faebd3df522dcdcc85924fe68f53d754b1a2ea702c19",
+  "take_sha256": "390b251c99681d888aacfb67aaf39d0e64f679ba71c80fa896bb767ea2f9b00a",
+  "line_sha256": "e8edc8da529322f3f082059579f2ebd0b27270525425d0f149460408ca1fc1bc",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "I came out for one drink. That was two firmware updates ago.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 12,
+    "observed_units": 12,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 3.52,
+      "leading_quiet_seconds": 0.3,
+      "trailing_quiet_seconds": 0.02,
+      "quiet_fraction": 0.307,
+      "peak": 19832,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}

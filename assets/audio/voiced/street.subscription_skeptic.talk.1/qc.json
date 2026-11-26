@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "c0eb04ad01a332f6ddbfda16ffea40d05f10f6f5823da01be090f53f1e9d0d44",
+  "take_sha256": "375f192ae9fe1437271602bfc697d5cc8f43efc5565ada27f9fddd7386a48adf",
+  "line_sha256": "b1dcf93b49ea140b4a90d6abdcd9036e0a5c0168a33e05192f19f657ac004ee9",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "You used to own things. Now the toaster wants my email address. I'm not building a relationship with breakfast.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 19,
+    "observed_units": 19,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 6.32,
+      "leading_quiet_seconds": 0.26,
+      "trailing_quiet_seconds": 0.18,
+      "quiet_fraction": 0.218,
+      "peak": 15888,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

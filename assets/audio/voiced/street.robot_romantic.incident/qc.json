@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "113d8863e4bf811300443d7036d59b4aa2549a131810655fd9680700e92abe41",
+  "take_sha256": "d45714153c0386bd8513ea93e202772cdd127f28c23f97bf02e0b37dfd908792",
+  "line_sha256": "cbe7437cc0d62ff0694e04ef90c88808f0e7836f25e9363aa2213e307f6f2fbd",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "My girlfriend says public disturbances are a known issue. They're working on a patch.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 14,
+    "observed_units": 14,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 5.52,
+      "leading_quiet_seconds": 0.46,
+      "trailing_quiet_seconds": 0.24,
+      "quiet_fraction": 0.243,
+      "peak": 19056,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}

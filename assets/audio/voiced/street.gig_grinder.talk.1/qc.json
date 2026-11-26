@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "e7418cd9749bace56ddd594a6311a4a74c4224dcbb514c4997ca0be998b0a81f",
+  "take_sha256": "4f9ab039146a3ec9c975c12b4ed363fedd1a32632edc62196d1ae0d9ccb72fbd",
+  "line_sha256": "12a2305c45aea380e4d0f6f63e852472d4db5ae4c83bd46e3ab6cc19e8741aba",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "I'm technically my own boss. My boss just denied my request for a bathroom break.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 15,
+    "observed_units": 15,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 5.44,
+      "leading_quiet_seconds": 0.4,
+      "trailing_quiet_seconds": 0.12,
+      "quiet_fraction": 0.279,
+      "peak": 19972,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}

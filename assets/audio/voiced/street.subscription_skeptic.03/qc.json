@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "133ee11e58967cf5b68e3c6c136205db0c3c1ffe540964fd754e12ff65246b65",
+  "take_sha256": "f624d09bf7b0f136f8248dd5caf77ceff978955d0389cf34fb025aaf188ff0bc",
+  "line_sha256": "f67c4919b93aea8f1bd4b06fbc2831bff92cfd38bcab6acf5e2fccacb06f3630",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "They offered me an ad-free shower. I asked if the water was extra.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 14,
+    "observed_units": 14,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 4.16,
+      "leading_quiet_seconds": 0.18,
+      "trailing_quiet_seconds": 0.12,
+      "quiet_fraction": 0.231,
+      "peak": 14771,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

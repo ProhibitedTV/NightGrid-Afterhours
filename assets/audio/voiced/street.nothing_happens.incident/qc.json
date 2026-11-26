@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "238b9f3866c2112e6587870ef9b83435ee1d6e7097db0dd03d390e4e50a59adc",
+  "take_sha256": "06297e5735b4b688d6b2f1cd79d9ccb1609de22955f053d05922c9e93c8c968b",
+  "line_sha256": "f57a533833d0b4228c0db1425b536775795e7f50dbd66d07b365e43ee99324b8",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "A whole commotion for that? Nothing ever happens.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 8,
+    "observed_units": 8,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 4.64,
+      "leading_quiet_seconds": 0.5,
+      "trailing_quiet_seconds": 0.22,
+      "quiet_fraction": 0.371,
+      "peak": 23197,
+      "rms": 2048.91
+    },
+    "flags": []
+  }
+}

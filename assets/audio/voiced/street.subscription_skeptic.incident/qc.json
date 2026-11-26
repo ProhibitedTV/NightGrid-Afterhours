@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "201166245c2896ff323d4413df99f8f6d696edbf31f9e3aba948d11d638f7f5f",
+  "take_sha256": "2de55baa80e2d7ca954401a77cbf0ce4838a95da7b6451fc55723ade76b0b92b",
+  "line_sha256": "fb1beb7b3d4777a0f96adfb286093d5f85e5dc34463b35d94deb514b8ed1eb26",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "Watch them introduce a premium tier for peace and quiet.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 10,
+    "observed_units": 10,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 3.76,
+      "leading_quiet_seconds": 0.14,
+      "trailing_quiet_seconds": 0.1,
+      "quiet_fraction": 0.133,
+      "peak": 15016,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}

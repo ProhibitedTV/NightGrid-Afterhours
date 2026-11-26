@@ -1,6 +1,6 @@
 # NightGrid audio production studio
 
-Part of [#308](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/308) and [#33](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/33). This implementation supports auditions, locked synthetic references, reference-conditioned production candidates, and explicit publishing. No actual game audio has yet been generated. No neural synthesis or GPU benchmark has been performed by the PR author. The existing soundtrack, spatial audio, dispatch and SFX work are not replaced.
+Part of [#308](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/308) and [#33](https://github.com/ProhibitedTV/NightGrid-Afterhours/issues/33). This implementation supports auditions, locked synthetic references, reference-conditioned production candidates, and explicit publishing. Historical design notes below predate the first native production batch; see the current Anubis batch section for verified inventory and policy. The existing soundtrack, spatial audio, dispatch and SFX work are not replaced.
 
 ## Repeatable authoring
 
@@ -72,7 +72,7 @@ python tools/voice/production.py publish --id synaxis.jetson.blinds --take PRODU
 python tools/voice/production.py verify-library
 ```
 
-Replace placeholders with actual exact model revisions and printed candidate fingerprints. A cast lock contains the reviewed original synthetic WAV, transcript, original metadata and rights attestation. Back up `dist/voice-cast` to a private authoring archive; the public game repository receives only approved production clips and their provenance, not the reference WAV. The production adapter refuses to replace a locked character or existing published line silently. To revise a published line, deliberately archive/remove its old directory, publish a replacement, review the diff and rerun checks. Recasting requires replacing **all** published lines for the character together, not mixing voices.
+Replace placeholders with actual exact model revisions and printed candidate fingerprints. A cast lock contains the reviewed original synthetic WAV, transcript, original metadata and rights attestation. Original synthetic references are now versioned in `tools/voice/cast-library` with the owner’s distribution authorization; these authoring assets are excluded from Godot import by `.gdignore`. Never commit private third-party voice references. The production adapter refuses to replace a locked character or existing published line silently. To revise a published line, deliberately archive/remove its old directory, publish a replacement, review the diff and rerun checks. Recasting requires replacing **all** published lines for the character together, not mixing voices.
 
 The Qwen Base reference-conditioned API does not take free-form acting direction in this implementation; the original direction remains in the take metadata and must be checked by listening. Vary seed and evaluate alternate backends for emotional performance. Identical model/reference hashes are a consistency aid, not proof of perceived voice identity. Do not claim production quality before real auditions.
 
@@ -137,7 +137,7 @@ python tools/voice/anubis.py setup
 python tools/voice/anubis.py bake --all
 ```
 
-Setup resolves and records the exact VoiceDesign, Base and multilingual Whisper model revisions in dist/voice-models.json before downloading them, so rerunning setup resumes those revisions. Back up that file and dist/voice-cast. Reserve space for both Qwen models, Whisper, the environment and candidate WAVs. Bake is offline, first generates two auditions per missing character, prompts to choose and explicitly confirm rights/listening review, then renders selected lines with locked voices and runs CPU QC. Enter to defer a cast; use --non-interactive to create auditions without prompting. Rerun the same command after interruption. Generated audio is in dist/voice-production, not the shipped library. Final take review and publication remain separate commands above. A different --seed makes another take for selected unpublished lines; existing published assets are not overwritten.
+Setup uses the exact VoiceDesign, Base and multilingual Whisper revisions in tools/voice/model-pins.json; the original synthetic cast lives in tools/voice/cast-library. Reserve space for both Qwen models, Whisper, the environment and candidate WAVs. Bake is offline, first generates two auditions per missing character, prompts to choose and explicitly confirm rights/listening review, then renders selected lines with locked voices and runs CPU QC. Enter to defer a cast; use --non-interactive to create auditions without prompting. Rerun the same command after interruption. Generated audio is in dist/voice-production, not the shipped library. Final take review and publication remain separate commands above. A different --seed makes another take for selected unpublished lines; existing published assets are not overwritten.
 
 ```bash
 python tools/voice/anubis.py list
@@ -195,3 +195,21 @@ Soundcheck Pass adds Nyx and Rae as original synthetic voice identities, with tw
 Three original offline-authored short sampler WAVs (`assets/audio/rehearsal/{kick,clap,hat}.wav`) are directly embedded and preloaded in the menu; see that directory's provenance README. They are authored mathematical musical percussion, not generated speech/SFX candidates, and are explicitly documented original musical assets. Cue IDs `music.rehearsal.kick`, `.clap`, `.hat` trigger on pad strikes, nonspatial via one Music-bus player. They stop when the activity ends; timing remains visual even if muted. No AI inference or runtime synthesis. Native listening and review pending.
 
 Street sampler busking reuses the existing three original `music.rehearsal.*` percussion cues and bounded Music-bus player; no new audio files, voice recordings or runtime synthesis. Menu-only performance pilot, not spatial audience audio.
+
+## Anubis production batch 001
+
+- Date: 2026-11-26.
+- Hardware: RTX 3060 12 GB.
+- Environment: WSL2, Python 3.11, CUDA.
+- Persistent synthetic voices: 14.
+- Generated dialogue: 88.
+- Machine-QC accepted dialogue: 78.
+- Remaining QC flags: 10.
+- Generation seeds: 308 and 310.
+
+Provisional assets for native gameplay testing.
+Human listening and release validation remain pending.
+
+## RC8 public preview policy
+
+The project owner authorized distribution of batch 001 on 2026-11-26. This permits the 78 machine-QC accepted original synthetic clips to appear in a public prerelease, without asserting human performance approval. `anubis.py bake --all --auto-playtest --rights-checked` is the explicit opt-in provisional path; ordinary interactive review remains available. `chapter.py require-complete --source scripts/opening_story.gd` and `production.py verify-library --release-reviewed --manifest tools/voice/synaxis_chapter.json` remain strict final-review gates. The RC8 preview uses the ordinary provenance verification and requires at least 78 verified clips plus successful preflight and Windows smoke; it does not claim completion. Ten flagged clips and the environmental effects remain outstanding.

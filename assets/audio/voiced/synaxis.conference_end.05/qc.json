@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "4170e139f00e0e5d208e5a84fecc81e973572855517477ea63c8c4429fe094ce",
+  "take_sha256": "78c77b44ce881be2a642bb903525522eb57756481ca81b94f67483d7306bd65b",
+  "line_sha256": "15167c0dacf992f0d29810d27142bf23eda7e240c40fed1291ac432976ad6509",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "She's listed as your assistant.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 5,
+    "observed_units": 5,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 1.92,
+      "leading_quiet_seconds": 0.34,
+      "trailing_quiet_seconds": 0.06,
+      "quiet_fraction": 0.229,
+      "peak": 23175,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "401c9eb8ec8a6d68c4da6fe9ad31492e1873a1bb320a3a7cf1e8d29d8b4d1102",
+  "take_sha256": "31f00ada45610074d3db3bd774d95a8930aaff1021e6e5511070b8892ef94b96",
+  "line_sha256": "51893cad99651a45c080f3ef11f26009339b0a3c025af59b9234c542beafc8b9",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "My girlfriend and I are thinking about moving in together.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 10,
+    "observed_units": 10,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 3.28,
+      "leading_quiet_seconds": 0.4,
+      "trailing_quiet_seconds": 0.1,
+      "quiet_fraction": 0.171,
+      "peak": 18759,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

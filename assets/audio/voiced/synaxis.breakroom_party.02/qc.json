@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "2b1ebb78629ad5278ecc5dac5bafb25454ccecc8e8446465b12105a62db7cc2d",
+  "take_sha256": "896a41925295162fb3f7b75d2d4b1348bce7a4f29312d94d35928a9108cc26b5",
+  "line_sha256": "9f5b9da1ad2d7fe03caa2926910032a90ba7da63dc32d315b95181621d3b92f0",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "What country celebrates this?",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 4,
+    "observed_units": 4,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 1.6,
+      "leading_quiet_seconds": 0.16,
+      "trailing_quiet_seconds": 0.1,
+      "quiet_fraction": 0.2,
+      "peak": 23197,
+      "rms": 2449.02
+    },
+    "flags": []
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "ccb307b0dc4c47c42ac270630b53d3bd0ec7da4ebb842388f93fc4c453bca19a",
+  "take_sha256": "022f1928a77e7b321dd6bbc7c474af46da54d97a0fbf25a5bf6d92e956c136c1",
+  "line_sha256": "efbb147c628022d71ece550cce5732241db4efc9db35b44b2b9329845fa5aa14",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "The pizza is cold. The quarterly profit is not...",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 9,
+    "observed_units": 9,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 3.36,
+      "leading_quiet_seconds": 0.18,
+      "trailing_quiet_seconds": 0.04,
+      "quiet_fraction": 0.286,
+      "peak": 17140,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}

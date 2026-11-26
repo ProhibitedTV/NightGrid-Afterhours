@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "5ad3f0daf4446dbed931391db101af3c4049f606f2c48686f5de701901d2d0e6",
+  "take_sha256": "3c3f736ad32a6671fc4efb854a8fca4b79613d46d415ce07c670268c9c82b365",
+  "line_sha256": "719589949399d443a4e41c4b0604d8774b10fa7c73960fb85e1e523aa9fff350",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "The club charges for standing still now.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 7,
+    "observed_units": 7,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 2.32,
+      "leading_quiet_seconds": 0.1,
+      "trailing_quiet_seconds": 0.18,
+      "quiet_fraction": 0.155,
+      "peak": 18468,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

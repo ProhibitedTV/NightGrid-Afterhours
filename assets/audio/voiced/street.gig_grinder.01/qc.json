@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "b3ccd45ddbf4edecd0933ab596bd984d670773931174fd046915c39dcc25c4fb",
+  "take_sha256": "98dffe75b703964dd9a4c53d83ceb23dffd028dc125771a1fd3f0c6725452e54",
+  "line_sha256": "5fde68610a2ac2ea9f69cb3934f13aad160b452b75dfc4eab13c89aa6271c49e",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "I work for three apps. None of them know I'm employed.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 11,
+    "observed_units": 11,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 3.68,
+      "leading_quiet_seconds": 0.4,
+      "trailing_quiet_seconds": 0.08,
+      "quiet_fraction": 0.375,
+      "peak": 17733,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

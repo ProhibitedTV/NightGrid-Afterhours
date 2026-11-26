@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "2ce265f90956bc2c149005a35bdf3a0a49ae8e77327b2315bf156818a38bde65",
+  "take_sha256": "a03be2fc11674051faf031a1c996af896d9cdcea114491a27963c6619d4bde1b",
+  "line_sha256": "4d2a5e8fcb379e90964ddb2c1181362c8d55af2e1085c3b5d6aac535120de85d",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "She just sent me a safety notification. That's the most affectionate she's been all week.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 15,
+    "observed_units": 15,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 6.0,
+      "leading_quiet_seconds": 0.22,
+      "trailing_quiet_seconds": 0.3,
+      "quiet_fraction": 0.24,
+      "peak": 17352,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

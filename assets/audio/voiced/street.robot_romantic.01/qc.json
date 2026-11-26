@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "260164799a441ce43e170634ccce43fdb9ad04bfdc909113f5742a16924d17e9",
+  "take_sha256": "fdd2828f8331a43414f888140c23177cce7303f31f6fbb84bf235ed14bb34b47",
+  "line_sha256": "029a2499f2c861811ed84118314a49ca84745fbcfce94852cf75f0a8d5f65f00",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "My girlfriend is a robot. Her parents are a motherboard and a warranty department.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 14,
+    "observed_units": 14,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 5.92,
+      "leading_quiet_seconds": 0.4,
+      "trailing_quiet_seconds": 0.06,
+      "quiet_fraction": 0.284,
+      "peak": 18218,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

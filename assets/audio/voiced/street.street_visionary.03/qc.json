@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "848645919791df30d8bd05bc2a07c3f90f914300b97cebcbb9739a5b5a8458b0",
+  "take_sha256": "e29c7a8a3aedd8f88e4205eea7e1dee1be25b4fd23699892b6dd43e5dce3d50e",
+  "line_sha256": "97521fb411be3c10a75b34ea431e5fc95ac4e46c19c21d61b3622ce959241cba",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "We're pre-revenue, post-accountability. It's a very exciting phase.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 10,
+    "observed_units": 10,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 4.64,
+      "leading_quiet_seconds": 0.24,
+      "trailing_quiet_seconds": 0.42,
+      "quiet_fraction": 0.246,
+      "peak": 20369,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

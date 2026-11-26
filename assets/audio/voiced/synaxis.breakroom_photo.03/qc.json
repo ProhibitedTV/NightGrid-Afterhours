@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "edc1433b25c66e9f0aeef8c499c1fd7a469e16fbeafb1c5b6a6816f4237c399b",
+  "take_sha256": "3285494575915ab08a2c0946aa5ff52e62a249b32c855c230797583df238c43a",
+  "line_sha256": "6f6bb38e88867dbc5283ff27ef5e6f89a343ddb94ede2f46a44f4e20e0f6a19b",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "Let's keep the messaging positive.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 5,
+    "observed_units": 5,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 1.84,
+      "leading_quiet_seconds": 0.06,
+      "trailing_quiet_seconds": 0.12,
+      "quiet_fraction": 0.196,
+      "peak": 17057,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

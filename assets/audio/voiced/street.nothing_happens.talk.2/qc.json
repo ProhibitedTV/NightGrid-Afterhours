@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "324d2e6d2e4af0d0f71e96357ca7cd5ff75e8921e669f4ac6c855203d385896b",
+  "take_sha256": "93048e47ab7497be6cb74a96f062f6822dc72e2a93db2f2d3c2fb0aba3f8c495",
+  "line_sha256": "70ed17be3f576dec599374dd26450b1548a66118ef37ca1b6eac67fe5cc50235",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "A software update that actually fixes something. Now that would be historic.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 12,
+    "observed_units": 12,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 5.92,
+      "leading_quiet_seconds": 0.68,
+      "trailing_quiet_seconds": 0.2,
+      "quiet_fraction": 0.361,
+      "peak": 23197,
+      "rms": 2535.52
+    },
+    "flags": []
+  }
+}

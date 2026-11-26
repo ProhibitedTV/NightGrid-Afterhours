@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "597da499578f640e33ec87c678f10854aba610ab90f97e661b2ed5341837ede4",
+  "take_sha256": "cb512253458bceff48b6bd400cf4eaff2ae010cce96e77158728f4e3f6927e8b",
+  "line_sha256": "e831413881457109d6c4b3604e3761f1dde653cfed389160fe57a13d27fb9bae",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "上校,解放军那边收到资料了吗? 好,董事长还以为这是市场调研。",
+  "metrics": {
+    "unit": "characters",
+    "expected_units": 26,
+    "observed_units": 26,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 5.92,
+      "leading_quiet_seconds": 0.22,
+      "trailing_quiet_seconds": 0.04,
+      "quiet_fraction": 0.257,
+      "peak": 17178,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}
