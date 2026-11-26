@@ -147,7 +147,9 @@ func tick(delta:float,at:Vector2,id:int,condition:float)->String:
 		stop("ABANDONED")
 		return result
 	if not is_finite(delta) or delta<=0.0 or delta>0.1:
-		return ""
+		# Reject unaccounted simulation time, as taxi and freight do.
+		stop("INVALID UPDATE")
+		return result
 	# Allow ample margin above the car's physical top speed, but never
 	# credit a checkpoint after a teleport or save displacement.
 	if at.distance_to(previous)>maxf(2.0,delta*100.0):
