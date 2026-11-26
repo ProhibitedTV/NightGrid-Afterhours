@@ -1,0 +1,15 @@
+{
+  "model": "owen_pike.glb",
+  "sha256": "95892b7fc792b65d7ae4d3b167ae99ad6dda20cd8d5c801ea0d42b7fd9d6aa0d",
+  "profile_sha256": "b0e7f922b090691fab723f4c07e5438115a8d73cdfc28b4e352c277a022fd904",
+  "bytes": 6088760,
+  "joints": 66,
+  "weighted_primitives": 19,
+  "clips": [
+    "Idle",
+    "Walk"
+  ],
+  "source": "ara3d@0.13.0",
+  "source_revision": "9d3b9f9933cbeb9529630a270ffc7fe01bd05511",
+  "license_notes": "See ../courier/SOURCE.md; original fictional character profile"
+}
