@@ -941,6 +941,26 @@ func _verify() -> void:
 	if founder.get("outfit")!="executive_leather" or jacket==null or not jacket.material_override.normal_enabled or founder.get_node_or_null("BreathingTorso/MainZipperTrack")==null or founder.get_node_or_null("BreathingTorso/TieBlade")!=null:
 		_fail("Jetson has signature textured leather outerwear, zipper details and no tie")
 		return
+	# Verify the lift display without moving the real mission or player.
+	var display_probe=preload("res://scripts/synaxis_lift_transition.gd").new()
+	root.add_child(display_probe)
+	display_probe.call("begin",0,-1,"B1 IT")
+	var floor_label:Label=display_probe.get("_floor_display")
+	if floor_label.text!="↓  G":
+		_fail("Descending from ground must show G and down arrow")
+		return
+	display_probe.call("advance",3.0)
+	if floor_label.text!="↓  B1" or not display_probe.call("transfer_ready") or not display_probe.call("complete"):
+		_fail("Lift display must reach B1 without changing staged transfer timing")
+		return
+	display_probe.call("reset")
+	display_probe.call("begin",-1,4,"OPERATIONS")
+	display_probe.call("advance",3.0)
+	if floor_label.text!="↑  4":
+		_fail("Express ascent must show destination floor and up arrow")
+		return
+	display_probe.call("reset")
+	display_probe.queue_free()
 	var mika: Node3D=staff["mika"]
 	var imported_models:Array[PackedScene]=[]
 	for id in ["mika","security","eli","reception"]:
