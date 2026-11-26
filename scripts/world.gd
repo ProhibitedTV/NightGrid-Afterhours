@@ -892,7 +892,8 @@ func _phone_context() -> Dictionary:
 		"workboard":_phone_workboard(), "circuit_completed":progression.has_receipt(DrivingTrial.RECEIPT), "circuit_best_ms":progression.circuit_best_ms, "brickwater_completed":progression.has_receipt(DrivingTrial.BRICK_RECEIPT), "brickwater_best_ms":progression.brickwater_best_ms, "instrument_status":progression.instrument_summary(),
 		"music_contact":_music_contact_status(), "music_sets":progression.street_activity_runs("busking"),
 		"live_sets":progression.street_activity_runs("live_gig"), "music_unlocked":progression.has_receipt("venue:soundcheck_pass"),
-		"music_contact_available":progression.street_cred()>=100,
+		"music_contact_available":progression.street_cred()>=100 and not progression.has_receipt("venue:soundcheck_pass"),
+		"music_demo_active":venue_job_active=="soundcheck_pass" and not progression.has_receipt("venue:soundcheck_pass"),
 		"music_recruit_milo":progression.band_recruit_available("milo"),
 		"music_showcase":progression.band_showcase_available(),
 		"music_merch":progression.band_merch_summary() if not progression.band_name.is_empty() else "",
@@ -956,9 +957,9 @@ func _phone_route(action: String) -> void:
 			if app == "music":
 				if action == "phone_route_music_gig" and not progression.has_receipt("venue:soundcheck_pass"):
 					return
-				if action == "phone_route_music_contact" and progression.street_cred()<100:
+				if action == "phone_route_music_contact" and (progression.street_cred()<100 or progression.has_receipt("venue:soundcheck_pass")):
 					return
-				var site := "copper_cup" if action == "phone_route_music_shop" else ("blue_hour" if action == "phone_route_music_gig" else "static_room")
+				var site := "copper_cup" if action == "phone_route_music_shop" else ("blue_hour" if action == "phone_route_music_gig" or venue_job_active=="soundcheck_pass" else "static_room")
 				var p: Vector3 = venue_system.call("venue_position",site)
 				destination = Vector2(p.x,p.z)
 		"phone_route_music_milo", "phone_route_music_showcase":

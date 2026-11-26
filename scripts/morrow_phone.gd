@@ -106,7 +106,7 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 			if bool(state.get("music_unlocked",false)):
 				actions.append({"label":"Route to Blue Hour","action":"phone_route_music_gig"})
 			elif bool(state.get("music_contact_available",false)):
-				actions.append({"label":"Route to Static Room","action":"phone_route_music_contact"})
+				actions.append({"label":"Deliver demo to Blue Hour" if bool(state.get("music_demo_active",false)) else "Route to Static Room","action":"phone_route_music_contact"})
 		"wallet":
 			subtitle = "Available funds"
 			rows.append({"label":"Cash on hand","value":"$%d" % int(state.get("cash",0))})

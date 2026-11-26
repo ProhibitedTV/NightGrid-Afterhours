@@ -29,6 +29,11 @@ func _verify() -> void:
 	if not music_actions.contains("phone_route_music_milo") or not music_actions.contains("phone_route_music_showcase") or not str(music["rows"]).contains("12 tapes in stock") or empty_music_actions.contains("phone_route_music_milo") or empty_music_actions.contains("phone_route_music_showcase"):
 		_fail("music navigation reflects current career availability")
 		return
+	var demo: Dictionary = Phone.view("music",{"music_contact_available":true,"music_demo_active":true})
+	var contact: Dictionary = Phone.view("music",{"music_contact_available":true})
+	if not str(demo["actions"]).contains("Deliver demo to Blue Hour") or not str(contact["actions"]).contains("Route to Static Room"):
+		_fail("music contact route label follows demo delivery state")
+		return
 	var packed: PackedScene = load("res://scenes/main.tscn")
 	var world: Node3D = packed.instantiate()
 	root.add_child(world)
