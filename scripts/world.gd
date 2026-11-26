@@ -3069,6 +3069,10 @@ func _close_arcade() -> void:
 	if not is_instance_valid(_arcade_layer):
 		return
 	# Completed results are recorded immediately; abandoned rounds do not settle.
+	# Stop the cabinet synchronously before its deferred deletion.
+	for child in _arcade_layer.get_children():
+		if child.has_method("abort_session"):
+			child.call("abort_session")
 	_arcade_layer.hide()
 	_arcade_layer.process_mode = Node.PROCESS_MODE_DISABLED
 	_arcade_layer.queue_free()

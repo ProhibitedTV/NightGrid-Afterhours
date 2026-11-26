@@ -111,6 +111,18 @@ func _verify() -> void:
 	screen.call("_finish_if_needed")
 	if not check(emissions.size() == 1 and screen.best["patch_day"] == 250, "lower replay score does not replace record"):
 		return
+	# Closing a live modal must discard even a finished-but-unsettled round.
+	screen.call("_show_selection")
+	screen.call("_start_round")
+	screen.round.score=400
+	screen.round.finished=true
+	var closing_round=screen.round
+	var closing_step:int=closing_round.step
+	screen.call("abort_session")
+	screen.call("_process",10.0)
+	screen.call("_finish_if_needed")
+	if not check(screen.state=="select" and not screen.is_processing() and not screen.is_processing_input() and not screen.is_processing_unhandled_input() and closing_round.step==closing_step and emissions.size()==1 and screen.best["patch_day"]==250,"modal teardown discards unsettled round and disables input immediately"):
+		return
 	screen.free()
 	rooms.queue_free()
 	venues.queue_free()
