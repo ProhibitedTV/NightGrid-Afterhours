@@ -199,7 +199,11 @@ func _verify() -> void:
 	ledger.call("set_balance",1000)
 	# Earn the contact threshold using real receipt keys, then verify the
 	# destination changes with the active contract, not merely its label.
-	for favor in ["street:compatibility_patch","venue:midnight_thermos","venue:dead_frequency","venue:glass_invoice","venue:last_shift_recipe"]:
+	# Cal's receipt is coupled to his quest stage in save validation.
+	if not ledger.call("accept_cal_quest") or not ledger.call("collect_cal_gift") or not ledger.call("complete_cal_quest"):
+		_fail("Cal quest fixture must use valid state transitions")
+		return
+	for favor in ["venue:midnight_thermos","venue:dead_frequency","venue:glass_invoice","venue:last_shift_recipe"]:
 		if not ledger.call("credit_once",favor,1):
 			_fail("demo contact reputation fixture")
 			return
@@ -249,6 +253,31 @@ func _verify() -> void:
 		_fail("recruited collaborator removed and actual merchandise displayed")
 		return
 	if not _verify_music_route(world,menu,ledger,"phone_route_music_showcase","static_room"):
+		return
+	# Physical promotion is derived from the actual earned career, not
+	# manually supplied presentation flags or a separate save field.
+	world.call("_sync_band_flyers")
+	for site in ["copper_cup","dock_nine","blue_hour","static_room"]:
+		var flyer:Label3D=venue.get_node(site+"/BandFlyer")
+		if not flyer.visible or not flyer.text.contains("SIGNAL ROT") or not flyer.text.contains("NEXT SHOWCASE") or not flyer.text.contains("OUT NOW"):
+			_fail("real career milestone missing on flyer: "+site)
+			return
+	if not ledger.call("settle_band_showcase"):
+		_fail("showcase settlement fixture")
+		return
+	world.call("_sync_band_flyers")
+	var headline:Label3D=venue.get_node("static_room/BandFlyer")
+	if not headline.text.contains("HEADLINER") or not headline.text.contains("OUT NOW"):
+		_fail("settled showcase must update physical promotion")
+		return
+	var career_save:Dictionary=world.call("_capture_snapshot")
+	if not preload("res://scripts/progression_ledger.gd").valid_snapshot(career_save["progression"]):
+		_fail("career fixture must produce a valid progression snapshot")
+		return
+	venue.call("set_band_promotion","",false,false,false,false)
+	world.call("_apply_snapshot",career_save)
+	if not headline.visible or not headline.text.contains("HEADLINER") or not headline.text.contains("SIGNAL ROT"):
+		_fail("save restore must rebuild physical promotion from ledger")
 		return
 	world.queue_free()
 	await process_frame
