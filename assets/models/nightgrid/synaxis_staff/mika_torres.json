@@ -1,0 +1,57 @@
+{
+  "$schema": "https://ara3dgen.com/schemas/character.v1.json",
+  "kind": "ara-character",
+  "version": 1,
+  "params": {
+    "name": "Morrow Courier",
+    "seed": 927341,
+    "gender": 1,
+    "ageYears": 39,
+    "height": 0.56,
+    "weight": 0.5,
+    "muscle": 0.43,
+    "proportions": 0.52,
+    "african": 0.34,
+    "asian": 0.19,
+    "caucasian": 0.47,
+    "modifiers": {
+      "head/head-scale-horiz": -0.15,
+      "head/head-rectangular": 0.16,
+      "eyes/eye-bag": 0.22,
+      "eyebrows/eyebrows-trans": 0.08
+    },
+    "skinTint": "#e7dfd5",
+    "eyes": "brown",
+    "eyebrows": "eyebrow001",
+    "eyelashes": "eyelashes01",
+    "hair": "short04",
+    "hairColor": "#3a302a",
+    "outfit": "set_suit_tie",
+    "top": "suit_shirt_tie",
+    "jacket": "suit_jacket",
+    "bottom": "suit_trousers",
+    "shoes": "oxfords",
+    "accessories": [],
+    "carry": "none",
+    "garmentStyles": {
+      "set_suit_tie": {
+        "pattern": "suiting",
+        "color": "#344b4d",
+        "color2": "#404e50"
+      },
+      "suit_shirt_tie": {
+        "pattern": "solid",
+        "color": "#ebe8df",
+        "color2": "#354a55"
+      }
+    },
+    "detail": "medium",
+    "rig": "game",
+    "faceBones": false,
+    "restPose": "A",
+    "faceShapes": false,
+    "speechShapes": false,
+    "weapon": "none",
+    "vehicle": "none"
+  }
+}

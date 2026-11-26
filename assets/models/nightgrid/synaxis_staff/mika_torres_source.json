@@ -1,0 +1,15 @@
+{
+  "model": "mika_torres.glb",
+  "sha256": "9c647f4b320e3f553198e8557834196f3a30fde1c57fa43d581391d6d55cfe4e",
+  "profile_sha256": "94b93634371c20b07af30b58519cc55c5ce62d0bc090b0d281d0bc4a83c61d85",
+  "bytes": 6076648,
+  "joints": 66,
+  "weighted_primitives": 19,
+  "clips": [
+    "Idle",
+    "Walk"
+  ],
+  "source": "ara3d@0.13.0",
+  "source_revision": "9d3b9f9933cbeb9529630a270ffc7fe01bd05511",
+  "license_notes": "See ../courier/SOURCE.md; original fictional character profile"
+}

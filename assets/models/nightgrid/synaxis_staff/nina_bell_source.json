@@ -1,0 +1,15 @@
+{
+  "model": "nina_bell.glb",
+  "sha256": "dfea7a339a2e1392b14da177b5f019606a09415944b3e8b4912461222af20df6",
+  "profile_sha256": "0dcf29ad18698e3baddb34ea921cd5a6f387b3f0e8a872dd143ab5f84f078db6",
+  "bytes": 6158592,
+  "joints": 66,
+  "weighted_primitives": 19,
+  "clips": [
+    "Idle",
+    "Walk"
+  ],
+  "source": "ara3d@0.13.0",
+  "source_revision": "9d3b9f9933cbeb9529630a270ffc7fe01bd05511",
+  "license_notes": "See ../courier/SOURCE.md; original fictional character profile"
+}
