@@ -50,7 +50,7 @@ def run(raw, previews, size):
                     raise ValueError("Stale preview")
                 source=raw/"candidates"/key/"concept.png"
                 image=load(source.with_name("image.json"))
-                if image["sha256"]!=sha(source) or image["job"]["key"]!=key:
+                if image["sha256"]!=sha(source) or image["sha256"]!=settings["concept_sha256"] or image["job"]["key"]!=key:
                     raise ValueError("Concept hash mismatch")
                 y=48+i*height
                 draw.text((12,y),key+" / "+row["refinement"][:12],fill="white")

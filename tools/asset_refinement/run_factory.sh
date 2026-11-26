@@ -50,4 +50,5 @@ if [[ "${ANUBIS_PREVIEWS:-0}" == 1 ]]; then
   blender -b -t 2 --python-use-system-env --python-exit-code 1 --python tools/asset_refinement/previews.py -- --raw "$ANUBIS_VISUAL_OUT" --refined "$root/refined-001" --output "$root/Previews" --bake-size "$size" --size "$preview_size" --samples "$samples" "${extra[@]}"
   env -u PYTHONPATH "$material_python" tools/asset_refinement/contact_sheet.py --raw "$ANUBIS_VISUAL_OUT" --previews "$root/Previews" --size "$size"
 fi
+env -u PYTHONPATH "$material_python" tools/asset_refinement/duplicates.py --raw "$ANUBIS_VISUAL_OUT" --output "$root/refined-001/duplicate-concepts.json"
 echo "Factory output is on the NAS. Review queue is not approval or a Git commit."

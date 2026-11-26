@@ -8,6 +8,7 @@ import shutil
 import sys
 import tempfile
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from refine import sha, load, write, png_size
 from review_queue import scan
 
@@ -117,6 +118,7 @@ def run(raw, refined, out, bake_size, size, samples, limit=0):
                 source=refined/key/sig/"lod0.glb"
                 settings={"candidate":key,"refinement":sig,"manifest_sha256":item["manifest_sha256"],
                           "glb_sha256":item["outputs"]["lod0.glb"]["sha256"],
+                          "concept_sha256":load(refined/key/sig/"refinement.json")["settings"]["source"]["concept.png"],
                           "blender":bpy.app.version_string,"script":sha(Path(__file__)),
                           "size":size,"samples":samples}
                 version=hashlib.sha256(json.dumps(settings,sort_keys=True).encode()).hexdigest()

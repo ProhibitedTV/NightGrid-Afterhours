@@ -48,3 +48,5 @@ Set ANUBIS_GODOT to an absolute Linux Godot 4.7.2 executable in WSL before the f
 ## Review previews
 
 Optional ANUBIS_PREVIEWS=1 in WSL enables three neutral CPU Cycles orthographic studio views per verified LOD0, hash-bound preview manifests, and eight-asset paginated contact sheets pairing source concepts with actual refined geometry. Smoke uses 128px/four samples; full uses 256px/eight samples. Previews go to Visual/Previews; no changes to the candidate manifests. This adds CPU time and is disabled by default until tested on Anubis. These are studio renders, not Godot screenshots or quality approval. Source orientation is unresolved, so view labels describe camera directions, not semantic object fronts. CI renders a synthetic fixture.
+
+The factory also creates a duplicate-concepts.json report using exact SHA-256 and 64-bit difference hashes (distance <=6). It compares only matching asset kinds, records both source hashes, and never deletes, rejects or chooses between variants. Similar low-detail images can be false positives.
