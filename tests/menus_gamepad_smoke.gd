@@ -600,11 +600,31 @@ func _verify() -> void:
 	if menu.call("is_open") or int(office.call("objective_stage",0))!=-2:
 		_fail("Cannot interact with office workstation remotely")
 		return
+	var monitor_count:=0
+	for key in ["desktopblue","desktopsignal","desktopamber"]:
+		var screen:=finish.get_node_or_null("furniture_"+key+"_quad") as MultiMeshInstance3D
+		if screen==null or not screen.multimesh.mesh is QuadMesh or screen.material_override.albedo_texture==null:
+			_fail("Ground workstations require textured desktop artwork")
+			return
+		monitor_count+=screen.multimesh.instance_count
+	if monitor_count!=6:
+		_fail("All six ground monitors must retain their screen positions")
+		return
 	var ground_chairs:=finish.get_node("AuthoredTaskChairs") as MultiMeshInstance3D
 	for deck in office.get("_workfloors"):
 		var chairs:=deck.get_node_or_null("AuthoredTaskChairs") as MultiMeshInstance3D
 		if chairs==null or chairs.multimesh.mesh!=ground_chairs.multimesh.mesh or chairs.multimesh.instance_count<28 or chairs.visible:
 			_fail("Upper-floor chair batches must share one imported mesh and stay hidden outside the occupied floor")
+			return
+		var screen_count:=0
+		for child in deck.get_children():
+			if str(child.name).begins_with("desktop") and child is MultiMeshInstance3D:
+				if child.visible or not child.multimesh.mesh is QuadMesh or child.material_override.albedo_texture==null:
+					_fail("Unoccupied floor desktop batches must be textured and hidden")
+					return
+				screen_count+=child.multimesh.instance_count
+		if screen_count<27:
+			_fail("Upper office monitor bank incomplete")
 			return
 	var office_decks: Array=office.call("workfloor_stats")
 	var desk_total:=0
