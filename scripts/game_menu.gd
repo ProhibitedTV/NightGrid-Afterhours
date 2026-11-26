@@ -1341,7 +1341,8 @@ func _refresh_rhythm()->void:
 	if not is_instance_valid(_rhythm_status) or not is_instance_valid(_rhythm_meter) or not is_instance_valid(_rhythm_claim):
 		return
 	if _rhythm.finished:
-		_rhythm_status.text="%s / %d of %d correct"%["SET COMPLETE" if _rhythm.passed() else "TRY ANOTHER SET",_rhythm.hits,_rhythm.pattern.size()]
+		_rhythm_status.text="%s / %d of %d correct (need %d)\n%s"%["SET COMPLETE" if _rhythm.passed() else "TRY ANOTHER SET",_rhythm.hits,_rhythm.pattern.size(),_rhythm.required_hits,_rhythm.feedback]
+		_rhythm_status.modulate=Ui.ACCENT if _rhythm.passed() else Ui.TEXT
 		_rhythm_meter.value=0.0
 		_rhythm_claim.disabled=not _rhythm.passed()
 		if _rhythm.passed() and not _rhythm_focus_set:
@@ -1351,7 +1352,7 @@ func _refresh_rhythm()->void:
 	var remaining:float=_rhythm.target_time()-_rhythm.elapsed
 	var lane:int=_rhythm.pattern[_rhythm.index]
 	var window:bool=absf(remaining)<=_rhythm.hit_window
-	_rhythm_status.text="%s / %s / %d of %d  •  %d hits"%[["KICK","CLAP","HI-HAT"][lane],"HIT NOW" if window else "READY %.1fs"%maxf(0.0,remaining),_rhythm.index+1,_rhythm.pattern.size(),_rhythm.hits]
+	_rhythm_status.text="%s / %s / %d of %d\n%d / %d needed  •  %s"%[["KICK","CLAP","HI-HAT"][lane],"HIT NOW" if window else "READY %.1fs"%maxf(0.0,remaining),_rhythm.index+1,_rhythm.pattern.size(),_rhythm.hits,_rhythm.required_hits,_rhythm.feedback]
 	_rhythm_status.modulate=Ui.ACCENT if window else Ui.TEXT
 	_rhythm_meter.value=clampf(1.0-maxf(0.0,remaining)/_rhythm.beat_seconds,0.0,1.0)
 
