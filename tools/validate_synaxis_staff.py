@@ -1,4 +1,4 @@
-"""Validate the generated fictional supervisor asset before binary intake."""
+"""Validate the four fictional staff assets before binary intake."""
 import argparse
 import hashlib
 import json
@@ -8,7 +8,7 @@ from validate_synaxis_suit import read_glb
 ROOT = Path("assets/models/nightgrid/synaxis_staff")
 ACTORS = ("mika_torres", "owen_pike", "eli_brooks", "nina_bell")
 
-def verify(actor):
+def verify(actor, check=False):
     model = ROOT / f"{actor}.glb"
     profile = ROOT / f"{actor}.json"
     doc, raw = read_glb(model)
@@ -39,10 +39,20 @@ def verify(actor):
                 "weighted_primitives": len(weighted), "clips": sorted(clips),
                 "source": "ara3d@0.13.0", "source_revision": "9d3b9f9933cbeb9529630a270ffc7fe01bd05511",
                 "license_notes": "See ../courier/SOURCE.md; original fictional character profile"}
-    (ROOT / f"{actor}_source.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    manifest_path = ROOT / f"{actor}_source.json"
+    if check:
+        assert json.loads(manifest_path.read_text(encoding="utf-8")) == manifest, f"Stale or altered provenance: {actor}"
+    else:
+        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print("SYNAXIS STAFF PILOT PASS", manifest)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("actor", choices=ACTORS, nargs="?", default="mika_torres")
-    verify(parser.parse_args().actor)
+    parser.add_argument("actor", choices=ACTORS, nargs="?", default=None)
+    parser.add_argument("--all", action="store_true", help="Validate every named staff model")
+    parser.add_argument("--check", action="store_true", help="Read-only comparison with committed manifests")
+    args = parser.parse_args()
+    if args.all and args.actor:
+        parser.error("Choose an individual actor or --all")
+    for actor in ACTORS if args.all else (args.actor or ACTORS[0],):
+        verify(actor, check=args.check)
