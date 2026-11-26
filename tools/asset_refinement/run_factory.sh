@@ -127,6 +127,7 @@ else
   skip contact-sheets "previews disabled"
 fi
 stage duplicates env -u PYTHONPATH "$material_python" tools/asset_refinement/duplicates.py --raw "$ANUBIS_VISUAL_OUT" --output "$ANUBIS_REFINED_OUT/duplicate-concepts.json"
+stage triage python3 tools/asset_refinement/triage.py --raw "$ANUBIS_VISUAL_OUT" --refined "$ANUBIS_REFINED_OUT" --generation "$generation" --size "$size" --output "$ANUBIS_REFINED_OUT/triage-$size.json"
 if [[ "${ANUBIS_SKIP_AUDIO:-0}" == 1 ]]; then
   skip audio "disabled for this batch"
 elif [[ -n "${ANUBIS_AUDIO_PYTHON:-}" ]]; then

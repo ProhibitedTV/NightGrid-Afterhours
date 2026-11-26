@@ -11,7 +11,7 @@ from refine import sha
 from telemetry import snapshot
 
 STAGES=("generation","refinement","materials","review","budgets","godot",
-        "previews","contact-sheets","duplicates","audio")
+        "previews","contact-sheets","duplicates","triage","audio")
 RUN_ID=re.compile(r"[0-9]{8}T[0-9]{6}Z-[a-f0-9]{12}")
 
 
@@ -94,7 +94,7 @@ def status(root):
     print("Factory",data["id"],data["mode"],data["status"])
     print("Started:",data["started"])
     for name in STAGES:
-        item=data["stages"][name]
+        item=data["stages"].get(name,{"status":"not recorded"})
         print("%-16s %s %s"%(name,item["status"],item.get("reason","")))
     if data["status"]=="running":
         print("Ledger may be stale after power loss; inspect process locks. No jobs are started by status.")

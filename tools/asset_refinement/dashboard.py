@@ -37,6 +37,7 @@ def collect(root):
                     "mesh_total":sum(r.get("kind")=="prop" for r in inventory)}
         refined=root/("refined-"+suffix)
         review=load_safe(refined/"review-1024.json")
+        triage=load_safe(refined/"triage-1024.json")
         material=load_safe(root/"Materials"/("material-"+suffix)/"review-1024.json")
         godot=load_safe(refined/"godot-1024.json")
         runs=root/"FactoryRuns"
@@ -52,7 +53,7 @@ def collect(root):
                         "materials":sum(r.get("status")=="review-required" for r in material.get("rows",[])) if isinstance(material,dict) else None,
                         "imports":godot.get("passed") if isinstance(godot,dict) else None,
                         "import_failures":godot.get("failed") if isinstance(godot,dict) else None,
-                        "ledger":ledger})
+                        "ledger":ledger,"triage":triage})
     queues=[]
     qroot=root/"FactoryQueues"
     if qroot.is_dir() and not qroot.is_symlink():
@@ -87,6 +88,14 @@ def html(batches,queues):
         for label,key in [("Props ready for review","review"),("Material candidates","materials"),("Passed import versions","imports"),("Failed import versions","import_failures")]:
             parts.append(metric(label,batch[key]))
         parts.append("</div>")
+        triage=batch.get("triage")
+        if isinstance(triage,dict):
+            parts.append("<p>Raw generation timing (successful job metadata only):</p><div class='metrics'>")
+            for stage,t in triage.get("timing",{}).items():
+                center=t.get("median_job_seconds")
+                parts.append(metric(stage+" median seconds",round(center,1) if isinstance(center,(int,float)) else None))
+                parts.append(metric(stage+" pending jobs",t.get("pending_jobs")))
+            parts.append("</div>")
         ledger=batch["ledger"]
         if isinstance(ledger,dict):
             parts.append("<p>Last run: "+e(ledger.get("id"))+" • "+e(ledger.get("mode"))+" • "+e(ledger.get("status"))+"</p>")
