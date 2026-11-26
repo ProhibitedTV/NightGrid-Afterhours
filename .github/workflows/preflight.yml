@@ -1,7 +1,14 @@
 name: Project preflight
 on:
   push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
+
+# A newer PR head replaces obsolete validation; main revisions stay independent.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
