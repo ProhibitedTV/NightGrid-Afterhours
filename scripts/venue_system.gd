@@ -5,6 +5,10 @@ const SOUNDCHECK="soundcheck_pass"
 const MUSIC_REPUTATION=100
 const PocketBeat=preload("res://assets/instruments/pocketbeat_m3.glb")
 var _sampler_display:Node3D
+const MusicVisual=preload("res://scripts/pedestrian_rig_visual.gd")
+const MusicianModel=preload("res://assets/models/nightgrid/pedestrians/casual-walker.glb")
+var _blue_hour_performer:Node3D
+var _blue_hour_rig:Node3D
 const Breaker=preload("res://assets/instruments/ironwake_breaker_g6.glb")
 const Dredge=preload("res://assets/instruments/ironwake_dredge_b4.glb")
 var _string_display:Node3D
@@ -255,7 +259,7 @@ func _build_venue(venue: Dictionary) -> void:
 	_box(front, Vector3(-3.75, 0.24, -1.55), Vector3(0.65, 0.14, 0.64), Color("6d7784"))
 	_box(front, Vector3(3.7, 0.24, -1.55), Vector3(0.64, 0.14, 0.65), Color("6d7784"))
 	var patrons: Array[Node3D] = []
-	for i in range(2 if kind != "CLUB" else 4):
+	for i in range(2 if kind != "CLUB" else (3 if venue_id=="blue_hour" else 4)):
 		var x := -3.2 + float(i) * 1.3
 		var patron := _build_patron(front, Vector3(x, 0.3, -2.1), kind, i)
 		patrons.append(patron)
@@ -449,6 +453,7 @@ func _night_factor() -> float:
 	return 0.0
 
 func _refresh() -> void:
+	_refresh_blue_hour_performer()
 	if is_instance_valid(_sampler_display):
 		_sampler_display.visible=is_open("copper_cup") and venue_position("copper_cup").distance_squared_to(_focus)<35.0*35.0
 	if is_instance_valid(_string_display):
@@ -515,3 +520,38 @@ func _build_ironwake_display(front:Node3D)->void:
 		model.rotation.y=PI
 		_string_display.add_child(model)
 	_label(_string_display,"IRONWAKE / DISPLAY ONLY",Vector3(3.37,2.18,1.77),Color("b9a48d"),15)
+
+## Ambient stage dressing only; one retained visual, no crowd lease, sound
+## source, collisions, progression or extra physics body.
+func _refresh_blue_hour_performer()->void:
+	var active := is_open("blue_hour") and venue_position("blue_hour").distance_squared_to(_focus)<24.0*24.0
+	if not active and not is_instance_valid(_blue_hour_performer):
+		return
+	if not is_instance_valid(_blue_hour_performer):
+		var front:Node3D=_nodes["blue_hour"]
+		_blue_hour_performer=Node3D.new()
+		_blue_hour_performer.name="AmbientSamplerPerformer"
+		_blue_hour_performer.position=Vector3(.7,.34,-1.75)
+		front.add_child(_blue_hour_performer)
+		_blue_hour_rig=MusicVisual.new()
+		_blue_hour_rig.name="PerformerRig"
+		_blue_hour_rig.rotation.y=PI
+		_blue_hour_rig.call("set_pedestrian_model",MusicianModel)
+		_blue_hour_performer.add_child(_blue_hour_rig)
+		_box(_blue_hour_performer,Vector3(0,.48,-.48),Vector3(.10,.96,.10),Color("343846"),"METAL")
+		_box(_blue_hour_performer,Vector3(0,.98,-.48),Vector3(.62,.06,.36),Color("343846"),"METAL")
+		_box(_blue_hour_performer,Vector3(0,.035,-.48),Vector3(.50,.07,.32),Color("343846"),"METAL")
+		var sampler:=PocketBeat.instantiate() as Node3D
+		sampler.name="StageSampler"
+		sampler.position=Vector3(0,1.015,-.48)
+		sampler.rotation.y=PI
+		_blue_hour_performer.add_child(sampler)
+	if active and not _blue_hour_performer.visible:
+		_blue_hour_rig.set_process(true)
+		_blue_hour_rig.call("set_music_performance","sampler")
+	elif not active:
+		_blue_hour_rig.call("clear_music_performance")
+		_blue_hour_rig.set_process(false)
+	elif _blue_hour_rig.get("_music_role")!="sampler":
+		_blue_hour_rig.call("set_music_performance","sampler")
+	_blue_hour_performer.visible=active
