@@ -10,6 +10,12 @@ const STAGES = [
 	{"site":"dock_watch","title":"Compare independent register","line":"Clerk Bo: The stamped register shows no approval before June 11. The May 19 version isn't corroborated by this register. That's all I can certify."},
 	{"site":"harbor_library","title":"Present findings to Penny","line":"Penny: We have conflicting dates, a pending authorization and an independent register. What can we actually establish?"}
 ]
+# Compact authored notes mirror the actual evidence dialogues, in order.
+const EVIDENCE = [
+	"Penny: Synaxis claims the concession sale was authorized last month; verify the public permit.",
+	"Permit MB-091: transfer effective June 2; authorization pending. Later revision claims May 19 approval.",
+	"Dock Watch: independent stamped register records no approval before June 11."
+]
 var stage := 0
 
 func unlocked(wallet: RefCounted) -> bool:
@@ -22,7 +28,7 @@ func available(wallet: RefCounted) -> bool:
 	return unlocked(wallet) and stage < STAGES.size() and not wallet.call("has_receipt",ID)
 
 func current(wallet: RefCounted) -> Dictionary:
-	return STAGES[stage] if available(wallet) else {}
+	return STAGES[stage].duplicate() if available(wallet) else {}
 
 func advance(site: String, choice: int, wallet: RefCounted) -> Dictionary:
 	var step := current(wallet)
@@ -46,3 +52,15 @@ func journal(wallet: RefCounted) -> String:
 	if step.is_empty() or stage == 0:
 		return ""
 	return "%s / %d of %d / %s" % [TITLE,stage+1,STAGES.size(),step["title"]]
+
+## Journal-only case review. The compact HUD continues using journal().
+## Derive evidence from existing validated stage and settlement receipt.
+func case_review(wallet: RefCounted) -> String:
+	if wallet.call("has_receipt",ID):
+		return TITLE+" / COMPLETE\nFinding: conflicting public records warrant independent review; no individual guilt established.\n"+ "\n".join(PackedStringArray(EVIDENCE))
+	if not available(wallet):
+		return ""
+	var lines := PackedStringArray([TITLE+" / "+str(STAGES[stage]["title"])])
+	for i in range(mini(stage,EVIDENCE.size())):
+		lines.append(EVIDENCE[i])
+	return "\n".join(lines)
