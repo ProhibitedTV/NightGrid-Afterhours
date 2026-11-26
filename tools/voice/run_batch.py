@@ -56,6 +56,27 @@ def voice_pass(specs, seeds, errors, device):
         production.verify_library(specs)
 
 
+def sfx_access():
+    """Fail fast on a gated checkpoint before installing another CUDA stack."""
+    from huggingface_hub import HfApi, hf_hub_download
+    repo = "stabilityai/stable-audio-3-small-sfx"
+    path = OUT / "sfx-model-pin.json"
+    if path.exists():
+        saved = production.load(path)
+        revision = saved.get("revision", "")
+        if saved.get("repo") != repo or not studio.REV.fullmatch(revision):
+            raise ValueError("Invalid SFX model pin")
+    else:
+        revision = HfApi().model_info(repo).sha
+        if not studio.REV.fullmatch(revision or ""):
+            raise ValueError("Could not resolve SFX checkpoint revision")
+    hf_hub_download(repo_id=repo, filename="model_config.json", revision=revision)
+    if not path.exists():
+        temp = path.with_suffix(".tmp")
+        studio.write_json(temp, {"repo":repo,"revision":revision})
+        temp.replace(path)
+
+
 def sfx_environment():
     home = Path.home()
     source = home / "stable-audio-3-anubis"
@@ -63,7 +84,7 @@ def sfx_environment():
     if not Path(uv).is_file():
         raise FileNotFoundError("uv not found; batch 001 bootstrap environment is required")
     env = dict(os.environ, GIT_TERMINAL_PROMPT="0", UV_NO_PROGRESS="1",
-               UV_NO_CONFIG="1", HF_HUB_DISABLE_PROGRESS_BARS="1")
+               HF_HUB_DISABLE_PROGRESS_BARS="1")
     if not source.exists():
         command(["git", "clone", "--no-checkout", UPSTREAM, source], env=env, timeout=900)
     if subprocess.check_output(["git", "-C", str(source), "remote", "get-url", "origin"], text=True).strip() != UPSTREAM:
@@ -107,6 +128,15 @@ def main():
     clock = time.monotonic()
     errors = []
     sfx_status = "not requested" if args.voice_only else "not started"
+    sfx_access_ok = False
+    if not args.voice_only and args.sfx_rights_checked:
+        try:
+            sfx_access()
+            sfx_access_ok = True
+        except Exception as exc:
+            sfx_status = "blocked: Stable Audio gated access or network: " + str(exc)
+            errors.append({"stage":"sfx access","error":str(exc)})
+            print(sfx_status, flush=True)
     if not args.sfx_only:
         try:
             command([sys.executable, "-c",
@@ -118,7 +148,7 @@ def main():
     if not args.voice_only:
         if not args.sfx_rights_checked:
             sfx_status = "blocked: confirm Stable Audio license and gated model access"
-        else:
+        elif sfx_access_ok:
             try:
                 python, env = sfx_environment()
                 command([python, ROOT / "tools/audio/sfx_batch.py", "--device", args.sfx_device,

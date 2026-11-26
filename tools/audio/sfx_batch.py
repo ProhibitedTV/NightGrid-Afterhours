@@ -119,11 +119,22 @@ def main():
            "packages":{name:md.version(name) for name in ("stable-audio-3","torch","torchaudio","transformers")}}
     results = []
     model = None
+    engine_blocked = False
     for spec in manifest["assets"]:
         ident = spec["id"]
         wav = CANDIDATES / (ident+".wav")
         meta = CANDIDATES / (ident+".json")
         try:
+            final = sfx.DEST / wav.name
+            sidecar = sfx.DEST / meta.name
+            if final.is_file() and sidecar.is_file():
+                existing = verify_candidate(final,sidecar,spec,pin)
+                if existing.get("playtest_accepted") is not True or existing.get("rights_checked") is not True:
+                    raise ValueError("Existing effect is not a batch playtest asset")
+                results.append({"id":ident,"state":"playtest_ready","sha256":sfx.digest(final)})
+                write_json(OUT/"sfx-results.json",{"results":results,"total":len(manifest["assets"])})
+                print("Verified existing staged SFX:", ident, flush=True)
+                continue
             if wav.exists() or meta.exists():
                 verify_candidate(wav,meta,spec,pin)
                 print("Verified cached SFX:", ident, flush=True)
@@ -135,6 +146,7 @@ def main():
                         model = StableAudioModel.from_pretrained(manifest["model"],device=args.device,
                                                                  model_half=args.device=="cuda")
                     except Exception as exc:
+                        engine_blocked = True
                         results.append({"id":ident,"state":"engine blocked","error":str(exc)})
                         write_json(OUT/"sfx-results.json",{"results":results,"total":len(manifest["assets"])})
                         raise
@@ -160,7 +172,7 @@ def main():
             stage_candidate(wav,meta,spec,pin)
             results.append({"id":ident,"state":"playtest_ready","sha256":sfx.digest(wav)})
         except Exception as exc:
-            if model is None:
+            if engine_blocked:
                 raise
             results.append({"id":ident,"state":"failed","error":str(exc)})
             print("SFX failed:",ident,exc,flush=True)
