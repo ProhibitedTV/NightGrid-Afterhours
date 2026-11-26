@@ -114,10 +114,13 @@ func _verify() -> void:
 		if taxi.begin(run,pickup,9,49.0,0.0) or taxi.begin(run,pickup,9,100.0,2.0) or not taxi.begin(run,pickup,9,100.0,0.0):
 			_fail("Taxi comfort and stopped pickup guards")
 			return
-		if taxi.tick(pickup,10,100.0,1.0/60.0) or taxi.active:
+		if taxi.tick(pickup,10,100.0,1.0/60.0) or taxi.active or taxi.failure_reason!="Original vehicle required.":
 			_fail("Taxi vehicle switch cancels fare")
 			return
 		taxi.begin(run,pickup,9,100.0,0.0)
+		if not taxi.failure_reason.is_empty():
+			_fail("Taxi retry clears previous failure")
+			return
 		var taxi_pos:=pickup
 		var path:=Route.plan(pickup,drop)
 		var points:Array[Vector2]=path["points"]
@@ -141,7 +144,7 @@ func _verify() -> void:
 		return
 	taxi.begin(0,taxi.ROUTES[0]["pickup"],9,100.0,0.0)
 	taxi.elapsed=239.99
-	if taxi.tick(taxi.ROUTES[0]["pickup"],9,100.0,1.0/60.0) or taxi.active:
+	if taxi.tick(taxi.ROUTES[0]["pickup"],9,100.0,1.0/60.0) or taxi.active or taxi.failure_reason!="Passenger time limit expired.":
 		_fail("Taxi timeout")
 		return
 	var freight:=preload("res://scripts/freight_job.gd").new()
@@ -163,10 +166,17 @@ func _verify() -> void:
 		if not freight.begin(run,pickup,55,100.0,0.0) or freight.ready_to_deliver(drop,55,100.0,0.0):
 			_fail("Freight load and premature unload guards")
 			return
-		if freight.tick(drop,55,100.0,1.0/60.0) or freight.active:
+		if freight.tick(drop,55,100.0,1.0/60.0) or freight.active or freight.failure_reason!="Route interrupted by displacement.":
 			_fail("Freight teleport cancels load")
 			return
 		freight.begin(run,pickup,55,100.0,0.0)
+		if freight.tick(pickup,55,18.0,1.0/60.0) or freight.failure_reason!="Cargo vehicle is no longer roadworthy.":
+			_fail("Freight condition failure is explicit")
+			return
+		freight.begin(run,pickup,55,100.0,0.0)
+		if not freight.failure_reason.is_empty():
+			_fail("Freight retry clears previous failure")
+			return
 		var freight_pos:=pickup
 		var road:=Route.plan(pickup,drop)
 		var road_points:Array[Vector2]=road["points"]

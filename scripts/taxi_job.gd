@@ -9,6 +9,7 @@ const ROUTES=[
 	{"from":"copper_cup","to":"lantern_cup","pickup":Vector2(-39.5,119.25),"drop":Vector2(-76.5,-170.75),"reward":55,"name":"Homeward fare","rider":"Sam","request":"Lantern Cup, please. I could use a quiet evening.","arrival":"Cheers. Keep the change."}
 ]
 var active:=false
+var failure_reason := ""
 var sequence:=0
 var vehicle_id:=0
 var route:Dictionary={}
@@ -42,6 +43,7 @@ func begin(completed:int,at:Vector2,id:int,condition:float,speed:float)->bool:
 	if active or next.is_empty() or id<=0 or not near(at,next["pickup"]) or not roadworthy(condition,speed):
 		return false
 	active=true
+	failure_reason=""
 	sequence=completed+1
 	vehicle_id=id
 	route=next
@@ -58,11 +60,20 @@ func cancel()->void:
 func tick(at:Vector2,id:int,condition:float,delta:float)->bool:
 	if not active:
 		return false
-	if not at.is_finite() or id!=vehicle_id or not is_finite(condition) or condition<50.0 or not is_finite(delta) or delta<=0.0 or delta>.1 or at.distance_to(previous)>maxf(2.0,delta*100.0):
+	if id!=vehicle_id:
+		failure_reason="Original vehicle required."
+	elif not is_finite(condition) or condition<50.0:
+		failure_reason="Vehicle condition fell below 50."
+	elif not at.is_finite() or not is_finite(delta) or delta<=0.0 or delta>.1:
+		failure_reason="Invalid trip update."
+	elif at.distance_to(previous)>maxf(2.0,delta*100.0):
+		failure_reason="Route interrupted by displacement."
+	if not failure_reason.is_empty():
 		cancel()
 		return false
 	elapsed+=delta
 	if elapsed>=LIMIT:
+		failure_reason="Passenger time limit expired."
 		cancel()
 		return false
 	meters+=at.distance_to(previous)
