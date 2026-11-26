@@ -1,4 +1,5 @@
 extends RefCounted
+const SceneReputation = preload("res://scripts/scene_reputation.gd")
 
 ## Read-only presentation model. World actions are dispatched by the existing
 ## menu/world adapter; no duplicated wallet, delivery, property or save state.
@@ -78,7 +79,14 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 		"cred":
 			subtitle = "Reputation belongs to the streets."
 			rows.append({"label":"Citywide reputation","value":str(state.get("global_street_cred","Unknown"))})
-			rows.append({"label":"Neighborhood scenes","value":str(state.get("scene_reputation",""))})
+			var scores: Dictionary = state.get("scene_scores",{})
+			if scores.is_empty():
+				rows.append({"label":"Neighborhood scenes","value":str(state.get("scene_reputation",""))})
+			else:
+				for scene in SceneReputation.SCENES:
+					var score := clampi(int(scores.get(scene,0)),0,SceneReputation.MAX_CRED)
+					rows.append({"label":SceneReputation.LABELS[scene],"value":"%d / %d · %s" % [score,SceneReputation.MAX_CRED,SceneReputation.rank(score)]})
+				rows.append({"label":"Reputation","value":"Earn recognition through performances, local work and investigations."})
 			for source in state.get("cred_sources",[]):
 				rows.append({"label":str(source["name"]),"value":"+%d earned" % int(source["points"])})
 		"music":
