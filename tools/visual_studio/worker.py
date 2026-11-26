@@ -9,7 +9,7 @@ import sys
 import time
 import traceback
 import types
-from batch import HOME, digest, verified, write_json
+from batch import HOME, digest, verified, write_json, guard_storage
 
 IMAGE_MODEL = "stabilityai/stable-diffusion-xl-base-1.0"
 MESH_MODEL = "stabilityai/TripoSR"
@@ -132,9 +132,11 @@ def main():
     if not selected:
         print(stage+": all eligible candidates cached")
         return 0
+    guard_storage(output)
     generate = image_backend() if stage=="image" else mesh_backend()
     failures = 0
     for index,job in enumerate(selected,1):
+        guard_storage(output)
         folder=output/"candidates"/job["key"]
         folder.mkdir(parents=True,exist_ok=True)
         print(f"{stage} {index}/{len(selected)}: {job['key']}",flush=True)

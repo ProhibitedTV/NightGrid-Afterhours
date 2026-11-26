@@ -12,9 +12,26 @@ import zipfile
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-OUT = ROOT / "dist" / "anubis-visual" / "visual-001"
+OUT = Path(os.environ.get("ANUBIS_VISUAL_OUT", ROOT / "dist" / "anubis-visual" / "visual-001")).resolve()
 HOME = Path(os.environ.get("ANUBIS_VISUAL_HOME", Path.home() / ".local/share/nightgrid-visual-v1"))
 ID = re.compile(r"[a-z0-9][a-z0-9.-]{0,100}")
+
+def guard_storage(output=None):
+    """Refuse fallback to a local /mnt/z directory and protect physical SSD."""
+    output = Path(output or OUT).resolve()
+    mount = Path("/mnt/z")
+    if mount == output or mount in output.parents:
+        if not os.path.ismount(mount):
+            raise RuntimeError("NAS /mnt/z is not mounted")
+    if Path("/mnt/c").is_mount() and shutil.disk_usage("/mnt/c").free < 25*1024**3:
+        raise RuntimeError("Windows physical SSD reserve below 25 GiB")
+    # Check nearest existing parent without creating a fallback output directory.
+    probe = output
+    while not probe.exists() and probe != probe.parent:
+        probe = probe.parent
+    if shutil.disk_usage(probe).free < 5*1024**3:
+        raise RuntimeError("Output volume reserve below 5 GiB")
+
 
 def digest(path):
     with path.open("rb") as handle:
@@ -110,12 +127,16 @@ def main():
         print(f"{len(selected)} image jobs, {sum(j['kind']=='prop' for j in selected)} mesh jobs")
         return 0
     if args.mode == "status":
+        if Path("/mnt/z") in OUT.parents and not os.path.ismount("/mnt/z"):
+            raise RuntimeError("NAS /mnt/z is not mounted")
         rows = inventory()
         print(f"{sum(r['image_ready'] for r in rows)}/{len(rows)} images; {sum(r['mesh_ready'] for r in rows)}/{sum(r['kind']=='prop' for r in rows)} meshes")
         return 0
     if args.mode == "pack":
+        guard_storage()
         pack()
         return 0
+    guard_storage()
     OUT.mkdir(parents=True, exist_ok=True)
     plan = OUT / "run-plan.json"
     write_json(plan, selected)
@@ -123,11 +144,13 @@ def main():
         raise RuntimeError("Need at least 5 GiB free on output volume; model cache needs additional space")
     errors = []
     for stage in ("image","mesh"):
+        guard_storage()
         py = HOME / stage / "bin/python"
         command = [str(py), str(HERE / "worker.py"), stage, str(plan), str(OUT)]
         rc = subprocess.run(command, cwd=HERE).returncode
         if rc:
             errors.append((stage, rc))
+    guard_storage()
     pack()
     rows = {r["key"]:r for r in inventory()}
     pending = [j["key"] for j in selected if rows[j["key"]]["status"]!="candidate-only"]

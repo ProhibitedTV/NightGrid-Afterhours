@@ -1,12 +1,17 @@
 import tempfile
 import unittest
 from pathlib import Path
-from batch import jobs, verified, digest, write_json, inventory, pack
+from batch import jobs, verified, digest, write_json, inventory, pack, guard_storage
 from unittest.mock import patch
 import json
 import zipfile
 
 class BatchTest(unittest.TestCase):
+    def test_nas_mount_required(self):
+        with patch("batch.os.path.ismount",return_value=False):
+            with self.assertRaisesRegex(RuntimeError,"not mounted"):
+                guard_storage(Path("/mnt/z/NightGrid-Afterhours/Visual/visual-001"))
+
     def test_manifest(self):
         rows=jobs()
         self.assertEqual(len(rows),236)
