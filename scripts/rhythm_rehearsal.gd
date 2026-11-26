@@ -21,6 +21,8 @@ var hit_window:=WINDOW
 var required_hits:=PASS_HITS
 var elapsed:=0.0
 var hits:=0
+var combo:=0
+var best_combo:=0
 var index:=0
 var pattern:Array=[]
 var finished:=false
@@ -43,6 +45,8 @@ func start(sequence:int,source:String="live_gig")->void:
 	pattern=patterns[posmod(sequence-1,patterns.size())].duplicate()
 	elapsed=0.0
 	hits=0
+	combo=0
+	best_combo=0
 	index=0
 	finished=false
 	cancelled=false
@@ -58,6 +62,7 @@ func advance(delta:float)->void:
 	elapsed+=delta
 	while index<pattern.size() and elapsed>target_time()+hit_window:
 		feedback="MISSED"
+		combo=0
 		index+=1
 	finished=index>=pattern.size()
 
@@ -70,10 +75,18 @@ func strike(lane:int)->bool:
 	var hit:=lane==int(pattern[index])
 	if hit:
 		hits+=1
+		combo+=1
+		best_combo=maxi(best_combo,combo)
+	else:
+		combo=0
 	feedback="ON BEAT" if hit else "WRONG PAD"
 	index+=1
 	finished=index>=pattern.size()
 	return hit
+
+## Remaining mistakes before the set becomes mathematically unwinnable.
+func mistakes_left()->int:
+	return pattern.size()-required_hits-(index-hits)
 
 func cancel()->void:
 	cancelled=true
