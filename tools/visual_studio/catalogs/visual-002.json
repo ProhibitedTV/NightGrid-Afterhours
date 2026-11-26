@@ -1,0 +1,295 @@
+{
+  "schema": 1,
+  "batch": "visual-002",
+  "variants": 2,
+  "assets": [
+    {
+      "id": "synaxis.recessed-card-reader",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "recessed commercial access control card reader with brushed steel face and small status light"
+    },
+    {
+      "id": "synaxis.double-glass-door-frame",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "freestanding modular double commercial glazed door assembly with dark aluminum frame and push bars"
+    },
+    {
+      "id": "synaxis.elevator-call-panel",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "wall mounted brushed steel elevator call panel with two tactile arrow buttons"
+    },
+    {
+      "id": "synaxis.elevator-door-surround",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "closed commercial elevator doors with stainless steel surround and narrow floor indicator"
+    },
+    {
+      "id": "synaxis.suspended-ceiling-module",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "single commercial suspended ceiling tile module with metal grid and recessed linear luminaire"
+    },
+    {
+      "id": "synaxis.office-partition-panel",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "modular acoustic office partition with frosted glass upper section and fabric lower panel"
+    },
+    {
+      "id": "synaxis.electrical-service-panel",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "closed gray electrical distribution cabinet with latches and vent slots"
+    },
+    {
+      "id": "synaxis.raised-floor-access-panel",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "square raised access floor module with removable panel and adjustable pedestal feet"
+    },
+    {
+      "id": "synaxis.office-reception-counter",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "modular commercial reception counter with walnut veneer and stone transaction ledge"
+    },
+    {
+      "id": "synaxis.server-cabinet",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "closed black 42U server rack with perforated front door and cable management"
+    },
+    {
+      "id": "synaxis.restroom-vanity",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "commercial restroom vanity with two integrated basins and stainless fixtures"
+    },
+    {
+      "id": "synaxis.restroom-stall-partition",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "one modular restroom stall partition assembly with closed door and raised feet"
+    },
+    {
+      "id": "brickwater.recessed-shop-entry",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "small recessed commercial shop entrance module with masonry jambs and glazed metal door"
+    },
+    {
+      "id": "brickwater.roller-shutter",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "closed industrial roller shutter assembly with side guides and weathered housing"
+    },
+    {
+      "id": "brickwater.fire-escape-landing",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "single steel fire escape landing module with grating and railings"
+    },
+    {
+      "id": "brickwater.service-door",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "heavy painted steel exterior service door with frame and kick plate"
+    },
+    {
+      "id": "brickwater.wall-vent",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "weathered rectangular wall ventilation louver with angled slats and fixing screws"
+    },
+    {
+      "id": "brickwater.utility-meter-bank",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "wall mounted bank of electrical meters and conduit in metal enclosure"
+    },
+    {
+      "id": "brickwater.rainwater-downpipe",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "modular cast iron rainwater downpipe section with wall brackets"
+    },
+    {
+      "id": "brickwater.shop-awning",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "folded weathered canvas storefront awning with steel mounting frame"
+    },
+    {
+      "id": "brickwater.brick-cornice",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "short modular stepped masonry cornice section with believable brick joints"
+    },
+    {
+      "id": "brickwater.window-sill",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "short weathered cast stone projecting window sill with drip edge"
+    },
+    {
+      "id": "brickwater.loading-dock-bumper",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "industrial rubber loading dock bumper with steel backing plate"
+    },
+    {
+      "id": "brickwater.alley-wall-light",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "weatherproof industrial wall luminaire with protective wire cage"
+    },
+    {
+      "id": "transit.station-ticket-barrier",
+      "kind": "prop",
+      "group": "transit",
+      "subject": "single realistic stainless steel transit ticket gate with closed swing flaps"
+    },
+    {
+      "id": "transit.station-platform-bench",
+      "kind": "prop",
+      "group": "transit",
+      "subject": "modular transit platform bench with perforated metal seats and arm dividers"
+    },
+    {
+      "id": "transit.platform-edge-module",
+      "kind": "prop",
+      "group": "transit",
+      "subject": "single short precast platform edge module with tactile warning strip"
+    },
+    {
+      "id": "transit.station-wayfinding-mount",
+      "kind": "prop",
+      "group": "transit",
+      "subject": "freestanding transit sign frame with blank face and bolted base"
+    },
+    {
+      "id": "transit.station-access-stair",
+      "kind": "prop",
+      "group": "transit",
+      "subject": "short modular steel maintenance stair flight with handrails and nonslip treads"
+    },
+    {
+      "id": "transit.rail-service-cabinet",
+      "kind": "prop",
+      "group": "transit",
+      "subject": "trackside weatherproof signal equipment cabinet with lockable doors"
+    },
+    {
+      "id": "transit.station-canopy-support",
+      "kind": "prop",
+      "group": "transit",
+      "subject": "single modular steel canopy support with bolted base and gussets"
+    },
+    {
+      "id": "transit.platform-drain",
+      "kind": "prop",
+      "group": "transit",
+      "subject": "short linear platform drainage channel with slotted steel grate"
+    },
+    {
+      "id": "industrial.rooftop-exhaust-fan",
+      "kind": "prop",
+      "group": "industrial",
+      "subject": "commercial centrifugal rooftop exhaust fan on rectangular curb mount"
+    },
+    {
+      "id": "industrial.duct-elbow",
+      "kind": "prop",
+      "group": "industrial",
+      "subject": "large galvanized rectangular HVAC duct elbow with flanged ends"
+    },
+    {
+      "id": "industrial.pipe-support",
+      "kind": "prop",
+      "group": "industrial",
+      "subject": "freestanding industrial pipe support assembly with clamp and bolted foot"
+    },
+    {
+      "id": "industrial.loading-bay-shelter",
+      "kind": "prop",
+      "group": "industrial",
+      "subject": "closed loading bay doorway surround with rubber dock shelter"
+    },
+    {
+      "id": "industrial.security-booth",
+      "kind": "prop",
+      "group": "industrial",
+      "subject": "compact prefabricated security booth with glazing and closed access door"
+    },
+    {
+      "id": "industrial.industrial-stair-landing",
+      "kind": "prop",
+      "group": "industrial",
+      "subject": "single steel industrial stair landing module with guardrails and grating"
+    },
+    {
+      "id": "industrial.concrete-barrier",
+      "kind": "prop",
+      "group": "industrial",
+      "subject": "short precast concrete traffic barrier segment with realistic casting seams"
+    },
+    {
+      "id": "industrial.warehouse-column-guard",
+      "kind": "prop",
+      "group": "industrial",
+      "subject": "steel warehouse column impact guard with yellow paint and mounting bolts"
+    },
+    {
+      "id": "retail.shop-window-frame",
+      "kind": "prop",
+      "group": "retail",
+      "subject": "modular commercial display window frame with dark metal mullions"
+    },
+    {
+      "id": "retail.recessed-display-niche",
+      "kind": "prop",
+      "group": "retail",
+      "subject": "wall mounted recessed retail display niche with wood backing and metal trim"
+    },
+    {
+      "id": "retail.storefront-transom",
+      "kind": "prop",
+      "group": "retail",
+      "subject": "modular glazed storefront transom assembly in dark aluminum"
+    },
+    {
+      "id": "retail.display-plinth",
+      "kind": "prop",
+      "group": "retail",
+      "subject": "low rectangular retail display pedestal in brushed steel and warm wood"
+    },
+    {
+      "id": "retail.fitting-room-door",
+      "kind": "prop",
+      "group": "retail",
+      "subject": "commercial fitting room door and frame with privacy gap"
+    },
+    {
+      "id": "retail.ceiling-track-light",
+      "kind": "prop",
+      "group": "retail",
+      "subject": "short commercial track lighting rail with three adjustable spot fixtures"
+    },
+    {
+      "id": "retail.retail-shelving-bay",
+      "kind": "prop",
+      "group": "retail",
+      "subject": "single freestanding commercial wall shelving bay with adjustable shelves"
+    },
+    {
+      "id": "retail.checkout-counter",
+      "kind": "prop",
+      "group": "retail",
+      "subject": "compact retail checkout counter with durable laminate and cable access"
+    }
+  ]
+}
