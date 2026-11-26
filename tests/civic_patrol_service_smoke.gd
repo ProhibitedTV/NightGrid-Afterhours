@@ -31,6 +31,15 @@ func _verify() -> void:
 	s.restore(JSON.parse_string(JSON.stringify(s.snapshot())))
 	if not _check(not s.claim(request,"PATROL-02") and s.task.is_empty(), "safe reload"):
 		return
+	request["id"] = "CIV-000003"
+	if not _check(s.claim(request,"PATROL-01"), "new incident after reload"):
+		return
+	s.tick(1.0,true)
+	s.tick(2.0,true)
+	s.tick(0.1,false)
+	s.tick(6.0,true)
+	if not _check(s.task.is_empty() and s.history()[-1]["outcome"] == "INTERRUPTED" and not s.claim(request,"PATROL-02"), "departure interrupts dwell immediately; no false completion"):
+		return
 	var scene: PackedScene = load("res://scenes/main.tscn")
 	var world: Node3D = scene.instantiate()
 	root.add_child(world)

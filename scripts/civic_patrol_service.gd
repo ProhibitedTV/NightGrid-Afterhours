@@ -43,8 +43,12 @@ func tick(delta: float, arrived: bool) -> void:
 			task["elapsed"] = 0.0
 		elif float(task["elapsed"]) >= MAX_TRAVEL_SECONDS:
 			finish("EXPIRED")
-	elif task["phase"] == "SERVICING" and float(task["elapsed"]) >= SERVICE_SECONDS:
-		finish("COMPLETED" if arrived else "INTERRUPTED")
+	elif task["phase"] == "SERVICING":
+		# A completed response requires continuous on-site service.
+		if not arrived:
+			finish("INTERRUPTED")
+		elif float(task["elapsed"]) >= SERVICE_SECONDS:
+			finish("COMPLETED")
 
 func finish(outcome: String) -> void:
 	if task.is_empty():
