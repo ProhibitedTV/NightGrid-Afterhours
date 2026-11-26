@@ -2,6 +2,7 @@ extends StaticBody3D
 ## Original static cabinet, face toward local +Z. No active viewport or per-frame scripts.
 const Catalog = preload("res://scripts/arcade_round.gd")
 const IDS = Catalog.IDS
+const Scores = preload("res://scripts/arcade_scores.gd")
 const KeyArt = preload("res://scripts/arcade_key_art.gd")
 const ART = KeyArt.ART
 const TINTS = {"grand_delay": "69d8c2", "claw_compliance": "efb169", "patch_day": "c4a2f3", "indie_dev": "f1cd82", "annual_warfare": "a5ca82", "day_one_dlc": "ed9db5", "open_world_checklist": "80bce9", "battle_pass_hero": "e6a1ef", "starline_patrol": "72d7cf", "neon_rebound": "f2a96b"}
@@ -12,6 +13,7 @@ const DeluxeMarquee = preload("res://assets/arcade/grand_delay_marquee.svg")
 var game_id := "grand_delay"
 var _deluxe_wheel: Node3D
 var _deluxe_button: MeshInstance3D
+var _score_label: Label3D
 static var materials: Dictionary = {}
 static var screens: Dictionary = {}
 static var printed_art: Dictionary = {}
@@ -90,8 +92,26 @@ func _ready() -> void:
 		_deluxe_details()
 	else:
 		_union_details(accent)
+	_score_label = Label3D.new()
+	_score_label.name = "LocalScorePlate"
+	_score_label.position = Vector3(0,.935,.432)
+	_score_label.font_size = 20
+	_score_label.pixel_size = .0013
+	_score_label.modulate = Color("e9c283")
+	_score_label.outline_size = 1
+	add_child(_score_label)
+	set_local_score({})
 	_collision(Vector3(0,1.10,.03),Vector3(.87,2.16,.85))
 	_collision(Vector3(0,1.04,.43),Vector3(.84,.15,.24))
+
+# Updated only on room entry, save restoration, and a settled high score.
+# No polling, network leaderboard, or duplicate score persistence.
+func set_local_score(scores: Dictionary) -> void:
+	if not is_instance_valid(_score_label):
+		return
+	var best := int(scores.get(game_id,0))
+	var record := "%05d" % best if scores.has(game_id) else "-----"
+	_score_label.text = "YOUR BEST %s  |  %d/3" % [record,Scores.mastery_level(game_id,best)]
 
 func reachable(at: Vector3) -> bool:
 	var p := to_local(at)

@@ -44,6 +44,18 @@ func _verify() -> void:
 				return
 		if not check(shapes == 2 and cabinet.get_node_or_null("CRTAttract") != null, "collidable shell and attract screen"):
 			return
+	var score_plate := room.cabinets[0].get_node("LocalScorePlate") as Label3D
+	var progress := room.get_node("LocalProgressSign") as Label3D
+	if not check(score_plate.text == "YOUR BEST -----  |  0/3" and progress.text.contains("0/30"),"fresh arcade shows no fabricated score"):
+		return
+	room.refresh_scores({"grand_delay":1800,"neon_rebound":4100})
+	if not check(score_plate.text == "YOUR BEST 01800  |  2/3" and progress.text == "YOUR CIRCUIT 1/8  •  MEDALS 5/30","saved high scores reflected in physical room"):
+		return
+	if not check((room.cabinets[9].get_node("LocalScorePlate") as Label3D).text == "YOUR BEST 04100  |  3/3","restored cabinet gold plate"):
+		return
+	room.refresh_scores({})
+	if not check(score_plate.text == "YOUR BEST -----  |  0/3" and progress.text.contains("0/30"),"new world clears physical score displays"):
+		return
 	var deluxe = room.cabinets[0]
 	if not check(deluxe.get_node_or_null("DeluxeBacklitMarquee") != null and deluxe.get_node_or_null("MarqueeSpill") is OmniLight3D and deluxe.get_node_or_null("CoinReturnTray") != null, "deluxe cabinet has authored physical detail"):
 		return

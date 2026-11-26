@@ -2,6 +2,7 @@ extends Node3D
 ## On-demand room dressing, fits the existing 16 x 18 interior envelope.
 ## The owner supplies the architectural shell and lighting.
 const Cabinet = preload("res://scripts/arcade_cabinet.gd")
+const Scores = preload("res://scripts/arcade_scores.gd")
 const KeyArt = preload("res://scripts/arcade_key_art.gd")
 const Dressing = preload("res://scripts/arcade_dressing.gd")
 const Heritage = preload("res://scripts/arcade_heritage.gd")
@@ -30,6 +31,7 @@ const ROOK_LINES = [
 ]
 var cabinets: Array[Cabinet] = []
 var _line_index := 0
+var _progress_sign: Label3D
 
 func _ready() -> void:
 	for i in range(Cabinet.IDS.size()):
@@ -53,7 +55,8 @@ func _ready() -> void:
 	_sign("NO SERVER REQUIRED",Vector3(4.9,2.7,-7.9),Color("b4c9d9"),24)
 	_sign("AFTERHOURS: EARLY ACCESS TO BAD DECISIONS",Vector3(0,2.7,-7.9),Color("aab4ba"),18)
 	_sign("ROOK / REPAIRS & HIGH SCORES",Vector3(0,2.3,-5.1),Color("e9c283"),22)
-	_sign("10 GAMES / 30 MASTERY MEDALS",Vector3(0,2.05,-5.1),Color("72d7cf"),19)
+	_progress_sign = _sign("YOUR CIRCUIT 0/8  •  MEDALS 0/30",Vector3(0,2.05,-5.1),Color("72d7cf"),19)
+	_progress_sign.name = "LocalProgressSign"
 	_sign("FREE PLAY • LOCAL SCORES • NO LOGIN",Vector3(0,3.12,-7.9),Color("b4c9d9"),17)
 	var carpet := MeshInstance3D.new()
 	var mesh := BoxMesh.new()
@@ -84,6 +87,14 @@ func _ready() -> void:
 	poster.position = Vector3(0,1.05,-4.96)
 	add_child(poster)
 
+func refresh_scores(scores: Dictionary) -> void:
+	var clean := Scores.normalized(scores)
+	for cabinet in cabinets:
+		if is_instance_valid(cabinet):
+			cabinet.set_local_score(clean)
+	if is_instance_valid(_progress_sign):
+		_progress_sign.text = "YOUR CIRCUIT %d/8  •  MEDALS %d/30" % [Scores.circuit_count(clean),Scores.mastery_total(clean)]
+
 func circuit_near(at: Vector3) -> bool:
 	return to_local(at).distance_to(CIRCUIT_POINT) < .8
 
@@ -113,7 +124,7 @@ func rook_line() -> String:
 	_line_index = (_line_index + 1) % ROOK_LINES.size()
 	return line
 
-func _sign(message: String, at: Vector3, tint: Color, font_size: int) -> void:
+func _sign(message: String, at: Vector3, tint: Color, font_size: int) -> Label3D:
 	var label := Label3D.new()
 	label.text = message
 	label.position = at
@@ -123,6 +134,7 @@ func _sign(message: String, at: Vector3, tint: Color, font_size: int) -> void:
 	label.outline_size = 2
 	label.no_depth_test = false
 	add_child(label)
+	return label
 
 # Static prints sit above the room's interaction zones. No new collisions or lights.
 func _mount_game_poster(cabinet: Cabinet, index: int) -> void:

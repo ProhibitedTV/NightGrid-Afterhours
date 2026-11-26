@@ -28,11 +28,18 @@ func _verify() -> void:
 	var entry := rooms.enter(site,"VENUE",outside)
 	if not check(rooms.arcade_cabinet_near(entry).is_empty() and rooms.arcade_cabinet_near(Room.ORIGIN + Vector3(-4.6,1.1,-2.2)) == "grand_delay", "entry and cabinet reachability"):
 		return
+	rooms.refresh_arcade_scores({"grand_delay":800})
+	var physical := rooms.arcade_cabinet_node("grand_delay").get_node("LocalScorePlate") as Label3D
+	if not check(physical.text == "YOUR BEST 00800  |  1/3","room adapter updates physical score"):
+		return
 	var snap := rooms.snapshot()
 	if not check(rooms.leave() == outside and rooms.arcade_cabinet_near(entry).is_empty(), "leave clears activity"):
 		return
 	await process_frame
 	if not check(rooms.restore(snap,site) and rooms.active_site_id() == "insert_coin", "legacy room save restore"):
+		return
+	rooms.refresh_arcade_scores({"grand_delay":800})
+	if not check((rooms.arcade_cabinet_node("grand_delay").get_node("LocalScorePlate") as Label3D).text == "YOUR BEST 00800  |  1/3","restored room projects saved record"):
 		return
 	if not check(rooms.arcade_circuit_near(Room.ORIGIN+Vector3(0,1.15,-3.35)) and not rooms.arcade_circuit_near(entry), "circuit board proximity"):
 		return
