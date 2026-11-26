@@ -1434,6 +1434,7 @@ func _process(delta: float) -> void:
 	_venue_clock_tick += delta
 	if _venue_clock_tick >= 0.5:
 		_venue_clock_tick = 0.0
+		_sync_band_flyers()
 		venue_system.call("set_hour", float(day_night.get("hour")))
 		civic_services.call("set_hour", float(day_night.get("hour")))
 	if venue_panel.visible:
@@ -2933,6 +2934,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 			_rail_platform_rider = bool(data.get("rail_platform_rider", false))
 	day_night.set("day_index",int(data.get("day_index",0)))
 	day_night.call("set_hour", float(data.get("hour", 19.25)))
+	_sync_band_flyers()
 	venue_system.call("set_hour", float(day_night.get("hour")))
 	civic_services.call("set_hour", float(day_night.get("hour")))
 	venue_job_active = str(data.get("venue_job_active", ""))
@@ -5734,3 +5736,7 @@ func _music_desk_action(action:String)->void:
 			if progression.owns_instrument(Instruments.STARTER) and progression.sampler_practice<Instruments.MAX_PRACTICE:
 				_music_session_site="practice:copper_cup"
 				game_menu.call("open_sampler_practice",progression.sampler_practice+1)
+
+func _sync_band_flyers()->void:
+	if is_instance_valid(venue_system):
+		venue_system.call("set_band_promotion",progression.band_name,progression.has_receipt(ProgressionLedger.BAND_DEBUT_RECEIPT),progression.band_showcase_available(),progression.has_receipt(ProgressionLedger.BAND_SHOWCASE_RECEIPT),progression.tape_stock+progression.tapes_sold>0)
