@@ -19,6 +19,12 @@ static func scores(wallet: RefCounted) -> Dictionary:
 	for id in COMMUNITY_RECEIPTS:
 		if wallet.call("has_receipt",id):
 			community += 12
+	# Local work builds neighborhood trust, with a bounded contribution
+	# from repeatable jobs so they cannot alone max out the scene.
+	if wallet.call("has_receipt","civic:horizon_garden_trail"):
+		community += 10
+	community += 2*clampi(int(wallet.get("taxi_runs")),0,10)
+	community += 3*clampi(int(wallet.get("freight_runs")),0,10)
 	var underground := 0
 	for id in UNDERGROUND_RECEIPTS:
 		if wallet.call("has_receipt",id):

@@ -1,6 +1,7 @@
 extends SceneTree
 const Ledger=preload("res://scripts/progression_ledger.gd")
 const Cred=preload("res://scripts/street_cred.gd")
+const SceneCred=preload("res://scripts/scene_reputation.gd")
 
 func _check(ok:bool,message:String)->bool:
 	if not ok:
@@ -53,6 +54,19 @@ func _initialize()->void:
 	var old:=local.snapshot()
 	old.erase("street_activity_runs")
 	if not _check(q.restore(local.balance,old) and q.street_cred()==105 and q.street_cred_sources().size()==5,"existing favor receipts migrate without another payout"):
+		return
+	var community:=Ledger.new()
+	if not _check(SceneCred.scores(community)["community"]==0 and not community.settle_taxi(2) and not community.settle_freight(2),"unearned work cannot grant community recognition"):
+		return
+	if not _check(community.credit_once("civic:horizon_garden_trail",25) and not community.credit_once("civic:horizon_garden_trail",25) and SceneCred.scores(community)["community"]==10,"garden trail gives one community credit"):
+		return
+	for run in range(1,13):
+		if not _check(community.settle_taxi(run) and community.settle_freight(run),"valid repeatable work settlement"):
+			return
+	if not _check(SceneCred.scores(community)=={"music":0,"community":60,"underground":0},"community work contribution is capped and isolated"):
+		return
+	var community_copy:=Ledger.new()
+	if not _check(community_copy.restore(community.balance,JSON.parse_string(JSON.stringify(community.snapshot()))) and SceneCred.scores(community_copy)==SceneCred.scores(community),"community recognition derived from restored job receipts and counts"):
 		return
 	var cap:=Cred.new()
 	if not _check(cap.restore({"live_gig":Cred.MAX_RUNS}) and cap.total({})==Cred.MAX_CRED and Cred.rank(1000)["name"]=="Street Legend" and Cred.rank(1000)["next"]==0,"bounded total and terminal rank"):
