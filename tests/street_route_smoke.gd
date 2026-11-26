@@ -184,6 +184,27 @@ func _verify() -> void:
 		_fail("Teleport cannot skip driving checkpoints")
 		return
 	trial.start(trial.START,1,100.0,0.0)
+	# Gradual off-road movement is not a teleport; it must still fail.
+	for step in range(1,45):
+		var outside:Vector2=trial.START+Vector2(0,.2*step)
+		trial.tick(1.0/60.0,outside,1,100.0)
+	if trial.active or trial.result!="OFF COURSE" or trial.index!=0:
+		_fail("Slow off-road shortcuts cannot preserve a race")
+		return
+	trial.start(trial.START,1,100.0,0.0)
+	# Legal parallel lane and early radius entry must permit a turn.
+	var corner:Vector2=trial.GATES[0]
+	var lane:Vector2=trial.START+Vector2(0,-3)
+	while trial.previous.distance_to(lane)>.01 and trial.active:
+		trial.tick(1.0/60.0,trial.previous.move_toward(lane,.2),1,100.0)
+	var approach:=corner+Vector2(-5,-3)
+	while trial.previous.distance_to(approach)>.01 and trial.active:
+		trial.tick(1.0/60.0,trial.previous.move_toward(approach,.2),1,100.0)
+	if not trial.active or trial.index!=1 or not trial.on_course(approach) or not trial.on_course(corner+Vector2(-3,-5)):
+		_fail("Normal lane approach and early checkpoint turn remain valid")
+		return
+	trial.stop("ABANDONED")
+	trial.start(trial.START,1,100.0,0.0)
 	var pos:Vector2=trial.START
 	for gate in trial.GATES:
 		if Route.road_anchor(gate)!=gate:

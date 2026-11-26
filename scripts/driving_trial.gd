@@ -5,6 +5,9 @@ const START = Vector2(29,174)
 const GATES = [Vector2(58,174),Vector2(58,145),Vector2(58,116),Vector2(29,116),Vector2(0,116),Vector2(0,145),Vector2(0,174),START]
 const LIMIT = 90.0
 const RADIUS = 7.0
+# Includes lane width and a small allowance for turning at intersections.
+const ROAD_CORRIDOR = 7.5
+const APPROACH_TAIL = 10.0
 const RECEIPT = "driving:southworks_circuit"
 const REWARD = 90
 const BRICK_START = Vector2(-145,116)
@@ -111,6 +114,30 @@ func stop(reason:String)->void:
 	result=reason
 	vehicle_id=0
 
+static func _segment_distance(at:Vector2,a:Vector2,b:Vector2)->float:
+	var axis:=b-a
+	var fraction:=clampf((at-a).dot(axis)/maxf(axis.length_squared(),.0001),0.0,1.0)
+	return at.distance_to(a+axis*fraction)
+
+func on_course(at:Vector2)->bool:
+	if not at.is_finite() or index<0 or index>=gates().size():
+		return false
+	var checkpoints:=gates()
+	var origin:=BRICK_START if course_id==BRICK else START
+	var from:Vector2=origin if index==0 else checkpoints[index-1]
+	var to:Vector2=checkpoints[index]
+	if _segment_distance(at,from,to)<=ROAD_CORRIDOR:
+		return true
+	# A gate can be credited on entry to its radius, before reaching the
+	# exact intersection center. Preserve the short incoming approach,
+	# not the entire previous leg or a neighboring parallel road.
+	if index>0:
+		var previous_gate:Vector2=origin if index==1 else checkpoints[index-2]
+		var tail:=from.move_toward(previous_gate,APPROACH_TAIL)
+		if _segment_distance(at,tail,from)<=ROAD_CORRIDOR:
+			return true
+	return false
+
 func tick(delta:float,at:Vector2,id:int,condition:float)->String:
 	if not active:
 		return ""
@@ -123,6 +150,9 @@ func tick(delta:float,at:Vector2,id:int,condition:float)->String:
 	# credit a checkpoint after a teleport or save displacement.
 	if at.distance_to(previous)>maxf(2.0,delta*100.0):
 		stop("ROUTE RESET")
+		return result
+	if not on_course(at):
+		stop("OFF COURSE")
 		return result
 	previous=at
 	elapsed+=delta
