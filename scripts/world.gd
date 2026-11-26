@@ -1652,8 +1652,11 @@ func _taxi_interact()->void:
 		_notify("Taxi / civilian Kestrel required, no police attention.")
 		return
 	if _taxi.begin(progression.taxi_runs,at,id,condition,speed):
-		if is_instance_valid(_taxi_rider):
-			_taxi_rider.call("hide_rider")
+		if not is_instance_valid(_taxi_rider):
+			_taxi_rider=TaxiRider.new()
+			_taxi_rider.name="WaitingTaxiRider"
+			add_child(_taxi_rider)
+		_taxi_rider.call("seat_rider",_taxi.sequence-1,str(_taxi.route["rider"]),current_car)
 		ambient_caption.call("present",str(_taxi.route["rider"]),str(_taxi.route["request"]))
 		set_navigation_waypoint(_taxi.route["drop"])
 		_notify("TAXI / %s • passenger fare started"%_taxi.route["name"])
@@ -1689,6 +1692,10 @@ func _show_taxi_arrival()->void:
 	_taxi_rider.call("begin_departure",_taxi.sequence-1,str(_taxi.route["rider"]),point,goal)
 
 func _update_taxi_waiting_rider(delta:float)->void:
+	if _taxi.active and is_instance_valid(_taxi_rider) and _taxi_rider.call("is_seated"):
+		return
+	if not _taxi.active and is_instance_valid(_taxi_rider) and _taxi_rider.call("is_seated"):
+		_taxi_rider.call("hide_rider")
 	if is_instance_valid(_taxi_rider) and _taxi_rider.call("is_departing"):
 		if _taxi.active or _freight.active or _driving_trial.active or interiors.call("is_inside") or current_transit!=null or _actor().global_position.distance_squared_to(_taxi_rider.global_position)>42.0*42.0:
 			_taxi_rider.call("hide_rider")
@@ -1934,6 +1941,8 @@ func _toggle_car() -> void:
 			world_audio.call("play_event", "DOOR", current_car.global_position)
 		frame_time_recorder.mark_vehicle_stage(exit_trace,"door_audio")
 		_taxi.cancel()
+		if is_instance_valid(_taxi_rider):
+			_taxi_rider.call("hide_rider")
 		_cancel_freight()
 		current_car.set("occupied", false)
 		current_car = null

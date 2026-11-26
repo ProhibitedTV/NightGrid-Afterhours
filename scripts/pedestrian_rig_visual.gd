@@ -148,6 +148,23 @@ func reset_pedestrian_visual() -> void:
 		_player.play(idle_clip,0.0)
 		_player.seek(0.0,true)
 
+func pose_taxi_seated()->Dictionary:
+	if not _valid:
+		return {}
+	_player.stop()
+	set_process(false)
+	var pose:=preload("res://scripts/taxi_seated_pose.gd").apply(_skeleton,self)
+	if pose.is_empty():
+		resume_taxi_standing()
+	return pose
+
+func resume_taxi_standing()->void:
+	if not _valid:
+		return
+	_skeleton.reset_bone_poses()
+	reset_pedestrian_visual()
+	set_process(true)
+
 func _process(delta: float) -> void:
 	if not _valid or not is_finite(delta) or delta<=0.0:
 		return

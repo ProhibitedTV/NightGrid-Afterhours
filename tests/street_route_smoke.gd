@@ -80,6 +80,18 @@ func _verify() -> void:
 	if rider.visible:
 		_fail("Taxi boarding removes curbside visual")
 		return
+	var seat_car:=Node3D.new()
+	root.add_child(seat_car)
+	# These are the exact shipped three civilian imports, not mock bones.
+	for style in range(3):
+		if not rider.seat_rider(style,"Passenger",seat_car) or not rider.is_seated() or rider.get_parent()!=seat_car:
+			_fail("Imported taxi rider must support the seated pose: %d"%style)
+			return
+		rider.hide_rider()
+		if rider.is_seated() or rider.get_parent()!=root or rider.scale!=Vector3.ONE:
+			_fail("Seated rider lifecycle restores standing parent and scale")
+			return
+	seat_car.queue_free()
 	var arrival:=taxi.arrival_point(taxi.offer(0))
 	var goal:=arrival+Vector3(-3,0,0)
 	rider.begin_departure(0,"Nina",arrival,goal)
