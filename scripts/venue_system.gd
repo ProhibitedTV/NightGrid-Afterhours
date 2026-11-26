@@ -11,6 +11,8 @@ const MusicVisual=preload("res://scripts/pedestrian_rig_visual.gd")
 const MusicianModel=preload("res://assets/models/nightgrid/pedestrians/casual-walker.glb")
 var _blue_hour_performer:Node3D
 var _blue_hour_rig:Node3D
+var _band_flyers:Dictionary={}
+var _band_promotion_text:=""
 const Breaker=preload("res://assets/instruments/ironwake_breaker_g6.glb")
 const Dredge=preload("res://assets/instruments/ironwake_dredge_b4.glb")
 var _string_display:Node3D
@@ -209,6 +211,12 @@ func _build_venue(venue: Dictionary) -> void:
 	front.position = sidewalk + Vector3(0.0, -1.15, 2.3)
 	add_child(front)
 	_nodes[venue_id] = front
+	if venue_id in ["copper_cup","dock_nine","blue_hour","static_room"]:
+		var flyer:=_make_label(front,"",Vector3(-2.65,2.7,1.30),Color("e6a8cf"),20)
+		flyer.name="BandFlyer"
+		flyer.visible=false
+		flyer.visibility_range_end=24.0
+		_band_flyers[venue_id]=flyer
 	_map_pins.append({
 		"id": venue_id,
 		"point": Vector2(sidewalk.x, sidewalk.z),
@@ -571,3 +579,20 @@ func _refresh_blue_hour_performer()->void:
 	elif _blue_hour_rig.get("_music_role")!="sampler":
 		_blue_hour_rig.call("set_music_performance","sampler")
 	_blue_hour_performer.visible=active
+
+## Read-only promotion projection from the authoritative player ledger.
+func set_band_promotion(name:String,debuted:bool,showcase:bool,headlined:bool,released:bool)->void:
+	var text:=""
+	if debuted:
+		var act:=name.to_upper() if not name.is_empty() else "UNSIGNED TRIO"
+		text=act+"\nBLUE HOUR / RESIDENT ACT"
+		if showcase or headlined:
+			text=act+"\nSTATIC ROOM / "+("HEADLINER" if headlined else "NEXT SHOWCASE")
+		if released:
+			text+="\nAFTER THE LAST SHIFT / OUT NOW"
+	if text==_band_promotion_text:
+		return
+	_band_promotion_text=text
+	for flyer:Label3D in _band_flyers.values():
+		flyer.text=text
+		flyer.visible=not text.is_empty()
