@@ -31,6 +31,8 @@ const FreightJob = preload("res://scripts/freight_job.gd")
 var _freight := FreightJob.new()
 const CargoCase=preload("res://scripts/freight_cargo_case.gd")
 var _freight_case: Node3D
+const TaxiJob=preload("res://scripts/taxi_job.gd")
+var _taxi:=TaxiJob.new()
 const Arsenal = preload("res://scripts/arsenal.gd")
 const Wanted = preload("res://scripts/wanted_system.gd")
 const PoliceDispatch = preload("res://scripts/police_dispatch.gd")
@@ -843,6 +845,11 @@ func _phone_workboard() -> Array[Dictionary]:
 		var freight_site:String=freight_offer["to"] if _freight.active else freight_offer["from"]
 		var depot:Dictionary=civic_services.call("site_by_id",freight_site)
 		listings.append({"id":"freight:current","category":"Vehicle freight","title":freight_offer["name"],"brief":"Stop a civilian Kestrel S6 at the loading point. G/X to load or unload; same vehicle required.","reward":freight_offer["reward"],"site":depot["name"],"open":true,"active":_freight.active,"position":freight_offer["drop"] if _freight.active else freight_offer["pickup"],"action_label":"Deliver freight" if _freight.active else "Navigate to loading point"})
+	var taxi_offer:=_taxi.route if _taxi.active else TaxiJob.offer(progression.taxi_runs)
+	if not taxi_offer.is_empty():
+		var taxi_site:String=taxi_offer["to"] if _taxi.active else taxi_offer["from"]
+		var taxi_venue:Dictionary=venue_system.call("venue_by_id",taxi_site)
+		listings.append({"id":"taxi:current","category":"Passenger fare","title":taxi_offer["name"],"brief":"Civilian Kestrel, condition 50+, stop for G/X pickup or drop-off. Four-minute fare.","reward":taxi_offer["reward"],"site":taxi_venue["name"],"open":true,"active":_taxi.active,"position":taxi_offer["drop"] if _taxi.active else taxi_offer["pickup"],"action_label":"Passenger destination" if _taxi.active else "Find waiting rider"})
 	for site in TechnicalContracts.CASES:
 		if not TechnicalContracts.available(site,progression):
 			continue
@@ -1148,7 +1155,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("interior_toggle"):
 		_toggle_interior()
 	elif event.is_action_pressed("interact"):
-		if current_car!=null and not _driving_trial.active and _freight_interaction_available():
+		if current_car!=null and not _driving_trial.active and not _freight.active and _taxi_interaction_available():
+			_taxi_interact()
+		elif current_car!=null and not _driving_trial.active and not _taxi.active and _freight_interaction_available():
 			_freight_interact()
 		elif current_car != null and (_driving_trial.active or DrivingTrial.near_start(Vector2(current_car.global_position.x,current_car.global_position.z))):
 			_toggle_driving_trial()
@@ -1470,6 +1479,7 @@ func _physics_process(delta: float) -> void:
 	started = StreamProfile.begin()
 	_update_combat(delta)
 	_update_freight(delta)
+	_update_taxi(delta)
 	if not courier_mission.gig_economy and not indoors and current_transit == null and actor.global_position.distance_to(mission_position) < CourierMission.RADIUS:
 		_advance_mission()
 	if (actor.global_position.y < -15.0 or not indoors and
@@ -1601,6 +1611,58 @@ func _update_freight(delta:float)->void:
 	if not _freight.tick(at,current_car.get_instance_id(),float(current_car.get("condition")),delta):
 		_remove_freight_case()
 		_notify("Freight lost / retry at pickup.")
+
+func _taxi_interaction_available()->bool:
+	if current_car==null:
+		return false
+	var at:=Vector2(current_car.global_position.x,current_car.global_position.z)
+	var offer:=TaxiJob.offer(progression.taxi_runs)
+	return _taxi.active or (not offer.is_empty() and TaxiJob.near(at,offer["pickup"]))
+
+func _taxi_interact()->void:
+	if current_car==null or _freight.active or _driving_trial.active:
+		return
+	var at:=Vector2(current_car.global_position.x,current_car.global_position.z)
+	var id:=current_car.get_instance_id()
+	var condition:=float(current_car.get("condition"))
+	var speed:=float(current_car.get("speed"))
+	if _taxi.active:
+		if TaxiJob.near(at,_taxi.route["drop"]):
+			if _taxi.ready_to_arrive(at,id,condition,speed):
+				var fare:=int(_taxi.route["reward"])
+				if progression.settle_taxi(_taxi.sequence):
+					ambient_caption.call("present",str(_taxi.route["rider"]),str(_taxi.route["arrival"]))
+					_taxi.cancel()
+					_notify("TAXI / fare complete +$%d"%fare)
+					_log_playtest("taxi_finish",{"sequence":progression.taxi_runs,"paid":fare})
+				else:
+					_notify("Taxi / settlement unavailable. Retry.")
+			else:
+				_notify("Taxi / stop safely at the destination.")
+		else:
+			_taxi.cancel()
+			_notify("Taxi fare cancelled. Return to pickup to retry.")
+		return
+	if Wanted.stars(heat)>0 or not FreightJob.supports_vehicle(str(current_car.get("model_id")),bool(current_car.get("is_police"))):
+		_notify("Taxi / civilian Kestrel required, no police attention.")
+		return
+	if _taxi.begin(progression.taxi_runs,at,id,condition,speed):
+		ambient_caption.call("present",str(_taxi.route["rider"]),str(_taxi.route["request"]))
+		set_navigation_waypoint(_taxi.route["drop"])
+		_notify("TAXI / %s • passenger fare started"%_taxi.route["name"])
+	else:
+		_notify("Taxi / stop with vehicle condition of at least 50.")
+
+func _update_taxi(delta:float)->void:
+	if not _taxi.active:
+		return
+	if not is_instance_valid(current_car) or Wanted.stars(heat)>0:
+		_taxi.cancel()
+		_notify("Taxi fare cancelled.")
+		return
+	var at:=Vector2(current_car.global_position.x,current_car.global_position.z)
+	if not _taxi.tick(at,current_car.get_instance_id(),float(current_car.get("condition")),delta):
+		_notify("Taxi fare failed / retry at pickup.")
 
 func _actor() -> Node3D:
 	if current_transit != null:
@@ -1821,6 +1883,7 @@ func _toggle_car() -> void:
 		else:
 			world_audio.call("play_event", "DOOR", current_car.global_position)
 		frame_time_recorder.mark_vehicle_stage(exit_trace,"door_audio")
+		_taxi.cancel()
 		_cancel_freight()
 		current_car.set("occupied", false)
 		current_car = null
@@ -2221,6 +2284,7 @@ func _reset_pursuit_runtime() -> void:
 	police_cooldown = 0.0
 
 func _respawn() -> void:
+	_taxi.cancel()
 	_cancel_freight()
 	_garden_trail_mask=0
 	_driving_trial.stop("ABANDONED")
@@ -2672,6 +2736,7 @@ func _capture_snapshot() -> Dictionary:
 	return state
 
 func _apply_snapshot(data: Dictionary) -> void:
+	_taxi.cancel()
 	_cancel_freight()
 	_garden_trail_mask=0
 	_driving_trial.stop("ABANDONED")
@@ -4960,6 +5025,8 @@ func _update_hud() -> void:
 		jobs.append("POD DEPOSIT / $%d of $%d" % [mini(cash,StarterHome.move_in_price()),StarterHome.move_in_price()])
 	if story_mission.status != "complete":
 		jobs.append(story_mission.journal())
+	if _taxi.active:
+		jobs.append("TAXI / %s • %ds • $%d"%[_taxi.route["name"],ceili(TaxiJob.LIMIT-_taxi.elapsed),_taxi.route["reward"]])
 	if _freight.active:
 		jobs.append("FREIGHT / %s • $%d"%[_freight.route["name"],_freight.route["reward"]])
 	if not venue_job_active.is_empty():
@@ -4984,12 +5051,15 @@ func _update_hud() -> void:
 	var repair := _repair_storefront()
 	if current_car != null:
 		prompts.append(("RT/LT Drive  •  B Brake  •  Y Exit" if gamepad_active else "W/S Drive  •  Space Brake  •  E Exit") if show_control_hints else ("Y Exit vehicle" if gamepad_active else "E Exit vehicle"))
-		if _freight_interaction_available() and not _driving_trial.active:
+		if _taxi_interaction_available() and not _driving_trial.active and not _freight.active:
+			var taxi_at:=Vector2(current_car.global_position.x,current_car.global_position.z)
+			prompts.append("%s %s"%[interact_key,("Complete fare" if TaxiJob.near(taxi_at,_taxi.route["drop"]) else "Cancel fare") if _taxi.active else "Pick up passenger / stop"])
+		elif _freight_interaction_available() and not _driving_trial.active and not _taxi.active:
 			var freight_at:=Vector2(current_car.global_position.x,current_car.global_position.z)
 			prompts.append("%s %s"%[interact_key,("Unload freight" if FreightJob.near(freight_at,_freight.route["drop"]) else "Cancel freight") if _freight.active else "Load freight / stop"])
 		if _driving_trial.active:
 			prompts.append("%s Abandon circuit"%interact_key)
-		elif DrivingTrial.near_start(Vector2(current_car.global_position.x,current_car.global_position.z)):
+		elif not _taxi.active and not _freight.active and DrivingTrial.near_start(Vector2(current_car.global_position.x,current_car.global_position.z)):
 			prompts.append("%s %s / stop to start"%[interact_key,DrivingTrial.name_for(DrivingTrial.course_at(Vector2(current_car.global_position.x,current_car.global_position.z)))])
 		if is_instance_valid(nightgrid_fm) and show_control_hints:
 			prompts.append("D-pad → Radio  •  ↑ Next" if gamepad_active else "B Radio  •  N Next")

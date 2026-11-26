@@ -68,6 +68,45 @@ func _verify() -> void:
 		if not is_equal_approx(float(path["road_m"]), float(reverse["road_m"])):
 			_fail("Bidirectional street distances must be symmetric")
 			return
+	var taxi:=preload("res://scripts/taxi_job.gd").new()
+	var taxi_ledger:=preload("res://scripts/progression_ledger.gd").new()
+	for run in range(3):
+		var offer:=taxi.offer(run)
+		var pickup:Vector2=offer["pickup"]
+		var drop:Vector2=offer["drop"]
+		if taxi.begin(run,pickup,9,49.0,0.0) or taxi.begin(run,pickup,9,100.0,2.0) or not taxi.begin(run,pickup,9,100.0,0.0):
+			_fail("Taxi comfort and stopped pickup guards")
+			return
+		if taxi.tick(pickup,10,100.0,1.0/60.0) or taxi.active:
+			_fail("Taxi vehicle switch cancels fare")
+			return
+		taxi.begin(run,pickup,9,100.0,0.0)
+		var taxi_pos:=pickup
+		var path:=Route.plan(pickup,drop)
+		var points:Array[Vector2]=path["points"]
+		points.append(drop)
+		for waypoint in points:
+			while taxi_pos.distance_to(waypoint)>.01:
+				taxi_pos=taxi_pos.move_toward(waypoint,.2)
+				taxi.tick(taxi_pos,9,100.0,1.0/60.0)
+		if not taxi.ready_to_arrive(drop,9,100.0,0.0) or not taxi_ledger.settle_taxi(taxi.sequence) or taxi_ledger.settle_taxi(taxi.sequence):
+			_fail("Taxi physical-route and exactly-once settlement")
+			return
+		taxi.cancel()
+	var taxi_save:Dictionary=JSON.parse_string(JSON.stringify(taxi_ledger.snapshot()))
+	var taxi_restored:=preload("res://scripts/progression_ledger.gd").new()
+	if not taxi_restored.restore(145,taxi_save) or taxi_restored.taxi_runs!=3 or taxi_ledger.balance!=145 or taxi_ledger.freight_runs!=0:
+		_fail("Independent taxi progression roundtrip")
+		return
+	taxi_save["taxi_runs"]=100001
+	if taxi_restored.restore(0,taxi_save) or taxi_restored.taxi_runs!=3:
+		_fail("Invalid taxi count rejected atomically")
+		return
+	taxi.begin(0,taxi.ROUTES[0]["pickup"],9,100.0,0.0)
+	taxi.elapsed=239.99
+	if taxi.tick(taxi.ROUTES[0]["pickup"],9,100.0,1.0/60.0) or taxi.active:
+		_fail("Taxi timeout")
+		return
 	var freight:=preload("res://scripts/freight_job.gd").new()
 	if not freight.supports_vehicle("",false) or freight.supports_vehicle("cinder_r9",false) or freight.supports_vehicle("",true):
 		_fail("Cargo capacity must reject sports cars and service cruisers")

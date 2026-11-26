@@ -30,6 +30,8 @@ var circuit_best_ms: int = 0
 var brickwater_best_ms: int = 0
 var freight_runs: int = 0
 const Freight = preload("res://scripts/freight_job.gd")
+const Taxi=preload("res://scripts/taxi_job.gd")
+var taxi_runs:int=0
 const Circuit = preload("res://scripts/driving_trial.gd")
 var _owned_vehicles: Dictionary = {}
 var home_supplies: int = 0
@@ -117,6 +119,15 @@ func settle_freight(sequence:int)->bool:
 	if offer.is_empty() or not credit(int(offer["reward"])):
 		return false
 	freight_runs=sequence
+	return true
+
+func settle_taxi(sequence:int)->bool:
+	if sequence!=taxi_runs+1 or sequence>Taxi.MAX_RUNS:
+		return false
+	var offer:=Taxi.offer(taxi_runs)
+	if offer.is_empty() or not credit(int(offer["reward"])):
+		return false
+	taxi_runs=sequence
 	return true
 
 func meet_synaxis_contact() -> bool:
@@ -511,7 +522,7 @@ func snapshot() -> Dictionary:
 	ids.sort()
 	var instruments:Array=_instruments.keys()
 	instruments.sort()
-	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "owned_pieces":owned_piece_ids(), "clothing_slots":clothing_slots.duplicate(), "saved_looks":_saved_looks.duplicate(true), "bitcoin_sats":bitcoin_sats, "synaxis_contact":synaxis_contact, "cal_quest":cal_quest, "street_activity_runs":_street_cred.snapshot(), "instruments":instruments, "sampler_practice":sampler_practice,"band_members":_band_members.duplicate(),"band_rehearsals":band_rehearsals,"band_name":band_name,"tape_stock":tape_stock,"tape_batches":tape_batches,"tapes_sold":tapes_sold,"circuit_best_ms":circuit_best_ms,"brickwater_best_ms":brickwater_best_ms,"freight_runs":freight_runs}
+	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "owned_pieces":owned_piece_ids(), "clothing_slots":clothing_slots.duplicate(), "saved_looks":_saved_looks.duplicate(true), "bitcoin_sats":bitcoin_sats, "synaxis_contact":synaxis_contact, "cal_quest":cal_quest, "street_activity_runs":_street_cred.snapshot(), "instruments":instruments, "sampler_practice":sampler_practice,"band_members":_band_members.duplicate(),"band_rehearsals":band_rehearsals,"band_name":band_name,"tape_stock":tape_stock,"tape_batches":tape_batches,"tapes_sold":tapes_sold,"circuit_best_ms":circuit_best_ms,"brickwater_best_ms":brickwater_best_ms,"freight_runs":freight_runs,"taxi_runs":taxi_runs}
 
 static func valid_snapshot(value: Variant) -> bool:
 	if not value is Dictionary:
@@ -536,6 +547,9 @@ static func valid_snapshot(value: Variant) -> bool:
 		return false
 	var freight:Variant=data.get("freight_runs",0)
 	if not valid_cash(freight) or int(freight)>Freight.MAX_RUNS:
+		return false
+	var taxi:Variant=data.get("taxi_runs",0)
+	if not valid_cash(taxi) or int(taxi)>Taxi.MAX_RUNS:
 		return false
 	var instruments:Variant=data.get("instruments",[])
 	if not instruments is Array or instruments.size()>Instruments.ITEMS.size():
@@ -666,6 +680,7 @@ func restore(amount: Variant, data: Variant) -> bool:
 	circuit_best_ms=int(data.get("circuit_best_ms",0))
 	brickwater_best_ms=int(data.get("brickwater_best_ms",0))
 	freight_runs=int(data.get("freight_runs",0))
+	taxi_runs=int(data.get("taxi_runs",0))
 	_receipts = next
 	home_tenancy_paid = data.get("home_tenancy_paid",next.has(StarterHome.ACCESS_RECEIPT))
 	_owned_vehicles = titles
