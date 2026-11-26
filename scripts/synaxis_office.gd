@@ -432,6 +432,42 @@ func tick_lift(delta:float,player:CharacterBody3D) -> bool:
 func recovery_floor() -> float:
 	return global_position.y+_active_floor*Workfloor.FLOOR_HEIGHT-2.0
 
+# Keep optional parking and terrace exploration, but do not allow the
+# active chapter to spill into the unrestricted city. This is a secondary
+# safety net behind the physical shell, not a substitute for collision art.
+static func within_chapter_bounds(local:Vector3,level:int,parking_open:bool,exit_unlocked:bool) -> bool:
+	if not local.is_finite():
+		return false
+	var relative_y:=local.y-level*Workfloor.FLOOR_HEIGHT
+	if relative_y < -2.0 or relative_y > 3.5:
+		return false
+	if level!=0 and level!=Basement.FLOOR and level!=ExecutiveFloor.FLOOR and (level<1 or level>Workfloor.FLOOR_COUNT):
+		return false
+	if level==0:
+		if absf(local.x)<=8.6 and local.z>=-7.8 and local.z<=10.1:
+			return true
+		# The only ground-floor street exit is the completed offboarding route.
+		if exit_unlocked and absf(local.x)<=1.6 and local.z>=-14.2 and local.z<=-7.6:
+			return true
+		# Bounded west walkway from the staff door and rear founder forecourt.
+		# Preserve the guard and employee parking visit, not the entire city.
+		if parking_open:
+			if local.x>=-10.3 and local.x<=-8.3 and local.z>=3.3 and local.z<=25.9:
+				return true
+			if local.x>=-10.3 and local.x<=8.0 and local.z>=9.8 and local.z<=25.9:
+				return true
+		return false
+	if absf(local.x)<=8.6 and absf(local.z)<=10.1:
+		return true
+	return level==ExecutiveFloor.FLOOR and local.x>=8.4 and local.x<=11.3 and local.z>=-8.8 and local.z<=-1.2
+
+func needs_recovery(at:Vector3) -> bool:
+	if not _prologue_active or arrival_active() or lift_active():
+		return false
+	if not at.is_finite():
+		return true
+	return not within_chapter_bounds(to_local(at),_active_floor,_staff_exit_open,_exit_phase==3)
+
 func recovery_position() -> Vector3:
 	return to_global(CUBICLE_POINT if _active_floor==0 else Vector3(0,_active_floor*Workfloor.FLOOR_HEIGHT+1.15,Workfloor.LIFT.y))
 
