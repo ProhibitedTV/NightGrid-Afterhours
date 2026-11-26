@@ -183,6 +183,7 @@ func _install_imported_pilot() -> void:
 	var visual:=RigVisual.new()
 	visual.name="ImportedStaffVisual"
 	visual.set_pedestrian_model(model)
+	visual.office_conversation_gestures=true
 	visual.idle_clip=&"Idle"
 	visual.walk_clip=&"Walk"
 	# The old primitive actor used exaggerated nonuniform dimensions.

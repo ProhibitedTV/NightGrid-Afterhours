@@ -37,6 +37,9 @@ var _attention_goal:=0.0
 var _attention_yaw:=0.0
 var _attention_saved:=Quaternion.IDENTITY
 var _attention_applied:=false
+# Office-only opt-in. Existing street actors keep their original gaze behavior.
+var office_conversation_gestures:=false
+var _conversation_phase:=0.0
 static var _materials_by_source := {}
 static var _street_surface_by_source := {}
 
@@ -170,7 +173,13 @@ func _restore_attention() -> void:
 
 func _apply_attention(delta:float) -> void:
 	_attention_yaw=move_toward(_attention_yaw,0.0 if _walking else _attention_goal,delta*2.8)
-	if _attention_bone<0 or absf(_attention_yaw)<.001:
+	var nod:=0.0
+	if office_conversation_gestures and not _walking and absf(_attention_goal)>.01:
+		_conversation_phase=fposmod(_conversation_phase+delta,4.2)
+		nod=.075*pow(maxf(0.0,sin(_conversation_phase*TAU/4.2)),8.0)
+	else:
+		_conversation_phase=0.0
+	if _attention_bone<0 or (absf(_attention_yaw)<.001 and absf(nod)<.001):
 		return
 	# Convert actor-local up to the head parent's coordinates. Keep the
 	# imported clip's original quaternion; never accumulate frame offsets.
@@ -181,7 +190,13 @@ func _apply_attention(delta:float) -> void:
 	if not axis.is_finite() or axis.length_squared()<.001:
 		return
 	_attention_saved=_skeleton.get_bone_pose_rotation(_attention_bone)
-	_skeleton.set_bone_pose_rotation(_attention_bone,(Quaternion(axis,_attention_yaw)*_attention_saved).normalized())
+	var pitch_axis:=(_skeleton.global_basis.inverse()*global_basis*Vector3.RIGHT).normalized()
+	if parent>=0:
+		pitch_axis=(_skeleton.get_bone_global_pose(parent).basis.inverse()*pitch_axis).normalized()
+	var nod_rotation:=Quaternion.IDENTITY
+	if pitch_axis.is_finite() and pitch_axis.length_squared()>.001:
+		nod_rotation=Quaternion(pitch_axis,nod)
+	_skeleton.set_bone_pose_rotation(_attention_bone,(Quaternion(axis,_attention_yaw)*nod_rotation*_attention_saved).normalized())
 	_attention_applied=true
 
 func set_music_performance(role: String) -> bool:
