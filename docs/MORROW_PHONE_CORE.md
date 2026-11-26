@@ -46,19 +46,21 @@ Cred shows the three capped scores with ranks: Unknown (0), New face (1–19), R
 
 Run `godot --headless --path . --script res://tests/morrow_phone_core_smoke.gd` and full preflight/Windows export. On the exact tested build, inspect keyboard P and pause-menu controller access, launcher/app focus, readable rows at 720p and 1080p, route selection, rejection of unavailable actions, and restoration of input when closing. Verify carried-order guards, both duty states, physical music bookings, all three reputation rows, and unchanged wallet while browsing. Record actual screenshots and pass/fail results; automated tests alone do not establish native layout quality.
 
-## Native music presentation acceptance (merged #399, #403, #405, #406)
+## Native music presentation acceptance (merged #399, #403, #405–#411)
 
-These changes add a reversible skeletal performance layer, a physical sampler resident at Blue Hour, isolated solo/trio equipment previews and direct rhythm feedback. The ambient musician is not the player's ensemble; the preview shows equipment, not a live concert. Do not infer graphical quality from headless success.
+These changes add a reversible skeletal performance layer, physical sampler and synth residents at Blue Hour and Static Room, isolated solo/trio equipment previews, direct rhythm feedback and persistent band promotion. The ambient musician is not the player's ensemble; the preview shows equipment, not a live concert. Do not infer graphical quality from headless success.
 
 Record the full source SHA from BUILD-INFO.txt, resolution, renderer, input device and graphics preset. On a new or backed-up save:
 
 | Test | Pass condition |
 | --- | --- |
 | Blue Hour 19:00–04:00 | One visible sampler performer near the venue, correct feet/stand/pad alignment, no intersecting patrons or pavement. Leave beyond 24m, return, repeat after closing; no persistent animation or duplicate performer. |
+| Static Room 21:00–03:00 | One visible synth resident within 24m, with authored stand, keyboard and arm motion. Check both sides of midnight, the 03:00 cutoff while venue remains open, distance deactivation and reuse. |
+| Band promotion | After debut, inspect Copper Cup, Dock Nine, Blue Hour and Static Room for the correct band name (or unnamed fallback), resident/showcase/headliner status and tape release. Reload a valid saved career and verify all four signs restore; a fresh save has no promotional signage. Check legibility and no entrance overlap. |
 | Solo session | PocketBeat preview readable at 720p and 1080p; next lane, beat window, required hits, ON BEAT / WRONG PAD / MISSED and final outcome readable without clipping. |
 | Trio rehearsal and paid bookings | Bass/synth/sampler art visible and proportionate in the preview; menu focus, scrolling and keyboard/controller input work. No duplicate viewport after repeated cancellation/reopening. |
 | Audio | Original intro stops before playable timing window; pad cues audible and adjustable; no stuck loop on cancellation or return to the world. |
 | Settlement | Failed/cancelled sets cannot pay or advance career; successful valid claim once only; verify cash, ledger and merchandise after save/reload. |
 | Navigation | Before soundcheck, route to Static Room; active delivery routes to Blue Hour; completed demo removes the contact action. Verify Milo and showcase availability against actual progress. |
 
-Use F10 for real world captures and paired JSON, F7 for issue markers and F8 for comparable native frame traces. For the paused UI, capture the actual screen separately if F10 suppresses overlays; include source SHA and resolution. Report native results in #398 and #362. Keep visual alignment, audio mix, controller feel and 60 FPS target unverified until observed. Pending #407/#408 are not acceptance requirements for this baseline.
+Use F10 for real world captures and paired JSON, F7 for issue markers and F8 for comparable native frame traces. For the paused UI, capture the actual screen separately if F10 suppresses overlays; include source SHA and resolution. Report native results in #398 and #362. Keep visual alignment, audio mix, controller feel and 60 FPS target unverified until observed. Baseline is main `ce6bd2c0a0d4c717da351d2928d375d4fec9e906` (preflight 45757240785, Windows export 45757240718). These checks include #407, #408 and #411. Lantern Cup acoustic residency (#413), Kestrel reference-image correction (#414) and rhythm soundtrack ducking (#415) remain outside this validated baseline until separately merged and verified.
