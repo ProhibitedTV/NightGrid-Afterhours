@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "6b512ea442614c18ee9deebf3c59b7d43c44b3b65dd3fa708378dd32b2bcd1f0",
+  "take_sha256": "fe3da93f7222f462ef4450f86fc78b7837284e03b23898c5c3ff3ab5a2bd515b",
+  "line_sha256": "690b78fc733ee9ae6a9adc031907ea71779c7688b7949b9d23a55020a42ae19d",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "She sent me the minimum system requirements for marriage.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 9,
+    "observed_units": 9,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 3.44,
+      "leading_quiet_seconds": 0.46,
+      "trailing_quiet_seconds": 0.1,
+      "quiet_fraction": 0.18,
+      "peak": 18401,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}

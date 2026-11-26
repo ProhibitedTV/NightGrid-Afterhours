@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "f05abab1b002ceecd4868f0c397b5fb8a1f2d041bb08aaad105482a49b3345c8",
+  "take_sha256": "b71e290773d0a8c43364d6feb02c3b1342b88e2a883f6832cd282ea9f22fa83d",
+  "line_sha256": "a385dd3d7043c6a57cab3050869db10a8e0a3614d93682c1ea8e909989c9dc1f",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "We're building a platform to connect people who have free time with people who want to invoice it.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 18,
+    "observed_units": 18,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 4.96,
+      "leading_quiet_seconds": 0.3,
+      "trailing_quiet_seconds": 0.18,
+      "quiet_fraction": 0.214,
+      "peak": 20883,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

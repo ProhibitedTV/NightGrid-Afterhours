@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "2f23f3cd91ca97d3034f4cbc8f16d6e69022621bbf09e8d8248a9ef50ef81578",
+  "take_sha256": "c6e70674de2c51cd215dabf9831e9d4a6be75ea0d2b9c9311650c0506eff3030",
+  "line_sha256": "f213a33824d753c280b26d47bc74a02c7a021bf97eb48340054b4f06ca983641",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "We had an argument last night. She rolled back to a previous version of herself",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 15,
+    "observed_units": 15,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 5.52,
+      "leading_quiet_seconds": 0.42,
+      "trailing_quiet_seconds": 0.34,
+      "quiet_fraction": 0.275,
+      "peak": 21929,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

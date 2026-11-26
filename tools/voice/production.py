@@ -16,7 +16,7 @@ import studio
 import qc
 
 BASE = "Qwen/Qwen3-TTS-12Hz-1.7B-Base"
-CAST = studio.ROOT / "dist/voice-cast"
+CAST = studio.ROOT / "tools/voice/cast-library"
 TAKES = studio.ROOT / "dist/voice-production"
 PUBLISHED = studio.ROOT / "assets/audio/voiced"
 
@@ -158,6 +158,7 @@ def generate(args, specs):
     import importlib.metadata as metadata
     import soundfile as sf
     import torch
+    from huggingface_hub import snapshot_download
     from qwen_tts import Qwen3TTSModel
     if args.device == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("CUDA unavailable")
@@ -183,7 +184,7 @@ def generate(args, specs):
             continue
         if model is None:
             model = Qwen3TTSModel.from_pretrained(
-                BASE, revision=args.revision, local_files_only=True, device_map=args.device,
+                snapshot_download(BASE, revision=args.revision, local_files_only=True), local_files_only=True, device_map=args.device,
                 dtype=torch.float32 if dtype == "float32" else torch.bfloat16,
                 attn_implementation="sdpa")
         torch.manual_seed(args.seed)

@@ -129,6 +129,7 @@ def generate(args, specs):
     import importlib.metadata as metadata
     import torch
     import soundfile as sf
+    from huggingface_hub import snapshot_download
     from qwen_tts import Qwen3TTSModel
     if args.device == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("CUDA unavailable; select cpu explicitly")
@@ -148,7 +149,7 @@ def generate(args, specs):
             continue
         if model is None:
             model = Qwen3TTSModel.from_pretrained(
-                MODEL, revision=args.revision, local_files_only=True,
+                snapshot_download(MODEL, revision=args.revision, local_files_only=True), local_files_only=True,
                 device_map=args.device, dtype=torch.float32 if args.device == "cpu" else torch.bfloat16,
                 attn_implementation="sdpa")
         torch.manual_seed(args.seed)

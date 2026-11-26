@@ -1,0 +1,40 @@
+{
+  "spec": {
+    "line": {
+      "id": "street.street_visionary.01",
+      "character": "street_visionary",
+      "language": "English",
+      "text": "I'm disrupting the sidewalk industry. People are already walking all over my product.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "street_visionary",
+        "index": 0
+      }
+    },
+    "voice": {
+      "direction": "Original adult female, enthusiastic self-styled entrepreneur."
+    }
+  },
+  "settings": {
+    "model": "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+    "revision": "5ecdb67327fd37bb2e042aab12ff7391903235d3",
+    "seed": 309,
+    "device": "cuda",
+    "dtype": "bfloat16",
+    "reference": "original synthetic voice design",
+    "packages": {
+      "qwen-tts": "0.1.1",
+      "torch": "2.11.0+cu128",
+      "soundfile": "0.14.0",
+      "transformers": "4.57.3"
+    },
+    "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers"
+  },
+  "sha256": "292528427035635bec62cfa8247d84bc41de94d85982b3b10d204bcd68d0a7e8",
+  "stats": {
+    "frames": 245760,
+    "peak": 14920,
+    "rms": 2602.77
+  }
+}

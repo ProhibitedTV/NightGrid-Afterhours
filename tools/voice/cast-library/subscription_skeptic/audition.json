@@ -1,0 +1,40 @@
+{
+  "spec": {
+    "line": {
+      "id": "street.subscription_skeptic.01",
+      "character": "subscription_skeptic",
+      "language": "English",
+      "text": "My apartment has a subscription doorbell. I canceled it. Now visitors are downloadable content.",
+      "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "subscription_skeptic",
+        "index": 0
+      }
+    },
+    "voice": {
+      "direction": "Original adult male, grumbling older local, dry delivery."
+    }
+  },
+  "settings": {
+    "model": "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+    "revision": "5ecdb67327fd37bb2e042aab12ff7391903235d3",
+    "seed": 309,
+    "device": "cuda",
+    "dtype": "bfloat16",
+    "reference": "original synthetic voice design",
+    "packages": {
+      "qwen-tts": "0.1.1",
+      "torch": "2.11.0+cu128",
+      "soundfile": "0.14.0",
+      "transformers": "4.57.3"
+    },
+    "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers"
+  },
+  "sha256": "d71b2b2d8fd8a063ba9b00b85abec9a796d635413b5d374e2f41eb4497802dff",
+  "stats": {
+    "frames": 288000,
+    "peak": 20092,
+    "rms": 2602.77
+  }
+}

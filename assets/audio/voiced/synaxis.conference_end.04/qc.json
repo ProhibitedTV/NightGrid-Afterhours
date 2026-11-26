@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "97072c5d144a908e0e7880ce207ecf7d80e4e680eaa09bdba45507a128f91799",
+  "take_sha256": "3a48fef154cc7d3f30bae9c0d6f6b514d622e2c792aaa3fcebf6cfd4d9a24798",
+  "line_sha256": "271b909a7d64cbeaaaa25c404216d277d70b3a31f026463aac66aa9520868659",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "She's our Director of Strategic Partnerships.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 6,
+    "observed_units": 6,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 2.32,
+      "leading_quiet_seconds": 0.22,
+      "trailing_quiet_seconds": 0.04,
+      "quiet_fraction": 0.207,
+      "peak": 23197,
+      "rms": 2292.9
+    },
+    "flags": []
+  }
+}

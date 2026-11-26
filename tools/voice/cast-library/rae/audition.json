@@ -1,0 +1,41 @@
+{
+  "spec": {
+    "line": {
+      "id": "street.rae.soundcheck.ending",
+      "character": "rae",
+      "text": "Nyx sent you? Good. This city needs more people making music, not more people selling subscriptions to it. I'll keep your name on the list.",
+      "language": "English",
+      "direction": "Casual direct address to a trusted local; understated, sincere.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "rae",
+        "venue_job": "soundcheck_pass",
+        "beat": "ending"
+      }
+    },
+    "voice": {
+      "direction": "Original adult venue host, warm and dry, pragmatic underground musician, no celebrity likeness."
+    }
+  },
+  "settings": {
+    "model": "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+    "revision": "5ecdb67327fd37bb2e042aab12ff7391903235d3",
+    "seed": 308,
+    "device": "cuda",
+    "dtype": "bfloat16",
+    "reference": "original synthetic voice design",
+    "packages": {
+      "qwen-tts": "0.1.1",
+      "torch": "2.11.0+cu128",
+      "soundfile": "0.14.0",
+      "transformers": "4.57.3"
+    },
+    "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers"
+  },
+  "sha256": "6456c37d7bcce9c90afd9b55fe011fc4cc4bfea6f56d3610a20cb21aefc5b786",
+  "stats": {
+    "frames": 441600,
+    "peak": 22779,
+    "rms": 2602.77
+  }
+}

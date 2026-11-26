@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "character": "robot_romantic",
+  "transcript": "My girlfriend is a robot. Her parents are a motherboard and a warranty department.",
+  "audition": {
+    "spec": {
+      "line": {
+        "id": "street.robot_romantic.01",
+        "character": "robot_romantic",
+        "language": "English",
+        "text": "My girlfriend is a robot. Her parents are a motherboard and a warranty department.",
+        "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+        "source": {
+          "catalog": "street_satire",
+          "character": "robot_romantic",
+          "index": 0
+        }
+      },
+      "voice": {
+        "direction": "Original adult male, earnest romantic, slightly awkward, no celebrity likeness."
+      }
+    },
+    "settings": {
+      "model": "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+      "revision": "5ecdb67327fd37bb2e042aab12ff7391903235d3",
+      "seed": 309,
+      "device": "cuda",
+      "dtype": "bfloat16",
+      "reference": "original synthetic voice design",
+      "packages": {
+        "qwen-tts": "0.1.1",
+        "torch": "2.11.0+cu128",
+        "soundfile": "0.14.0",
+        "transformers": "4.57.3"
+      },
+      "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers"
+    },
+    "sha256": "613824f504b0def1c5fc120afcbc627aba511f123425c530def298f99f5f988b",
+    "stats": {
+      "frames": 337920,
+      "peak": 17220,
+      "rms": 2602.78
+    }
+  },
+  "review": {
+    "take_sha256": "613824f504b0def1c5fc120afcbc627aba511f123425c530def298f99f5f988b",
+    "record_sha256": "dfcb2e43a9f22ed176d62bebadfd8102c078b4d1e285f6960ace4eb5078a4034",
+    "reviewer": "Creative director",
+    "notes": "Automated playtest cast selection; PCM verified. Human listening review pending.",
+    "license_and_reference_checked": true
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "spec": {
+    "line": {
+      "id": "synaxis.conference_end.02",
+      "character": "player",
+      "language": "English",
+      "text": "Did you just say colonel?",
+      "direction": "Restrained conversational performance; preserve the written meaning.",
+      "source": {
+        "constant": "CONFERENCE_END",
+        "row": 1
+      }
+    },
+    "voice": {
+      "direction": "Original adult male voice, natural conversational American English, restrained tired disbelief."
+    }
+  },
+  "settings": {
+    "model": "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+    "revision": "5ecdb67327fd37bb2e042aab12ff7391903235d3",
+    "seed": 308,
+    "device": "cuda",
+    "dtype": "bfloat16",
+    "reference": "original synthetic voice design",
+    "packages": {
+      "qwen-tts": "0.1.1",
+      "torch": "2.11.0+cu128",
+      "soundfile": "0.14.0",
+      "transformers": "4.57.3"
+    },
+    "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers"
+  },
+  "sha256": "9c160a650d3f6015c3bdd06253967281132f2d90f6025a43018b902e1faf1158",
+  "stats": {
+    "frames": 69120,
+    "peak": 22399,
+    "rms": 2602.78
+  }
+}

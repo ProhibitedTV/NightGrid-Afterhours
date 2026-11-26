@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "e73270f3723134ec96d424ef2f83256e28d8588d7764c7d1df7b35af800ca98a",
+  "take_sha256": "ea8c6f4d5fa6b3b8fec0f5bdd87e715781273d86d35b9338676d4cfc02be9ff4",
+  "line_sha256": "ad20f82a3beff94f4ef6ea209362832bd1293b8f776dc000fef65b3cbbe463a2",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "Did you just say, Colonel?",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 5,
+    "observed_units": 5,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 2.0,
+      "leading_quiet_seconds": 0.74,
+      "trailing_quiet_seconds": 0.02,
+      "quiet_fraction": 0.44,
+      "peak": 22436,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

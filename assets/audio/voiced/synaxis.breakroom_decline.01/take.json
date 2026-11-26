@@ -1,0 +1,91 @@
+{
+  "spec": {
+    "line": {
+      "id": "synaxis.breakroom_decline.01",
+      "character": "rina",
+      "language": "English",
+      "text": "Good call. They'll use the same photo for the next three quarters anyway.",
+      "direction": "Natural workplace conversation, dry humor.",
+      "source": {
+        "constant": "BREAKROOM_DECLINE",
+        "row": 0
+      }
+    },
+    "voice": {
+      "direction": "Original adult female coworker, sharp dry humor, natural conversational English."
+    }
+  },
+  "settings": {
+    "model": "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+    "revision": "fd4b254389122332181a7c3db7f27e918eec64e3",
+    "seed": 308,
+    "device": "cuda",
+    "dtype": "bfloat16",
+    "packages": {
+      "qwen-tts": "0.1.1",
+      "torch": "2.11.0+cu128",
+      "soundfile": "0.14.0",
+      "transformers": "4.57.3"
+    },
+    "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers",
+    "cast_sha256": "b992c9fa178b83dac065961911eeaf5f25350aefa10f10953aaf39605ae91a33"
+  },
+  "cast": {
+    "schema": 1,
+    "character": "rina",
+    "transcript": "Neither has HR. They needed something for the diversity slide before earnings.",
+    "audition": {
+      "spec": {
+        "line": {
+          "id": "synaxis.breakroom_party.04",
+          "character": "rina",
+          "language": "English",
+          "text": "Neither has HR. They needed something for the diversity slide before earnings.",
+          "direction": "Natural workplace conversation, dry humor.",
+          "source": {
+            "constant": "BREAKROOM_PARTY",
+            "row": 3
+          }
+        },
+        "voice": {
+          "direction": "Original adult female coworker, sharp dry humor, natural conversational English."
+        }
+      },
+      "settings": {
+        "model": "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+        "revision": "5ecdb67327fd37bb2e042aab12ff7391903235d3",
+        "seed": 309,
+        "device": "cuda",
+        "dtype": "bfloat16",
+        "reference": "original synthetic voice design",
+        "packages": {
+          "qwen-tts": "0.1.1",
+          "torch": "2.11.0+cu128",
+          "soundfile": "0.14.0",
+          "transformers": "4.57.3"
+        },
+        "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers"
+      },
+      "sha256": "6ba47c22f8b7b79c881e39e7c43cd6a9bb34576b0bd61ec243fedc4ff07d5bb2",
+      "stats": {
+        "frames": 245760,
+        "peak": 13729,
+        "rms": 2602.77
+      }
+    },
+    "review": {
+      "take_sha256": "6ba47c22f8b7b79c881e39e7c43cd6a9bb34576b0bd61ec243fedc4ff07d5bb2",
+      "record_sha256": "e37bacb1c8d49b0ae96a8ebbe4efcb2c8fc33f0b7dd4413babba908aa83f3f08",
+      "reviewer": "Creative director",
+      "notes": "Automated playtest cast selection; PCM verified. Human listening review pending.",
+      "license_and_reference_checked": true
+    }
+  },
+  "fingerprint": "41e7e1fac7e7a38eee41a40019670cdcd070df98c420e0357a3ccd1116746122",
+  "sha256": "0f0e49d7e0710db68fc9db001bb8385c5093cc2c6fd64ebb04a50a2450dee711",
+  "stats": {
+    "frames": 207360,
+    "peak": 13368,
+    "rms": 2602.78
+  }
+}

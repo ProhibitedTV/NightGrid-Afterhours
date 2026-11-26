@@ -1,0 +1,9 @@
+{
+  "take_sha256": "7487f41fec92794e904e57624e18bd9dc534501d8c65b7b0ac2ad78272be9aec",
+  "record_sha256": "24bf2f2d113c00e0e51026a3823ed9d1192d99fd27de1d8d1bf5c9d9dfac39d2",
+  "reviewer": "Anubis automated playtest QC",
+  "notes": "Machine QC passed; human listening review pending.",
+  "qc_sha256": "66a0869f526420476892dd7f956e957024da828ad9fdcb263afbd6fa54072570",
+  "qc_override": "",
+  "license_and_reference_checked": true
+}

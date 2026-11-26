@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "b2911df8969dec7f05836182eb75bc3f251b9388af7bfceee1d105f1d6e2313c",
+  "take_sha256": "96904b2bb5a758a6237b56f01ac1d4e105d43b30121ae1ee5aab87a5e0a078c5",
+  "line_sha256": "9920fb69aa78e2133cade1904a7e92960e0d134e3e19dca782fbc1938791a5e1",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "I swear if they charge me a public safety convenience fee.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 11,
+    "observed_units": 11,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 3.2,
+      "leading_quiet_seconds": 0.12,
+      "trailing_quiet_seconds": 0.04,
+      "quiet_fraction": 0.1,
+      "peak": 17206,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}

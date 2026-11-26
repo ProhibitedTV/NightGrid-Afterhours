@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "fc0d02c4d2c28944aa3f217de41e1b171898f2ab76ab3e54ff4b47f23c8de3d6",
+  "take_sha256": "f13e7c9ab12ae819590e6d2b59955971a7d08471c0f41d9ba35c237b21e98679",
+  "line_sha256": "e7a17c2c1fa97f486a7c032f8df9deff2e16a980cbdafc097f94bcbfa4e8899d",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "She's not high maintenance. It's a monthly subscription.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 8,
+    "observed_units": 8,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 3.6,
+      "leading_quiet_seconds": 0.22,
+      "trailing_quiet_seconds": 0.04,
+      "quiet_fraction": 0.217,
+      "peak": 19859,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

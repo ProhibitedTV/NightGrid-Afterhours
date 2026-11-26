@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "ae9f1e7057971e6c3a230c413d1c6ad835039122b73e3b427f8892ea1bd1ee57",
+  "take_sha256": "98d5260f40f6a4784f57b096c7fc7083f4601d6568b5fb54fe44f92569d561d2",
+  "line_sha256": "eb5f3f3d9b03b475da43ebb7f6c9a121fe91b65e523a6785da85693e36dd2f19",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "This is an underserved market for disruption management.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 8,
+    "observed_units": 8,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 3.12,
+      "leading_quiet_seconds": 0.2,
+      "trailing_quiet_seconds": 0.1,
+      "quiet_fraction": 0.197,
+      "peak": 19072,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}

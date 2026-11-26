@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "bcd39988b89773399c49e73098148b14b677762aaa89d667fff444eb9d8aa183",
+  "take_sha256": "719dded1031f8c6d42296d244cdc6d3b431991752cae0a9425dcf5ef6b29e0e3",
+  "line_sha256": "43d1852cbfb214e84cf3f5356ba712c17d753f18fb60d481a9f30e48d49ad41f",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "It's our anniversary. Auntie Sol at Moon Noodles has my gift, a limited edition heat sink. I paid already. Could you pick it up? She deserves better thermal management.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 29,
+    "observed_units": 29,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 12.96,
+      "leading_quiet_seconds": 0.38,
+      "trailing_quiet_seconds": 0.12,
+      "quiet_fraction": 0.31,
+      "peak": 20375,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}

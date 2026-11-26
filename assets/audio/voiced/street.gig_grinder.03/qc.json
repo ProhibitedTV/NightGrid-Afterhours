@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "0f31dbbfcaec9e7edc3cd87bddbe88d24812005d240120ebbb061a2f6a47747e",
+  "take_sha256": "18e1509a0701f6dd323558469c1d9b8e87d6ea54a60c187c2c0095bca8c2ea4e",
+  "line_sha256": "b1770bb11382d0f5903bded28903a0946911f67ae14deebaaaad202a3b8c1e27",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "They gave me a loyalty badge instead of a raise. I can't pay rent with a little star",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 18,
+    "observed_units": 18,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 5.2,
+      "leading_quiet_seconds": 0.44,
+      "trailing_quiet_seconds": 0.1,
+      "quiet_fraction": 0.265,
+      "peak": 19487,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

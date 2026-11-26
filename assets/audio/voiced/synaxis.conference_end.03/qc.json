@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "2dd7d2283e6fc21a5e4da9af019c9659aeb9e7c02aee82fb492bc4e48eed686d",
+  "take_sha256": "b85daffc745ca2cfbcb0270d54c7cfa8de3e9efc7fc8166074f92d168c439a71",
+  "line_sha256": "bfbc808c0bb8de03d87c0eaa8dcf2ec81637f6fe04cf9a693b5e21aa5c2e7650",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "It's a very senior customer.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 5,
+    "observed_units": 5,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 1.6,
+      "leading_quiet_seconds": 0.04,
+      "trailing_quiet_seconds": 0.14,
+      "quiet_fraction": 0.16,
+      "peak": 19243,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}

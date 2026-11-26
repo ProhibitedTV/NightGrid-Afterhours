@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "0d636e77f53b8121b82df84c48bef8182d7c52b0e609ea6cf1001b4b8c59e803",
+  "take_sha256": "ead74ac7c9cf52a5cad132922342685e3f44cb52e4fa41a976bb9aace6b25e0b",
+  "line_sha256": "ecba2bbda2ebc2b51f0f435861326ff131dafb4dfee8ea091f57ac08cabce719",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "Absolutely. Compensation is experience, equity in a future entity, and access to our inspirational group chat.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 16,
+    "observed_units": 16,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 7.2,
+      "leading_quiet_seconds": 0.08,
+      "trailing_quiet_seconds": 0.14,
+      "quiet_fraction": 0.25,
+      "peak": 23197,
+      "rms": 2224.81
+    },
+    "flags": []
+  }
+}

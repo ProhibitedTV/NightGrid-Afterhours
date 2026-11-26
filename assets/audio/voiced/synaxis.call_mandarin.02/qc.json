@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "ab6018aa478cb9381918db8467ee497922b6e5c8aec462d0f92520f2aceddb8b",
+  "take_sha256": "3ff0bc568343867985789224dbf3556bf53a89c19d63ed6d56f711e7c8cc9ecc",
+  "line_sha256": "253d028b52bd61d4123daad130fecde7fd4746b895be165c61c4e096acf1c35e",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "不,他妻子不知道。知道了,我会继续保持联系。",
+  "metrics": {
+    "unit": "characters",
+    "expected_units": 18,
+    "observed_units": 18,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 3.76,
+      "leading_quiet_seconds": 0.06,
+      "trailing_quiet_seconds": 0.1,
+      "quiet_fraction": 0.271,
+      "peak": 23197,
+      "rms": 2396.09
+    },
+    "flags": []
+  }
+}

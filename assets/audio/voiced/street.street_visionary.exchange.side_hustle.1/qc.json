@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "7487f41fec92794e904e57624e18bd9dc534501d8c65b7b0ac2ad78272be9aec",
+  "take_sha256": "24bf2f2d113c00e0e51026a3823ed9d1192d99fd27de1d8d1bf5c9d9dfac39d2",
+  "line_sha256": "90c557633ed27a2355eff353f5f4125ac58cd8d212c5432f0924cc680d936559",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "Have you considered monetizing your commute?",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 6,
+    "observed_units": 6,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 2.48,
+      "leading_quiet_seconds": 0.28,
+      "trailing_quiet_seconds": 0.14,
+      "quiet_fraction": 0.21,
+      "peak": 13931,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}

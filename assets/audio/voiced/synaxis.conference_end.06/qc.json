@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "5e52cb8dd2eb29fe800a354b7902c4db8b76bf94c43894d44392e9af314a761e",
+  "take_sha256": "1ddd0fc5f681aaa0a1dc59566a52162bc136a24ae0a38b753381ef4ebb8f5b81",
+  "line_sha256": "214066e04c4c9b4bf2d20341fc36ea2020ab042f83e33394c96f0f4141a5ac77",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "We believe in flat organizational structures.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 6,
+    "observed_units": 6,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 2.96,
+      "leading_quiet_seconds": 0.46,
+      "trailing_quiet_seconds": 0.2,
+      "quiet_fraction": 0.236,
+      "peak": 22992,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

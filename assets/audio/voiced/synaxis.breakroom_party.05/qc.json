@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "d1ca00bc97696b8cb103385bf24c37ae02769ce8d5273d6686b8fb953b2c7f42",
+  "take_sha256": "d4e3552a9659edcf67caa577cad2d77a8660ef7b22d8be58f34d2cf737ac287d",
+  "line_sha256": "7619d869cfb1c102d76764450176e19c524fdbf206d6d8c68ef1b3239ee60695",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "I said it sounded like a holiday. They said it sounded like a catering expense. We agreed to stop asking questions.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 21,
+    "observed_units": 21,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 6.96,
+      "leading_quiet_seconds": 0.64,
+      "trailing_quiet_seconds": 0.06,
+      "quiet_fraction": 0.287,
+      "peak": 18544,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

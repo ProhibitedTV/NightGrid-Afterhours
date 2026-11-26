@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "ca7d83b30c3811e1d33a307dc4415d28437afac50c0b8623a1b5c9bc32a543be",
+  "take_sha256": "d28a58dcbdd283a4ab4e125fee1d4032686bdba62383bb063c88313dcfc6dd69",
+  "line_sha256": "bce7ab6e602ee41e299ed3f65017227790160f575907058dc8fac91c1c69d879",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "Sorry, international customer support.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 4,
+    "observed_units": 4,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 3.12,
+      "leading_quiet_seconds": 0.06,
+      "trailing_quiet_seconds": 0.32,
+      "quiet_fraction": 0.378,
+      "peak": 18713,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

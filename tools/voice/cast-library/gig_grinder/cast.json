@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "character": "gig_grinder",
+  "transcript": "I work for three apps. None of them know I'm employed.",
+  "audition": {
+    "spec": {
+      "line": {
+        "id": "street.gig_grinder.01",
+        "character": "gig_grinder",
+        "language": "English",
+        "text": "I work for three apps. None of them know I'm employed.",
+        "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+        "source": {
+          "catalog": "street_satire",
+          "character": "gig_grinder",
+          "index": 0
+        }
+      },
+      "voice": {
+        "direction": "Original adult female, exhausted but quick-witted delivery worker."
+      }
+    },
+    "settings": {
+      "model": "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+      "revision": "5ecdb67327fd37bb2e042aab12ff7391903235d3",
+      "seed": 309,
+      "device": "cuda",
+      "dtype": "bfloat16",
+      "reference": "original synthetic voice design",
+      "packages": {
+        "qwen-tts": "0.1.1",
+        "torch": "2.11.0+cu128",
+        "soundfile": "0.14.0",
+        "transformers": "4.57.3"
+      },
+      "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers"
+    },
+    "sha256": "38dcc6e728aa72acce44c76f08304898d9116b9a730c2e80339e7db7cd9ebc10",
+    "stats": {
+      "frames": 165120,
+      "peak": 16925,
+      "rms": 2602.78
+    }
+  },
+  "review": {
+    "take_sha256": "38dcc6e728aa72acce44c76f08304898d9116b9a730c2e80339e7db7cd9ebc10",
+    "record_sha256": "c58d0fd3ddc9c81345f9cfe789cb12fd33affb62d806881648e43e6f44e9bb26",
+    "reviewer": "Creative director",
+    "notes": "Automated playtest cast selection; PCM verified. Human listening review pending.",
+    "license_and_reference_checked": true
+  }
+}

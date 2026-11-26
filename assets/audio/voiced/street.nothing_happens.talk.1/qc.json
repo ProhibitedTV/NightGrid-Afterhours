@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "884747eb32e6d967dcf59152ece1bf03dc7d516e40151fca376ad1e1388719fc",
+  "take_sha256": "10adc02e6e05123703f2232719a0ab6c3663c6d99d3e32a96a69b103c1a08b67",
+  "line_sha256": "ab7e477b2a3901845f1ab6ed37f2f708a16740afd4f596e04eb244724e7852df",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "It's fine. Everybody online says the end is near. My rent went up, but otherwise nothing ever happens.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 18,
+    "observed_units": 18,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 8.48,
+      "leading_quiet_seconds": 0.36,
+      "trailing_quiet_seconds": 0.06,
+      "quiet_fraction": 0.304,
+      "peak": 20767,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}

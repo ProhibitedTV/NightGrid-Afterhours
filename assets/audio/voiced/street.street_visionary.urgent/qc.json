@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "845fc98e4e69c1d37f465c428eaf72bae62d666d31d37a902cd5fffbb7effe76",
+  "take_sha256": "c79dbcb6f41940423214bafa7ce81faa0d72104806192b3e398781efb89ebd7d",
+  "line_sha256": "7a526871233077e92ce18ea6722dbaafa85275aecc4bf5da7bab8f9e49aba9b4",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "I prefer disruption in the pitch deck, not out here.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 10,
+    "observed_units": 10,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 3.12,
+      "leading_quiet_seconds": 0.3,
+      "trailing_quiet_seconds": 0.18,
+      "quiet_fraction": 0.293,
+      "peak": 20619,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

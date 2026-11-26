@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "923972f3c185942ccbc23d9acd4af8a7593aa0b8439cc327db358f75ac3b2112",
+  "take_sha256": "87c06d1e3ea2c14b7d99119fd4887e9931fb8c2aafe865e215c5c5d1e32aa498",
+  "line_sha256": "bad2460357dbca84d0b9d999b1e4aa7b0dc7c9b57232ba052eb549f4d64b1110",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "I'm disrupting the sidewalk industry. People are already walking all over my product.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 13,
+    "observed_units": 13,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 5.12,
+      "leading_quiet_seconds": 0.3,
+      "trailing_quiet_seconds": 0.08,
+      "quiet_fraction": 0.258,
+      "peak": 16255,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}

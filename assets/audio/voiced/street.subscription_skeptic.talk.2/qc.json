@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "22b00c5f63de4c443173c0f3bb5d14358e1a9c33742b3687b4ca5287cbc5772d",
+  "take_sha256": "5eaeacfd717b15261eaf584d31b496e3a3afbd03d291050ed464783f2d3a7c71",
+  "line_sha256": "c3f60404d37b4bf4816840c077c0329b3d51ae29a590a285861f884985f5c6de",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "a screwdriver, no account, no updates, beautiful piece of technology.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 10,
+    "observed_units": 10,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 5.6,
+      "leading_quiet_seconds": 0.12,
+      "trailing_quiet_seconds": 0.32,
+      "quiet_fraction": 0.314,
+      "peak": 20377,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

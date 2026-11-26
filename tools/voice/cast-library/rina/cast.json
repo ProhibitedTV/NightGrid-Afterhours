@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "character": "rina",
+  "transcript": "Neither has HR. They needed something for the diversity slide before earnings.",
+  "audition": {
+    "spec": {
+      "line": {
+        "id": "synaxis.breakroom_party.04",
+        "character": "rina",
+        "language": "English",
+        "text": "Neither has HR. They needed something for the diversity slide before earnings.",
+        "direction": "Natural workplace conversation, dry humor.",
+        "source": {
+          "constant": "BREAKROOM_PARTY",
+          "row": 3
+        }
+      },
+      "voice": {
+        "direction": "Original adult female coworker, sharp dry humor, natural conversational English."
+      }
+    },
+    "settings": {
+      "model": "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+      "revision": "5ecdb67327fd37bb2e042aab12ff7391903235d3",
+      "seed": 309,
+      "device": "cuda",
+      "dtype": "bfloat16",
+      "reference": "original synthetic voice design",
+      "packages": {
+        "qwen-tts": "0.1.1",
+        "torch": "2.11.0+cu128",
+        "soundfile": "0.14.0",
+        "transformers": "4.57.3"
+      },
+      "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers"
+    },
+    "sha256": "6ba47c22f8b7b79c881e39e7c43cd6a9bb34576b0bd61ec243fedc4ff07d5bb2",
+    "stats": {
+      "frames": 245760,
+      "peak": 13729,
+      "rms": 2602.77
+    }
+  },
+  "review": {
+    "take_sha256": "6ba47c22f8b7b79c881e39e7c43cd6a9bb34576b0bd61ec243fedc4ff07d5bb2",
+    "record_sha256": "e37bacb1c8d49b0ae96a8ebbe4efcb2c8fc33f0b7dd4413babba908aa83f3f08",
+    "reviewer": "Creative director",
+    "notes": "Automated playtest cast selection; PCM verified. Human listening review pending.",
+    "license_and_reference_checked": true
+  }
+}
