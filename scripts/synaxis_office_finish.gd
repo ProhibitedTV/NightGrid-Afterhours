@@ -110,7 +110,8 @@ func _architecture() -> void:
 			for i in range(7):
 				_part("interior","black",Vector3(x-.33+i*.11,3.258,z),Vector3(.05,.012,.69))
 	for z in [-7.5,-2.5,2.5,7.5]:
-		_part("interior","steel",Vector3(0,3.317,z),Vector3(12.25,.04,.30))
+		for x in [-3.7,3.7]:
+			_part("interior","steel",Vector3(x,3.317,z),Vector3(3.34,.04,.38))
 	# Floor inlay defines the two circulation zones without collision.
 	for x in [-1.55,1.55]:
 		_part("interior","trim",Vector3(x,.007,1.1),Vector3(.035,.008,17.0))

@@ -72,13 +72,14 @@ var _hint: Label
 var _mat: Dictionary = {}
 
 func _ready() -> void:
-	var floor_mat := _material("floor",Color("34414a"))
-	var wall := _material("wall",Color("c6c9c5"))
+	var floor_mat := _material("floor",Color("b4ada1"))
+	_configure_stone(floor_mat)
+	var wall := _material("wall",Color("d8d4c9"))
 	var desk := _material("desk",Color("242e36"))
 	var accent := _material("accent",Color("b9cbd0"))
 	var screen := _material("screen",Color("508f8d"),true)
 	_solid("Floor",Vector3(0,-.15,0),Vector3(17,.3,20),floor_mat)
-	_solid("Ceiling",Vector3(0,3.5,0),Vector3(17,.3,20),wall)
+	_solid("Ceiling",Vector3(0,3.5,0),Vector3(17,.3,20),_material("ceiling",Color("d4d1c7")))
 	for side in [-1.0,1.0]:
 		_solid("FrontWall",Vector3(side*4.9,1.75,-10),Vector3(7.2,3.5,.25),wall)
 	_solid("EntranceHeader",Vector3(0,3.15,-10),Vector3(2.6,.7,.25),wall)
@@ -142,14 +143,24 @@ func _ready() -> void:
 	_folder_desk.hide()
 	_build_exit_props(desk,accent,screen)
 	_visual("ExitBox",Vector3(5,1.25,6.5),Vector3(.42,.34,.4),_material("cardboard",Color("a88a63")))
+	# Local pools of light instead of four overlapping omnidirectional washes.
+	var diffuser:=_material("light",Color("e9e3d4"),true)
+	diffuser.emission_energy_multiplier=.24
 	for z in [-7.5,-2.5,2.5,7.5]:
-		_visual("CeilingStrip",Vector3(0,3.28,z),Vector3(12,.055,.18),_material("light",Color("c9dfdf"),true))
-		var light := OmniLight3D.new()
-		light.position = Vector3(0,2.95,z)
-		light.omni_range = 9.5
-		light.light_energy = 1.25
-		light.shadow_enabled = false
-		add_child(light)
+		for x in [-3.7,3.7]:
+			_visual("CeilingStrip",Vector3(x,3.28,z),Vector3(3.2,.035,.28),diffuser)
+			var light:=SpotLight3D.new()
+			light.name="OfficeDownlight"
+			light.position=Vector3(x,3.14,z)
+			light.rotation.x=-PI/2
+			light.spot_range=7.0
+			light.spot_angle=65.0
+			light.spot_attenuation=1.1
+			light.light_color=Color("fff0da")
+			light.light_energy=.85
+			# Bound shadow passes to four, irrespective of decorative fixtures.
+			light.shadow_enabled=(x<0.0)==(z<0.0)
+			add_child(light)
 	Brand.wall_logo(self,"ReceptionBrand",Vector3(5.2,2.78,9.81),PI,3.65)
 	Brand.wall_logo(self,"ExecutiveMark",Vector3(8.30,2.75,-5.9),-PI/2,.72,false,true)
 	Brand.wall_logo(self,"ExitCartonMark",Vector3(5,1.25,6.285),PI,.22)
@@ -157,7 +168,7 @@ func _ready() -> void:
 	_sign("PEOPLE EXPERIENCE\nWE VALUE YOUR FEEDBACK",Vector3(-5,2.25,-5.0),.006)
 	_sign("EXECUTIVE AFFAIRS\nTRANSPARENCY IS A CORE VALUE",Vector3(5,2.25,-4.9),.006)
 	_sign("RECEPTION\nEXIT PROCESSING",Vector3(5,2.25,6.0),.006)
-	_target_sign = _sign("",Vector3.ZERO,.006)
+	_target_sign = _sign("",Vector3.ZERO,.0032)
 	_target_sign.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_target_sign.modulate = Color("8de5cc")
 	var canvas := CanvasLayer.new()
@@ -193,7 +204,7 @@ func _ready() -> void:
 	_target_sign.hide()
 	_intro_canvas.hide()
 	# Ground-floor furniture and collision remain; stage lighting is local.
-	for light in find_children("*","OmniLight3D",true,false):
+	for light in find_children("*","Light3D",true,false):
 		light.hide()
 
 func _build_exit_props(desk:Material,accent:Material,screen:Material) -> void:
@@ -340,7 +351,7 @@ func _select_floor(level: int) -> void:
 	_active_floor=clampi(level,Basement.FLOOR,ExecutiveFloor.FLOOR)
 	GeneratedAudio.activate(_ground_ambience,_prologue_active and _active_floor==0)
 	for child in get_children():
-		if child is OmniLight3D:
+		if child is Light3D:
 			child.visible=_prologue_active and _active_floor==0
 	for i in _workfloors.size():
 		_workfloors[i].call("set_occupied",_prologue_active and _active_floor==i+1)
@@ -483,7 +494,8 @@ func _build_lobby(desk: Material,accent: Material,screen: Material) -> void:
 	_lobby_light=OmniLight3D.new()
 	_lobby_light.position=Vector3(0,2.95,-8.7)
 	_lobby_light.omni_range=5.0
-	_lobby_light.light_energy=.85
+	_lobby_light.light_energy=.55
+	_lobby_light.light_color=Color("fff0dc")
 	_lobby_light.shadow_enabled=false
 	add_child(_lobby_light)
 
@@ -499,7 +511,12 @@ func _build_office_details(desk: Material,accent: Material,screen: Material) -> 
 	_sign("EARNINGS / RECORD QUARTER\nWORKFORCE / OPTIMIZED",Vector3(8.32,2.4,-3.6),.005).rotation.y=-PI/2
 	for x in [-6.4,6.4]:
 		_visual("DeskNamePlate",Vector3(x,1.13,-5.05),Vector3(.47,.13,.08),accent)
-	_visual("ExecutiveCarpet",Vector3(5,.012,-3.3),Vector3(5,.015,3.1),_material("carpet",Color("383d49")))
+	var carpet:=_material("carpet",Color.WHITE)
+	carpet.albedo_texture=preload("res://assets/synaxis/office_carpet.svg")
+	carpet.uv1_triplanar=true
+	carpet.uv1_scale=Vector3(2,2,2)
+	carpet.roughness=.96
+	_visual("ExecutiveCarpet",Vector3(5,.012,-3.3),Vector3(5,.015,3.1),carpet)
 
 func _build_breakroom(desk: Material,accent: Material) -> void:
 	# Furniture is permanent; the short party performance is intro-only.
@@ -625,7 +642,7 @@ func finish_prologue() -> void:
 	_assistant = null
 	_ceo = null
 	_hr = null
-	for light in find_children("*","OmniLight3D",true,false):
+	for light in find_children("*","Light3D",true,false):
 		light.hide()
 	_lobby_light.visible=_lobby_active
 
@@ -686,6 +703,17 @@ func end_dialogue() -> void:
 		_assistant.call("set_phone_call",false)
 	for actor in _staff.values():
 		actor.call("set_scene_beat",-1)
+
+# Reuse the existing CC0 photo-derived concrete maps, documented in
+# central_exchange_curb/SOURCE.json, as a honed aggregate finish.
+func _configure_stone(material:StandardMaterial3D) -> void:
+	material.albedo_texture=preload("res://assets/models/nightgrid/central_exchange_curb/textures/concrete_base_1k.jpg")
+	material.normal_enabled=true
+	material.normal_texture=preload("res://assets/models/nightgrid/central_exchange_curb/textures/concrete_normal_1k.jpg")
+	material.normal_scale=.22
+	material.roughness=.55
+	material.uv1_triplanar=true
+	material.uv1_scale=Vector3(.75,.75,.75)
 
 func _material(key: String,tint: Color,emissive: bool=false) -> StandardMaterial3D:
 	if not _mat.has(key):
