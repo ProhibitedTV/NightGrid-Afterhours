@@ -91,6 +91,29 @@ func _verify() -> void:
 	if not ledger.credit_once(trial.RECEIPT,trial.REWARD) or ledger.credit_once(trial.RECEIPT,trial.REWARD) or ledger.balance!=90:
 		_fail("Circuit first finish reward must settle once")
 		return
+	if ledger.circuit_best_ms!=0 or not ledger.record_circuit_time(42.567) or ledger.circuit_best_ms!=42567 or ledger.record_circuit_time(43.0) or ledger.record_circuit_time(42.567) or ledger.record_circuit_time(NAN) or ledger.record_circuit_time(-1.0) or ledger.record_circuit_time(90.0):
+		_fail("Personal record must be valid and strictly improved")
+		return
+	if not ledger.record_circuit_time(40.125) or ledger.balance!=90:
+		_fail("Improved record cannot grant duplicate money")
+		return
+	var saved:Dictionary=JSON.parse_string(JSON.stringify(ledger.snapshot()))
+	var restored:=preload("res://scripts/progression_ledger.gd").new()
+	if not restored.restore(ledger.balance,saved) or restored.circuit_best_ms!=40125 or not restored.has_receipt(trial.RECEIPT):
+		_fail("Circuit record must survive JSON save roundtrip")
+		return
+	var phone:=preload("res://scripts/morrow_phone.gd")
+	if not str(phone.view("opportunities",{"circuit_best_ms":40125,"circuit_completed":true})["rows"]).contains("40.125s"):
+		_fail("Workboard must show the persistent personal best")
+		return
+	saved["circuit_best_ms"]=90001
+	if restored.restore(0,saved) or restored.balance!=90 or restored.circuit_best_ms!=40125:
+		_fail("Malformed record must not mutate live progression")
+		return
+	saved.erase("circuit_best_ms")
+	if not restored.restore(90,saved) or restored.circuit_best_ms!=0 or not restored.has_receipt(trial.RECEIPT):
+		_fail("Legacy circuit receipt remains compatible without a recorded time")
+		return
 	trial.start(trial.START,1,100.0,0.0)
 	if trial.tick(1.0/60.0,trial.START,2,100.0)!="ABANDONED":
 		_fail("Changing cars must invalidate a circuit")

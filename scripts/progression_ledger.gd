@@ -25,6 +25,9 @@ var _street_cred=StreetCred.new()
 
 var balance: int = 0
 var _receipts: Dictionary = {}
+# Optional v1 save field; zero denotes no recorded finish.
+var circuit_best_ms: int = 0
+const Circuit = preload("res://scripts/driving_trial.gd")
 var _owned_vehicles: Dictionary = {}
 var home_supplies: int = 0
 var home_storage_expanded := false
@@ -84,6 +87,17 @@ func credit_once(id: String, amount: int) -> bool:
 	if not credit(amount):
 		return false
 	_receipts[id] = true
+	return true
+
+## Only a finished gameplay attempt may call this. Personal records do
+## not pay cash; first-finish settlement remains an independent receipt.
+func record_circuit_time(seconds:float)->bool:
+	if not is_finite(seconds) or seconds<=0.0 or seconds>=Circuit.LIMIT:
+		return false
+	var ms:=maxi(1,roundi(seconds*1000.0))
+	if circuit_best_ms>0 and ms>=circuit_best_ms:
+		return false
+	circuit_best_ms=ms
 	return true
 
 func meet_synaxis_contact() -> bool:
@@ -478,7 +492,7 @@ func snapshot() -> Dictionary:
 	ids.sort()
 	var instruments:Array=_instruments.keys()
 	instruments.sort()
-	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "owned_pieces":owned_piece_ids(), "clothing_slots":clothing_slots.duplicate(), "saved_looks":_saved_looks.duplicate(true), "bitcoin_sats":bitcoin_sats, "synaxis_contact":synaxis_contact, "cal_quest":cal_quest, "street_activity_runs":_street_cred.snapshot(), "instruments":instruments, "sampler_practice":sampler_practice,"band_members":_band_members.duplicate(),"band_rehearsals":band_rehearsals,"band_name":band_name,"tape_stock":tape_stock,"tape_batches":tape_batches,"tapes_sold":tapes_sold}
+	return {"version": VERSION, "receipts": ids, "owned_vehicles": owned_vehicle_ids(), "home_supplies":home_supplies, "home_storage_expanded":home_storage_expanded, "home_tenancy_paid":home_tenancy_paid, "outfit_id":outfit_id, "purchased_outfits":purchased_outfit_ids(), "owned_pieces":owned_piece_ids(), "clothing_slots":clothing_slots.duplicate(), "saved_looks":_saved_looks.duplicate(true), "bitcoin_sats":bitcoin_sats, "synaxis_contact":synaxis_contact, "cal_quest":cal_quest, "street_activity_runs":_street_cred.snapshot(), "instruments":instruments, "sampler_practice":sampler_practice,"band_members":_band_members.duplicate(),"band_rehearsals":band_rehearsals,"band_name":band_name,"tape_stock":tape_stock,"tape_batches":tape_batches,"tapes_sold":tapes_sold,"circuit_best_ms":circuit_best_ms}
 
 static func valid_snapshot(value: Variant) -> bool:
 	if not value is Dictionary:
@@ -495,6 +509,9 @@ static func valid_snapshot(value: Variant) -> bool:
 		if not valid_id(id) or seen.has(id):
 			return false
 		seen[id] = true
+	var best:Variant=data.get("circuit_best_ms",0)
+	if not valid_cash(best) or int(best)>int(Circuit.LIMIT*1000.0):
+		return false
 	var instruments:Variant=data.get("instruments",[])
 	if not instruments is Array or instruments.size()>Instruments.ITEMS.size():
 		return false
@@ -621,6 +638,7 @@ func restore(amount: Variant, data: Variant) -> bool:
 	for id in data.get("owned_vehicles", []):
 		titles[id] = true
 	balance = int(amount)
+	circuit_best_ms=int(data.get("circuit_best_ms",0))
 	_receipts = next
 	home_tenancy_paid = data.get("home_tenancy_paid",next.has(StarterHome.ACCESS_RECEIPT))
 	_owned_vehicles = titles

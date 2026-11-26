@@ -59,7 +59,9 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 		"opportunities":
 			subtitle = "Independent work · Morrow Bay"
 			var listings: Array = state.get("workboard",[])
-			rows.append({"label":"Southworks Circuit","value":"Driving challenge / 8 checkpoints / 90 seconds\n"+("Practice replay / first prize claimed" if bool(state.get("circuit_completed",false)) else "First finish $90"),"action":"phone_route_circuit","action_label":"Navigate to circuit start"})
+			var best_ms:=int(state.get("circuit_best_ms",0))
+			var record_text:="Personal best: %.3fs"%(float(best_ms)/1000.0) if best_ms>0 else "No personal record"
+			rows.append({"label":"Southworks Circuit","value":"Driving challenge / 8 checkpoints / 90 seconds\n"+("Practice replay / first prize claimed" if bool(state.get("circuit_completed",false)) else "First finish $90")+"\n"+record_text,"action":"phone_route_circuit","action_label":"Navigate to circuit start"})
 			if listings.is_empty():
 				rows.append({"label":"No contracts remaining","value":"Explore the city or return to QuotaDrop for repeatable income."})
 			for listing in listings:
