@@ -117,6 +117,52 @@ func _verify() -> void:
 			_fail("vehicle job routes to exact road stop, not a nearby pin: "+listing_id)
 			return
 		world.call("clear_navigation_waypoint")
+	# Controlled direct-handler fixture: normal input routing is not the
+	# only authority for mutually exclusive jobs and police cancellation.
+	var test_car: CharacterBody3D = (world.get("cars") as Array)[0]
+	var prior_pos := test_car.global_position
+	var prior_condition: float = test_car.get("condition")
+	var prior_speed: float = test_car.get("speed")
+	world.set("current_car",test_car)
+	test_car.set("condition",100.0)
+	test_car.set("speed",0.0)
+	var taxi_live = world.get("_taxi")
+	var freight_live = world.get("_freight")
+	var taxi_pickup: Vector2 = taxi.offer(0)["pickup"]
+	var freight_pickup: Vector2 = freight.offer(0)["pickup"]
+	var car_id := test_car.get_instance_id()
+	if not taxi_live.begin(0,taxi_pickup,car_id,100.0,0.0):
+		_fail("taxi guard fixture")
+		return
+	test_car.global_position = Vector3(freight_pickup.x,prior_pos.y,freight_pickup.y)
+	world.call("_freight_interact")
+	if freight_live.active or not taxi_live.active:
+		_fail("direct freight handler must not start over an active taxi fare")
+		return
+	world.set("heat",100.0)
+	world.call("_taxi_interact")
+	if taxi_live.active or ledger.get("balance")!=cash_before:
+		_fail("direct taxi handler must cancel on heat before settlement")
+		return
+	world.set("heat",0.0)
+	if not freight_live.begin(0,freight_pickup,car_id,100.0,0.0):
+		_fail("freight guard fixture")
+		return
+	test_car.global_position = Vector3(taxi_pickup.x,prior_pos.y,taxi_pickup.y)
+	world.call("_taxi_interact")
+	if taxi_live.active or not freight_live.active:
+		_fail("direct taxi handler must not start over active freight")
+		return
+	world.set("heat",100.0)
+	world.call("_freight_interact")
+	if freight_live.active or ledger.get("balance")!=cash_before:
+		_fail("direct freight handler must cancel on heat before settlement")
+		return
+	world.set("heat",0.0)
+	world.set("current_car",null)
+	test_car.global_position = prior_pos
+	test_car.set("condition",prior_condition)
+	test_car.set("speed",prior_speed)
 	var venue: Node = world.get("venue_system")
 	var entrance: Vector3 = venue.call("venue_position","lantern_cup")
 	var near_pin := Vector2(entrance.x,entrance.z)+Vector2(1,0)
