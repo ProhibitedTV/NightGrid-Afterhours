@@ -42,4 +42,12 @@ with tempfile.TemporaryDirectory() as tmp:
     assert main(args) == 0
     assert len(list((out/folder.name).iterdir())) == 1
     assert manifest["scale_status"] == "unresolved"
-    print("Blender fixture refinement and resume passed")
+    args += ["--bake-size", "128"]
+    assert main(args) == 0
+    results = [load(p/"refinement.json") for p in (out/folder.name).iterdir()]
+    baked = next(m for m in results if m["settings"]["bake_size"] == 128)
+    assert len(baked["outputs"]) == 7
+    assert baked["outputs"]["lod0-basecolor.png"]["size"] == [128, 128]
+    assert verified(out/folder.name/baked["signature"], baked["signature"])
+    assert main(args) == 0
+    print("Blender fixture refinement, texture bake and resume passed")

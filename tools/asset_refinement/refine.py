@@ -36,7 +36,7 @@ def write(path, value):
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def glb_info(path, visual=True):
+def glb_info(path, visual=True, textured=False):
     with path.open("rb") as f:
         magic, version, length = struct.unpack("<4sII", f.read(12))
         if magic != b"glTF" or version != 2 or length != path.stat().st_size:
@@ -51,8 +51,14 @@ def glb_info(path, visual=True):
             attrs = prim["attributes"]
             if prim.get("mode", 4) != 4 or "POSITION" not in attrs:
                 raise ValueError("Expected triangles")
-            if visual and not {"TEXCOORD_0", "NORMAL", "COLOR_0"} <= attrs.keys():
+            required = {"TEXCOORD_0", "NORMAL"} | (set() if textured else {"COLOR_0"})
+            if visual and not required <= attrs.keys():
                 raise ValueError("Missing UV, normal or preserved vertex color")
+            if textured:
+                material = data["materials"][prim["material"]]["pbrMetallicRoughness"]
+                image = data["images"][data["textures"][material["baseColorTexture"]["index"]]["source"]]
+                if "bufferView" not in image or "COLOR_0" in attrs:
+                    raise ValueError("Expected embedded base color without vertex tint")
             n = data["accessors"][prim.get("indices", attrs["POSITION"])]["count"]
             if n % 3:
                 raise ValueError("Invalid triangle index count")
@@ -86,10 +92,16 @@ def source(folder):
 def verified(folder, signature):
     try:
         info = load(folder / "refinement.json")
+        baked = info.get("settings", {}).get("bake_size", 0) > 0
+        expected = {"lod0.glb", "lod1.glb", "lod2.glb", "collision.glb"}
+        if baked:
+            expected |= {"lod%d-basecolor.png" % i for i in range(3)}
         return (info["signature"] == signature and info["status"] == "unapproved"
-                and set(info["outputs"]) == {"lod0.glb", "lod1.glb", "lod2.glb", "collision.glb"}
+                and set(info["outputs"]) == expected
                 and all(sha(folder / name) == item["sha256"]
-                        and glb_info(folder / name, name != "collision.glb") == item["triangles"]
+                        and (png_size(folder / name) == tuple(item["size"]) if name.endswith(".png")
+                             else glb_info(folder / name, name != "collision.glb",
+                                           baked and name != "collision.glb") == item["triangles"])
                         for name, item in info["outputs"].items()))
     except (OSError, ValueError, KeyError, TypeError, struct.error):
         return False
@@ -102,13 +114,13 @@ def select(obj):
     bpy.context.view_layer.objects.active = obj
 
 
-def export(obj, path, visual):
+def export(obj, path, visual, textured=False):
     import bpy
     select(obj)
     bpy.ops.export_scene.gltf(filepath=str(path), export_format="GLB",
                               use_selection=True, export_materials="EXPORT" if visual else "NONE",
                               export_normals=True, export_texcoords=visual)
-    return glb_info(path, visual)
+    return glb_info(path, visual, textured)
 
 
 def triangles(obj):
@@ -137,7 +149,85 @@ def reduce(obj, target):
         raise ValueError("Decimation did not satisfy triangle budget")
 
 
-def build(src, dest, height):
+def png_size(path):
+    with path.open("rb") as f:
+        header = f.read(24)
+    if len(header) != 24 or header[:8] != b"\x89PNG\r\n\x1a\n" or header[12:16] != b"IHDR":
+        raise ValueError("Invalid PNG")
+    return struct.unpack(">II", header[16:24])
+
+
+def unwrap(obj):
+    import bpy
+    select(obj)
+    bpy.ops.object.mode_set(mode="EDIT")
+    try:
+        bpy.ops.mesh.select_all(action="SELECT")
+        bpy.ops.uv.smart_project(island_margin=0.02)
+    finally:
+        bpy.ops.object.mode_set(mode="OBJECT")
+
+
+def bake_basecolor(obj, path, size):
+    """Bake reconstructed vertex color, not measured or de-lit albedo."""
+    import bpy
+    import numpy as np
+    select(obj)
+    unwrap(obj)
+    color = obj.data.color_attributes.active_color or obj.data.color_attributes[0]
+    mat = bpy.data.materials.new("Baked base color candidate")
+    mat.use_nodes = True
+    obj.data.materials.clear()
+    obj.data.materials.append(mat)
+    for poly in obj.data.polygons:
+        poly.material_index = 0
+    nodes, links = mat.node_tree.nodes, mat.node_tree.links
+    nodes.clear()
+    output = nodes.new("ShaderNodeOutputMaterial")
+    emission = nodes.new("ShaderNodeEmission")
+    vertex = nodes.new("ShaderNodeVertexColor")
+    vertex.layer_name = color.name
+    links.new(vertex.outputs["Color"], emission.inputs["Color"])
+    links.new(emission.outputs[0], output.inputs["Surface"])
+    image = bpy.data.images.new(path.stem, width=size, height=size, alpha=True)
+    image.colorspace_settings.name = "sRGB"
+    tex = nodes.new("ShaderNodeTexImage")
+    tex.image = image
+    nodes.active = tex
+    tex.select = True
+    scene = bpy.context.scene
+    scene.render.engine = "CYCLES"
+    scene.cycles.device = "CPU"
+    scene.cycles.samples = 1
+    scene.render.threads_mode = "FIXED"
+    scene.render.threads = 2
+    bpy.ops.object.bake(type="EMIT", margin=max(4, size // 128), use_clear=True)
+    pixels = np.empty(size * size * 4, dtype=np.float32)
+    image.pixels.foreach_get(pixels)
+    pixels = pixels.reshape((-1, 4))
+    valid = pixels[:, 3] > 0.5
+    if not np.isfinite(pixels).all() or not valid.any():
+        raise ValueError("Empty or nonfinite bake")
+    image.filepath_raw = str(path)
+    image.file_format = "PNG"
+    image.save()
+    if png_size(path) != (size, size):
+        raise ValueError("Unexpected bake dimensions")
+    image.pack()
+    nodes.remove(emission)
+    nodes.remove(vertex)
+    bsdf = nodes.new("ShaderNodeBsdfPrincipled")
+    links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    links.new(bsdf.outputs[0], output.inputs["Surface"])
+    bsdf.inputs["Roughness"].default_value = 0.7
+    bsdf.inputs["Metallic"].default_value = 0.0
+    # Prevent double multiplication by glTF COLOR_0.
+    for attr in list(obj.data.color_attributes):
+        obj.data.color_attributes.remove(attr)
+    return {"size": [size, size], "sha256": sha(path), "coverage_with_margin": float(valid.mean())}
+
+
+def build(src, dest, height, bake_size=0):
     import bpy
     import bmesh
     from mathutils import Vector
@@ -201,19 +291,16 @@ def build(src, dest, height):
     for p in obj.data.polygons:
         p.material_index = 0
     reduce(obj, BUDGETS[0])
-    select(obj)
-    bpy.ops.object.mode_set(mode="EDIT")
-    try:
-        bpy.ops.mesh.select_all(action="SELECT")
-        bpy.ops.uv.smart_project(island_margin=0.02)
-    finally:
-        bpy.ops.object.mode_set(mode="OBJECT")
+    unwrap(obj)
     outputs = {}
     for i, target in enumerate(BUDGETS):
         lod = duplicate(obj, "LOD" + str(i))
         reduce(lod, target)
         name = "lod%d.glb" % i
-        n = export(lod, dest / name, True)
+        if bake_size:
+            texture = "lod%d-basecolor.png" % i
+            outputs[texture] = bake_basecolor(lod, dest / texture, max(64, bake_size // (2**i)))
+        n = export(lod, dest / name, True, bool(bake_size))
         if n > target:
             raise ValueError("Exported triangle budget exceeded")
         outputs[name] = {"triangles": n, "sha256": sha(dest / name)}
@@ -245,7 +332,7 @@ def build(src, dest, height):
             "output_bounds_target_xyz": list(bounds * factor),
             "scale_status": "specified-height-only" if height is not None else "unresolved",
             "anchor": "ground-center; Blender Z up, glTF Y up",
-            "materials": "vertex color; provisional scalar roughness/metalness; no measured PBR maps",
+            "materials": ("baked reconstructed base color" if bake_size else "vertex color") + "; provisional scalar roughness/metalness; no measured PBR maps",
             "collision": "convex candidate; not approved for gameplay",
             "outputs": outputs}
 
@@ -257,6 +344,7 @@ def main(args):
     p.add_argument("--output", required=True, type=Path, help="separate refinement directory")
     p.add_argument("--limit", type=int, default=0, help="maximum newly attempted meshes; 0 = all")
     p.add_argument("--dimensions", type=Path, help="JSON map candidate ID -> measured height in metres")
+    p.add_argument("--bake-size", type=int, choices=[0, 128, 512, 1024, 2048], default=0, help="LOD0 base color bake size; 0 disables")
     opt = p.parse_args(args)
     src, out = opt.input.resolve(), opt.output.resolve()
     if not (src / "candidates").is_dir() or out == src or src in out.parents or out in src.parents:
@@ -288,7 +376,8 @@ def main(args):
                                            or not math.isfinite(height) or height <= 0):
                     raise ValueError("Invalid measured height")
                 settings = {"source": hashes, "pipeline": VERSION, "script": sha(Path(__file__)),
-                            "blender": bpy.app.version_string, "height_m": height, "budgets": BUDGETS}
+                            "blender": bpy.app.version_string, "height_m": height, "budgets": BUDGETS,
+                            "bake_size": opt.bake_size}
                 signature = hashlib.sha256(json.dumps(settings, sort_keys=True).encode()).hexdigest()
                 parent = out / folder.name
                 final = parent / signature
@@ -304,7 +393,7 @@ def main(args):
                 stage = Path(tempfile.mkdtemp(prefix=".stage-", dir=parent))
                 try:
                     print("Refining", folder.name, flush=True)
-                    info = build(folder / "mesh.glb", stage, height)
+                    info = build(folder / "mesh.glb", stage, height, opt.bake_size)
                     if source(folder) != hashes:
                         raise ValueError("Source changed during refinement")
                     write(stage / "refinement.json", dict(info, signature=signature, settings=settings,
