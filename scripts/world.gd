@@ -1713,7 +1713,9 @@ func _update_taxi_waiting_rider(delta:float)->void:
 		return
 	_taxi_visual_timer=0.0
 	var offer:=TaxiJob.offer(progression.taxi_runs)
-	if _taxi.active or _freight.active or _driving_trial.active or offer.is_empty() or not phone_available() or interiors.call("is_inside") or current_transit!=null:
+	# Waiting riders are world actors, not phone UI. Keep them visible to
+	# an approaching driver while retaining the prologue and world-state guards.
+	if _taxi.active or _freight.active or _driving_trial.active or offer.is_empty() or not is_instance_valid(player) or is_instance_valid(_opening_office) or interiors.call("is_inside") or current_transit!=null:
 		if is_instance_valid(_taxi_rider):
 			_taxi_rider.call("hide_rider")
 		return
