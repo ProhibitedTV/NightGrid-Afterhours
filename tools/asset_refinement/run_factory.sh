@@ -32,6 +32,7 @@ size=1024
 if [[ "$mode" == smoke ]]; then extra=(--limit 1); size=128; fi
 normal_args=()
 if [[ "${ANUBIS_PROJECT_NORMALS:-0}" == 1 ]]; then normal_args=(--project-normals); fi
+if [[ "${ANUBIS_BAKE_AO:-0}" == 1 ]]; then normal_args+=(--bake-ao); fi
 bash tools/asset_refinement/run_refine.sh --bake-size "$size" "${normal_args[@]}" "${extra[@]}" "$@"
 material_python="$ANUBIS_VISUAL_HOME/mesh/bin/python"
 [[ -x "$material_python" ]] || { echo "Existing mesh Python environment required for materials"; exit 2; }

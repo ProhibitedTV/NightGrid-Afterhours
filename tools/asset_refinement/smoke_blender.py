@@ -69,4 +69,10 @@ with tempfile.TemporaryDirectory() as tmp:
     projected=next(m for m in results if m["settings"].get("project_normals"))
     assert len(projected["outputs"])==10
     assert verified(out/folder.name/projected["signature"],projected["signature"])
-    print("Blender fixture refinement, texture bake, preview, normal projection and resume passed")
+    assert main(args+["--bake-ao"])==0
+    results=[load(p/"refinement.json") for p in (out/folder.name).iterdir()]
+    ao=next(m for m in results if m["settings"].get("bake_ao"))
+    assert len(ao["outputs"])==10
+    assert verified(out/folder.name/ao["signature"],ao["signature"])
+    assert 0 <= ao["outputs"]["lod0-ao.png"]["mean_ao"] <= 1
+    print("Blender fixture refinement, texture bake, preview, projection, AO and resume passed")

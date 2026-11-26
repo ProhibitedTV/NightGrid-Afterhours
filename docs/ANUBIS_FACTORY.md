@@ -54,3 +54,7 @@ The factory also creates a duplicate-concepts.json report using exact SHA-256 an
 ## Experimental dense-to-LOD normal projection
 
 Set ANUBIS_PROJECT_NORMALS=1 for selected-to-active Cycles tangent normal baking. A dense cleaned source is retained before decimation; each LOD uses its own UVs and matching normal/base-color resolution. Normal maps are Non-Color/OpenGL +Y, embedded in the GLBs with tangents and retained separately on the NAS. Relative cage extrusion 2% and ray distance 8% of maximum source extent are first-pass defaults. Coverage and vector-length checks reject obvious empty/invalid bakes, not all ray misses. Thin parts, shading seams, silhouette and projection accuracy still need visual review. Disabled by default until CI and native candidate tests pass; versions are immutable. No paid service.
+
+## Experimental geometry ambient occlusion
+
+Set ANUBIS_BAKE_AO=1 to bake each LOD self-occlusion through a Cycles ambient-occlusion shader (16 samples, ray distance 8% of maximum source extent, only-local). Outputs are linear grayscale AO candidates, with coverage/range checks and recorded parameters. These are standalone maps, not automatically wired into GLBs or exported for runtime use. They are based on geometry, not luminance guesses, but cannot restore occlusion removed by decimation. Human review and explicit material integration are required. Opt-in until fixture and native asset validation complete.

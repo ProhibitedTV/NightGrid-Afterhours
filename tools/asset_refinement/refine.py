@@ -104,6 +104,8 @@ def verified(folder, signature):
         projected = info.get("settings", {}).get("project_normals", False)
         if projected:
             expected |= {"lod%d-normal.png" % i for i in range(3)}
+        if info.get("settings", {}).get("bake_ao", False):
+            expected |= {"lod%d-ao.png" % i for i in range(3)}
         return (info["signature"] == signature and info["status"] == "unapproved"
                 and set(info["outputs"]) == expected
                 and all(sha(folder / name) == item["sha256"]
@@ -298,7 +300,69 @@ def bake_projected_normal(high, low, path, size, extent, base_coverage):
             "review":"projection misses and thin/intersecting surfaces require visual inspection"}
 
 
-def build(src, dest, height, bake_size=0, project_normals=False):
+def bake_geometry_ao(obj, path, size, extent, base_coverage):
+    """Self-occlusion of this LOD, not shadows from other studio objects."""
+    import bpy
+    import numpy as np
+    select(obj)
+    mat = obj.data.materials[0]
+    nodes, links = mat.node_tree.nodes, mat.node_tree.links
+    output = next(n for n in nodes if n.type == "OUTPUT_MATERIAL")
+    bsdf = nodes.get("Principled BSDF")
+    ao = nodes.new("ShaderNodeAmbientOcclusion")
+    ao.only_local = True
+    ao.samples = 16
+    distance = extent * .08
+    ao.inputs["Distance"].default_value = distance
+    emission = nodes.new("ShaderNodeEmission")
+    links.new(ao.outputs["AO"], emission.inputs["Color"])
+    links.new(emission.outputs[0], output.inputs["Surface"])
+    image = bpy.data.images.new(path.stem, width=size, height=size, alpha=True)
+    image.colorspace_settings.name = "Non-Color"
+    tex = nodes.new("ShaderNodeTexImage")
+    tex.image = image
+    for node in nodes:
+        node.select = False
+    tex.select = True
+    nodes.active = tex
+    scene = bpy.context.scene
+    samples = scene.cycles.samples
+    scene.cycles.samples = 16
+    try:
+        result = bpy.ops.object.bake(type="EMIT", margin=max(4,size//128),
+                                     use_clear=True, use_selected_to_active=False)
+        if "FINISHED" not in result:
+            raise RuntimeError("AO bake did not finish")
+        pixels = np.empty(size*size*4,dtype=np.float32)
+        image.pixels.foreach_get(pixels)
+        pixels = pixels.reshape((-1,4))
+        valid = pixels[:,3]>.5
+        coverage = float(valid.mean())
+        if not np.isfinite(pixels).all() or coverage < max(.005,base_coverage*.75):
+            raise ValueError("Empty or invalid AO bake")
+        colors = pixels[valid,:3]
+        if float(np.abs(colors-colors[:,:1]).max())>.015:
+            raise ValueError("AO bake must be grayscale")
+        if float(colors.min())<-.001 or float(colors.max())>1.001:
+            raise ValueError("AO values out of range")
+        image.filepath_raw = str(path)
+        image.file_format = "PNG"
+        image.save()
+        if png_size(path)!=(size,size):
+            raise ValueError("Unexpected AO dimensions")
+        return {"size":[size,size],"sha256":sha(path),"coverage_with_margin":coverage,
+                "mean_ao":float(colors.mean()),"ray_distance":distance,"color_space":"linear",
+                "scope":"LOD self-occlusion; standalone review map, not embedded"}
+    finally:
+        scene.cycles.samples = samples
+        nodes.remove(ao)
+        nodes.remove(emission)
+        nodes.remove(tex)
+        links.new(bsdf.outputs[0],output.inputs["Surface"])
+        bpy.data.images.remove(image)
+
+
+def build(src, dest, height, bake_size=0, project_normals=False, bake_ao=False):
     import bpy
     import bmesh
     from mathutils import Vector
@@ -380,6 +444,11 @@ def build(src, dest, height, bake_size=0, project_normals=False):
             outputs[normal_name] = bake_projected_normal(high,lod,dest/normal_name,
                 max(64,bake_size//(2**i)),max(bounds)*factor,
                 outputs[texture]["coverage_with_margin"])
+        if bake_ao:
+            ao_name = "lod%d-ao.png" % i
+            outputs[ao_name] = bake_geometry_ao(lod,dest/ao_name,
+                max(64,bake_size//(2**i)),max(bounds)*factor,
+                outputs[texture]["coverage_with_margin"])
         n = export(lod, dest / name, True, bool(bake_size), project_normals)
         if n > target:
             raise ValueError("Exported triangle budget exceeded")
@@ -416,6 +485,7 @@ def build(src, dest, height, bake_size=0, project_normals=False):
             "anchor": "ground-center; Blender Z up, glTF Y up",
             "materials": ("baked reconstructed base color" if bake_size else "vertex color") + "; provisional scalar roughness/metalness; no measured PBR maps",
             "normal_projection": "dense source tangent normals; review pending" if project_normals else "disabled",
+            "ambient_occlusion": "geometry-derived standalone map; not embedded" if bake_ao else "disabled",
             "collision": "convex candidate; not approved for gameplay",
             "outputs": outputs}
 
@@ -429,9 +499,10 @@ def main(args):
     p.add_argument("--dimensions", type=Path, help="JSON map candidate ID -> measured height in metres")
     p.add_argument("--bake-size", type=int, choices=[0, 128, 512, 1024, 2048], default=0, help="LOD0 base color bake size; 0 disables")
     p.add_argument("--project-normals",action="store_true",help="Experimental dense-to-LOD tangent normals")
+    p.add_argument("--bake-ao",action="store_true",help="Experimental geometry self-occlusion maps")
     opt = p.parse_args(args)
-    if opt.project_normals and not opt.bake_size:
-        p.error("Normal projection requires a texture bake size")
+    if (opt.project_normals or opt.bake_ao) and not opt.bake_size:
+        p.error("Normal projection and AO require a texture bake size")
     src, out = opt.input.resolve(), opt.output.resolve()
     if not (src / "candidates").is_dir() or out == src or src in out.parents or out in src.parents:
         p.error("Input must exist; output must be a separate sibling or unrelated directory")
@@ -463,7 +534,8 @@ def main(args):
                     raise ValueError("Invalid measured height")
                 settings = {"source": hashes, "pipeline": VERSION, "script": sha(Path(__file__)),
                             "blender": bpy.app.version_string, "height_m": height, "budgets": BUDGETS,
-                            "bake_size": opt.bake_size, "project_normals": opt.project_normals}
+                            "bake_size": opt.bake_size, "project_normals": opt.project_normals,
+                            "bake_ao": opt.bake_ao}
                 signature = hashlib.sha256(json.dumps(settings, sort_keys=True).encode()).hexdigest()
                 parent = out / folder.name
                 final = parent / signature
@@ -479,7 +551,7 @@ def main(args):
                 stage = Path(tempfile.mkdtemp(prefix=".stage-", dir=parent))
                 try:
                     print("Refining", folder.name, flush=True)
-                    info = build(folder / "mesh.glb", stage, height, opt.bake_size, opt.project_normals)
+                    info = build(folder / "mesh.glb", stage, height, opt.bake_size, opt.project_normals, opt.bake_ao)
                     if source(folder) != hashes:
                         raise ValueError("Source changed during refinement")
                     write(stage / "refinement.json", dict(info, signature=signature, settings=settings,
