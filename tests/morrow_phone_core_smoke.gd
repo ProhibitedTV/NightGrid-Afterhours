@@ -192,7 +192,7 @@ func _verify() -> void:
 	# Use the same ledger operations as the physical music venues.
 	var instruments = preload("res://scripts/instrument_catalog.gd")
 	ledger.call("set_balance",1000)
-	if not ledger.call("buy_instrument",instruments.STARTER) or not ledger.call("credit_once","venue:soundcheck_pass",0):
+	if not ledger.call("buy_instrument",instruments.STARTER) or not ledger.call("credit_once","venue:soundcheck_pass",125):
 		_fail("music career fixture")
 		return
 	for practice in range(1,instruments.OWNED_SET_PRACTICE+1):
