@@ -4,7 +4,7 @@ extends RefCounted
 const MAX_CRED = 100
 const SCENES = ["music","community","underground"]
 const LABELS = {"music":"Music scene","community":"Community","underground":"Underground"}
-const COMMUNITY_RECEIPTS = ["civic:cold_chain","civic:lifeline","civic:after_sparks","civic:grid_audit","technical:crane_interlock","technical:grid_telemetry","venue:midnight_thermos","venue:last_shift_recipe"]
+const COMMUNITY_RECEIPTS = ["civic:cold_chain","civic:lifeline","civic:after_sparks","civic:grid_audit","technical:crane_interlock","technical:grid_telemetry","venue:midnight_thermos","venue:last_shift_recipe","street:compatibility_patch"]
 const UNDERGROUND_RECEIPTS = ["venue:dead_frequency","venue:glass_invoice","investigation:paper_city"]
 
 static func scores(wallet: RefCounted) -> Dictionary:
