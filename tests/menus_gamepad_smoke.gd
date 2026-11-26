@@ -917,6 +917,21 @@ func _verify() -> void:
 		if supervisor_visual==null or guard_visual.get("_model")==supervisor_visual.get("_model"):
 			_fail("Named supervisor and guard require distinct imported models")
 			return
+	# Service cast is imported while preserving the existing staff identities.
+	var models:Array[PackedScene]=[]
+	for id in ["mika","security","eli","reception"]:
+		var actor:Node3D=staff[id]
+		var path:=preload("res://scripts/synaxis_staff.gd").pilot_model_path(id)
+		if not ResourceLoader.exists(path,"PackedScene") and OS.get_environment("NIGHTGRID_REQUIRE_SERVICE_CAST")!="1":
+			continue
+		if not actor.call("imported_staff_ready") or actor.get_node("BreathingTorso").visible:
+			_fail("Missing distinct imported service cast actor: "+id)
+			return
+		var model:=actor.get_node("ImportedStaffVisual").get("_model") as PackedScene
+		if model==null or models.has(model):
+			_fail("Service cast must retain distinct character models")
+			return
+		models.append(model)
 	var staff_line: String=office.call("update_staff_attention",-2,mika.global_position+Vector3.UP*1.15)
 	if not staff_line.contains("Mika Torres") or not mika.call("get_staff_state")["attention"]:
 		_fail("Nearby supervisor reacts without a modal menu")

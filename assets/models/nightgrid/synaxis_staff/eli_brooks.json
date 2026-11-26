@@ -1,0 +1,57 @@
+{
+  "$schema": "https://ara3dgen.com/schemas/character.v1.json",
+  "kind": "ara-character",
+  "version": 1,
+  "params": {
+    "name": "Eli Brooks",
+    "seed": 383021,
+    "gender": 1,
+    "ageYears": 34,
+    "height": 0.52,
+    "weight": 0.4,
+    "muscle": 0.4,
+    "proportions": 0.54,
+    "african": 0.34,
+    "asian": 0.19,
+    "caucasian": 0.47,
+    "modifiers": {
+      "head/head-scale-horiz": -0.09,
+      "head/head-rectangular": 0.03,
+      "eyes/eye-bag": 0.15,
+      "eyebrows/eyebrows-trans": 0.04
+    },
+    "skinTint": "#ddc5ac",
+    "eyes": "brown",
+    "eyebrows": "eyebrow001",
+    "eyelashes": "eyelashes01",
+    "hair": "short04",
+    "hairColor": "#30383d",
+    "outfit": "none",
+    "top": "techwear_jacket",
+    "jacket": "none",
+    "bottom": "cargo_pants",
+    "shoes": "sneakers",
+    "accessories": [],
+    "carry": "none",
+    "garmentStyles": {
+      "techwear_jacket": {
+        "pattern": "techwear",
+        "color": "#566375",
+        "color2": "#394750"
+      },
+      "cargo_pants": {
+        "pattern": "khaki",
+        "color": "#353b42",
+        "color2": "#515963"
+      }
+    },
+    "detail": "medium",
+    "rig": "game",
+    "faceBones": false,
+    "restPose": "A",
+    "faceShapes": false,
+    "speechShapes": false,
+    "weapon": "none",
+    "vehicle": "none"
+  }
+}

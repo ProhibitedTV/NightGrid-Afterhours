@@ -1,0 +1,57 @@
+{
+  "$schema": "https://ara3dgen.com/schemas/character.v1.json",
+  "kind": "ara-character",
+  "version": 1,
+  "params": {
+    "name": "Nina Bell",
+    "seed": 804310,
+    "gender": 0,
+    "ageYears": 37,
+    "height": 0.38,
+    "weight": 0.45,
+    "muscle": 0.33,
+    "proportions": 0.55,
+    "african": 0.34,
+    "asian": 0.19,
+    "caucasian": 0.47,
+    "modifiers": {
+      "head/head-scale-horiz": -0.04,
+      "head/head-rectangular": -0.1,
+      "eyes/eye-bag": 0.12,
+      "eyebrows/eyebrows-trans": 0.02
+    },
+    "skinTint": "#ecd6c2",
+    "eyes": "brown",
+    "eyebrows": "eyebrow001",
+    "eyelashes": "eyelashes01",
+    "hair": "short04",
+    "hairColor": "#4a332e",
+    "outfit": "set_suit_tie",
+    "top": "suit_shirt_tie",
+    "jacket": "suit_jacket",
+    "bottom": "suit_trousers",
+    "shoes": "oxfords",
+    "accessories": [],
+    "carry": "none",
+    "garmentStyles": {
+      "set_suit_tie": {
+        "pattern": "suiting",
+        "color": "#786c61",
+        "color2": "#66584e"
+      },
+      "suit_shirt_tie": {
+        "pattern": "solid",
+        "color": "#f2eee6",
+        "color2": "#594750"
+      }
+    },
+    "detail": "medium",
+    "rig": "game",
+    "faceBones": false,
+    "restPose": "A",
+    "faceShapes": false,
+    "speechShapes": false,
+    "weapon": "none",
+    "vehicle": "none"
+  }
+}
