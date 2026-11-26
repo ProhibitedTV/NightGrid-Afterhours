@@ -9,6 +9,7 @@ const Services=preload("res://scripts/synaxis_office_services.gd")
 const DepartmentMeeting=preload("res://scripts/synaxis_department_meeting.gd")
 var _services:Node3D
 const GeneratedAudio=preload("res://scripts/synaxis_generated_audio.gd")
+const LiftFrontage=preload("res://scripts/synaxis_lift_frontage.gd")
 const FLOOR_COUNT=4
 const FLOOR_HEIGHT=3.65
 const LIFT=Vector2(0,5.0)
@@ -380,11 +381,15 @@ func _architecture(accent: String) -> void:
 		lamp.shadow_enabled=false
 		add_child(lamp)
 		_lights.append(lamp)
-	# Lift call pads are on the floor and have no collision in the landing.
-	for side in [-1.0,1.0]:
-		_part(accent,Vector3(side*.9,.018,5),Vector3(.78,.016,.82))
-	_label("LIFT / EXPRESS TO 14" if level==FLOOR_COUNT else "LIFT UP",Vector3(-.9,1.85,5.48),.003)
-	_label("LIFT DOWN",Vector3(.9,1.85,5.48),.003)
+	_install_lift(str(level+1),"UP / 14 EXPRESS" if level==FLOOR_COUNT else "UP","DOWN")
+
+func _install_lift(floor_name:String,up:String,down:String) -> void:
+	var lift:=LiftFrontage.new()
+	lift.name="LiftFrontage"
+	lift.floor_label=floor_name
+	lift.up_label=up
+	lift.down_label=down
+	add_child(lift)
 
 func interview_id(at:Vector3) -> String:
 	return str(_people.call("interview_id",at)) if is_instance_valid(_people) else ""

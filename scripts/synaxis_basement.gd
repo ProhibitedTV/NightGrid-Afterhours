@@ -59,8 +59,7 @@ func _ready() -> void:
 	_label("DANGER / ELECTRICAL HAZARD\nAUTHORIZED PERSONNEL ONLY",Vector3(0,2.45,-9.73),.004)
 	_label("FIRE SUPPRESSION SYSTEM ACTIVE",Vector3(-8.20,2.55,-1.0),.003,PI/2)
 	_label("REPORT ALARMS / DO NOT OBSTRUCT AISLES",Vector3(8.20,2.55,-1.0),.003,-PI/2)
-	_label("LIFT UP / LOBBY",Vector3(-.9,1.85,5.48),.003)
-	_part("blue",Vector3(-.9,.018,5),Vector3(.78,.016,.82))
+	_install_lift("B1","UP / LOBBY","NO SERVICE")
 	for x in [-5.5,0.0,5.5]:
 		for z in [-6.5,0.0,6.5]:
 			_part("light",Vector3(x,3.22,z),Vector3(2.6,.055,.19))

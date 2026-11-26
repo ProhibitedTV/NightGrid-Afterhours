@@ -28,7 +28,7 @@ func _ready() -> void:
 	_board("ExitCampaign",Vector3(-4.7,1.98,9.81),PI,Vector2(3.2,1.6),BLUE,GOLD,WHITE,
 		"OUR PEOPLE. OUR PURPOSE.","WE INVEST IN PEOPLE.",
 		"Voluntary separation is a growth opportunity.\nBenefits terminate at the end of employment.")
-	_board("Wellness",Vector3(.0,1.98,9.81),PI,Vector2(3.15,1.6),PAPER,BLUE,INK,
+	_board("Wellness",Vector3(-3.38,1.98,-1.5),PI/2,Vector2(3.15,1.6),PAPER,BLUE,INK,
 		"WORKPLACE WELLNESS / 2036","TAKE CARE OF YOURSELF.",
 		"Wellness sessions are available off the clock.\nUnpaid participation is strongly encouraged.")
 
@@ -42,7 +42,7 @@ func _ready() -> void:
 	_board("AIPledge",Vector3(8.31,1.85,6.3),-PI/2,Vector2(2.9,1.65),NAVY,AQUA,WHITE,
 		"SYNAXIS ASSISTANT ENTERPRISE","YOUR AI COLLEAGUE\nNEEDS YOU.",
 		"Record your daily workflow.\nTrain the future of your role.\nA more human workplace, with fewer humans.")
-	_board("PTOFreeze",Vector3(-8.31,1.96,-.65),PI/2,Vector2(2.2,1.55),PAPER,RED,INK,
+	_board("PTOFreeze",Vector3(-5.8,1.96,.34),0.0,Vector2(2.2,1.55),PAPER,RED,INK,
 		"Q4 DELIVERY READINESS / ACTION REQUIRED","UNLIMITED PTO*",
 		"*Requests paused until further notice.\nUnused unlimited days have no cash value.\nThank you for your flexibility.")
 	_board("Meetings",Vector3(.108,1.85,-1.6),PI/2,Vector2(1.9,1.5),BLUE,GOLD,WHITE,

@@ -1,6 +1,7 @@
 extends Node3D
 ## Physical washrooms with privacy stalls, original fixtures and an optional
 ## one-shot corporate facilities encounter. No identity or hygiene simulation.
+const OFFSET=Vector3(-5.8,0,-9.5)
 const MEN = "men"
 const WOMEN = "women"
 const CENTERS = {MEN:Vector3(-1.15,1.15,7.35),WOMEN:Vector3(1.15,1.15,7.35)}
@@ -11,7 +12,8 @@ const WALL_EDGES = [
 	[Vector2(-2.35,6.25),Vector2(-1.82,6.25)],
 	[Vector2(-.48,6.25),Vector2(0,6.25)],
 	[Vector2(0,6.25),Vector2(.48,6.25)],
-	[Vector2(1.82,6.25),Vector2(2.35,6.25)]
+	[Vector2(1.82,6.25),Vector2(2.35,6.25)],
+	[Vector2(-2.35,9.76),Vector2(2.35,9.76)]
 ]
 const MEN_DIALOGUE = "DEV (FROM A CLOSED STALL): Did they fix the extractor fan?\nARJUN: No. Facilities classified the smell as a non-blocking defect.\nDEV: I came from Bengaluru on an H-1B to work on distributed systems. This is the worst distributed system I've ever encountered.\nARJUN: I told HR the appreciation-day pizza was expired. They asked me to be more culturally sensitive to the catering budget.\nVOICE FROM NEXT STALL: PLEASE OPEN A WINDOW.\nFACILITIES DISPLAY: AIR QUALITY WITHIN ACCEPTABLE BUSINESS PARAMETERS."
 const WOMEN_DIALOGUE = "FACILITIES TERMINAL: Are you entering the women's restroom? Do you identify as a woman now?\nPLAYER: I was looking for the sink.\nTERMINAL: Your answer has been forwarded to People Experience.\nPLAYER: Can I just wash my hands?\nTERMINAL: Please complete the inclusive facilities training module. Estimated time: 47 minutes.\nEMPLOYEE: Ignore it. They installed that thing instead of fixing the soap dispenser."
@@ -26,10 +28,10 @@ func _ready() -> void:
 		var b: Vector2=edge[1]
 		var center: Vector2=(a+b)*.5
 		var length: Vector2=(b-a).abs()
-		_box("Partition",Vector3(center.x,1.48,center.y),Vector3(maxf(length.x,.10),2.96,maxf(length.y,.10)),"tile",true)
+		_box("Partition",Vector3(center.x,1.675,center.y),Vector3(maxf(length.x,.10),3.35,maxf(length.y,.10)),"tile",true)
 	for id in [MEN,WOMEN]:
 		var x: float=CENTERS[id].x
-		_box("DoorHeader",Vector3(x,2.95,6.25),Vector3(1.34,.42,.12),"metal",true)
+		_box("DoorHeader",Vector3(x,2.90,6.25),Vector3(1.34,.90,.12),"metal",true)
 		_sign(id.to_upper()+" / RESTROOM",Vector3(x,2.95,6.16),PI,.0027)
 		_box("FloorMat",Vector3(x,.009,7.8),Vector3(1.9,.012,2.6),"floor")
 		# Shared bathroom partition with two individually shut stalls in each room.
@@ -152,6 +154,6 @@ func encounter(at: Vector3) -> String:
 	return ""
 
 func update_effects(at: Vector3) -> void:
-	var active := _active and at.is_finite() and at.distance_squared_to(CENTERS[MEN])<16.0
+	var active := _active and at.is_finite() and absf(at.x-CENTERS[MEN].x)<.91 and at.z>6.85 and at.z<8.36 and absf(at.y-1.15)<.8
 	if _haze.emitting!=active:
 		_haze.emitting=active

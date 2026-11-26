@@ -113,8 +113,7 @@ func _ready() -> void:
 	_label("OUR PEOPLE. OUR PURPOSE. OUR PERFORMANCE.",Vector3(0,2.12,9.73),.004,PI)
 	_label("EXECUTIVE ACCESS / PLEASE RESPECT THE PRIVACY OF LEADERSHIP",Vector3(0,1.72,9.73),.0026,PI)
 	_label("BOARDROOM / STRATEGY",Vector3(0,2.80,-9.78),.0048)
-	_label("LIFT DOWN",Vector3(.9,1.85,5.48),.003)
-	_part("brass",Vector3(.9,.018,5),Vector3(.78,.016,.82))
+	_install_lift("14","NO SERVICE","DOWN / OFFICES")
 	for x in [-5.5,0.0,5.5]:
 		for z in [-6.5,0.0,6.5]:
 			_part("gold_light",Vector3(x,3.27,z),Vector3(2.65,.045,.16))
