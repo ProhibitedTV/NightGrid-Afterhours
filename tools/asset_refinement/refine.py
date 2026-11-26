@@ -194,14 +194,23 @@ def bake_basecolor(obj, path, size):
     tex = nodes.new("ShaderNodeTexImage")
     tex.image = image
     nodes.active = tex
+    for node in nodes:
+        node.select = False
     tex.select = True
     scene = bpy.context.scene
     scene.render.engine = "CYCLES"
     scene.cycles.device = "CPU"
     scene.cycles.samples = 1
+    # Emission baking needs no denoiser; distro Blender may omit OIDN.
+    scene.cycles.use_denoising = False
+    for layer in scene.view_layers:
+        if hasattr(layer.cycles, "use_denoising"):
+            layer.cycles.use_denoising = False
     scene.render.threads_mode = "FIXED"
     scene.render.threads = 2
-    bpy.ops.object.bake(type="EMIT", margin=max(4, size // 128), use_clear=True)
+    result = bpy.ops.object.bake(type="EMIT", margin=max(4, size // 128), use_clear=True)
+    if "FINISHED" not in result:
+        raise RuntimeError("Cycles emission bake did not finish")
     pixels = np.empty(size * size * 4, dtype=np.float32)
     image.pixels.foreach_get(pixels)
     pixels = pixels.reshape((-1, 4))
