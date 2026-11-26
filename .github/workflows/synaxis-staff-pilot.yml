@@ -1,0 +1,59 @@
+name: Author Synaxis staff pilot
+on:
+  push:
+    branches: [art/synaxis-skinned-staff-pilot]
+    paths:
+      - 'assets/models/nightgrid/synaxis_staff/mika_torres.json'
+      - 'tools/validate_synaxis_staff.py'
+      - '.github/workflows/synaxis-staff-pilot.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: synaxis-staff-pilot
+  cancel-in-progress: false
+jobs:
+  author:
+    if: github.ref == 'refs/heads/art/synaxis-skinned-staff-pilot'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Export fictional supervisor using existing licensed pipeline
+        run: |
+          npx --yes ara3d@0.13.0 export --params assets/models/nightgrid/synaxis_staff/mika_torres.json --out dist/synaxis-staff --animations idle,walk
+          cp dist/synaxis-staff/Morrow_Courier.glb assets/models/nightgrid/synaxis_staff/mika_torres.glb
+          python tools/validate_synaxis_staff.py
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Import and test actual office cast integration
+        run: |
+          set -o pipefail
+          godot --headless --path . --import --quit 2>&1 | tee /tmp/staff-import.log
+          if grep -q 'SCRIPT ERROR:' /tmp/staff-import.log; then exit 1; fi
+          NIGHTGRID_REQUIRE_STAFF_PILOT=1 godot --headless --path . --script res://tests/menus_gamepad_smoke.gd
+      - uses: actions/upload-artifact@v4
+        with:
+          name: synaxis-staff-pilot
+          path: |
+            assets/models/nightgrid/synaxis_staff/mika_torres.glb
+            assets/models/nightgrid/synaxis_staff/mika_torres_source.json
+          if-no-files-found: error
+      - name: Commit only validated generated assets to feature branch
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/models/nightgrid/synaxis_staff/mika_torres.glb assets/models/nightgrid/synaxis_staff/mika_torres_source.json
+          if ! git diff --cached --quiet; then
+            git commit -m "assets: validated skinned Synaxis supervisor"
+            git push origin "HEAD:$GITHUB_REF_NAME"
+          fi

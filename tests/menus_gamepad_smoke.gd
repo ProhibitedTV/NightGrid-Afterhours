@@ -898,6 +898,15 @@ func _verify() -> void:
 		_fail("Jetson has signature textured leather outerwear, zipper details and no tie")
 		return
 	var mika: Node3D=staff["mika"]
+	var imported_pilot:bool=mika.call("imported_staff_ready")
+	if ResourceLoader.exists("res://assets/models/nightgrid/synaxis_staff/mika_torres.glb","PackedScene") or OS.get_environment("NIGHTGRID_REQUIRE_STAFF_PILOT")=="1":
+		if not imported_pilot or mika.get_node("BreathingTorso").visible:
+			_fail("Mika must render the validated imported weighted humanoid instead of the primitive fallback")
+			return
+		var visual:=mika.get_node("ImportedStaffVisual")
+		if visual.find_children("*","Skeleton3D",true,false).is_empty() or visual.find_children("*","AnimationPlayer",true,false).is_empty():
+			_fail("Imported staff pilot requires an actual skeleton and clips")
+			return
 	var staff_line: String=office.call("update_staff_attention",-2,mika.global_position+Vector3.UP*1.15)
 	if not staff_line.contains("Mika Torres") or not mika.call("get_staff_state")["attention"]:
 		_fail("Nearby supervisor reacts without a modal menu")
