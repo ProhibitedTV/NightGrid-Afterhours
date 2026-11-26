@@ -23,6 +23,12 @@ func _verify() -> void:
 	if cred_rows[1]["label"]!="Music scene" or cred_rows[1]["value"]!="50 / 100 · Respected" or cred_rows[2]["value"]!="20 / 100 · Recognized" or cred_rows[3]["value"]!="0 / 100 · Unknown" or not cred["actions"].is_empty() or scores["music"]!=50:
 		_fail("scene reputation ranks must be read-only and accurately projected")
 		return
+	var music: Dictionary = Phone.view("music",{"music_recruit_milo":true,"music_showcase":true,"music_merch":"12 tapes in stock"})
+	var music_actions := str(music["actions"])
+	var empty_music_actions := str(Phone.view("music",{})["actions"])
+	if not music_actions.contains("phone_route_music_milo") or not music_actions.contains("phone_route_music_showcase") or not str(music["rows"]).contains("12 tapes in stock") or empty_music_actions.contains("phone_route_music_milo") or empty_music_actions.contains("phone_route_music_showcase"):
+		_fail("music navigation reflects current career availability")
+		return
 	var packed: PackedScene = load("res://scenes/main.tscn")
 	var world: Node3D = packed.instantiate()
 	root.add_child(world)
@@ -32,6 +38,9 @@ func _verify() -> void:
 	var context: Dictionary = world.call("_phone_context")
 	if context.get("scene_scores",{}) != preload("res://scripts/scene_reputation.gd").scores(ledger):
 		_fail("phone uses authoritative scene reputation")
+		return
+	if bool(context.get("music_recruit_milo")) or bool(context.get("music_showcase")):
+		_fail("new career cannot expose unavailable bookings")
 		return
 	var cash_before: int = ledger.get("balance")
 	var mission_before: Vector3 = world.get("mission_position")
@@ -52,6 +61,13 @@ func _verify() -> void:
 		if not str(menu.get("_phone_app")).is_empty():
 			_fail("back to launcher")
 			return
+	menu.call("_choice","phone_app_music")
+	world.call("_on_menu_action","phone_route_music_milo")
+	world.call("_on_menu_action","phone_route_music_showcase")
+	if menu.get("screen")!="phone" or ledger.get("balance")!=cash_before:
+		_fail("unavailable music routes cannot close phone or change wallet")
+		return
+	menu.call("_choice","phone_back")
 	menu.call("_choice","phone_app_wallet")
 	world.call("_on_menu_action","phone_route_mara")
 	if menu.get("screen")!="phone":
