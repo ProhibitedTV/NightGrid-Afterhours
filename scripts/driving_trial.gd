@@ -14,6 +14,8 @@ const BRICK_RECEIPT = "driving:brickwater_loop"
 const BRICK_REWARD = 140
 const SOUTH = "southworks"
 const BRICK = "brickwater"
+const SOUTH_PACE = 34.0
+const BRICK_PACE = 48.0
 var course_id := SOUTH
 var active := false
 var index := 0
@@ -39,6 +41,49 @@ static func name_for(id:String)->String:
 
 func gates()->Array:
 	return BRICK_GATES if course_id==BRICK else GATES
+
+## Authored reference pace, not a simulated traffic participant or recorded replay.
+func pace_time()->float:
+	return BRICK_PACE if course_id==BRICK else SOUTH_PACE
+
+func pace_pose(seconds:float)->Dictionary:
+	if not is_finite(seconds):
+		return {}
+	var checkpoints:=gates()
+	var origin:=BRICK_START if course_id==BRICK else START
+	var distance:=0.0
+	var prior:=origin
+	for gate in checkpoints:
+		distance+=prior.distance_to(gate)
+		prior=gate
+	var travel:=clampf(seconds/pace_time(),0.0,1.0)*distance
+	prior=origin
+	for i in range(checkpoints.size()):
+		var gate:Vector2=checkpoints[i]
+		var length:=prior.distance_to(gate)
+		if travel<=length or i==checkpoints.size()-1:
+			var heading:Vector2=(gate-prior).normalized()
+			return {"position":prior.lerp(gate,clampf(travel/length,0.0,1.0)),"heading":heading}
+		travel-=length
+		prior=gate
+	return {}
+
+func pace_split()->float:
+	# Compare the time at the last completed gate against the reference
+	# schedule for that gate. It is an advisory split, never a payout gate.
+	if index<=0:
+		return 0.0
+	var checkpoints:=gates()
+	var prior:=BRICK_START if course_id==BRICK else START
+	var total:=0.0
+	var passed:=0.0
+	for i in range(checkpoints.size()):
+		var gate:Vector2=checkpoints[i]
+		total+=prior.distance_to(gate)
+		if i<index:
+			passed=total
+		prior=gate
+	return elapsed-pace_time()*passed/total
 
 func time_limit()->float:
 	return BRICK_LIMIT if course_id==BRICK else LIMIT
