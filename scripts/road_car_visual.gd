@@ -368,6 +368,19 @@ func _steering_targets(input: float) -> Vector2:
 	return Vector2(-outside, -inside) if control > 0.0 else Vector2(inside, outside)
 
 
+## Lightweight visual-only motion for the static circuit display. No live
+## drivetrain, suspension probes, cabin lights or player instrument calls.
+func update_display_motion(travel:float,steer:float,delta:float)->void:
+	if not _founder_display or not is_finite(travel) or not is_finite(steer) or not is_finite(delta) or delta<=0.0 or delta>.1:
+		return
+	_wheel_phase=fposmod(_wheel_phase+travel/float(_spec["tire"]),TAU)
+	for wheel in _wheels:
+		wheel.rotation.x=-_wheel_phase
+	var targets:=_steering_targets(steer)
+	for index in _steering.size():
+		var wanted:float=targets.x if index==0 else targets.y
+		_steering[index].rotation.y=move_toward(_steering[index].rotation.y,wanted,delta*1.55)
+
 func update_motion(speed: float, steer: float, braking: bool, occupied: bool,
 		throttle: float, wetness: float, delta: float, rolling_distance: float = NAN,
 		loads: Vector2 = Vector2.ZERO) -> void:
