@@ -3,8 +3,10 @@ extends "res://scripts/lantern_patron.gd"
 ## No navigation, physics or economy ownership. The scene owns mission progression.
 const RigVisual=preload("res://scripts/pedestrian_rig_visual.gd")
 const STAFF_MODEL_DIR="res://assets/models/nightgrid/synaxis_staff/"
-static func pilot_model_path() -> String:
-	return STAFF_MODEL_DIR+"mika_torres.glb"
+const STAFF_MODELS={"mika":"mika_torres.glb","security":"owen_pike.glb"}
+
+static func pilot_model_path(id:String="mika") -> String:
+	return STAFF_MODEL_DIR+str(STAFF_MODELS[id]) if STAFF_MODELS.has(id) else ""
 var _imported_visual:Node3D
 var display_name := ""
 var outfit := "office"
@@ -168,9 +170,10 @@ func _ready() -> void:
 # Start with one standing supervisor. Do not replace actors with seated,
 # prop or choreography requirements until their performances are retargeted.
 func _install_imported_pilot() -> void:
-	if resident_id!="mika" or seated or not ResourceLoader.exists(pilot_model_path(),"PackedScene"):
+	var path:=pilot_model_path(resident_id)
+	if seated or path.is_empty() or not ResourceLoader.exists(path,"PackedScene"):
 		return
-	var model:=load(pilot_model_path()) as PackedScene
+	var model:=load(path) as PackedScene
 	if model==null:
 		return
 	var legacy:Array[Node3D]=[]

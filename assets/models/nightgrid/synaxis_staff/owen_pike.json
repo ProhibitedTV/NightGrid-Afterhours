@@ -1,0 +1,57 @@
+{
+  "$schema": "https://ara3dgen.com/schemas/character.v1.json",
+  "kind": "ara-character",
+  "version": 1,
+  "params": {
+    "name": "Owen Pike",
+    "seed": 617042,
+    "gender": 1,
+    "ageYears": 46,
+    "height": 0.6,
+    "weight": 0.62,
+    "muscle": 0.6,
+    "proportions": 0.5,
+    "african": 0.34,
+    "asian": 0.19,
+    "caucasian": 0.47,
+    "modifiers": {
+      "head/head-scale-horiz": 0.08,
+      "head/head-rectangular": 0.3,
+      "eyes/eye-bag": 0.3,
+      "eyebrows/eyebrows-trans": -0.06
+    },
+    "skinTint": "#e0d6c9",
+    "eyes": "brown",
+    "eyebrows": "eyebrow001",
+    "eyelashes": "eyelashes01",
+    "hair": "short04",
+    "hairColor": "#353436",
+    "outfit": "set_suit_tie",
+    "top": "suit_shirt_tie",
+    "jacket": "suit_jacket",
+    "bottom": "suit_trousers",
+    "shoes": "oxfords",
+    "accessories": [],
+    "carry": "none",
+    "garmentStyles": {
+      "set_suit_tie": {
+        "pattern": "suiting",
+        "color": "#253e54",
+        "color2": "#31495d"
+      },
+      "suit_shirt_tie": {
+        "pattern": "solid",
+        "color": "#a5b7c7",
+        "color2": "#233448"
+      }
+    },
+    "detail": "medium",
+    "rig": "game",
+    "faceBones": false,
+    "restPose": "A",
+    "faceShapes": false,
+    "speechShapes": false,
+    "weapon": "none",
+    "vehicle": "none"
+  }
+}

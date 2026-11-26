@@ -907,6 +907,16 @@ func _verify() -> void:
 		if visual.find_children("*","Skeleton3D",true,false).is_empty() or visual.find_children("*","AnimationPlayer",true,false).is_empty():
 			_fail("Imported staff pilot requires an actual skeleton and clips")
 			return
+	var guard:Node3D=staff["security"]
+	if ResourceLoader.exists(preload("res://scripts/synaxis_staff.gd").pilot_model_path("security"),"PackedScene") or OS.get_environment("NIGHTGRID_REQUIRE_STAFF_GUARD")=="1":
+		if not guard.call("imported_staff_ready") or guard.get_node("BreathingTorso").visible:
+			_fail("Owen must use his own imported humanoid and hide the primitive fallback")
+			return
+		var guard_visual:=guard.get_node("ImportedStaffVisual")
+		var supervisor_visual:=mika.get_node_or_null("ImportedStaffVisual")
+		if supervisor_visual==null or guard_visual.get("_model")==supervisor_visual.get("_model"):
+			_fail("Named supervisor and guard require distinct imported models")
+			return
 	var staff_line: String=office.call("update_staff_attention",-2,mika.global_position+Vector3.UP*1.15)
 	if not staff_line.contains("Mika Torres") or not mika.call("get_staff_state")["attention"]:
 		_fail("Nearby supervisor reacts without a modal menu")

@@ -3,7 +3,7 @@ on:
   push:
     branches: [art/synaxis-skinned-staff-pilot]
     paths:
-      - 'assets/models/nightgrid/synaxis_staff/mika_torres.json'
+      - 'assets/models/nightgrid/synaxis_staff/owen_pike.json'
       - 'tools/validate_synaxis_staff.py'
       - '.github/workflows/synaxis-staff-pilot.yml'
   workflow_dispatch:
@@ -25,11 +25,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Export fictional supervisor using existing licensed pipeline
+      - name: Preserve validated supervisor and export separate lobby guard
         run: |
-          npx --yes ara3d@0.13.0 export --params assets/models/nightgrid/synaxis_staff/mika_torres.json --out dist/synaxis-staff --animations idle,walk
-          cp dist/synaxis-staff/Morrow_Courier.glb assets/models/nightgrid/synaxis_staff/mika_torres.glb
-          python tools/validate_synaxis_staff.py
+          set -euo pipefail
+          test -s assets/models/nightgrid/synaxis_staff/mika_torres.glb
+          npx --yes ara3d@0.13.0 export --params assets/models/nightgrid/synaxis_staff/owen_pike.json --out dist/synaxis-guard --animations idle,walk
+          cp dist/synaxis-guard/Owen_Pike.glb assets/models/nightgrid/synaxis_staff/owen_pike.glb
+          python tools/validate_synaxis_staff.py owen_pike
       - uses: chickensoft-games/setup-godot@v2
         with:
           version: 4.7.2
@@ -39,23 +41,23 @@ jobs:
           set -o pipefail
           godot --headless --path . --import --quit 2>&1 | tee /tmp/staff-import.log
           if grep -q 'SCRIPT ERROR:' /tmp/staff-import.log; then exit 1; fi
-          NIGHTGRID_REQUIRE_STAFF_PILOT=1 godot --headless --path . --script res://tests/menus_gamepad_smoke.gd 2>&1 | tee /tmp/staff-pilot.log
+          NIGHTGRID_REQUIRE_STAFF_PILOT=1 NIGHTGRID_REQUIRE_STAFF_GUARD=1 godot --headless --path . --script res://tests/menus_gamepad_smoke.gd 2>&1 | tee /tmp/staff-pilot.log
           if grep -q 'SCRIPT ERROR:' /tmp/staff-pilot.log; then exit 1; fi
           grep -q "MENU_GAMEPAD_SMOKE PASS" /tmp/staff-pilot.log
       - uses: actions/upload-artifact@v4
         with:
           name: synaxis-staff-pilot
           path: |
-            assets/models/nightgrid/synaxis_staff/mika_torres.glb
-            assets/models/nightgrid/synaxis_staff/mika_torres_source.json
+            assets/models/nightgrid/synaxis_staff/owen_pike.glb
+            assets/models/nightgrid/synaxis_staff/owen_pike_source.json
           if-no-files-found: error
       - name: Commit only validated generated assets to feature branch
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/models/nightgrid/synaxis_staff/mika_torres.glb assets/models/nightgrid/synaxis_staff/mika_torres_source.json
+          git add assets/models/nightgrid/synaxis_staff/owen_pike.glb assets/models/nightgrid/synaxis_staff/owen_pike_source.json
           if ! git diff --cached --quiet; then
-            git commit -m "assets: validated skinned Synaxis supervisor"
+            git commit -m "assets: validated skinned Synaxis lobby guard"
             git push origin "HEAD:$GITHUB_REF_NAME"
           fi
