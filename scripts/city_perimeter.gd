@@ -297,60 +297,90 @@ func _build_road_terminals() -> void:
 					at, Vector3(0.82, 0.045, 0.90), "PAVERS", Color("d0a34b"))
 			_stats["road_gates"] += 1
 
+# Authored longitudinal profile: meters from the original soundwall and
+# rise above the original foundation. The same stations drive visual and
+# collision surfaces. No random terrain or hidden flat collision plane.
+const RIDGE_PROFILE = [
+	Vector2(-1.0, 0.0), Vector2(0.0, 0.0), Vector2(12.0, 0.15),
+	Vector2(24.0, 0.9), Vector2(44.0, 2.8), Vector2(64.0, 4.8),
+	Vector2(84.0, 6.5), Vector2(98.0, 7.2), Vector2(108.0, 7.2)
+]
+
+func ridge_height(x: float) -> float:
+	var distance := clampf(x - EDGE, -1.0, RIDGE_LENGTH)
+	for i in range(RIDGE_PROFILE.size() - 1):
+		var a: Vector2 = RIDGE_PROFILE[i]
+		var b: Vector2 = RIDGE_PROFILE[i + 1]
+		if distance <= b.x:
+			return -0.08 + lerpf(a.y, b.y, (distance - a.x) / (b.x - a.x))
+	return -0.08 + 7.2
+
 func _build_ridge_pilot() -> void:
-	# Circulation/landform engineering blockout, not production art. Top of
-	# the terrace matches the existing ground at y=-0.08. Extend 1 m into
-	# the old foundation to avoid a collision seam at the street endpoint.
-	var near_x := EDGE - 1.0
+	# Engineering blockout. The old city stays level; the new access street
+	# climbs gradually, with a level upper landing for a future overlook.
+	_ridge_surface("Ridge_CentralAccess", -7.8, 7.8,
+		"CONCRETE", Color("41494b"))
+	_ridge_surface("Ridge_NorthWalk", -11.0, -7.8,
+		"PHOTO_SIDEWALK", Color("b5b4ae"))
+	_ridge_surface("Ridge_SouthWalk", 7.8, 11.0,
+		"PHOTO_SIDEWALK", Color("b5b4ae"))
+	_ridge_surface("Ridge_NorthDevelopmentParcel", -RIDGE_HALF_WIDTH, -11.0,
+		"CONCRETE", Color("65716a"))
+	_ridge_surface("Ridge_SouthDevelopmentParcel", 11.0, RIDGE_HALF_WIDTH,
+		"CONCRETE", Color("65716a"))
 	var far_x := EDGE + RIDGE_LENGTH
-	var center_x := (near_x + far_x) * 0.5
-	var width := far_x - near_x
-	var floor_body := StaticBody3D.new()
-	floor_body.name = "HorizonRidge_TerraceFloor"
-	floor_body.collision_layer = 1
-	floor_body.collision_mask = 1
-	floor_body.position = Vector3(center_x, -0.58, 0.0)
-	var collision := CollisionShape3D.new()
-	var shape := BoxShape3D.new()
-	shape.size = Vector3(width, 1.0, RIDGE_HALF_WIDTH * 2.0)
-	collision.shape = shape
-	floor_body.add_child(collision)
-	add_child(floor_body)
-	# Authored surface bands, explicit meter-scale UVs, reused materials.
-	_ridge_surface("Ridge_CentralAccess", near_x, far_x, -7.8, 7.8,
-		"CONCRETE", Color("41494b"), -0.06)
-	_ridge_surface("Ridge_NorthWalk", near_x, far_x, -11.0, -7.8,
-		"PHOTO_SIDEWALK", Color("b5b4ae"), -0.05)
-	_ridge_surface("Ridge_SouthWalk", near_x, far_x, 7.8, 11.0,
-		"PHOTO_SIDEWALK", Color("b5b4ae"), -0.05)
-	_ridge_surface("Ridge_NorthDevelopmentParcel", near_x, far_x, -RIDGE_HALF_WIDTH, -11.0,
-		"CONCRETE", Color("65716a"), -0.07)
-	_ridge_surface("Ridge_SouthDevelopmentParcel", near_x, far_x, 11.0, RIDGE_HALF_WIDTH,
-		"CONCRETE", Color("65716a"), -0.07)
-	# Visible retaining edges keep the pilot inside the supported land.
-	_solid_edge("Ridge_EastRetainingWall", Vector3(far_x, 0.89, 0.0),
-		Vector3(1.4, 1.98, RIDGE_HALF_WIDTH * 2.0), "CONCRETE", Color("596967"))
-	for direction in [-1.0, 1.0]:
-		_solid_edge("Ridge_SideRetainingWall_%s" % str(direction),
-			Vector3(center_x, 0.89, direction * RIDGE_HALF_WIDTH),
-			Vector3(width, 1.98, 1.4), "CONCRETE", Color("596967"))
+	_ridge_retaining_segment("Ridge_EastRetainingWall", Vector3(far_x, 0.0, 0.0),
+		Vector2(1.4, RIDGE_HALF_WIDTH * 2.0), ridge_height(far_x))
+	# Stepped retaining wall blocks extend below the adjacent hillside and
+	# above the highest road point on each segment, rather than floating.
+	for i in range(RIDGE_PROFILE.size() - 1):
+		var a: Vector2 = RIDGE_PROFILE[i]
+		var b: Vector2 = RIDGE_PROFILE[i + 1]
+		var middle := EDGE + (a.x + b.x) * 0.5
+		var length := b.x - a.x + 0.02
+		for direction in [-1.0, 1.0]:
+			_ridge_retaining_segment("Ridge_SideRetainingWall_%d_%s" % [i, str(direction)],
+				Vector3(middle, 0.0, direction * RIDGE_HALF_WIDTH),
+				Vector2(length, 1.4), maxf(ridge_height(EDGE+a.x), ridge_height(EDGE+b.x)))
 	_stats["ridge_pilot"] = 1
 	_stats["ridge_area_m2"] = int(RIDGE_LENGTH * RIDGE_HALF_WIDTH * 2.0)
+	_stats["ridge_rise_m"] = 7.2
 
-func _ridge_surface(label: String, x0: float, x1: float, z0: float, z1: float,
-		kind: String, tint: Color, elevation: float) -> void:
+func _ridge_retaining_segment(label: String, center: Vector3, footprint: Vector2, ground: float) -> void:
+	var bottom := -1.0
+	var top := ground + 1.98
+	center.y = (bottom + top) * 0.5
+	_solid_edge(label, center, Vector3(footprint.x, top-bottom, footprint.y),
+		"CONCRETE", Color("596967"))
+
+func _ridge_surface(label: String, z0: float, z1: float,
+		kind: String, tint: Color) -> void:
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var a := Vector3(x0, elevation, z0)
-	var b := Vector3(x1, elevation, z0)
-	var c := Vector3(x1, elevation, z1)
-	var d := Vector3(x0, elevation, z1)
-	for vertex in [a, b, c, a, c, d]:
-		surface.set_uv(Vector2(vertex.x, vertex.z))
-		surface.add_vertex(vertex)
+	for i in range(RIDGE_PROFILE.size() - 1):
+		var start: Vector2 = RIDGE_PROFILE[i]
+		var finish: Vector2 = RIDGE_PROFILE[i+1]
+		var x0 := EDGE + start.x
+		var x1 := EDGE + finish.x
+		var a := Vector3(x0, ridge_height(x0), z0)
+		var b := Vector3(x1, ridge_height(x1), z0)
+		var c := Vector3(x1, ridge_height(x1), z1)
+		var d := Vector3(x0, ridge_height(x0), z1)
+		for vertex in [a, b, c, a, c, d]:
+			surface.set_uv(Vector2(vertex.x, vertex.z))
+			surface.add_vertex(vertex)
 	surface.generate_normals()
+	var mesh := surface.commit()
+	var body := StaticBody3D.new()
+	body.name = label + "_Floor"
+	body.collision_layer = 1
+	body.collision_mask = 1
+	var collision := CollisionShape3D.new()
+	collision.shape = mesh.create_trimesh_shape()
+	body.add_child(collision)
 	var node := MeshInstance3D.new()
 	node.name = label
-	node.mesh = surface.commit()
+	node.mesh = mesh
 	node.material_override = Materials.surface(kind, tint)
-	add_child(node)
+	body.add_child(node)
+	add_child(body)

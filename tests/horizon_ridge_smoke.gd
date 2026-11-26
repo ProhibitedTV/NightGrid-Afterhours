@@ -25,16 +25,32 @@ func _verify() -> void:
 	if not space.intersect_ray(entrance).is_empty():
 		_fail("Original east road remains blocked")
 		return
-	for x in [244.9, 245.5, 260.0, 300.0, 350.0]:
-		var floor_query := PhysicsRayQueryParameters3D.create(Vector3(x, 3, 0), Vector3(x, -3, 0), 1)
-		var hit := space.intersect_ray(floor_query)
-		if hit.is_empty() or absf(float(hit["position"].y) + 0.08) > 0.2:
-			_fail("Missing continuous collision floor at " + str(x))
+	for x in [244.9, 245.5, 260.0, 280.0, 300.0, 330.0, 350.0]:
+		var expected := float(edge.call("ridge_height", x))
+		for z in [-35.0, -9.0, 0.0, 9.0, 35.0]:
+			# The original road/sidewalk may differ at the overlap itself.
+			if x < 246.0 and z != 0.0:
+				continue
+			var floor_query := PhysicsRayQueryParameters3D.create(Vector3(x, 15, z), Vector3(x, -3, z), 1)
+			var hit := space.intersect_ray(floor_query)
+			if hit.is_empty() or absf(float(hit["position"].y) - expected) > 0.2:
+				_fail("Missing or mismatched graded collision at " + str(Vector2(x,z)))
+				return
+	if not is_equal_approx(float(edge.call("ridge_height", 353.5)) - float(edge.call("ridge_height", 245.5)), 7.2):
+		_fail("Expected 7.2 m elevation gain")
+		return
+	for x in range(246, 353):
+		var grade := float(edge.call("ridge_height", float(x)+1.0)) - float(edge.call("ridge_height", float(x)))
+		if grade < -0.001 or grade > 0.101:
+			_fail("Unexpected longitudinal grade")
 			return
+	if not is_equal_approx(float(edge.call("ridge_height", 346.0)), float(edge.call("ridge_height", 352.0))):
+		_fail("Upper landing must be level")
+		return
 	for pair in [
-		[Vector3(348, 1, 0), Vector3(360, 1, 0)],
-		[Vector3(300, 1, 49), Vector3(300, 1, 59)],
-		[Vector3(300, 1, -49), Vector3(300, 1, -59)],
+		[Vector3(348, 8, 0), Vector3(360, 8, 0)],
+		[Vector3(300, 5, 49), Vector3(300, 5, 59)],
+		[Vector3(300, 5, -49), Vector3(300, 5, -59)],
 		[Vector3(240, 1, 25), Vector3(250, 1, 25)]
 	]:
 		var wall_query := PhysicsRayQueryParameters3D.create(pair[0], pair[1], 1)
