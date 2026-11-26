@@ -1,9 +1,6 @@
 name: Publish Beta.8 RC4 candidate
 on:
-  workflow_run:
-    workflows: ["Project preflight", "Windows playtest build"]
-    types: [completed]
-    branches: [main]
+  # Published historical candidate; retain manual dispatch for audit/recovery.
   workflow_dispatch:
     inputs:
       source_sha:
