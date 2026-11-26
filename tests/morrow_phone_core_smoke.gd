@@ -17,12 +17,22 @@ func _verify() -> void:
 		push_error("MORROW_PHONE_CORE: projection mismatch")
 		quit(1)
 		return
+	var scores := {"music":50,"community":20,"underground":0}
+	var cred: Dictionary = Phone.view("cred",{"scene_scores":scores})
+	var cred_rows: Array = cred["rows"]
+	if cred_rows[1]["label"]!="Music scene" or cred_rows[1]["value"]!="50 / 100 · Respected" or cred_rows[2]["value"]!="20 / 100 · Recognized" or cred_rows[3]["value"]!="0 / 100 · Unknown" or not cred["actions"].is_empty() or scores["music"]!=50:
+		_fail("scene reputation ranks must be read-only and accurately projected")
+		return
 	var packed: PackedScene = load("res://scenes/main.tscn")
 	var world: Node3D = packed.instantiate()
 	root.add_child(world)
 	await process_frame
 	var menu: Node = world.get_node("GameMenus")
 	var ledger: RefCounted = world.get("progression")
+	var context: Dictionary = world.call("_phone_context")
+	if context.get("scene_scores",{}) != preload("res://scripts/scene_reputation.gd").scores(ledger):
+		_fail("phone uses authoritative scene reputation")
+		return
 	var cash_before: int = ledger.get("balance")
 	var mission_before: Vector3 = world.get("mission_position")
 	menu.call("open_pause")
