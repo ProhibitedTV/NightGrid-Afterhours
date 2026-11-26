@@ -30,7 +30,9 @@ flock -n 9 || { echo "Generation still running; retry after it finishes"; exit 2
 extra=()
 size=1024
 if [[ "$mode" == smoke ]]; then extra=(--limit 1); size=128; fi
-bash tools/asset_refinement/run_refine.sh --bake-size "$size" "${extra[@]}" "$@"
+normal_args=()
+if [[ "${ANUBIS_PROJECT_NORMALS:-0}" == 1 ]]; then normal_args=(--project-normals); fi
+bash tools/asset_refinement/run_refine.sh --bake-size "$size" "${normal_args[@]}" "${extra[@]}" "$@"
 material_python="$ANUBIS_VISUAL_HOME/mesh/bin/python"
 [[ -x "$material_python" ]] || { echo "Existing mesh Python environment required for materials"; exit 2; }
 "$material_python" tools/asset_refinement/materials.py --raw "$ANUBIS_VISUAL_OUT" --output "$root/Materials/material-001" --size "$size" "${extra[@]}"

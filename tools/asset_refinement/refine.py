@@ -36,7 +36,7 @@ def write(path, value):
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def glb_info(path, visual=True, textured=False):
+def glb_info(path, visual=True, textured=False, projected=False):
     with path.open("rb") as f:
         magic, version, length = struct.unpack("<4sII", f.read(12))
         if magic != b"glTF" or version != 2 or length != path.stat().st_size:
@@ -59,6 +59,11 @@ def glb_info(path, visual=True, textured=False):
                 image = data["images"][data["textures"][material["baseColorTexture"]["index"]]["source"]]
                 if "bufferView" not in image or "COLOR_0" in attrs:
                     raise ValueError("Expected embedded base color without vertex tint")
+                if projected:
+                    normal = data["materials"][prim["material"]]["normalTexture"]
+                    normal_image = data["images"][data["textures"][normal["index"]]["source"]]
+                    if "bufferView" not in normal_image or "TANGENT" not in attrs:
+                        raise ValueError("Expected embedded tangent normal and mesh tangents")
             n = data["accessors"][prim.get("indices", attrs["POSITION"])]["count"]
             if n % 3:
                 raise ValueError("Invalid triangle index count")
@@ -96,12 +101,16 @@ def verified(folder, signature):
         expected = {"lod0.glb", "lod1.glb", "lod2.glb", "collision.glb"}
         if baked:
             expected |= {"lod%d-basecolor.png" % i for i in range(3)}
+        projected = info.get("settings", {}).get("project_normals", False)
+        if projected:
+            expected |= {"lod%d-normal.png" % i for i in range(3)}
         return (info["signature"] == signature and info["status"] == "unapproved"
                 and set(info["outputs"]) == expected
                 and all(sha(folder / name) == item["sha256"]
                         and (png_size(folder / name) == tuple(item["size"]) if name.endswith(".png")
                              else glb_info(folder / name, name != "collision.glb",
-                                           baked and name != "collision.glb") == item["triangles"])
+                                           baked and name != "collision.glb",
+                                           projected and name != "collision.glb") == item["triangles"])
                         for name, item in info["outputs"].items()))
     except (OSError, ValueError, KeyError, TypeError, struct.error):
         return False
@@ -114,13 +123,13 @@ def select(obj):
     bpy.context.view_layer.objects.active = obj
 
 
-def export(obj, path, visual, textured=False):
+def export(obj, path, visual, textured=False, projected=False):
     import bpy
     select(obj)
     bpy.ops.export_scene.gltf(filepath=str(path), export_format="GLB",
                               use_selection=True, export_materials="EXPORT" if visual else "NONE",
-                              export_normals=True, export_texcoords=visual)
-    return glb_info(path, visual, textured)
+                              export_normals=True, export_texcoords=visual, export_tangents=projected)
+    return glb_info(path, visual, textured, projected)
 
 
 def triangles(obj):
@@ -236,7 +245,60 @@ def bake_basecolor(obj, path, size):
     return {"size": [size, size], "sha256": sha(path), "coverage_with_margin": float(valid.mean())}
 
 
-def build(src, dest, height, bake_size=0):
+def bake_projected_normal(high, low, path, size, extent, base_coverage):
+    """Selected-to-active tangent-space projection from dense cleaned source."""
+    import bpy
+    import numpy as np
+    mat = low.data.materials[0]
+    nodes, links = mat.node_tree.nodes, mat.node_tree.links
+    image = bpy.data.images.new(path.stem, width=size, height=size, alpha=True)
+    image.colorspace_settings.name = "Non-Color"
+    tex = nodes.new("ShaderNodeTexImage")
+    tex.image = image
+    for node in nodes:
+        node.select = False
+    tex.select = True
+    nodes.active = tex
+    select(low)
+    high.select_set(True)
+    extrusion = extent * .02
+    max_ray = extent * .08
+    result = bpy.ops.object.bake(type="NORMAL", normal_space="TANGENT",
+                                 normal_r="POS_X", normal_g="POS_Y", normal_b="POS_Z",
+                                 use_selected_to_active=True, cage_extrusion=extrusion,
+                                 max_ray_distance=max_ray, margin=max(4,size//128),
+                                 use_clear=True)
+    if "FINISHED" not in result:
+        raise RuntimeError("Normal projection did not finish")
+    pixels = np.empty(size*size*4,dtype=np.float32)
+    image.pixels.foreach_get(pixels)
+    pixels = pixels.reshape((-1,4))
+    valid = pixels[:,3] > .5
+    coverage = float(valid.mean())
+    if not np.isfinite(pixels).all() or coverage < max(.005,base_coverage*.75):
+        raise ValueError("Projected normal coverage too low")
+    vectors = pixels[valid,:3]*2-1
+    lengths = np.linalg.norm(vectors,axis=1)
+    unit_fraction = float(((lengths>.8)&(lengths<1.2)).mean())
+    if unit_fraction < .95:
+        raise ValueError("Invalid tangent-space normal vectors")
+    image.filepath_raw = str(path)
+    image.file_format = "PNG"
+    image.save()
+    if png_size(path)!=(size,size):
+        raise ValueError("Unexpected normal dimensions")
+    image.pack()
+    normal = nodes.new("ShaderNodeNormalMap")
+    normal.space = "TANGENT"
+    links.new(tex.outputs["Color"],normal.inputs["Color"])
+    links.new(normal.outputs["Normal"],nodes.get("Principled BSDF").inputs["Normal"])
+    return {"size":[size,size],"sha256":sha(path),"coverage_with_margin":coverage,
+            "unit_vector_fraction":unit_fraction,"cage_extrusion":extrusion,
+            "max_ray_distance":max_ray,"color_space":"linear","convention":"OpenGL +Y",
+            "review":"projection misses and thin/intersecting surfaces require visual inspection"}
+
+
+def build(src, dest, height, bake_size=0, project_normals=False):
     import bpy
     import bmesh
     from mathutils import Vector
@@ -299,6 +361,10 @@ def build(src, dest, height, bake_size=0):
     obj.data.materials.append(mat)
     for p in obj.data.polygons:
         p.material_index = 0
+    high = duplicate(obj, "DENSE_SOURCE") if project_normals else None
+    if high is not None:
+        for face in high.data.polygons:
+            face.use_smooth = True
     reduce(obj, BUDGETS[0])
     unwrap(obj)
     outputs = {}
@@ -309,11 +375,18 @@ def build(src, dest, height, bake_size=0):
         if bake_size:
             texture = "lod%d-basecolor.png" % i
             outputs[texture] = bake_basecolor(lod, dest / texture, max(64, bake_size // (2**i)))
-        n = export(lod, dest / name, True, bool(bake_size))
+        if project_normals:
+            normal_name = "lod%d-normal.png" % i
+            outputs[normal_name] = bake_projected_normal(high,lod,dest/normal_name,
+                max(64,bake_size//(2**i)),max(bounds)*factor,
+                outputs[texture]["coverage_with_margin"])
+        n = export(lod, dest / name, True, bool(bake_size), project_normals)
         if n > target:
             raise ValueError("Exported triangle budget exceeded")
         outputs[name] = {"triangles": n, "sha256": sha(dest / name)}
         bpy.data.objects.remove(lod, do_unlink=True)
+    if high is not None:
+        bpy.data.objects.remove(high,do_unlink=True)
     # Convex hull of the refined mesh, deliberately not a gameplay collider.
     # A hull can fill gaps such as chair legs or door openings.
     hull = duplicate(obj, "COLLISION_REVIEW_ONLY")
@@ -342,6 +415,7 @@ def build(src, dest, height, bake_size=0):
             "scale_status": "specified-height-only" if height is not None else "unresolved",
             "anchor": "ground-center; Blender Z up, glTF Y up",
             "materials": ("baked reconstructed base color" if bake_size else "vertex color") + "; provisional scalar roughness/metalness; no measured PBR maps",
+            "normal_projection": "dense source tangent normals; review pending" if project_normals else "disabled",
             "collision": "convex candidate; not approved for gameplay",
             "outputs": outputs}
 
@@ -354,7 +428,10 @@ def main(args):
     p.add_argument("--limit", type=int, default=0, help="maximum newly attempted meshes; 0 = all")
     p.add_argument("--dimensions", type=Path, help="JSON map candidate ID -> measured height in metres")
     p.add_argument("--bake-size", type=int, choices=[0, 128, 512, 1024, 2048], default=0, help="LOD0 base color bake size; 0 disables")
+    p.add_argument("--project-normals",action="store_true",help="Experimental dense-to-LOD tangent normals")
     opt = p.parse_args(args)
+    if opt.project_normals and not opt.bake_size:
+        p.error("Normal projection requires a texture bake size")
     src, out = opt.input.resolve(), opt.output.resolve()
     if not (src / "candidates").is_dir() or out == src or src in out.parents or out in src.parents:
         p.error("Input must exist; output must be a separate sibling or unrelated directory")
@@ -386,7 +463,7 @@ def main(args):
                     raise ValueError("Invalid measured height")
                 settings = {"source": hashes, "pipeline": VERSION, "script": sha(Path(__file__)),
                             "blender": bpy.app.version_string, "height_m": height, "budgets": BUDGETS,
-                            "bake_size": opt.bake_size}
+                            "bake_size": opt.bake_size, "project_normals": opt.project_normals}
                 signature = hashlib.sha256(json.dumps(settings, sort_keys=True).encode()).hexdigest()
                 parent = out / folder.name
                 final = parent / signature
@@ -402,7 +479,7 @@ def main(args):
                 stage = Path(tempfile.mkdtemp(prefix=".stage-", dir=parent))
                 try:
                     print("Refining", folder.name, flush=True)
-                    info = build(folder / "mesh.glb", stage, height, opt.bake_size)
+                    info = build(folder / "mesh.glb", stage, height, opt.bake_size, opt.project_normals)
                     if source(folder) != hashes:
                         raise ValueError("Source changed during refinement")
                     write(stage / "refinement.json", dict(info, signature=signature, settings=settings,

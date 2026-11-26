@@ -64,4 +64,9 @@ with tempfile.TemporaryDirectory() as tmp:
     preview_row=load(previews/"review-128.json")["rows"][0]
     preview_folder=previews/folder.name/preview_row["preview"]
     assert preview_valid(preview_folder,load(preview_folder/"preview.json")["settings"])
-    print("Blender fixture refinement, texture bake, preview and resume passed")
+    assert main(args+["--project-normals"])==0
+    results=[load(p/"refinement.json") for p in (out/folder.name).iterdir()]
+    projected=next(m for m in results if m["settings"].get("project_normals"))
+    assert len(projected["outputs"])==10
+    assert verified(out/folder.name/projected["signature"],projected["signature"])
+    print("Blender fixture refinement, texture bake, preview, normal projection and resume passed")
