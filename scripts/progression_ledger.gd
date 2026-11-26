@@ -305,13 +305,13 @@ func expand_home_storage() -> bool:
 
 # Return the number actually transferred; caller updates carried count once.
 func deposit_supply(carried: int) -> int:
-	if not owns_home() or carried <= 0 or home_supplies >= home_capacity():
+	if not owns_home() or carried <= 0 or carried > 99 or home_supplies < 0 or home_supplies >= home_capacity():
 		return 0
 	home_supplies += 1
 	return 1
 
 func withdraw_supply(carried: int) -> int:
-	if not owns_home() or carried >= 99 or carried < 0 or home_supplies <= 0:
+	if not owns_home() or carried >= 99 or carried < 0 or home_supplies <= 0 or home_supplies > home_capacity():
 		return 0
 	home_supplies -= 1
 	return 1
