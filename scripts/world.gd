@@ -26,6 +26,8 @@ var _trial_beacon_label: Label3D
 const RoadRestrictions = preload("res://scripts/road_restrictions.gd")
 const FreightJob = preload("res://scripts/freight_job.gd")
 var _freight := FreightJob.new()
+const CargoCase=preload("res://scripts/freight_cargo_case.gd")
+var _freight_case: Node3D
 const Arsenal = preload("res://scripts/arsenal.gd")
 const Wanted = preload("res://scripts/wanted_system.gd")
 const PoliceDispatch = preload("res://scripts/police_dispatch.gd")
@@ -837,7 +839,7 @@ func _phone_workboard() -> Array[Dictionary]:
 	if not freight_offer.is_empty():
 		var freight_site:String=freight_offer["to"] if _freight.active else freight_offer["from"]
 		var depot:Dictionary=civic_services.call("site_by_id",freight_site)
-		listings.append({"id":"freight:current","category":"Vehicle freight","title":freight_offer["name"],"brief":"Stop at the loading point in a roadworthy car. G/X to load or unload; same vehicle required.","reward":freight_offer["reward"],"site":depot["name"],"open":true,"active":_freight.active,"position":freight_offer["drop"] if _freight.active else freight_offer["pickup"],"action_label":"Deliver freight" if _freight.active else "Navigate to loading point"})
+		listings.append({"id":"freight:current","category":"Vehicle freight","title":freight_offer["name"],"brief":"Stop a civilian Kestrel S6 at the loading point. G/X to load or unload; same vehicle required.","reward":freight_offer["reward"],"site":depot["name"],"open":true,"active":_freight.active,"position":freight_offer["drop"] if _freight.active else freight_offer["pickup"],"action_label":"Deliver freight" if _freight.active else "Navigate to loading point"})
 	for site in TechnicalContracts.CASES:
 		if not TechnicalContracts.available(site,progression):
 			continue
@@ -1533,6 +1535,9 @@ func _freight_interact()->void:
 	if current_car==null or _driving_trial.active:
 		return
 	var at:=Vector2(current_car.global_position.x,current_car.global_position.z)
+	if not FreightJob.supports_vehicle(str(current_car.get("model_id")),bool(current_car.get("is_police"))):
+		_notify("Freight / use a civilian Kestrel S6 with rear cargo space.")
+		return
 	var id:=current_car.get_instance_id()
 	var condition:=float(current_car.get("condition"))
 	var speed:=float(current_car.get("speed"))
@@ -1541,7 +1546,7 @@ func _freight_interact()->void:
 			if _freight.ready_to_deliver(at,id,condition,speed):
 				var pay:=int(_freight.route["reward"])
 				if progression.settle_freight(_freight.sequence):
-					_freight.cancel()
+					_cancel_freight()
 					_notify("FREIGHT / cargo delivered +$%d"%pay)
 					_log_playtest("freight_finish",{"sequence":progression.freight_runs,"paid":pay})
 				else:
@@ -1549,28 +1554,48 @@ func _freight_interact()->void:
 			else:
 				_notify("Freight / stop at the delivery point in the original vehicle.")
 		else:
-			_freight.cancel()
+			_cancel_freight()
 			_notify("Freight cancelled. Return to the pickup.")
 		return
 	if Wanted.stars(heat)>0:
 		_notify("Freight / clear police attention first.")
 		return
 	if _freight.begin(progression.freight_runs,at,id,condition,speed):
+		_attach_freight_case()
 		var drop:Vector2=_freight.route["drop"]
 		set_navigation_waypoint(drop)
 		_notify("FREIGHT / %s • loaded. Deliver in this vehicle."%_freight.route["name"])
 	else:
 		_notify("Freight / stop a roadworthy vehicle at the loading point.")
 
+func _attach_freight_case()->void:
+	_remove_freight_case()
+	_freight_case=CargoCase.new()
+	_freight_case.name="SecuredFreightCase"
+	_freight_case.position=Vector3(.46,.52,.69)
+	_freight_case.configure(_freight.route["name"])
+	current_car.add_child(_freight_case)
+
+func _remove_freight_case()->void:
+	if is_instance_valid(_freight_case):
+		_freight_case.hide()
+		_freight_case.queue_free()
+	_freight_case=null
+
+func _cancel_freight()->void:
+	_freight.cancel()
+	_remove_freight_case()
+
 func _update_freight(delta:float)->void:
 	if not _freight.active:
 		return
 	if not is_instance_valid(current_car) or Wanted.stars(heat)>0:
-		_freight.cancel()
+		_cancel_freight()
 		_notify("Freight lost / retry at pickup.")
 		return
 	var at:=Vector2(current_car.global_position.x,current_car.global_position.z)
 	if not _freight.tick(at,current_car.get_instance_id(),float(current_car.get("condition")),delta):
+		_remove_freight_case()
 		_notify("Freight lost / retry at pickup.")
 
 func _actor() -> Node3D:
@@ -1792,6 +1817,7 @@ func _toggle_car() -> void:
 		else:
 			world_audio.call("play_event", "DOOR", current_car.global_position)
 		frame_time_recorder.mark_vehicle_stage(exit_trace,"door_audio")
+		_cancel_freight()
 		current_car.set("occupied", false)
 		current_car = null
 		_cinder_cockpit = false
@@ -2191,7 +2217,7 @@ func _reset_pursuit_runtime() -> void:
 	police_cooldown = 0.0
 
 func _respawn() -> void:
-	_freight.cancel()
+	_cancel_freight()
 	_driving_trial.stop("ABANDONED")
 	_cancel_street_interactions()
 	_log_playtest("respawn", {"health": health, "reason": "fall_or_boundary_or_damage"})
@@ -2641,7 +2667,7 @@ func _capture_snapshot() -> Dictionary:
 	return state
 
 func _apply_snapshot(data: Dictionary) -> void:
-	_freight.cancel()
+	_cancel_freight()
 	_driving_trial.stop("ABANDONED")
 	_close_arcade()
 	_cancel_street_interactions()
