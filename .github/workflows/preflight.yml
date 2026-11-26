@@ -29,6 +29,10 @@ jobs:
           python tools/wardrobe/release.py check-checkout
       - name: Check files and resource references
         run: python tools/check_project.py
+      - name: Verify tracked documentation art containers
+        run: |
+          python tools/check_doc_art.py --self-test
+          python tools/check_doc_art.py
       - name: Verify the twenty creator-owned NightGrid FM track hashes
         run: python tools/prepare_nightgrid_fm.py
       - name: Verify the CC0 Morrow Bay field recordings and footfall bank
