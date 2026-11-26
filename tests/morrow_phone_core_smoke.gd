@@ -197,9 +197,34 @@ func _verify() -> void:
 	# Use the same ledger operations as the physical music venues.
 	var instruments = preload("res://scripts/instrument_catalog.gd")
 	ledger.call("set_balance",1000)
+	# Earn the contact threshold using real receipt keys, then verify the
+	# destination changes with the active contract, not merely its label.
+	for favor in ["street:compatibility_patch","venue:midnight_thermos","venue:dead_frequency","venue:glass_invoice","venue:last_shift_recipe"]:
+		if not ledger.call("credit_once",favor,1):
+			_fail("demo contact reputation fixture")
+			return
+	if not _verify_music_route(world,menu,ledger,"phone_route_music_contact","static_room"):
+		return
+	world.set("venue_job_active","soundcheck_pass")
+	if not _verify_music_route(world,menu,ledger,"phone_route_music_contact","blue_hour"):
+		return
+	world.set("venue_job_active","")
 	if not ledger.call("buy_instrument",instruments.STARTER) or not ledger.call("credit_once","venue:soundcheck_pass",125):
 		_fail("music career fixture")
 		return
+	# A paid demo cannot expose or execute an obsolete contact route.
+	menu.call("open_pause")
+	menu.call("_choice","phone")
+	menu.call("_choice","phone_app_music")
+	var paid_snapshot:Dictionary=ledger.call("snapshot")
+	if (menu.call("get_buttons") as Dictionary).has("phone_route_music_contact"):
+		_fail("completed demo contact still offered")
+		return
+	world.call("_on_menu_action","phone_route_music_contact")
+	if not paused or menu.get("screen")!="phone" or world.get("navigation_waypoint")!=null or ledger.call("snapshot")!=paid_snapshot:
+		_fail("completed contact must reject forged route without side effects")
+		return
+	menu.call("hide_for_game")
 	for practice in range(1,instruments.OWNED_SET_PRACTICE+1):
 		if not ledger.call("complete_sampler_practice",practice):
 			_fail("music practice fixture")
