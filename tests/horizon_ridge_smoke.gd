@@ -47,6 +47,26 @@ func _verify() -> void:
 	if not is_equal_approx(float(edge.call("ridge_height", 346.0)), float(edge.call("ridge_height", 352.0))):
 		_fail("Upper landing must be level")
 		return
+	# Confirm that the curved center and both edges hit the road itself.
+	for x in [260.0, 289.5, 309.5, 333.5, 348.5]:
+		var alignment: Vector2 = edge.call("ridge_alignment",x)
+		var height := float(edge.call("ridge_height",x))
+		for z in [alignment.x,alignment.x-alignment.y+0.5,alignment.x+alignment.y-0.5]:
+			var query := PhysicsRayQueryParameters3D.create(Vector3(x,height+2.0,z),Vector3(x,height-2.0,z),1)
+			var hit := space.intersect_ray(query)
+			if hit.is_empty() or (hit["collider"] as Node).name != "Ridge_CentralAccess_Floor":
+				_fail("Curved road width/collision mismatch")
+				return
+	var bend: Vector2 = edge.call("ridge_alignment",289.5)
+	if not is_equal_approx(bend.x,-9.0):
+		_fail("Curved road alignment missing")
+		return
+	if float(stats["ridge_summit_length_m"]) != 20.0 or float(stats["ridge_max_road_width_m"]) != 30.0:
+		_fail("Summit turning space missing")
+		return
+	if edge.get_node_or_null("Ridge_LaneMarkings") == null:
+		_fail("Missing road center markings")
+		return
 	for pair in [
 		[Vector3(348, 8, 0), Vector3(360, 8, 0)],
 		[Vector3(300, 5, 49), Vector3(300, 5, 59)],
