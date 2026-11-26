@@ -27,3 +27,16 @@ The review index is not a publication manifest. Commit-ready export remains a fu
 ## Material candidate library
 
 The factory now uses the existing mesh Python environment (NumPy and Pillow) to generate seven PNG maps per completed material reference. 24 explicit artistic profiles; crossfade tiling, reconstructed color, luminance-derived height/normal, estimated roughness, profile metallic, neutral AO packed in ORM and a separate review-only cavity estimate. Output `Visual/Materials/material-001/<candidate>/<signature>` with hash-bound manifest. No additional model, paid service or GPU allocation. These are estimated material candidates, not measured PBR, and require tile, physical scale, de-lighting, mask and native shading review. Smoke limits both mesh and material processing to one new candidate; full material target 48 sets (336 maps).
+
+## Reviewed handoff (implemented, validation pending)
+
+After reviewing exact candidate versions, an operator creates an approval JSON:
+- schema: 1, assets: nonempty array.
+- Each row: kind (prop/material), candidate, signature, manifest_sha256 (from review index), reviewer, rights_notes, review.
+- Review is an object whose keys exactly match the gate names in handoff.py. Each value is {"passed": true, "evidence": "actual review reference, screenshot/frametime/import record or rights decision"}. Prop gates: visual, scale_orientation, materials, rights, godot_import, native_performance, collision. Material gates: visual, physical_scale, tile_seams, maps, rights, native_shading, native_performance. These are operator attestations, not verified external evidence. Never create them automatically. Prop height must be explicitly specified during refinement. Include collision only with include_collision: true, if suitable.
+
+Run in the mounted WSL session using the existing mesh Python environment:
+
+    /root/.local/share/nightgrid-visual-py311/mesh/bin/python tools/asset_refinement/handoff.py --raw /mnt/z/NightGrid-Afterhours/Visual/visual-001 --refined /mnt/z/NightGrid-Afterhours/Visual/refined-001 --materials /mnt/z/NightGrid-Afterhours/Visual/Materials/material-001 --output /mnt/z/NightGrid-Afterhours/Visual/CommitReady --approval /path/to/approved.json
+
+The tool refuses missing gates, changed manifest/source/output hashes, unscaled props and smoke-resolution outputs. It creates a new hash-addressed bundle with repo-tree/assets/art/approved/anubis/<candidate>, runtime payload and source provenance, approval and bundle hashes. No automatic copy into checkout or commit. Default max 20 MiB per file, 100 MiB per bundle. This path is proposed for new approved assets and still requires scene integration and Git diff review. Final publication remains manual; the factory's full command cannot bypass approvals.
