@@ -6,6 +6,27 @@ const BED_TINT = Color("7d8982")
 const TIMBER = Color("a08468")
 const STEEL = Color("414f52")
 const PATH = Color("aaa398")
+const RECEIPT = "civic:horizon_garden_trail"
+const REWARD = 25
+const STOPS = [
+	{"point":Vector3(-9.0,0.15,-9.0),"name":"Rain garden","text":"Rainwater feeds the beds instead of flooding the street."},
+	{"point":Vector3(-9.0,0.15,5.0),"name":"Pollinator patch","text":"The cooperative grows flowers for the rooftop beekeepers."},
+	{"point":Vector3(9.0,0.15,-9.0),"name":"Medicinal herbs","text":"Horizon Health teaches residents how to tend these plants."},
+	{"point":Vector3(9.0,0.15,5.0),"name":"Community seed bank","text":"Take seeds, leave seeds. No subscription required."}
+]
+
+func trail_stop(at:Vector3)->int:
+	if not at.is_finite():
+		return -1
+	var local:=to_local(at)
+	if local.y<-.2 or local.y>1.8:
+		return -1
+	for i in range(STOPS.size()):
+		var point:Vector3=STOPS[i]["point"]
+		if Vector2(local.x-point.x,local.z-point.z).length()<=1.35:
+			return i
+	return -1
+
 
 func _ready() -> void:
 	# Four planted beds beside the north/south approach. Existing large
@@ -40,6 +61,24 @@ func _ready() -> void:
 			_box(drain,"Frame",Vector3.ZERO,Vector3(.55,.035,.80),STEEL,"METAL")
 			for n in range(7):
 				_box(drain,"GrateBar",Vector3(0,.025,-.33+n*.11),Vector3(.46,.025,.035),BED_TINT,"METAL")
+	# Four physical interpretive panels on the inner faces of the beds.
+	for i in range(STOPS.size()):
+		var stop:Dictionary=STOPS[i]
+		var point:Vector3=stop["point"]
+		var panel:=Node3D.new()
+		panel.name="GardenTrailPanel_%d"%i
+		panel.position=point+Vector3(signf(point.x)*.68,.90,0)
+		panel.rotation.y=-signf(point.x)*PI/2.0
+		add_child(panel)
+		_box(panel,"Panel",Vector3.ZERO,Vector3(1.12,.48,.08),STEEL,"METAL")
+		var label:=Label3D.new()
+		label.text="%02d / %s\nGARDEN TRAIL"%[i+1,str(stop["name"]).to_upper()]
+		label.font_size=21
+		label.pixel_size=.0045
+		label.position.z=.05
+		label.modulate=Color("d9efe3")
+		label.double_sided=false
+		panel.add_child(label)
 	# Wayfinding is mounted to actual panels on the approach shoulders.
 	for side in [-1,1]:
 		var sign := Node3D.new()

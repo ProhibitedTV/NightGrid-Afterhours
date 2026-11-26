@@ -23,6 +23,9 @@ const DrivingTrial = preload("res://scripts/driving_trial.gd")
 var _driving_trial := DrivingTrial.new()
 var _trial_beacon: Node3D
 var _trial_beacon_label: Label3D
+var _trial_ghost: Node3D
+const HorizonTrail=preload("res://scripts/horizon_commons_garden.gd")
+var _garden_trail_mask:=0
 const RoadRestrictions = preload("res://scripts/road_restrictions.gd")
 const FreightJob = preload("res://scripts/freight_job.gd")
 var _freight := FreightJob.new()
@@ -1474,6 +1477,7 @@ func _physics_process(delta: float) -> void:
 		_respawn()
 	_update_driving_trial(delta)
 	_sync_trial_beacon()
+	_sync_trial_ghost()
 	_update_wanted(delta)
 	_update_ambient_civic(delta)
 	_update_civic_patrols(delta)
@@ -1499,7 +1503,7 @@ func _toggle_driving_trial()->void:
 		return
 	var at:=Vector2(current_car.global_position.x,current_car.global_position.z)
 	if _driving_trial.start(at,current_car.get_instance_id(),float(current_car.get("condition")),float(current_car.get("speed"))):
-		_notify("%s / %d checkpoints. Obey traffic. First finish $%d."%[DrivingTrial.name_for(_driving_trial.course_id),_driving_trial.gates().size(),_driving_trial.reward()])
+		_notify("%s / %d checkpoints. Ghost pace %.0fs. First finish $%d."%[DrivingTrial.name_for(_driving_trial.course_id),_driving_trial.gates().size(),_driving_trial.pace_time(),_driving_trial.reward()])
 	else:
 		_notify("Driving challenge / stop at the start with a roadworthy car.")
 
@@ -1513,14 +1517,14 @@ func _update_driving_trial(delta:float)->void:
 	var at:=Vector2(current_car.global_position.x,current_car.global_position.z)
 	var outcome:=_driving_trial.tick(delta,at,current_car.get_instance_id(),float(current_car.get("condition")))
 	if outcome=="GATE":
-		_notify("Checkpoint %d / %d"%[_driving_trial.index,_driving_trial.gates().size()])
+		_notify("Checkpoint %d / %d • pace %+.1fs"%[_driving_trial.index,_driving_trial.gates().size(),_driving_trial.pace_split()])
 	elif outcome=="COMPLETE":
 		var course:=_driving_trial.course_id
 		var record:=progression.record_circuit_time(_driving_trial.elapsed,course)
 		var paid:=progression.credit_once(_driving_trial.receipt(),_driving_trial.reward())
 		var best:=progression.brickwater_best_ms if course==DrivingTrial.BRICK else progression.circuit_best_ms
-		_notify("%s / %.2fs%s%s"%[DrivingTrial.name_for(course),_driving_trial.elapsed," / PERSONAL BEST" if record else ""," +$%d"%_driving_trial.reward() if paid else " / practice finish"])
-		_log_playtest("driving_trial_finish",{"course":course,"seconds":_driving_trial.elapsed,"paid":paid,"personal_best":record,"best_ms":best})
+		_notify("%s / %.2fs%s%s%s"%[DrivingTrial.name_for(course),_driving_trial.elapsed," / PERSONAL BEST" if record else ""," / PACE BEATEN" if _driving_trial.elapsed<_driving_trial.pace_time() else ""," +$%d"%_driving_trial.reward() if paid else " / practice finish"])
+		_log_playtest("driving_trial_finish",{"course":course,"seconds":_driving_trial.elapsed,"paid":paid,"personal_best":record,"best_ms":best,"pace_beaten":_driving_trial.elapsed<_driving_trial.pace_time()})
 	elif not outcome.is_empty():
 		_notify(DrivingTrial.name_for(_driving_trial.course_id)+" / "+outcome)
 
@@ -2218,6 +2222,7 @@ func _reset_pursuit_runtime() -> void:
 
 func _respawn() -> void:
 	_cancel_freight()
+	_garden_trail_mask=0
 	_driving_trial.stop("ABANDONED")
 	_cancel_street_interactions()
 	_log_playtest("respawn", {"health": health, "reason": "fall_or_boundary_or_damage"})
@@ -2668,6 +2673,7 @@ func _capture_snapshot() -> Dictionary:
 
 func _apply_snapshot(data: Dictionary) -> void:
 	_cancel_freight()
+	_garden_trail_mask=0
 	_driving_trial.stop("ABANDONED")
 	_close_arcade()
 	_cancel_street_interactions()
@@ -3051,6 +3057,8 @@ func _toggle_interaction() -> void:
 	if current_car != null or current_transit != null:
 		_notify("Get out of the vehicle before interacting with neighborhood businesses.")
 		return
+	if _garden_trail_interact():
+		return
 	if _try_parking_guard():
 		return
 	if _synaxis_access_notice():
@@ -3177,6 +3185,32 @@ func _toggle_interaction() -> void:
 			_toggle_civic()
 			return
 	_toggle_venue()
+
+func _garden_trail_interact()->bool:
+	if current_car!=null or current_transit!=null or interiors.call("is_inside"):
+		return false
+	var stop:int=city_details.call("horizon_trail_stop",player.global_position)
+	if stop<0:
+		return false
+	if heat>0.01 or weapons.equipped!="holstered":
+		_notify("Horizon Commons / holster equipment and clear police attention.")
+		return true
+	var entry:Dictionary=HorizonTrail.STOPS[stop]
+	var note:="%s / %s"%[entry["name"],entry["text"]]
+	if progression.has_receipt(HorizonTrail.RECEIPT):
+		_notify(note)
+		return true
+	_garden_trail_mask |= 1 << stop
+	var count:=0
+	for i in range(HorizonTrail.STOPS.size()):
+		if _garden_trail_mask & (1 << i):
+			count+=1
+	if count==HorizonTrail.STOPS.size() and progression.credit_once(HorizonTrail.RECEIPT,HorizonTrail.REWARD):
+		_notify("HORIZON GARDEN TRAIL COMPLETE / +$25 • +10 STREET CRED")
+		_log_playtest("garden_trail_complete",{"stops":count})
+	else:
+		_notify("%s (%d/4)"%[note,count])
+	return true
 
 func _toggle_civic() -> void:
 	if current_car != null or current_transit != null:
@@ -4580,6 +4614,46 @@ func _sync_trial_beacon()->void:
 		_trial_beacon_label.text=title
 	_trial_beacon.visible=is_instance_valid(player) and not is_instance_valid(_opening_office) and not interiors.call("is_inside") and _actor().global_position.distance_squared_to(at)<120.0*120.0
 
+func _create_trial_ghost()->void:
+	# Use the existing authored Cinder coachwork in its static display mode.
+	# No collision, drivetrain, lights, sound or autonomous simulation.
+	_trial_ghost=Node3D.new()
+	_trial_ghost.name="CircuitPaceGhost"
+	var visual:=RoadCarVisual.new()
+	visual.configure_founder_display()
+	_trial_ghost.add_child(visual)
+	add_child(_trial_ghost)
+	var material:=StandardMaterial3D.new()
+	material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.albedo_color=Color(.27,.83,1.0,.24)
+	for node in visual.find_children("*","MeshInstance3D",true,false):
+		var mesh:=node as MeshInstance3D
+		mesh.material_override=material
+		mesh.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var label:=Label3D.new()
+	label.text="PACE GHOST"
+	label.position.y=2.0
+	label.billboard=BaseMaterial3D.BILLBOARD_ENABLED
+	label.font_size=28
+	label.pixel_size=.009
+	label.modulate=Color("91eaff")
+	_trial_ghost.add_child(label)
+
+func _sync_trial_ghost()->void:
+	if not _driving_trial.active or _driving_trial.elapsed>=_driving_trial.pace_time():
+		if is_instance_valid(_trial_ghost):
+			_trial_ghost.hide()
+		return
+	if not is_instance_valid(_trial_ghost):
+		_create_trial_ghost()
+	var pose:=_driving_trial.pace_pose(_driving_trial.elapsed)
+	var at:Vector2=pose["position"]
+	var forward:Vector2=pose["heading"]
+	_trial_ghost.position=Vector3(at.x,.825,at.y)
+	_trial_ghost.rotation.y=atan2(-forward.x,-forward.y)
+	_trial_ghost.visible=_actor().global_position.distance_squared_to(_trial_ghost.global_position)<100.0*100.0
+
 func _build_hud() -> void:
 	var ui := CanvasLayer.new()
 	ui.name = "HUD"
@@ -4955,6 +5029,9 @@ func _update_hud() -> void:
 			if not local_regular.is_empty():
 				prompts.append("%s  Chat with %s" % [interact_key, str(local_regular["name"])])
 	else:
+		var trail_stop:int=city_details.call("horizon_trail_stop",player.global_position)
+		if trail_stop>=0:
+			prompts.append("%s Read garden trail / %s"%[interact_key,HorizonTrail.STOPS[trail_stop]["name"]])
 		var garage: Node3D = city_details.call("starter_garage",player.global_position)
 		if is_instance_valid(garage) and garage.call("desk_reachable",player.global_position):
 			prompts.append("%s  LANTERN GARAGE / RECOVERY" % interact_key)
