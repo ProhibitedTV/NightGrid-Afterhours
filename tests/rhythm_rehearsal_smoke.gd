@@ -255,5 +255,15 @@ func _initialize()->void:
 	if SceneRep.scores(scene_wallet)!=derived:
 		quit(1)
 		return
+	var preview_builder=preload("res://scripts/music_set_preview.gd")
+	for trio in [false,true]:
+		var frame := preview_builder.build(trio)
+		var view := frame.get_node("EquipmentViewport") as SubViewport
+		if not view.own_world_3d or view.render_target_update_mode!=SubViewport.UPDATE_ONCE or frame.mouse_filter!=Control.MOUSE_FILTER_IGNORE or not view.has_node("Sampler") or view.has_node("punk_bass")!=trio or view.has_node("portable_synth")!=trio:
+			frame.free()
+			push_error("Music equipment preview isolation and roster")
+			quit(1)
+			return
+		frame.free()
 	print("RHYTHM_REHEARSAL PASS: timing, cancellation, once-only claims, sequence and atomic payout")
 	quit(0)

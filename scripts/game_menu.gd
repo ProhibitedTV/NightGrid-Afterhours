@@ -11,6 +11,7 @@ var _rhythm_focus_set:=false
 var _music_desk:Dictionary={}
 const Instruments=preload("res://scripts/instrument_catalog.gd")
 const PocketBeat=preload("res://assets/instruments/pocketbeat_m3.glb")
+const MusicSetPreview=preload("res://scripts/music_set_preview.gd")
 var _rhythm_status:Label
 var _rhythm_meter:ProgressBar
 var _rhythm_claim:Button
@@ -1247,6 +1248,10 @@ func _open_music_set(sequence:int,source:String)->void:
 	_start_music_intro()
 
 func _stop_music_set_audio()->void:
+	var preview := _root.find_child("MusicSetPreview",true,false) if is_instance_valid(_root) else null
+	if is_instance_valid(preview):
+		preview.get_parent().remove_child(preview)
+		preview.queue_free()
 	_rhythm_player.stop()
 	_rhythm_intro.stop()
 
@@ -1294,6 +1299,7 @@ func _render_rhythm(col:VBoxContainer)->void:
 	var showcase:bool=_rhythm.mode=="band_showcase"
 	_title(col,"STATIC ROOM / SHOWCASE" if showcase else "BLUE HOUR / TRIO ENCORE" if encore else "BLUE HOUR / TRIO DEBUT" if debut else "UNSIGNED TRIO / REHEARSAL" if band else "POCKETBEAT M3 / PERSONAL SET" if owned else ("POCKETBEAT M3 / PRACTICE" if practice else ("STREET SAMPLER / BUSKING" if street else "BLUE HOUR / OPENING SET")),24,Ui.AMBER)
 	_label(col,("Headline the underground showcase. Keep the trio in sync." if showcase else "Back by demand. Play a different arrangement." if encore else "First paid trio booking. Keep the rhythm tight through the whole set." if debut else "Keep the trio in time. Rhea counts in, Milo follows. No cash or cred for rehearsal." if band else "Play your own sampler for the neighborhood." if owned else ("Practice your own sampler. No cash or reputation reward." if practice else ("Borrow the neighborhood loaner sampler." if street else "Borrow Rae's three-pad sampler.")))+" Hit the indicated pad in the timing window. %d of %d required."%[_rhythm.required_hits,_rhythm.pattern.size()],16,Ui.TEXT)
+	col.add_child(MusicSetPreview.build(band or debut or encore or showcase))
 	_label(col,"1 / A: kick   2 / X: clap   3 / Y: hat",16,Ui.MUTED)
 	_rhythm_status=Label.new()
 	_rhythm_status.add_theme_font_size_override("font_size",22)
