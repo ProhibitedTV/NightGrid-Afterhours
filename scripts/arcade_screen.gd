@@ -471,6 +471,13 @@ func _reset_deluxe_controls() -> void:
 	if is_instance_valid(deluxe_cabinet):
 		deluxe_cabinet.call("set_deluxe_controls",1.0,0.0)
 
+## Called synchronously by the world before deferred modal deletion.
+func abort_session() -> void:
+	_show_selection()
+	set_process_input(false)
+	set_process_unhandled_input(false)
+	set_process_unhandled_key_input(false)
+
 func _exit_tree() -> void:
 	_reset_deluxe_controls()
 
