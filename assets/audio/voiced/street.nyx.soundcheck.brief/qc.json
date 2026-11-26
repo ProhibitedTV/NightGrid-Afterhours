@@ -1,0 +1,31 @@
+{
+  "schema": 2,
+  "wav_sha256": "c3291d2c260a0f4f8c290f8f9be0837b7ec57302bef76a02cc1de8a51a6243c8",
+  "take_sha256": "d003dd51d3f70ffef27c6aa44312c0132a71f8e6412d8af4ab32db28b7e196da",
+  "line_sha256": "b46decace330eef15f348355380e5e8cf50055e89078aec6cdd56bc973eedd13",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "People around here say you keep your word. Take this demo to Ray at Blue Hour. No algorithms, no auditions by committee. Just let someone hear it.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 27,
+    "observed_units": 27,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 8.32,
+      "leading_quiet_seconds": 0.34,
+      "trailing_quiet_seconds": 0.04,
+      "quiet_fraction": 0.127,
+      "peak": 17217,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}

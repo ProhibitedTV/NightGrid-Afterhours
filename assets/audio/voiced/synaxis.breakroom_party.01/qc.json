@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "33f662a7b20da8054cd52b69c6e44c120feea2a79ed619e1d127000dd879da14",
+  "take_sha256": "548cef63811971590d2f9bf930b27b0c8975169a6221ac321cdf468ce031c4e2",
+  "line_sha256": "234614afd5c216c648d88215684a41bc968485de5851d032a01a2b436b96ffa2",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "Happy Global Talent Appreciation Day! Our H-1B sponsorship team has approved a cultural celebration.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 15,
+    "observed_units": 15,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 7.2,
+      "leading_quiet_seconds": 0.22,
+      "trailing_quiet_seconds": 0.12,
+      "quiet_fraction": 0.156,
+      "peak": 18867,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}

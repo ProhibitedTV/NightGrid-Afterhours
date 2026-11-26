@@ -1,0 +1,39 @@
+{
+  "spec": {
+    "id": "step_gravel_2",
+    "duration": 2,
+    "loop": false,
+    "seed": 4127,
+    "prompt": "Single isolated adult shoe footstep on loose gravel, one short natural heel-to-toe contact and decay, close foley, no walking sequence, no speech or music"
+  },
+  "model": "small-sfx",
+  "weights": "https://huggingface.co/stabilityai/stable-audio-3-small-sfx",
+  "license": "https://stability.ai/license",
+  "device": "cuda",
+  "sha256": "38779e506a85b4ea79dafb58dca0887afa54b5a97cd94466bbf423214c8f3c38",
+  "reviewed": false,
+  "machine_qc_passed": true,
+  "provenance": {
+    "repo": "stabilityai/stable-audio-3-small-sfx",
+    "revision": "05ca3857881c94a2b84026b1111c537d78f5f9f0",
+    "upstream": "4007b6f2987bcb760626c2b4ae3e3541753984e9",
+    "device": "cuda",
+    "steps": 8,
+    "cfg_scale": 1.0,
+    "auxiliary_encoder": "upstream-managed; not independently pinned",
+    "packages": {
+      "stable-audio-3": "0.1.0",
+      "torch": "2.7.1+cu126",
+      "torchaudio": "2.7.1+cu126",
+      "transformers": "5.8.0"
+    }
+  },
+  "metrics": {
+    "seconds": 2.0,
+    "peak": 23197,
+    "rms": 1017.651
+  },
+  "playtest_accepted": true,
+  "rights_checked": true,
+  "review_note": "Machine QC only; human listening pending"
+}

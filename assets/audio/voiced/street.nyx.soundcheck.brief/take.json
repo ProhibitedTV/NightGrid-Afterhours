@@ -1,0 +1,95 @@
+{
+  "spec": {
+    "line": {
+      "id": "street.nyx.soundcheck.brief",
+      "character": "nyx",
+      "text": "People around here say you keep your word. Take this demo to Rae at Blue Hour. No algorithms, no auditions by committee. Just let someone hear it.",
+      "language": "English",
+      "direction": "Casual direct address to a trusted local; understated, sincere.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "nyx",
+        "venue_job": "soundcheck_pass",
+        "beat": "brief"
+      }
+    },
+    "voice": {
+      "direction": "Original adult nightlife promoter, low-key, independent music enthusiast, no celebrity likeness."
+    }
+  },
+  "settings": {
+    "model": "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+    "revision": "fd4b254389122332181a7c3db7f27e918eec64e3",
+    "seed": 312,
+    "device": "cuda",
+    "dtype": "bfloat16",
+    "packages": {
+      "qwen-tts": "0.1.1",
+      "torch": "2.11.0+cu128",
+      "soundfile": "0.14.0",
+      "transformers": "4.57.3"
+    },
+    "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers",
+    "cast_sha256": "c07a1f10535d36a0bf81fd4b4e02f980072957a2b084b27c81bdf259a2b49913"
+  },
+  "cast": {
+    "schema": 1,
+    "character": "nyx",
+    "transcript": "People around here say you keep your word. Take this demo to Rae at Blue Hour. No algorithms, no auditions by committee. Just let someone hear it.",
+    "audition": {
+      "spec": {
+        "line": {
+          "id": "street.nyx.soundcheck.brief",
+          "character": "nyx",
+          "text": "People around here say you keep your word. Take this demo to Rae at Blue Hour. No algorithms, no auditions by committee. Just let someone hear it.",
+          "language": "English",
+          "direction": "Casual direct address to a trusted local; understated, sincere.",
+          "source": {
+            "catalog": "street_satire",
+            "character": "nyx",
+            "venue_job": "soundcheck_pass",
+            "beat": "brief"
+          }
+        },
+        "voice": {
+          "direction": "Original adult nightlife promoter, low-key, independent music enthusiast, no celebrity likeness."
+        }
+      },
+      "settings": {
+        "model": "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+        "revision": "5ecdb67327fd37bb2e042aab12ff7391903235d3",
+        "seed": 309,
+        "device": "cuda",
+        "dtype": "bfloat16",
+        "reference": "original synthetic voice design",
+        "packages": {
+          "qwen-tts": "0.1.1",
+          "torch": "2.11.0+cu128",
+          "soundfile": "0.14.0",
+          "transformers": "4.57.3"
+        },
+        "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers"
+      },
+      "sha256": "ee5cdf64a565a8bc8ea4e86f0c2627cc5bd9d22dd695590691bf71c49398ffcb",
+      "stats": {
+        "frames": 430080,
+        "peak": 18052,
+        "rms": 2602.78
+      }
+    },
+    "review": {
+      "take_sha256": "ee5cdf64a565a8bc8ea4e86f0c2627cc5bd9d22dd695590691bf71c49398ffcb",
+      "record_sha256": "6e443ee0db50e66d7889fd1ae617a608782934b5b15b54a2905707d08003f39e",
+      "reviewer": "Creative director",
+      "notes": "Automated playtest cast selection; PCM verified. Human listening review pending.",
+      "license_and_reference_checked": true
+    }
+  },
+  "fingerprint": "34a6a68fa5a1b391abedf31d875a1391484ca32287bcab103f5c5e305b8a6ef3",
+  "sha256": "c3291d2c260a0f4f8c290f8f9be0837b7ec57302bef76a02cc1de8a51a6243c8",
+  "stats": {
+    "frames": 399360,
+    "peak": 17217,
+    "rms": 2602.77
+  }
+}

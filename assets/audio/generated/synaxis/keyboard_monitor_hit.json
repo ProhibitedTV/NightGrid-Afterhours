@@ -1,0 +1,39 @@
+{
+  "spec": {
+    "id": "keyboard_monitor_hit",
+    "duration": 3,
+    "loop": false,
+    "seed": 4014,
+    "prompt": "One sharp plastic computer keyboard striking a desktop computer monitor, brief plastic rattle and clunk, isolated close recorded foley, quiet background, no voices or music"
+  },
+  "model": "small-sfx",
+  "weights": "https://huggingface.co/stabilityai/stable-audio-3-small-sfx",
+  "license": "https://stability.ai/license",
+  "device": "cuda",
+  "sha256": "c0a8ed5c0496a4fcb4b2dd9aae70cc55d45c32f55e6d05bbb1556ed79293544f",
+  "reviewed": false,
+  "machine_qc_passed": true,
+  "provenance": {
+    "repo": "stabilityai/stable-audio-3-small-sfx",
+    "revision": "05ca3857881c94a2b84026b1111c537d78f5f9f0",
+    "upstream": "4007b6f2987bcb760626c2b4ae3e3541753984e9",
+    "device": "cuda",
+    "steps": 8,
+    "cfg_scale": 1.0,
+    "auxiliary_encoder": "upstream-managed; not independently pinned",
+    "packages": {
+      "stable-audio-3": "0.1.0",
+      "torch": "2.7.1+cu126",
+      "torchaudio": "2.7.1+cu126",
+      "transformers": "5.8.0"
+    }
+  },
+  "metrics": {
+    "seconds": 3.0,
+    "peak": 23197,
+    "rms": 429.273
+  },
+  "playtest_accepted": true,
+  "rights_checked": true,
+  "review_note": "Machine QC only; human listening pending"
+}

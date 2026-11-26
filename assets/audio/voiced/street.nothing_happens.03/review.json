@@ -1,0 +1,9 @@
+{
+  "take_sha256": "3301e515bb6ad9f237b6a43807db7d283711440714c13c7698030fd77b7313fa",
+  "record_sha256": "3f59ec3663fb951f7343b5a4cb4bba980cadb6e7e84d16cf529ee8e655e3faf5",
+  "reviewer": "Anubis automated playtest QC",
+  "notes": "Verified cached ASR and PCM under versioned QC; human listening review pending.",
+  "qc_sha256": "3f041b6bbebbfc781e78c3d7577efcfde5bfbdcde2b9e2fc0b351f0a1df96192",
+  "qc_override": "",
+  "license_and_reference_checked": true
+}
