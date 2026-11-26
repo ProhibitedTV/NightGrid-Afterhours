@@ -1151,6 +1151,35 @@ func _verify() -> void:
 		_fail("Physical handoff removes bag and pays actual order exactly once")
 		return
 	menu.call("hide_for_game")
+	menu.call("open_sampler_practice",1)
+	var rehearsal=menu.get("_rhythm")
+	var feedback:Label=menu.get("_rhythm_status")
+	if not feedback.text.contains("GET READY") or not feedback.text.contains("0 / 6 needed"):
+		_fail("Rhythm HUD must show ready state and pass target")
+		return
+	rehearsal.advance(rehearsal.target_time()-rehearsal.elapsed)
+	rehearsal.strike((int(rehearsal.pattern[rehearsal.index])+1)%3)
+	menu.call("_refresh_rhythm")
+	if not feedback.text.contains("WRONG PAD"):
+		_fail("Incorrect pad feedback missing")
+		return
+	rehearsal.advance(rehearsal.target_time()-rehearsal.elapsed+rehearsal.hit_window+.01)
+	menu.call("_refresh_rhythm")
+	if not feedback.text.contains("MISSED"):
+		_fail("Missed beat feedback missing")
+		return
+	rehearsal.advance(rehearsal.target_time()-rehearsal.elapsed)
+	rehearsal.strike(rehearsal.pattern[rehearsal.index])
+	menu.call("_refresh_rhythm")
+	if not feedback.text.contains("ON BEAT") or not feedback.text.contains("1 / 6 needed"):
+		_fail("Successful hit feedback missing")
+		return
+	rehearsal.advance(60.0)
+	menu.call("_refresh_rhythm")
+	if not feedback.text.contains("TRY ANOTHER SET") or not feedback.text.contains("need 6") or not menu.get("_rhythm_claim").disabled:
+		_fail("Failed set must expose target and keep claim disabled")
+		return
+	menu.call("hide_for_game")
 	print("MENU_GAMEPAD_SMOKE PASS: action_count=", input_spec.ACTIONS.size(),
 		" / settings saved / pause & focus / controller context / title confirmation")
 	quit(0)
