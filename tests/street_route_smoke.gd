@@ -68,6 +68,36 @@ func _verify() -> void:
 		if not is_equal_approx(float(path["road_m"]), float(reverse["road_m"])):
 			_fail("Bidirectional street distances must be symmetric")
 			return
+	var freight:=preload("res://scripts/freight_job.gd").new()
+	var freight_ledger:=preload("res://scripts/progression_ledger.gd").new()
+	for run in range(3):
+		var offer:=freight.offer(run)
+		var pickup:Vector2=offer["pickup"]
+		var drop:Vector2=offer["drop"]
+		if not freight.begin(run,pickup,55,100.0,0.0) or freight.ready_to_deliver(drop,55,100.0,0.0):
+			_fail("Freight load and premature unload guards")
+			return
+		if freight.tick(drop,55,100.0,1.0/60.0) or freight.active:
+			_fail("Freight teleport cancels load")
+			return
+		freight.begin(run,pickup,55,100.0,0.0)
+		var freight_pos:=pickup
+		while freight_pos.distance_to(drop)>.01:
+			freight_pos=freight_pos.move_toward(drop,.2)
+			freight.tick(freight_pos,55,100.0,1.0/60.0)
+		if not freight.ready_to_deliver(drop,55,100.0,0.0) or not freight_ledger.settle_freight(freight.sequence) or freight_ledger.settle_freight(freight.sequence):
+			_fail("Freight exactly-once settlement and original vehicle")
+			return
+		freight.cancel()
+	var freight_save:Dictionary=JSON.parse_string(JSON.stringify(freight_ledger.snapshot()))
+	var freight_restored:=preload("res://scripts/progression_ledger.gd").new()
+	if not freight_restored.restore(230,freight_save) or freight_restored.freight_runs!=3 or freight_ledger.balance!=230 or freight.offer(3)!=freight.offer(0):
+		_fail("Repeatable freight cycle and save")
+		return
+	freight_save["freight_runs"]=-1
+	if freight_restored.restore(0,freight_save) or freight_restored.freight_runs!=3:
+		_fail("Invalid freight save rejected")
+		return
 	var trial := preload("res://scripts/driving_trial.gd").new()
 	if trial.start(Vector2.ZERO,1,100.0,0.0) or trial.start(trial.START,1,100.0,3.0) or not trial.start(trial.START,1,100.0,0.0):
 		_fail("Driving trial start gates")
