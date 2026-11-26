@@ -3424,6 +3424,12 @@ func _civic_service_text(site: Dictionary) -> String:
 func _repair_storefront() -> BrickwaterRepair:
 	return city_details.call("repair_storefront") as BrickwaterRepair
 
+func _garage_vehicle(id: String) -> CharacterBody3D:
+	for candidate in cars:
+		if is_instance_valid(candidate) and str(candidate.get_meta("vehicle_id","")) == id:
+			return candidate
+	return null
+
 func _recover_garage_vehicle(garage: Node3D,index: int) -> void:
 	# Explicit recovery service only. Never spawn another vehicle or move an
 	# occupied one; test clearance before changing money or ownership.
@@ -3435,12 +3441,8 @@ func _recover_garage_vehicle(garage: Node3D,index: int) -> void:
 	if heat > 0.01:
 		_notify("Lose police attention before requesting recovery.")
 		return
-	var car: CharacterBody3D
-	for candidate in cars:
-		if str(candidate.get_meta("vehicle_id","")) == id:
-			car = candidate
-			break
-	if not is_instance_valid(car) or car.get("occupied") or absf(float(car.get("speed"))) > .5:
+	var car := _garage_vehicle(id)
+	if not is_instance_valid(car) or car.get("occupied") or not is_finite(float(car.get("speed"))) or absf(float(car.get("speed"))) > .5:
 		_notify("Vehicle unavailable for recovery.")
 		return
 	if garage.call("parked_at",car.global_position,index):
@@ -4196,12 +4198,27 @@ func _update_venue_panel() -> void:
 	if _garage_panel:
 		venue_label.text = "LANTERN GARAGE / RECOVERY\nDrive into either marked bay and leave your car there. Recovery $75; damage retained."
 		var buttons := [venue_service_button,venue_job_button]
+		var garage: Node3D = city_details.call("starter_garage",player.global_position)
 		for i in range(2):
 			var id: String = StarterGarage.IDS[i]
 			var owned := progression.owns_vehicle(id)
 			buttons[i].show()
-			buttons[i].text = "%d / %s  •  %s" % [i+1,"A" if i==0 else "X",("RECOVER " + str(RoadCars.TITLES[id]["name"])) if owned else ("BUY KESTREL TITLE $%d" % RoadCars.title_price(id) if i==0 else "CINDER TITLE REQUIRED")]
-			buttons[i].disabled = (not owned and (i!=0 or cash<RoadCars.title_price(id))) or (owned and cash<StarterGarage.RECOVERY_FEE)
+			var label := "BUY KESTREL TITLE $%d" % RoadCars.title_price(id) if i==0 else "CINDER TITLE REQUIRED"
+			var disabled := i!=0 or cash<RoadCars.title_price(id)
+			if owned:
+				var car := _garage_vehicle(id)
+				var name := str(RoadCars.TITLES[id]["name"])
+				if not is_instance_valid(car) or car.get("occupied") or not is_finite(float(car.get("speed"))) or absf(float(car.get("speed")))>.5:
+					label = name+" / UNAVAILABLE"
+					disabled = true
+				elif is_instance_valid(garage) and garage.call("parked_at",car.global_position,i):
+					label = name+" / PARKED • NO FEE"
+					disabled = true
+				else:
+					label = "RECOVER "+name+" $%d"%StarterGarage.RECOVERY_FEE
+					disabled = cash<StarterGarage.RECOVERY_FEE or heat>.01
+			buttons[i].text = "%d / %s  •  %s" % [i+1,"A" if i==0 else "X",label]
+			buttons[i].disabled = disabled
 		venue_talk_button.hide()
 		return
 	if _home_panel:
