@@ -926,17 +926,20 @@ func _phone_route(action: String) -> void:
 	if not phone_available() or game_menu.get("screen") != "phone":
 		return
 	var destination := Vector2.INF
+	var exact_stop := false
 	var app: String = game_menu.get("_phone_app")
 	if action.begins_with("phone_route_contract:") and app == "opportunities":
 		var id := action.trim_prefix("phone_route_contract:")
 		for listing in _phone_workboard():
 			if listing["id"] == id:
 				destination = listing["position"]
+				exact_stop = id == "taxi:current" or id == "freight:current"
 				break
 	match action:
 		"phone_route_circuit", "phone_route_brickwater":
 			if app == "opportunities":
 				destination = DrivingTrial.BRICK_START if action=="phone_route_brickwater" else DrivingTrial.START
+				exact_stop = true
 		"phone_route_order":
 			if app == "work" and courier_mission.gig_economy and courier_mission.mission_active():
 				destination = Vector2(mission_position.x,mission_position.z)
@@ -971,7 +974,7 @@ func _phone_route(action: String) -> void:
 			if app == "transit":
 				destination = _phone_transit()["bus"]
 	if destination.is_finite():
-		set_navigation_waypoint(destination)
+		set_navigation_waypoint(destination,not exact_stop)
 		_sync_trial_beacon()
 		game_menu.call("hide_for_game")
 		_notify("Phone: route set.")
@@ -1598,7 +1601,7 @@ func _freight_interact()->void:
 	if _freight.begin(progression.freight_runs,at,id,condition,speed):
 		_attach_freight_case()
 		var drop:Vector2=_freight.route["drop"]
-		set_navigation_waypoint(drop)
+		set_navigation_waypoint(drop,false)
 		_notify("FREIGHT / %s • loaded. Deliver in this vehicle."%_freight.route["name"])
 	else:
 		_notify("Freight / stop a roadworthy vehicle at the loading point.")
@@ -1675,7 +1678,7 @@ func _taxi_interact()->void:
 			add_child(_taxi_rider)
 		_taxi_rider.call("seat_rider",_taxi.sequence-1,str(_taxi.route["rider"]),current_car)
 		ambient_caption.call("present",str(_taxi.route["rider"]),str(_taxi.route["request"]))
-		set_navigation_waypoint(_taxi.route["drop"])
+		set_navigation_waypoint(_taxi.route["drop"],false)
 		_notify("TAXI / %s • passenger fare started"%_taxi.route["name"])
 	else:
 		_notify("Taxi / stop with vehicle condition of at least 50.")
@@ -5269,11 +5272,17 @@ func _venue_job_target() -> Vector3:
 		return Vector3.ZERO
 	return venue_system.call("venue_position", str(job["to"]))
 
-func set_navigation_waypoint(point: Vector2) -> Vector2:
+func set_navigation_waypoint(point: Vector2, snap_to_pin: bool = true) -> Vector2:
 	if not point.is_finite():
 		return Vector2.ZERO if navigation_waypoint == null else navigation_waypoint
 	_cal_tracking=false
 	point = Nav.clamp_point(point)
+	# Authored road stops must not snap to a nearby sidewalk or entrance.
+	if not snap_to_pin:
+		navigation_waypoint = point
+		_route_cache.clear()
+		_route_revision = -1
+		return point
 	# Prefer exact, persistent interaction positions when clicking near pins.
 	var selected := point
 	var distance := Nav.SNAP_RADIUS
