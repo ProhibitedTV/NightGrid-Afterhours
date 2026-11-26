@@ -42,7 +42,7 @@ mode="${1:-full}"
 if [[ "$mode" == plan || "$mode" == pack || "$mode" == status ]]; then
   exec "$python" tools/visual_studio/batch.py "$@"
 fi
-[[ "$mode" == full || "$mode" == smoke ]] || { echo "Use full, smoke, plan, status or pack"; exit 2; }
+[[ "$mode" == full || "$mode" == smoke || "$mode" == retry ]] || { echo "Use full, smoke, plan, status, pack or retry"; exit 2; }
 command -v python3 >/dev/null
 command -v git >/dev/null
 command -v nvidia-smi >/dev/null || { echo "WSL NVIDIA CUDA driver not visible"; exit 2; }

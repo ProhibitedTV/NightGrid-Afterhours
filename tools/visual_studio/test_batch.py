@@ -1,7 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
-from batch import jobs, verified, digest, write_json, inventory, pack, guard_storage
+from batch import jobs, verified, digest, write_json, inventory, pack, guard_storage, choose_pending, lock_catalog
 from unittest.mock import patch
 import json
 import zipfile
@@ -11,6 +11,34 @@ class BatchTest(unittest.TestCase):
         with patch("batch.os.path.ismount",return_value=False):
             with self.assertRaisesRegex(RuntimeError,"not mounted"):
                 guard_storage(Path("/mnt/z/NightGrid-Afterhours/Visual/visual-001"))
+
+    def test_targeted_retry(self):
+        rows=[dict(j,status="pending") for j in jobs()]
+        rows[0]["status"]="candidate-only"
+        selected=choose_pending(rows,groups=[rows[1]["group"]],limit=2)
+        self.assertEqual(len(selected),2)
+        self.assertNotIn(rows[0],selected)
+        with self.assertRaises(ValueError):
+            choose_pending(rows,keys=["unknown.v1"])
+
+    def test_custom_catalog_lock(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d)
+            cat=root/"new.json"
+            out=root/"visual-002"
+            out.mkdir()
+            data={"schema":1,"batch":"visual-002","variants":3,
+                  "assets":[{"id":"synaxis.example","kind":"prop","group":"synaxis","subject":"desk lamp"}]}
+            cat.write_text(json.dumps(data))
+            with patch("batch.CATALOG",cat),patch("batch.OUT",out),patch.dict("os.environ",{"ANUBIS_VISUAL_OUT":str(out)}):
+                self.assertEqual(len(jobs()),3)
+                self.assertEqual(len(jobs(True)),1)
+                lock_catalog()
+                lock_catalog()
+                data["assets"][0]["subject"]="different lamp"
+                cat.write_text(json.dumps(data))
+                with self.assertRaisesRegex(ValueError,"Catalog changed"):
+                    lock_catalog()
 
     def test_manifest(self):
         rows=jobs()
