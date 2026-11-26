@@ -8,6 +8,7 @@ import tempfile
 import uuid
 
 from refine import sha
+from telemetry import snapshot
 
 STAGES=("generation","refinement","materials","review","budgets","godot",
         "previews","contact-sheets","duplicates","audio")
@@ -41,6 +42,7 @@ def start(root,mode):
     run.mkdir()
     atomic(run/"run.json",{"schema":1,"id":ident,"mode":mode,"started":now(),
                            "status":"running","scope":"production processes, not asset approval",
+                           "hardware_start":snapshot(),
                            "stages":{s:{"status":"pending"} for s in STAGES}})
     atomic(root/"latest.json",{"id":ident})
     return run
@@ -60,16 +62,16 @@ def change(run,action,stage=None,code=None,reason=None):
                 item.update(status="interrupted",finished=now())
         bad=any(s["status"] in ("pending","running","failed","interrupted") for s in stages.values())
         data.update(status="failed" if code or bad else "completed",
-                    finished=now(),exit_code=code)
+                    finished=now(),exit_code=code,hardware_finish=snapshot())
     else:
         item=stages[stage]
         if action=="begin" and item["status"]=="pending":
-            item.update(status="running",started=now())
+            item.update(status="running",started=now(),hardware_start=snapshot())
         elif action=="skip" and item["status"]=="pending":
             item.update(status="skipped",reason=reason,finished=now())
         elif action=="end" and item["status"]=="running":
             log=run/(stage+".log")
-            item.update(status="failed" if code else "completed",finished=now(),exit_code=code)
+            item.update(status="failed" if code else "completed",finished=now(),exit_code=code,hardware_finish=snapshot())
             if log.is_file():
                 item.update(log=log.name,log_sha256=sha(log))
         else:
