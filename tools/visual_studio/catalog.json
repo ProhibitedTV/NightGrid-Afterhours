@@ -1,0 +1,715 @@
+{
+  "schema": 1,
+  "batch": "visual-001",
+  "variants": 2,
+  "assets": [
+    {
+      "id": "synaxis.ergonomic-black-mesh-office-chair",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "ergonomic black mesh office chair"
+    },
+    {
+      "id": "synaxis.executive-leather-swivel-chair",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "executive leather swivel chair"
+    },
+    {
+      "id": "synaxis.dual-monitor-workstation-with-compact-desktop-tower",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "dual monitor workstation with compact desktop tower"
+    },
+    {
+      "id": "synaxis.enterprise-laser-printer-copier",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "enterprise laser printer copier"
+    },
+    {
+      "id": "synaxis.glass-door-server-rack-with-populated-equipment",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "glass door server rack with populated equipment"
+    },
+    {
+      "id": "synaxis.network-switch-rack-unit",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "network switch rack unit"
+    },
+    {
+      "id": "synaxis.desktop-mechanical-keyboard",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "desktop mechanical keyboard"
+    },
+    {
+      "id": "synaxis.wired-office-desk-telephone",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "wired office desk telephone"
+    },
+    {
+      "id": "synaxis.corporate-badge-reader-terminal",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "corporate badge reader terminal"
+    },
+    {
+      "id": "synaxis.office-document-scanner",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "office document scanner"
+    },
+    {
+      "id": "synaxis.industrial-ups-battery-enclosure",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "industrial UPS battery enclosure"
+    },
+    {
+      "id": "synaxis.breakroom-espresso-machine",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "breakroom espresso machine"
+    },
+    {
+      "id": "synaxis.office-water-dispenser",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "office water dispenser"
+    },
+    {
+      "id": "synaxis.office-microwave-oven",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "office microwave oven"
+    },
+    {
+      "id": "synaxis.rolling-file-cabinet",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "rolling file cabinet"
+    },
+    {
+      "id": "synaxis.conference-room-speakerphone",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "conference room speakerphone"
+    },
+    {
+      "id": "synaxis.security-reception-desk-console",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "security reception desk console"
+    },
+    {
+      "id": "synaxis.office-plant-in-ceramic-pot",
+      "kind": "prop",
+      "group": "synaxis",
+      "subject": "office plant in ceramic pot"
+    },
+    {
+      "id": "brickwater.weathered-industrial-electrical-cabinet",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "weathered industrial electrical cabinet"
+    },
+    {
+      "id": "brickwater.wall-mounted-commercial-hvac-condenser",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "wall mounted commercial HVAC condenser"
+    },
+    {
+      "id": "brickwater.rusted-steel-rolling-tool-chest",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "rusted steel rolling tool chest"
+    },
+    {
+      "id": "brickwater.hydraulic-floor-jack",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "hydraulic floor jack"
+    },
+    {
+      "id": "brickwater.industrial-steel-dumpster-with-lid",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "industrial steel dumpster with lid"
+    },
+    {
+      "id": "brickwater.portable-welding-machine",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "portable welding machine"
+    },
+    {
+      "id": "brickwater.mechanic-air-compressor",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "mechanic air compressor"
+    },
+    {
+      "id": "brickwater.stack-of-worn-rubber-tires",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "stack of worn rubber tires"
+    },
+    {
+      "id": "brickwater.industrial-pressure-washer",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "industrial pressure washer"
+    },
+    {
+      "id": "brickwater.metal-street-drainage-grate",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "metal street drainage grate"
+    },
+    {
+      "id": "brickwater.weathered-utility-junction-box",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "weathered utility junction box"
+    },
+    {
+      "id": "brickwater.industrial-ventilation-exhaust-fan",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "industrial ventilation exhaust fan"
+    },
+    {
+      "id": "brickwater.municipal-fire-hydrant",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "municipal fire hydrant"
+    },
+    {
+      "id": "brickwater.rolling-industrial-parts-cart",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "rolling industrial parts cart"
+    },
+    {
+      "id": "brickwater.commercial-outdoor-trash-receptacle",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "commercial outdoor trash receptacle"
+    },
+    {
+      "id": "brickwater.heavy-steel-bollard",
+      "kind": "prop",
+      "group": "brickwater",
+      "subject": "heavy steel bollard"
+    },
+    {
+      "id": "retail.compact-beverage-vending-machine",
+      "kind": "prop",
+      "group": "retail",
+      "subject": "compact beverage vending machine"
+    },
+    {
+      "id": "retail.snack-vending-machine-with-glass-front",
+      "kind": "prop",
+      "group": "retail",
+      "subject": "snack vending machine with glass front"
+    },
+    {
+      "id": "retail.retail-checkout-terminal",
+      "kind": "prop",
+      "group": "retail",
+      "subject": "retail checkout terminal"
+    },
+    {
+      "id": "retail.clothing-store-garment-rack",
+      "kind": "prop",
+      "group": "retail",
+      "subject": "clothing store garment rack"
+    },
+    {
+      "id": "retail.folded-denim-display-stack",
+      "kind": "prop",
+      "group": "retail",
+      "subject": "folded denim display stack"
+    },
+    {
+      "id": "retail.black-technical-backpack",
+      "kind": "prop",
+      "group": "retail",
+      "subject": "black technical backpack"
+    },
+    {
+      "id": "retail.wireless-over-ear-headphones",
+      "kind": "prop",
+      "group": "retail",
+      "subject": "wireless over-ear headphones"
+    },
+    {
+      "id": "retail.leather-combat-boot-pair",
+      "kind": "prop",
+      "group": "retail",
+      "subject": "leather combat boot pair"
+    },
+    {
+      "id": "retail.retro-running-sneaker-pair",
+      "kind": "prop",
+      "group": "retail",
+      "subject": "retro running sneaker pair"
+    },
+    {
+      "id": "retail.sport-sunglasses",
+      "kind": "prop",
+      "group": "retail",
+      "subject": "sport sunglasses"
+    },
+    {
+      "id": "retail.compact-portable-power-bank",
+      "kind": "prop",
+      "group": "retail",
+      "subject": "compact portable power bank"
+    },
+    {
+      "id": "retail.retail-display-pedestal",
+      "kind": "prop",
+      "group": "retail",
+      "subject": "retail display pedestal"
+    },
+    {
+      "id": "music.solid-body-electric-guitar",
+      "kind": "prop",
+      "group": "music",
+      "subject": "solid body electric guitar"
+    },
+    {
+      "id": "music.four-string-electric-bass",
+      "kind": "prop",
+      "group": "music",
+      "subject": "four string electric bass"
+    },
+    {
+      "id": "music.compact-analog-synthesizer",
+      "kind": "prop",
+      "group": "music",
+      "subject": "compact analog synthesizer"
+    },
+    {
+      "id": "music.portable-drum-machine",
+      "kind": "prop",
+      "group": "music",
+      "subject": "portable drum machine"
+    },
+    {
+      "id": "music.guitar-amplifier-combo",
+      "kind": "prop",
+      "group": "music",
+      "subject": "guitar amplifier combo"
+    },
+    {
+      "id": "music.stage-monitor-speaker-wedge",
+      "kind": "prop",
+      "group": "music",
+      "subject": "stage monitor speaker wedge"
+    },
+    {
+      "id": "music.studio-dynamic-microphone",
+      "kind": "prop",
+      "group": "music",
+      "subject": "studio dynamic microphone"
+    },
+    {
+      "id": "music.professional-dj-mixer",
+      "kind": "prop",
+      "group": "music",
+      "subject": "professional DJ mixer"
+    },
+    {
+      "id": "music.small-audio-mixing-console",
+      "kind": "prop",
+      "group": "music",
+      "subject": "small audio mixing console"
+    },
+    {
+      "id": "music.cymbal-stand",
+      "kind": "prop",
+      "group": "music",
+      "subject": "cymbal stand"
+    },
+    {
+      "id": "music.closed-drum-kit-kick-drum",
+      "kind": "prop",
+      "group": "music",
+      "subject": "closed drum kit kick drum"
+    },
+    {
+      "id": "music.compact-stage-effects-pedal",
+      "kind": "prop",
+      "group": "music",
+      "subject": "compact stage effects pedal"
+    },
+    {
+      "id": "arcade.retro-upright-arcade-cabinet-unbranded",
+      "kind": "prop",
+      "group": "arcade",
+      "subject": "retro upright arcade cabinet unbranded"
+    },
+    {
+      "id": "arcade.arcade-joystick-control-deck",
+      "kind": "prop",
+      "group": "arcade",
+      "subject": "arcade joystick control deck"
+    },
+    {
+      "id": "arcade.coin-operated-prize-machine",
+      "kind": "prop",
+      "group": "arcade",
+      "subject": "coin operated prize machine"
+    },
+    {
+      "id": "arcade.retro-pinball-cabinet",
+      "kind": "prop",
+      "group": "arcade",
+      "subject": "retro pinball cabinet"
+    },
+    {
+      "id": "arcade.arcade-token-change-dispenser",
+      "kind": "prop",
+      "group": "arcade",
+      "subject": "arcade token change dispenser"
+    },
+    {
+      "id": "arcade.retro-crt-monitor",
+      "kind": "prop",
+      "group": "arcade",
+      "subject": "retro CRT monitor"
+    },
+    {
+      "id": "arcade.stack-of-game-cartridge-cases",
+      "kind": "prop",
+      "group": "arcade",
+      "subject": "stack of game cartridge cases"
+    },
+    {
+      "id": "arcade.arcade-stool",
+      "kind": "prop",
+      "group": "arcade",
+      "subject": "arcade stool"
+    },
+    {
+      "id": "hospitality.commercial-stainless-espresso-grinder",
+      "kind": "prop",
+      "group": "hospitality",
+      "subject": "commercial stainless espresso grinder"
+    },
+    {
+      "id": "hospitality.commercial-espresso-machine",
+      "kind": "prop",
+      "group": "hospitality",
+      "subject": "commercial espresso machine"
+    },
+    {
+      "id": "hospitality.bar-beverage-taps",
+      "kind": "prop",
+      "group": "hospitality",
+      "subject": "bar beverage taps"
+    },
+    {
+      "id": "hospitality.restaurant-counter-stool",
+      "kind": "prop",
+      "group": "hospitality",
+      "subject": "restaurant counter stool"
+    },
+    {
+      "id": "hospitality.compact-glass-display-refrigerator",
+      "kind": "prop",
+      "group": "hospitality",
+      "subject": "compact glass display refrigerator"
+    },
+    {
+      "id": "hospitality.stainless-kitchen-prep-cart",
+      "kind": "prop",
+      "group": "hospitality",
+      "subject": "stainless kitchen prep cart"
+    },
+    {
+      "id": "hospitality.stack-of-ceramic-plates",
+      "kind": "prop",
+      "group": "hospitality",
+      "subject": "stack of ceramic plates"
+    },
+    {
+      "id": "hospitality.bar-cocktail-shaker",
+      "kind": "prop",
+      "group": "hospitality",
+      "subject": "bar cocktail shaker"
+    },
+    {
+      "id": "hospitality.coffee-cup-and-saucer",
+      "kind": "prop",
+      "group": "hospitality",
+      "subject": "coffee cup and saucer"
+    },
+    {
+      "id": "hospitality.restaurant-table-napkin-dispenser",
+      "kind": "prop",
+      "group": "hospitality",
+      "subject": "restaurant table napkin dispenser"
+    },
+    {
+      "id": "transit.rail-station-ticket-vending-terminal",
+      "kind": "prop",
+      "group": "transit",
+      "subject": "rail station ticket vending terminal"
+    },
+    {
+      "id": "transit.public-transit-validation-reader",
+      "kind": "prop",
+      "group": "transit",
+      "subject": "public transit validation reader"
+    },
+    {
+      "id": "transit.municipal-bus-stop-bench",
+      "kind": "prop",
+      "group": "transit",
+      "subject": "municipal bus stop bench"
+    },
+    {
+      "id": "transit.rail-station-public-address-speaker",
+      "kind": "prop",
+      "group": "transit",
+      "subject": "rail station public address speaker"
+    },
+    {
+      "id": "transit.public-payphone-terminal",
+      "kind": "prop",
+      "group": "transit",
+      "subject": "public payphone terminal"
+    },
+    {
+      "id": "transit.street-parking-payment-meter",
+      "kind": "prop",
+      "group": "transit",
+      "subject": "street parking payment meter"
+    },
+    {
+      "id": "transit.traffic-signal-controller-cabinet",
+      "kind": "prop",
+      "group": "transit",
+      "subject": "traffic signal controller cabinet"
+    },
+    {
+      "id": "transit.public-bicycle-rack",
+      "kind": "prop",
+      "group": "transit",
+      "subject": "public bicycle rack"
+    },
+    {
+      "id": "street.modern-municipal-bench",
+      "kind": "prop",
+      "group": "street",
+      "subject": "modern municipal bench"
+    },
+    {
+      "id": "street.public-planter-with-coastal-grass",
+      "kind": "prop",
+      "group": "street",
+      "subject": "public planter with coastal grass"
+    },
+    {
+      "id": "street.urban-delivery-cargo-crate",
+      "kind": "prop",
+      "group": "street",
+      "subject": "urban delivery cargo crate"
+    },
+    {
+      "id": "street.portable-construction-work-light",
+      "kind": "prop",
+      "group": "street",
+      "subject": "portable construction work light"
+    },
+    {
+      "id": "street.construction-traffic-barricade",
+      "kind": "prop",
+      "group": "street",
+      "subject": "construction traffic barricade"
+    },
+    {
+      "id": "street.weatherproof-parcel-locker",
+      "kind": "prop",
+      "group": "street",
+      "subject": "weatherproof parcel locker"
+    },
+    {
+      "id": "street.outdoor-newspaper-dispenser",
+      "kind": "prop",
+      "group": "street",
+      "subject": "outdoor newspaper dispenser"
+    },
+    {
+      "id": "street.street-food-serving-cart",
+      "kind": "prop",
+      "group": "street",
+      "subject": "street food serving cart"
+    },
+    {
+      "id": "street.commercial-wall-light-fixture",
+      "kind": "prop",
+      "group": "street",
+      "subject": "commercial wall light fixture"
+    },
+    {
+      "id": "street.industrial-metal-bike-rack",
+      "kind": "prop",
+      "group": "street",
+      "subject": "industrial metal bike rack"
+    },
+    {
+      "id": "material.aged-red-brick-with-mortar",
+      "kind": "material",
+      "group": "material",
+      "subject": "aged red brick with mortar"
+    },
+    {
+      "id": "material.wet-dark-asphalt-aggregate",
+      "kind": "material",
+      "group": "material",
+      "subject": "wet dark asphalt aggregate"
+    },
+    {
+      "id": "material.dry-asphalt-aggregate",
+      "kind": "material",
+      "group": "material",
+      "subject": "dry asphalt aggregate"
+    },
+    {
+      "id": "material.brushed-stainless-steel",
+      "kind": "material",
+      "group": "material",
+      "subject": "brushed stainless steel"
+    },
+    {
+      "id": "material.weathered-painted-galvanized-metal",
+      "kind": "material",
+      "group": "material",
+      "subject": "weathered painted galvanized metal"
+    },
+    {
+      "id": "material.chipped-industrial-blue-enamel",
+      "kind": "material",
+      "group": "material",
+      "subject": "chipped industrial blue enamel"
+    },
+    {
+      "id": "material.black-rubber-tire-tread",
+      "kind": "material",
+      "group": "material",
+      "subject": "black rubber tire tread"
+    },
+    {
+      "id": "material.worn-dark-leather",
+      "kind": "material",
+      "group": "material",
+      "subject": "worn dark leather"
+    },
+    {
+      "id": "material.office-carpet-tile-charcoal",
+      "kind": "material",
+      "group": "material",
+      "subject": "office carpet tile charcoal"
+    },
+    {
+      "id": "material.polished-gray-terrazzo",
+      "kind": "material",
+      "group": "material",
+      "subject": "polished gray terrazzo"
+    },
+    {
+      "id": "material.weathered-gray-concrete",
+      "kind": "material",
+      "group": "material",
+      "subject": "weathered gray concrete"
+    },
+    {
+      "id": "material.salt-stained-coastal-concrete",
+      "kind": "material",
+      "group": "material",
+      "subject": "salt stained coastal concrete"
+    },
+    {
+      "id": "material.warm-oak-veneer",
+      "kind": "material",
+      "group": "material",
+      "subject": "warm oak veneer"
+    },
+    {
+      "id": "material.dark-stained-walnut",
+      "kind": "material",
+      "group": "material",
+      "subject": "dark stained walnut"
+    },
+    {
+      "id": "material.woven-black-technical-fabric",
+      "kind": "material",
+      "group": "material",
+      "subject": "woven black technical fabric"
+    },
+    {
+      "id": "material.washed-blue-denim",
+      "kind": "material",
+      "group": "material",
+      "subject": "washed blue denim"
+    },
+    {
+      "id": "material.cream-ceramic-wall-tile",
+      "kind": "material",
+      "group": "material",
+      "subject": "cream ceramic wall tile"
+    },
+    {
+      "id": "material.black-anti-slip-rubber-mat",
+      "kind": "material",
+      "group": "material",
+      "subject": "black anti-slip rubber mat"
+    },
+    {
+      "id": "material.scratched-plastic",
+      "kind": "material",
+      "group": "material",
+      "subject": "scratched ABS plastic"
+    },
+    {
+      "id": "material.aged-copper-patina",
+      "kind": "material",
+      "group": "material",
+      "subject": "aged copper patina"
+    },
+    {
+      "id": "material.corrugated-industrial-steel",
+      "kind": "material",
+      "group": "material",
+      "subject": "corrugated industrial steel"
+    },
+    {
+      "id": "material.peeling-painted-plaster",
+      "kind": "material",
+      "group": "material",
+      "subject": "peeling painted plaster"
+    },
+    {
+      "id": "material.damp-cobblestone",
+      "kind": "material",
+      "group": "material",
+      "subject": "damp cobblestone"
+    },
+    {
+      "id": "material.weathered-wood-decking",
+      "kind": "material",
+      "group": "material",
+      "subject": "weathered wood decking"
+    }
+  ]
+}
