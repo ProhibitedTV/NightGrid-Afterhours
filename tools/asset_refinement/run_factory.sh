@@ -11,10 +11,23 @@ mkdir -p /mnt/z
 mountpoint -q /mnt/z || mount -t drvfs Z: /mnt/z
 mountpoint /mnt/z
 root=/mnt/z/NightGrid-Afterhours/Visual
-export ANUBIS_VISUAL_OUT="$root/visual-001"
+batch="${ANUBIS_BATCH:-visual-001}"
+[[ "$batch" =~ ^visual-[a-z0-9][a-z0-9-]{0,40}$ ]] || { echo "Invalid batch ID"; exit 2; }
+suffix="${batch#visual-}"
+export ANUBIS_VISUAL_OUT="$root/$batch"
+export ANUBIS_REFINED_OUT="$root/refined-$suffix"
+material_out="$root/Materials/material-$suffix"
+preview_out="$root/Previews"
+runs="$root/FactoryRuns"
+if [[ "$batch" != visual-001 ]]; then
+  preview_out="$root/Previews/$batch"
+  runs="$root/FactoryRuns/$batch"
+  [[ -n "${ANUBIS_VISUAL_CATALOG:-}" ]] || { echo "Custom batch requires ANUBIS_VISUAL_CATALOG"; exit 2; }
+fi
+# Factory owns explicit output selection, not the standalone default NAS flag.
+unset ANUBIS_VISUAL_NAS
 [[ -d "$root" ]] || { echo "NAS library missing"; exit 2; }
 ledger="$repo/tools/asset_refinement/factory_ledger.py"
-runs="$root/FactoryRuns"
 if [[ "$mode" == status ]]; then
   python3 "$ledger" status --root "$runs"
   exit
@@ -71,11 +84,11 @@ if [[ "${ANUBIS_BAKE_AO:-0}" == 1 ]]; then normal_args+=(--bake-ao); fi
 stage refinement bash tools/asset_refinement/run_refine.sh --bake-size "$size" "${normal_args[@]}" "${extra[@]}" "$@"
 material_python="$ANUBIS_VISUAL_HOME/mesh/bin/python"
 [[ -x "$material_python" ]] || { echo "Existing mesh Python environment required for materials"; exit 2; }
-stage materials "$material_python" tools/asset_refinement/materials.py --raw "$ANUBIS_VISUAL_OUT" --output "$root/Materials/material-001" --size "$size" "${extra[@]}"
-stage review python3 tools/asset_refinement/review_queue.py --raw "$ANUBIS_VISUAL_OUT" --refined "$root/refined-001" --size "$size" --output "$root/refined-001/review-$size.json"
-stage budgets python3 tools/asset_refinement/budgets.py --raw "$ANUBIS_VISUAL_OUT" --refined "$root/refined-001" --size "$size" --output "$root/refined-001/budgets-$size.json"
+stage materials "$material_python" tools/asset_refinement/materials.py --raw "$ANUBIS_VISUAL_OUT" --output "$material_out" --size "$size" "${extra[@]}"
+stage review python3 tools/asset_refinement/review_queue.py --raw "$ANUBIS_VISUAL_OUT" --refined "$ANUBIS_REFINED_OUT" --size "$size" --output "$ANUBIS_REFINED_OUT/review-$size.json"
+stage budgets python3 tools/asset_refinement/budgets.py --raw "$ANUBIS_VISUAL_OUT" --refined "$ANUBIS_REFINED_OUT" --size "$size" --output "$ANUBIS_REFINED_OUT/budgets-$size.json"
 if [[ -n "${ANUBIS_GODOT:-}" ]]; then
-  stage godot python3 tools/asset_refinement/godot_gate.py --raw "$ANUBIS_VISUAL_OUT" --refined "$root/refined-001" --size "$size" --godot "$ANUBIS_GODOT" --output "$root/refined-001/godot-$size.json"
+  stage godot python3 tools/asset_refinement/godot_gate.py --raw "$ANUBIS_VISUAL_OUT" --refined "$ANUBIS_REFINED_OUT" --size "$size" --godot "$ANUBIS_GODOT" --output "$ANUBIS_REFINED_OUT/godot-$size.json"
 else
   skip godot "no configured Godot executable"
   echo "Godot import gate pending: set ANUBIS_GODOT to an absolute Linux Godot 4.7.2 executable."
@@ -87,14 +100,16 @@ if [[ "${ANUBIS_PREVIEWS:-0}" == 1 ]]; then
   if [[ "$(command -v blender)" == /usr/bin/blender ]]; then
     export PYTHONPATH=/usr/lib/python3/dist-packages
   fi
-  stage previews blender -b -t 2 --python-use-system-env --python-exit-code 1 --python tools/asset_refinement/previews.py -- --raw "$ANUBIS_VISUAL_OUT" --refined "$root/refined-001" --output "$root/Previews" --bake-size "$size" --size "$preview_size" --samples "$samples" "${extra[@]}"
-  stage contact-sheets env -u PYTHONPATH "$material_python" tools/asset_refinement/contact_sheet.py --raw "$ANUBIS_VISUAL_OUT" --previews "$root/Previews" --size "$size"
+  stage previews blender -b -t 2 --python-use-system-env --python-exit-code 1 --python tools/asset_refinement/previews.py -- --raw "$ANUBIS_VISUAL_OUT" --refined "$ANUBIS_REFINED_OUT" --output "$preview_out" --bake-size "$size" --size "$preview_size" --samples "$samples" "${extra[@]}"
+  stage contact-sheets env -u PYTHONPATH "$material_python" tools/asset_refinement/contact_sheet.py --raw "$ANUBIS_VISUAL_OUT" --previews "$preview_out" --size "$size"
 else
   skip previews "disabled"
   skip contact-sheets "previews disabled"
 fi
-stage duplicates env -u PYTHONPATH "$material_python" tools/asset_refinement/duplicates.py --raw "$ANUBIS_VISUAL_OUT" --output "$root/refined-001/duplicate-concepts.json"
-if [[ -n "${ANUBIS_AUDIO_PYTHON:-}" ]]; then
+stage duplicates env -u PYTHONPATH "$material_python" tools/asset_refinement/duplicates.py --raw "$ANUBIS_VISUAL_OUT" --output "$ANUBIS_REFINED_OUT/duplicate-concepts.json"
+if [[ "${ANUBIS_SKIP_AUDIO:-0}" == 1 ]]; then
+  skip audio "disabled for this batch"
+elif [[ -n "${ANUBIS_AUDIO_PYTHON:-}" ]]; then
   audio_args=()
   if [[ -n "${ANUBIS_SFX_CLI:-}" ]]; then audio_args=(--sfx-cli "$ANUBIS_SFX_CLI"); fi
   if [[ "$mode" == smoke ]]; then
