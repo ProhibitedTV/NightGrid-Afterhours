@@ -86,6 +86,24 @@ func _verify() -> void:
 	if invalid_heat != 1.0 or invalid.last_known.is_finite() or not invalid.last_reason.is_empty():
 		_fail("Unsupported report mutated search state")
 		return
+	# Invalid updates may arrive from a stale or unavailable observer.
+	var guarded = Wanted.new()
+	var guarded_heat: float = guarded.observe(1.0, at, cop, true, 0.2)
+	var prior_exposure: float = guarded.exposure
+	for bad_delta in [0.0,-0.2,NAN,INF]:
+		if guarded.observe(guarded_heat, Vector3(99,1,0), clear, false, bad_delta) != guarded_heat or guarded.exposure != prior_exposure or guarded.last_known != at or not guarded.police_seen:
+			_fail("Invalid observation timing mutated live pursuit state")
+			return
+	if guarded.observe(guarded_heat, Vector3.INF, cop, true, 0.2) != guarded_heat or guarded.last_known != at or guarded.exposure != prior_exposure:
+		_fail("Invalid observation position mutated live pursuit state")
+		return
+	guarded.observe(guarded_heat, at, {"any":false,"police":true}, true, 0.2)
+	if not guarded.seen or not guarded.police_seen:
+		_fail("Officer observation must also establish general visibility")
+		return
+	if Wanted.in_view(at, Vector3.FORWARD, Vector3.INF, 26.0) or Wanted.in_view(at, Vector3.INF, at, 26.0) or Wanted.in_view(at, Vector3.FORWARD, at, NAN) or Wanted.in_view(at, Vector3.FORWARD, at, -1.0):
+		_fail("Invalid witness geometry must not establish visibility")
+		return
 	invalid.last_ray_count = Wanted.MAX_RAYS
 	invalid.reset()
 	if invalid.last_ray_count != 0:
