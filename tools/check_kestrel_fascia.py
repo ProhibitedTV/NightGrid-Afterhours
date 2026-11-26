@@ -76,6 +76,11 @@ def verify_lod(record, sockets, budget):
 def main():
     manifest = json.loads((OUT / "source.json").read_text(encoding="utf-8"))
     assert manifest["status"] == "creator_review"
+    # Original creator-supplied images are JPEGs, not PNGs. Preserve their bytes.
+    for relative in (manifest["concept"], "docs/art/references/kestrel_s6/jade_wash_gameplay_baseline.jpg"):
+        payload = (OUT.parents[3] / relative).read_bytes()
+        assert payload.startswith(b"\xff\xd8\xff"), f"Invalid JPEG signature: {relative}"
+        assert payload.endswith(b"\xff\xd9"), f"Missing JPEG end marker: {relative}"
     assert sha256((OUT.parents[3] / manifest["concept"]).read_bytes()).hexdigest() == manifest["concept_sha256"]
     for name, digest in manifest["files"].items():
         assert sha256((OUT / name).read_bytes()).hexdigest() == digest

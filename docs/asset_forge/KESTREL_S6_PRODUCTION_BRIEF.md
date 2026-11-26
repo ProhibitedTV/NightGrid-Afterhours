@@ -2,9 +2,9 @@
 
 Revision A · creator review · #210 / #184
 
-The Kestrel is an original Morrow Bay four-seat electric sports fastback. Keep the low, wide stance, deep metallic crimson, inclined windscreen, short tail, and dual-blade lamp signature of the [creator-approved Jade Wash direction](../art/concepts/kestrel_s6/jade_wash_approved_direction.png). Hard cyan reflections should follow convex surfaces. Warm shop light should reveal the graphite duct geometry and tinted cabin. The body stampings should read in daylight, with the lamps off.
+The Kestrel is an original Morrow Bay four-seat electric sports fastback. Keep the low, wide stance, deep metallic crimson, inclined windscreen, short tail, and dual-blade lamp signature of the [creator-approved Jade Wash direction](../art/concepts/kestrel_s6/jade_wash_approved_direction.jpg). Hard cyan reflections should follow convex surfaces. Warm shop light should reveal the graphite duct geometry and tinted cabin. The body stampings should read in daylight, with the lamps off.
 
-The [original dimensional study](../art/concepts/kestrel_s6/dimensional_study.svg) proposes the package and cutlines. The [creator's gameplay baseline](../art/references/kestrel_s6/jade_wash_gameplay_baseline.png) records the visual gap that prompted this pass. The direction image was supplied in the November 23, 2026 conversation. The gameplay baseline is the creator's supplied frame and its build SHA is unknown. Both originals are committed for review. The specific shapes on the dimensional study and the fit of the glTF candidate await creator approval.
+The [original dimensional study](../art/concepts/kestrel_s6/dimensional_study.svg) proposes the package and cutlines. The [creator's gameplay baseline](../art/references/kestrel_s6/jade_wash_gameplay_baseline.jpg) records the visual gap that prompted this pass. The direction image was supplied in the November 23, 2026 conversation. The gameplay baseline is the creator's supplied frame and its build SHA is unknown. Both originals are committed for review. The specific shapes on the dimensional study and the fit of the glTF candidate await creator approval.
 
 | Creator-supplied reference | SHA-256 |
 | --- | --- |

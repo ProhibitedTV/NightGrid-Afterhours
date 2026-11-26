@@ -296,7 +296,7 @@ def main():
         "units": "metres", "up": "+Y", "forward": "-Z", "pivot": [0,0,0],
         "author": "NightGrid Afterhours", "source": "tools/author_kestrel_fascia.py",
         "license": "Original NightGrid project artwork. No separate public license declared.",
-        "concept": "docs/art/concepts/kestrel_s6/jade_wash_approved_direction.png",
+        "concept": "docs/art/concepts/kestrel_s6/jade_wash_approved_direction.jpg",
         "concept_sha256": "cfb3ca8338a7b34aff3bafe41cefbf7348e295cd3421cdc0c0ae7071e07da119",
         "files": {name: sha256((OUT / name).read_bytes()).hexdigest() for name in names},
         "lods": [{"file": names[0], "triangles": near},{"file": names[2],"triangles": far}],
