@@ -80,9 +80,28 @@ static func exterior_cutoff() -> float:
 static func set_room_character(kind: String) -> void:
 	var index := AudioServer.get_bus_index(ROOM_EFFECTS)
 	var room := AudioServer.get_bus_effect(index, 0) as AudioEffectReverb
-	if room != null:
-		room.room_size = 0.52 if kind == "CLUB" else (0.24 if kind == "CAFE" else 0.32)
-		room.wet = 0.23 if kind == "CLUB" else (0.12 if kind == "CAFE" else 0.16)
+	if room == null:
+		return
+	var profile := Vector2(.32, .16)
+	match kind:
+		"CLUB":
+			profile = Vector2(.52, .23)
+		"CAFE":
+			profile = Vector2(.24, .12)
+		"SYNAXIS_OFFICE":
+			profile = Vector2(.22, .06)
+		"SYNAXIS_LIFT":
+			profile = Vector2(.16, .09)
+		"SYNAXIS_FACILITIES":
+			profile = Vector2(.24, .20)
+		"SYNAXIS_BASEMENT":
+			profile = Vector2(.35, .12)
+		"SYNAXIS_LOBBY", "SYNAXIS_EXECUTIVE":
+			profile = Vector2(.46, .17)
+		"SYNAXIS_PARKING":
+			profile = Vector2(.52, .21)
+	room.room_size = profile.x
+	room.wet = profile.y
 
 static func is_routed() -> bool:
 	for stem in STEMS:

@@ -36,8 +36,10 @@ func _check() -> void:
 		_fail("Filmic highlight response must be active")
 		return
 	var city_stats: Dictionary = city.call("get_city_stats")
-	if int(city_stats.get("authored_lots", 0)) != 112:
-		_fail("Fixed 112-lot building plan was not applied")
+	# The surveyed Synaxis campus consolidates exactly one of the original
+	# 112 building slots into the existing headquarters scene.
+	if int(city_stats.get("authored_lots", 0)) != 111:
+		_fail("Expected 111 authored buildings after the Synaxis lot consolidation")
 		return
 	if int(puddles.call("patch_count")) != 16:
 		_fail("The authored wet-street patches must exist")

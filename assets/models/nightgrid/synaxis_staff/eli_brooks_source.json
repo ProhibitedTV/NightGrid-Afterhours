@@ -1,0 +1,15 @@
+{
+  "model": "eli_brooks.glb",
+  "sha256": "66a6ba7cd8cadbfc281370397da8cad9c60c9aa78200f07e2071f3fb871dd9f7",
+  "profile_sha256": "6f336c7cde5e4ee247f3125dbe310f684df3a8cfce7c518c84b19f181e525efd",
+  "bytes": 5720964,
+  "joints": 66,
+  "weighted_primitives": 17,
+  "clips": [
+    "Idle",
+    "Walk"
+  ],
+  "source": "ara3d@0.13.0",
+  "source_revision": "9d3b9f9933cbeb9529630a270ffc7fe01bd05511",
+  "license_notes": "See ../courier/SOURCE.md; original fictional character profile"
+}

@@ -18,16 +18,16 @@ func _check() -> void:
 		quit(1)
 		return
 	var stats: Dictionary = city.call("get_city_stats")
-	if int(stats.get("buildings", 0)) != 112:
-		push_error("Expected 112 authored building shells, got %s" % stats)
+	if int(stats.get("buildings", 0)) != 111:
+		push_error("Expected 111 authored buildings after the HQ lot consolidation, got %s" % stats)
 		quit(1)
 		return
-	if int(stats.get("storefronts", 0)) != 112:
+	if int(stats.get("storefronts", 0)) != 111:
 		push_error("All procedural building fronts must have signs and shop treatment")
 		quit(1)
 		return
-	if int(stats.get("authored_lots", 0)) != 112:
-		push_error("All 112 parcel buildings should come from fixed design manifest: %s" % stats)
+	if int(stats.get("authored_lots", 0)) != 111:
+		push_error("All 111 parcel buildings should come from fixed design manifest: %s" % stats)
 		quit(1)
 		return
 	if int(stats.get("landmarks", 0)) != 8:

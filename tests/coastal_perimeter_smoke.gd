@@ -107,8 +107,8 @@ func _verify() -> void:
 	if not WorldPlan.valid_manifest(saved_manifest) or saved_manifest != city.get("world_manifest"):
 		_fail("Coastal perimeter altered the player's stored city blocks")
 		return
-	if int((city.call("get_city_stats") as Dictionary)["buildings"]) != 112:
-		_fail("Coastal redesign changed authored building inventory")
+	if int((city.call("get_city_stats") as Dictionary)["buildings"]) != 111:
+		_fail("Expected original city inventory minus the one consolidated HQ lot")
 		return
 	print("COASTAL_PERIMETER_SMOKE PASS: 4 visible solid boundaries, 36 terminal roads, 2 harbor seas, 2 horizons, 7 piers, immutable save layout")
 	quit(0)
