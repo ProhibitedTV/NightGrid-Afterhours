@@ -552,7 +552,7 @@ func _build_campus_podium(wall:Material,floor_mat:Material,desk:Material,accent:
 	_plaque("MAIN OFFICE / ELEVATORS",Vector3(8.65,2.98,4.50),PI/2,Vector2(2.18,.30))
 	_plaque("← ELEVATORS / MAIN OFFICE",Vector3(17.0-.105,2.30,15.6),-PI/2,Vector2(2.4,.32))
 	_plaque("← MAIN OFFICE",Vector3(19.8,2.30,3.36),0,Vector2(1.9,.32))
-	_plaque("BREAKROOM →",Vector3(14.0+.105,2.30,17.0),PI/2,Vector2(1.8,.32))
+	_plaque("← BREAKROOM",Vector3(14.0+.105,2.30,17.0),PI/2,Vector2(1.8,.32))
 	# Furnished destinations rather than an empty enlarged shell.
 	for at in [Vector3(13.5,0,-1.3),Vector3(24.0,0,-1.3)]:
 		_solid("CampusMeetingTable",at+Vector3.UP*.47,Vector3(4.2,.94,1.5),desk)
