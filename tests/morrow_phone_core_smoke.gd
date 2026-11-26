@@ -250,6 +250,28 @@ func _verify() -> void:
 		return
 	if not _verify_music_route(world,menu,ledger,"phone_route_music_showcase","static_room"):
 		return
+	# Physical promotion is derived from the actual earned career, not
+	# manually supplied presentation flags or a separate save field.
+	world.call("_sync_band_flyers")
+	for site in ["copper_cup","dock_nine","blue_hour","static_room"]:
+		var flyer:Label3D=venue.get_node(site+"/BandFlyer")
+		if not flyer.visible or not flyer.text.contains("SIGNAL ROT") or not flyer.text.contains("NEXT SHOWCASE") or not flyer.text.contains("OUT NOW"):
+			_fail("real career milestone missing on flyer: "+site)
+			return
+	if not ledger.call("settle_band_showcase"):
+		_fail("showcase settlement fixture")
+		return
+	world.call("_sync_band_flyers")
+	var headline:Label3D=venue.get_node("static_room/BandFlyer")
+	if not headline.text.contains("HEADLINER") or not headline.text.contains("OUT NOW"):
+		_fail("settled showcase must update physical promotion")
+		return
+	var career_save:Dictionary=world.call("_capture_snapshot")
+	venue.call("set_band_promotion","",false,false,false,false)
+	world.call("_apply_snapshot",career_save)
+	if not headline.visible or not headline.text.contains("HEADLINER") or not headline.text.contains("SIGNAL ROT"):
+		_fail("save restore must rebuild physical promotion from ledger")
+		return
 	world.queue_free()
 	await process_frame
 	print("MORROW_PHONE_CORE PASS")
