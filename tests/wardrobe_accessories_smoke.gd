@@ -62,5 +62,25 @@ func _verify()->void:
 	invalid["clothing_slots"]["hat"]="glasses_metro"
 	if not check(not restored.restore(999,invalid) and restored.balance==p.balance and restored.clothing_slots.get("hat")=="hat_thread_cap","reject invalid hat slot atomically"):
 		return
+	var stores=preload("res://scripts/clothing_store.gd")
+	var collector:=Ledger.new()
+	collector.set_balance(10000)
+	var initial:Dictionary=stores.remaining_stock(0,collector)
+	if not check(initial.size()==stores.IDS.size(),"all retailers represented"):
+		return
+	for store_id in stores.IDS:
+		if not check(initial[store_id]==stores.stock_for_day(store_id,0).size()-1,"owned starter outfit excluded"):
+			return
+	if not check(collector.buy_outfit("signal_rivet","USD",true) and collector.buy_piece("hat_thread_cap","USD",true),"collection fixture purchases"):
+		return
+	var after:Dictionary=stores.remaining_stock(0,collector)
+	if not check(after[stores.THRIFT]==initial[stores.THRIFT]-1 and after[stores.ID]==initial[stores.ID]-1,"purchases reduce matching shop stock"):
+		return
+	var tomorrow:Dictionary=stores.remaining_stock(1,collector)
+	if not check(tomorrow[stores.THRIFT]==stores.stock_for_day(stores.THRIFT,1).size()-1,"thrift day changes available unowned stock"):
+		return
+	collector.set_balance(0)
+	if not check(stores.remaining_stock(0,collector)==after,"collection count independent of affordability"):
+		return
 	print("WARDROBE_ACCESSORIES PASS: ",count," fitted accessory IDs; native visual fit pending")
 	quit(0)

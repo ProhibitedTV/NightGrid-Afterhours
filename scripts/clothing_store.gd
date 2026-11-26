@@ -42,6 +42,21 @@ static func stock_for_day(id:String,day:int) -> Array:
 		return THRIFT_STAPLES+THRIFT_ROTATIONS[posmod(day,THRIFT_ROTATIONS.size())]
 	return (STORES.get(id,{}).get("stock",[]) as Array).duplicate()
 
+## Today's unowned purchasable items, independent of wallet affordability.
+## Owned base clothing, reset actions and duplicate IDs never inflate the count.
+static func remaining_stock(day:int,wallet:RefCounted) -> Dictionary:
+	var counts:Dictionary={}
+	for store_id in IDS:
+		var remaining:Dictionary={}
+		for id in stock_for_day(store_id,day):
+			if Wardrobe.piece_valid(id):
+				if not wallet.call("owns_piece",id):
+					remaining[id]=true
+			elif Wardrobe.valid_id(id) and not wallet.call("owns_outfit",id):
+				remaining[id]=true
+		counts[store_id]=remaining.size()
+	return counts
+
 static func directory() -> String:
 	var lines:PackedStringArray=[]
 	for id in IDS:
