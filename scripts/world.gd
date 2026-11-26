@@ -1573,7 +1573,11 @@ func _freight_interaction_available()->bool:
 	return _freight.active or (not offer.is_empty() and FreightJob.near(at,offer["pickup"]))
 
 func _freight_interact()->void:
-	if current_car==null or _driving_trial.active:
+	if not is_instance_valid(current_car) or _taxi.active or _driving_trial.active:
+		return
+	if _freight.active and Wanted.stars(heat)>0:
+		_cancel_freight()
+		_notify("Freight lost / retry at pickup.")
 		return
 	var at:=Vector2(current_car.global_position.x,current_car.global_position.z)
 	if not FreightJob.supports_vehicle(str(current_car.get("model_id")),bool(current_car.get("is_police"))):
@@ -1653,7 +1657,11 @@ func _taxi_interaction_available()->bool:
 	return _taxi.active or (not offer.is_empty() and TaxiJob.near(at,offer["pickup"]))
 
 func _taxi_interact()->void:
-	if current_car==null or _freight.active or _driving_trial.active:
+	if not is_instance_valid(current_car) or _freight.active or _driving_trial.active:
+		return
+	if _taxi.active and Wanted.stars(heat)>0:
+		_cancel_taxi()
+		_notify("Taxi fare cancelled.")
 		return
 	var at:=Vector2(current_car.global_position.x,current_car.global_position.z)
 	var id:=current_car.get_instance_id()
