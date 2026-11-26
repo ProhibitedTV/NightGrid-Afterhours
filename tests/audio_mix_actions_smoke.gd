@@ -109,6 +109,18 @@ func _verify() -> void:
 		if (voice as AudioStreamPlayer3D).bus != AudioMix.EFFECTS:
 			_fail("An action voice bypasses WorldSFX")
 			return
+	# Padded carpet samples must be distinct, cached one-shots, not tile aliases.
+	var carpet_bank:Array=(director.get("_step_bank") as Dictionary).get("CARPET",[])
+	if carpet_bank.size()!=4:
+		_fail("Carpet footsteps must prewarm four variants")
+		return
+	var carpet_data:Array[PackedByteArray]=[]
+	for variant in range(4):
+		var clip:=Foley.sound("STEP_CARPET",variant)
+		if clip==null or clip.data.size()<1000 or clip.loop_mode!=AudioStreamWAV.LOOP_DISABLED or clip!=Foley.sound("STEP_CARPET",variant) or clip.data==Foley.sound("STEP_TILE",variant).data or carpet_data.has(clip.data):
+			_fail("Carpet fallback must be unique, dry and cached")
+			return
+		carpet_data.append(clip.data)
 	for kind in ["DOOR", "TRANSIT", "PICKUP", "DELIVERY", "JUMP", "LAND"]:
 		var audio := Foley.sound(kind)
 		if audio == null or audio.data.size() < 1000 or Foley.sound(kind) != audio:
