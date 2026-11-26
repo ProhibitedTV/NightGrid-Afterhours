@@ -5,6 +5,7 @@ const Plan = preload("res://scripts/world_plan.gd")
 const Restrooms = preload("res://scripts/synaxis_restrooms.gd")
 const Arrival = preload("res://scripts/synaxis_arrival.gd")
 const LiftFrontage=preload("res://scripts/synaxis_lift_frontage.gd")
+const GroundLayout=preload("res://scripts/synaxis_ground_layout.gd")
 const RANGE_METRES = 116.0
 const BORDER = 9.0
 var world_node: Node3D
@@ -227,6 +228,8 @@ func _draw_office() -> void:
 		[Vector2(-8.5,-7.65),Vector2(8.5,-7.65)],
 		[Vector2(0,Arrival.PARTITION_NEAR_Z),Vector2(0,Arrival.PARTITION_FAR_Z)]
 	]:
+		_segment(edge[0],edge[1],wall,2.6)
+	for edge in GroundLayout.BREAKROOM_EDGES:
 		_segment(edge[0],edge[1],wall,2.6)
 	var offset:=Vector2(Restrooms.OFFSET.x,Restrooms.OFFSET.z)
 	for edge in Restrooms.WALL_EDGES:
