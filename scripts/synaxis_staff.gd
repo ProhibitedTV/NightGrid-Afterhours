@@ -3,7 +3,7 @@ extends "res://scripts/lantern_patron.gd"
 ## No navigation, physics or economy ownership. The scene owns mission progression.
 const RigVisual=preload("res://scripts/pedestrian_rig_visual.gd")
 const STAFF_MODEL_DIR="res://assets/models/nightgrid/synaxis_staff/"
-const STAFF_MODELS={"mika":"mika_torres.glb","security":"owen_pike.glb"}
+const STAFF_MODELS={"mika":"mika_torres.glb","security":"owen_pike.glb","eli":"eli_brooks.glb","reception":"nina_bell.glb"}
 
 static func pilot_model_path(id:String="mika") -> String:
 	return STAFF_MODEL_DIR+str(STAFF_MODELS[id]) if STAFF_MODELS.has(id) else ""

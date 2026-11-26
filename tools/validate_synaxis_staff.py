@@ -6,7 +6,7 @@ from pathlib import Path
 from validate_synaxis_suit import read_glb
 
 ROOT = Path("assets/models/nightgrid/synaxis_staff")
-ACTORS = ("mika_torres", "owen_pike")
+ACTORS = ("mika_torres", "owen_pike", "eli_brooks", "nina_bell")
 
 def verify(actor):
     model = ROOT / f"{actor}.glb"
@@ -18,10 +18,17 @@ def verify(actor):
     weighted = [p for mesh in doc["meshes"] for p in mesh["primitives"] if {"POSITION", "NORMAL", "TEXCOORD_0", "JOINTS_0", "WEIGHTS_0"} <= p["attributes"].keys()]
     assert weighted, "No weighted textured geometry"
     names = [m.get("name", "").lower() for m in doc["materials"]]
-    for required in ("suit jacket", "shirt and tie", "suit trousers", "skin"):
-        assert any(required in name for name in names), (required, names)
-    assert any("oxford" in name or "shoe" in name for name in names)
-    assert not any("backpack" in name or "cargo" in name or "gloves" in name for name in names)
+    if actor == "eli_brooks":
+        for required in ("jacket", "cargo", "skin"):
+            assert any(required in name for name in names), (required, names)
+        assert any("sneaker" in name or "trainer" in name or "shoe" in name for name in names), names
+    else:
+        for required in ("suit jacket", "shirt and tie", "suit trousers", "skin"):
+            assert any(required in name for name in names), (required, names)
+        assert any("oxford" in name or "shoe" in name for name in names), names
+        assert not any("cargo" in name for name in names), names
+    assert not any("backpack" in name or "gloves" in name for name in names), names
+    assert len(raw) <= 18000000, "Service cast per-asset size budget"
     assert any("baseColorTexture" in m.get("pbrMetallicRoughness", {}) for m in doc["materials"])
     assert any("normalTexture" in m for m in doc["materials"])
     clips = {a["name"] for a in doc["animations"] if a.get("channels")}

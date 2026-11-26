@@ -1,0 +1,70 @@
+name: Author Synaxis service cast
+on:
+  push:
+    branches: [art/synaxis-staff-service-cast]
+    paths:
+      - 'assets/models/nightgrid/synaxis_staff/eli_brooks.json'
+      - 'assets/models/nightgrid/synaxis_staff/nina_bell.json'
+      - 'tools/validate_synaxis_staff.py'
+      - '.github/workflows/synaxis-service-cast.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: synaxis-service-cast
+  cancel-in-progress: false
+jobs:
+  author:
+    if: github.ref == 'refs/heads/art/synaxis-staff-service-cast'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Export two distinct service cast assets
+        run: |
+          set -euo pipefail
+          test -s assets/models/nightgrid/synaxis_staff/mika_torres.glb
+          test -s assets/models/nightgrid/synaxis_staff/owen_pike.glb
+          npx --yes ara3d@0.13.0 export --params assets/models/nightgrid/synaxis_staff/eli_brooks.json --out dist/synaxis-eli --animations idle,walk
+          cp dist/synaxis-eli/Eli_Brooks.glb assets/models/nightgrid/synaxis_staff/eli_brooks.glb
+          python tools/validate_synaxis_staff.py eli_brooks
+          npx --yes ara3d@0.13.0 export --params assets/models/nightgrid/synaxis_staff/nina_bell.json --out dist/synaxis-nina --animations idle,walk
+          cp dist/synaxis-nina/Nina_Bell.glb assets/models/nightgrid/synaxis_staff/nina_bell.glb
+          python tools/validate_synaxis_staff.py nina_bell
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Require all four imported cast models in real office smoke
+        run: |
+          set -euo pipefail
+          godot --headless --path . --import --quit 2>&1 | tee /tmp/staff-import.log
+          if grep -q 'SCRIPT ERROR:' /tmp/staff-import.log; then exit 1; fi
+          NIGHTGRID_REQUIRE_STAFF_PILOT=1 NIGHTGRID_REQUIRE_STAFF_GUARD=1 NIGHTGRID_REQUIRE_SERVICE_CAST=1 godot --headless --path . --script res://tests/menus_gamepad_smoke.gd 2>&1 | tee /tmp/staff-service.log
+          if grep -q 'SCRIPT ERROR:' /tmp/staff-service.log; then exit 1; fi
+          grep -q 'MENU_GAMEPAD_SMOKE PASS' /tmp/staff-service.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: synaxis-service-cast
+          path: |
+            assets/models/nightgrid/synaxis_staff/eli_brooks.glb
+            assets/models/nightgrid/synaxis_staff/eli_brooks_source.json
+            assets/models/nightgrid/synaxis_staff/nina_bell.glb
+            assets/models/nightgrid/synaxis_staff/nina_bell_source.json
+          if-no-files-found: error
+      - name: Commit only the validated additions
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/models/nightgrid/synaxis_staff/eli_brooks.glb assets/models/nightgrid/synaxis_staff/eli_brooks_source.json assets/models/nightgrid/synaxis_staff/nina_bell.glb assets/models/nightgrid/synaxis_staff/nina_bell_source.json
+          if ! git diff --cached --quiet; then
+            git commit -m "assets: validated Synaxis IT and reception cast"
+            git push origin "HEAD:$GITHUB_REF_NAME"
+          fi
