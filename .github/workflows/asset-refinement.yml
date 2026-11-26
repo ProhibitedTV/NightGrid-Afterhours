@@ -22,5 +22,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get update && sudo apt-get install -y blender python3-numpy
-      - run: PYTHONPATH=/usr/lib/python3/dist-packages blender -b -t 2 --python-use-system-env --python-exit-code 1 --python tools/asset_refinement/smoke_blender.py
+      - name: Install Blender using signed Ubuntu sources only
+        run: |
+          sudo apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- update
+          sudo apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- install -y blender python3-numpy
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - run: ANUBIS_TEST_GODOT=$(command -v godot) PYTHONPATH=/usr/lib/python3/dist-packages blender -b -t 2 --python-use-system-env --python-exit-code 1 --python tools/asset_refinement/smoke_blender.py

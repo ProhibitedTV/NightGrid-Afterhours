@@ -1,9 +1,8 @@
 extends SceneTree
-# Offline structural gate only. Does not approve art or write into the project.
+# Offline import gate; not native render or art approval.
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
 	if args.size() != 1:
-		push_error("Pass an absolute GLB path after --")
 		quit(2)
 		return
 	var doc := GLTFDocument.new()
@@ -17,13 +16,30 @@ func _initialize() -> void:
 	if root == null:
 		quit(1)
 		return
-	var meshes := root.find_children("*", "MeshInstance3D", true, false)
+	var nodes := root.find_children("*", "MeshInstance3D", true, false)
 	if root is MeshInstance3D:
-		meshes.append(root)
+		nodes.append(root)
+	var meshes := 0
 	var surfaces := 0
-	for node in meshes:
-		if node.mesh != null:
-			surfaces += node.mesh.get_surface_count()
+	var vertices := 0
+	for node in nodes:
+		var instance := node as MeshInstance3D
+		if instance.mesh == null:
+			continue
+		meshes += 1
+		surfaces += instance.mesh.get_surface_count()
+		for i in range(instance.mesh.get_surface_count()):
+			var arrays := instance.mesh.surface_get_arrays(i)
+			var points: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+			for point in points:
+				if not point.is_finite():
+					root.free()
+					quit(1)
+					return
+			vertices += points.size()
 	root.free()
-	print("Godot import surfaces: ", surfaces)
-	quit(0 if surfaces > 0 else 1)
+	if meshes == 0 or surfaces == 0 or vertices == 0:
+		quit(1)
+		return
+	print("ANUBIS_IMPORT_PASS ", JSON.stringify({"meshes": meshes, "surfaces": surfaces, "vertices": vertices}))
+	quit(0)

@@ -1,5 +1,6 @@
 """Run under Blender in CI; a synthetic fixture, not a quality benchmark."""
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -50,4 +51,11 @@ with tempfile.TemporaryDirectory() as tmp:
     assert baked["outputs"]["lod0-basecolor.png"]["size"] == [128, 128]
     assert verified(out/folder.name/baked["signature"], baked["signature"])
     assert main(args) == 0
+    if os.environ.get("ANUBIS_TEST_GODOT"):
+        from godot_gate import run
+        report = root / "godot-report.json"
+        assert run(src, out, 128, Path(os.environ["ANUBIS_TEST_GODOT"]), report) == 0
+        result = load(report)
+        assert result["passed"] == 1 and result["failed"] == 0
+        assert len(result["rows"][0]["files"]) == 4
     print("Blender fixture refinement, texture bake and resume passed")
