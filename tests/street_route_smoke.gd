@@ -69,6 +69,18 @@ func _verify() -> void:
 			_fail("Bidirectional street distances must be symmetric")
 			return
 	var taxi:=preload("res://scripts/taxi_job.gd").new()
+	var rider:=preload("res://scripts/taxi_waiting_rider.gd").new()
+	root.add_child(rider)
+	var waiting:=taxi.waiting_point(taxi.offer(0))
+	rider.show_rider(0,"Nina",waiting)
+	if not rider.visible or rider.global_position!=waiting or rider.find_children("*","Skeleton3D",true,false).size()!=1 or not rider.find_children("*","CollisionShape3D",true,false).is_empty():
+		_fail("Taxi waiting rider uses an actual weighted rig without crowd collision")
+		return
+	rider.hide_rider()
+	if rider.visible:
+		_fail("Taxi boarding removes curbside visual")
+		return
+	rider.queue_free()
 	var taxi_ledger:=preload("res://scripts/progression_ledger.gd").new()
 	for run in range(3):
 		var offer:=taxi.offer(run)

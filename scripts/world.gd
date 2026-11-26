@@ -33,6 +33,9 @@ const CargoCase=preload("res://scripts/freight_cargo_case.gd")
 var _freight_case: Node3D
 const TaxiJob=preload("res://scripts/taxi_job.gd")
 var _taxi:=TaxiJob.new()
+const TaxiRider=preload("res://scripts/taxi_waiting_rider.gd")
+var _taxi_rider:Node3D
+var _taxi_visual_timer:=0.0
 const Arsenal = preload("res://scripts/arsenal.gd")
 const Wanted = preload("res://scripts/wanted_system.gd")
 const PoliceDispatch = preload("res://scripts/police_dispatch.gd")
@@ -1480,6 +1483,7 @@ func _physics_process(delta: float) -> void:
 	_update_combat(delta)
 	_update_freight(delta)
 	_update_taxi(delta)
+	_update_taxi_waiting_rider(delta)
 	if not courier_mission.gig_economy and not indoors and current_transit == null and actor.global_position.distance_to(mission_position) < CourierMission.RADIUS:
 		_advance_mission()
 	if (actor.global_position.y < -15.0 or not indoors and
@@ -1647,6 +1651,8 @@ func _taxi_interact()->void:
 		_notify("Taxi / civilian Kestrel required, no police attention.")
 		return
 	if _taxi.begin(progression.taxi_runs,at,id,condition,speed):
+		if is_instance_valid(_taxi_rider):
+			_taxi_rider.call("hide_rider")
 		ambient_caption.call("present",str(_taxi.route["rider"]),str(_taxi.route["request"]))
 		set_navigation_waypoint(_taxi.route["drop"])
 		_notify("TAXI / %s • passenger fare started"%_taxi.route["name"])
@@ -1663,6 +1669,27 @@ func _update_taxi(delta:float)->void:
 	var at:=Vector2(current_car.global_position.x,current_car.global_position.z)
 	if not _taxi.tick(at,current_car.get_instance_id(),float(current_car.get("condition")),delta):
 		_notify("Taxi fare failed / retry at pickup.")
+
+func _update_taxi_waiting_rider(delta:float)->void:
+	_taxi_visual_timer+=delta
+	if _taxi_visual_timer<.25:
+		return
+	_taxi_visual_timer=0.0
+	var offer:=TaxiJob.offer(progression.taxi_runs)
+	if _taxi.active or _freight.active or _driving_trial.active or offer.is_empty() or not phone_available() or interiors.call("is_inside") or current_transit!=null:
+		if is_instance_valid(_taxi_rider):
+			_taxi_rider.call("hide_rider")
+		return
+	var point:=TaxiJob.waiting_point(offer)
+	if _actor().global_position.distance_squared_to(point)>42.0*42.0:
+		if is_instance_valid(_taxi_rider):
+			_taxi_rider.call("hide_rider")
+		return
+	if not is_instance_valid(_taxi_rider):
+		_taxi_rider=TaxiRider.new()
+		_taxi_rider.name="WaitingTaxiRider"
+		add_child(_taxi_rider)
+	_taxi_rider.call("show_rider",progression.taxi_runs,str(offer["rider"]),point)
 
 func _actor() -> Node3D:
 	if current_transit != null:
@@ -2284,6 +2311,8 @@ func _reset_pursuit_runtime() -> void:
 	police_cooldown = 0.0
 
 func _respawn() -> void:
+	if is_instance_valid(_taxi_rider):
+		_taxi_rider.call("hide_rider")
 	_taxi.cancel()
 	_cancel_freight()
 	_garden_trail_mask=0
@@ -2736,6 +2765,8 @@ func _capture_snapshot() -> Dictionary:
 	return state
 
 func _apply_snapshot(data: Dictionary) -> void:
+	if is_instance_valid(_taxi_rider):
+		_taxi_rider.call("hide_rider")
 	_taxi.cancel()
 	_cancel_freight()
 	_garden_trail_mask=0
