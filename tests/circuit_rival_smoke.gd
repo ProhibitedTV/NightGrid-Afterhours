@@ -15,13 +15,13 @@ func _initialize()->void:
 		var prior:=rival.position
 		for step in range(120):
 			rival.tick(1.0/60.0,true)
-		if rival.position!=prior or rival.speed!=0.0:
+		if rival.position!=prior or rival.speed!=0.0 or rival.travel!=0.0:
 			_fail("Blocked rival must not advance")
 			return
 		for step in range(7200):
 			prior=rival.position
 			rival.tick(1.0/60.0,false)
-			if rival.position.distance_to(prior)>Rival.MAX_SPEED/60.0+.001 or Route.road_anchor(rival.position).distance_to(rival.position)>5.0:
+			if rival.position.distance_to(prior)>Rival.MAX_SPEED/60.0+.001 or not is_equal_approx(rival.travel,rival.position.distance_to(prior)) or absf(rival.steer)>1.0 or Route.road_anchor(rival.position).distance_to(rival.position)>5.0:
 				_fail("Bounded rival remains on the road")
 				return
 			if rival.finished:

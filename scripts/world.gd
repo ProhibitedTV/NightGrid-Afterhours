@@ -24,6 +24,7 @@ var _driving_trial := DrivingTrial.new()
 var _trial_beacon: Node3D
 var _trial_beacon_label: Label3D
 var _trial_ghost: Node3D
+var _trial_rival_visual:Node3D
 const CircuitRival=preload("res://scripts/circuit_rival.gd")
 var _circuit_rival:=CircuitRival.new()
 const HorizonTrail=preload("res://scripts/horizon_commons_garden.gd")
@@ -1493,7 +1494,7 @@ func _physics_process(delta: float) -> void:
 		_respawn()
 	_update_driving_trial(delta)
 	_sync_trial_beacon()
-	_sync_trial_ghost()
+	_sync_trial_ghost(delta)
 	_update_wanted(delta)
 	_update_ambient_civic(delta)
 	_update_civic_patrols(delta)
@@ -1542,9 +1543,8 @@ func _update_driving_trial(delta:float)->void:
 		var record:=progression.record_circuit_time(_driving_trial.elapsed,course)
 		var paid:=progression.credit_once(_driving_trial.receipt(),_driving_trial.reward())
 		var best:=progression.brickwater_best_ms if course==DrivingTrial.BRICK else progression.circuit_best_ms
-		_notify("%s / %.2fs%s%s%s"%[DrivingTrial.name_for(course),_driving_trial.elapsed," / PERSONAL BEST" if record else ""," / PACE BEATEN" if _driving_trial.elapsed<_driving_trial.pace_time() else ""," +$%d"%_driving_trial.reward() if paid else " / practice finish"])
 		var won:=not _circuit_rival.finished or _driving_trial.elapsed<=_circuit_rival.elapsed
-		_notify("RIVAL / %s"%("FIRST TO FINISH" if won else "RIVAL FINISHED FIRST"))
+		_notify("%s / %.2fs / %s%s%s%s"%[DrivingTrial.name_for(course),_driving_trial.elapsed,"FIRST" if won else "SECOND"," / PERSONAL BEST" if record else ""," / PACE BEATEN" if _driving_trial.elapsed<_driving_trial.pace_time() else ""," +$%d"%_driving_trial.reward() if paid else " / practice finish"])
 		_log_playtest("driving_trial_finish",{"course":course,"seconds":_driving_trial.elapsed,"paid":paid,"personal_best":record,"best_ms":best,"pace_beaten":_driving_trial.elapsed<_driving_trial.pace_time(),"rival_finished":_circuit_rival.finished,"rival_seconds":_circuit_rival.elapsed,"rival_beaten":won})
 	elif not outcome.is_empty():
 		_notify(DrivingTrial.name_for(_driving_trial.course_id)+" / "+outcome)
@@ -4746,6 +4746,7 @@ func _create_trial_ghost()->void:
 	_trial_ghost.name="CircuitRoadRival"
 	var visual:=RoadCarVisual.new()
 	visual.configure_founder_display()
+	_trial_rival_visual=visual
 	_trial_ghost.add_child(visual)
 	add_child(_trial_ghost)
 	var label:=Label3D.new()
@@ -4761,7 +4762,7 @@ func _tick_circuit_rival(delta:float)->void:
 	if not _circuit_rival.active:
 		return
 	var at:=_circuit_rival.position
-	var forward:=_circuit_rival.heading
+	var forward:=_circuit_rival.desired_heading()
 	var right:=Vector2(-forward.y,forward.x)
 	var distance:=4.5+_circuit_rival.speed*.55
 	var space:=get_world_3d().direct_space_state
@@ -4777,19 +4778,23 @@ func _tick_circuit_rival(delta:float)->void:
 			break
 	_circuit_rival.tick(delta,blocked)
 
-func _sync_trial_ghost()->void:
+func _sync_trial_ghost(delta:float)->void:
 	if not _driving_trial.active or not _circuit_rival.active:
 		if not _driving_trial.active:
 			_circuit_rival.stop()
 		if is_instance_valid(_trial_ghost):
 			_trial_ghost.hide()
 		return
-	if not is_instance_valid(_trial_ghost):
+	var newly_visible:=not is_instance_valid(_trial_ghost)
+	if newly_visible:
 		_create_trial_ghost()
 	var at:=_circuit_rival.position
 	var forward:=_circuit_rival.heading
 	_trial_ghost.position=Vector3(at.x,.825,at.y)
-	_trial_ghost.rotation.y=atan2(-forward.x,-forward.y)
+	var yaw:=atan2(-forward.x,-forward.y)
+	var steer:=clampf(-angle_difference(_trial_ghost.rotation.y,yaw)*2.0,-1.0,1.0)
+	_trial_ghost.rotation.y=yaw if newly_visible or _driving_trial.elapsed<.1 else rotate_toward(_trial_ghost.rotation.y,yaw,delta*3.6)
+	_trial_rival_visual.call("update_display_motion",_circuit_rival.travel,steer,delta)
 	_trial_ghost.visible=_actor().global_position.distance_squared_to(_trial_ghost.global_position)<100.0*100.0
 
 func _build_hud() -> void:
