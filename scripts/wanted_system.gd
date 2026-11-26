@@ -46,8 +46,11 @@ func report(heat: float, reason: String, where: Vector3, officer: bool) -> float
 	return report_heat(heat, reason, officer)
 
 func observe(heat: float, where: Vector3, witness: Dictionary, drawn: bool, delta: float) -> float:
-	seen = bool(witness.get("any", false))
+	# A rejected observation must not poison timers or move the search target.
+	if not where.is_finite() or not is_finite(delta) or delta <= 0.0:
+		return heat
 	police_seen = bool(witness.get("police", false))
+	seen = police_seen or bool(witness.get("any", false))
 	report_cooldown = maxf(0.0, report_cooldown - delta)
 	if drawn and seen:
 		exposure += delta
@@ -109,6 +112,8 @@ func reset() -> void:
 	last_ray_count = 0
 
 static func in_view(eye: Vector3, facing: Vector3, target: Vector3, reach: float) -> bool:
+	if not eye.is_finite() or not facing.is_finite() or not target.is_finite() or not is_finite(reach) or reach <= 0.0:
+		return false
 	var gap := target - eye
 	if gap.length_squared() > reach * reach:
 		return false
