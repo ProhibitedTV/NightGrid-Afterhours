@@ -9,7 +9,7 @@ From the original repo, fetch the refinement branch and create a separate worktr
     git fetch origin tools/anubis-refinement-v1
     git -c core.autocrlf=false worktree add --detach "%USERPROFILE%\Desktop\NightGrid-Refine" FETCH_HEAD
     cd /d "%USERPROFILE%\Desktop\NightGrid-Refine"
-    wsl -d Ubuntu -- sudo apt install blender
+    wsl -d Ubuntu -- sudo apt install blender python3-numpy
     wsl -d Ubuntu -- bash tools/asset_refinement/run_refine.sh --limit 1
 
 After reviewing the smoke result, repeat without --limit for the available completed meshes. No completed mesh is regenerated if the input hashes, script, settings, Blender version and output hashes match. Re-running picks up newly completed candidates. No automatic watcher. Do not remove a stale .refinement.lock until no refinement process is active.
