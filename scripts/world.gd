@@ -1641,7 +1641,7 @@ func _update_freight(delta:float)->void:
 	var at:=Vector2(current_car.global_position.x,current_car.global_position.z)
 	if not _freight.tick(at,current_car.get_instance_id(),float(current_car.get("condition")),delta):
 		_cancel_freight()
-		_notify("Freight lost / retry at pickup.")
+		_notify("FREIGHT / "+_freight.failure_reason+" Retry at pickup.")
 
 func _taxi_interaction_available()->bool:
 	if current_car==null:
@@ -1707,7 +1707,7 @@ func _update_taxi(delta:float)->void:
 	var at:=Vector2(current_car.global_position.x,current_car.global_position.z)
 	if not _taxi.tick(at,current_car.get_instance_id(),float(current_car.get("condition")),delta):
 		_cancel_taxi()
-		_notify("Taxi fare failed / retry at pickup.")
+		_notify("TAXI / "+_taxi.failure_reason+" Retry at pickup.")
 
 func _show_taxi_arrival()->void:
 	var point:=TaxiJob.arrival_point(_taxi.route)
