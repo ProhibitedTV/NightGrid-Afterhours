@@ -23,6 +23,7 @@ var course_id := SOUTH
 var active := false
 var index := 0
 var elapsed := 0.0
+var last_gate_elapsed := 0.0
 var vehicle_id := 0
 var previous := Vector2.ZERO
 var result := ""
@@ -86,7 +87,7 @@ func pace_split()->float:
 		if i<index:
 			passed=total
 		prior=gate
-	return elapsed-pace_time()*passed/total
+	return last_gate_elapsed-pace_time()*passed/total
 
 func time_limit()->float:
 	return BRICK_LIMIT if course_id==BRICK else LIMIT
@@ -104,6 +105,7 @@ func start(at:Vector2,id:int,condition:float,speed:float)->bool:
 	active=true
 	index=0
 	elapsed=0.0
+	last_gate_elapsed=0.0
 	vehicle_id=id
 	previous=at
 	result=""
@@ -162,6 +164,7 @@ func tick(delta:float,at:Vector2,id:int,condition:float)->String:
 	var checkpoints:=gates()
 	if at.distance_to(checkpoints[index])<=RADIUS:
 		index+=1
+		last_gate_elapsed=elapsed
 		if index==checkpoints.size():
 			stop("COMPLETE")
 			return result
@@ -172,4 +175,5 @@ func status(at:Vector2)->String:
 	if not active:
 		return ""
 	var next:Vector2=gates()[index]
-	return "%s / %d/%d • %ds • %dm %s"%[name_for(course_id).to_upper(),index,gates().size(),ceili(time_limit()-elapsed),roundi(at.distance_to(next)),preload("res://scripts/navigation_waypoint.gd").bearing(at,next)]
+	var split := " • SPLIT %+.1fs"%pace_split() if index>0 else ""
+	return "%s / %d/%d • %.1fs elapsed • %ds left • %dm %s%s"%[name_for(course_id).to_upper(),index,gates().size(),elapsed,ceili(time_limit()-elapsed),roundi(at.distance_to(next)),preload("res://scripts/navigation_waypoint.gd").bearing(at,next),split]
