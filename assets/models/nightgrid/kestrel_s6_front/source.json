@@ -13,7 +13,7 @@
   "author": "NightGrid Afterhours",
   "source": "tools/author_kestrel_fascia.py",
   "license": "Original NightGrid project artwork. No separate public license declared.",
-  "concept": "docs/art/concepts/kestrel_s6/jade_wash_approved_direction.png",
+  "concept": "docs/art/concepts/kestrel_s6/jade_wash_approved_direction.jpg",
   "concept_sha256": "cfb3ca8338a7b34aff3bafe41cefbf7348e295cd3421cdc0c0ae7071e07da119",
   "files": {
     "fascia_lod0.gltf": "d83c1314daa3a8018d7894838497b9151617679d5d6260e7d24ceb6177303036",
