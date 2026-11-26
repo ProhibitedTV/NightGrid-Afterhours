@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Anubis local audio driver. One model at a time; no automatic approval."""
+"""Anubis local audio driver. One model at a time; explicit opt-in provisional playtest acceptance."""
 import argparse
 import os
 from pathlib import Path
@@ -125,7 +125,7 @@ def ensure_casts(args,specs,selected,pins):
                 raise ValueError("Review notes are required")
             take=options[int(answer)-1].name
         run("studio.py","approve","--manifest",args.manifest,"--id",ident,"--take",take,
-            "--reviewer",args.reviewer,"--notes",notes,"--rights-checked")
+            "--reviewer",("Anubis automated playtest QC" if args.auto_playtest else args.reviewer),"--notes",notes,"--rights-checked")
         run("production.py","lock","--manifest",args.manifest,"--id",ident,"--take",take)
     outstanding=[c for c in missing if not (production.CAST/c).exists()]
     if outstanding:
@@ -186,7 +186,10 @@ def bake(args,specs,selected):
         print("Playtest takes staged:", passed)
         print("Flagged for review:", flagged)
     run("chapter.py","status","--manifest",args.manifest)
-    print("Candidates ready for explicit listening review; nothing published automatically.")
+    if args.auto_playtest:
+        print("Machine-QC accepted assets staged for playtest; human release review pending.")
+    else:
+        print("Candidates ready for explicit listening review; nothing published automatically.")
 
 
 SFX_SCRIPT=studio.ROOT/"tools/audio/generate_sfx.py"

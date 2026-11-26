@@ -1,0 +1,7 @@
+# Voice provenance hashes cover exact JSON bytes; keep LF on all platforms.
+assets/audio/voiced/**/take.json text eol=lf
+assets/audio/voiced/**/qc.json text eol=lf
+assets/audio/voiced/**/review.json text eol=lf
+tools/voice/cast-library/**/*.json text eol=lf
+tools/voice/model-pins.json text eol=lf
+*.wav binary

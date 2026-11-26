@@ -107,3 +107,12 @@ Start a New World after backing up saves. Follow the [RC7 chapter acceptance rou
 
 ### Office evidence capture (stabilization follow-up)
 F7 markers and F8 frame traces are enabled during the prologue. F10 records a clean viewport outside arrival/lift transitions; office objective UI is hidden for the captured frame. JSON includes exact build revision and chapter floor/stage. The frame sampler measures callback intervals in the office as well as outside. This follow-up is intended for review without moving the current RC7 release tip until its queued validation completes.
+
+## Anubis dialogue batch 001 — development playtest (2026-11-26)
+
+For PR #432, choose the successful Windows playtest artifact for its exact **PR head**, rather than the older main or public beta. Or import the checked-out project in native Godot 4.7.2. No speech model or WSL is required to play the game.
+
+- 78 accepted clips: 24 Synaxis and 54 street/venue; 10 still missing and use captions. The 14 synthetic references are authoring-only.
+- Start a fresh world after backing up existing saves. Listen to the opening conference, Mandarin call with English captions, breakroom and offboarding; test skip/pause, dialogue volume and timing. In Morrow Bay, test ambient NPCs, paired exchanges, interactive topics and venue dialogue; check range, competing audio and streaming transitions.
+- Note cue ID or speaker, location, issue and F7/F8 evidence where applicable. Evaluate in context; no obligation to audition every WAV. Missing clips are expected, not broken audio, if captions appear and gameplay proceeds.
+- Machine QC is not human release approval. Ten flags remain, and release review remains pending. Do not publish a beta from this candidate until the separate release gate and acceptance work are resolved.

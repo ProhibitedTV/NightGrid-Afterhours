@@ -132,6 +132,23 @@ class ProductionTests(unittest.TestCase):
         studio.write_json(folder / "review.json", review)
         production.publish(folder, self.library / self.spec["line"]["id"], self.spec, self.cast)
 
+    def test_provisional_review_not_release_approval(self):
+        folder = self.make_take()
+        self.review(folder)
+        review = production.load(folder / "review.json")
+        review["reviewer"] = "Anubis automated playtest QC"
+        review["notes"] = "Machine QC passed; human listening review pending."
+        studio.write_json(folder / "review.json", review)
+        production.publish(folder, self.library / self.spec["line"]["id"], self.spec, self.cast)
+        self.assertEqual(production.verify_library(self.specs, self.library), 1)
+        with self.assertRaisesRegex(ValueError, "not release-reviewed"):
+            production.verify_release_reviews(self.specs, self.library)
+        self.assertTrue(production.provisional_review({
+            "reviewer": "Creative director",
+            "notes": "Automated playtest cast selection; PCM verified. Human listening review pending."
+        }))
+        self.assertFalse(production.provisional_review({"reviewer": "Director", "notes": "Listened"}))
+
     def test_no_partial_destination(self):
         dest = self.root / "broken"
         def fail(stage):

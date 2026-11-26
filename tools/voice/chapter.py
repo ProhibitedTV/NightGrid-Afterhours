@@ -175,8 +175,10 @@ def main():
         for row in rows:
             print(row["state"].ljust(14),row["id"],row["character"])
         print("Coverage:",counts)
-    if args.action=="require-complete" and counts.get("published",0)!=len(specs):
-        raise SystemExit("Required chapter dialogue is incomplete")
+    if args.action=="require-complete":
+        if counts.get("published",0)!=len(specs):
+            raise SystemExit("Required chapter dialogue is incomplete")
+        production.verify_release_reviews(specs)
 
 
 if __name__=="__main__":

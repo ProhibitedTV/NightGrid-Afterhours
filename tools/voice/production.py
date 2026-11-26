@@ -150,6 +150,22 @@ def verify_library(specs, root=PUBLISHED):
     return count
 
 
+def provisional_review(review):
+    """Recognize the original batch and future unattended playtest reviews."""
+    return (review.get("reviewer") == "Anubis automated playtest QC"
+            or "human listening review pending" in review.get("notes", "").casefold())
+
+
+def verify_release_reviews(specs, root=PUBLISHED):
+    """Never confuse machine acceptance with human release approval."""
+    count = verify_library(specs, root)
+    for folder in sorted(root.iterdir()) if root.exists() else ():
+        record = load(folder / "take.json")
+        if provisional_review(load(folder / "review.json")) or provisional_review(record["cast"]["review"]):
+            raise ValueError("Provisional playtest dialogue is not release-reviewed: " + folder.name)
+    return count
+
+
 def generate(args, specs):
     if not args.revision or not studio.REV.fullmatch(args.revision):
         raise ValueError("Use exact Base model revision")
@@ -227,11 +243,12 @@ def main():
     parser.add_argument("--rights-checked", action="store_true")
     parser.add_argument("--qc-override", help="Specific listening-based justification for QC flags")
     parser.add_argument("--manifest", type=Path, default=studio.MANIFEST)
+    parser.add_argument("--release-reviewed", action="store_true", help="Reject provisional machine acceptance when verifying a library")
     parser.add_argument("--result-file", type=Path, help="Write exact generated candidate IDs and fingerprints")
     args = parser.parse_args()
     specs = studio.read_manifest(args.manifest)
     if args.action == "verify-library":
-        print("Verified published lines:", verify_library(specs))
+        print("Verified published lines:", (verify_release_reviews if args.release_reviewed else verify_library)(specs))
         return
     if not args.id or any(i not in specs for i in args.id):
         parser.error("Select known --id values")
