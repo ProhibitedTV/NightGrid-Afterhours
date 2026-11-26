@@ -215,8 +215,18 @@ func _verify() -> void:
 	if not trial.active or trial.index!=1 or not trial.on_course(approach) or not trial.on_course(corner+Vector2(-3,-5)):
 		_fail("Normal lane approach and early checkpoint turn remain valid")
 		return
+	var checkpoint_split:float=trial.pace_split()
+	var checkpoint_elapsed:float=trial.last_gate_elapsed
+	for frame in range(60):
+		trial.tick(1.0/60.0,approach,1,100.0)
+	if not trial.active or trial.elapsed<checkpoint_elapsed+0.9 or trial.pace_split()!=checkpoint_split or not trial.status(approach).contains("SPLIT"):
+		_fail("Completed checkpoint split remains fixed while race clock advances")
+		return
 	trial.stop("ABANDONED")
 	trial.start(trial.START,1,100.0,0.0)
+	if trial.last_gate_elapsed!=0.0 or trial.pace_split()!=0.0 or trial.status(trial.START).contains("SPLIT"):
+		_fail("Restart resets split timing")
+		return
 	var pos:Vector2=trial.START
 	for gate in trial.GATES:
 		if Route.road_anchor(gate)!=gate:
@@ -227,6 +237,9 @@ func _verify() -> void:
 			trial.tick(1.0/60.0,pos,1,100.0)
 	if trial.result!="COMPLETE" or trial.active or trial.index!=trial.GATES.size():
 		_fail("All authored checkpoints must settle in sequence")
+		return
+	if not is_equal_approx(trial.pace_split(),trial.elapsed-trial.pace_time()):
+		_fail("Final checkpoint split matches finish time")
 		return
 	var ledger:=preload("res://scripts/progression_ledger.gd").new()
 	if not ledger.credit_once(trial.RECEIPT,trial.REWARD) or ledger.credit_once(trial.RECEIPT,trial.REWARD) or ledger.balance!=90:
