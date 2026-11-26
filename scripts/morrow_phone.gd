@@ -95,7 +95,14 @@ static func view(id: String, state: Dictionary) -> Dictionary:
 			rows.append({"label":"Contacts","value":str(state.get("music_contact",""))})
 			rows.append({"label":"Street sets","value":str(state.get("music_sets",0))})
 			rows.append({"label":"Live gigs","value":str(state.get("live_sets",0))})
+			var merch := str(state.get("music_merch",""))
+			if not merch.is_empty():
+				rows.append({"label":"Band merchandise","value":merch})
 			actions.append({"label":"Route to Copper Cup music desk","action":"phone_route_music_shop"})
+			if bool(state.get("music_recruit_milo",false)):
+				actions.append({"label":"Meet Milo Static at Dock Nine","action":"phone_route_music_milo"})
+			if bool(state.get("music_showcase",false)):
+				actions.append({"label":"Route to Static Room headline showcase","action":"phone_route_music_showcase"})
 			if bool(state.get("music_unlocked",false)):
 				actions.append({"label":"Route to Blue Hour","action":"phone_route_music_gig"})
 			elif bool(state.get("music_contact_available",false)):
