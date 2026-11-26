@@ -118,6 +118,9 @@ func _ready() -> void:
 	_solid("EastWallNorth",Vector3(8.5,1.75,-3.325),Vector3(.25,3.5,13.35),wall)
 	_solid("EastWallSouth",Vector3(8.5,1.75,7.825),Vector3(.25,3.5,4.35),wall)
 	_solid("CampusEntryHeader",Vector3(8.5,3.025,4.50),Vector3(.25,.95,2.30),wall)
+	for z in [3.35,5.65]:
+		_visual("CampusEntryJamb",Vector3(8.5,1.275,z),Vector3(.34,2.55,.09),accent)
+	_visual("CampusEntryThreshold",Vector3(8.5,.012,4.5),Vector3(.42,.015,2.30),accent)
 	_build_campus_podium(wall,floor_mat,desk,accent)
 	# Leave a physical turning vestibule behind the security gate.
 	var partition_length: float=Arrival.PARTITION_FAR_Z-Arrival.PARTITION_NEAR_Z
@@ -547,6 +550,9 @@ func _build_campus_podium(wall:Material,floor_mat:Material,desk:Material,accent:
 	_plaque("EMPLOYEE LOUNGE",Vector3(22,2.88,6.14),PI,Vector2(1.8,.30))
 	_plaque("BREAKROOM",Vector3(16.89,2.88,20.5),-PI/2,Vector2(1.8,.30))
 	_plaque("MAIN OFFICE / ELEVATORS",Vector3(8.65,2.98,4.50),PI/2,Vector2(2.18,.30))
+	_plaque("← ELEVATORS / MAIN OFFICE",Vector3(17.0-.105,2.30,15.6),-PI/2,Vector2(2.4,.32))
+	_plaque("← MAIN OFFICE",Vector3(19.8,2.30,3.36),0,Vector2(1.9,.32))
+	_plaque("BREAKROOM →",Vector3(14.0+.105,2.30,17.0),PI/2,Vector2(1.8,.32))
 	# Furnished destinations rather than an empty enlarged shell.
 	for at in [Vector3(13.5,0,-1.3),Vector3(24.0,0,-1.3)]:
 		_solid("CampusMeetingTable",at+Vector3.UP*.47,Vector3(4.2,.94,1.5),desk)

@@ -101,8 +101,11 @@ func _architecture() -> void:
 				_part("interior","steel",Vector3(-8.32,.09,(bounds.x+bounds.y)*.5),Vector3(.055,.18,bounds.y-bounds.x))
 				_part("interior","trim",Vector3(-8.30,.19,(bounds.x+bounds.y)*.5),Vector3(.06,.025,bounds.y-bounds.x))
 		else:
-			_part("interior","steel",Vector3(side*8.32,.09,0),Vector3(.055,.18,19.7))
-			_part("interior","trim",Vector3(side*8.30,.19,0),Vector3(.06,.025,19.7))
+			# East portal at z3.35..5.65: do not render skirting across it.
+			for span in [Vector2(-9.85,3.35),Vector2(5.65,9.85)]:
+				var bounds:Vector2=span
+				_part("interior","steel",Vector3(8.32,.09,(bounds.x+bounds.y)*.5),Vector3(.055,.18,bounds.y-bounds.x))
+				_part("interior","trim",Vector3(8.30,.19,(bounds.x+bounds.y)*.5),Vector3(.06,.025,bounds.y-bounds.x))
 	_part("interior","steel",Vector3(0,.09,9.82),Vector3(16.7,.18,.05))
 	_part("interior","steel",Vector3(4.9,.09,-9.82),Vector3(7,.18,.05))
 	_part("interior","steel",Vector3(-4.9,.09,-9.82),Vector3(7,.18,.05))

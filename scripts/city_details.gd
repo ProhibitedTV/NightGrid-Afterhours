@@ -259,7 +259,7 @@ func _count_loaded_buildings() -> int:
 	for key in _loaded:
 		var grid: Vector2i = key
 		if WorldPlan.landmark_for_block(grid.x, grid.y).is_empty():
-			count += 2
+			count += 1 if grid==SynaxisHQ.BLOCK else 2
 	return count
 
 func set_streaming_enabled(value: bool) -> void:
@@ -720,6 +720,8 @@ func _build_block_shells(ix: int, iz: int) -> void:
 		_build_building(Vector3(x, 0.0, z), profile, district, ix, iz, which, true)
 
 func _build_block_lot(ix: int, iz: int, which: int) -> void:
+	if Vector2i(ix,iz)==SynaxisHQ.BLOCK and which!=SynaxisHQ.LOT:
+		return # consolidated lot is owned by the single HQ scene
 	var center := Vector3((float(ix) + 0.5) * CELL, 0.0, (float(iz) + 0.5) * CELL)
 	var profile := _block_lot_profile(ix, iz, which)
 	if (not WorldPlan.is_core_block(ix, iz)) or WorldPlan.lot_variant_index(ix, iz, world_seed) > 0:

@@ -42,7 +42,7 @@ func _verify() -> void:
 	if int(initial["loaded_blocks"]) > 25 or int(initial["loaded_blocks"]) < 16:
 		_fail("Expected 5x5 downtown streaming window, not the full city: %s" % initial)
 		return
-	if int(initial["total_blocks"]) != 64 or int(initial["loaded_buildings"]) >= 112:
+	if int(initial["total_blocks"]) != 64 or int(initial["loaded_buildings"]) >= 111:
 		_fail("The new streaming radius still constructs the entire city")
 		return
 	var stable_key := Vector2i(-2, -2)
@@ -73,8 +73,8 @@ func _verify() -> void:
 	if original_shape != _block_shape_summary(new_chunk):
 		_fail("Revisiting a district rerolled its building or decorative geometry")
 		return
-	if int(city.call("get_city_stats")["authored_lots"]) != 112:
-		_fail("Streaming changed the immutable building layout contract")
+	if int(city.call("get_city_stats")["authored_lots"]) != 111:
+		_fail("Streaming changed the consolidated 111-building layout contract")
 		return
 	# Populate enough cash for a local purchase, then enter the North Quay grocer.
 	world.set("cash", 240)

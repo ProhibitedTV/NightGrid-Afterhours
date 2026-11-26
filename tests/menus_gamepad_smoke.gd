@@ -970,6 +970,24 @@ func _verify() -> void:
 		if not bounds.within_chapter_bounds(at,0,false,false):
 			_fail("Campus corridor rejected by chapter containment")
 			return
+	# Verify real static collision, not only the allowed-region predicate.
+	await physics_frame
+	var campus_route:Array[Vector3]=[Vector3(7.1,1.15,4.5),Vector3(15.5,1.15,4.5),Vector3(15.5,1.15,20.5),Vector3(18.5,1.15,20.5),Vector3(23,1.15,20.5),breakroom_hq.BREAKROOM_POINT]
+	var campus_space:PhysicsDirectSpaceState3D=office.get_world_3d().direct_space_state
+	for i in range(campus_route.size()-1):
+		var from:Vector3=campus_route[i]
+		var to:Vector3=campus_route[i+1]
+		var side:Vector3=(to-from).normalized().cross(Vector3.UP)*.32
+		for offset in [-side,Vector3.ZERO,side]:
+			var query:=PhysicsRayQueryParameters3D.create(office.to_global(from+offset),office.to_global(to+offset),1,[player.get_rid()])
+			var hit:=campus_space.intersect_ray(query)
+			if not hit.is_empty():
+				_fail("Actual campus route blocked at segment %d by %s" % [i,hit["collider"]])
+				return
+	var wall_query:=PhysicsRayQueryParameters3D.create(office.to_global(Vector3(15.5,1.15,18.5)),office.to_global(Vector3(18.5,1.15,18.5)),1,[player.get_rid()])
+	if campus_space.intersect_ray(wall_query).is_empty():
+		_fail("Breakroom wall must physically separate it from corridor")
+		return
 	if bounds.within_chapter_bounds(Vector3(30,1.15,23),0,true,false) or bounds.within_chapter_bounds(Vector3(23,4.8,20),1,true,false):
 		_fail("Campus cannot authorize street or nonexistent upper floor")
 		return

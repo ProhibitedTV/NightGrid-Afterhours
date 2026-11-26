@@ -19,7 +19,7 @@ func _check() -> void:
 		return
 	var stats: Dictionary = city.call("get_city_stats")
 	if int(stats.get("buildings", 0)) != 111:
-		push_error("Expected 112 authored building shells, got %s" % stats)
+		push_error("Expected 111 authored buildings after the HQ lot consolidation, got %s" % stats)
 		quit(1)
 		return
 	if int(stats.get("storefronts", 0)) != 111:
