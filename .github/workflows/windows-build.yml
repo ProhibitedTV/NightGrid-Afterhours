@@ -6,6 +6,11 @@ on:
     # The release gate requires an exact main SHA, including test-only changes.
     branches: [main]
 
+# A newer PR head replaces obsolete validation; main revisions stay independent.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
