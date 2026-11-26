@@ -27,6 +27,11 @@ var _style := 0
 var _model: PackedScene
 var _activity := "WALK"
 var _animation_elapsed := 0.0
+const MusicPose = preload("res://scripts/music_performance_pose.gd")
+var _music_bindings: Array[Dictionary] = []
+var _music_role := ""
+var _music_phase := 0.0
+var _music_restore: Dictionary = {}
 static var _materials_by_source := {}
 static var _street_surface_by_source := {}
 
@@ -59,6 +64,7 @@ func _ready() -> void:
 		_apply_street_surface()
 	_build_variants()
 	_valid = true
+	_music_bindings = MusicPose.bind(_skeleton)
 	set_pedestrian_style(_style)
 	_player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 	_player.play(idle_clip)
@@ -136,8 +142,22 @@ func set_locomotion(speed: float) -> void:
 func set_activity(activity: String) -> void:
 	_activity = activity
 
+func set_music_performance(role: String) -> bool:
+	clear_music_performance()
+	if not _valid or not is_processing() or _music_bindings.size()!=2 or role not in MusicPose.ROLES:
+		return false
+	_music_role=role
+	return true
+
+func clear_music_performance() -> void:
+	MusicPose.restore(_skeleton,_music_restore)
+	_music_restore.clear()
+	_music_role=""
+	_music_phase=0.0
+
 ## Reset pooled animation so previous occupant's stride is not inherited.
 func reset_pedestrian_visual() -> void:
+	clear_music_performance()
 	_measured_speed = 0.0
 	_filtered_speed = 0.0
 	_activity = "WALK"
@@ -151,6 +171,7 @@ func reset_pedestrian_visual() -> void:
 func pose_taxi_seated()->Dictionary:
 	if not _valid:
 		return {}
+	clear_music_performance()
 	_player.stop()
 	set_process(false)
 	var pose:=preload("res://scripts/taxi_seated_pose.gd").apply(_skeleton,self)
@@ -190,7 +211,12 @@ func _process(delta: float) -> void:
 			interval = 1.0 / 24.0
 	_animation_elapsed += delta
 	if _animation_elapsed >= interval:
+		MusicPose.restore(_skeleton,_music_restore)
+		_music_restore.clear()
 		_player.advance(_animation_elapsed)
+		if not _music_role.is_empty() and not _walking:
+			_music_phase=fposmod(_music_phase+_animation_elapsed,1.0)
+			_music_restore=MusicPose.apply(_skeleton,self,_music_bindings,_music_role,_music_phase)
 		_animation_elapsed = 0.0
 
 func animation_state() -> Dictionary:
