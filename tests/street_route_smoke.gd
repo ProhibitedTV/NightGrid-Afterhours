@@ -88,8 +88,8 @@ func _verify() -> void:
 			_fail("Imported taxi rider must support the seated pose: %d"%style)
 			return
 		rider.hide_rider()
-		if rider.is_seated() or rider.get_parent()!=root or rider.scale!=Vector3.ONE:
-			_fail("Seated rider lifecycle restores standing parent and scale")
+		if rider.is_seated() or rider.get_parent()!=root or not rider.scale.is_equal_approx(Vector3.ONE) or not rider.transform.basis.is_equal_approx(Basis.IDENTITY):
+			_fail("Seated rider lifecycle restores standing parent and scale: style %d seated %s parent %s scale %s"%[style,str(rider.is_seated()),str(rider.get_parent()),str(rider.scale)])
 			return
 	seat_car.queue_free()
 	var arrival:=taxi.arrival_point(taxi.offer(0))

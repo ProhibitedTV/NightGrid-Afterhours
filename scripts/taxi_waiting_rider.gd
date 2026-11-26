@@ -1,7 +1,7 @@
 extends Node3D
 ## One reusable visual rider at the authored sidewalk waiting position.
-## No crowd lease, collision or fake seated animation. Boarding uses a
-## temporary caption-only transition until the passenger rig is authored.
+## No crowd lease or collision. Seated pose is provisional; actual boarding
+## and alighting transitions remain caption-only.
 const Visual=preload("res://scripts/pedestrian_rig_visual.gd")
 const MODELS=[
 	preload("res://assets/models/nightgrid/pedestrians/casual-walker.glb"),
@@ -36,6 +36,7 @@ func show_rider(style:int,rider:String,point:Vector3)->void:
 	if selected!=_style:
 		if is_instance_valid(_visual):
 			_visual.hide()
+			remove_child(_visual)
 			_visual.queue_free()
 		_visual=Visual.new()
 		_visual.call("set_pedestrian_model",MODELS[selected])
@@ -114,7 +115,9 @@ func leave_seat()->void:
 	_seated=false
 	if is_instance_valid(_seat_parent):
 		reparent(_seat_parent,false)
-	scale=Vector3.ONE
+	# Discard the complete scaled/rotated seat-local basis. The next
+	# waiting/departure call sets its own world position and heading.
+	transform=Transform3D.IDENTITY
 	_visual.call("resume_taxi_standing")
 	_label.show()
 	_seat_parent=null
