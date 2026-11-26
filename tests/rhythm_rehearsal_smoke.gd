@@ -38,6 +38,40 @@ func _initialize()->void:
 	if not rhythm.claim() or rhythm.claim():
 		quit(1)
 		return
+	# Performance feedback is session-local and cannot alter settlement.
+	rhythm.start(1,"busking")
+	if rhythm.combo!=0 or rhythm.best_combo!=0 or rhythm.mistakes_left()!=2:
+		quit(1)
+		return
+	for n in range(2):
+		rhythm.advance(rhythm.target_time()-rhythm.elapsed)
+		if not rhythm.strike(int(rhythm.pattern[rhythm.index])):
+			quit(1)
+			return
+	if rhythm.combo!=2 or rhythm.best_combo!=2 or rhythm.mistakes_left()!=2:
+		quit(1)
+		return
+	rhythm.advance(rhythm.target_time()-rhythm.elapsed)
+	rhythm.strike((int(rhythm.pattern[rhythm.index])+1)%3)
+	if rhythm.combo!=0 or rhythm.best_combo!=2 or rhythm.mistakes_left()!=1:
+		quit(1)
+		return
+	rhythm.advance(rhythm.target_time()+rhythm.hit_window+0.01-rhythm.elapsed)
+	if rhythm.combo!=0 or rhythm.best_combo!=2 or rhythm.mistakes_left()!=0:
+		quit(1)
+		return
+	rhythm.advance(rhythm.target_time()+rhythm.hit_window+0.01-rhythm.elapsed)
+	if rhythm.mistakes_left()!=-1:
+		quit(1)
+		return
+	rhythm.advance(20.0)
+	if rhythm.passed() or rhythm.claim():
+		quit(1)
+		return
+	rhythm.start(1,"band_showcase")
+	if rhythm.combo!=0 or rhythm.best_combo!=0 or rhythm.mistakes_left()!=5:
+		quit(1)
+		return
 	var street:=Ledger.new()
 	if not street.settle_busking_set(1) or street.settle_busking_set(1) or street.settle_busking_set(3) or street.balance!=8 or street.street_cred()!=4 or street.street_activity_runs("live_gig")!=0:
 		quit(1)
