@@ -27,6 +27,15 @@ jobs:
         run: |
           python -m unittest discover -s tools/wardrobe -p 'test_*.py' -v
           python tools/wardrobe/release.py check-checkout
+      - name: Verify all four recovered Synaxis staff assets without rewriting provenance
+        run: python tools/validate_synaxis_staff.py --all --check
+      - name: Inspect actual staff rig attachment candidates
+        run: python tools/inspect_synaxis_staff_sockets.py > /tmp/synaxis-staff-sockets.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: synaxis-staff-sockets
+          path: /tmp/synaxis-staff-sockets.json
+          if-no-files-found: error
       - name: Check files and resource references
         run: python tools/check_project.py
       - name: Verify tracked documentation art containers
