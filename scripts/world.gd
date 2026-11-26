@@ -1001,6 +1001,7 @@ func _journal_context() -> Dictionary:
 		"story_objective": story_mission.journal(),
 		"conditioning": courier_mission.conditioning_text(),
 		"clothing_store": ClothingStore.directory(), "fashion_locations": ClothingStore.IDS.duplicate(),
+		"fashion_remaining": ClothingStore.remaining_stock(int(day_night.get("day_index")),progression),
 		"outfit": "OUTFIT: %s / %s" % [Wardrobe.ITEMS[progression.outfit_id]["name"],Wardrobe.ITEMS[progression.outfit_id]["rarity"]],
 		"bitcoin_sats": progression.bitcoin_sats,
 		"story_can_navigate": _story_target().is_finite(),
