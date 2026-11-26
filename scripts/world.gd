@@ -24,6 +24,8 @@ var _driving_trial := DrivingTrial.new()
 var _trial_beacon: Node3D
 var _trial_beacon_label: Label3D
 var _trial_ghost: Node3D
+const HorizonTrail=preload("res://scripts/horizon_commons_garden.gd")
+var _garden_trail_mask:=0
 const RoadRestrictions = preload("res://scripts/road_restrictions.gd")
 const Arsenal = preload("res://scripts/arsenal.gd")
 const Wanted = preload("res://scripts/wanted_system.gd")
@@ -2132,6 +2134,7 @@ func _reset_pursuit_runtime() -> void:
 	police_cooldown = 0.0
 
 func _respawn() -> void:
+	_garden_trail_mask=0
 	_driving_trial.stop("ABANDONED")
 	_cancel_street_interactions()
 	_log_playtest("respawn", {"health": health, "reason": "fall_or_boundary_or_damage"})
@@ -2581,6 +2584,7 @@ func _capture_snapshot() -> Dictionary:
 	return state
 
 func _apply_snapshot(data: Dictionary) -> void:
+	_garden_trail_mask=0
 	_driving_trial.stop("ABANDONED")
 	_close_arcade()
 	_cancel_street_interactions()
@@ -2964,6 +2968,8 @@ func _toggle_interaction() -> void:
 	if current_car != null or current_transit != null:
 		_notify("Get out of the vehicle before interacting with neighborhood businesses.")
 		return
+	if _garden_trail_interact():
+		return
 	if _try_parking_guard():
 		return
 	if _synaxis_access_notice():
@@ -3090,6 +3096,32 @@ func _toggle_interaction() -> void:
 			_toggle_civic()
 			return
 	_toggle_venue()
+
+func _garden_trail_interact()->bool:
+	if current_car!=null or current_transit!=null or interiors.call("is_inside"):
+		return false
+	var stop:int=city_details.call("horizon_trail_stop",player.global_position)
+	if stop<0:
+		return false
+	if heat>0.01 or weapons.equipped!="holstered":
+		_notify("Horizon Commons / holster equipment and clear police attention.")
+		return true
+	var entry:Dictionary=HorizonTrail.STOPS[stop]
+	var note:="%s / %s"%[entry["name"],entry["text"]]
+	if progression.has_receipt(HorizonTrail.RECEIPT):
+		_notify(note)
+		return true
+	_garden_trail_mask |= 1 << stop
+	var count:=0
+	for i in range(HorizonTrail.STOPS.size()):
+		if _garden_trail_mask & (1 << i):
+			count+=1
+	if count==HorizonTrail.STOPS.size() and progression.credit_once(HorizonTrail.RECEIPT,HorizonTrail.REWARD):
+		_notify("HORIZON GARDEN TRAIL COMPLETE / +$25 • +10 STREET CRED")
+		_log_playtest("garden_trail_complete",{"stops":count})
+	else:
+		_notify("%s (%d/4)"%[note,count])
+	return true
 
 func _toggle_civic() -> void:
 	if current_car != null or current_transit != null:
@@ -4903,6 +4935,9 @@ func _update_hud() -> void:
 			if not local_regular.is_empty():
 				prompts.append("%s  Chat with %s" % [interact_key, str(local_regular["name"])])
 	else:
+		var trail_stop:int=city_details.call("horizon_trail_stop",player.global_position)
+		if trail_stop>=0:
+			prompts.append("%s Read garden trail / %s"%[interact_key,HorizonTrail.STOPS[trail_stop]["name"]])
 		var garage: Node3D = city_details.call("starter_garage",player.global_position)
 		if is_instance_valid(garage) and garage.call("desk_reachable",player.global_position):
 			prompts.append("%s  LANTERN GARAGE / RECOVERY" % interact_key)
