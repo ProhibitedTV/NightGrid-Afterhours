@@ -1,0 +1,15 @@
+name: Asset refinement checks
+on:
+  pull_request:
+    paths:
+      - 'tools/asset_refinement/**'
+      - '.github/workflows/asset-refinement.yml'
+  workflow_dispatch:
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m py_compile tools/asset_refinement/refine.py
+      - run: bash -n tools/asset_refinement/run_refine.sh
+      - run: python3 -m unittest discover -s tools/asset_refinement -p 'test_*.py'
