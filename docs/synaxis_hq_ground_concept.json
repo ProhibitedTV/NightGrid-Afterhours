@@ -1,0 +1,543 @@
+{
+  "schema": 1,
+  "status": "concept_only_parcel_redevelopment_required",
+  "units": "metres",
+  "coordinate_frame": "u east, v inward from existing public facade; world x=68+u, z=-43.88+v",
+  "footprint": [
+    28,
+    32
+  ],
+  "world_origin": [
+    68,
+    -43.88
+  ],
+  "existing_entry_world": [
+    76.5,
+    -46.2
+  ],
+  "entry_on_facade": [
+    8.5,
+    0
+  ],
+  "zones": [
+    {
+      "id": "security",
+      "label": "Security / visitor screening",
+      "rect": [
+        0,
+        0,
+        7,
+        7
+      ],
+      "type": "support",
+      "gross_m2": 49
+    },
+    {
+      "id": "lobby",
+      "label": "Entrance lobby",
+      "rect": [
+        7,
+        0,
+        17,
+        7
+      ],
+      "type": "circulation",
+      "gross_m2": 70
+    },
+    {
+      "id": "reception",
+      "label": "Reception / administration",
+      "rect": [
+        17,
+        0,
+        28,
+        7
+      ],
+      "type": "office",
+      "gross_m2": 77
+    },
+    {
+      "id": "ip",
+      "label": "IP Security / Desk 04",
+      "rect": [
+        0,
+        7,
+        12,
+        16
+      ],
+      "type": "office",
+      "gross_m2": 108
+    },
+    {
+      "id": "spine",
+      "label": "Main corridor",
+      "rect": [
+        12,
+        7,
+        16,
+        16
+      ],
+      "type": "circulation",
+      "gross_m2": 36
+    },
+    {
+      "id": "records",
+      "label": "Records / compliance",
+      "rect": [
+        16,
+        7,
+        22,
+        16
+      ],
+      "type": "office",
+      "gross_m2": 54
+    },
+    {
+      "id": "meeting",
+      "label": "Meeting rooms",
+      "rect": [
+        22,
+        7,
+        28,
+        16
+      ],
+      "type": "office",
+      "gross_m2": 54
+    },
+    {
+      "id": "cross",
+      "label": "Cross corridor",
+      "rect": [
+        0,
+        16,
+        28,
+        19
+      ],
+      "type": "circulation",
+      "gross_m2": 84
+    },
+    {
+      "id": "breakroom",
+      "label": "Employee breakroom / kitchenette",
+      "rect": [
+        0,
+        19,
+        12,
+        25
+      ],
+      "type": "amenity",
+      "gross_m2": 72
+    },
+    {
+      "id": "lift_lobby",
+      "label": "Elevator approach",
+      "rect": [
+        12,
+        19,
+        16,
+        25
+      ],
+      "type": "circulation",
+      "gross_m2": 24
+    },
+    {
+      "id": "toilet_a",
+      "label": "Restroom A",
+      "rect": [
+        16,
+        19,
+        19,
+        25
+      ],
+      "type": "support",
+      "gross_m2": 18
+    },
+    {
+      "id": "toilet_b",
+      "label": "Restroom B",
+      "rect": [
+        19,
+        19,
+        22,
+        25
+      ],
+      "type": "support",
+      "gross_m2": 18
+    },
+    {
+      "id": "facilities",
+      "label": "Facilities / copy / storage",
+      "rect": [
+        22,
+        19,
+        28,
+        25
+      ],
+      "type": "support",
+      "gross_m2": 36
+    },
+    {
+      "id": "rear",
+      "label": "Lift lobby / rear circulation",
+      "rect": [
+        0,
+        25,
+        28,
+        27
+      ],
+      "type": "circulation",
+      "gross_m2": 56
+    },
+    {
+      "id": "stair_w",
+      "label": "West stair",
+      "rect": [
+        0,
+        27,
+        4,
+        32
+      ],
+      "type": "core",
+      "gross_m2": 20
+    },
+    {
+      "id": "service",
+      "label": "Service / storage",
+      "rect": [
+        4,
+        27,
+        10,
+        32
+      ],
+      "type": "support",
+      "gross_m2": 30
+    },
+    {
+      "id": "lifts",
+      "label": "Elevator bank / risers",
+      "rect": [
+        10,
+        27,
+        18,
+        32
+      ],
+      "type": "core",
+      "gross_m2": 40
+    },
+    {
+      "id": "mechanical",
+      "label": "Mechanical / risers",
+      "rect": [
+        18,
+        27,
+        24,
+        32
+      ],
+      "type": "core",
+      "gross_m2": 30
+    },
+    {
+      "id": "stair_e",
+      "label": "East stair",
+      "rect": [
+        24,
+        27,
+        28,
+        32
+      ],
+      "type": "core",
+      "gross_m2": 20
+    }
+  ],
+  "openings": [
+    {
+      "a": "lobby",
+      "b": "security",
+      "at": [
+        7,
+        3
+      ],
+      "width_m": 1.5
+    },
+    {
+      "a": "lobby",
+      "b": "reception",
+      "at": [
+        17,
+        3
+      ],
+      "width_m": 1.5
+    },
+    {
+      "a": "lobby",
+      "b": "spine",
+      "at": [
+        14,
+        7
+      ],
+      "width_m": 3
+    },
+    {
+      "a": "spine",
+      "b": "ip",
+      "at": [
+        12,
+        12
+      ],
+      "width_m": 1.5
+    },
+    {
+      "a": "spine",
+      "b": "records",
+      "at": [
+        16,
+        12
+      ],
+      "width_m": 1.2
+    },
+    {
+      "a": "spine",
+      "b": "cross",
+      "at": [
+        14,
+        16
+      ],
+      "width_m": 4
+    },
+    {
+      "a": "cross",
+      "b": "ip",
+      "at": [
+        6,
+        16
+      ],
+      "width_m": 1.5
+    },
+    {
+      "a": "cross",
+      "b": "records",
+      "at": [
+        19,
+        16
+      ],
+      "width_m": 1.2
+    },
+    {
+      "a": "cross",
+      "b": "meeting",
+      "at": [
+        25,
+        16
+      ],
+      "width_m": 1.5
+    },
+    {
+      "a": "cross",
+      "b": "breakroom",
+      "at": [
+        6,
+        19
+      ],
+      "width_m": 1.8
+    },
+    {
+      "a": "cross",
+      "b": "lift_lobby",
+      "at": [
+        14,
+        19
+      ],
+      "width_m": 4
+    },
+    {
+      "a": "cross",
+      "b": "toilet_a",
+      "at": [
+        17.5,
+        19
+      ],
+      "width_m": 1.2
+    },
+    {
+      "a": "cross",
+      "b": "toilet_b",
+      "at": [
+        20.5,
+        19
+      ],
+      "width_m": 1.2
+    },
+    {
+      "a": "cross",
+      "b": "facilities",
+      "at": [
+        25,
+        19
+      ],
+      "width_m": 1.2
+    },
+    {
+      "a": "lift_lobby",
+      "b": "rear",
+      "at": [
+        14,
+        25
+      ],
+      "width_m": 4
+    },
+    {
+      "a": "rear",
+      "b": "stair_w",
+      "at": [
+        2,
+        27
+      ],
+      "width_m": 1.2
+    },
+    {
+      "a": "rear",
+      "b": "service",
+      "at": [
+        7,
+        27
+      ],
+      "width_m": 1.2
+    },
+    {
+      "a": "rear",
+      "b": "lifts",
+      "at": [
+        14,
+        27
+      ],
+      "width_m": 3
+    },
+    {
+      "a": "rear",
+      "b": "mechanical",
+      "at": [
+        21,
+        27
+      ],
+      "width_m": 1.2
+    },
+    {
+      "a": "rear",
+      "b": "stair_e",
+      "at": [
+        26,
+        27
+      ],
+      "width_m": 1.2
+    }
+  ],
+  "mission_anchors": {
+    "desk04": {
+      "zone": "ip",
+      "at": [
+        6,
+        11
+      ]
+    },
+    "mika": {
+      "zone": "ip",
+      "at": [
+        8,
+        11
+      ]
+    },
+    "nina": {
+      "zone": "reception",
+      "at": [
+        20,
+        3
+      ]
+    },
+    "owen": {
+      "zone": "security",
+      "at": [
+        5,
+        3
+      ]
+    },
+    "breakroom_party": {
+      "zone": "breakroom",
+      "at": [
+        6,
+        22
+      ]
+    },
+    "lift_call": {
+      "zone": "rear",
+      "at": [
+        14,
+        26
+      ]
+    },
+    "lift_doors": {
+      "zone": "lifts",
+      "at": [
+        14,
+        27
+      ]
+    }
+  },
+  "parcel": {
+    "block": [
+      1,
+      -1
+    ],
+    "cell_m": 58,
+    "center": [
+      87,
+      -29
+    ],
+    "curb_inner_approx": [
+      66.2,
+      -49.8,
+      107.8,
+      -8.2
+    ],
+    "neighbor_default_profile": "G1",
+    "neighbor_center_x": 97.5,
+    "neighbor_rect": [
+      89.15,
+      -43.88,
+      105.85,
+      -19.88
+    ],
+    "current_hq_rect": [
+      68,
+      -43.88,
+      85,
+      -23.88
+    ],
+    "current_parking_rect": [
+      68.8,
+      -23.38,
+      84.2,
+      -8.08
+    ],
+    "proposed_rect": [
+      68,
+      -43.88,
+      96,
+      -11.88
+    ],
+    "requires": [
+      "consolidate or relocate east lot, including any saved manifest overrides",
+      "relocate founder parking and its guard/vehicle anchors, preferably a designed garage with street access",
+      "review sidewalks, city streaming, rooftop terrace and exterior facade",
+      "retain front approach address and remap interior/save/prologue coordinates"
+    ]
+  },
+  "references": [
+    "https://www.archdaily.com/907562/c-and-p-corporate-headquarters-innocad",
+    "https://www.archdaily.com/803905/slack-nyc-hq-snohetta",
+    "https://www.archdaily.com/890310/zags-headquarters-studio-razavi-architecture",
+    "https://www.archdaily.com/128264/campbells-employee-center-klingstubbins",
+    "https://legacy.wbdg.org/resources/interior-design-research-facilities",
+    "https://www.wbdg.org/FFC/DOD/UFC/ufc_4_610_01_2021_c1.pdf",
+    "https://www.access-board.gov/ada/guides/chapter-4-accessible-routes/"
+  ]
+}
