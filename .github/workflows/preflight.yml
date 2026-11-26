@@ -207,6 +207,13 @@ jobs:
           grep -q "REACH_SMOKE PASS:" /tmp/nightgrid-reach.log
       - name: Verify the baked city textures match the original generator byte for byte
         run: godot --headless --path . --script res://tools/bake_city_material_maps.gd -- --verify
+      - name: Validate opt-in Horizon Ridge expansion collision and original grid
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 75s godot --headless --path . --script res://tests/horizon_ridge_smoke.gd -- --horizon-ridge 2>&1 | tee /tmp/nightgrid-ridge.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-ridge.log; then exit 1; fi
+          grep -q "HORIZON_RIDGE PASS:" /tmp/nightgrid-ridge.log
       - name: Validate deterministic road routes, intersection turns and off-road access
         timeout-minutes: 2
         run: timeout 75s godot --headless --path . --script res://tests/street_route_smoke.gd

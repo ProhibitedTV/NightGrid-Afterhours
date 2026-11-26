@@ -1,0 +1,65 @@
+extends SceneTree
+## Opt-in engineering blockout: physical route, terrace and retaining limits.
+const Plan = preload("res://scripts/world_plan.gd")
+
+func _initialize() -> void:
+	call_deferred("_verify")
+
+func _fail(message: String) -> void:
+	push_error("HORIZON_RIDGE: " + message)
+	quit(1)
+
+func _verify() -> void:
+	var world := (load("res://scenes/main.tscn") as PackedScene).instantiate() as Node3D
+	root.add_child(world)
+	await process_frame
+	await physics_frame
+	await physics_frame
+	var edge := world.get_node("MorrowBayPerimeter")
+	var stats: Dictionary = edge.call("get_perimeter_stats")
+	if int(stats.get("ridge_area_m2", 0)) != 11664 or int(stats["road_gates"]) != 35:
+		_fail("Expected connected terrace and one opened road end: " + str(stats))
+		return
+	var space := world.get_world_3d().direct_space_state
+	var entrance := PhysicsRayQueryParameters3D.create(Vector3(240, 1, 0), Vector3(260, 1, 0), 1)
+	if not space.intersect_ray(entrance).is_empty():
+		_fail("Original east road remains blocked")
+		return
+	for x in [244.9, 245.5, 260.0, 280.0, 300.0, 330.0, 350.0]:
+		var expected := float(edge.call("ridge_height", x))
+		for z in [-35.0, -9.0, 0.0, 9.0, 35.0]:
+			# The original road/sidewalk may differ at the overlap itself.
+			if x < 246.0 and z != 0.0:
+				continue
+			var floor_query := PhysicsRayQueryParameters3D.create(Vector3(x, 15, z), Vector3(x, -3, z), 1)
+			var hit := space.intersect_ray(floor_query)
+			if hit.is_empty() or absf(float(hit["position"].y) - expected) > 0.2:
+				_fail("Missing or mismatched graded collision at " + str(Vector2(x,z)))
+				return
+	if not is_equal_approx(float(edge.call("ridge_height", 353.5)) - float(edge.call("ridge_height", 245.5)), 7.2):
+		_fail("Expected 7.2 m elevation gain")
+		return
+	for x in range(246, 353):
+		var grade := float(edge.call("ridge_height", float(x)+1.0)) - float(edge.call("ridge_height", float(x)))
+		if grade < -0.001 or grade > 0.101:
+			_fail("Unexpected longitudinal grade")
+			return
+	if not is_equal_approx(float(edge.call("ridge_height", 346.0)), float(edge.call("ridge_height", 352.0))):
+		_fail("Upper landing must be level")
+		return
+	for pair in [
+		[Vector3(348, 8, 0), Vector3(360, 8, 0)],
+		[Vector3(300, 5, 49), Vector3(300, 5, 59)],
+		[Vector3(300, 5, -49), Vector3(300, 5, -59)],
+		[Vector3(240, 1, 25), Vector3(250, 1, 25)]
+	]:
+		var wall_query := PhysicsRayQueryParameters3D.create(pair[0], pair[1], 1)
+		var hit := space.intersect_ray(wall_query)
+		if hit.is_empty() or not (hit["collider"] as Node).name.begins_with("Ridge_") and not (hit["collider"] as Node).name.begins_with("HorizonRidge_"):
+			_fail("Missing terrace or retained approach wall")
+			return
+	if Plan.GRID_RADIUS != 4 or Plan.WORLD_LAYOUT_VERSION != 2:
+		_fail("Pilot changed canonical grid")
+		return
+	print("HORIZON_RIDGE PASS: connected eastern terrace, continuous collision, retained approach and outer boundaries")
+	quit(0)
