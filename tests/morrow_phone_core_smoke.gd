@@ -189,10 +189,58 @@ func _verify() -> void:
 		_fail("phone blocked during service interaction")
 		return
 	world.get("venue_panel").hide()
+	# Use the same ledger operations as the physical music venues.
+	var instruments = preload("res://scripts/instrument_catalog.gd")
+	ledger.call("set_balance",1000)
+	if not ledger.call("buy_instrument",instruments.STARTER) or not ledger.call("credit_once","venue:soundcheck_pass",0):
+		_fail("music career fixture")
+		return
+	for practice in range(1,instruments.OWNED_SET_PRACTICE+1):
+		if not ledger.call("complete_sampler_practice",practice):
+			_fail("music practice fixture")
+			return
+	if not ledger.call("settle_blue_hour_set",1):
+		_fail("music opening set fixture")
+		return
+	if not _verify_music_route(world,menu,ledger,"phone_route_music_milo","dock_nine"):
+		return
+	if not ledger.call("recruit_band_member","milo") or not ledger.call("recruit_band_member","rhea") or not ledger.call("choose_band_name",0):
+		_fail("music roster fixture")
+		return
+	for rehearsal in range(1,3):
+		if not ledger.call("complete_band_rehearsal",rehearsal):
+			_fail("band rehearsal fixture")
+			return
+	if not ledger.call("settle_band_debut") or not ledger.call("press_tapes") or not ledger.call("settle_band_encore",1) or not ledger.call("settle_band_encore",2):
+		_fail("headline career fixture")
+		return
+	var live_music: Dictionary = Phone.view("music",world.call("_phone_context"))
+	if str(live_music["actions"]).contains("phone_route_music_milo") or not str(live_music["rows"]).contains("4 tapes in stock"):
+		_fail("recruited collaborator removed and actual merchandise displayed")
+		return
+	if not _verify_music_route(world,menu,ledger,"phone_route_music_showcase","static_room"):
+		return
 	world.queue_free()
 	await process_frame
 	print("MORROW_PHONE_CORE PASS")
 	quit(0)
+
+func _verify_music_route(world: Node3D,menu: Node,ledger: RefCounted,action: String,site: String) -> bool:
+	var before: Dictionary = ledger.call("snapshot")
+	var before_cash: int = ledger.get("balance")
+	menu.call("open_pause")
+	menu.call("_choice","phone")
+	menu.call("_choice","phone_app_music")
+	if not (menu.call("get_buttons") as Dictionary).has(action):
+		_fail("unlocked career destination missing: "+site)
+		return false
+	var point: Vector3 = world.get("venue_system").call("venue_position",site)
+	menu.call("_choice",action)
+	if paused or menu.call("is_open") or world.get("navigation_waypoint")!=Vector2(point.x,point.z) or ledger.call("snapshot")!=before or ledger.get("balance")!=before_cash:
+		_fail("music navigation must route without changing career or cash: "+site)
+		return false
+	world.call("clear_navigation_waypoint")
+	return true
 
 func _fail(message: String) -> void:
 	push_error("MORROW_PHONE_CORE: " + message)
