@@ -224,10 +224,11 @@ def build(src, dest, height):
     reduce(hull, 256)
     bm = bmesh.new()
     try:
-        bm.from_mesh(hull.data)
-        result = bmesh.ops.convex_hull(bm, input=list(bm.verts), use_existing_faces=False)
-        discard = set(result["geom_unused"]) | set(result["geom_interior"])
-        verts = [v for v in discard if isinstance(v, bmesh.types.BMVert) and v.is_valid]
+        # Build from a point cloud, not the existing surface faces.
+        for vertex in hull.data.vertices:
+            bm.verts.new(vertex.co)
+        bmesh.ops.convex_hull(bm, input=list(bm.verts), use_existing_faces=False)
+        verts = [v for v in bm.verts if not v.link_faces]
         if verts:
             bmesh.ops.delete(bm, geom=verts, context="VERTS")
         bmesh.ops.triangulate(bm, faces=list(bm.faces))
