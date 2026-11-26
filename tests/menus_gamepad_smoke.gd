@@ -913,8 +913,18 @@ func _verify() -> void:
 	if not str(office.call("restroom_encounter",office.to_global(Vector3(0,1.15,5.0)))).is_empty():
 		_fail("Restroom encounters require crossing the entrance")
 		return
+	if washrooms.position!=rooms.OFFSET or washrooms.get_node("ExtractorHaze").emitting:
+		_fail("Restrooms must be perimeter rooms and haze must not leak into lift corridor")
+		return
+	var ground_lift:=office.get_node_or_null("LiftFrontage")
+	if ground_lift==null or ground_lift.find_children("*","CollisionShape3D",true,false).size()!=3:
+		_fail("Ground lift must have a recognizable collision-backed shaft frontage")
+		return
+	if office.call("lift_direction",office.to_global(Vector3(.65,1.15,4.35)))!=-1 or office.call("lift_direction",office.to_global(Vector3(-.65,1.15,4.35)))!=1:
+		_fail("Visible elevator call area must be usable on approach")
+		return
 	for id in [rooms.MEN,rooms.WOMEN]:
-		player.global_position=office.to_global(rooms.CENTERS[id])
+		player.global_position=washrooms.to_global(rooms.CENTERS[id])
 		world.call("_process",0.0)
 		if not (menu.call("get_buttons") as Dictionary).has("restroom_leave") or menu.get("_restroom_id")!=id:
 			_fail("Entering each actual restroom triggers its distinct scene")

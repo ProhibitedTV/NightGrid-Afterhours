@@ -4,6 +4,7 @@ const Nav = preload("res://scripts/navigation_waypoint.gd")
 const Plan = preload("res://scripts/world_plan.gd")
 const Restrooms = preload("res://scripts/synaxis_restrooms.gd")
 const Arrival = preload("res://scripts/synaxis_arrival.gd")
+const LiftFrontage=preload("res://scripts/synaxis_lift_frontage.gd")
 const RANGE_METRES = 116.0
 const BORDER = 9.0
 var world_node: Node3D
@@ -186,6 +187,12 @@ func _draw_office() -> void:
 	_origin=_office_actor
 	_scale=_radius/14.0
 	var wall := Color("87959d")
+	for edge in LiftFrontage.WALL_EDGES:
+		_segment(edge[0],edge[1],wall,2.6)
+	_point(Workfloor.LIFT,Color("7fcfd5"),4.0,true)
+	var lift_icon:=_local(Workfloor.LIFT)
+	if lift_icon.length()<_radius-18.0:
+		draw_string(ThemeDB.fallback_font,_center+lift_icon+Vector2(7,-6),"LIFT",HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color("7fcfd5"))
 	if _office_floor!=0:
 		for edge in [[Vector2(-8.5,-10),Vector2(8.5,-10)],[Vector2(8.5,-10),Vector2(8.5,10)],[Vector2(8.5,10),Vector2(-8.5,10)],[Vector2(-8.5,10),Vector2(-8.5,-10)]]:
 			if _office_floor==ExecutiveFloor.FLOOR and edge[0]==Vector2(8.5,-10):
@@ -221,8 +228,9 @@ func _draw_office() -> void:
 		[Vector2(0,Arrival.PARTITION_NEAR_Z),Vector2(0,Arrival.PARTITION_FAR_Z)]
 	]:
 		_segment(edge[0],edge[1],wall,2.6)
+	var offset:=Vector2(Restrooms.OFFSET.x,Restrooms.OFFSET.z)
 	for edge in Restrooms.WALL_EDGES:
-		_segment(edge[0],edge[1],wall,2.6)
+		_segment(edge[0]+offset,edge[1]+offset,wall,2.6)
 	for desk in [Vector2(-5,2.55),Vector2(4.5,1.7),Vector2(-5,-5.4),Vector2(5,-5.4),Vector2(5,6.5),Vector2(-4.2,8.12)]:
 		_segment(desk-Vector2(1.1,0),desk+Vector2(1.1,0),Color("52616e"),5.0)
 	_target(_office_target,Color("ffba56"),true)
