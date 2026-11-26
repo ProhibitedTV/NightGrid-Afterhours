@@ -45,6 +45,29 @@ def evidence(row, gates):
                 "Missing approval/evidence for "+key)
 
 
+def import_evidence(refined, row, info):
+    # Require a real import report for the exact manifest, not a text-only attestation.
+    report = refined / ("godot-%d.json" % info["settings"]["bake_size"])
+    require(report.is_file() and not report.is_symlink(), "Godot import report required")
+    require(sha(report) == row.get("godot_report_sha256"), "Godot report hash mismatch")
+    data = load(report)
+    require(data["schema"] == 1 and data["engine"]["version"].startswith("4.7.2.")
+            and data["scope"] == "headless structural import only", "Wrong Godot import report")
+    matches = [r for r in data["rows"] if r["candidate"] == row["candidate"]
+               and r["signature"] == row["signature"]]
+    require(len(matches) == 1, "Missing or ambiguous import evidence")
+    entry = matches[0]
+    require(entry["status"] == "import-passed" and entry["manifest_sha256"] == row["manifest_sha256"],
+            "Import evidence does not match approved manifest")
+    required = {"lod0.glb","lod1.glb","lod2.glb","collision.glb"}
+    require(set(entry["files"]) == required and all(
+        entry["files"][n]["sha256"] == info["outputs"][n]["sha256"]
+        and all(entry["files"][n][field] > 0 for field in ("meshes","surfaces","vertices"))
+        for n in required), "Missing or stale GLB import result")
+    return {"engine":data["engine"],"report_sha256":sha(report),"result":entry,
+            "scope":data["scope"]}
+
+
 def gather(raw, refined, materials, approval):
     require(approval.get("schema") == 1, "Unknown approval schema")
     entries = approval["assets"]
@@ -58,6 +81,7 @@ def gather(raw, refined, materials, approval):
         require(key not in seen,"Duplicate approved candidate")
         seen.add(key)
         candidate = safe_dir(raw,"candidates",key)
+        import_record = None
         if kind == "prop":
             evidence(row,GATES)
             folder = safe_dir(refined,key,sig)
@@ -72,6 +96,7 @@ def gather(raw, refined, materials, approval):
             names = ["lod0.glb","lod1.glb","lod2.glb"]
             if row.get("include_collision") is True:
                 names.append("collision.glb")
+            import_record = import_evidence(refined,row,info)
             meta = ["image.json","mesh.json"]
         elif kind == "material":
             evidence(row,MATERIAL_GATES)
@@ -94,7 +119,7 @@ def gather(raw, refined, materials, approval):
         for name in meta:
             digest = expected[name] if kind == "prop" else expected["metadata"]
             copied.append((candidate/name,"source-"+name,digest))
-        result.append((row,copied))
+        result.append((row,copied,import_record))
     return result
 
 
@@ -105,13 +130,13 @@ def stage(raw, refined, materials, out, approval_path):
     out.mkdir(parents=True,exist_ok=True)
     final = out/bundle_id
     require(not final.exists(),"Bundle already exists; inspect it before exporting again")
-    total = sum(p.stat().st_size for _,files in rows for p,_,_ in files)
+    total = sum(p.stat().st_size for _,files,_ in rows for p,_,_ in files)
     require(total <= MAX_BUNDLE,"Bundle exceeds 100 MiB; select fewer assets")
     require(shutil.disk_usage(out).free >= total + 5*1024**3,"Insufficient NAS reserve")
     tmp = Path(tempfile.mkdtemp(prefix=".stage-",dir=out))
     try:
         entries = []
-        for row, files in rows:
+        for row, files, import_record in rows:
             # Isolated repo-relative layout, not an existing game path.
             rel = Path("assets")/"art"/"approved"/"anubis"/row["candidate"]
             dest = tmp/"repo-tree"/rel
@@ -122,6 +147,10 @@ def stage(raw, refined, materials, out, approval_path):
                 shutil.copyfile(p,target)
                 require(sha(target)==digest and sha(p)==digest,"Copy/source hash mismatch")
                 entries.append({"path":(rel/name).as_posix(),"sha256":digest,"bytes":target.stat().st_size})
+            if import_record is not None:
+                path = dest/"godot-import.json"
+                write(path,import_record)
+                entries.append({"path":(rel/path.name).as_posix(),"sha256":sha(path),"bytes":path.stat().st_size})
             write(dest/"approval.json",row)
             entries.append({"path":(rel/"approval.json").as_posix(),
                             "sha256":sha(dest/"approval.json"),"bytes":(dest/"approval.json").stat().st_size})
