@@ -111,9 +111,9 @@ func is_valid_snapshot(value: Variant) -> bool:
 		if not room.is_empty():
 			if not (str(room.get("group", "")) == "CIVIC" or str(room.get("group", "")) == "VENUE"):
 				return false
-			if str(room.get("id", "")).is_empty():
+			if not ProgressionLedger.valid_id(room.get("id")):
 				return false
-			if not room.get("outside", []) is Array or room["outside"].size() != 3:
+			if not _valid_position(room.get("outside")):
 				return false
 	return true
 

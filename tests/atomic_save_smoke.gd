@@ -41,6 +41,21 @@ func _verify() -> void:
 	malformed["progression"]={"version":1,"receipts":["story:night_shift_contact"],"home_supplies":1}
 	if not check(not session.call("is_valid_snapshot",malformed),"reject orphan home entitlement"):
 		return
+	# The indoor return anchor is a real world coordinate, not arbitrary JSON.
+	for room in [
+		{"group":"VENUE","id":"lantern_cup","outside":["0",1,0]},
+		{"group":"VENUE","id":"lantern_cup","outside":[0,NAN,0]},
+		{"group":"CIVIC","id":"dock_watch","outside":[0,1,INF]},
+		{"group":"VENUE","id":"lantern_cup","outside":[10001,1,0]},
+		{"group":"VENUE","id":123,"outside":[0,1,0]}]:
+		var invalid_room:Dictionary=state.duplicate(true)
+		invalid_room["interior"]=room
+		if not check(not session.call("is_valid_snapshot",session.call("make_snapshot",invalid_room)) and not session.call("save_snapshot_to",invalid_room,Path) and FileAccess.get_file_as_string(Path)==original,"invalid indoor anchor preserves existing slot"):
+			return
+	var valid_room:Dictionary=state.duplicate(true)
+	valid_room["interior"]={"group":"VENUE","id":"lantern_cup","outside":[-12.5,1.15,30.0]}
+	if not check(session.call("is_valid_snapshot",session.call("make_snapshot",valid_room)),"valid indoor anchor remains supported"):
+		return
 	if not check(session.call("save_snapshot_to",state,Path) and session.call("read_snapshot_from",Path).get("cash")==300 and not FileAccess.file_exists(Path+".tmp"),"retry commits and cleans staging"):
 		return
 	DirAccess.remove_absolute(absolute)
