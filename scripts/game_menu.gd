@@ -694,7 +694,9 @@ func _render() -> void:
 				for id in _journal_data["fashion_locations"]:
 					if FashionStores.STORES.has(id):
 						var site:Dictionary=FashionStores.STORES[id]
-						_button(col,"fashion_"+id,"%s / %s" % [site["name"],site["district"]],"fashion_waypoint:"+id)
+						var remaining:Dictionary=_journal_data.get("fashion_remaining",{})
+						var count_text: String = " • %d unowned"%int(remaining[id]) if remaining.has(id) else ""
+						_button(col,"fashion_"+id,"%s / %s%s" % [site["name"],site["district"],count_text],"fashion_waypoint:"+id)
 			_label(col, "BTC WALLET: %d sats" % int(_journal_data.get("bitcoin_sats",0)), 16, Ui.ACCENT)
 			if not str(_journal_data.get("synaxis_site","")).is_empty():
 				_label(col,str(_journal_data["synaxis_site"]),16,Ui.MUTED)
