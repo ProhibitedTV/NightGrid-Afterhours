@@ -32,6 +32,11 @@ var _music_bindings: Array[Dictionary] = []
 var _music_role := ""
 var _music_phase := 0.0
 var _music_restore: Dictionary = {}
+var _attention_bone:=-1
+var _attention_goal:=0.0
+var _attention_yaw:=0.0
+var _attention_saved:=Quaternion.IDENTITY
+var _attention_applied:=false
 static var _materials_by_source := {}
 static var _street_surface_by_source := {}
 
@@ -65,6 +70,11 @@ func _ready() -> void:
 	_build_variants()
 	_valid = true
 	_music_bindings = MusicPose.bind(_skeleton)
+	for i in _skeleton.get_bone_count():
+		var bone_name:=str(_skeleton.get_bone_name(i)).to_lower()
+		if bone_name=="head" or bone_name.ends_with(":head") or bone_name.ends_with("_head") or bone_name=="mixamorighead":
+			_attention_bone=i
+			break
 	set_pedestrian_style(_style)
 	_player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 	_player.play(idle_clip)
@@ -142,6 +152,38 @@ func set_locomotion(speed: float) -> void:
 func set_activity(activity: String) -> void:
 	_activity = activity
 
+# Optional gaze overlay for a named actor. No global player lookup, so
+# pooled pedestrians retain their existing idle/walk behavior by default.
+func set_attention_target(target:Vector3,active:bool) -> void:
+	_attention_goal=0.0
+	if not _valid or _attention_bone<0 or not active or not target.is_finite():
+		return
+	var local:=to_local(target)
+	if Vector2(local.x,local.z).length_squared()<.0025:
+		return
+	_attention_goal=clampf(atan2(local.x,maxf(.10,local.z)),-.60,.60)
+
+func _restore_attention() -> void:
+	if _attention_applied and is_instance_valid(_skeleton) and _attention_bone>=0:
+		_skeleton.set_bone_pose_rotation(_attention_bone,_attention_saved)
+	_attention_applied=false
+
+func _apply_attention(delta:float) -> void:
+	_attention_yaw=move_toward(_attention_yaw,0.0 if _walking else _attention_goal,delta*2.8)
+	if _attention_bone<0 or absf(_attention_yaw)<.001:
+		return
+	# Convert actor-local up to the head parent's coordinates. Keep the
+	# imported clip's original quaternion; never accumulate frame offsets.
+	var axis:=(_skeleton.global_basis.inverse()*global_basis*Vector3.UP).normalized()
+	var parent:=_skeleton.get_bone_parent(_attention_bone)
+	if parent>=0:
+		axis=(_skeleton.get_bone_global_pose(parent).basis.inverse()*axis).normalized()
+	if not axis.is_finite() or axis.length_squared()<.001:
+		return
+	_attention_saved=_skeleton.get_bone_pose_rotation(_attention_bone)
+	_skeleton.set_bone_pose_rotation(_attention_bone,(Quaternion(axis,_attention_yaw)*_attention_saved).normalized())
+	_attention_applied=true
+
 func set_music_performance(role: String) -> bool:
 	clear_music_performance()
 	if not _valid or not is_processing() or _music_bindings.size()!=2 or role not in MusicPose.ROLES:
@@ -157,6 +199,9 @@ func clear_music_performance() -> void:
 
 ## Reset pooled animation so previous occupant's stride is not inherited.
 func reset_pedestrian_visual() -> void:
+	_restore_attention()
+	_attention_goal=0.0
+	_attention_yaw=0.0
 	clear_music_performance()
 	_measured_speed = 0.0
 	_filtered_speed = 0.0
@@ -171,6 +216,9 @@ func reset_pedestrian_visual() -> void:
 func pose_taxi_seated()->Dictionary:
 	if not _valid:
 		return {}
+	_restore_attention()
+	_attention_goal=0.0
+	_attention_yaw=0.0
 	clear_music_performance()
 	_player.stop()
 	set_process(false)
@@ -211,9 +259,11 @@ func _process(delta: float) -> void:
 			interval = 1.0 / 24.0
 	_animation_elapsed += delta
 	if _animation_elapsed >= interval:
+		_restore_attention()
 		MusicPose.restore(_skeleton,_music_restore)
 		_music_restore.clear()
 		_player.advance(_animation_elapsed)
+		_apply_attention(_animation_elapsed)
 		if not _music_role.is_empty() and not _walking:
 			_music_phase=fposmod(_music_phase+_animation_elapsed,1.0)
 			_music_restore=MusicPose.apply(_skeleton,self,_music_bindings,_music_role,_music_phase)

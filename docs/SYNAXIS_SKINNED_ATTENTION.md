@@ -1,0 +1,3 @@
+# Skinned actor attention overlay — #454
+
+Optional target-based additive head yaw on the shared imported rig adapter. Resolve supported head names only, clamp the turn, blend out during walking or when the target is released, restore the underlying animated quaternion before every clip update, reset on pooling and seated taxi pose. No player lookup or additional processing loop. Existing street actors do not opt in. The first synthetic rig smoke checks actual head rotation, stable bounded holding, invalid target release and pooling reset; native integration with Mika follows the validated staff pilot. This is not eye tracking, lip sync or a complete gesture retargeter. Native animation review is still required.
