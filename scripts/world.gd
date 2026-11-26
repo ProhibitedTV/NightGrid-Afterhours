@@ -168,6 +168,7 @@ var equipment_wheel: Control
 var _weapon_label: Label
 var _reticle: Control
 var navigation_waypoint: Variant = null
+var _vehicle_job_waypoint_owner := ""
 var road_restrictions = RoadRestrictions.new()
 var _route_revision := -1
 var _route_cache: Dictionary = {}
@@ -1602,6 +1603,7 @@ func _freight_interact()->void:
 		_attach_freight_case()
 		var drop:Vector2=_freight.route["drop"]
 		set_navigation_waypoint(drop,false)
+		_vehicle_job_waypoint_owner = "freight"
 		_notify("FREIGHT / %s • loaded. Deliver in this vehicle."%_freight.route["name"])
 	else:
 		_notify("Freight / stop a roadworthy vehicle at the loading point.")
@@ -1620,7 +1622,12 @@ func _remove_freight_case()->void:
 		_freight_case.queue_free()
 	_freight_case=null
 
+func _clear_vehicle_job_waypoint(owner: String) -> void:
+	if _vehicle_job_waypoint_owner == owner:
+		clear_navigation_waypoint()
+
 func _cancel_freight()->void:
+	_clear_vehicle_job_waypoint("freight")
 	_freight.cancel()
 	_remove_freight_case()
 
@@ -1633,7 +1640,7 @@ func _update_freight(delta:float)->void:
 		return
 	var at:=Vector2(current_car.global_position.x,current_car.global_position.z)
 	if not _freight.tick(at,current_car.get_instance_id(),float(current_car.get("condition")),delta):
-		_remove_freight_case()
+		_cancel_freight()
 		_notify("Freight lost / retry at pickup.")
 
 func _taxi_interaction_available()->bool:
@@ -1657,7 +1664,7 @@ func _taxi_interact()->void:
 				if progression.settle_taxi(_taxi.sequence):
 					ambient_caption.call("present",str(_taxi.route["rider"]),str(_taxi.route["arrival"]))
 					_show_taxi_arrival()
-					_taxi.cancel()
+					_cancel_taxi(true)
 					_notify("TAXI / fare complete +$%d"%fare)
 					_log_playtest("taxi_finish",{"sequence":progression.taxi_runs,"paid":fare})
 				else:
@@ -1665,7 +1672,7 @@ func _taxi_interact()->void:
 			else:
 				_notify("Taxi / stop safely at the destination.")
 		else:
-			_taxi.cancel()
+			_cancel_taxi()
 			_notify("Taxi fare cancelled. Return to pickup to retry.")
 		return
 	if Wanted.stars(heat)>0 or not FreightJob.supports_vehicle(str(current_car.get("model_id")),bool(current_car.get("is_police"))):
@@ -1679,19 +1686,27 @@ func _taxi_interact()->void:
 		_taxi_rider.call("seat_rider",_taxi.sequence-1,str(_taxi.route["rider"]),current_car)
 		ambient_caption.call("present",str(_taxi.route["rider"]),str(_taxi.route["request"]))
 		set_navigation_waypoint(_taxi.route["drop"],false)
+		_vehicle_job_waypoint_owner = "taxi"
 		_notify("TAXI / %s • passenger fare started"%_taxi.route["name"])
 	else:
 		_notify("Taxi / stop with vehicle condition of at least 50.")
+
+func _cancel_taxi(keep_departure: bool = false) -> void:
+	_clear_vehicle_job_waypoint("taxi")
+	_taxi.cancel()
+	if not keep_departure and is_instance_valid(_taxi_rider):
+		_taxi_rider.call("hide_rider")
 
 func _update_taxi(delta:float)->void:
 	if not _taxi.active:
 		return
 	if not is_instance_valid(current_car) or Wanted.stars(heat)>0:
-		_taxi.cancel()
+		_cancel_taxi()
 		_notify("Taxi fare cancelled.")
 		return
 	var at:=Vector2(current_car.global_position.x,current_car.global_position.z)
 	if not _taxi.tick(at,current_car.get_instance_id(),float(current_car.get("condition")),delta):
+		_cancel_taxi()
 		_notify("Taxi fare failed / retry at pickup.")
 
 func _show_taxi_arrival()->void:
@@ -1962,7 +1977,7 @@ func _toggle_car() -> void:
 		else:
 			world_audio.call("play_event", "DOOR", current_car.global_position)
 		frame_time_recorder.mark_vehicle_stage(exit_trace,"door_audio")
-		_taxi.cancel()
+		_cancel_taxi()
 		if is_instance_valid(_taxi_rider):
 			_taxi_rider.call("hide_rider")
 		_cancel_freight()
@@ -2367,7 +2382,7 @@ func _reset_pursuit_runtime() -> void:
 func _respawn() -> void:
 	if is_instance_valid(_taxi_rider):
 		_taxi_rider.call("hide_rider")
-	_taxi.cancel()
+	_cancel_taxi()
 	_cancel_freight()
 	_garden_trail_mask=0
 	_driving_trial.stop("ABANDONED")
@@ -2799,7 +2814,7 @@ func _capture_snapshot() -> Dictionary:
 		"civic_intel": civic_intel.duplicate(), "ration_packs": ration_packs,
 		"consumables": consumable_inventory.duplicate(), "stamina": player.get("stamina"),
 		"interior": interiors.call("snapshot"), "arcade_best": _arcade_best.duplicate(),
-		"navigation_waypoint": [] if navigation_waypoint == null else [navigation_waypoint.x, navigation_waypoint.y],
+		"navigation_waypoint": [] if navigation_waypoint == null or not _vehicle_job_waypoint_owner.is_empty() else [navigation_waypoint.x, navigation_waypoint.y],
 		"weapons": weapons.snapshot(),
 		"ambient_civic": ambient_civic.snapshot(),
 		"civic_patrol_service": civic_patrol_service.snapshot(),
@@ -2821,7 +2836,7 @@ func _capture_snapshot() -> Dictionary:
 func _apply_snapshot(data: Dictionary) -> void:
 	if is_instance_valid(_taxi_rider):
 		_taxi_rider.call("hide_rider")
-	_taxi.cancel()
+	_cancel_taxi()
 	_cancel_freight()
 	_garden_trail_mask=0
 	_driving_trial.stop("ABANDONED")
@@ -2847,6 +2862,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 		enable_living_streets()
 	if is_instance_valid(pedestrians):
 		pedestrians.call("restore", data.get("sidewalk_population", {}))
+	_vehicle_job_waypoint_owner = ""
 	navigation_waypoint = Nav.decode(data.get("navigation_waypoint", []))
 	# No live closures are saved until physical scene/traffic integration.
 	road_restrictions = RoadRestrictions.new()
@@ -5276,6 +5292,7 @@ func set_navigation_waypoint(point: Vector2, snap_to_pin: bool = true) -> Vector
 	if not point.is_finite():
 		return Vector2.ZERO if navigation_waypoint == null else navigation_waypoint
 	_cal_tracking=false
+	_vehicle_job_waypoint_owner = ""
 	point = Nav.clamp_point(point)
 	# Authored road stops must not snap to a nearby sidewalk or entrance.
 	if not snap_to_pin:
@@ -5309,6 +5326,7 @@ func set_navigation_waypoint(point: Vector2, snap_to_pin: bool = true) -> Vector
 	return selected
 
 func clear_navigation_waypoint() -> void:
+	_vehicle_job_waypoint_owner = ""
 	_cal_tracking=false
 	navigation_waypoint = null
 	_route_cache.clear()

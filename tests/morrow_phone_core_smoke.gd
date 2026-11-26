@@ -119,6 +119,27 @@ func _verify() -> void:
 		_fail("exact route opt-out must preserve ordinary manual map snapping")
 		return
 	world.call("clear_navigation_waypoint")
+	for owner in ["taxi","freight"]:
+		var job_drop := Vector2(58,116)
+		world.call("set_navigation_waypoint",job_drop,false)
+		world.set("_vehicle_job_waypoint_owner",owner)
+		var active_save: Dictionary = world.call("_capture_snapshot")
+		if not active_save["navigation_waypoint"].is_empty():
+			_fail("transient vehicle job route cannot survive save")
+			return
+		world.call("_cancel_"+owner)
+		if world.get("navigation_waypoint")!=null or world.get("_vehicle_job_waypoint_owner")!="":
+			_fail("job cancellation clears its own route")
+			return
+		world.call("set_navigation_waypoint",job_drop,false)
+		world.set("_vehicle_job_waypoint_owner",owner)
+		var manual := Vector2(0,58)
+		world.call("set_navigation_waypoint",manual,false)
+		world.call("_cancel_"+owner)
+		if world.get("navigation_waypoint")!=manual:
+			_fail("job cancellation must preserve replacement waypoint")
+			return
+	world.call("clear_navigation_waypoint")
 	var courier: RefCounted = world.get("courier_mission")
 	courier.set("gig_economy",true)
 	world.call("_refresh_courier_target")
