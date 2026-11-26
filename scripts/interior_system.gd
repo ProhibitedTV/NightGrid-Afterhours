@@ -202,6 +202,9 @@ func restore(saved: Dictionary, site: Dictionary) -> bool:
 	var previous = saved.get("outside", [])
 	if not previous is Array or previous.size() != 3:
 		return false
+	for axis in previous:
+		if not (axis is int or axis is float) or not is_finite(float(axis)) or absf(float(axis)) > 10000.0:
+			return false
 	var point := Vector3(float(previous[0]), float(previous[1]), float(previous[2]))
 	enter(site, group, point)
 	return true
