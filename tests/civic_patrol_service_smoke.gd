@@ -40,6 +40,29 @@ func _verify() -> void:
 	s.tick(6.0,true)
 	if not _check(s.task.is_empty() and s.history()[-1]["outcome"] == "INTERRUPTED" and not s.claim(request,"PATROL-02"), "departure interrupts dwell immediately; no false completion"):
 		return
+	var late = Service.new()
+	request["id"] = "CIV-000004"
+	if not _check(late.claim(request,"PATROL-01"), "late arrival fixture claim"):
+		return
+	late.tick(Service.MAX_TRAVEL_SECONDS - 1.0,false)
+	late.tick(2.0,true)
+	if not _check(late.task.is_empty() and late.history()[-1]["outcome"] == "EXPIRED" and not late.claim(request,"PATROL-02"), "late arrival cannot resurrect expired service"):
+		return
+	request["id"] = "CIV-000005"
+	if not _check(late.claim(request,"PATROL-01"), "deadline boundary fixture claim"):
+		return
+	late.tick(Service.MAX_TRAVEL_SECONDS,true)
+	if not _check(late.task.is_empty() and late.history()[-1]["outcome"] == "EXPIRED", "exact deadline expires before arrival"):
+		return
+	request["id"] = "CIV-000006"
+	if not _check(late.claim(request,"PATROL-01"), "timely arrival fixture claim"):
+		return
+	late.tick(Service.MAX_TRAVEL_SECONDS - 0.5,true)
+	if not _check(late.task.get("phase") == "SERVICING", "arrival before deadline remains valid"):
+		return
+	late.tick(Service.SERVICE_SECONDS,true)
+	if not _check(late.task.is_empty() and late.history()[-1]["outcome"] == "COMPLETED", "timely arrival receives full service dwell"):
+		return
 	var scene: PackedScene = load("res://scenes/main.tscn")
 	var world: Node3D = scene.instantiate()
 	root.add_child(world)
