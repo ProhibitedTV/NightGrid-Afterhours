@@ -4,6 +4,7 @@ extends RefCounted
 ## A caller must verify successful gameplay before invoking settle_run.
 const FAVOR_POINTS={
 	"street:compatibility_patch":25,
+	"civic:horizon_garden_trail":10,
 	"venue:midnight_thermos":15,
 	"venue:dead_frequency":25,
 	"venue:glass_invoice":20,
@@ -13,6 +14,7 @@ const FAVOR_POINTS={
 	"music:static_room_showcase":45}
 const FAVOR_NAMES={
 	"street:compatibility_patch":"Compatibility Patch",
+	"civic:horizon_garden_trail":"Horizon Garden Trail",
 	"venue:midnight_thermos":"The Midnight Thermos",
 	"venue:dead_frequency":"Dead Frequency",
 	"venue:glass_invoice":"The Glass Invoice",

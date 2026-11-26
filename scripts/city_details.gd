@@ -1370,6 +1370,15 @@ func _vending(at: Vector3, accent: Color) -> void:
 	props.add_child(machine)
 	_statistics["street_props"] += 1
 
+func horizon_trail_stop(at:Vector3)->int:
+	if not at.is_finite() or _grid_cell(at)!=Vector2i(3,0):
+		return -1
+	var chunk:Node3D=_loaded.get(Vector2i(3,0))
+	if not is_instance_valid(chunk):
+		return -1
+	var garden:=chunk.get_node_or_null("HorizonCommonsGarden")
+	return int(garden.call("trail_stop",at)) if is_instance_valid(garden) else -1
+
 func nearby_vending(at: Vector3) -> Node3D:
 	if not at.is_finite():
 		return null
