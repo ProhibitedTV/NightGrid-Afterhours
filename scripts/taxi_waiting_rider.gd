@@ -14,7 +14,7 @@ var _style:=-1
 var _departing:=false
 var _departure_elapsed:=0.0
 var _departure_goal:=Vector3.ZERO
-var _seat_parent:Node3D
+var _seat_parent:Node
 var _seated:=false
 func _ready()->void:
 	_label=Label3D.new()
@@ -94,7 +94,7 @@ func seat_rider(style:int,rider:String,car:Node3D)->bool:
 	if pose.is_empty():
 		hide_rider()
 		return false
-	_seat_parent=get_parent() as Node3D
+	_seat_parent=get_parent()
 	reparent(car,false)
 	rotation=Vector3(0,PI,0)
 	var factor:float=pose["scale"]
