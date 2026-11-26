@@ -1,0 +1,93 @@
+{
+  "spec": {
+    "line": {
+      "id": "street.subscription_skeptic.traffic",
+      "character": "subscription_skeptic",
+      "language": "English",
+      "text": "That car's probably still downloading the brakes.",
+      "direction": "After the disturbance has passed, natural spoken reaction; dry, conversational, not a shouted punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "subscription_skeptic",
+        "context": "traffic"
+      }
+    },
+    "voice": {
+      "direction": "Original adult male, grumbling older local, dry delivery."
+    }
+  },
+  "settings": {
+    "model": "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+    "revision": "fd4b254389122332181a7c3db7f27e918eec64e3",
+    "seed": 314,
+    "device": "cuda",
+    "dtype": "bfloat16",
+    "packages": {
+      "qwen-tts": "0.1.1",
+      "torch": "2.11.0+cu128",
+      "soundfile": "0.14.0",
+      "transformers": "4.57.3"
+    },
+    "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers",
+    "cast_sha256": "fb96e17693cc5c2f0f4d11ee48039068f69c2f28cf6b73d59b1dd95733eba540"
+  },
+  "cast": {
+    "schema": 1,
+    "character": "subscription_skeptic",
+    "transcript": "My apartment has a subscription doorbell. I canceled it. Now visitors are downloadable content.",
+    "audition": {
+      "spec": {
+        "line": {
+          "id": "street.subscription_skeptic.01",
+          "character": "subscription_skeptic",
+          "language": "English",
+          "text": "My apartment has a subscription doorbell. I canceled it. Now visitors are downloadable content.",
+          "direction": "Natural incidental street remark, dry humor; do not deliver like a punchline.",
+          "source": {
+            "catalog": "street_satire",
+            "character": "subscription_skeptic",
+            "index": 0
+          }
+        },
+        "voice": {
+          "direction": "Original adult male, grumbling older local, dry delivery."
+        }
+      },
+      "settings": {
+        "model": "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+        "revision": "5ecdb67327fd37bb2e042aab12ff7391903235d3",
+        "seed": 309,
+        "device": "cuda",
+        "dtype": "bfloat16",
+        "reference": "original synthetic voice design",
+        "packages": {
+          "qwen-tts": "0.1.1",
+          "torch": "2.11.0+cu128",
+          "soundfile": "0.14.0",
+          "transformers": "4.57.3"
+        },
+        "ffmpeg": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers"
+      },
+      "sha256": "d71b2b2d8fd8a063ba9b00b85abec9a796d635413b5d374e2f41eb4497802dff",
+      "stats": {
+        "frames": 288000,
+        "peak": 20092,
+        "rms": 2602.77
+      }
+    },
+    "review": {
+      "take_sha256": "d71b2b2d8fd8a063ba9b00b85abec9a796d635413b5d374e2f41eb4497802dff",
+      "record_sha256": "9eee9dd09a7a93c90dc950fd02fe8de2eede130fb628f7c18f2a76be2d2afb43",
+      "reviewer": "Creative director",
+      "notes": "Automated playtest cast selection; PCM verified. Human listening review pending.",
+      "license_and_reference_checked": true
+    }
+  },
+  "fingerprint": "585b4e9b28a92c673aacfc1497c3698e26ee786f6d4af7005e8ad070e42bcdcc",
+  "sha256": "2f54600e89454251642a47c26af2e7def40f72396e003f11359806fba8857168",
+  "stats": {
+    "frames": 134400,
+    "peak": 15274,
+    "rms": 2602.77
+  }
+}

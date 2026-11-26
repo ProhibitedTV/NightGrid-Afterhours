@@ -1,0 +1,31 @@
+{
+  "schema": 2,
+  "wav_sha256": "c564029d86c10ee0e505949b7b06c9133152a39e2ed727d12c734809de8eae3b",
+  "take_sha256": "031434635ed58ca3fd9cf342222a615be2ca78565321bdd07e5db105a8be6e62",
+  "line_sha256": "c20166e1bc6ad0e8609ded7cfacd1622913b27d7e1e05606795e84107f7b97c7",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "Okay, that was loud. Still a nothing burger.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 7,
+    "observed_units": 7,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 4.72,
+      "leading_quiet_seconds": 0.5,
+      "trailing_quiet_seconds": 0.08,
+      "quiet_fraction": 0.436,
+      "peak": 23197,
+      "rms": 2089.81
+    },
+    "flags": []
+  }
+}

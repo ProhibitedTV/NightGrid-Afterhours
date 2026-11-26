@@ -1,0 +1,39 @@
+{
+  "spec": {
+    "id": "city_wind",
+    "duration": 20,
+    "loop": true,
+    "seed": 4100,
+    "prompt": "Steady quiet wind moving through urban building canyons, subtle airy turbulence, realistic field recording, no music or intelligible speech"
+  },
+  "model": "small-sfx",
+  "weights": "https://huggingface.co/stabilityai/stable-audio-3-small-sfx",
+  "license": "https://stability.ai/license",
+  "device": "cuda",
+  "sha256": "94878e133ac3a12b580da7eeaa8203e9e851da6f3c259214c6fafd18ceccca0b",
+  "reviewed": false,
+  "machine_qc_passed": true,
+  "provenance": {
+    "repo": "stabilityai/stable-audio-3-small-sfx",
+    "revision": "05ca3857881c94a2b84026b1111c537d78f5f9f0",
+    "upstream": "4007b6f2987bcb760626c2b4ae3e3541753984e9",
+    "device": "cuda",
+    "steps": 8,
+    "cfg_scale": 1.0,
+    "auxiliary_encoder": "upstream-managed; not independently pinned",
+    "packages": {
+      "stable-audio-3": "0.1.0",
+      "torch": "2.7.1+cu126",
+      "torchaudio": "2.7.1+cu126",
+      "transformers": "5.8.0"
+    }
+  },
+  "metrics": {
+    "seconds": 19.75,
+    "peak": 23197,
+    "rms": 1602.787
+  },
+  "playtest_accepted": true,
+  "rights_checked": true,
+  "review_note": "Machine QC only; human listening pending"
+}

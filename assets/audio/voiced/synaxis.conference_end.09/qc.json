@@ -1,0 +1,31 @@
+{
+  "schema": 2,
+  "wav_sha256": "d06daec3c43743aaceaf6657a482dc1ad110c0c9af3e2ffbe5adfed1797993d1",
+  "take_sha256": "711c882fa89c3036ed03277d58e4bcc56d4ab504b79661de84d05a2f980d3f18",
+  "line_sha256": "f058f4b9783b6624e0f6220eb2d07b6c74548838506e78e5e4b1a4fb4e0e0825",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "a very productive offsite.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 5,
+    "observed_units": 5,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 1.76,
+      "leading_quiet_seconds": 0.02,
+      "trailing_quiet_seconds": 0.04,
+      "quiet_fraction": 0.17,
+      "peak": 15794,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

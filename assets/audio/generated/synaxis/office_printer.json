@@ -1,0 +1,39 @@
+{
+  "spec": {
+    "id": "office_printer",
+    "duration": 5,
+    "loop": false,
+    "seed": 4015,
+    "prompt": "Office laser printer whirring, paper feeding and rollers stopping abruptly, isolated realistic foley, no voices or music"
+  },
+  "model": "small-sfx",
+  "weights": "https://huggingface.co/stabilityai/stable-audio-3-small-sfx",
+  "license": "https://stability.ai/license",
+  "device": "cuda",
+  "sha256": "d0511b3595f1f1087658cb4897c01f28311433f798e1fdfa42f65255035f8cc7",
+  "reviewed": false,
+  "machine_qc_passed": true,
+  "provenance": {
+    "repo": "stabilityai/stable-audio-3-small-sfx",
+    "revision": "05ca3857881c94a2b84026b1111c537d78f5f9f0",
+    "upstream": "4007b6f2987bcb760626c2b4ae3e3541753984e9",
+    "device": "cuda",
+    "steps": 8,
+    "cfg_scale": 1.0,
+    "auxiliary_encoder": "upstream-managed; not independently pinned",
+    "packages": {
+      "stable-audio-3": "0.1.0",
+      "torch": "2.7.1+cu126",
+      "torchaudio": "2.7.1+cu126",
+      "transformers": "5.8.0"
+    }
+  },
+  "metrics": {
+    "seconds": 5.0,
+    "peak": 23197,
+    "rms": 981.103
+  },
+  "playtest_accepted": true,
+  "rights_checked": true,
+  "review_note": "Machine QC only; human listening pending"
+}

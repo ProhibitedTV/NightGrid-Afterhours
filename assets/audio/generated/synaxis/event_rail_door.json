@@ -1,0 +1,39 @@
+{
+  "spec": {
+    "id": "event_rail_door",
+    "duration": 3,
+    "loop": false,
+    "seed": 4113,
+    "prompt": "Passenger train sliding door moving and latching, short motor whir, one isolated event near the start, no music or speech"
+  },
+  "model": "small-sfx",
+  "weights": "https://huggingface.co/stabilityai/stable-audio-3-small-sfx",
+  "license": "https://stability.ai/license",
+  "device": "cuda",
+  "sha256": "99c0a26f1d400e7abb6078901d14793d40c54593d98fecc1b8accce6de047afd",
+  "reviewed": false,
+  "machine_qc_passed": true,
+  "provenance": {
+    "repo": "stabilityai/stable-audio-3-small-sfx",
+    "revision": "05ca3857881c94a2b84026b1111c537d78f5f9f0",
+    "upstream": "4007b6f2987bcb760626c2b4ae3e3541753984e9",
+    "device": "cuda",
+    "steps": 8,
+    "cfg_scale": 1.0,
+    "auxiliary_encoder": "upstream-managed; not independently pinned",
+    "packages": {
+      "stable-audio-3": "0.1.0",
+      "torch": "2.7.1+cu126",
+      "torchaudio": "2.7.1+cu126",
+      "transformers": "5.8.0"
+    }
+  },
+  "metrics": {
+    "seconds": 3.0,
+    "peak": 23197,
+    "rms": 1048.721
+  },
+  "playtest_accepted": true,
+  "rights_checked": true,
+  "review_note": "Machine QC only; human listening pending"
+}

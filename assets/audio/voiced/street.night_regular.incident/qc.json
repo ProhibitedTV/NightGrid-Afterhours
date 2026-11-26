@@ -1,0 +1,31 @@
+{
+  "schema": 2,
+  "wav_sha256": "dafd5761e64159e471fca23a8e714c456b5a6bf213a4f4ed635b116eb3c657a5",
+  "take_sha256": "e004be4281fceb62cfdf5f53fe07a079f7a35dd1aa2fcc8f8887a85fd59c037a",
+  "line_sha256": "bacb9636ec66076d0270490e6fe555a4a48f68632672f41b559524a096e19164",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "Is this the cue for somewhere or just a very disappointing street performance?",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 13,
+    "observed_units": 13,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 4.4,
+      "leading_quiet_seconds": 0.36,
+      "trailing_quiet_seconds": 0.2,
+      "quiet_fraction": 0.168,
+      "peak": 18977,
+      "rms": 2602.78
+    },
+    "flags": []
+  }
+}

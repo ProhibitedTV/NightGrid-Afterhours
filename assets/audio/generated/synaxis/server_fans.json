@@ -1,0 +1,39 @@
+{
+  "spec": {
+    "id": "server_fans",
+    "duration": 16,
+    "loop": true,
+    "seed": 4012,
+    "prompt": "Continuous recording of a data center aisle, dense smooth fan air noise, low electrical mechanical hum, steady air conditioning, no alarms, voices or music"
+  },
+  "model": "small-sfx",
+  "weights": "https://huggingface.co/stabilityai/stable-audio-3-small-sfx",
+  "license": "https://stability.ai/license",
+  "device": "cuda",
+  "sha256": "2b1596ebbfde45d561c48ee7ece66cc665caa3ad86439296729c1c80691af415",
+  "reviewed": false,
+  "machine_qc_passed": true,
+  "provenance": {
+    "repo": "stabilityai/stable-audio-3-small-sfx",
+    "revision": "05ca3857881c94a2b84026b1111c537d78f5f9f0",
+    "upstream": "4007b6f2987bcb760626c2b4ae3e3541753984e9",
+    "device": "cuda",
+    "steps": 8,
+    "cfg_scale": 1.0,
+    "auxiliary_encoder": "upstream-managed; not independently pinned",
+    "packages": {
+      "stable-audio-3": "0.1.0",
+      "torch": "2.7.1+cu126",
+      "torchaudio": "2.7.1+cu126",
+      "transformers": "5.8.0"
+    }
+  },
+  "metrics": {
+    "seconds": 15.75,
+    "peak": 13648,
+    "rms": 3276.7
+  },
+  "playtest_accepted": true,
+  "rights_checked": true,
+  "review_note": "Machine QC only; human listening pending"
+}

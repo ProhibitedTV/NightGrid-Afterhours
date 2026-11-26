@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "wav_sha256": "9e74a1d4652404693e7889e6a8098653eb0a128a0752bb739b9754ffc821ccde",
+  "take_sha256": "8ec26e94874dc98354622e8034002fdc9b9503746011a757073421702b0dff9e",
+  "line_sha256": "f47ce3fa500392b7469d2f262e84c6c3c4bdd6fbe6aa64809443963d13261a88",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "It was an off-site",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 5,
+    "observed_units": 5,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 1.52,
+      "leading_quiet_seconds": 0.42,
+      "trailing_quiet_seconds": 0.12,
+      "quiet_fraction": 0.382,
+      "peak": 23197,
+      "rms": 2258.04
+    },
+    "flags": []
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "schema": 2,
+  "wav_sha256": "2f54600e89454251642a47c26af2e7def40f72396e003f11359806fba8857168",
+  "take_sha256": "8ced1af1af558d42c696750a9ccb6b932ac09252d3ebe27c84cd16046e9c0487",
+  "line_sha256": "300485d6f3d4853275b8c508516cd749cf037ab1353060b50e7079ee286c409e",
+  "model_sha256": "3b65d49103a8587d37999b282b31a98df2d4872ab8b4f21b779d6b171149d601",
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "device": "cpu",
+    "compute_type": "int8",
+    "decode_contract": "beam5-temp0-no-context-no-vad-v1"
+  },
+  "transcript": "That car is probably still downloading the brakes.",
+  "metrics": {
+    "unit": "words",
+    "expected_units": 7,
+    "observed_units": 7,
+    "edits": 0,
+    "error_rate": 0.0,
+    "acoustic": {
+      "seconds": 2.8,
+      "leading_quiet_seconds": 0.22,
+      "trailing_quiet_seconds": 0.18,
+      "quiet_fraction": 0.214,
+      "peak": 15274,
+      "rms": 2602.77
+    },
+    "flags": []
+  }
+}
