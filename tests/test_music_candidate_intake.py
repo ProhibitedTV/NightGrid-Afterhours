@@ -30,6 +30,9 @@ class MusicIntakeTest(unittest.TestCase):
                     "rights_notes": "Not reviewed; private candidate only", "reviewed": False}
             report = intake.validate({"schema": 1, "candidates": [item]}, root)
             self.assertEqual(len(report["verified_candidates"]), 1)
+            self.assertEqual(report["verified_candidates"][0]["commercial_status"], "blocked-pending-rights-review")
+            research = intake.validate({"schema": 1, "candidates": [dict(item, model="audiocraft-musicgen")]}, root)
+            self.assertEqual(research["verified_candidates"][0]["commercial_status"], "blocked-noncommercial-model")
             self.assertEqual(target.read_bytes(), original)
             for edit in ({"sha256": "0" * 64}, {"file": "../original.wav"},
                          {"file": "/tmp/original.wav"}, {"model": "unknown"},
