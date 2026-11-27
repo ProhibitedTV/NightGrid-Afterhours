@@ -1,8 +1,8 @@
 extends RefCounted
 ## Title-only low-frequency faults in the actual neon tubes and practical spill.
 ## No shared material mutation, flashing overlays, extra light sources or RNG.
-const PERIOD := 53.0
-const EVENTS := [[9.0, 1.65, 0.56], [31.0, 2.1, 0.70], [44.0, 1.35, 0.48]]
+const PERIOD = 53.0
+const EVENTS = [[9.0, 1.65, 0.56], [31.0, 2.1, 0.70], [44.0, 1.35, 0.48]]
 var _surfaces: Array[Dictionary] = []
 var _lights: Array[OmniLight3D] = []
 var _pavement: MeshInstance3D
