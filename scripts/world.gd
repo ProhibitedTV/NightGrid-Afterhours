@@ -416,6 +416,7 @@ func _build_game_menu() -> void:
 	game_menu.call("set_world_node", self)
 	game_menu.connect("action_requested", Callable(self, "_on_menu_action"))
 	game_menu.connect("settings_changed", Callable(self, "_apply_game_settings"))
+	game_menu.call("set_creator_qa_save",bool(session.call("is_creator_qa_save")))
 	game_menu.call("set_has_save", not (session.call("read_snapshot") as Dictionary).is_empty())
 	_apply_game_settings(game_menu.call("get_settings"))
 

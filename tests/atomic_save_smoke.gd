@@ -1,5 +1,6 @@
 extends SceneTree
 const Path = "user://saves/atomic_regression_slot.json"
+const Session = preload("res://scripts/game_session.gd")
 func _initialize() -> void:
 	call_deferred("_verify")
 func check(ok: bool,reason: String) -> bool:
@@ -9,6 +10,10 @@ func check(ok: bool,reason: String) -> bool:
 	return ok
 func _verify() -> void:
 	var session := root.get_node("GameSession")
+	if not check(Session.save_path_for_args(PackedStringArray())==Session.SAVE_PATH and Session.save_path_for_args(PackedStringArray(["--creator-qa-save"]))==Session.CREATOR_QA_SAVE_PATH and Session.CREATOR_QA_SAVE_PATH!=Session.SAVE_PATH,"creator QA uses a separate opt-in slot"):
+		return
+	if not check(Session.save_path_for_args(PackedStringArray(["--creator-qa-save=wrong"]))==Session.SAVE_PATH,"only exact QA flag selects test slot"):
+		return
 	var absolute := ProjectSettings.globalize_path(Path)
 	DirAccess.remove_absolute(absolute)
 	DirAccess.remove_absolute(absolute+".tmp")

@@ -3,6 +3,8 @@ extends Node
 ## Seeds are deliberately not regenerated on scene reload or loading a save.
 const SAVE_VERSION = 1
 const SAVE_PATH = "user://saves/afterhours_slot_1.json"
+const CREATOR_QA_SAVE_PATH = "user://saves/afterhours_creator_qa_slot.json"
+const CREATOR_QA_SAVE_FLAG = "--creator-qa-save"
 const DEFAULT_SEED = 834726
 const MAX_SAVE_BYTES = 16 * 1024 * 1024
 
@@ -131,8 +133,18 @@ static func _valid_position(value: Variant) -> bool:
 			return false
 	return true
 
+## Opt-in slot selection is process-local. Normal launches never read or write the QA slot.
+static func save_path_for_args(args: PackedStringArray) -> String:
+	return CREATOR_QA_SAVE_PATH if CREATOR_QA_SAVE_FLAG in args else SAVE_PATH
+
+func active_save_path() -> String:
+	return save_path_for_args(OS.get_cmdline_user_args())
+
+func is_creator_qa_save() -> bool:
+	return active_save_path()==CREATOR_QA_SAVE_PATH
+
 func save_snapshot(state: Dictionary) -> bool:
-	return save_snapshot_to(state, SAVE_PATH)
+	return save_snapshot_to(state, active_save_path())
 
 func save_snapshot_to(state: Dictionary, path: String) -> bool:
 	var snapshot := make_snapshot(state)
@@ -165,7 +177,7 @@ func save_snapshot_to(state: Dictionary, path: String) -> bool:
 	return true
 
 func read_snapshot() -> Dictionary:
-	return read_snapshot_from(SAVE_PATH)
+	return read_snapshot_from(active_save_path())
 
 func read_snapshot_from(path: String) -> Dictionary:
 	if not FileAccess.file_exists(path):
