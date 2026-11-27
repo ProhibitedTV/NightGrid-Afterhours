@@ -10,11 +10,16 @@ import re
 import shutil
 import subprocess
 import sys
+import wave
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 GODOT_VERSION = "4.7.2"
 MARKER = b'const REVISION = "development"'
+RADIO_NAMES = ("report", "assigned", "ack", "contact", "search", "closed", "released",
+               "unavailable", "available", "civicmotorist", "civictraffic", "civicpublic")
+RADIO_GENERATED = {f"?? assets/audio/mbpd/{name}.wav{suffix}"
+                   for name in RADIO_NAMES for suffix in ("", ".import")}
 CREDITS = {
     "assets/models/nightgrid/courier/SOURCE.md": "COURIER-ASSET-CREDITS.md",
     "assets/audio/nightgrid_fm/README.md": "NIGHTGRID-FM-CREDITS.md",
@@ -33,8 +38,23 @@ def git(*args):
     return subprocess.check_output(["git", *args], cwd=ROOT, text=True).strip()
 
 def require_clean():
-    if git("status", "--porcelain", "--untracked-files=all"):
-        raise RuntimeError("Commit or preserve unique local source changes first; refusing dirty checkout")
+    changes = git("status", "--porcelain", "--untracked-files=all").splitlines()
+    unexpected = [line for line in changes if line not in RADIO_GENERATED]
+    if unexpected:
+        raise RuntimeError("Commit or preserve unique local source changes first; refusing dirty checkout: "
+                           + "; ".join(unexpected[:8]))
+
+def radio_inventory():
+    hashes = {}
+    for name in RADIO_NAMES:
+        clip = ROOT / "assets/audio/mbpd" / (name + ".wav")
+        if not clip.is_file() or clip.is_symlink():
+            raise RuntimeError(f"Missing existing MBPD radio clip: {clip}")
+        with wave.open(str(clip), "rb") as audio:
+            if audio.getnchannels() != 1 or audio.getsampwidth() != 2 or audio.getnframes() <= 0:
+                raise RuntimeError(f"Invalid MBPD radio PCM: {clip}")
+        hashes[name + ".wav"] = sha256(clip)
+    return hashes
 
 def fresh_output(path):
     path = path.resolve()
@@ -93,11 +113,7 @@ def main():
     if "--verify-creator-pck" not in (ROOT / "scripts/studio_intro.gd").read_text(encoding="utf-8"):
         raise RuntimeError("Packaged candidate verifier missing; integrate #511 first")
     # Require the existing radio bank, not an implicit generation run.
-    for name in ("report", "assigned", "ack", "contact", "search", "closed", "released",
-                 "unavailable", "available", "civicmotorist", "civictraffic", "civicpublic"):
-        clip = ROOT / "assets/audio/mbpd" / (name + ".wav")
-        if not clip.is_file() or clip.stat().st_size <= 44:
-            raise RuntimeError(f"Missing existing MBPD radio clip: {clip}")
+    radio_hashes = radio_inventory()
     out = fresh_output(args.out)
     logs = out / "logs"
     logs.mkdir()
@@ -144,6 +160,8 @@ def main():
     require_clean()
     if git("rev-parse", "HEAD") != revision:
         raise RuntimeError("Source revision moved during packaging")
+    if radio_inventory() != radio_hashes:
+        raise RuntimeError("Generated MBPD radio bank changed during packaging")
     for path in (exe, pck):
         if not path.is_file() or path.stat().st_size == 0:
             raise RuntimeError("Missing export payload: " + str(path))
@@ -160,7 +178,8 @@ def main():
     manifest = {"revision": revision, "godot": version, "channel": "development",
                 "candidate_hashes": {name: sha256(cast / name) for name in
                                      ("dev.glb.bin", "rina.glb.bin", "dana.glb.bin", "jetson.glb.bin")},
-                "audio_inventory": {"verified_source_voice_lines": voice_count,
+                "audio_inventory": {"local_mbpd_radio_hashes": radio_hashes,
+                                    "verified_source_voice_lines": voice_count,
                                     "verified_source_sfx": sfx_bank,
                                     "complete_or_human_reviewed": "not asserted"},
                 "checks": ["voice-contract", "voice-library", "sfx-library", "import",
@@ -177,5 +196,5 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except (RuntimeError, OSError, ValueError, subprocess.SubprocessError) as exc:
+    except (RuntimeError, OSError, ValueError, EOFError, wave.Error, subprocess.SubprocessError) as exc:
         sys.exit(f"CREATOR_BUILD FAIL: {exc}")

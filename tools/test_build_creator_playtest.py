@@ -40,6 +40,15 @@ class CreatorBuildTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             build.audio_inventory("unrecognized voice output", bank)
 
+    def test_only_known_untracked_radio_outputs_allowed(self):
+        with patch.object(build, "git", return_value="?? assets/audio/mbpd/report.wav\n?? assets/audio/mbpd/report.wav.import"):
+            build.require_clean()
+        for status in [" M assets/audio/mbpd/report.wav", "?? assets/audio/mbpd/extra.wav",
+                       "?? scripts/world.gd", "?? assets/audio/mbpd/README.md"]:
+            with patch.object(build, "git", return_value=status):
+                with self.assertRaises(RuntimeError):
+                    build.require_clean()
+
     def test_dirty_source_rejected(self):
         with patch.object(build, "git", return_value=" M scripts/world.gd"):
             with self.assertRaises(RuntimeError):
