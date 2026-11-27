@@ -122,6 +122,13 @@ jobs:
           timeout 45s godot --headless --path . --script res://tests/daddy_stanky_smoke.gd 2>&1 | tee /tmp/nightgrid-stanky.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-stanky.log; then exit 1; fi
           grep -q "STANKY PASS:" /tmp/nightgrid-stanky.log
+      - name: Verify creator cast clean-checkout fallback or complete staged contract
+        timeout-minutes: 3
+        run: |
+          set -o pipefail
+          timeout 120s godot --headless --path . --script res://tests/synaxis_creator_cast_smoke.gd 2>&1 | tee /tmp/nightgrid-creator-cast.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-creator-cast.log; then exit 1; fi
+          grep -q "SYNAXIS_CREATOR_CAST PASS:" /tmp/nightgrid-creator-cast.log
       - name: Verify cinematic Synaxis conversation coverage and cleanup
         timeout-minutes: 2
         run: |
