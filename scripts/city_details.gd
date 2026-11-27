@@ -21,7 +21,7 @@ const ClothingStore = preload("res://scripts/clothing_store.gd")
 const StarterHome = preload("res://scripts/starter_home.gd")
 const StarterGarage = preload("res://scripts/starter_garage.gd")
 const SynaxisHQ = preload("res://scripts/synaxis_office.gd")
-## Seeded city dressing. Static shell collisions + batched decorative geometry.
+## Fixed city dressing. Static shell collisions + batched decorative geometry.
 ## The four neighborhoods deliberately share road geometry but not street character.
 
 const CELL = 58.0
@@ -63,7 +63,11 @@ var _emissive_brightness := 0.0
 var _emissive_updates := 0
 var _statistics := {"buildings": 0, "storefronts": 0, "street_props": 0, "batched_details": 0, "districts": 8, "landmarks": 0, "authored_lots": 0, "variant_lots": 0}
 var _initialized := false
-var world_seed: int = 834726
+var world_seed: int:
+	get:
+		return 834726
+	set(_ignored):
+		pass # Legacy diagnostics cannot change authored scenery.
 var world_manifest: Dictionary = {}
 const STREAM_RADIUS = 2
 const UNLOAD_RADIUS = 3
@@ -101,14 +105,12 @@ var _occupied_collision_fallback_stages := 0
 var _server_visual_batches_created := 0
 var _server_detail_instances_created := 0
 
-func set_world_seed(value: int) -> void:
-	assert(not _initialized)
-	world_seed = value
+func set_world_seed(_value: int) -> void:
+	assert(not _initialized) # Legacy callers cannot change the city.
 
-func set_world_manifest(value: Dictionary) -> void:
+func set_world_manifest(_value: Dictionary) -> void:
 	assert(not _initialized)
-	if WorldPlan.valid_manifest(value):
-		world_manifest = value.duplicate(true)
+	world_manifest = WorldPlan.build_manifest(0)
 
 func _ready() -> void:
 	# Called from world.gd after attaching this node; never regenerate on reload.
@@ -118,6 +120,7 @@ func generate() -> void:
 	if _initialized:
 		return
 	_initialized = true
+	world_manifest = WorldPlan.build_manifest(0)
 	_rng.seed = int(SEED) ^ world_seed
 	_detail_unit_mesh.size = Vector3.ONE
 	# Roads, intersection controls and skyline are global; occupied blocks
@@ -700,12 +703,7 @@ func _build_block_base(ix: int, iz: int) -> void:
 			_detail(center + Vector3(offset, 0.151, side * 19.3), Vector3(3.3, 0.018, 0.065), Color("747c81"))
 
 func _block_lot_profile(ix: int, iz: int, which: int) -> Dictionary:
-	var profile: Dictionary = WorldPlan.lot_profile(ix, iz, which, world_seed)
-	var blocks: Dictionary = world_manifest.get("blocks", {})
-	var parcel: Variant = blocks.get("%d,%d" % [ix, iz], [])
-	if parcel is Array and parcel.size() == 2:
-		profile = (parcel[which] as Dictionary).duplicate(true)
-	return profile
+	return WorldPlan.lot_profile(ix, iz, which)
 
 func _build_block_shells(ix: int, iz: int) -> void:
 	# The first stage places BOTH original, save-stable building collision

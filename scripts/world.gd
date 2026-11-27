@@ -2570,8 +2570,6 @@ func _build_city() -> void:
 	city_details = CityDetailsScript.new()
 	city_details.name = "CityDetails"
 	add_child(city_details)
-	city_details.call("set_world_seed", 834726)
-	city_details.call("set_world_manifest", session.call("get_world_manifest"))
 	city_details.call("generate")
 
 func _build_city_perimeter() -> void:
@@ -2586,7 +2584,6 @@ func _build_world_systems() -> void:
 	flora = FloraScript.new()
 	flora.name = "CityFlora"
 	add_child(flora)
-	flora.call("set_world_seed", 834726)
 	flora.call("generate")
 	street_lights = NightLightingScript.new()
 	street_lights.name = "NightLighting"
@@ -2809,7 +2806,7 @@ func _save_game() -> bool:
 		message = "Progress saved at Lantern Court."
 		if game_menu != null:
 			game_menu.call("set_has_save", true)
-		_log_playtest("save_success", {"seed": int(session.get("world_seed"))})
+		_log_playtest("save_success", {"layout_id": "morrow-bay"})
 	else:
 		_log_playtest("save_failed")
 		message = "Save failed. Check user data folder or permissions."
@@ -3056,7 +3053,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 			repair.door.restore_open(data.get("night_shift_door_open", false) == true or repair.overlaps_threshold(player.global_position))
 	_refresh_courier_target()
 	_snap_camera()
-	_log_playtest("save_restored", {"seed": int(session.get("world_seed"))})
+	_log_playtest("save_restored", {"layout_id": "morrow-bay"})
 	_notify("Save loaded. Morrow Bay restored.")
 
 func _parking_guard_near() -> bool:
