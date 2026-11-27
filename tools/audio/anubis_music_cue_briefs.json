@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "project": "NightGrid Afterhours",
+  "generation_mode": "offline_candidate_only",
+  "cues": [
+    {
+      "id": "synaxis.arrival.security-pulse",
+      "model_preference": "ace-step",
+      "scene": "Synaxis HQ entrance and vestibule",
+      "duration_target_seconds": 42,
+      "direction": "Original instrumental low-frequency tense minimal synth, glassy rhythm, austere corporate surveillance, no voices, no famous music or artist imitation",
+      "role": "non-diegetic cinematic underscore",
+      "start_event": "arrival_intro",
+      "stop_event": "arrival_security_gate",
+      "mix_notes": "Remain beneath security dialogue, footsteps and badge reader; no hard sync to unresolved cut timing"
+    },
+    {
+      "id": "synaxis.offboarding.empty-floor",
+      "model_preference": "ace-step",
+      "scene": "Synaxis workfloor offboarding",
+      "duration_target_seconds": 60,
+      "direction": "Original instrumental restrained dark ambient with slowly shifting electric piano and synth drone, uneasy silence, no lyrics, no artist references",
+      "role": "non-diegetic cinematic underscore",
+      "start_event": "offboarding_briefing",
+      "stop_event": "offboarding_departure",
+      "mix_notes": "Sparse for speech intelligibility; fade naturally at scene boundaries"
+    },
+    {
+      "id": "brickwater.arcade.attract-loop",
+      "model_preference": "audiocraft-musicgen",
+      "scene": "Brickwater original in-world arcade cabinet",
+      "duration_target_seconds": 24,
+      "direction": "Original energetic FM-synthesis-inspired chiptune for a fictional arcade attract screen, clean percussive transients, no borrowed melody, no vocals",
+      "role": "diegetic cabinet loop",
+      "start_event": "cabinet_power_on",
+      "stop_event": "cabinet_power_off",
+      "mix_notes": "Spatialized and distance-attenuated with existing arcade SFX budget; loop seam must be reviewed"
+    },
+    {
+      "id": "afterhours.club.original-break",
+      "model_preference": "ace-step",
+      "scene": "Afterhours club, optional musician performance",
+      "duration_target_seconds": 90,
+      "direction": "Original punk-influenced industrial electronic backing groove for an original local band, propulsive drums and distorted texture, instrumental, no artist imitation",
+      "role": "diegetic venue performance",
+      "start_event": "band_performance_started",
+      "stop_event": "band_performance_ended",
+      "mix_notes": "Honor venue music routing and game volume settings; no replacement of NightGrid FM tracks"
+    }
+  ]
+}
