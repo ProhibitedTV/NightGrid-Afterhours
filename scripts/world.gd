@@ -1027,7 +1027,7 @@ func _journal_context() -> Dictionary:
 	return {
 		"district": district if landmark.is_empty() else "%s / %s" % [district, landmark],
 		"clock": day_night.call("clock_string"),
-		"seed": session.get("world_seed"),
+		"layout_id": "morrow-bay",
 		"platform_notice": Opening.app_notice(deliveries) if courier_mission.gig_economy else "",
 		"synaxis_site": "SYNAXIS HQ / Glassline / Access revoked" if progression.has_receipt(Opening.RECEIPT) else "",
 		"synaxis_contact": _synaxis_contact_objective(),
@@ -2570,8 +2570,6 @@ func _build_city() -> void:
 	city_details = CityDetailsScript.new()
 	city_details.name = "CityDetails"
 	add_child(city_details)
-	city_details.call("set_world_seed", rng.seed)
-	city_details.call("set_world_manifest", session.call("get_world_manifest"))
 	city_details.call("generate")
 
 func _build_city_perimeter() -> void:
@@ -2582,11 +2580,10 @@ func _build_city_perimeter() -> void:
 	add_child(city_perimeter)
 
 func _build_world_systems() -> void:
-	# Geography and story anchors are authored; botanical infill is seeded.
+	# Geography and botanical infill use one permanent layout.
 	flora = FloraScript.new()
 	flora.name = "CityFlora"
 	add_child(flora)
-	flora.call("set_world_seed", rng.seed)
 	flora.call("generate")
 	street_lights = NightLightingScript.new()
 	street_lights.name = "NightLighting"
@@ -2809,7 +2806,7 @@ func _save_game() -> bool:
 		message = "Progress saved at Lantern Court."
 		if game_menu != null:
 			game_menu.call("set_has_save", true)
-		_log_playtest("save_success", {"seed": int(session.get("world_seed"))})
+		_log_playtest("save_success", {"layout_id": "morrow-bay"})
 	else:
 		_log_playtest("save_failed")
 		message = "Save failed. Check user data folder or permissions."
@@ -2824,7 +2821,7 @@ func _load_game() -> void:
 		game_menu.call("hide_for_game")
 	if not bool(session.call("prepare_load")):
 		_log_playtest("load_failed", {"reason": "no_valid_slot"})
-		_notify("No valid saved game in slot 1.")
+		_notify("No compatible saved game. Start a New Game in Morrow Bay.")
 		return
 	_log_playtest("load_requested")
 	playtest_logger.flush()
@@ -2916,7 +2913,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 		saved_visual.call("set_look",progression.outfit_id,progression.clothing_slots)
 	_cinder_cockpit = false
 	_cockpit_look = Vector2.ZERO
-	# Geometry is already reconstructed from the saved immutable seed.
+	# Geometry is reconstructed from the permanent city layout.
 	if is_instance_valid(nightgrid_fm):
 		nightgrid_fm.call("restore", data.get("nightgrid_radio", {}))
 	# A saved active favor is explicit prior opt-in; do not strand the job
@@ -3056,8 +3053,8 @@ func _apply_snapshot(data: Dictionary) -> void:
 			repair.door.restore_open(data.get("night_shift_door_open", false) == true or repair.overlaps_threshold(player.global_position))
 	_refresh_courier_target()
 	_snap_camera()
-	_log_playtest("save_restored", {"seed": int(session.get("world_seed"))})
-	_notify("Save loaded. Seed %d; Morrow Bay restored." % int(session.get("world_seed")))
+	_log_playtest("save_restored", {"layout_id": "morrow-bay"})
+	_notify("Save loaded. Morrow Bay restored.")
 
 func _parking_guard_near() -> bool:
 	if current_car!=null or current_transit!=null or interiors.call("is_inside"):

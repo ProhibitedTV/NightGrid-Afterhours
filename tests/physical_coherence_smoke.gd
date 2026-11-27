@@ -255,8 +255,8 @@ func _check_station() -> void:
 	var wrote: bool = session.call("save_snapshot_to", aboard, save)
 	if wrote:
 		var decoded: Dictionary = session.call("read_snapshot_from", save)
-		_expect(decoded.get("version") == 1 and decoded.get("rail_platform_rider") == true and
-			decoded.get("seed") == session.get("world_seed"), "The platform state should round-trip in the v1 save")
+		_expect(decoded.get("version") == 2 and decoded.get("rail_platform_rider") == true and
+			decoded.get("layout_id") == "morrow-bay" and not decoded.has("seed"), "The platform state should round-trip in the canonical save")
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(save))
 	else:
 		_expect(false, "Could not write the isolated platform-rider save test")

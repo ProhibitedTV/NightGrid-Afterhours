@@ -165,7 +165,6 @@ func _verify() -> void:
 	world.set_process(false)
 	var player: CharacterBody3D = world.get("player")
 	var path := "user://tests/staged_city_streaming_restore.json"
-	var disk_signature := WorldPlan.manifest_signature(JSON.parse_string(JSON.stringify(old_manifest)))
 	for at in [Vector3(-86.8, 1.15, 81), Vector3(3.35, 1.15, 203), Vector3(3.35, 1.15, -145)]:
 		player.global_position = at
 		if not session.call("save_snapshot_to", world.call("_capture_snapshot"), path):
@@ -173,8 +172,8 @@ func _verify() -> void:
 			return
 		var data: Dictionary = session.call("read_snapshot_from", path)
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
-		if int(data.get("version", -1)) != 1 or int(data.get("seed", -1)) != old_seed:
-			_fail("Repeated traversal save lost its v1 layout or world seed")
+		if int(data.get("version", -1)) != 2 or data.get("layout_id") != "morrow-bay" or data.has("seed"):
+			_fail("Repeated traversal save lost its canonical layout ID")
 			return
 		city.call("request_focus", -at, Vector3(0, 0, 36.0))
 		world.call("_apply_snapshot", data)
@@ -182,7 +181,7 @@ func _verify() -> void:
 		if not player.global_position.is_equal_approx(at) or occupied not in city.call("get_loaded_blocks"):
 			_fail("Restore did not rebuild the occupied district before returning control")
 			return
-		if WorldPlan.manifest_signature(data["world_manifest"]) != disk_signature:
+		if data.has("world_manifest") or WorldPlan.manifest_signature(session.call("get_world_manifest")) != signature:
 			_fail("Exterior save/restore changed the seeded parcel layout")
 			return
 		await process_frame

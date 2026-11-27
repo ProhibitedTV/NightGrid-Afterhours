@@ -1,12 +1,15 @@
 extends Node
-## One immutable seed per new game. Save slot contains seed plus mutable player/world state.
-## Seeds are deliberately not regenerated on scene reload or loading a save.
-const SAVE_VERSION = 1
+## One canonical city for every new game. Saves hold mutable gameplay only.
+const SAVE_VERSION = 2
 const SAVE_PATH = "user://saves/afterhours_slot_1.json"
-const DEFAULT_SEED = 834726
+const DEFAULT_SEED = 834726 # Fixed diagnostic/scenery reproducibility key, never saved.
 const MAX_SAVE_BYTES = 16 * 1024 * 1024
 
-var world_seed: int = DEFAULT_SEED
+var world_seed: int:
+	get:
+		return DEFAULT_SEED
+	set(_ignored):
+		pass # Legacy capture/test callers cannot alter the permanent layout.
 var pending_restore: Dictionary = {}
 # Transient per-launch flag: reloading a saved/new game should enter the world,
 # not force a second title screen after a deliberate menu choice.
@@ -21,25 +24,23 @@ const IndependentInvestigation = preload("res://scripts/independent_investigatio
 const ArcadeScores = preload("res://scripts/arcade_scores.gd")
 
 func start_new_game() -> int:
-	var old := world_seed
-	world_seed = randi_range(1, 2147483646)
-	if world_seed == old:
-		world_seed = (world_seed % 2147483646) + 1
 	pending_restore.clear()
 	opening_pending = true
 	world_manifest.clear()
 	return world_seed
 
 func get_world_manifest() -> Dictionary:
-	if not WorldPlan.valid_manifest(world_manifest):
-		world_manifest = WorldPlan.build_manifest(world_seed)
+	if world_manifest.is_empty():
+		world_manifest = WorldPlan.build_manifest(DEFAULT_SEED)
 	return world_manifest.duplicate(true)
 
 func make_snapshot(state: Dictionary) -> Dictionary:
 	var data := state.duplicate(true)
 	data["version"] = SAVE_VERSION
-	data["seed"] = world_seed
-	data["world_manifest"] = get_world_manifest()
+	data.erase("seed")
+	data.erase("world_manifest")
+	data["layout_id"] = WorldPlan.LAYOUT_ID
+	data["layout_revision"] = WorldPlan.WORLD_LAYOUT_VERSION
 	return data
 
 func is_valid_snapshot(value: Variant) -> bool:
@@ -49,8 +50,7 @@ func is_valid_snapshot(value: Variant) -> bool:
 	var version: Variant = data.get("version")
 	if not _whole_number(version, SAVE_VERSION, SAVE_VERSION):
 		return false
-	var seed_value: Variant = data.get("seed", 0)
-	if not _whole_number(seed_value, 1, 2147483646):
+	if data.has("seed") or data.has("world_manifest") or data.get("layout_id") != WorldPlan.LAYOUT_ID or not _whole_number(data.get("layout_revision"), WorldPlan.WORLD_LAYOUT_VERSION, WorldPlan.WORLD_LAYOUT_VERSION):
 		return false
 	for key in ["player_position", "cash", "health", "deliveries", "carrying", "hour", "cars", "traffic", "rail"]:
 		if not data.has(key):
@@ -98,9 +98,6 @@ func is_valid_snapshot(value: Variant) -> bool:
 		if (data["story_mission"]["status"] == "complete") != paid.has(StoryMission.ID):
 			return false
 	elif paid.has(StoryMission.ID):
-		return false
-	# Older v1 saves do not contain a manifest; synthesize it once from their seed.
-	if data.has("world_manifest") and not WorldPlan.valid_manifest(data["world_manifest"]):
 		return false
 	if not ArcadeScores.valid(data.get("arcade_best", {})):
 		return false
@@ -184,10 +181,7 @@ func prepare_load() -> bool:
 	var decoded := read_snapshot()
 	if decoded.is_empty():
 		return false
-	world_seed = int(decoded["seed"])
-	world_manifest = decoded.get("world_manifest", {}).duplicate(true)
-	if not WorldPlan.valid_manifest(world_manifest):
-		world_manifest = WorldPlan.build_manifest(world_seed)
+	world_manifest = WorldPlan.build_manifest(DEFAULT_SEED)
 	pending_restore = decoded
 	return true
 

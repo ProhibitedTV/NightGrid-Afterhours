@@ -55,7 +55,7 @@ const HELP_SECTIONS = [
 		"pad": "RT accelerate · LT reverse · Left stick steer · B brake · D-pad Right radio · D-pad Up next · D-pad Left Cinder view"},
 	{"title": "SHOP / CONTACTS", "keyboard": "G interact/close · 1 buy/use · 2 contract · Esc close",
 		"pad": "X interact/contract · A service · B close · D-pad navigate"},
-	{"title": "SYSTEM", "keyboard": "Esc pause · M map · Tab journal · P phone · F5 save at hotel · F9 load · F6 new world · F3 FPS · F8 CSV · F10 photo",
+	{"title": "SYSTEM", "keyboard": "Esc pause · M map · Tab journal · P phone · F5 save at hotel · F9 load · F6 new game · F3 FPS · F8 CSV · F10 photo",
 		"pad": "Start pause · View/Select map · B back · Phone/Save/Load/New in pause menu"}
 ]
 
@@ -406,7 +406,7 @@ func _render() -> void:
 	shell.add_theme_constant_override("separation", 12)
 	panel.add_child(shell)
 	_label(shell, "MORROW MOBILE  ·  " + str(_phone_data.get("clock","--:--")) if screen == "phone" else "NIGHTGRID  /  MORROW BAY", 14, Ui.AMBER)
-	_title(shell, "EXECUTIVE PRIVILEGE" if staged else ("AFTERHOURS" if screen == "title" else {"phone": "Morrow OS", "pause": "Paused", "settings": "Settings", "controls": "Controls", "map": "City atlas", "journal": "Journal", "inventory": "Player & inventory", "confirm_new": "New session", "opening": "People operations"}.get(screen, "Afterhours")), 26 if staged or screen == "phone" else 34, Ui.TEXT)
+	_title(shell, "EXECUTIVE PRIVILEGE" if staged else ("AFTERHOURS" if screen == "title" else {"phone": "Morrow OS", "pause": "Paused", "settings": "Settings", "controls": "Controls", "map": "City atlas", "journal": "Journal", "inventory": "Player & inventory", "confirm_new": "New Game", "opening": "People operations"}.get(screen, "Afterhours")), 26 if staged or screen == "phone" else 34, Ui.TEXT)
 	_divider(shell)
 	_body_scroll = ScrollContainer.new()
 	_body_scroll.name = "MenuScroll"
@@ -429,8 +429,8 @@ func _render() -> void:
 				_button(col, "play", "ENTER CURRENT SESSION", "play")
 			else:
 				_button(col, "play", "BEGIN YOUR NEXT CHAPTER", "play")
-				_button(col, "continue", "CONTINUE  •  NO SAVE FOUND", "load", false)
-			_button(col, "new", "NEW WORLD / NEW SEED", "new")
+				_button(col, "continue", "CONTINUE  •  NO COMPATIBLE SAVE", "load", false)
+			_button(col, "new", "NEW GAME", "new")
 			_button(col, "settings", "SETTINGS", "settings")
 			_button(col, "controls", "CONTROLS & GAMEPAD", "controls")
 			_button(col, "quit", "QUIT TO DESKTOP", "quit")
@@ -635,7 +635,7 @@ func _render() -> void:
 			if not can_save and _pause_opening_goal.is_empty():
 				_button(col, "save_waypoint", "ROUTE TO LANTERN COURT", "save_waypoint")
 			_button(col, "load", "Load saved game", "load", _has_save)
-			_button(col, "new", "New session", "new")
+			_button(col, "new", "New Game", "new")
 			_section_heading(col, "SYSTEM")
 			_button(col, "settings", "Settings", "settings")
 			_button(col, "controls", "Controls & gamepad", "controls")
@@ -799,10 +799,10 @@ func _render() -> void:
 			_label(col, "Purple = waypoint / route. Dotted purple = off-street access. Orange dashed = closed street. Esc / B back.", 14, Ui.MUTED)
 			_button(col, "back", "BACK TO PAUSE", "back")
 		"confirm_new":
-			_title(col, "START ANOTHER WORLD?", 24, Color("f0cdab"))
-			_label(col, "The current unsaved session will be discarded. Your last saved slot will remain intact until you save the new world.", 17, Color("cbd8e3"))
+			_title(col, "START A NEW GAME?", 24, Color("f0cdab"))
+			_label(col, "The current unsaved session will be discarded. Your last saved slot will remain intact until you save your new game. Morrow Bay’s layout remains unchanged.", 17, Color("cbd8e3"))
 			_button(col, "cancel", "KEEP CURRENT SESSION", "cancel_new")
-			_button(col, "confirm_new", "DISCARD SESSION / NEW WORLD", "confirm_new")
+			_button(col, "confirm_new", "DISCARD SESSION / NEW GAME", "confirm_new")
 	_divider(shell)
 	_label(shell, "Arrows / D-pad  Navigate   •   Enter / A  Select   •   Esc / B  Back", 16, Ui.MUTED)
 	_wire_focus()

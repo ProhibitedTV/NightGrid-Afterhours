@@ -1,7 +1,7 @@
 extends Node3D
 ## Morrow Bay's planted city: low-poly graphic botanical silhouettes.
 ## Street trees, protected plazas and courtyards are authored placements; only
-## species, canopy variation, small shrubs and flower groups are seeded.
+## species, canopy variation, small shrubs and flower groups use fixed authored placement rules.
 const WorldPlan = preload("res://scripts/world_plan.gd")
 const HorizonFern = preload("res://scripts/horizon_fern_hero.gd")
 const SEED = 4201337
@@ -18,11 +18,14 @@ var _meshes: Dictionary = {}
 var _materials: Dictionary = {}
 var _stats := {"street_trees": 0, "landmark_trees": 0, "shrubs": 0, "flowers": 0, "planter_pots": 0, "vegetation_instances": 0, "scanned_hero_ferns": 0}
 var _initialized := false
-var world_seed: int = 834726
+var world_seed: int:
+	get:
+		return 834726
+	set(_ignored):
+		pass # Retained only for legacy diagnostics.
 
-func set_world_seed(value: int) -> void:
-	assert(not _initialized)
-	world_seed = value
+func set_world_seed(_value: int) -> void:
+	assert(not _initialized) # Fixed scenery; no session seed input.
 
 func generate() -> void:
 	if _initialized:

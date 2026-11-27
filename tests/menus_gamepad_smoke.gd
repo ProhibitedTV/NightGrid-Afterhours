@@ -122,17 +122,20 @@ func _verify() -> void:
 		_fail("Title screen must pause the world and remain interactive")
 		return
 	if not (menu.call("get_buttons") as Dictionary).has("continue"):
-		_fail("Continue/Start/New World navigation missing from title")
+		_fail("Continue/Start/New Game navigation missing from title")
 		return
 	if not (menu.call("get_buttons") as Dictionary)["continue"].disabled:
 		_fail("Continue should be unavailable when no save slot exists")
 		return
+	if (menu.call("get_buttons") as Dictionary)["new"].text != "NEW GAME":
+		_fail("Title must say NEW GAME, not New World or seed")
+		return
 	menu.call("_choice", "new")
 	if str(menu.get("screen")) != "confirm_new":
-		_fail("New World must be a confirmed destructive transition")
+		_fail("New Game must be a confirmed destructive transition")
 		return
 	if menu.get("_first_focus") != (menu.call("get_buttons") as Dictionary)["cancel"]:
-		_fail("Destructive new-world confirmation must default to Keep Current Session")
+		_fail("Destructive new-game confirmation must default to Keep Current Session")
 		return
 	menu.call("_choice", "cancel_new")
 	if str(menu.get("screen")) != "title":
@@ -186,8 +189,8 @@ func _verify() -> void:
 		return
 	menu.call("open_pause")
 	var journal_context: Dictionary = world.call("_journal_context")
-	if journal_context.get("district", "") == "" or not journal_context.has("seed"):
-		_fail("Objective journal lacks grounded district and saved world seed")
+	if journal_context.get("district", "") == "" or journal_context.get("layout_id") != "morrow-bay" or journal_context.has("seed"):
+		_fail("Objective journal must use the canonical city without a seed")
 		return
 	menu.call("_choice", "map")
 	var route_map: Dictionary = world.call("get_map_state")
