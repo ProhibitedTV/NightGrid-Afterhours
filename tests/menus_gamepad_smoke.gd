@@ -139,7 +139,7 @@ func _verify() -> void:
 	var preview: Node = load("res://scripts/title_alley_view.gd").new()
 	menu.add_child(preview)
 	var old_camera := root.get_camera_3d()
-	var old_position := player.global_position
+	var title_original_position := player.global_position
 	var clock: Node = world.get("day_night")
 	var old_hour: float = clock.get("hour")
 	var old_day: int = clock.get("day_index")
@@ -197,7 +197,7 @@ func _verify() -> void:
 		return
 	for tick in range(4):
 		preview.call("_process", 0.1)
-	if is_equal_approx(float(clock.get("hour")), 22.1) or not paused or player.global_position != old_position:
+	if is_equal_approx(float(clock.get("hour")), 22.1) or not paused or player.global_position != title_original_position:
 		_fail("Title clock must advance visually without running gameplay or moving the player")
 		return
 	preview.call("finish")
@@ -209,7 +209,7 @@ func _verify() -> void:
 		_fail("Title vehicle leaked into gameplay")
 		return
 	preview.queue_free()
-	if root.get_camera_3d() != old_camera or not is_equal_approx(float(clock.get("hour")), old_hour) or int(clock.get("day_index")) != old_day or environment.volumetric_fog_enabled != old_fog or player.global_position != old_position:
+	if root.get_camera_3d() != old_camera or not is_equal_approx(float(clock.get("hour")), old_hour) or int(clock.get("day_index")) != old_day or environment.volumetric_fog_enabled != old_fog or player.global_position != title_original_position:
 		_fail("Title preview must restore gameplay camera, clock, fog and player")
 		return
 	if not paused or not menu.call("is_open") or str(menu.get("screen")) != "title":
