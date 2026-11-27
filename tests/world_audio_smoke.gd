@@ -36,10 +36,16 @@ func _verify() -> void:
 		_fail("Expected four city atmosphere buses")
 		return
 	var bank: Dictionary = director.get("_step_bank")
-	if bank.size() != 4 or not bank.values().all(func(samples: Array) -> bool:
-		return samples.size() == 4 and samples.all(func(clip: AudioStream) -> bool: return clip.get_length() > 0.2)):
-		_fail("Expected four distinct prewarmed recordings for each pavement class")
+	var surfaces := ["CONCRETE", "TILE", "ASPHALT", "GRAVEL", "CARPET"]
+	if bank.size() != surfaces.size():
+		_fail("Expected four original pavement classes plus carpet")
 		return
+	for surface in surfaces:
+		var samples: Array = bank.get(surface, [])
+		var minimum := .17 if surface == "CARPET" else .2
+		if samples.size() != 4 or not samples.all(func(clip: AudioStream) -> bool: return clip != null and clip.get_length() > minimum):
+			_fail("Expected four prewarmed footfalls for " + surface)
+			return
 	director.call("set_preferences", 0.65, 0.75)
 	director.call("update_context", Vector3.ZERO, Vector3.ZERO,
 		true, true, false, "SOUTHWORKS", 22.0, 8.0)
