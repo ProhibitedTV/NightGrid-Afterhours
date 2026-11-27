@@ -47,6 +47,51 @@ func _verify() -> void:
 	if not is_equal_approx(float(edge.call("ridge_height", 346.0)), float(edge.call("ridge_height", 352.0))):
 		_fail("Upper landing must be level")
 		return
+	# Confirm that the curved center and both edges hit the road itself.
+	for x in [260.0, 289.5, 309.5, 333.5, 348.5]:
+		var alignment: Vector2 = edge.call("ridge_alignment",x)
+		var height := float(edge.call("ridge_height",x))
+		for z in [alignment.x,alignment.x-alignment.y+0.5,alignment.x+alignment.y-0.5]:
+			var query := PhysicsRayQueryParameters3D.create(Vector3(x,height+2.0,z),Vector3(x,height-2.0,z),1)
+			var hit := space.intersect_ray(query)
+			if hit.is_empty() or (hit["collider"] as Node).name != "Ridge_CentralAccess_Floor":
+				_fail("Curved road width/collision mismatch")
+				return
+	var bend: Vector2 = edge.call("ridge_alignment",289.5)
+	if not is_equal_approx(bend.x,-9.0):
+		_fail("Curved road alignment missing")
+		return
+	if float(stats["ridge_summit_length_m"]) != 20.0 or float(stats["ridge_max_road_width_m"]) != 30.0:
+		_fail("Summit turning space missing")
+		return
+	if edge.get_node_or_null("Ridge_LaneMarkings") == null:
+		_fail("Missing road center markings")
+		return
+	# Summit overlook and sidewalk connection must be actual continuous
+	# walkable geometry, not a decorative platform placed above collision.
+	if int(stats.get("ridge_overlook_area_m2",0)) != 480:
+		_fail("Missing 480 square metre overlook")
+		return
+	for x in [335.0,343.5,350.0]:
+		for z in [-47.0,-36.0,-25.0]:
+			var ray := PhysicsRayQueryParameters3D.create(Vector3(x,12,z),Vector3(x,5,z),1)
+			var hit := space.intersect_ray(ray)
+			if hit.is_empty() or (hit["collider"] as Node).name != "Ridge_OverlookPlaza_Floor" or absf(float(hit["position"].y)-7.12)>0.02:
+				_fail("Missing level overlook floor")
+				return
+		var alignment: Vector2 = edge.call("ridge_alignment",x)
+		var walk_edge := alignment.x-alignment.y-3.2
+		var approach_z := (-24.0+walk_edge)*0.5
+		var approach_ray := PhysicsRayQueryParameters3D.create(Vector3(x,12,approach_z),Vector3(x,5,approach_z),1)
+		var approach_hit := space.intersect_ray(approach_ray)
+		if approach_hit.is_empty() or (approach_hit["collider"] as Node).name != "Ridge_OverlookApproach_Floor":
+			_fail("Missing sidewalk-to-overlook connection")
+			return
+	var anchor := edge.get_node_or_null("HorizonRidge_OverlookAnchor") as Marker3D
+	var sign_node := edge.get_node_or_null("HorizonRidge_OverlookSign") as Label3D
+	if anchor == null or sign_node == null or absf(anchor.position.y-7.12)>0.02 or (-anchor.basis.z).dot(Vector3.LEFT)<0.99:
+		_fail("Missing west-facing capture anchor or wall-mounted sign")
+		return
 	for pair in [
 		[Vector3(348, 8, 0), Vector3(360, 8, 0)],
 		[Vector3(300, 5, 49), Vector3(300, 5, 59)],

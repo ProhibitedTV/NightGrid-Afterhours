@@ -303,7 +303,7 @@ func _build_road_terminals() -> void:
 const RIDGE_PROFILE = [
 	Vector2(-1.0, 0.0), Vector2(0.0, 0.0), Vector2(12.0, 0.15),
 	Vector2(24.0, 0.9), Vector2(44.0, 2.8), Vector2(64.0, 4.8),
-	Vector2(84.0, 6.5), Vector2(98.0, 7.2), Vector2(108.0, 7.2)
+	Vector2(84.0, 6.8), Vector2(88.0, 7.2), Vector2(98.0, 7.2), Vector2(108.0, 7.2)
 ]
 
 func ridge_height(x: float) -> float:
@@ -315,6 +315,33 @@ func ridge_height(x: float) -> float:
 			return -0.08 + lerpf(a.y, b.y, (distance - a.x) / (b.x - a.x))
 	return -0.08 + 7.2
 
+# Horizontal alignment shares the vertical profile's station points.
+const RIDGE_ALIGNMENT = [
+	Vector3(-1.0, 0.0, 7.8), Vector3(0.0, 0.0, 7.8),
+	Vector3(12.0, 0.0, 7.8), Vector3(24.0, -2.0, 7.8),
+	Vector3(44.0, -9.0, 7.8), Vector3(64.0, -5.0, 7.8),
+	Vector3(84.0, 3.0, 7.8), Vector3(88.0, 4.0, 12.0),
+	Vector3(98.0, 4.0, 15.0), Vector3(108.0, 4.0, 15.0)
+]
+
+func ridge_alignment(x: float) -> Vector2:
+	var distance := clampf(x - EDGE, -1.0, RIDGE_LENGTH)
+	for i in range(RIDGE_ALIGNMENT.size() - 1):
+		var a: Vector3 = RIDGE_ALIGNMENT[i]
+		var b: Vector3 = RIDGE_ALIGNMENT[i+1]
+		if distance <= b.x:
+			var amount := (distance-a.x)/(b.x-a.x)
+			return Vector2(lerpf(a.y,b.y,amount),lerpf(a.z,b.z,amount))
+	return Vector2(4.0,15.0)
+
+func _ridge_band_z(x: float, boundary: float) -> float:
+	if absf(boundary) >= RIDGE_HALF_WIDTH:
+		return boundary
+	var alignment := ridge_alignment(x)
+	if is_zero_approx(boundary):
+		return alignment.x
+	return alignment.x + signf(boundary) * (alignment.y + maxf(0.0,absf(boundary)-7.8))
+
 func _build_ridge_pilot() -> void:
 	# Engineering blockout. The old city stays level; the new access street
 	# climbs gradually, with a level upper landing for a future overlook.
@@ -324,8 +351,16 @@ func _build_ridge_pilot() -> void:
 		"PHOTO_SIDEWALK", Color("b5b4ae"))
 	_ridge_surface("Ridge_SouthWalk", 7.8, 11.0,
 		"PHOTO_SIDEWALK", Color("b5b4ae"))
+	# Split the north parcel at station 88, where the summit is level.
+	# No overlapping pavement meshes or duplicate collision surfaces.
 	_ridge_surface("Ridge_NorthDevelopmentParcel", -RIDGE_HALF_WIDTH, -11.0,
-		"CONCRETE", Color("65716a"))
+		"CONCRETE", Color("65716a"), 0, 7)
+	_ridge_surface("Ridge_OverlookOuterVerge", -54.0, -48.0,
+		"CONCRETE", Color("65716a"), 7, 9, true, true)
+	_ridge_surface("Ridge_OverlookPlaza", -48.0, -24.0,
+		"PHOTO_SIDEWALK", Color("c6c3b8"), 7, 9, true, true)
+	_ridge_surface("Ridge_OverlookApproach", -24.0, -11.0,
+		"PHOTO_SIDEWALK", Color("b5b4ae"), 7, 9, true, false)
 	_ridge_surface("Ridge_SouthDevelopmentParcel", 11.0, RIDGE_HALF_WIDTH,
 		"CONCRETE", Color("65716a"))
 	var far_x := EDGE + RIDGE_LENGTH
@@ -345,6 +380,10 @@ func _build_ridge_pilot() -> void:
 	_stats["ridge_pilot"] = 1
 	_stats["ridge_area_m2"] = int(RIDGE_LENGTH * RIDGE_HALF_WIDTH * 2.0)
 	_stats["ridge_rise_m"] = 7.2
+	_stats["ridge_summit_length_m"] = 20.0
+	_stats["ridge_max_road_width_m"] = 30.0
+	_build_ridge_road_marks()
+	_build_ridge_overlook()
 
 func _ridge_retaining_segment(label: String, center: Vector3, footprint: Vector2, ground: float) -> void:
 	var bottom := -1.0
@@ -354,18 +393,20 @@ func _ridge_retaining_segment(label: String, center: Vector3, footprint: Vector2
 		"CONCRETE", Color("596967"))
 
 func _ridge_surface(label: String, z0: float, z1: float,
-		kind: String, tint: Color) -> void:
+		kind: String, tint: Color, first: int = 0, last: int = -1,
+		fixed_z0: bool = false, fixed_z1: bool = false) -> void:
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for i in range(RIDGE_PROFILE.size() - 1):
+	var end := RIDGE_PROFILE.size() - 1 if last < 0 else last
+	for i in range(first,end):
 		var start: Vector2 = RIDGE_PROFILE[i]
 		var finish: Vector2 = RIDGE_PROFILE[i+1]
 		var x0 := EDGE + start.x
 		var x1 := EDGE + finish.x
-		var a := Vector3(x0, ridge_height(x0), z0)
-		var b := Vector3(x1, ridge_height(x1), z0)
-		var c := Vector3(x1, ridge_height(x1), z1)
-		var d := Vector3(x0, ridge_height(x0), z1)
+		var a := Vector3(x0, ridge_height(x0), z0 if fixed_z0 else _ridge_band_z(x0,z0))
+		var b := Vector3(x1, ridge_height(x1), z0 if fixed_z0 else _ridge_band_z(x1,z0))
+		var c := Vector3(x1, ridge_height(x1), z1 if fixed_z1 else _ridge_band_z(x1,z1))
+		var d := Vector3(x0, ridge_height(x0), z1 if fixed_z1 else _ridge_band_z(x0,z1))
 		for vertex in [a, b, c, a, c, d]:
 			surface.set_uv(Vector2(vertex.x, vertex.z))
 			surface.add_vertex(vertex)
@@ -384,3 +425,64 @@ func _ridge_surface(label: String, z0: float, z1: float,
 	node.material_override = Materials.surface(kind, tint)
 	body.add_child(node)
 	add_child(body)
+
+func _build_ridge_road_marks() -> void:
+	# One mesh for lane dashes. Split at grade/alignment stations to
+	# avoid floating paint at crests. Stop before the summit court.
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for start in range(3, 81, 7):
+		var x0 := EDGE + float(start)
+		var x1 := x0 + 3.0
+		var splits: Array[float] = [x0]
+		for station in RIDGE_PROFILE:
+			var x := EDGE + float(station.x)
+			if x > x0 and x < x1:
+				splits.append(x)
+		splits.append(x1)
+		for i in range(splits.size()-1):
+			var a_x := splits[i]
+			var b_x := splits[i+1]
+			var za := ridge_alignment(a_x).x
+			var zb := ridge_alignment(b_x).x
+			var ya := ridge_height(a_x)+0.018
+			var yb := ridge_height(b_x)+0.018
+			for vertex in [Vector3(a_x,ya,za-0.09),Vector3(b_x,yb,zb-0.09),
+					Vector3(b_x,yb,zb+0.09),Vector3(a_x,ya,za-0.09),
+					Vector3(b_x,yb,zb+0.09),Vector3(a_x,ya,za+0.09)]:
+				surface.set_uv(Vector2(vertex.x,vertex.z))
+				surface.add_vertex(vertex)
+	surface.generate_normals()
+	var node := MeshInstance3D.new()
+	node.name = "Ridge_LaneMarkings"
+	node.mesh = surface.commit()
+	node.material_override = Materials.surface("PAVERS",Color("c9c4ab"))
+	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(node)
+
+func ridge_overlook_anchor() -> Vector3:
+	# Stable pedestrian viewpoint for future native captures, not a spawn
+	# point, teleport, quest address or save destination.
+	var x := EDGE + 98.0
+	return Vector3(x, ridge_height(x), -36.0)
+
+func _build_ridge_overlook() -> void:
+	var anchor := Marker3D.new()
+	anchor.name = "HorizonRidge_OverlookAnchor"
+	anchor.position = ridge_overlook_anchor()
+	# Marker forward (-Z) points toward downtown (-X).
+	anchor.rotation.y = PI * 0.5
+	add_child(anchor)
+	# Sign face on the existing east retaining wall, facing the plaza.
+	# No unsupported floating sign, extra collider or dynamic lighting.
+	var sign := Label3D.new()
+	sign.name = "HorizonRidge_OverlookSign"
+	sign.text = "HORIZON RIDGE\nCITY OVERLOOK"
+	sign.position = Vector3(EDGE + RIDGE_LENGTH - 0.725, ridge_height(EDGE+RIDGE_LENGTH) + 1.05, -36.0)
+	sign.rotation.y = -PI * 0.5
+	sign.font_size = 40
+	sign.pixel_size = 0.008
+	sign.modulate = Color("f0e8cf")
+	sign.outline_size = 4
+	add_child(sign)
+	_stats["ridge_overlook_area_m2"] = 480
