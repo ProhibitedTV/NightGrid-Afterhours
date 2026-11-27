@@ -1,5 +1,6 @@
 extends Node
 const AudioMix = preload("res://scripts/audio_mix.gd")
+const ChapterScore = preload("res://scripts/chapter_score.gd")
 const VenueCatalog = preload("res://scripts/venue_system.gd")
 ## NightGrid FM: authored, creator-owned chipwave music for Morrow Bay.
 ## Streams are loaded only when needed. Missing optional .ogg assets never
@@ -62,6 +63,11 @@ var menu: CanvasLayer
 var music_volume := 0.65
 var radio_enabled := true
 var dialogue_active := false
+var _chapter_active := false
+var _chapter_arrival := false
+var _chapter_offboarding := false
+var _chapter_room := ""
+var _radio_track_count := 0
 var _actor_position := Vector3.ZERO
 var _in_car := false
 var _in_transit := false
@@ -96,6 +102,12 @@ func _ready() -> void:
 		var path: String = ROOT + id + ".ogg"
 		if ResourceLoader.exists(path):
 			_available[id] = path
+	_radio_track_count = _available.size()
+	for key in ChapterScore.CUES:
+		var id: String = ChapterScore.cue_id(key)
+		var path := ChapterScore.ROOT + id + ".ogg"
+		if ResourceLoader.exists(path, "AudioStreamOggVorbis"):
+			_available[id] = path
 	for index in range(2):
 		var deck := AudioStreamPlayer.new()
 		deck.name = "NightGridStereo_%d" % index
@@ -114,7 +126,15 @@ func _ready() -> void:
 	add_child(_venue)
 
 func available_tracks() -> int:
-	return _available.size()
+	return _radio_track_count
+
+func set_chapter_context(active: bool, arrival: bool = false, offboarding: bool = false, room: String = "") -> void:
+	_chapter_active = active
+	_chapter_arrival = active and arrival
+	_chapter_offboarding = active and offboarding
+	# Preserve the preceding room score during the enclosed lift transfer.
+	if not active or room != "SYNAXIS_LIFT":
+		_chapter_room = room if active else ""
 
 func set_preferences(volume: float, car_radio_on: bool) -> void:
 	music_volume = clampf(volume, 0.0, 1.0)
@@ -175,6 +195,10 @@ func _menu_screen() -> String:
 func _context() -> String:
 	if _menu_screen() == "title":
 		return "title"
+	if _chapter_active:
+		var stage := int(menu.get("_opening_stage")) if is_instance_valid(menu) else -1
+		var score := ChapterScore.context(_chapter_arrival, _chapter_offboarding, _chapter_room, _menu_screen(), stage)
+		return score if _available.has(ChapterScore.cue_id(score)) else ""
 	if not _inside_id.is_empty() and PLAYLISTS.has(_inside_kind.to_lower()):
 		return "interior:" + _inside_kind.to_lower() + ":" + _inside_id
 	if _in_car and radio_enabled:
@@ -187,6 +211,9 @@ func _group(context: String) -> String:
 	return context
 
 func _next_id(context: String) -> String:
+	if context.begins_with("score:"):
+		var id := ChapterScore.cue_id(context)
+		return id if _available.has(id) else ""
 	var group := _group(context)
 	if not PLAYLISTS.has(group):
 		return ""
@@ -265,15 +292,15 @@ func _start_deck() -> void:
 	incoming.play(start)
 	_front = incoming
 	_active_deck_context = _deck_request["context"]
-	_now_playing = TRACKS[id]
+	_now_playing = str(TRACKS.get(id, ChapterScore.title_for(id)))
 	_deck_request.clear()
 
 func _on_deck_finished(deck: AudioStreamPlayer) -> void:
-	if deck == _front and _active_deck_context == _current_context and not _current_context.is_empty() and _deck_request.is_empty():
+	if deck == _front and _active_deck_context == _current_context and not _current_context.is_empty() and not ChapterScore.one_shot(_current_context) and _deck_request.is_empty():
 		_cue(_current_context)
 
 func _select_venue() -> String:
-	if not is_instance_valid(venues) or not _inside_id.is_empty() or _in_car or _in_transit or _menu_screen() == "title":
+	if _chapter_active or not is_instance_valid(venues) or not _inside_id.is_empty() or _in_car or _in_transit or _menu_screen() == "title":
 		return ""
 	if not _venue_id.is_empty() and bool(venues.call("is_open", _venue_id)):
 		var point: Vector3 = venues.call("venue_position", _venue_id)
@@ -352,11 +379,15 @@ func _process(delta: float) -> void:
 				_cue(context)
 		else:
 			_now_playing = ""
-	if not context.is_empty() and _active_deck_context == context and _front != null and _front.playing and _deck_request.is_empty():
+	if not context.is_empty() and not ChapterScore.one_shot(context) and _active_deck_context == context and _front != null and _front.playing and _deck_request.is_empty():
 		if _front.stream.get_length() - _front.get_playback_position() <= FADE_SECONDS + 0.35:
 			_cue(context)
 	var paused_factor := menu_music_factor(_menu_screen())
-	var speech_factor := 0.58 if dialogue_active else 1.0
+	var opening_speech := false
+	if _chapter_active and is_instance_valid(menu):
+		var voice := menu.get("_opening_voice") as Node
+		opening_speech = is_instance_valid(voice) and not str(voice.get("active_id")).is_empty()
+	var speech_factor := 0.58 if dialogue_active or opening_speech else 1.0
 	_music_gain = move_toward(_music_gain, music_volume * paused_factor * speech_factor, delta * 2.0)
 	_update_venue(delta)
 	_poll_streams()
