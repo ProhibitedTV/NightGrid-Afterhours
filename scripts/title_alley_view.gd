@@ -11,6 +11,7 @@ const Alley = preload("res://scripts/brickwater_alley.gd")
 # walls, workshop entrance and fixed street props clear.
 const R9_POSITION = Vector3(-0.65, Alley.FLOOR_Y - RoadCarVisual.GROUND, -3.0)
 const R9_YAW = 0.26
+const NeonFaults = preload("res://scripts/title_neon_faults.gd")
 const CONTACT_SHADOW = preload("res://shaders/vehicle_contact_shadow.gdshader")
 var active := false
 var motion_enabled := true
@@ -21,6 +22,7 @@ var _clock: Node
 var _city: Node
 var _hud: CanvasLayer
 var _environment: Environment
+var _neon := NeonFaults.new()
 var _r9: Node3D
 var _steam: CPUParticles3D
 var _saved_steam_process := Node.PROCESS_MODE_INHERIT
@@ -69,6 +71,7 @@ func begin(world: Node3D, animate: bool, allow_headless: bool = false) -> bool:
 		_city.call("set_focus", _restore_focus)
 		return false
 	_world.get("street_lights").call("set_focus", ORIGIN)
+	_neon.attach(alley)
 	_camera = Camera3D.new()
 	_camera.name = "TitleAlleyCamera"
 	_camera.fov = 70.0
@@ -132,6 +135,7 @@ func begin(world: Node3D, animate: bool, allow_headless: bool = false) -> bool:
 	_clock_tick = 0.0
 	active = true
 	_set_visual_hour(22.1)
+	_neon.apply(0.0, 1.0 - float(_clock.call("daylight_amount")), motion_enabled)
 	set_process(motion_enabled)
 	return true
 
@@ -156,12 +160,14 @@ func _process(delta: float) -> void:
 	if _clock_tick >= 0.25:
 		_clock_tick = 0.0
 		_set_visual_hour(fposmod(22.1 + _elapsed * 24.0 / CYCLE_SECONDS, 24.0))
+	_neon.apply(_elapsed, 1.0 - float(_clock.call("daylight_amount")), motion_enabled)
 
 func finish() -> void:
 	if not active:
 		return
 	active = false
 	set_process(false)
+	_neon.detach(1.0 - float(_clock.call("daylight_amount")))
 	if is_instance_valid(_steam):
 		_steam.speed_scale = _saved_steam_speed
 		_steam.process_mode = _saved_steam_process
