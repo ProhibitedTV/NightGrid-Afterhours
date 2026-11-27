@@ -189,14 +189,14 @@ func _verify() -> void:
 	if not session.call("is_valid_snapshot", written):
 		_fail("World snapshot invalid after civic gameplay")
 		return
-	if written.get("world_manifest", {}) != manifest:
-		_fail("Save did not include the exact generated city layout")
+	if written.has("world_manifest") or written.has("seed") or written.get("layout_id") != "morrow-bay":
+		_fail("Save must reference the canonical layout without embedding it")
 		return
 	var old: Dictionary = written.duplicate(true)
-	for field in ["world_manifest", "civic_job_active", "civic_job_completed", "civic_intel", "ration_packs"]:
-		old.erase(field)
-	if not session.call("is_valid_snapshot", old):
-		_fail("Older version-one save slots are no longer accepted")
+	old["version"] = 1
+	old["seed"] = 1011
+	if session.call("is_valid_snapshot", old):
+		_fail("Older variable-city save slots must be rejected")
 		return
 	var test_path := "user://tests/expansion_smoke_slot.json"
 	if not session.call("save_snapshot_to", state, test_path):
@@ -204,7 +204,7 @@ func _verify() -> void:
 		return
 	var restored: Dictionary = session.call("read_snapshot_from", test_path)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(test_path))
-	if not _same_layout(restored.get("world_manifest", {}), manifest):
+	if restored.get("layout_id") != "morrow-bay" or restored.has("world_manifest") or not _same_layout(session.call("get_world_manifest"), manifest):
 		_fail("Exact parcels changed during on-disk JSON serialization")
 		return
 	world.set("cash", 0)

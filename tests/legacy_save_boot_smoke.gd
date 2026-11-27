@@ -1,7 +1,6 @@
 extends SceneTree
 
 const START = Vector3(0.0, 0.870156, 2.56)
-const SEED = 1241220418
 
 func _initialize() -> void:
 	create_timer(25.0, true, false, true).timeout.connect(func() -> void: quit(1))
@@ -9,17 +8,21 @@ func _initialize() -> void:
 
 func _verify() -> void:
 	var session := root.get_node("GameSession")
-	session.set("world_seed", SEED)
 	session.set("boot_menu_shown", true)
-	# Replay the Afterhours intersection from a published Beta.7 v1 save.
-	session.set("pending_restore", {
-		"version": 1, "seed": SEED, "player_position": [START.x, START.y, START.z],
+	# Replay the intersection under the canonical save schema.
+	var state := { "player_position": [START.x, START.y, START.z],
 		"cash": 0, "health": 100, "deliveries": 0, "carrying": false, "hour": 19.2667,
 		"cars": [], "rail": {}, "traffic": {"vehicles": [{
 			"id": "bus-3", "position": [157.0, 1.75, 170.75], "yaw": PI * 0.5,
 			"next_index": 3, "dwell": 5.716667, "last_served": 4
 		}]}
-	})
+	}
+	var snapshot: Dictionary = session.call("make_snapshot", state)
+	if not session.call("is_valid_snapshot", snapshot):
+		push_error("Canonical save fixture invalid")
+		quit(1)
+		return
+	session.set("pending_restore", snapshot)
 	if change_scene_to_file("res://scenes/main.tscn") != OK:
 		quit(1)
 		return
@@ -35,5 +38,5 @@ func _verify() -> void:
 		push_error("LEGACY_SAVE_BOOT: restored courier must resume ordinary physics on the actual street")
 		quit(1)
 		return
-	print("LEGACY_SAVE_BOOT PASS: v1 position survives first street physics ticks")
+	print("CANONICAL_SAVE_BOOT PASS: v2 position survives first street physics ticks")
 	quit(0)

@@ -1027,7 +1027,7 @@ func _journal_context() -> Dictionary:
 	return {
 		"district": district if landmark.is_empty() else "%s / %s" % [district, landmark],
 		"clock": day_night.call("clock_string"),
-		"seed": session.get("world_seed"),
+		"layout_id": "morrow-bay",
 		"platform_notice": Opening.app_notice(deliveries) if courier_mission.gig_economy else "",
 		"synaxis_site": "SYNAXIS HQ / Glassline / Access revoked" if progression.has_receipt(Opening.RECEIPT) else "",
 		"synaxis_contact": _synaxis_contact_objective(),

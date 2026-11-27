@@ -24,8 +24,7 @@ func _verify() -> void:
 	if not check(not session.call("is_valid_snapshot", incompatible), "reject variable-layout legacy save"):
 		return
 	incompatible = session.call("make_snapshot", state)
-	var block: String = incompatible["world_manifest"]["blocks"].keys()[0]
-	incompatible["world_manifest"]["blocks"][block][0]["height"] = 99.0
+	incompatible["world_manifest"] = baseline
 	if not check(not session.call("is_valid_snapshot", incompatible), "reject changed saved architecture"):
 		return
 	if not check(session.call("save_snapshot_to",state,Path),"first write"):
@@ -48,7 +47,7 @@ func _verify() -> void:
 	malformed["version"]="1"
 	if not check(not session.call("is_valid_snapshot",malformed),"reject coerced version"):
 		return
-	malformed["version"]=1
+	malformed["version"]=2
 	malformed["player_position"]=["0",1,0]
 	if not check(not session.call("is_valid_snapshot",malformed),"reject coerced coordinates"):
 		return

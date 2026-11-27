@@ -203,8 +203,8 @@ func _check() -> void:
 		for side in range(2):
 			if world_plan.lot_profile(bx, bz, side, 1001) != world_plan.lot_profile(bx, bz, side, 1002):
 				changed_profiles += 1
-	if changed_profiles < 8:
-		_fail("New-game seed did not select curated alternate building profiles")
+	if changed_profiles != 0:
+		_fail("Former seed inputs changed canonical building profiles")
 		return
 	for key in world_plan.LANDMARK_BLOCKS:
 		var coordinates: PackedStringArray = str(key).split(",")
@@ -236,8 +236,8 @@ func _check() -> void:
 		return
 	var capture: Dictionary = world.call("_capture_snapshot")
 	var encoded: Dictionary = session.call("make_snapshot", capture)
-	if int(encoded.get("seed", -1)) != seed_value or not session.call("is_valid_snapshot", encoded):
-		_fail("Invalid or unseeded world snapshot")
+	if encoded.has("seed") or encoded.get("layout_id") != "morrow-bay" or not session.call("is_valid_snapshot", encoded):
+		_fail("Invalid canonical world snapshot")
 		return
 	var temp_path := "user://tests/mobility_smoke_slot.json"
 	if not session.call("save_snapshot_to", capture, temp_path):
@@ -245,8 +245,8 @@ func _check() -> void:
 		return
 	var restored: Dictionary = session.call("read_snapshot_from", temp_path)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(temp_path))
-	if restored.is_empty() or int(restored.get("seed", -1)) != seed_value:
-		_fail("Seed was not preserved through on-disk JSON save/load")
+	if restored.is_empty() or restored.has("seed") or restored.get("layout_id") != "morrow-bay":
+		_fail("Canonical layout identifier was not preserved through save/load")
 		return
 	world.call("_apply_snapshot", restored)
 	if world.get("transit_kind") != "BUS":
@@ -279,8 +279,8 @@ func _check() -> void:
 		_fail("NPC car did not move on a scheduled road lane")
 		return
 	session.call("start_new_game")
-	if int(session.get("world_seed")) == seed_value:
-		_fail("New Game did not issue a fresh seed")
+	if int(session.get("world_seed")) != seed_value:
+		_fail("New Game changed the fixed scenery key")
 		return
 	print("TRANSPORT_SMOKE PASS: ", fleet, " / ", trains,
 		" / saved_seed=", seed_value, " / new_seed=", session.get("world_seed"))

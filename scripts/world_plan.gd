@@ -2,6 +2,7 @@ extends RefCounted
 ## Morrow Bay has one permanent layout; procedural placement is deterministic.
 ## Block keys are fixed map coordinates and must not depend on the random generator.
 const CITY_NAME = "MORROW BAY"
+const LAYOUT_ID = "morrow-bay"
 const GRID_RADIUS = 4
 const WORLD_LAYOUT_VERSION = 2
 const LEGACY_RADIUS = 3
