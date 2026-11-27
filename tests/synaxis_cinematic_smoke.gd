@@ -40,10 +40,18 @@ func _test() -> void:
 	office.arrival_badge_presented.connect(func(): badge_events.append("presented"))
 	office.arrival_badge_authorized.connect(func(): badge_events.append("authorized"))
 	office.arrival_badge_reset.connect(func(): badge_events.append("reset"))
+	var indicators := office.get_node("ArchitecturalFinish/reader_red_box") as MultiMeshInstance3D
+	var idle_material := indicators.material_override
 	var authorized_sample := {"badge_presented":false,"badge_authorized":true}
 	office.call("_update_arrival_badge",authorized_sample)
+	if indicators.material_override == idle_material:
+		_fail("Authorization must change physical reader indicator material")
+		return
 	office.call("_update_arrival_badge",authorized_sample)
 	office.call("_reset_arrival_badge")
+	if indicators.material_override != idle_material:
+		_fail("Reset must restore reader indicator material")
+		return
 	office.call("_update_arrival_badge",authorized_sample)
 	if badge_events != ["presented","authorized","reset","presented","authorized"]:
 		_fail("Badge events must catch up in order, emit once and reset for replay")
