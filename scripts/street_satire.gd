@@ -655,6 +655,118 @@ const LINES = [
 		"text": "That's my crew, bro. No fancy label, no algorithm. Just my people. I'll show you my humanity.",
 		"stanky_show": 8,
 		"stanky_set": "trio"
+	},
+	{
+		"id": "street.rc.stanky.offclock.1",
+		"character": "rc",
+		"text": "Synaxis badge? They let you go? Yeah. Seen that look before. Don't let a company convince you your entire life was a performance review.",
+		"stanky_show": 0,
+		"stanky_set": "offclock"
+	},
+	{
+		"id": "street.boon.stanky.offclock.2",
+		"character": "boon",
+		"text": "Bro, you are OFF THE CLOCK. For the first time today nobody's measuring how fast you walk to the bathroom.",
+		"stanky_show": 1,
+		"stanky_set": "offclock"
+	},
+	{
+		"id": "street.daddy_stanky.stanky.offclock.3",
+		"character": "daddy_stanky",
+		"text": "They got a spreadsheet for your ass but not a chair for your soul. Sit with us a minute, bro.",
+		"stanky_show": 2,
+		"stanky_set": "offclock"
+	},
+	{
+		"id": "street.rc.stanky.offclock.4",
+		"character": "rc",
+		"text": "We run our own little stream here. No corporate account, no sponsors. If something breaks, I fix it. If Stanky breaks it, I fix it twice.",
+		"stanky_show": 3,
+		"stanky_set": "offclock"
+	},
+	{
+		"id": "street.boon.stanky.offclock.5",
+		"character": "boon",
+		"text": "And I provide premium entertainment. Five bucks. Backflip. You know the deal.",
+		"stanky_show": 4,
+		"stanky_set": "offclock"
+	},
+	{
+		"id": "street.daddy_stanky.stanky.offclock.6",
+		"character": "daddy_stanky",
+		"text": "Nah, leave the kid alone, Boon. Listen. You ain't your job. You got the whole fuckin' city out there. Find your people.",
+		"stanky_show": 5,
+		"stanky_set": "offclock"
+	},
+	{
+		"id": "street.rc.stanky.offclock.7",
+		"character": "rc",
+		"text": "Come back when you feel like it. You don't owe us a delivery, a review, or a subscription.",
+		"stanky_show": 6,
+		"stanky_set": "offclock"
+	},
+	{
+		"id": "street.daddy_stanky.stanky.offclock.8",
+		"character": "daddy_stanky",
+		"text": "Welcome to the afterhours, baby.",
+		"stanky_show": 7,
+		"stanky_set": "offclock"
+	},
+	{
+		"id": "street.rc.stanky.archive.1",
+		"character": "rc",
+		"text": "Good to see you again. Got the old recordings backed up. Turns out the internet's not forever if the people who own the servers decide otherwise.",
+		"stanky_show": 0,
+		"stanky_set": "archive"
+	},
+	{
+		"id": "street.boon.stanky.archive.2",
+		"character": "boon",
+		"text": "You saved the clip where I landed the flip, right? Not the one where I fell into the trash can?",
+		"stanky_show": 1,
+		"stanky_set": "archive"
+	},
+	{
+		"id": "street.rc.stanky.archive.3",
+		"character": "rc",
+		"text": "Both. Archival integrity.",
+		"stanky_show": 2,
+		"stanky_set": "archive"
+	},
+	{
+		"id": "street.daddy_stanky.stanky.archive.4",
+		"character": "daddy_stanky",
+		"text": "You motherfuckers make me laugh. I thought nobody would remember half this shit. Look at us now.",
+		"stanky_show": 3,
+		"stanky_set": "archive"
+	},
+	{
+		"id": "street.boon.stanky.archive.5",
+		"character": "boon",
+		"text": "We remember, bro. All of it. Even the stuff you wish we'd forget.",
+		"stanky_show": 4,
+		"stanky_set": "archive"
+	},
+	{
+		"id": "street.daddy_stanky.stanky.archive.6",
+		"character": "daddy_stanky",
+		"text": "Keep the good with the bad. That's a whole human being, ain't it? Not just the highlights. That's Humanity.",
+		"stanky_show": 5,
+		"stanky_set": "archive"
+	},
+	{
+		"id": "street.rc.stanky.archive.7",
+		"character": "rc",
+		"text": "The archive stays with us. Nobody gets to erase it for a quarterly target.",
+		"stanky_show": 6,
+		"stanky_set": "archive"
+	},
+	{
+		"id": "street.daddy_stanky.stanky.archive.8",
+		"character": "daddy_stanky",
+		"text": "And you, new friend? Go make some memories of your own. We'll be here.",
+		"stanky_show": 7,
+		"stanky_set": "archive"
 	}
 ]
 const CAST = ["robot_romantic","nothing_happens","gig_grinder","subscription_skeptic","street_visionary","night_regular"]
@@ -773,3 +885,6 @@ static func stanky_show(set_id:String="classic") -> Array[Dictionary]:
 const STANKY_FRIENDS = ["rc","boon"]
 static func stanky_speaker_name(character:String) -> String:
 	return {"daddy_stanky":"Daddy Stanky","rc":"RC","boon":"Boon"}.get(character,"Crowd")
+
+# Optional plot scenes are unlocked by actual narrative progression, not cash.
+const STANKY_STORY_SETS = ["offclock","archive"]

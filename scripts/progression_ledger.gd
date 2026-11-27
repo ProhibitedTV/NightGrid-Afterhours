@@ -84,6 +84,26 @@ func charge_up_to(amount: int) -> void:
 func has_receipt(id: String) -> bool:
 	return _receipts.has(id)
 
+const STANKY_OFFCLOCK_RECEIPT = "story:stanky_offclock"
+const STANKY_ARCHIVE_RECEIPT = "story:stanky_archive"
+
+func stanky_story_next() -> String:
+	if not has_receipt(Opening.RECEIPT):
+		return ""
+	if not has_receipt(STANKY_OFFCLOCK_RECEIPT):
+		return "offclock"
+	if not has_receipt(STANKY_ARCHIVE_RECEIPT):
+		return "archive"
+	return ""
+
+# A completed optional conversation only; no money or street-cred payout.
+func record_stanky_story(set_id:String) -> bool:
+	if set_id.is_empty() or set_id!=stanky_story_next() or _receipts.size()>=MAX_RECEIPTS:
+		return false
+	var id:=STANKY_OFFCLOCK_RECEIPT if set_id=="offclock" else STANKY_ARCHIVE_RECEIPT
+	_receipts[id]=true
+	return true
+
 ## Idempotent one-time payout. All checks precede both state changes.
 ## Repeatable jobs should use a monotonic counter, not an unbounded receipt per run.
 func credit_once(id: String, amount: int) -> bool:

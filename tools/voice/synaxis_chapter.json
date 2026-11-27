@@ -1658,6 +1658,214 @@
         "stanky_show": 8,
         "stanky_set": "trio"
       }
+    },
+    {
+      "id": "street.rc.stanky.offclock.1",
+      "character": "rc",
+      "language": "English",
+      "text": "Synaxis badge? They let you go? Yeah. Seen that look before. Don't let a company convince you your entire life was a performance review.",
+      "direction": "Quiet recognition; no self-pity.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "rc",
+        "stanky_show": 0,
+        "stanky_set": "offclock"
+      }
+    },
+    {
+      "id": "street.boon.stanky.offclock.2",
+      "character": "boon",
+      "language": "English",
+      "text": "Bro, you are OFF THE CLOCK. For the first time today nobody's measuring how fast you walk to the bathroom.",
+      "direction": "Exuberant but kind.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "boon",
+        "stanky_show": 1,
+        "stanky_set": "offclock"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.stanky.offclock.3",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "They got a spreadsheet for your ass but not a chair for your soul. Sit with us a minute, bro.",
+      "direction": "Rhythmic, inviting.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "stanky_show": 2,
+        "stanky_set": "offclock"
+      }
+    },
+    {
+      "id": "street.rc.stanky.offclock.4",
+      "character": "rc",
+      "language": "English",
+      "text": "We run our own little stream here. No corporate account, no sponsors. If something breaks, I fix it. If Stanky breaks it, I fix it twice.",
+      "direction": "Understated humor.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "rc",
+        "stanky_show": 3,
+        "stanky_set": "offclock"
+      }
+    },
+    {
+      "id": "street.boon.stanky.offclock.5",
+      "character": "boon",
+      "language": "English",
+      "text": "And I provide premium entertainment. Five bucks. Backflip. You know the deal.",
+      "direction": "Rapid playful pitch.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "boon",
+        "stanky_show": 4,
+        "stanky_set": "offclock"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.stanky.offclock.6",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Nah, leave the kid alone, Boon. Listen. You ain't your job. You got the whole fuckin' city out there. Find your people.",
+      "direction": "Warm, grounded emphasis.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "stanky_show": 5,
+        "stanky_set": "offclock"
+      }
+    },
+    {
+      "id": "street.rc.stanky.offclock.7",
+      "character": "rc",
+      "language": "English",
+      "text": "Come back when you feel like it. You don't owe us a delivery, a review, or a subscription.",
+      "direction": "Simple invitation.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "rc",
+        "stanky_show": 6,
+        "stanky_set": "offclock"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.stanky.offclock.8",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Welcome to the afterhours, baby.",
+      "direction": "Quiet smile.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "stanky_show": 7,
+        "stanky_set": "offclock"
+      }
+    },
+    {
+      "id": "street.rc.stanky.archive.1",
+      "character": "rc",
+      "language": "English",
+      "text": "Good to see you again. Got the old recordings backed up. Turns out the internet's not forever if the people who own the servers decide otherwise.",
+      "direction": "Technical but personal.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "rc",
+        "stanky_show": 0,
+        "stanky_set": "archive"
+      }
+    },
+    {
+      "id": "street.boon.stanky.archive.2",
+      "character": "boon",
+      "language": "English",
+      "text": "You saved the clip where I landed the flip, right? Not the one where I fell into the trash can?",
+      "direction": "Excited concern.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "boon",
+        "stanky_show": 1,
+        "stanky_set": "archive"
+      }
+    },
+    {
+      "id": "street.rc.stanky.archive.3",
+      "character": "rc",
+      "language": "English",
+      "text": "Both. Archival integrity.",
+      "direction": "Perfectly dry.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "rc",
+        "stanky_show": 2,
+        "stanky_set": "archive"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.stanky.archive.4",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "You motherfuckers make me laugh. I thought nobody would remember half this shit. Look at us now.",
+      "direction": "Laugh fades into sincerity.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "stanky_show": 3,
+        "stanky_set": "archive"
+      }
+    },
+    {
+      "id": "street.boon.stanky.archive.5",
+      "character": "boon",
+      "language": "English",
+      "text": "We remember, bro. All of it. Even the stuff you wish we'd forget.",
+      "direction": "Affectionate teasing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "boon",
+        "stanky_show": 4,
+        "stanky_set": "archive"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.stanky.archive.6",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Keep the good with the bad. That's a whole human being, ain't it? Not just the highlights. That's Humanity.",
+      "direction": "Reflective.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "stanky_show": 5,
+        "stanky_set": "archive"
+      }
+    },
+    {
+      "id": "street.rc.stanky.archive.7",
+      "character": "rc",
+      "language": "English",
+      "text": "The archive stays with us. Nobody gets to erase it for a quarterly target.",
+      "direction": "Steady conviction.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "rc",
+        "stanky_show": 6,
+        "stanky_set": "archive"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.stanky.archive.8",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "And you, new friend? Go make some memories of your own. We'll be here.",
+      "direction": "Warm farewell.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "stanky_show": 7,
+        "stanky_set": "archive"
+      }
     }
   ]
 }

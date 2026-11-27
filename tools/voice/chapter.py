@@ -81,8 +81,8 @@ def validate_catalog(path, source=None):
                                       "topic":row["topic"],"question":row["question"]}
         if "stanky_show" in row:
             set_id = row.get("stanky_set","classic")
-            limits = {"classic":7,"fight":7,"family":8,"trio":9}
-            if row["character"] not in (("daddy_stanky","rc","boon") if set_id=="trio" else ("daddy_stanky","night_regular")) or set_id not in limits or row["stanky_show"] not in range(limits[set_id]):
+            limits = {"classic":7,"fight":7,"family":8,"trio":9,"offclock":8,"archive":8}
+            if row["character"] not in (("daddy_stanky","rc","boon") if set_id in ("trio","offclock","archive") else ("daddy_stanky","night_regular")) or set_id not in limits or row["stanky_show"] not in range(limits[set_id]):
                 raise ValueError("Invalid Stanky show cue")
             expected[ident]["source"]={"catalog":"street_satire","character":row["character"],"stanky_show":row["stanky_show"]}
             if "stanky_set" in row:
