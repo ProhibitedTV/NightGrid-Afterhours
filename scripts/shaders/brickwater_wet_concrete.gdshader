@@ -16,6 +16,8 @@ uniform sampler2D laundry_emitter : filter_linear_mipmap, repeat_disable;
 instance uniform vec3 repair_plane;
 instance uniform vec3 laundry_plane;
 instance uniform float neon_night = 0.0;
+// Neutral during gameplay; title-only independent sign power modulation.
+instance uniform vec2 title_neon_power = vec2(1.0);
 varying vec2 local_metres;
 
 void vertex() {
@@ -86,7 +88,7 @@ void fragment() {
 			float magenta = emitter_on_reflected_ray(repair_emitter, repair_plane, ray, sign(eye.z));
 			float cyan = emitter_on_reflected_ray(laundry_emitter, laundry_plane, ray, sign(eye.z));
 			float fresnel = 0.05 + 0.95 * pow(1.0 - clamp(dot(eye, film_normal), 0.0, 1.0), 5.0);
-			EMISSION = (vec3(1.0, 0.055, 0.19) * magenta + vec3(0.025, 0.62, 1.0) * cyan)
+			EMISSION = (vec3(1.0, 0.055, 0.19) * magenta * title_neon_power.x + vec3(0.025, 0.62, 1.0) * cyan * title_neon_power.y)
 				* (mix(2.1, 3.5, film) * standing_water * fresnel * neon_night);
 		}
 	}

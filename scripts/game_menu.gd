@@ -4,6 +4,9 @@ const AudioMix = preload("res://scripts/audio_mix.gd")
 const MinimapScript = preload("res://scripts/minimap.gd")
 const CityFoley = preload("res://scripts/city_foley.gd")
 const Ui = preload("res://scripts/ui_style.gd")
+const TitleBackdrop = preload("res://scripts/title_backdrop.gd")
+const TitleAlleyView = preload("res://scripts/title_alley_view.gd")
+var _title_view: Node
 const DialogueWheel = preload("res://scripts/dialogue_wheel.gd")
 const Rhythm=preload("res://scripts/rhythm_rehearsal.gd")
 var _rhythm=Rhythm.new()
@@ -42,7 +45,7 @@ const DEFAULT_SETTINGS = {
 	"ao_enabled": true, "fog_enabled": true, "ssil_enabled": false,
 	"render_quality": "high", "render_overrides": {},
 	"vsync_enabled": true, "show_fps": false,
-	"show_control_hints": true, "show_hud_inventory": true
+	"show_control_hints": true, "show_hud_inventory": true, "title_motion": true
 }
 const HELP_SECTIONS = [
 	{"title": "ON FOOT", "keyboard": "WASD move · Mouse look · Shift sprint · Space jump",
@@ -269,6 +272,10 @@ func hide_for_game() -> void:
 	if screen=="blue_hour_set":
 		_stop_music_set_audio()
 		_rhythm.cancel()
+	_finish_title_view()
+	var backdrop: Control = _root.get_node_or_null("TitleBackdrop") as Control if is_instance_valid(_root) else null
+	if is_instance_valid(backdrop):
+		backdrop.hide()
 	screen = "hidden"
 	visible = false
 	get_tree().paused = false
@@ -280,7 +287,15 @@ func get_buttons() -> Dictionary:
 func get_settings() -> Dictionary:
 	return settings.duplicate(true)
 
+func _finish_title_view() -> void:
+	if is_instance_valid(_title_view):
+		_title_view.call("finish")
+		_title_view.queue_free()
+		_title_view = null
+
 func _open(value: String) -> void:
+	if value != "title":
+		_finish_title_view()
 	if screen=="blue_hour_set" and value!="blue_hour_set":
 		_stop_music_set_audio()
 		_rhythm.cancel()
@@ -352,7 +367,7 @@ func _normalize(legacy_graphics: bool = false) -> void:
 	settings["radio_on"] = bool(settings.get("radio_on", true))
 	settings["mouse_sensitivity"] = clampf(float(settings.get("mouse_sensitivity", 0.0032)), 0.001, 0.010)
 	settings["stick_sensitivity"] = clampf(float(settings.get("stick_sensitivity", 2.6)), 0.5, 5.0)
-	for key in ["invert_look_y", "vsync_enabled", "show_fps", "show_control_hints", "show_hud_inventory"]:
+	for key in ["invert_look_y", "vsync_enabled", "show_fps", "show_control_hints", "show_hud_inventory", "title_motion"]:
 		settings[key] = bool(settings.get(key, DEFAULT_SETTINGS[key]))
 	RenderQuality.normalize(settings, legacy_graphics)
 
@@ -385,11 +400,25 @@ func _render() -> void:
 	_focus_order.clear()
 	_first_focus = null
 	var staged := screen in ["breakroom","restroom","parking_guard","street_contact","staff_interview"] or (screen=="opening" and _physical_opening and _opening_stage in [2,3,4])
+	var live_title := false
+	if screen == "title" and is_instance_valid(_world):
+		if not is_instance_valid(_title_view):
+			_title_view = TitleAlleyView.new()
+			add_child(_title_view)
+		live_title = bool(_title_view.call("begin", _world, bool(settings.get("title_motion", true))))
 	var shade := ColorRect.new()
 	shade.name = "Scrim"
 	shade.color = Color(0.028, 0.045, 0.060, .36 if screen == "phone" else (.12 if staged else (.94 if screen in ["title", "opening"] else .68)))
+	if live_title:
+		shade.color = Color(0.028, 0.045, 0.060, 0.15)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(shade)
+	if screen == "title" and not live_title:
+		var art := TitleBackdrop.new()
+		art.name = "TitleBackdrop"
+		art.motion_enabled = bool(settings.get("title_motion", true))
+		art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_root.add_child(art)
 	var center := CenterContainer.new()
 	center.name = "Center"
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -399,14 +428,21 @@ func _render() -> void:
 	var panel := PanelContainer.new()
 	panel.name = "MenuPanel"
 	_menu_panel = panel
-	panel.custom_minimum_size = Vector2(410.0 if screen == "phone" else (500.0 if staged else 760.0), 0.0)
-	panel.add_theme_stylebox_override("panel", Ui.card(0.97, 22))
+	panel.custom_minimum_size = Vector2(410.0 if screen == "phone" else (500.0 if staged else (540.0 if screen == "title" else 760.0)), 0.0)
+	var panel_style := Ui.card(0.97, 22)
+	if screen == "title":
+		panel_style.bg_color = Color(0.045, 0.055, 0.085, 0.96)
+		panel_style.border_color = Color("986779")
+		panel_style.border_width_left = 4
+	panel.add_theme_stylebox_override("panel", panel_style)
 	center.add_child(panel)
 	var shell := VBoxContainer.new()
 	shell.add_theme_constant_override("separation", 12)
 	panel.add_child(shell)
-	_label(shell, "MORROW MOBILE  ·  " + str(_phone_data.get("clock","--:--")) if screen == "phone" else "NIGHTGRID  /  MORROW BAY", 14, Ui.AMBER)
-	_title(shell, "EXECUTIVE PRIVILEGE" if staged else ("AFTERHOURS" if screen == "title" else {"phone": "Morrow OS", "pause": "Paused", "settings": "Settings", "controls": "Controls", "map": "City atlas", "journal": "Journal", "inventory": "Player & inventory", "confirm_new": "New Game", "opening": "People operations"}.get(screen, "Afterhours")), 26 if staged or screen == "phone" else 34, Ui.TEXT)
+	_label(shell, "BITRIVER GAMING  /  RHYTHMICCARNAGE" if screen == "title" else ("MORROW MOBILE  ·  " + str(_phone_data.get("clock","--:--")) if screen == "phone" else "NIGHTGRID  /  MORROW BAY"), 14, Ui.AMBER)
+	if screen == "title":
+		_label(shell, "NIGHTGRID", 23, Color("81e0d4"), true)
+	_title(shell, "EXECUTIVE PRIVILEGE" if staged else ("AFTERHOURS" if screen == "title" else {"phone": "Morrow OS", "pause": "Paused", "settings": "Settings", "controls": "Controls", "map": "City atlas", "journal": "Journal", "inventory": "Player & inventory", "confirm_new": "New Game", "opening": "People operations"}.get(screen, "Afterhours")), 26 if staged or screen == "phone" else (48 if screen == "title" else 34), Ui.TEXT)
 	_divider(shell)
 	_body_scroll = ScrollContainer.new()
 	_body_scroll.name = "MenuScroll"
@@ -422,8 +458,8 @@ func _render() -> void:
 	_body_col = col
 	match screen:
 		"title":
-			_title(col, "YOUR NIGHT. YOUR CITY.", 22, Color("f0dfcd"))
-			_label(col, "A persistent noir metropolis, shaped by your choices.", 17, Color("a8b6c9"))
+			_title(col, "MORROW BAY  /  AFTER DARK", 19, Color("81e0d4"))
+			_label(col, "The city never clocked out. Neither did you.", 17, Color("d4b4b7"))
 			if _has_save:
 				_button(col, "continue", "CONTINUE SAVED GAME", "load")
 				_button(col, "play", "ENTER CURRENT SESSION", "play")
@@ -434,6 +470,7 @@ func _render() -> void:
 			_button(col, "settings", "SETTINGS", "settings")
 			_button(col, "controls", "CONTROLS & GAMEPAD", "controls")
 			_button(col, "quit", "QUIT TO DESKTOP", "quit")
+			_label(col, "ONE CITY  •  YOUR STORY", 13, Ui.MUTED)
 		"restroom":
 			SynaxisBrand.ui_lockup(col)
 			_title(col,"AIR QUALITY INCIDENT" if _restroom_id==Restrooms.MEN else "FACILITIES / REQUIRED TRAINING",23,Ui.AMBER)
@@ -658,6 +695,7 @@ func _render() -> void:
 			_label(col, "INTERFACE", 16, Ui.AMBER)
 			_check(col, "SHOW GENERAL CONTROL REMINDERS", "show_control_hints")
 			_check(col, "SHOW INVENTORY COUNTS IN HUD", "show_hud_inventory")
+			_check(col, "ANIMATED TITLE BACKGROUND", "title_motion")
 			_label(col, "Nearby actions, navigation and health remain visible. Review controls and status from the pause menu.", 14, Ui.MUTED)
 			_divider(col)
 			_label(col, "DISPLAY & PERFORMANCE", 16, Ui.AMBER)
@@ -824,9 +862,12 @@ func _fit_menu() -> void:
 	var viewport_size := get_viewport().get_visible_rect().size
 	if is_instance_valid(_menu_panel):
 		var staged := screen in ["breakroom","restroom","parking_guard","street_contact"] or (screen == "opening" and _physical_opening and _opening_stage in [2,3,4])
-		var target_width := 500.0 if staged else (840.0 if screen in ["inventory","journal"] else 760.0)
+		var target_width := 500.0 if staged else (840.0 if screen in ["inventory","journal"] else (540.0 if screen == "title" else 760.0))
+		if screen == "title":
+			var center: Control = _root.get_node("Center")
+			center.anchor_right = 0.55 if viewport_size.x >= 1100.0 else 1.0
 		_menu_panel.custom_minimum_size.x = minf(target_width, maxf(320.0, viewport_size.x - 64.0))
-	_body_scroll.custom_minimum_size.y = minf(_body_col.get_combined_minimum_size().y, maxf(140.0, viewport_size.y - 200.0))
+	_body_scroll.custom_minimum_size.y = minf(_body_col.get_combined_minimum_size().y, maxf(100.0, viewport_size.y - (240.0 if screen == "title" else 200.0)))
 
 func _wire_focus() -> void:
 	# Explicit vertical order avoids focus jumping between unrelated rows.
@@ -1029,6 +1070,10 @@ func _button(parent: Control, key: String, caption: String, action: String, enab
 	button.disabled = not enabled
 	button.focus_mode = Control.FOCUS_ALL
 	button.add_theme_font_size_override("font_size", 17)
+	if screen == "title" and enabled and key in ["continue", "play", "new"]:
+		var primary := Ui.button_style(Color("322b40"), Color("986779"))
+		primary.border_width_left = 3
+		button.add_theme_stylebox_override("normal", primary)
 	button.pressed.connect(func() -> void: _choice(action))
 	parent.add_child(button)
 	_buttons[key] = button

@@ -36,6 +36,7 @@ static var _contact_shadow_mesh: PlaneMesh
 
 var _night := true
 var _founder_display:=false
+var _title_display := false
 var _founder_finishes:Dictionary={}
 var _color: Color
 var _spec: Dictionary
@@ -77,6 +78,16 @@ func configure(paint_color: Color) -> void:
 	_color = paint_color
 	_spec = Cars.DATA[Cars.R9]
 
+func configure_title_display(paint_color: Color) -> void:
+	configure(paint_color)
+	_title_display = true
+
+func set_title_display_hour(hour: float) -> void:
+	if not _title_display:
+		return
+	_night = hour >= 18.75 or hour < 6.4
+	_update_lights(true, false, false)
+
 func configure_founder_display() -> void:
 	configure(Color("122c29"))
 	_founder_display=true
@@ -114,6 +125,13 @@ func _ready() -> void:
 		set_physics_process(false)
 		return
 	_build_lights()
+	if _title_display:
+		# Same coachwork, wheels, optics and paint as the playable R9, but no
+		# drivetrain/audio/instruments or vehicle simulation in the title shot.
+		set_title_display_hour(22.1)
+		set_process(false)
+		set_physics_process(false)
+		return
 	_cluster = Cluster.new()
 	_cluster.name = "LiveInstrumentCluster"
 	# Center-stack panel just aft of the authored dashboard ellipsoid.

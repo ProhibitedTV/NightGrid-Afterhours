@@ -1,0 +1,19 @@
+# NightGrid Afterhours title screen — neon-grunge editorial direction
+
+The title should feel like an original alternative record sleeve: dark ink, muted magenta and cyan, industrial silhouettes, warm horizon, sparse rain, and bold studio/game typography. The graphic city artwork is deliberately illustrative, not actual gameplay or a canonical map. It does not load or change 3D city geometry, lights, shaders or saves.
+
+The main menu aligns left on wide windows and centers on smaller ones. Existing button IDs, controller focus order, actions, save availability, and destructive New Game confirmation remain intact. The title uses the fixed-city New Game wording from #561. The animated title background preference is persisted alongside interface settings; off means static artwork. Animation redraw is capped at 20 Hz, stops on gameplay entry, and is removed when opening another menu. No new textures, fonts, sound files or model dependencies.
+
+Native review: check 1920x1080, 1280x720, narrow window, keyboard/mouse and gamepad, disabled Continue, New Game confirmation/cancel, settings motion toggle, and pause/resume. Capture real title UI and measure menu frame pacing on RTX 3060 before visual approval. The original title score is a future approved music asset; this change intentionally does not play unreviewed candidates or alter radio behavior.
+
+## Live playable-alley backdrop
+
+The preferred title backdrop is now the actual Brickwater Service Alley at block (-2,1), using the existing game's north-facing capture camera. The title uses one temporary camera in the paused world, not a second scene or viewport. The visual clock completes a 24-hour loop in four minutes, with subtle camera drift and a small moving noise-textured FogVolume on Forward+ when the player's fog setting is enabled. No player relocation, gameplay physics, calendar advancement, traffic simulation or new save writes. The camera, gameplay clock/day, HUD, stream focus and original volumetric settings are restored before leaving the title. Headless, indoor or unavailable alley views use the illustrated fallback; reduced motion fixes the live shot at night. Verify that streaming settles before native capture, settings/back, continued gameplay and returning to title all restore correctly. Measure idle render performance and fog density on the RTX 3060; the 4-minute cycle and fog settings are initial artistic choices, not measured performance claims.
+
+## Cinder R9 hero car
+
+The title shot now stages the actual playable Cinder R9 coachwork, wheels, calipers, glazing, paint and lights in deep crimson, nose toward the camera at a slight angle. The visual-only rig has no collision, drivetrain audio, instruments or fleet slot. Wheel height follows the authored alley floor and the existing model ground datum; the normal headlamp, tail and sill lights follow the title clock, switching off in daylight. The prop is detached and freed before returning to gameplay. Native framing, prop clearance, reflections, fog and night-lamp intensity still require a real framebuffer review. No new vehicle asset or gameplay vehicle modifications.
+
+## Aging neon
+
+The title view applies occasional independent smooth dips to the NightShift Repairs and laundry blade signs. Dips last 1.35–2.1 seconds, never fully extinguish a sign, and are separated by long stable periods. The local tube material, corresponding practical light spill and the wet concrete shader's authored reflection are coupled. Reduced motion disables these fluctuations. Original material overrides and neutral reflection power return before gameplay. The wet-concrete shader change adds only a neutral-default instance parameter; it does not change the regular gameplay lighting look. Native visual review is still required.

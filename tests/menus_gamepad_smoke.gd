@@ -117,7 +117,101 @@ func _verify() -> void:
 	menu.call("update_setting","render_overrides",saved_settings["render_overrides"])
 	menu.call("update_setting","render_quality",saved_settings["render_quality"])
 	menu.call("set_has_save", false)
+	menu.call("update_setting", "title_motion", false)
 	menu.call("open_title")
+	var title_art: Control = menu.get_node_or_null("MenuRoot/TitleBackdrop")
+	if title_art == null or title_art.mouse_filter != Control.MOUSE_FILTER_IGNORE or title_art.is_processing():
+		_fail("Reduced-motion title backdrop must be static and ignore input")
+		return
+	menu.call("update_setting", "title_motion", true)
+	menu.call("open_title")
+	title_art = menu.get_node_or_null("MenuRoot/TitleBackdrop")
+	if title_art == null or not title_art.is_processing():
+		_fail("Title motion preference must activate the backdrop")
+		return
+	menu.call("hide_for_game")
+	if title_art.is_processing():
+		_fail("Hidden title backdrop must stop processing")
+		return
+	menu.call("update_setting", "title_motion", saved_settings.get("title_motion", true))
+	menu.call("open_title")
+	# Exercise the real title camera in headless mode without enabling volumetrics.
+	var preview: Node = load("res://scripts/title_alley_view.gd").new()
+	menu.add_child(preview)
+	var old_camera := root.get_camera_3d()
+	var title_original_position := player.global_position
+	var clock: Node = world.get("day_night")
+	var old_hour: float = clock.get("hour")
+	var old_day: int = clock.get("day_index")
+	var old_fog: bool = environment.volumetric_fog_enabled
+	if not preview.call("begin", world, true, true):
+		_fail("Live title could not focus the actual Brickwater alley")
+		return
+	var hero: Node3D = world.get_node_or_null("TitleCinderR9") as Node3D
+	if hero == null or hero is CollisionObject3D or hero.get_node_or_null("Coachwork/FrontClip") == null or hero.get_node_or_null("Coachwork/LiveInstrumentCluster") != null or (world.get("cars") as Array).size() != 12:
+		_fail("Title must stage the real R9 rig without adding a gameplay car or instruments")
+		return
+	if hero.get_node_or_null("TitleRoadContactOcclusion") == null:
+		_fail("Title R9 requires a grounded underbody shadow")
+		return
+	var alley: Node3D = world.get("city_details").find_child("BrickwaterServiceAlley", true, false) as Node3D
+	var steam: CPUParticles3D = alley.get_node_or_null("StreetAtmosphere/DrainSteam") as CPUParticles3D
+	if steam == null or steam.process_mode != Node.PROCESS_MODE_ALWAYS or not is_equal_approx(steam.speed_scale, 0.75):
+		_fail("Live title must reuse the authored drain steam")
+		return
+	# Independent smooth sign faults drive actual practicals and puddle reflection.
+	var faults: RefCounted = preview.get("_neon")
+	var pavement: MeshInstance3D = alley.get_node("PhotographicAlleyPavement")
+	var repair_spill: OmniLight3D = alley.get_node("StreetAtmosphere/RepairSignSpill")
+	var laundry_spill: OmniLight3D = alley.get_node("StreetAtmosphere/LaundrySignSpill")
+	var neon_surfaces: Array = faults.get("_surfaces").duplicate()
+	if neon_surfaces.is_empty():
+		_fail("Title neon must bind the actual emissive tubes")
+		return
+	faults.call("apply", 9.825, 1.0, true)
+	var sign_power: Vector2 = pavement.get_instance_shader_parameter("title_neon_power")
+	if not is_equal_approx(sign_power.x, 0.44) or not is_equal_approx(sign_power.y, 1.0) or not is_equal_approx(repair_spill.light_energy, 1.55 * sign_power.x) or not is_equal_approx(laundry_spill.light_energy, 1.55):
+		_fail("Neon fault must dim only the affected sign and its reflection")
+		return
+	for surface in neon_surfaces:
+		var original: StandardMaterial3D = surface["base"]
+		var local: StandardMaterial3D = surface["local"]
+		if original == local or not is_equal_approx(local.emission_energy_multiplier, original.emission_energy_multiplier * sign_power[int(surface["index"])]):
+			_fail("Neon tube intensity must use a private material and match the reflection")
+			return
+	faults.call("apply", 9.825, 1.0, false)
+	if pavement.get_instance_shader_parameter("title_neon_power") != Vector2.ONE:
+		_fail("Reduced motion must disable sign faults")
+		return
+	var lamp: SpotLight3D = hero.get_node("Coachwork/KeyLeftBeam")
+	if not lamp.visible:
+		_fail("Title R9 night headlights must use actual optics")
+		return
+	preview.call("_set_visual_hour", 12.0)
+	if lamp.visible:
+		_fail("Title R9 night lights must turn off in daylight")
+		return
+	preview.call("_set_visual_hour", 22.1)
+	if root.get_camera_3d() == old_camera or not is_equal_approx(float(clock.get("hour")), 22.1):
+		_fail("Live title did not install its camera and night view")
+		return
+	for tick in range(4):
+		preview.call("_process", 0.1)
+	if is_equal_approx(float(clock.get("hour")), 22.1) or not paused or player.global_position != title_original_position:
+		_fail("Title clock must advance visually without running gameplay or moving the player")
+		return
+	preview.call("finish")
+	for surface in neon_surfaces:
+		if is_instance_valid(surface["mesh"]) and surface["mesh"].get_surface_override_material(surface["surface"]) != surface["base"]:
+			_fail("Title neon material overrides leaked into gameplay")
+			return
+	if world.has_node("TitleCinderR9") or world.has_node("TitleAlleyCamera") or world.has_node("TitleAlleyMist"):
+		_fail("Title vehicle leaked into gameplay")
+		return
+	preview.queue_free()
+	if root.get_camera_3d() != old_camera or not is_equal_approx(float(clock.get("hour")), old_hour) or int(clock.get("day_index")) != old_day or environment.volumetric_fog_enabled != old_fog or player.global_position != title_original_position:
+		_fail("Title preview must restore gameplay camera, clock, fog and player")
+		return
 	if not paused or not menu.call("is_open") or str(menu.get("screen")) != "title":
 		_fail("Title screen must pause the world and remain interactive")
 		return
@@ -131,6 +225,9 @@ func _verify() -> void:
 		_fail("Title must say NEW GAME, not New World or seed")
 		return
 	menu.call("_choice", "new")
+	if menu.has_node("MenuRoot/TitleBackdrop"):
+		_fail("Title backdrop leaked into the confirmation screen")
+		return
 	if str(menu.get("screen")) != "confirm_new":
 		_fail("New Game must be a confirmed destructive transition")
 		return
