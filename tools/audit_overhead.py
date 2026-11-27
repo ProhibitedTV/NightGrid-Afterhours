@@ -13,7 +13,7 @@ def function_bodies(lines):
     start = 0
     for number, line in enumerate(lines + ["# end"], 1):
         if line and not line[0].isspace():
-            if name and len(body) >= 5:
+            if name and body:
                 yield name, start, "\n".join(body)
             match = re.match(r"(?:static )?func (\w+)\(", line)
             name = match.group(1) if match else None
@@ -29,6 +29,7 @@ def inventory(root):
     references = collections.defaultdict(set)
     assets = []
     functions = collections.defaultdict(list)
+    hot_candidates = []
     for path in sorted(root.rglob("*")):
         rel = path.relative_to(root)
         if any(p.startswith(".") or p in {"builds", "dist", "__pycache__"} for p in rel.parts):
@@ -53,11 +54,18 @@ def inventory(root):
         if path.suffix == ".gd":
             lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
             for name, line, body in function_bodies(lines):
-                functions[body].append({"path": rel.as_posix(), "function": name, "line": line})
+                if name in {"_process", "_physics_process"}:
+                    for pattern, category in [(r"\b(?:load|ResourceLoader\.load)\s*\(", "resource load"), (r"\.new\s*\(", "allocation"), (r"\.instantiate\s*\(", "scene instantiation"), (r"\b(?:get_children|find_children|get_nodes_in_group)\s*\(", "tree traversal"), (r"\b(?:sort|sort_custom|duplicate)\s*\(", "collection work")]:
+                        count = len(re.findall(pattern, body))
+                        if count:
+                            hot_candidates.append({"path": rel.as_posix(), "function": name, "line": line, "category": category, "matches": count})
+                if len(body.splitlines()) >= 5:
+                    functions[body].append({"path": rel.as_posix(), "function": name, "line": line})
             scripts.append({"path": rel.as_posix(), "lines": len(lines),
                 "frame_callbacks": [line.strip() for line in lines if line.lstrip().startswith(("func _process(", "func _physics_process("))]})
     return {"bytes_by_tree": dict(sizes), "scripts": sorted(scripts, key=lambda s: (-s["lines"], s["path"])),
             "identical_asset_candidates": [{"bytes_each": k[0], "sha256": k[1], "paths": v} for k,v in sorted(hashes.items()) if len(v)>1],
+            "frame_callback_cost_candidates": hot_candidates,
             "identical_function_body_candidates": [v for v in functions.values() if len({x["path"] for x in v}) > 1],
             "asset_reference_candidates": [{"path": a, "literal_referrers": sorted(references[a])} for a in assets],
             "limitations": "Literal references omit dynamic paths, UID references, imported dependencies and export rules. Disk inventory only; not runtime memory, reachability, or proof of safe deletion."}
