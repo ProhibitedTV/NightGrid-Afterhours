@@ -37,9 +37,23 @@ def sha256(path):
 def git(*args):
     return subprocess.check_output(["git", *args], cwd=ROOT, text=True).strip()
 
-def require_clean():
+def require_clean(*, after_import=False):
     changes = git("status", "--porcelain", "--untracked-files=all").splitlines()
-    unexpected = [line for line in changes if line not in RADIO_GENERATED]
+    tracked = set(git("ls-files").splitlines()) if after_import else set()
+    unexpected = []
+    for line in changes:
+        if line in RADIO_GENERATED:
+            continue
+        # A clean checkout gains sidecars on the first native Godot import.
+        # Only new sidecars of tracked sources are allowed after that import.
+        # Tracked metadata edits and unrelated untracked files still fail.
+        path = line[3:]
+        if after_import and line.startswith("?? "):
+            if path.endswith(".import") and path[:-7] in tracked:
+                continue
+            if path.endswith((".gd.uid", ".gdshader.uid")) and path[:-4] in tracked:
+                continue
+        unexpected.append(line)
     if unexpected:
         raise RuntimeError("Commit or preserve unique local source changes first; refusing dirty checkout: "
                            + "; ".join(unexpected[:8]))
@@ -58,7 +72,8 @@ def radio_inventory():
 
 def fresh_output(path):
     path = path.resolve()
-    if path == ROOT or ROOT in path.parents:
+    source = ROOT.resolve()
+    if path == source or source in path.parents:
         raise RuntimeError("Choose an artifact directory outside the source checkout")
     path.mkdir(parents=True, exist_ok=False)
     return path
@@ -157,7 +172,7 @@ def main():
             info.write_bytes(original)
         else:
             raise RuntimeError("Build-info changed during export; preserve it and inspect manually")
-    require_clean()
+    require_clean(after_import=True)
     if git("rev-parse", "HEAD") != revision:
         raise RuntimeError("Source revision moved during packaging")
     if radio_inventory() != radio_hashes:

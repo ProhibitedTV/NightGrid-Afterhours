@@ -54,5 +54,19 @@ class CreatorBuildTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 build.require_clean()
 
+    def test_only_new_sidecars_of_tracked_sources_are_allowed_after_import(self):
+        tracked = "scripts/world.gd\nassets/example.svg"
+        sidecars = "?? scripts/world.gd.uid\n?? assets/example.svg.import"
+        with patch.object(build, "git", side_effect=[sidecars, tracked]):
+            build.require_clean(after_import=True)
+        for extra in ("?? scripts/other.gd.uid", "?? assets/unknown.png.import",
+                      " M assets/example.svg.import", "?? assets/example.png"):
+            with patch.object(build, "git", side_effect=[sidecars + "\n" + extra, tracked]):
+                with self.assertRaises(RuntimeError):
+                    build.require_clean(after_import=True)
+        with patch.object(build, "git", return_value=sidecars):
+            with self.assertRaises(RuntimeError):
+                build.require_clean()
+
 if __name__ == "__main__":
     unittest.main()
