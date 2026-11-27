@@ -1,0 +1,155 @@
+{
+  "schema": 1,
+  "status": "planned-demand-not-placement",
+  "demands": [
+    {
+      "key": "synaxis-access",
+      "location": "Synaxis security and elevator circulation",
+      "source": "scripts/opening_story.gd",
+      "why": "Access-control ticket and badge deactivation need believable physical context; elevator wayfinding is a playtest concern.",
+      "priority": 1,
+      "assets": [
+        "synaxis.corporate-badge-reader-terminal",
+        "synaxis.elevator-call-panel",
+        "synaxis.elevator-door-surround",
+        "synaxis.double-glass-door-frame",
+        "synaxis.office-reception-counter"
+      ],
+      "constraints": [
+        "Keep actual interactive doors, elevators, accessible routes and trigger positions authored.",
+        "Use neutral blank hardware faces; author readable signs and floor labels in game."
+      ],
+      "reuse": []
+    },
+    {
+      "key": "synaxis-it",
+      "location": "Synaxis IT and prototype security workflow",
+      "source": "scripts/opening_story.gd",
+      "why": "The sealed access-control request and IT investigation need a recognizable technical work area.",
+      "priority": 1,
+      "assets": [
+        "synaxis.glass-door-server-rack-with-populated-equipment",
+        "synaxis.network-switch-rack-unit",
+        "synaxis.industrial-ups-battery-enclosure",
+        "synaxis.raised-floor-access-panel",
+        "synaxis.electrical-service-panel"
+      ],
+      "constraints": [
+        "No blocking service aisles; preserve mission interactables.",
+        "Separate live display content, cable paths, transparent doors and collision."
+      ],
+      "reuse": []
+    },
+    {
+      "key": "synaxis-breakroom",
+      "location": "Synaxis breakroom",
+      "source": "scripts/opening_story.gd",
+      "why": "Breakroom party dialogue needs a dedicated recognizable break space.",
+      "priority": 2,
+      "assets": [
+        "synaxis.breakroom-espresso-machine",
+        "synaxis.office-water-dispenser",
+        "synaxis.office-microwave-oven",
+        "hospitality.stack-of-ceramic-plates",
+        "hospitality.restaurant-table-napkin-dispenser"
+      ],
+      "constraints": [
+        "Keep the party trigger and room circulation intact."
+      ],
+      "reuse": []
+    },
+    {
+      "key": "brickwater-frontage",
+      "location": "Brickwater (-2, 1), Night Shift Repairs and Jade Laundry approaches",
+      "source": "docs/BRICKWATER_REALISM_REFERENCE.md",
+      "why": "Documented remaining far-street storefront and architectural depth gaps.",
+      "priority": 1,
+      "assets": [
+        "brickwater.recessed-shop-entry",
+        "brickwater.service-door",
+        "brickwater.shop-awning",
+        "brickwater.brick-cornice",
+        "brickwater.window-sill",
+        "retail.shop-window-frame"
+      ],
+      "constraints": [
+        "Preserve walk-in entrances, parcel shapes, save positions and existing sign emissive masks.",
+        "Author real building openings and window transparency; neural meshes are visual references for functional shells."
+      ],
+      "reuse": [
+        "rollershutter_window_01",
+        "brick_wall_001"
+      ]
+    },
+    {
+      "key": "brickwater-utilities",
+      "location": "Brickwater service alley (-2, 1)",
+      "source": "docs/BRICKWATER_REALISM_REFERENCE.md",
+      "why": "Ground service details and connect physical utilities without duplicating installed CC0 props.",
+      "priority": 2,
+      "assets": [
+        "brickwater.utility-meter-bank",
+        "brickwater.rainwater-downpipe",
+        "brickwater.wall-vent",
+        "brickwater.alley-wall-light",
+        "brickwater.metal-street-drainage-grate"
+      ],
+      "constraints": [
+        "Retain existing drain, steam and wet pavement treatment.",
+        "Mount fixtures physically; no geometry in walking or delivery clearance."
+      ],
+      "reuse": [
+        "exterior_aircon_unit",
+        "utility_box_01",
+        "metal_trash_can",
+        "grit/oil decals"
+      ]
+    },
+    {
+      "key": "central-street",
+      "location": "Central Exchange (0,0)",
+      "source": "docs/APPROVED_WORLD_FIDELITY_TARGET.md",
+      "why": "Controlled engineering comparison for coherent street-level frontage, curb and circulation.",
+      "priority": 1,
+      "assets": [
+        "street.modern-municipal-bench",
+        "street.public-planter-with-coastal-grass",
+        "street.commercial-wall-light-fixture",
+        "transit.traffic-signal-controller-cabinet",
+        "transit.street-parking-payment-meter"
+      ],
+      "constraints": [
+        "Preserve road centerlines, traffic signals, curb and existing addresses.",
+        "Use measured scale and native matched day/dusk/driving comparisons."
+      ],
+      "reuse": [
+        "fern_02",
+        "concrete_floor_01",
+        "bitumen",
+        "grit/oil decals"
+      ]
+    },
+    {
+      "key": "central-materials",
+      "location": "Central Exchange (0,0), transferable surfaces",
+      "source": "docs/APPROVED_WORLD_FIDELITY_TARGET.md",
+      "why": "Photoreal wet/dry asphalt and differentiated surface response; compare existing materials before replacing.",
+      "priority": 2,
+      "assets": [
+        "material.wet-dark-asphalt-aggregate",
+        "material.dry-asphalt-aggregate",
+        "material.brushed-stainless-steel",
+        "material.weathered-gray-concrete"
+      ],
+      "constraints": [
+        "Compare existing photographic PBR; luminance-derived maps are not measured PBR.",
+        "Require physical tiling scale and native weather response."
+      ],
+      "reuse": [
+        "bitumen",
+        "concrete_floor_01",
+        "blue_metal_plate"
+      ]
+    }
+  ]
+}
