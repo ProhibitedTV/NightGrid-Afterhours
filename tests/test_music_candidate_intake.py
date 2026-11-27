@@ -39,6 +39,13 @@ class MusicIntakeTest(unittest.TestCase):
                     intake.validate({"schema": 1, "candidates": [changed]}, root)
             with self.assertRaises(ValueError):
                 intake.validate({"schema": 1, "candidates": [item, item]}, root)
+            # A forged RIFF data length must not be accepted as complete audio.
+            corrupt = bytearray(original)
+            corrupt[40:44] = (len(original) * 2).to_bytes(4, "little")
+            target.write_bytes(corrupt)
+            forged = dict(item, sha256=hashlib.sha256(corrupt).hexdigest())
+            with self.assertRaises(ValueError):
+                intake.validate({"schema": 1, "candidates": [forged]}, root)
 
 
 if __name__ == "__main__":
