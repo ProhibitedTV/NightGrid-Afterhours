@@ -979,7 +979,7 @@ func tick_arrival(delta: float,player: Node3D,camera: Camera3D) -> bool:
 	_set_gate_open(bool(shot["gate_open"]))
 	camera.global_position=to_global(shot["camera"])
 	camera.look_at(to_global(shot["look"]),Vector3.UP)
-	camera.fov=60.0
+	camera.fov=float(shot["fov"])
 	_arrival_caption.text=shot["caption"]
 	return true
 
