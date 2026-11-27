@@ -34,6 +34,28 @@ class StudioProfiles(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "device differs"):
             batch.initialize_models(dit, lm, batch.PROFILES["studio"], "studio")
 
+    def test_modern_source_path_and_reject_fallback(self):
+        self.assertEqual(batch.source_format("legacy"), "wav")
+        self.assertEqual(batch.source_format("studio"), "wav32")
+        self.assertEqual(batch.source_format("studio-4b-cpu"), "wav32")
+        for codec in ("pcm_f32le", "pcm_s16le"):
+            data = '{"streams":[{"codec_name":"' + codec + '","sample_rate":"48000","channels":2}]}'
+            with patch.object(batch.subprocess, "check_output", return_value=data):
+                if codec == "pcm_f32le":
+                    self.assertEqual(batch.verify_studio_source(Path("fixture.wav"))["codec_name"], codec)
+                else:
+                    with self.assertRaisesRegex(RuntimeError, "lower-precision fallback"):
+                        batch.verify_studio_source(Path("fixture.wav"))
+
+    def test_signature_rejects_old_api_before_invocation(self):
+        def old_initialize(checkpoint_dir, lm_model_path, backend, device):
+            raise AssertionError("must not call incompatible API")
+        dit = SimpleNamespace(initialize_service=Mock(return_value=("ok", True)))
+        lm = SimpleNamespace(initialize=old_initialize)
+        with self.assertRaisesRegex(RuntimeError, "LLMHandler.initialize"):
+            batch.initialize_models(dit, lm, batch.PROFILES["studio"], "studio")
+        dit.initialize_service.assert_not_called()
+
     def test_memory_guard(self):
         with patch.object(batch, "available_ram_gib", return_value=15):
             with self.assertRaises(RuntimeError):
