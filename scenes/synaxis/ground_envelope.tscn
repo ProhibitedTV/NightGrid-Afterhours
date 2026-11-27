@@ -1,0 +1,128 @@
+[gd_scene format=3 uid="uid://p2c0tu67btby"]
+
+[ext_resource type="PackedScene" uid="uid://c71er5vuf5im6" path="res://assets/models/nightgrid/synaxis_architecture/ground_envelope.glb" id="1"]
+[ext_resource type="PackedScene" uid="uid://diephwimw0bjy" path="res://assets/models/nightgrid/synaxis_architecture/reception_luminaire.glb" id="2"]
+[ext_resource type="Texture2D" uid="uid://b2ioe83p3yxrp" path="res://assets/models/nightgrid/central_exchange_curb/textures/concrete_base_1k.jpg" id="3"]
+[ext_resource type="Texture2D" uid="uid://bsofl6p8epmhc" path="res://assets/models/nightgrid/central_exchange_curb/textures/concrete_normal_1k.jpg" id="4"]
+[ext_resource type="Texture2D" uid="uid://b7jbstkchetju" path="res://assets/pbr/synaxis_architecture/wall_paint_diff_1k.jpg" id="5"]
+[ext_resource type="Texture2D" uid="uid://jdx60ynlriw2" path="res://assets/pbr/synaxis_architecture/white_plaster_02_nor_gl_1k.jpg" id="6"]
+[ext_resource type="Texture2D" uid="uid://bc67btl3co5c5" path="res://assets/pbr/synaxis_architecture/white_plaster_02_arm_1k.jpg" id="7"]
+[ext_resource type="Texture2D" uid="uid://cf2stkq558wdv" path="res://assets/pbr/synaxis_architecture/marble_01_diff_1k.jpg" id="8"]
+[ext_resource type="Texture2D" uid="uid://b7h8rhvt5nkp1" path="res://assets/pbr/synaxis_architecture/marble_01_nor_gl_1k.jpg" id="9"]
+[ext_resource type="Texture2D" uid="uid://b1ate6pta6r7s" path="res://assets/pbr/synaxis_architecture/marble_01_arm_1k.jpg" id="10"]
+[ext_resource type="LightmapGIData" uid="uid://cdmtgflkgpfm2" path="res://scenes/synaxis/ground_envelope.lmbake" id="11_r5nnv"]
+
+[sub_resource type="StandardMaterial3D" id="Aggregate"]
+albedo_color = Color(0.706, 0.678, 0.631, 1)
+albedo_texture = ExtResource("3")
+roughness = 0.55
+normal_enabled = true
+normal_scale = 0.22
+normal_texture = ExtResource("4")
+uv1_scale = Vector3(0.75, 0.75, 0.75)
+uv1_triplanar = true
+
+[sub_resource type="StandardMaterial3D" id="CeilingPaint"]
+albedo_color = Color(0.831, 0.82, 0.78, 1)
+roughness = 0.82
+
+[sub_resource type="StandardMaterial3D" id="Plaster"]
+albedo_color = Color(0.871, 0.875, 0.859, 1)
+albedo_texture = ExtResource("5")
+roughness_texture = ExtResource("7")
+roughness_texture_channel = 1
+normal_enabled = true
+normal_scale = 0.1
+normal_texture = ExtResource("6")
+uv1_triplanar = true
+uv1_world_triplanar = true
+
+[sub_resource type="StandardMaterial3D" id="Diffuser"]
+albedo_color = Color(0.91, 0.89, 0.83, 1)
+roughness = 0.48
+emission_enabled = true
+emission = Color(1, 0.89, 0.73, 1)
+emission_energy_multiplier = 1.6
+
+[sub_resource type="StandardMaterial3D" id="Stone"]
+albedo_color = Color(0.722, 0.761, 0.773, 1)
+albedo_texture = ExtResource("8")
+roughness_texture = ExtResource("10")
+roughness_texture_channel = 1
+normal_enabled = true
+normal_scale = 0.12
+normal_texture = ExtResource("9")
+
+[node name="GroundEnvelope" type="Node3D" unique_id=272927789]
+
+[node name="Shell" parent="." unique_id=1343692682 instance=ExtResource("1")]
+
+[node name="Floor" parent="Shell" index="0" unique_id=1186988663]
+material_override = SubResource("Aggregate")
+cast_shadow = 0
+
+[node name="Ceiling" parent="Shell" index="1" unique_id=529173090]
+material_override = SubResource("CeilingPaint")
+
+[node name="Walls" parent="Shell" index="2" unique_id=1181253861]
+material_override = SubResource("Plaster")
+
+[node name="Practicals" parent="Shell" index="3" unique_id=1158589744]
+material_override = SubResource("Diffuser")
+cast_shadow = 0
+
+[node name="ReceptionStone" parent="Shell" index="4" unique_id=1690746358]
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="ReceptionTrim" parent="Shell" index="5" unique_id=1328493908]
+cast_shadow = 0
+
+[node name="ReceptionLuminaire" parent="." unique_id=1008449000 instance=ExtResource("2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.7, 3.294, 7.5)
+
+[node name="RecessedPan" parent="ReceptionLuminaire" index="0" unique_id=1120231420]
+cast_shadow = 0
+
+[node name="Perimeter" parent="ReceptionLuminaire" index="1" unique_id=387701050]
+cast_shadow = 0
+
+[node name="Reflector" parent="ReceptionLuminaire" index="2" unique_id=1593367897]
+cast_shadow = 0
+
+[node name="Gasket" parent="ReceptionLuminaire" index="3" unique_id=1282062351]
+cast_shadow = 0
+
+[node name="Diffuser" parent="ReceptionLuminaire" index="4" unique_id=1047887744]
+material_override = SubResource("Diffuser")
+cast_shadow = 0
+
+[node name="Indirect" type="LightmapGI" parent="." unique_id=109864109]
+directional = true
+interior = true
+environment_mode = 0
+light_data = ExtResource("11_r5nnv")
+
+[node name="Entry" type="LightmapProbe" parent="Indirect" unique_id=1874269217]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.45, -9.1)
+
+[node name="Security" type="LightmapProbe" parent="Indirect" unique_id=1918884971]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.45, -7.05)
+
+[node name="OfficeAisle" type="LightmapProbe" parent="Indirect" unique_id=1035420468]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.1, 1.48, 1)
+
+[node name="LiftLanding" type="LightmapProbe" parent="Indirect" unique_id=79713641]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.45, 4.85)
+
+[node name="ReceptionApproach" type="LightmapProbe" parent="Indirect" unique_id=1836096882]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 1.5, 5.35)
+
+[node name="ReceptionStaff" type="LightmapProbe" parent="Indirect" unique_id=1584132709]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.2, 1.5, 7.2)
+
+[node name="ReceptionReturn" type="LightmapProbe" parent="Indirect" unique_id=64937365]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.3, 1.5, 8.55)
+
+[editable path="Shell"]
+[editable path="ReceptionLuminaire"]

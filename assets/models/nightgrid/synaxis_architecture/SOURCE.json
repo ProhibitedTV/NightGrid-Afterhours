@@ -43,8 +43,13 @@
     "reception_luminaire.glb": {
       "bytes": 137800,
       "sha256": "3225a239fc10e9c2ae826f8ceba8499bd4090696b4e32d4a3ce862931b7839d8"
+    },
+    "ground_envelope.glb": {
+      "bytes": 416508,
+      "sha256": "a73d1e5566663f3d17d3753e0567dc690ea47b06edb6a2101cf68f002b77cc5c"
     }
   },
   "additional_authoring": "tools/asset_refinement/gen2_synaxis_lift.py",
-  "luminaire_authoring": "tools/asset_refinement/gen2_synaxis_luminaire.py"
+  "luminaire_authoring": "tools/asset_refinement/gen2_synaxis_luminaire.py",
+  "ground_authoring": "tools/asset_refinement/gen2_synaxis_ground.py"
 }

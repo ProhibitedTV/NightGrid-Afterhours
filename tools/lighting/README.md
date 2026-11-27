@@ -10,4 +10,12 @@ The two GLB import presets use Static Lightmaps and 5 cm texel spacing. The bake
 godot --path . --fullscreen --resolution 1920x1080 --rendering-method forward_plus --rendering-driver vulkan --script res://tools/lighting/capture_synaxis_reception_bake.gd -- <new-evidence-directory>
 ```
 
-The production reception uses the same authored fixture with its established spotlight. The optional `--experimental-reception-area-light` user argument selects the AreaLight3D comparison. A production bake still needs a stable room chunk and animated-character inspection along the open approach.
+The production reception uses the same authored fixture with its established spotlight. The optional `--experimental-reception-area-light` user argument selects the AreaLight3D comparison.
+
+## Playable ground floor
+
+`scenes/synaxis/ground_envelope.tscn` is the streamed building's ground-floor render envelope. Its directional atlas bakes the existing fixtures into the fixed slab, walls and reception stone. The sun, actors, security gate and realtime fixture shadows remain outside the bake. The original collision volumes still belong to the office. The production scene and atlas are regular export resources.
+
+Regenerate the envelope with Blender 5.0.1 and `tools/asset_refinement/gen2_synaxis_ground.py`. Import at 5 cm Static Lightmaps, open the envelope itself in Godot 4.7.2 Forward+ and bake `Indirect`. The scene uses only its fixed practical emitters. Re-export after changes to either GLB, its material response or probe placement.
+
+The RTX 3060 bake produced `ground_envelope.exr` (SHA-256 `ebe5d7946ea09719bc52fd39d1a4c31d28c71c69251e7c53e11d8ac6785a1f61`) and `ground_envelope.lmbake` (SHA-256 `9f41837237ef62c4f1dac51a6b698b0e2b1a11e3a051b1d8017c7ac6bb713580`). Use `synaxis_breakroom_smoke.gd` on the source and exported pack to exercise the atlas bindings and existing room clearance. The capture harness accepts `--ground-lighting` and `--ground-realtime` for matched views with the bake enabled and disabled.

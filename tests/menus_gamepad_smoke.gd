@@ -505,7 +505,7 @@ func _verify() -> void:
 	if not is_instance_valid(finish) or finish.is_processing():
 		_fail("Office finish must be a static authored environment")
 		return
-	var stone:=office.get_node("Floor") as MeshInstance3D
+	var stone:=office.get_node("GroundEnvelope/Shell/Floor") as MeshInstance3D
 	var stone_mat:=stone.material_override as StandardMaterial3D
 	if stone_mat.albedo_texture==null or not stone_mat.normal_enabled or stone_mat.normal_texture==null or not stone_mat.uv1_triplanar:
 		_fail("Ground floor must retain mapped stone finish at world scale")
