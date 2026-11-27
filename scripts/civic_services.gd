@@ -345,11 +345,7 @@ func _box(parent: Node3D, at: Vector3, dimensions: Vector3, tint: Color,
 	parent.add_child(node)
 
 func _darkness() -> float:
-	if _hour >= 17.5:
-		return smoothstep(17.5, 20.0, _hour)
-	if _hour < 7.0:
-		return 1.0 - smoothstep(5.0, 7.0, _hour)
-	return 0.0
+	return preload("res://scripts/venue_lighting_curve.gd").darkness(_hour)
 
 func _refresh() -> void:
 	var darkness := _darkness()
