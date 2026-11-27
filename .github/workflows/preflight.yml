@@ -135,6 +135,13 @@ jobs:
           timeout 120s godot --headless --path . --script res://tests/synaxis_creator_cast_smoke.gd 2>&1 | tee /tmp/nightgrid-creator-cast.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-creator-cast.log; then exit 1; fi
           grep -q "SYNAXIS_CREATOR_CAST PASS:" /tmp/nightgrid-creator-cast.log
+      - name: Verify private creator payload inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 45s godot --headless --path . --script res://tests/synaxis_creator_inventory_smoke.gd 2>&1 | tee /tmp/nightgrid-creator-inventory.log
+          if grep -q 'SCRIPT ERROR:' /tmp/nightgrid-creator-inventory.log; then exit 1; fi
+          grep -q 'CREATOR_INVENTORY PASS:' /tmp/nightgrid-creator-inventory.log
       - name: Verify cinematic Synaxis conversation coverage and cleanup
         timeout-minutes: 2
         run: |
