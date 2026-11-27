@@ -5,6 +5,8 @@ const MinimapScript = preload("res://scripts/minimap.gd")
 const CityFoley = preload("res://scripts/city_foley.gd")
 const Ui = preload("res://scripts/ui_style.gd")
 const TitleBackdrop = preload("res://scripts/title_backdrop.gd")
+const TitleAlleyView = preload("res://scripts/title_alley_view.gd")
+var _title_view: Node
 const DialogueWheel = preload("res://scripts/dialogue_wheel.gd")
 const Rhythm=preload("res://scripts/rhythm_rehearsal.gd")
 var _rhythm=Rhythm.new()
@@ -270,6 +272,7 @@ func hide_for_game() -> void:
 	if screen=="blue_hour_set":
 		_stop_music_set_audio()
 		_rhythm.cancel()
+	_finish_title_view()
 	var backdrop: Control = _root.get_node_or_null("TitleBackdrop") as Control if is_instance_valid(_root) else null
 	if is_instance_valid(backdrop):
 		backdrop.hide()
@@ -284,7 +287,15 @@ func get_buttons() -> Dictionary:
 func get_settings() -> Dictionary:
 	return settings.duplicate(true)
 
+func _finish_title_view() -> void:
+	if is_instance_valid(_title_view):
+		_title_view.call("finish")
+		_title_view.queue_free()
+		_title_view = null
+
 func _open(value: String) -> void:
+	if value != "title":
+		_finish_title_view()
 	if screen=="blue_hour_set" and value!="blue_hour_set":
 		_stop_music_set_audio()
 		_rhythm.cancel()
@@ -389,12 +400,20 @@ func _render() -> void:
 	_focus_order.clear()
 	_first_focus = null
 	var staged := screen in ["breakroom","restroom","parking_guard","street_contact","staff_interview"] or (screen=="opening" and _physical_opening and _opening_stage in [2,3,4])
+	var live_title := false
+	if screen == "title" and is_instance_valid(_world):
+		if not is_instance_valid(_title_view):
+			_title_view = TitleAlleyView.new()
+			add_child(_title_view)
+		live_title = bool(_title_view.call("begin", _world, bool(settings.get("title_motion", true))))
 	var shade := ColorRect.new()
 	shade.name = "Scrim"
 	shade.color = Color(0.028, 0.045, 0.060, .36 if screen == "phone" else (.12 if staged else (.94 if screen in ["title", "opening"] else .68)))
+	if live_title:
+		shade.color = Color(0.028, 0.045, 0.060, 0.15)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(shade)
-	if screen == "title":
+	if screen == "title" and not live_title:
 		var art := TitleBackdrop.new()
 		art.name = "TitleBackdrop"
 		art.motion_enabled = bool(settings.get("title_motion", true))
