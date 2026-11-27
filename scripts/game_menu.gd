@@ -270,7 +270,7 @@ func hide_for_game() -> void:
 	if screen=="blue_hour_set":
 		_stop_music_set_audio()
 		_rhythm.cancel()
-	var backdrop := _root.get_node_or_null("TitleBackdrop") if is_instance_valid(_root) else null
+	var backdrop: Control = _root.get_node_or_null("TitleBackdrop") as Control if is_instance_valid(_root) else null
 	if is_instance_valid(backdrop):
 		backdrop.hide()
 	screen = "hidden"
