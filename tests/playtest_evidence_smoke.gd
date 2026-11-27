@@ -50,6 +50,11 @@ func _verify() -> void:
 		"motion_context": "on_foot",
 		"indoors": false,
 		"graphic_settings": {"ssr_enabled": true},
+		"render_profile": "fixture-profile",
+		"sky_weather": "fixture-weather",
+		"sky_preset": "fixture-sky",
+		"render_batch_stats": {"batches": 42},
+		"practical_light_stats": {"active": 8},
 		"frame_interval_metrics": {"frames": 240, "p95_ms": 19.6, "p99_ms": 32.4},
 		"streaming": {"loaded_blocks": 16},
 		"frame_trace_recording": true
@@ -104,6 +109,12 @@ func _verify() -> void:
 			return
 		if int(parsed.get("world_seed", -1)) != seed or not (parsed.get("frame_trace_recording", false) as bool):
 			_fail("World state or trace state lost from metadata")
+			return
+		if parsed.get("render_profile")!="fixture-profile" or parsed.get("sky_weather")!="fixture-weather" or parsed.get("sky_preset")!="fixture-sky":
+			_fail("Capture lost the render profile or atmosphere context")
+			return
+		if int(parsed.get("render_batch_stats",{}).get("batches",-1))!=42 or int(parsed.get("practical_light_stats",{}).get("active",-1))!=8:
+			_fail("Capture lost the scene batching or practical-light counters")
 			return
 		DirAccess.remove_absolute(png_path)
 		DirAccess.remove_absolute(json_path)
