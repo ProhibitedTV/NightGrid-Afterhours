@@ -83,6 +83,39 @@ func _verify() -> void:
 		return
 	player.set("input_blocked", false)
 	var saved_settings: Dictionary = menu.call("get_settings")
+	var quality = preload("res://scripts/render_quality.gd")
+	var legacy := {"ssr_enabled":false,"ao_enabled":false,"glow_enabled":true,"fog_enabled":false}
+	quality.normalize(legacy,true)
+	if legacy["render_quality"] != "high" or legacy["ssr_enabled"] or legacy["fog_enabled"] or legacy["ssil_enabled"]:
+		_fail("Existing graphics switches must survive High profile migration")
+		return
+	menu.call("update_setting","render_quality","performance")
+	var environment: Environment = world.get("world_environment").environment
+	if environment.ssr_enabled or environment.ssao_enabled or not is_equal_approx(root.scaling_3d_scale,.90):
+		_fail("Performance applies its scale and disabled expensive passes")
+		return
+	menu.call("update_setting","ssr_enabled",true)
+	menu.call("update_setting","render_quality","cinematic")
+	if not environment.ssil_enabled or environment.ssr_max_steps != 64 or not is_equal_approx(root.scaling_3d_scale,1.0):
+		_fail("Cinematic explicitly opts into SSIL and preserves full render resolution")
+		return
+	menu.call("update_setting","render_quality","ultra")
+	if environment.ssil_enabled or environment.ssr_max_steps != 48:
+		_fail("Ultra reflection quality is independent of Cinematic lighting")
+		return
+	menu.call("update_setting","render_quality","performance")
+	var graphics_disk := ConfigFile.new()
+	if not environment.ssr_enabled or graphics_disk.load("user://settings.cfg") != OK or graphics_disk.get_value("player","render_overrides",{}).get("performance",{}).get("ssr_enabled") != true:
+		_fail("Switching profiles must keep and persist the individual feature override")
+		return
+	var previous_hour: float = world.get("day_night").get("hour")
+	world.get("day_night").call("set_hour",10.0)
+	if not environment.ssr_enabled or environment.ssao_enabled:
+		_fail("Day/night updates must preserve active rendering choices")
+		return
+	world.get("day_night").call("set_hour",previous_hour)
+	menu.call("update_setting","render_overrides",saved_settings["render_overrides"])
+	menu.call("update_setting","render_quality",saved_settings["render_quality"])
 	menu.call("set_has_save", false)
 	menu.call("open_title")
 	if not paused or not menu.call("is_open") or str(menu.get("screen")) != "title":

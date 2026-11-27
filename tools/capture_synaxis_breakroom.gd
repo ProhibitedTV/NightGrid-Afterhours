@@ -73,7 +73,11 @@ func _run() -> void:
 	if office == null:
 		_fail("Synaxis did not stream")
 		return
-	world.get_node("GameMenus").call("hide_for_game")
+	var menu := world.get_node("GameMenus")
+	for arg: String in args:
+		if arg.begins_with("--quality="):
+			menu.call("update_setting", "render_quality", arg.trim_prefix("--quality="))
+	menu.call("hide_for_game")
 	(world.get_node("HUD") as CanvasLayer).hide()
 	world.set_process(false)
 	world.set_physics_process(false)
@@ -97,7 +101,7 @@ func _run() -> void:
 	RenderingServer.viewport_set_measure_render_time(viewport, true)
 	if "--lobby-route" in args:
 		office.call("_set_gate_open", true)
-		await _lobby_route(out, office, camera, viewport)
+		await _lobby_route(out, office, camera, viewport, menu.call("get_settings").get("render_quality", "legacy"))
 		return
 	var records := []
 	var parked := "--parked" in args
@@ -164,7 +168,7 @@ func _run() -> void:
 	print("SYNAXIS_BREAKROOM_CAPTURE PASS ", out)
 	quit(0)
 
-func _lobby_route(out: String, office: Node3D, camera: Camera3D, viewport: RID) -> void:
+func _lobby_route(out: String, office: Node3D, camera: Camera3D, viewport: RID, quality: String) -> void:
 	# Measure the same moving camera path twice in one process so the repeat
 	# reuses the renderer and room resources first encountered on the cold pass.
 	var rows := []
@@ -206,6 +210,8 @@ func _lobby_route(out: String, office: Node3D, camera: Camera3D, viewport: RID) 
 		_fail("Could not write lobby route report")
 		return
 	report.store_string(JSON.stringify({"revision":OS.get_environment("NIGHTGRID_SOURCE_REVISION"),
+		"quality":quality,
+		"reception_light":"area_pcss" if office.has_node("ReceptionAreaLight") else "spot",
 		"renderer":RenderingServer.get_current_rendering_method(), "driver":RenderingServer.get_current_rendering_driver_name(),
 		"adapter":RenderingServer.get_video_adapter_name(), "resolution":[root.size.x, root.size.y], "runs":rows}, "\t"))
 	report.close()

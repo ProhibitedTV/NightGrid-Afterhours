@@ -73,6 +73,8 @@ const AudioMix = preload("res://scripts/audio_mix.gd")
 const FrameTimeRecorder = preload("res://scripts/frame_time_recorder.gd")
 const BrickwaterRepair = preload("res://scripts/brickwater_storefront.gd")
 const StreamProfile = preload("res://scripts/streaming_profile.gd")
+const RenderQuality = preload("res://scripts/render_quality.gd")
+var _render_quality := RenderQuality.new()
 const PlaytestEvidence = preload("res://scripts/playtest_evidence.gd")
 const PlaytestLogger = preload("res://scripts/playtest_logger.gd")
 const BuildInfo = preload("res://scripts/build_info.gd")
@@ -394,6 +396,7 @@ func _log_playtest(name: String, details: Dictionary = {}) -> void:
 		"district": city_details.call("get_district_at", street),
 		"clock": day_night.call("clock_string"),
 		"render_profile": str(day_night.call("get_render_profile")),
+		"render_quality": _render_quality.active_profile,
 		"indoors": indoors,
 		"mode": "car" if current_car != null else ("transit_" + transit_kind.to_lower() if current_transit != null else "on_foot")
 	}
@@ -1083,10 +1086,7 @@ func _apply_game_settings(options: Dictionary) -> void:
 	var bus_index := AudioServer.get_bus_index("Master")
 	if bus_index >= 0:
 		AudioServer.set_bus_volume_db(bus_index, linear_to_db(maxf(0.001, float(options.get("master_volume", 0.8)))))
-	world_environment.environment.ssr_enabled = bool(options.get("ssr_enabled", true))
-	world_environment.environment.glow_enabled = bool(options.get("glow_enabled", true))
-	world_environment.environment.ssao_enabled = bool(options.get("ao_enabled", true))
-	world_environment.environment.fog_enabled = bool(options.get("fog_enabled", true))
+	_render_quality.apply(world_environment.environment, get_viewport(), options)
 	performance_overlay = bool(options.get("show_fps", false))
 	performance_label.visible = performance_overlay
 	if DisplayServer.get_name() != "headless":
@@ -1248,7 +1248,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		playtest_logger.flush()
 		_notify("Rendering comparison: " + profile + " (F11 cycles Filmic / ACES / AgX; F10 captures)")
 	elif event.is_action_pressed("toggle_ssr"):
-		world_environment.environment.ssr_enabled = not world_environment.environment.ssr_enabled
+		var settings: Dictionary = game_menu.call("get_settings")
+		game_menu.call("update_setting", "ssr_enabled", not settings["ssr_enabled"])
 	else:
 		return
 	get_viewport().set_input_as_handled()
@@ -2531,21 +2532,7 @@ func _build_environment() -> void:
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	environment.ambient_light_color = Color("8194c4")
 	environment.ambient_light_energy = 0.65
-	# Forward+ baseline: physically inspired PBR, contact occlusion, atmospheric depth.
-	# Keep SDFGI, volumetric fog and shadow-casting local lights OFF for performance.
-	environment.ssr_enabled = true
-	environment.ssr_max_steps = 24
-	environment.ssr_fade_out = 1.4
-	environment.glow_enabled = true
-	environment.glow_intensity = 0.46
-	environment.glow_hdr_threshold = 1.15
 	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	environment.ssao_enabled = true
-	environment.ssao_radius = 1.85
-	environment.ssao_intensity = 0.95
-	environment.ssao_power = 1.25
-	environment.ssil_enabled = false
-	environment.fog_enabled = true
 	environment.fog_mode = Environment.FOG_MODE_EXPONENTIAL
 	environment.fog_density = 0.0085
 	environment.fog_light_color = Color("2b354b")
