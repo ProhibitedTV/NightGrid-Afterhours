@@ -787,6 +787,8 @@ func _finish_opening_office() -> void:
 		return
 	var old := _opening_office
 	_opening_office = null
+	if is_instance_valid(nightgrid_fm):
+		nightgrid_fm.call("set_chapter_context", false)
 	old.call("finish_prologue")
 	player.get("visual").call("set_corporate_attire",false)
 	player.global_position = OpeningOffice.ENTRY
@@ -1368,6 +1370,9 @@ func _update_opening_audio() -> void:
 	var at:=player.global_position
 	var room:=str(_opening_office.call("acoustic_room",at))
 	var enclosed:=not room.is_empty() and room!="SYNAXIS_PARKING"
+	if is_instance_valid(nightgrid_fm):
+		nightgrid_fm.call("set_chapter_context", true, bool(_opening_office.call("arrival_active")), bool(_opening_office.call("exit_active")), room)
+		nightgrid_fm.set("dialogue_active", false)
 	var cinematic:bool=_opening_office.call("arrival_active") or _opening_office.call("lift_active")
 	if cinematic:
 		world_audio.call("reset_foot_tracking")
@@ -1442,6 +1447,7 @@ func _process(delta: float) -> void:
 	if indoors and str(interiors.call("active_site_group")) == "VENUE":
 		interior_kind = str((venue_system.call("venue_by_id", interior_id) as Dictionary).get("kind", ""))
 	if is_instance_valid(nightgrid_fm):
+		nightgrid_fm.call("set_chapter_context", false)
 		nightgrid_fm.call("update_listener", actor.global_position, current_car != null, interior_id, interior_kind, current_transit != null)
 	if is_instance_valid(world_audio):
 		world_audio.call("set_room_kind", "WORKSHOP" if in_workshop else interior_kind)
