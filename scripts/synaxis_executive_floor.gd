@@ -2,6 +2,7 @@ extends "res://scripts/synaxis_workfloor.gd"
 ## Executive-only fit-out and authored staff. All static furniture batched.
 const Staff=preload("res://scripts/synaxis_staff.gd")
 const PhotoMaterials=preload("res://scripts/synaxis_breakroom.gd")
+const PARTITION = preload("res://assets/models/nightgrid/synaxis_architecture/executive_glazing.glb")
 const FLOOR=13
 const BASE=FLOOR*FLOOR_HEIGHT
 const CEO_ANCHOR=Vector3(5.2,0,-6.8)
@@ -108,8 +109,9 @@ func _ready() -> void:
 		var b:Vector2=edge[1]
 		var center:Vector2=(a+b)*.5
 		var size:=Vector3(absf(b.x-a.x)+.08,2.7,absf(b.y-a.y)+.08)
-		_part("glass_tint",Vector3(center.x,1.35,center.y),size)
-		_part("brass",Vector3(center.x,2.72,center.y),Vector3(size.x,.045,size.z))
+		var along := b-a
+		InteriorFinish.assembly(self,"ExecutiveGlazing",PARTITION,Vector3(center.x,0,center.y),
+			-atan2(along.y,along.x),Vector3((along.length()+.08)/1.8,1,1))
 		_solid(Vector3(center.x,1.35,center.y),size)
 	_boardroom()
 	_people_suite()

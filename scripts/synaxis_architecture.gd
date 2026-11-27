@@ -46,6 +46,19 @@ static func surface(key: String) -> StandardMaterial3D:
 			material.emission_enabled = true
 			material.emission = Color("a4f3e2")
 			material.emission_energy_multiplier = .82
+		"CabinMetal":
+			material = Breakroom.material_for("Steel").duplicate()
+			material.albedo_texture = preload(MAPS+"cabin_satin_metal_1k.jpg")
+			material.albedo_color = Color("d3d8d9")
+			material.metallic = .42
+			material.normal_scale = .16
+		"CabinDiffuser":
+			material = Breakroom.material_for("Diffuser")
+		"PartitionGlass", "EtchedBand":
+			material = StandardMaterial3D.new()
+			material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			material.albedo_color = Color(.57,.70,.72,.21) if key == "PartitionGlass" else Color(.77,.83,.81,.75)
+			material.roughness = .18 if key == "PartitionGlass" else .71
 		"Letter":
 			material = StandardMaterial3D.new()
 			material.albedo_color = Color("eef0dc")
@@ -111,19 +124,19 @@ static func strip(parent: Node3D, id: String, at: Vector3, yaw: float, width: fl
 		root.add_child(view)
 
 static func nameplate(parent: Node3D, id: String, words: String, at: Vector3, yaw: float, size: Vector2, ink := Color("e2eee9")) -> Node3D:
-	var root := _assembly(parent, id, PLAQUE, at, yaw, Vector3(size.x / 1.7, size.y / .30, 1))
-	_letter(root, words, Vector3(0, 0, .028), size * Vector2(.84, .73), ink)
+	var root := assembly(parent, id, PLAQUE, at, yaw, Vector3(size.x / 1.7, size.y / .30, 1))
+	inscription(root, words, Vector3(0, 0, .028), size * Vector2(.84, .73), ink)
 	return root
 
 static func notice_frame(parent: Node3D, dimensions: Vector2) -> void:
-	_assembly(parent, "Frame", NOTICE, Vector3.ZERO, 0.0, Vector3(dimensions.x / 2.36, dimensions.y / 1.44, 1))
+	assembly(parent, "Frame", NOTICE, Vector3.ZERO, 0.0, Vector3(dimensions.x / 2.36, dimensions.y / 1.44, 1))
 
 static func brand_wall(parent: Node3D, id: String, at: Vector3, scale_factor: float = 1.0) -> void:
-	var root := _assembly(parent, id, RECEPTION, at, PI, Vector3.ONE)
+	var root := assembly(parent, id, RECEPTION, at, PI, Vector3.ONE)
 	root.scale = Vector3.ONE * scale_factor
-	_letter(root, "O M N I S Y S T E M S", Vector3(.08, .045, .130), Vector2(2.09, .103), Color("e2eee9"))
+	inscription(root, "O M N I S Y S T E M S", Vector3(.08, .045, .130), Vector2(2.09, .103))
 
-static func _assembly(parent: Node3D, id: String, packed: PackedScene, at: Vector3, yaw: float, size: Vector3) -> Node3D:
+static func assembly(parent: Node3D, id: String, packed: PackedScene, at: Vector3, yaw: float = 0.0, size: Vector3 = Vector3.ONE) -> Node3D:
 	var root := Node3D.new()
 	root.name = id
 	root.position = at
@@ -138,7 +151,7 @@ static func _assembly(parent: Node3D, id: String, packed: PackedScene, at: Vecto
 	parent.add_child(root, true)
 	return root
 
-static func _letter(parent: Node3D, words: String, at: Vector3, area: Vector2, ink: Color) -> void:
+static func inscription(parent: Node3D, words: String, at: Vector3, area: Vector2, ink := Color("e2eee9")) -> Label3D:
 	var label := Label3D.new()
 	label.name = "Inscription"
 	label.text = words
@@ -153,3 +166,4 @@ static func _letter(parent: Node3D, words: String, at: Vector3, area: Vector2, i
 		longest = maxf(longest, TYPE.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, 64).x)
 	label.pixel_size = minf(area.x / longest, area.y / (TYPE.get_height(64) * lines.size()))
 	parent.add_child(label)
+	return label

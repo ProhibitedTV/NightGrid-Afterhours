@@ -1,7 +1,7 @@
 extends CanvasLayer
-## Screen-space elevator doors conceal a collision-safe floor change.
-## This is a staged transition, not a simulated moving physics cabin.
+## The door wipe and inset render conceal the collision-safe floor change.
 const DOOR_TIME=.42
+const Cabin = preload("res://scripts/synaxis_lift_cabin.gd")
 const GeneratedAudio=preload("res://scripts/synaxis_generated_audio.gd")
 const AudioMix=preload("res://scripts/audio_mix.gd")
 var elapsed:=0.0
@@ -15,6 +15,7 @@ var _floor_display:Label
 var _from_floor:=0
 var _to_floor:=0
 var _motor:AudioStreamPlayer
+var _cabin:TextureRect
 
 func _ready() -> void:
 	layer=7
@@ -91,8 +92,12 @@ func begin(from:int,to:int,title:String) -> void:
 	# Express ride is perceptibly longer, not nine individual floor loads.
 	duration=2.10 if absi(to-from)>1 else 1.35
 	_display.text="SYNAXIS  /  LIFT   →   "+title
+	if _cabin == null:
+		_cabin = Cabin.new()
+		add_child(_cabin)
 	show()
 	_apply(0.0)
+	_cabin.call("start", _floor_display.text)
 
 func _apply(closed:float) -> void:
 	var half:=get_viewport().get_visible_rect().size.x*.5
@@ -107,6 +112,7 @@ func _apply(closed:float) -> void:
 	var floor_number:=roundi(lerpf(float(_from_floor),float(_to_floor),fraction))
 	var floor_text:="B%d" % absi(floor_number) if floor_number<0 else ("G" if floor_number==0 else str(floor_number+1))
 	_floor_display.text=("↑  " if _to_floor>_from_floor else "↓  ")+floor_text
+	_cabin.call("update_presentation", _floor_display.text, smoothstep(.91, 1.0, closed))
 
 ## True once when the destination doors begin to open.
 func advance(delta:float) -> bool:
@@ -136,4 +142,6 @@ func reset() -> void:
 		_motor.stop()
 	active=false
 	transferred=false
+	if _cabin != null:
+		_cabin.call("finish")
 	hide()

@@ -69,6 +69,11 @@ func _test() -> void:
 			_fail("Wayfinding chassis does not reach the wall: " + (plaque.get_node("Inscription") as Label3D).text)
 			return
 	var stone := office.get_node_or_null("ReceptionStone/Face") as MultiMeshInstance3D
+	var suspended := office.get_node_or_null("LobbyLiftDirection/Suspension") as MeshInstance3D
+	var flange := office.get_node_or_null("LobbyLiftDirection/CeilingFlange") as MeshInstance3D
+	if suspended == null or flange == null or suspended.mesh.get_aabb().size.y < .30 or absf(flange.to_global(flange.mesh.get_aabb().end).y-office.global_position.y-3.35) > .015:
+		_fail("The lobby direction sign must reach the ceiling on authored supports")
+		return
 	var lettering := office.get_node_or_null("ReceptionBrand/Lettering") as MeshInstance3D
 	if stone == null or stone.multimesh.instance_count < 4 or lettering == null or lettering.mesh.get_aabb().size.z < .02:
 		_fail("Reception needs a modular stone wall and extruded lettering")

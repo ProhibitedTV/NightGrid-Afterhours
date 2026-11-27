@@ -18,6 +18,13 @@
       "credits": "Rob Tuytel",
       "width_m": 1.5,
       "source": "https://polyhaven.com/a/marble_01"
+    },
+    "cabin_satin": {
+      "base_map": "assets/models/nightgrid/central_exchange_storefront/textures/steel_base_1k.jpg",
+      "license": "CC0-1.0",
+      "publisher": "Poly Haven",
+      "recipe": "Gen 2 grayscale colorization from RGB (112, 122, 126) to (175, 184, 187), original roughness and normal maps reused",
+      "source": "https://polyhaven.com/a/blue_metal_plate"
     }
   },
   "files": {
@@ -60,6 +67,10 @@
     "white_plaster_02_nor_gl_1k.jpg": {
       "sha256": "eb572ca3630d5bfde72e2601b1f02412da23ca005cd19384dced8690be4cb783",
       "bytes": 652310
+    },
+    "cabin_satin_metal_1k.jpg": {
+      "sha256": "f301318428bb304fa394612a3faeeb08f3f51bd71008e04a66fb1ff5f243757f",
+      "bytes": 84672
     }
   }
 }

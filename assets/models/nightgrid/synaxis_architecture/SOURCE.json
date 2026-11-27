@@ -27,6 +27,19 @@
     "walnut_panel.glb": {
       "sha256": "49b6d456e39876537f2cf3b17fc661a9ec0c4087fd4764d92bb39dba42859937",
       "bytes": 46744
+    },
+    "lift_cabin.glb": {
+      "sha256": "6e2f03f55eeb6809c90c78276881433d1a602be5b899d7410536d99f7830e8a6",
+      "bytes": 952236
+    },
+    "lift_direction_sign.glb": {
+      "sha256": "cf02db843ae6f5cf24131a4511c6b8aee2b0d18a842d9069a2d861b2f1261607",
+      "bytes": 141372
+    },
+    "executive_glazing.glb": {
+      "sha256": "aa2bcd083270d5d748a1abba6a15b7661f361fc8d1b4cfa90ace2d71e7f9d9d3",
+      "bytes": 286592
     }
-  }
+  },
+  "additional_authoring": "tools/asset_refinement/gen2_synaxis_lift.py"
 }

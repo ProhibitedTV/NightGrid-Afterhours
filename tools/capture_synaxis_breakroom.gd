@@ -18,6 +18,12 @@ const BOARDROOM = [
 	["boardroom", Vector3(.28, Executive.BASE + 1.72, -2.6), Vector3(0, Executive.BASE + 1.02, -6.8), Executive.FLOOR],
 	["boardroom_veneer", Vector3(1.48, Executive.BASE + 1.68, -4.22), Vector3(-.12, Executive.BASE + .93, -5.8), Executive.FLOOR],
 ]
+const LIFT_VIEWS = [
+	["suspended_directions", Vector3(2.15,1.68,-.95), Vector3(2.15,2.48,3.66), 0],
+	["lift_landing", Vector3(-.52,1.70,2.85), Vector3(0,1.98,6.14), 0],
+	["executive_glazing", Vector3(.15,Executive.BASE+1.65,-3.61), Vector3(4.55,Executive.BASE+1.38,-6.20), Executive.FLOOR],
+	["car_02_in_transit", Vector3(-.52,1.70,2.85), Vector3(0,1.98,6.14), 0],
+]
 const ARCHITECTURE = [
 	["hq_approach", Vector3(-2.1,1.73,-14.6), Vector3(.05,2.4,-9.90), 0],
 	["visitor_lobby", Vector3(1.02,1.69,-9.23), Vector3(-2.60,2.05,-9.87), 0],
@@ -81,7 +87,7 @@ func _run() -> void:
 	clock.call("set_hour", 17.0)
 	office.call("begin_prologue")
 	var architecture := "--architecture" in args or "--reception" in args
-	if architecture:
+	if architecture or "--lift" in args:
 		for overlay in world.find_children("*", "CanvasLayer", true, false):
 			overlay.hide()
 	var camera := world.get("camera") as Camera3D
@@ -101,11 +107,18 @@ func _run() -> void:
 		requested = ARCHITECTURE.slice(0, 4) if "--reception" in args else ARCHITECTURE
 	if "--boardroom" in args:
 		requested = BOARDROOM
+	if "--lift" in args:
+		requested = LIFT_VIEWS
 	for shot in requested:
 		if shot.size() == 4:
 			office.call("_select_floor", shot[3])
 		camera.global_position = office.to_global(shot[1])
 		camera.look_at(office.to_global(shot[2]))
+		if shot[0] == "car_02_in_transit":
+			player.global_position = office.to_global(Vector3(.90,1.15,5))
+			if not office.call("try_lift", player) or not office.call("tick_lift", .75, player):
+				_fail("Ground-to-B1 staged transfer did not reach its closed phase")
+				return
 		for frame in 90:
 			await RenderingServer.frame_post_draw
 		var frames: Array[float] = []

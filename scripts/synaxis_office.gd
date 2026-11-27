@@ -32,6 +32,7 @@ const Radar = preload("res://scripts/hud_radar.gd")
 const Arrival = preload("res://scripts/synaxis_arrival.gd")
 const Restrooms = preload("res://scripts/synaxis_restrooms.gd")
 const Architecture = preload("res://scripts/synaxis_architecture.gd")
+const LIFT_DIRECTION_SIGN = preload("res://assets/models/nightgrid/synaxis_architecture/lift_direction_sign.glb")
 const Workfloor = preload("res://scripts/synaxis_workfloor.gd")
 const ExecutiveFloor = preload("res://scripts/synaxis_executive_floor.gd")
 const Basement = preload("res://scripts/synaxis_basement.gd")
@@ -177,6 +178,10 @@ func _ready() -> void:
 	_plaque("EXECUTIVE AFFAIRS",Vector3(8.31,2.94,-4.9),-PI/2,Vector2(1.7,.24))
 	_plaque("RECEPTION / EXIT PROCESSING",Vector3(5.2,2.05,9.81),PI,Vector2(2.40,.26))
 	_plaque("ELEVATORS / B1 IT + OFFICES",Vector3(8.31,2.64,4.25),-PI/2,Vector2(2.3,.30))
+	var overhead := Architecture.assembly(self,"LobbyLiftDirection",LIFT_DIRECTION_SIGN,Vector3(2.15,2.86,3.66),PI)
+	Architecture.inscription(overhead,"←  RECEPTION      LIFTS  →",Vector3(0,0,.068),Vector2(2.22,.155))
+	Architecture.inscription(overhead,"←  STAFF EXIT      SECURITY  ↑",Vector3(0,0,-.068),Vector2(2.22,.155)).rotation.y=PI
+	_plaque("STAFF EXIT",Vector3(-8.34,2.89,4.50),PI/2,Vector2(1.21,.23))
 	var canvas := CanvasLayer.new()
 	_intro_canvas = canvas
 	canvas.layer = 5
