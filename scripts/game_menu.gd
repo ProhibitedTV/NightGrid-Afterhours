@@ -457,6 +457,8 @@ func _render() -> void:
 		"street_contact":
 			_title(col,str(_street_contact["name"]).to_upper(),23,Ui.AMBER)
 			_label(col,str(_street_contact["role"]),16,Ui.MUTED)
+			if _street_contact.get("character","")=="daddy_stanky":
+				_button(col,"stanky_show","STAY FOR SHARKTOOTH SESSIONS / LIVE SHOW","stanky_show")
 			for i in range(_street_contact["topics"].size()):
 				var key:="stanky_reply_%d"%i if _street_contact.get("character","")=="daddy_stanky" else "street_reply_%d"%i
 				_button(col,key,str(_street_contact["topics"][i]["question"]),key)
@@ -1017,6 +1019,12 @@ func _check(parent: VBoxContainer, caption: String, key: String) -> void:
 		_first_focus = toggle
 
 func _choice(action: String) -> void:
+	if action=="stanky_show":
+		if screen=="street_contact" and _street_contact.get("character","")=="daddy_stanky":
+			_street_contact={}
+			hide_for_game()
+			action_requested.emit(action)
+		return
 	if action.begins_with("stanky_reply_"):
 		var suffix:=action.trim_prefix("stanky_reply_")
 		if screen=="street_contact" and _street_contact.get("character","")=="daddy_stanky" and suffix.is_valid_int() and int(suffix)>=0 and int(suffix)<_street_contact["topics"].size():

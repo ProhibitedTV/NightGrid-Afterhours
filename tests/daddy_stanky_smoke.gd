@@ -35,7 +35,19 @@ func _test() -> void:
 		if gossip.get("stanky_rumor",-1)!=i:
 			_fail("Missing distinct fan lore")
 			return
+	var show:=Satire.stanky_show()
+	if show.size()!=7 or not venues.stanky_show_reachable(listener) or venues.stanky_show_reachable(listener+Vector3.RIGHT*20.0):
+		_fail("Show script or audience radius")
+		return
+	for i in range(show.size()):
+		if int(show[i]["stanky_show"])!=i or venues.stanky_show_speaker(show[i]["character"],i)==null:
+			_fail("Show sequence or speaker")
+			return
+	venues.set_stanky_show_active(true)
 	venues.set_hour(12.0)
+	if bool(venues.get("_stanky_show_active")):
+		_fail("Closed venue must stop show")
+		return
 	if venues.daddy_stanky_near(listener)!=null or actor.visible:
 		_fail("Daytime visibility")
 		return

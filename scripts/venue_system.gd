@@ -10,6 +10,7 @@ var _lantern_guitar:Node3D
 const AmbientSynth=preload("res://scripts/ambient_synth_performer.gd")
 var _static_room_performer:Node3D
 var _daddy_stanky:Node3D
+var _stanky_show_active:=false
 const MusicVisual=preload("res://scripts/pedestrian_rig_visual.gd")
 const MusicianModel=preload("res://assets/models/nightgrid/pedestrians/casual-walker.glb")
 var _blue_hour_performer:Node3D
@@ -634,6 +635,7 @@ func _refresh_daddy_stanky() -> void:
 	_daddy_stanky.visible = active
 	_daddy_stanky.set_process(active)
 	if not active:
+		set_stanky_show_active(false)
 		_daddy_stanky.call("set_attention_target",Vector3.ZERO,false)
 
 func daddy_stanky_near(at:Vector3) -> Node3D:
@@ -688,3 +690,43 @@ func stanky_fan_near(at:Vector3) -> Dictionary:
 			result=Satire.stanky_rumor(i)
 			result["speaker"]=fan
 	return result
+
+# Performance uses one existing artist and resident audience; no spawned crowd.
+func stanky_show_speaker(character:String,beat:int) -> Node3D:
+	if not is_instance_valid(_daddy_stanky) or not _daddy_stanky.is_visible_in_tree() or not is_open("static_room"):
+		return null
+	if character==Satire.STANKY_ID:
+		return _daddy_stanky
+	if character!="night_regular":
+		return null
+	var fans:Array=_patrons.get("static_room",[])
+	if fans.is_empty():
+		return null
+	var fan:Node3D=fans[posmod(beat,fans.size())]
+	return fan if fan.is_visible_in_tree() else null
+
+func stanky_show_reachable(at:Vector3) -> bool:
+	var performer:=stanky_show_speaker(Satire.STANKY_ID,0)
+	return is_instance_valid(performer) and at.is_finite() and at.distance_squared_to(performer.global_position+Vector3.UP*1.15)<=8.0*8.0 and performer.to_local(at).z>=-.25
+
+func set_stanky_show_active(active:bool) -> void:
+	if active==_stanky_show_active:
+		return
+	_stanky_show_active=active
+	if is_instance_valid(_daddy_stanky):
+		if active:
+			_daddy_stanky.call("set_music_performance","rap")
+		else:
+			_daddy_stanky.call("clear_music_performance")
+	# Turn the existing fans toward the performer; restore original orientation.
+	if is_instance_valid(_daddy_stanky):
+		for fan:Node3D in _patrons.get("static_room",[]):
+			if active:
+				fan.set_meta("stanky_previous_yaw",fan.rotation.y)
+				var target:=_daddy_stanky.global_position
+				target.y=fan.global_position.y
+				if target.distance_squared_to(fan.global_position)>.01:
+					fan.look_at(target,Vector3.UP,true)
+			elif fan.has_meta("stanky_previous_yaw"):
+				fan.rotation.y=float(fan.get_meta("stanky_previous_yaw"))
+				fan.remove_meta("stanky_previous_yaw")

@@ -445,6 +445,48 @@ const LINES = [
 		"character": "night_regular",
 		"text": "I used to think the guy was just a walking punchline. Then I heard Humanity. Dude can be surprisingly sincere. Keep a copy of that tape, the stream could disappear tomorrow.",
 		"stanky_rumor": 2
+	},
+	{
+		"id": "street.daddy_stanky.stanky.show.1",
+		"character": "daddy_stanky",
+		"text": "Welcome to Sharktooth Sessions! No chat delay, no moderators, no subscription fee. You got a face, you got a voice. Make some noise!",
+		"stanky_show": 0
+	},
+	{
+		"id": "street.night_regular.stanky.show.2",
+		"character": "night_regular",
+		"text": "SHAWKTOOTH!",
+		"stanky_show": 1
+	},
+	{
+		"id": "street.daddy_stanky.stanky.show.3",
+		"character": "daddy_stanky",
+		"text": "No cashy, still flashy, suit man lookin' trashy. Three dead toes but I still got flows. They got a board of directors; I got a board with a busted speaker. I'll beat ya brain!",
+		"stanky_show": 2
+	},
+	{
+		"id": "street.daddy_stanky.stanky.show.4",
+		"character": "daddy_stanky",
+		"text": "Yo, somebody asked me about the pendant again. Mother Mary, shit got scary. I got a whole book of bad decisions and somehow I'm still here. What a fuckin' story, bro.",
+		"stanky_show": 3
+	},
+	{
+		"id": "street.night_regular.stanky.show.5",
+		"character": "night_regular",
+		"text": "Tell 'em, Stanky!",
+		"stanky_show": 4
+	},
+	{
+		"id": "street.daddy_stanky.stanky.show.6",
+		"character": "daddy_stanky",
+		"text": "For everybody who ever got laughed at, written off, or left outside. This one's called Humanity. There's still beautiful shit in this world. I'll show you my humanity.",
+		"stanky_show": 5
+	},
+	{
+		"id": "street.night_regular.stanky.show.7",
+		"character": "night_regular",
+		"text": "Humanity! We love you, man!",
+		"stanky_show": 6
 	}
 ]
 const CAST = ["robot_romantic","nothing_happens","gig_grinder","subscription_skeptic","street_visionary","night_regular"]
@@ -540,7 +582,7 @@ const STANKY_SCOPE = "venue:daddy_stanky"
 static func stanky_profile() -> Dictionary:
 	var topics: Array[Dictionary] = []
 	for line in LINES:
-		if line["character"] == STANKY_ID:
+		if line["character"] == STANKY_ID and line.has("topic"):
 			topics.append(line.duplicate())
 	return {"name":"Daddy Stanky","role":"Underground legend / HUMANITY mixtape","character":STANKY_ID,"topics":topics}
 
@@ -550,3 +592,11 @@ static func stanky_rumor(index:int) -> Dictionary:
 		if row.get("stanky_rumor",-1)==index:
 			return row.duplicate()
 	return {}
+
+const STANKY_SHOW_SCOPE = "venue:stanky_show"
+static func stanky_show() -> Array[Dictionary]:
+	var result:Array[Dictionary]=[]
+	for row in LINES:
+		if row.has("stanky_show"):
+			result.append(row.duplicate())
+	return result

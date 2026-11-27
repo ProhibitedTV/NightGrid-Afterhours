@@ -194,6 +194,8 @@ var city_details: Node3D
 var pedestrians: Node3D
 var _pedestrian_scan := 0.0
 var _street_contact_id:=""
+var _stanky_show_index:=-1
+var _stanky_show_gap:=0.0
 var _cal_pending:Dictionary={}
 var _cal_tracking:=false
 var _cal_nav_clock:=0.0
@@ -502,6 +504,11 @@ func _build_world_audio() -> void:
 		float(options.get("sfx_volume", 0.75)))
 
 func _on_menu_action(action: String) -> void:
+	if action=="stanky_show":
+		if _street_contact_id==StreetSatire.STANKY_ID:
+			_start_stanky_show()
+			_street_contact_id=""
+		return
 	if action.begins_with("stanky_reply_"):
 		if _street_contact_id==StreetSatire.STANKY_ID:
 			var suffix:=action.trim_prefix("stanky_reply_")
@@ -1380,6 +1387,7 @@ func _process(delta: float) -> void:
 	if repair != null:
 		repair.set_listener(actor.global_position, in_workshop)
 	if is_instance_valid(dialogue_director):
+		_tick_stanky_show(delta,indoors)
 		dialogue_director.call("tick", delta, actor.global_position)
 	_update_police_radio(delta)
 	var interior_id := str(interiors.call("active_site_id")) if indoors else ""
@@ -3360,12 +3368,16 @@ func _toggle_interaction() -> void:
 	if weapons.equipped=="holstered" and current_car==null and current_transit==null:
 		var legend:Node3D=venue_system.call("daddy_stanky_near",player.global_position)
 		if is_instance_valid(legend):
+			if _stanky_show_index>=0:
+				_stop_stanky_show()
+				_notify("SHARKTOOTH SESSIONS / Left the show.")
+				return
 			_street_contact_id=StreetSatire.STANKY_ID
 			legend.call("set_attention_target",player.global_position,true)
 			game_menu.call("open_street_contact",StreetSatire.stanky_profile())
 			return
 		var fan:Dictionary=venue_system.call("stanky_fan_near",player.global_position)
-		if not fan.is_empty() and is_instance_valid(dialogue_director):
+		if not fan.is_empty() and is_instance_valid(dialogue_director) and _stanky_show_index<0:
 			dialogue_director.call("cancel_scope","venue:stanky_fans")
 			dialogue_director.call("enqueue",str(fan["id"]),str(fan["text"]),DialogueDirector.STORY,fan["speaker"],"venue:stanky_fans")
 			return
@@ -5619,6 +5631,7 @@ func _synaxis_contact_objective() -> String:
 	return "CONTACT / Marcus Vale — checked in. Rear Synaxis parking booth."
 
 func _cancel_street_interactions()->void:
+	_stop_stanky_show()
 	if is_instance_valid(dialogue_director):
 		dialogue_director.call("cancel_scope",StreetSatire.STANKY_SCOPE)
 		dialogue_director.call("cancel_scope","venue:stanky_fans")
@@ -5803,3 +5816,48 @@ func _play_stanky_reply(topic:int) -> void:
 	dialogue_director.call("cancel_scope",StreetSatire.STANKY_SCOPE)
 	dialogue_director.call("enqueue",str(cue["id"]),"Daddy Stanky: "+str(cue["text"]),DialogueDirector.STORY,legend,StreetSatire.STANKY_SCOPE)
 	legend.call("set_attention_target",Vector3.ZERO,false)
+
+func _start_stanky_show() -> void:
+	if _stanky_show_index>=0 or not is_instance_valid(venue_system) or not is_instance_valid(player) or not is_instance_valid(dialogue_director) or current_car!=null or current_transit!=null or interiors.call("is_inside") or weapons.equipped!="holstered":
+		return
+	if not is_instance_valid(venue_system.call("daddy_stanky_near",player.global_position)):
+		return
+	dialogue_director.call("cancel_scope",StreetSatire.STANKY_SCOPE)
+	dialogue_director.call("cancel_scope","venue:stanky_fans")
+	_stanky_show_index=0
+	_stanky_show_gap=.25
+	venue_system.call("set_stanky_show_active",true)
+	_notify("SHARKTOOTH SESSIONS / Live at Static Room")
+
+func _stop_stanky_show() -> void:
+	_stanky_show_index=-1
+	_stanky_show_gap=0.0
+	if is_instance_valid(venue_system):
+		venue_system.call("set_stanky_show_active",false)
+	if is_instance_valid(dialogue_director):
+		dialogue_director.call("cancel_scope",StreetSatire.STANKY_SHOW_SCOPE)
+
+func _tick_stanky_show(delta:float,indoors:bool) -> void:
+	if _stanky_show_index<0:
+		return
+	if indoors or current_car!=null or current_transit!=null or weapons.equipped!="holstered" or not venue_system.call("stanky_show_reachable",player.global_position):
+		_stop_stanky_show()
+		return
+	if dialogue_director.call("has_scope",StreetSatire.STANKY_SHOW_SCOPE):
+		return
+	_stanky_show_gap=maxf(0.0,_stanky_show_gap-delta)
+	if _stanky_show_gap>0.0:
+		return
+	var beats:=StreetSatire.stanky_show()
+	if _stanky_show_index>=beats.size():
+		_stop_stanky_show()
+		return
+	var cue:Dictionary=beats[_stanky_show_index]
+	var speaker:Node3D=venue_system.call("stanky_show_speaker",str(cue["character"]),_stanky_show_index)
+	if not is_instance_valid(speaker):
+		_stop_stanky_show()
+		return
+	var who:="Daddy Stanky" if cue["character"]==StreetSatire.STANKY_ID else "Crowd"
+	if dialogue_director.call("enqueue",str(cue["id"]),who+": "+str(cue["text"]),DialogueDirector.STORY,speaker,StreetSatire.STANKY_SHOW_SCOPE):
+		_stanky_show_index+=1
+		_stanky_show_gap=.65
