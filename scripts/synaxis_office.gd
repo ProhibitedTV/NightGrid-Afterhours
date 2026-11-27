@@ -33,6 +33,7 @@ const Arrival = preload("res://scripts/synaxis_arrival.gd")
 const Restrooms = preload("res://scripts/synaxis_restrooms.gd")
 const Architecture = preload("res://scripts/synaxis_architecture.gd")
 const LIFT_DIRECTION_SIGN = preload("res://assets/models/nightgrid/synaxis_architecture/lift_direction_sign.glb")
+const GROUND_ENVELOPE = preload("res://scenes/synaxis/ground_envelope.tscn")
 const Workfloor = preload("res://scripts/synaxis_workfloor.gd")
 const ExecutiveFloor = preload("res://scripts/synaxis_executive_floor.gd")
 const Basement = preload("res://scripts/synaxis_basement.gd")
@@ -84,16 +85,26 @@ func _ready() -> void:
 	var desk := _material("desk",Color("242e36"))
 	var accent := _material("accent",Color("b9cbd0"))
 	var screen := _material("screen",Color("508f8d"),true)
-	_solid("Floor",Vector3(0,-.15,0),Vector3(17,.3,20),floor_mat)
-	_solid("Ceiling",Vector3(0,3.5,0),Vector3(17,.3,20),_material("ceiling",Color("d4d1c7")))
+	var envelope := GROUND_ENVELOPE.instantiate()
+	var practicals := envelope.get_node("Shell/Practicals") as MeshInstance3D
+	var diffuser := envelope.get_node("ReceptionLuminaire/Diffuser") as MeshInstance3D
+	# Keep the visible lamp face within the existing bloom range. The editor's
+	# higher source radiance has already been integrated into the indirect atlas.
+	var lens := practicals.material_override.duplicate() as StandardMaterial3D
+	lens.emission_energy_multiplier = 1.6
+	practicals.material_override = lens
+	diffuser.material_override = lens
+	add_child(envelope)
+	_collision("Floor",Vector3(0,-.15,0),Vector3(17,.3,20))
+	_collision("Ceiling",Vector3(0,3.5,0),Vector3(17,.3,20))
 	for side in [-1.0,1.0]:
-		_solid("FrontWall",Vector3(side*4.9,1.75,-10),Vector3(7.2,3.5,.25),wall)
-	_solid("EntranceHeader",Vector3(0,3.15,-10),Vector3(2.6,.7,.25),wall)
+		_collision("FrontWall",Vector3(side*4.9,1.75,-10),Vector3(7.2,3.5,.25))
+	_collision("EntranceHeader",Vector3(0,3.15,-10),Vector3(2.6,.7,.25))
 	# Street vestibule is public; a full-width security barrier separates it from the offices.
 	for side in [-1.0,1.0]:
-		_solid("SecurityFlank",Vector3(side*4.9,1.75,-7.65),Vector3(7.2,3.5,.24),wall)
+		_collision("SecurityFlank",Vector3(side*4.9,1.75,-7.65),Vector3(7.2,3.5,.24))
 	_solid("SecurityGate",Vector3(0,1.4,-7.65),Vector3(2.6,2.8,.25),_material("security",Color("293842")))
-	_solid("SecurityHeader",Vector3(0,3.15,-7.65),Vector3(2.6,.7,.25),wall)
+	_collision("SecurityHeader",Vector3(0,3.15,-7.65),Vector3(2.6,.7,.25))
 	_plaque("BADGE ACCESS",Vector3(0,3.02,-7.793),PI,Vector2(1.40,.25))
 	Architecture.brand_wall(self,"EntranceBrand",Vector3(0,2.94,-10.12),.62)
 	# Fixed upper-floor shell, not a second generic building intersecting the office.
@@ -108,20 +119,20 @@ func _ready() -> void:
 	_visual("Crown",Vector3(0,50.8,0),Vector3(17.5,.75,20.5),desk)
 	Brand.wall_logo(self,"TowerBrandFront",Vector3(0,48.2,-10.24),PI,11.8)
 	Brand.wall_logo(self,"TowerBrandRear",Vector3(0,48.2,10.24),0.0,11.8)
-	_solid("SouthWall",Vector3(0,1.75,10),Vector3(17,3.5,.25),wall)
-	_solid("WestWallNorth",Vector3(-8.5,1.75,-3.25),Vector3(.25,3.5,13.5),wall)
-	_solid("WestWallSouth",Vector3(-8.5,1.75,7.75),Vector3(.25,3.5,4.5),wall)
-	_solid("StaffExitHeader",Vector3(-8.5,3.05,4.5),Vector3(.25,.90,2.0),wall)
+	_collision("SouthWall",Vector3(0,1.75,10),Vector3(17,3.5,.25))
+	_collision("WestWallNorth",Vector3(-8.5,1.75,-3.25),Vector3(.25,3.5,13.5))
+	_collision("WestWallSouth",Vector3(-8.5,1.75,7.75),Vector3(.25,3.5,4.5))
+	_collision("StaffExitHeader",Vector3(-8.5,3.05,4.5),Vector3(.25,.90,2.0))
 	_solid("StaffExitDoor",Vector3(-8.5,1.30,4.5),Vector3(.16,2.60,2.0),desk)
 	_visual("StaffExitFrameNorth",Vector3(-8.5,1.30,3.48),Vector3(.29,2.60,.10),accent)
 	_visual("StaffExitFrameSouth",Vector3(-8.5,1.30,5.52),Vector3(.29,2.60,.10),accent)
 	_plaque("STAFF EXIT / PARKING",Vector3(-8.357,2.85,4.5),PI/2,Vector2(1.72,.24))
 	_plaque("STAFF ACCESS",Vector3(-8.643,2.85,4.5),-PI/2,Vector2(1.25,.24))
 	_visual("StaffExitReader",Vector3(-8.66,1.18,3.25),Vector3(.065,.18,.12),screen)
-	_solid("EastWall",Vector3(8.5,1.75,0),Vector3(.25,3.5,20),wall)
+	_collision("EastWall",Vector3(8.5,1.75,0),Vector3(.25,3.5,20))
 	# Leave a physical turning vestibule behind the security gate.
 	var partition_length: float=Arrival.PARTITION_FAR_Z-Arrival.PARTITION_NEAR_Z
-	_solid("ExecutivePartition",Vector3(0,1.5,Arrival.PARTITION_NEAR_Z+partition_length*.5),Vector3(.18,3.0,partition_length),wall)
+	_collision("ExecutivePartition",Vector3(0,1.5,Arrival.PARTITION_NEAR_Z+partition_length*.5),Vector3(.18,3.0,partition_length))
 	_build_lobby(accent)
 	_build_office_details(desk,accent,screen)
 	_build_breakroom()
@@ -151,11 +162,11 @@ func _ready() -> void:
 	_build_exit_props(desk,accent,screen)
 	_visual("ExitBox",Vector3(5,1.25,6.5),Vector3(.42,.34,.4),_material("cardboard",Color("a88a63")))
 	# Local pools of light instead of four overlapping omnidirectional washes.
-	var diffuser:=_material("light",Color("e9e3d4"),true)
-	diffuser.emission_energy_multiplier=.24
 	for z in [-7.5,-2.5,2.5,7.5]:
 		for x in [-3.7,3.7]:
-			_visual("CeilingStrip",Vector3(x,3.28,z),Vector3(3.2,.035,.28),diffuser)
+			if x > 0 and z > 5:
+				_build_reception_light(Vector3(x,3.294,z))
+				continue
 			var light:=SpotLight3D.new()
 			light.name="OfficeDownlight"
 			light.position=Vector3(x,3.14,z)
@@ -165,10 +176,10 @@ func _ready() -> void:
 			light.spot_attenuation=1.1
 			light.light_color=Color("fff0da")
 			light.light_energy=.85
+			light.light_bake_mode=Light3D.BAKE_DISABLED
 			# Bound shadow passes to four, irrespective of decorative fixtures.
 			light.shadow_enabled=(x<0.0)==(z<0.0)
 			add_child(light)
-	Architecture.strip(self,"ReceptionStone",Vector3(5.2,0,9.875),PI,5.30,Architecture.STONE)
 	Architecture.brand_wall(self,"ReceptionBrand",Vector3(5.2,2.40,9.825))
 	Architecture.nameplate(self,"VisitorDirectory","VISITOR ACCESS\nBADGE CHECK   /   RECEPTION",Vector3(-2.61,2.18,-9.85),0.0,Vector2(1.92,.43))
 	Brand.wall_logo(self,"ExecutiveMark",Vector3(8.30,2.75,-5.9),-PI/2,.72,false,true)
@@ -561,6 +572,32 @@ func _build_lobby(accent: Material) -> void:
 	_lobby_light.shadow_enabled=false
 	add_child(_lobby_light)
 
+func _build_reception_light(at: Vector3) -> void:
+	var light: Light3D
+	if "--experimental-reception-area-light" in OS.get_cmdline_user_args() and RenderingServer.get_current_rendering_method() == "forward_plus":
+		var area := AreaLight3D.new()
+		area.name = "ReceptionAreaLight"
+		area.area_size = Vector2(3.16,.218)
+		area.area_attenuation = 2.0
+		area.area_range = 6.0
+		area.light_energy = 1.8
+		area.light_size = .33
+		light = area
+	else:
+		var spot := SpotLight3D.new()
+		spot.name = "OfficeDownlight"
+		spot.spot_range = 7.0
+		spot.spot_angle = 65.0
+		spot.spot_attenuation = 1.1
+		spot.light_energy = .85
+		light = spot
+	light.position = at - Vector3(0,.154,0)
+	light.rotation.x = -PI/2
+	light.light_color = Color("fff0da")
+	light.light_bake_mode = Light3D.BAKE_DISABLED
+	light.shadow_enabled = true
+	add_child(light)
+
 func _build_office_details(desk: Material,accent: Material,screen: Material) -> void:
 	# Ground floor former IT alcove is now a records and compliance station.
 	for x in [-7.55,-6.7]:
@@ -756,6 +793,8 @@ func _build_cast() -> void:
 		actor.process_mode=Node.PROCESS_MODE_ALWAYS
 		_cast.add_child(actor)
 		CreatorCast.install(actor, str(spec["id"]))
+		for mesh: MeshInstance3D in actor.find_children("*", "MeshInstance3D", true, false):
+			mesh.gi_mode = GeometryInstance3D.GI_MODE_DYNAMIC
 		_staff[spec["id"]]=actor
 	_ceo=_staff["jetson_wang"]
 	_hr=_staff["people_ops"]

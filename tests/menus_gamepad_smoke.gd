@@ -83,6 +83,39 @@ func _verify() -> void:
 		return
 	player.set("input_blocked", false)
 	var saved_settings: Dictionary = menu.call("get_settings")
+	var quality = preload("res://scripts/render_quality.gd")
+	var legacy := {"ssr_enabled":false,"ao_enabled":false,"glow_enabled":true,"fog_enabled":false}
+	quality.normalize(legacy,true)
+	if legacy["render_quality"] != "high" or legacy["ssr_enabled"] or legacy["fog_enabled"] or legacy["ssil_enabled"]:
+		_fail("Existing graphics switches must survive High profile migration")
+		return
+	menu.call("update_setting","render_quality","performance")
+	var environment: Environment = world.get("world_environment").environment
+	if environment.ssr_enabled or environment.ssao_enabled or not is_equal_approx(root.scaling_3d_scale,.90):
+		_fail("Performance applies its scale and disabled expensive passes")
+		return
+	menu.call("update_setting","ssr_enabled",true)
+	menu.call("update_setting","render_quality","cinematic")
+	if not environment.ssil_enabled or environment.ssr_max_steps != 64 or not is_equal_approx(root.scaling_3d_scale,1.0):
+		_fail("Cinematic explicitly opts into SSIL and preserves full render resolution")
+		return
+	menu.call("update_setting","render_quality","ultra")
+	if environment.ssil_enabled or environment.ssr_max_steps != 48:
+		_fail("Ultra reflection quality is independent of Cinematic lighting")
+		return
+	menu.call("update_setting","render_quality","performance")
+	var graphics_disk := ConfigFile.new()
+	if not environment.ssr_enabled or graphics_disk.load("user://settings.cfg") != OK or graphics_disk.get_value("player","render_overrides",{}).get("performance",{}).get("ssr_enabled") != true:
+		_fail("Switching profiles must keep and persist the individual feature override")
+		return
+	var previous_hour: float = world.get("day_night").get("hour")
+	world.get("day_night").call("set_hour",10.0)
+	if not environment.ssr_enabled or environment.ssao_enabled:
+		_fail("Day/night updates must preserve active rendering choices")
+		return
+	world.get("day_night").call("set_hour",previous_hour)
+	menu.call("update_setting","render_overrides",saved_settings["render_overrides"])
+	menu.call("update_setting","render_quality",saved_settings["render_quality"])
 	menu.call("set_has_save", false)
 	menu.call("open_title")
 	if not paused or not menu.call("is_open") or str(menu.get("screen")) != "title":
@@ -472,7 +505,7 @@ func _verify() -> void:
 	if not is_instance_valid(finish) or finish.is_processing():
 		_fail("Office finish must be a static authored environment")
 		return
-	var stone:=office.get_node("Floor") as MeshInstance3D
+	var stone:=office.get_node("GroundEnvelope/Shell/Floor") as MeshInstance3D
 	var stone_mat:=stone.material_override as StandardMaterial3D
 	if stone_mat.albedo_texture==null or not stone_mat.normal_enabled or stone_mat.normal_texture==null or not stone_mat.uv1_triplanar:
 		_fail("Ground floor must retain mapped stone finish at world scale")
@@ -551,9 +584,11 @@ func _verify() -> void:
 			if absf(route_sample.x)<.45 and route_sample.z>arrival_script.PARTITION_NEAR_Z-.36 and route_sample.z<arrival_script.PARTITION_FAR_Z+.36:
 				_fail("Arrival must turn around the partition rather than walk through it")
 				return
-	var partition: MeshInstance3D=office.get_node("ExecutivePartition")
-	var partition_mesh: BoxMesh=partition.mesh
-	if not is_equal_approx(partition.position.z-partition_mesh.size.z*.5,arrival_script.PARTITION_NEAR_Z) or shots[-1]["to"]!=preload("res://scripts/synaxis_office.gd").CUBICLE_POINT:
+	# The production baked shell owns the partition art; collision retains the exact route boundary.
+	var partition := office.get_node_or_null("ExecutivePartitionCollision") as StaticBody3D
+	var shape_node := partition.get_child(0) as CollisionShape3D if partition != null and partition.get_child_count() > 0 else null
+	var partition_shape := shape_node.shape as BoxShape3D if shape_node != null else null
+	if partition_shape == null or not is_equal_approx(partition.position.z + shape_node.position.z - partition_shape.size.z * .5, arrival_script.PARTITION_NEAR_Z) or not is_equal_approx(partition.position.z + shape_node.position.z + partition_shape.size.z * .5, arrival_script.PARTITION_FAR_Z) or shots[-1]["to"]!=preload("res://scripts/synaxis_office.gd").CUBICLE_POINT:
 		_fail("Arrival route must match the actual partition and playable cubicle")
 		return
 	var montage=arrival_script.new()

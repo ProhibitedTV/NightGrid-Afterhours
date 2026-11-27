@@ -28,6 +28,9 @@ var visual: Node3D
 func _ready() -> void:
 	floor_snap_length = 0.35
 	visual = get_node_or_null("Visual")
+	if is_instance_valid(visual):
+		for mesh: MeshInstance3D in visual.find_children("*", "MeshInstance3D", true, false):
+			mesh.gi_mode = GeometryInstance3D.GI_MODE_DYNAMIC
 
 # The original courier's nose/eyes are authored toward +Z, unlike the
 # conventional Godot -Z camera axis. Keep this convention testable when
