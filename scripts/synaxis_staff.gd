@@ -23,6 +23,13 @@ var _clipboard:Node3D
 var _routine_cup:Node3D
 var _routine_page:Node3D
 static var _executive_leather: StandardMaterial3D
+const ROLE_BADGES = {
+	"mika": preload("res://assets/synaxis/badge_mika.svg"),
+	"eli": preload("res://assets/synaxis/badge_eli.svg"),
+	"reception": preload("res://assets/synaxis/badge_reception.svg"),
+	"security": preload("res://assets/synaxis/badge_security.svg"),
+}
+static var _role_badge_materials: Dictionary = {}
 
 func configure_staff(data: Dictionary) -> void:
 	configure(data)
@@ -142,6 +149,8 @@ func _ready() -> void:
 	_box(_badge,"BadgeStripe",Vector3(0,.047,.012),Vector3(.095,.029,.008),Color("277e83"),"FABRIC")
 	_box(_badge,"BadgePortrait",Vector3(-.025,-.008,.012),Vector3(.032,.048,.008),_skin_color,"FABRIC")
 	_box(_badge,"BadgeText",Vector3(.019,-.014,.012),Vector3(.039,.013,.008),Color("37454d"),"FABRIC")
+	if ROLE_BADGES.has(resident_id):
+		_install_role_badge()
 	if outfit=="retail":
 		_badge.hide()
 		_box(_torso,"RetailNameTag",Vector3(-.19,.16,.248),Vector3(.102,.041,.015),Color("c6ae86"),"METAL")
@@ -158,6 +167,26 @@ func _ready() -> void:
 		if str(child.name)=="Hand":
 			_left_wrist=child
 			break
+
+func _install_role_badge() -> void:
+	# Keep the existing card body; replace raised placeholder marks with
+	# a shared, depth-tested printed face. This is for fallback staff only.
+	for child in _badge.get_children():
+		if str(child.name) != "BadgeCard":
+			child.hide()
+	if not _role_badge_materials.has(resident_id):
+		var mat := StandardMaterial3D.new()
+		mat.albedo_texture = ROLE_BADGES[resident_id]
+		mat.roughness = .76
+		_role_badge_materials[resident_id] = mat
+	var face := MeshInstance3D.new()
+	face.name = "RoleBadgePrint"
+	var quad := QuadMesh.new()
+	quad.size = Vector2(.099,.135)
+	face.mesh = quad
+	face.material_override = _role_badge_materials[resident_id]
+	face.position.z = .009
+	_badge.add_child(face)
 
 func enable_walk_rig() -> void:
 	if seated or not _walk_rig.is_empty():

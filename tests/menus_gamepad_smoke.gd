@@ -928,6 +928,13 @@ func _verify() -> void:
 		_fail("Guard dialogue is optional and cannot advance the opening or change cash")
 		return
 	var staff: Dictionary=office.get("_staff")
+	var badge_textures: Array[Texture2D] = []
+	for id in ["mika","eli","reception","security"]:
+		var print_face := (staff[id] as Node3D).get_node_or_null("BreathingTorso/SynaxisEmployeeBadge/RoleBadgePrint") as MeshInstance3D
+		if print_face == null or not print_face.mesh is QuadMesh or print_face.material_override.albedo_texture == null or badge_textures.has(print_face.material_override.albedo_texture):
+			_fail("Role-specific employee badges must use distinct depth-tested printed surfaces")
+			return
+		badge_textures.append(print_face.material_override.albedo_texture)
 	if staff.size()!=8 or not staff.has("reception"):
 		_fail("HQ has eight authored staff plus the executive assistant")
 		return
