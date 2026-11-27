@@ -23,6 +23,8 @@ jobs:
           python-version: '3.12'
       - name: Test local creator build runner guards
         run: python -m unittest discover -s tools -p test_build_creator_playtest.py -v
+      - name: Test independent creator delivery verification
+        run: python -m unittest discover -s tools -p test_verify_creator_delivery.py -v
       - name: Test offline F8 trace analyzer
         run: python -m unittest discover -s tools -p test_analyze_vehicle_trace.py -v
       - name: Verify offline wardrobe authoring and manual review gates
