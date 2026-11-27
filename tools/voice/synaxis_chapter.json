@@ -1340,6 +1340,201 @@
         "character": "night_regular",
         "stanky_show": 6
       }
+    },
+    {
+      "id": "street.daddy_stanky.stanky.fight.1",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Fight night, baby. The champ's got a twelve-million-dollar sponsorship and the challenger got a coupon for a sandwich. Who you got?",
+      "direction": "Playful sports pundit energy.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "stanky_show": 0,
+        "stanky_set": "fight"
+      }
+    },
+    {
+      "id": "street.night_regular.stanky.fight.2",
+      "character": "night_regular",
+      "language": "English",
+      "text": "Stanky, you picked the loser three fights in a row!",
+      "direction": "Affectionate heckle, smiling.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "stanky_show": 1,
+        "stanky_set": "fight"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.stanky.fight.3",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Wrongy the gongy. My predictions are an independent art form, bro. Ain't nobody payin' me for accuracy.",
+      "direction": "Fast absurd rhyme.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "stanky_show": 2,
+        "stanky_set": "fight"
+      }
+    },
+    {
+      "id": "street.night_regular.stanky.fight.4",
+      "character": "night_regular",
+      "language": "English",
+      "text": "Play that stupid frog beat again!",
+      "direction": "Audience teasing; original fictional novelty tune reference.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "stanky_show": 3,
+        "stanky_set": "fight"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.stanky.fight.5",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "You people got the worst taste in music. Except when you listen to me. Then you're fuckin' geniuses.",
+      "direction": "Mock outrage, amused.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "stanky_show": 4,
+        "stanky_set": "fight"
+      }
+    },
+    {
+      "id": "street.night_regular.stanky.fight.6",
+      "character": "night_regular",
+      "language": "English",
+      "text": "You good, man? You want some water?",
+      "direction": "Genuine concern, normal volume.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "stanky_show": 5,
+        "stanky_set": "fight"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.stanky.fight.7",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Yeah, bro. Appreciate ya. That's my people right there. Roast me all night, still make sure I get home.",
+      "direction": "Warm, sincere.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "stanky_show": 6,
+        "stanky_set": "fight"
+      }
+    },
+    {
+      "id": "street.night_regular.stanky.family.1",
+      "character": "night_regular",
+      "language": "English",
+      "text": "Patron saint of beating a diddla!",
+      "direction": "Exaggerated affectionate nickname, not a call to action.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "stanky_show": 0,
+        "stanky_set": "family"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.stanky.family.2",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Calm down, little predatah! Tonight the only thing gettin' beat is your ego in a rap battle.",
+      "direction": "Comedic challenge.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "stanky_show": 1,
+        "stanky_set": "family"
+      }
+    },
+    {
+      "id": "street.night_regular.stanky.family.3",
+      "character": "night_regular",
+      "language": "English",
+      "text": "Three dead toes!",
+      "direction": "Playful familiar heckle.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "stanky_show": 2,
+        "stanky_set": "family"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.stanky.family.4",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Nobody knows! You motherfuckers know my rhymes better than I do. Might as well put you on the payroll. There ain't a payroll, by the way.",
+      "direction": "Quick rhyming banter.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "stanky_show": 3,
+        "stanky_set": "family"
+      }
+    },
+    {
+      "id": "street.night_regular.stanky.family.5",
+      "character": "night_regular",
+      "language": "English",
+      "text": "You know we love you, Stanky.",
+      "direction": "Sincere, no sarcasm.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "stanky_show": 4,
+        "stanky_set": "family"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.stanky.family.6",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "I know. Sometimes I don't get it. But I know. No more jokes for a second. Thank you for showin' up.",
+      "direction": "Brief vulnerable pause.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "stanky_show": 5,
+        "stanky_set": "family"
+      }
+    },
+    {
+      "id": "street.night_regular.stanky.family.7",
+      "character": "night_regular",
+      "language": "English",
+      "text": "STANKY! STANKY!",
+      "direction": "Joyful crowd chant.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "stanky_show": 6,
+        "stanky_set": "family"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.stanky.family.8",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "I'll show you my humanity. Now quit lookin' at me like that. I'm not cryin', you're cryin'.",
+      "direction": "Tender, then playful.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "stanky_show": 7,
+        "stanky_set": "family"
+      }
     }
   ]
 }

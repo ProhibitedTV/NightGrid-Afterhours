@@ -43,6 +43,18 @@ func _test() -> void:
 		if int(show[i]["stanky_show"])!=i or venues.stanky_show_speaker(show[i]["character"],i)==null:
 			_fail("Show sequence or speaker")
 			return
+	for set_id in ["fight","family"]:
+		var alternate:=Satire.stanky_show(set_id)
+		if alternate.size()!=(7 if set_id=="fight" else 8):
+			_fail("Missing alternate show "+set_id)
+			return
+		for i in range(alternate.size()):
+			if int(alternate[i]["stanky_show"])!=i or venues.stanky_show_speaker(alternate[i]["character"],i)==null:
+				_fail("Alternate show ordering or speaker")
+				return
+	if not Satire.stanky_show("invalid").is_empty():
+		_fail("Unknown show")
+		return
 	venues.set_stanky_show_active(true)
 	venues.set_hour(12.0)
 	if bool(venues.get("_stanky_show_active")):
