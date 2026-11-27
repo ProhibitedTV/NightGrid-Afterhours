@@ -3,6 +3,8 @@ extends Node3D
 const Visual=preload("res://scripts/pedestrian_rig_visual.gd")
 const Model=preload("res://assets/models/nightgrid/pedestrians/hiker.glb")
 const Art=preload("res://scripts/instrument_art.gd")
+static var _stand_meshes: Dictionary = {}
+static var _stand_material: StandardMaterial3D
 var _rig:Node3D
 var _active:=false
 
@@ -21,14 +23,17 @@ func _ready()->void:
 
 func _stand(at:Vector3,dimensions:Vector3)->void:
 	var part:=MeshInstance3D.new()
-	var mesh:=BoxMesh.new()
-	mesh.size=dimensions
-	part.mesh=mesh
-	var material:=StandardMaterial3D.new()
-	material.albedo_color=Color("343846")
-	material.metallic=.55
-	material.roughness=.55
-	part.material_override=material
+	if not _stand_meshes.has(dimensions):
+		var mesh:=BoxMesh.new()
+		mesh.size=dimensions
+		_stand_meshes[dimensions]=mesh
+	part.mesh=_stand_meshes[dimensions]
+	if _stand_material==null:
+		_stand_material=StandardMaterial3D.new()
+		_stand_material.albedo_color=Color("343846")
+		_stand_material.metallic=.55
+		_stand_material.roughness=.55
+	part.material_override=_stand_material
 	part.position=at
 	add_child(part)
 

@@ -1,0 +1,26 @@
+name: Overhead inventory
+on:
+  pull_request:
+    paths:
+      - 'tools/audit_overhead.py'
+      - 'tests/test_audit_overhead.py'
+      - '.github/workflows/overhead-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python tests/test_audit_overhead.py
+      - run: python tools/audit_overhead.py > overhead-inventory.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overhead-inventory
+          path: overhead-inventory.json
+          retention-days: 7
