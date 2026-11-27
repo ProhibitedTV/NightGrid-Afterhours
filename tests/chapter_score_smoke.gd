@@ -48,5 +48,29 @@ func _verify() -> void:
 	if radio.call("_context") != "car":
 		_fail("free roam must restore original radio context")
 		return
-	print("CHAPTER_SCORE_SMOKE PASS: optional score policy, one-shots, lift continuity, radio isolation")
+	# Optional original title theme takes priority only on the title screen.
+	var fake_menu := CanvasLayer.new()
+	fake_menu.set_script(load("res://scripts/game_menu.gd"))
+	# No _ready call: avoid reading settings or creating additional audio nodes.
+	radio.menu = fake_menu
+	fake_menu.set("screen", "title")
+	var title_id := Score.cue_id("score:title")
+	installed.erase(title_id)
+	if radio.call("_context") != "title":
+		_fail("Missing title theme must retain existing original radio title playlist")
+		return
+	installed[title_id] = "test-only"
+	if radio.call("_context") != "score:title" or radio.call("_next_id", "score:title") != title_id or Score.one_shot("score:title"):
+		_fail("Approved title theme must repeat through existing score decks")
+		return
+	if radio.available_tracks() != count or radio.get_track_titles().has(title_id):
+		_fail("Title score must not enter radio inventory")
+		return
+	fake_menu.set("screen", "hidden")
+	if radio.call("_context") != "car":
+		_fail("Leaving title must restore previous gameplay context")
+		return
+	radio.menu = null
+	fake_menu.free()
+	print("CHAPTER_SCORE_SMOKE PASS: optional score policy, one-shots, lift continuity, title fallback, radio isolation")
 	quit(0)
