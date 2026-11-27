@@ -5,6 +5,9 @@ on:
     paths:
       - 'tools/audio/music_candidate_intake.py'
       - 'tests/test_music_candidate_intake.py'
+      - 'tools/audio/music_cue_briefs.py'
+      - 'tools/audio/anubis_music_cue_briefs.json'
+      - 'tests/test_music_cue_briefs.py'
       - '.github/workflows/music-candidate-intake.yml'
   workflow_dispatch:
 
@@ -21,4 +24,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Verify read-only offline candidate contract
-        run: python tests/test_music_candidate_intake.py
+        run: |
+          python tests/test_music_candidate_intake.py
+          python tests/test_music_cue_briefs.py
+          python tools/audio/music_cue_briefs.py
