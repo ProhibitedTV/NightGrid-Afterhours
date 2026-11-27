@@ -3,14 +3,15 @@ extends Node
 ## Only the visual clock, camera, streaming focus and temporary fog are touched.
 const ORIGIN = Vector3(-87.0, 0.0, 87.0)
 const SHOT = Vector3(0.20, 1.75, -10.6)
-const LOOK = Vector3(0.35, 2.6, 6.5)
+const LOOK = Vector3(1.25, 2.25, 6.5)
 const CYCLE_SECONDS = 240.0
 const RoadCarVisual = preload("res://scripts/road_car_visual.gd")
 const Alley = preload("res://scripts/brickwater_alley.gd")
 # Nose toward camera, on screen right (camera faces +Z). Keep the corridor
 # walls, workshop entrance and fixed street props clear.
 const R9_POSITION = Vector3(-0.65, Alley.FLOOR_Y - RoadCarVisual.GROUND, -3.0)
-const R9_YAW = 0.16
+const R9_YAW = 0.26
+const CONTACT_SHADOW = preload("res://shaders/vehicle_contact_shadow.gdshader")
 var active := false
 var motion_enabled := true
 var _world: Node3D
@@ -21,6 +22,9 @@ var _city: Node
 var _hud: CanvasLayer
 var _environment: Environment
 var _r9: Node3D
+var _steam: CPUParticles3D
+var _saved_steam_process := Node.PROCESS_MODE_INHERIT
+var _saved_steam_speed := 1.0
 var _fog: FogVolume
 var _fog_material: FogMaterial
 var _saved_hour := 0.0
@@ -40,7 +44,7 @@ func begin(world: Node3D, animate: bool, allow_headless: bool = false) -> bool:
 	if DisplayServer.get_name() == "headless" and not allow_headless:
 		return false
 	# Don't stream away a loaded interior or the opening office set.
-	if bool(world.call("_inside_opening_hq")) or bool(world.get("interiors").call("is_inside")):
+	if is_instance_valid(world.get("_opening_office")) or bool(world.get("interiors").call("is_inside")) or is_instance_valid(world.get("current_car")) or is_instance_valid(world.get("current_transit")):
 		return false
 	_world = world
 	_city = world.get("city_details")
@@ -60,7 +64,8 @@ func begin(world: Node3D, animate: bool, allow_headless: bool = false) -> bool:
 	motion_enabled = animate
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_city.call("set_focus", ORIGIN)
-	if not is_instance_valid(_city.find_child("BrickwaterServiceAlley", true, false)):
+	var alley: Node3D = _city.find_child("BrickwaterServiceAlley", true, false) as Node3D
+	if not is_instance_valid(alley):
 		_city.call("set_focus", _restore_focus)
 		return false
 	_world.get("street_lights").call("set_focus", ORIGIN)
@@ -79,6 +84,25 @@ func begin(world: Node3D, animate: bool, allow_headless: bool = false) -> bool:
 	_world.add_child(_r9)
 	_r9.global_position = ORIGIN + R9_POSITION
 	_r9.rotation.y = R9_YAW
+	# Use the gameplay underbody occlusion material against the exact floor.
+	var shadow := MeshInstance3D.new()
+	shadow.name = "TitleRoadContactOcclusion"
+	var plane := PlaneMesh.new()
+	plane.size = Vector2(1.95, 3.6)
+	shadow.mesh = plane
+	var shadow_material := ShaderMaterial.new()
+	shadow_material.shader = CONTACT_SHADOW
+	shadow.material_override = shadow_material
+	shadow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	shadow.position.y = RoadCarVisual.GROUND + 0.009
+	_r9.add_child(shadow)
+	# Reuse the actual authored drain plume rather than add another emitter.
+	_steam = alley.get_node_or_null("StreetAtmosphere/DrainSteam") as CPUParticles3D
+	if is_instance_valid(_steam):
+		_saved_steam_process = _steam.process_mode
+		_saved_steam_speed = _steam.speed_scale
+		_steam.process_mode = Node.PROCESS_MODE_ALWAYS
+		_steam.speed_scale = 0.75 if motion_enabled else 0.0
 	if _hud != null:
 		_saved_hud = _hud.visible
 		_hud.hide()
@@ -103,7 +127,7 @@ func begin(world: Node3D, animate: bool, allow_headless: bool = false) -> bool:
 		_fog_material.density_texture = texture
 		_fog.material = _fog_material
 		_world.add_child(_fog)
-		_fog.global_position = ORIGIN + Vector3(0.2, 1.3, 1.8)
+		_fog.global_position = ORIGIN + Vector3(0.2, 1.3, 3.8)
 	_elapsed = 0.0
 	_clock_tick = 0.0
 	active = true
@@ -126,7 +150,7 @@ func _process(delta: float) -> void:
 	_camera.global_position = ORIGIN + SHOT + Vector3(sin(cycle * 3.0) * 0.16, sin(cycle * 2.0) * 0.035, sin(cycle) * 0.12)
 	_camera.look_at(ORIGIN + LOOK)
 	if is_instance_valid(_fog):
-		_fog.global_position = ORIGIN + Vector3(0.2 + sin(cycle * 5.0) * 0.36, 1.3, 1.8 + sin(cycle * 3.0) * 0.8)
+		_fog.global_position = ORIGIN + Vector3(0.2 + sin(cycle * 5.0) * 0.36, 1.3, 3.8 + sin(cycle * 3.0) * 0.8)
 		_fog_material.density = 0.07 + sin(cycle * 4.0) * 0.018
 	_clock_tick += delta
 	if _clock_tick >= 0.25:
@@ -138,6 +162,10 @@ func finish() -> void:
 		return
 	active = false
 	set_process(false)
+	if is_instance_valid(_steam):
+		_steam.speed_scale = _saved_steam_speed
+		_steam.process_mode = _saved_steam_process
+		_steam = null
 	if is_instance_valid(_r9):
 		_r9.hide()
 		_world.remove_child(_r9)
@@ -145,6 +173,7 @@ func finish() -> void:
 		_r9 = null
 	if is_instance_valid(_fog):
 		_fog.hide()
+		_world.remove_child(_fog)
 		_fog.queue_free()
 		_fog = null
 	if is_instance_valid(_environment):
@@ -158,6 +187,7 @@ func finish() -> void:
 	if is_instance_valid(_previous_camera):
 		_previous_camera.make_current()
 	if is_instance_valid(_camera):
+		_world.remove_child(_camera)
 		_camera.queue_free()
 		_camera = null
 	if is_instance_valid(_hud):
