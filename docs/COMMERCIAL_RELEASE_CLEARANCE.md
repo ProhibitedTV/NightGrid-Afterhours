@@ -1,0 +1,7 @@
+# Commercial release clearance (#547)
+
+Private development is not commercial clearance. Before distribution, independently enumerate the complete export inputs, including private assets, code dependencies, engine notices and generated content. Record each shipped input in a schema 1 inventory (`files`: array of relative paths) and ledger (`entries`: array). Each entry needs path, sha256, category (original, third-party, generated, engine, dependency), status commercial-approved, source, license, evidence, reviewer, review_date. Generated entries additionally require model, checkpoint, output_rights_evidence and human_review. Do not mark unresolved rights approved. Keep evidence and private records outside Git where appropriate.
+
+Run `python tools/release/check_commercial_clearance.py --root /path/to/export-inputs --inventory /path/to/inventory.json --ledger /path/to/ledger.json` before distribution. Nonzero exit blocks clearance. This first checker validates only supplied inventory; it cannot prove inventory completeness, license interpretation or authenticity of reviewer assertions. Automatic export inventory and release workflow enforcement remain open under #547. No existing assets have been certified.
+
+MusicGen noncommercial weights are research-only; ACE-Step exact checkpoint rights must be verified. Review existing radio, fonts, textures, voice and sound assets, likenesses, trademark use, notices and storefront AI disclosures separately.

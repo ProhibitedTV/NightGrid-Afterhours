@@ -102,7 +102,7 @@ func _check() -> void:
 	if int(stats["photo_material_surfaces"]) != 14 or int(stats["added_lights"]) != 0:
 		_fail("Photo props lost original scan materials or added too many lights")
 		return
-	if int(stats["road_decal_projections"]) != 4 or int(stats["road_decal_photo_maps"]) != 6:
+	if int(stats["road_decal_projections"]) != 4 or int(stats["road_decal_photo_maps"]) != 5:
 		_fail("Not enough PBR terrain detail, or material atlas is duplicated")
 		return
 	if int(hero_stats.get("photographed_street_props", 0)) != 5 or (

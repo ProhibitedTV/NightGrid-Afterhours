@@ -33,11 +33,17 @@ func _verify() -> void:
 	if not is_instance_valid(wheel) or wheel.visible or paused:
 		_fail("Wheel should start hidden with simulation running")
 		return
+	if wheel.is_processing() or wheel.is_processing_input():
+		_fail("Hidden wheel should not receive frame or input processing")
+		return
 	kit.equip("pulse")
 	var before: Dictionary = kit.snapshot()
 	world.call("_unhandled_input", _key(KEY_C))
 	if not wheel.visible or not paused or int(wheel.get("selected")) != 1:
 		_fail("C must open a modal preview of the equipped weapon")
+		return
+	if not wheel.is_processing() or not wheel.is_processing_input():
+		_fail("Visible wheel must restore frame and input processing")
 		return
 	if wheel.call("index_for_direction", Vector2.INF) != -1 or wheel.call("index_for_direction", Vector2.ZERO) != -1:
 		_fail("Nonfinite and neutral directions must not select a slot")
@@ -66,6 +72,9 @@ func _verify() -> void:
 	wheel.call("_input", _pad(JOY_BUTTON_B))
 	if paused or wheel.visible or kit.snapshot() != before:
 		_fail("Cancel must preserve equipment and ammo")
+		return
+	if wheel.is_processing() or wheel.is_processing_input():
+		_fail("Cancelled wheel must stop processing")
 		return
 	world.call("_unhandled_input", _pad(JOY_BUTTON_RIGHT_STICK))
 	weights = wheel.get("_selection_weights")

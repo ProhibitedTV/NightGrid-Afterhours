@@ -23,7 +23,19 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	resized.connect(queue_redraw)
+	visibility_changed.connect(_sync_processing)
 	hide()
+	_sync_processing()
+
+func _sync_processing() -> void:
+	var active := is_visible_in_tree()
+	set_process(active)
+	set_process_input(active)
+
+func _enter_tree() -> void:
+	# A hidden parent can suppress this control without changing its own
+	# visibility; restore callbacks when the modal returns to the scene tree.
+	call_deferred("_sync_processing")
 
 func present(state: Dictionary, pad: bool = false) -> void:
 	equipped = maxi(0, Arsenal.IDS.find(str(state.get("equipped", "holstered"))))
