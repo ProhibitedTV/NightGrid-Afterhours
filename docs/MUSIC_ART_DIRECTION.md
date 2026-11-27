@@ -63,3 +63,44 @@ References to eras and broad genres guide original production; do not prompt
 for a real artist, cloned vocals, borrowed melodies or soundalike recordings.
 A recognizable original main motif and controlled alternate arrangements need
 separate composition and listening work; prompt similarity alone is insufficient.
+
+## Quality-first studio profiles (candidate pilots)
+
+For new final-score auditions, prefer the studio profile instead of the
+original fast sketch setup. Preserve the legacy profile/default for existing
+batch resumption; never overwrite a legacy or alternate-palette batch.
+
+| Profile | DiT | LM | Inference | Offload |
+| --- | --- | --- | --- | --- |
+| legacy | turbo | 0.6B | 8 steps, CFG 1 | Original configuration |
+| studio | SFT | 1.7B | 50 steps, CFG 7 | PyTorch LM, CUDA with CPU offload; DiT CPU offload |
+| studio-4b-cpu | SFT | 4B | 50 steps, CFG 7 | PyTorch LM on CPU; DiT CUDA with CPU offload |
+
+Both studio profiles keep INT8 weight-only DiT quantization and one take
+in flight to limit VRAM. The 16/24 GiB available WSL RAM minimums respectively
+are conservative pilot guardrails, not measured peak RAM requirements.
+A missing checkpoint, insufficient RAM, incompatible installed API or
+unexpected LM device/offload state stops the run rather than substituting a
+smaller model. Model downloads are deliberately not part of this runner.
+
+Preview from the existing checkout, no GPU or checkpoint load:
+
+    bash tools/audio/run_anubis_music.sh --plan --palette neon-grunge-v1 --profile studio --batch music-neon-grunge-studio-001
+
+After reviewing exact checkpoint licenses, obtaining the local SFT and 1.7B
+weights if missing, and stopping other GPU jobs, audition one new take:
+
+    sudo bash tools/audio/run_anubis_music.sh --palette neon-grunge-v1 --profile studio --batch music-neon-grunge-studio-001 --limit 1
+
+For the experimental 4B comparison only, use the same seed and cue in a
+separate batch with the 4B weights installed and sufficient RAM:
+
+    sudo bash tools/audio/run_anubis_music.sh --palette neon-grunge-v1 --profile studio-4b-cpu --batch music-neon-grunge-studio-4b-cpu-001 --limit 1
+
+Do not run the whole batch until the comparison confirms musical quality,
+actual duration, no truncation, technical QC, wall-clock, peak host RAM and
+VRAM, and successful resume. CPU offload is a memory strategy, not a quality
+guarantee. These settings are proposed, not native-validated; do not assume
+the 4B LM improves every cue. Reference upstream ACE-Step documentation:
+https://github.com/ace-step/ACE-Step-1.5/blob/main/README.md and
+https://github.com/ace-step/ACE-Step-1.5/blob/main/docs/en/GPU_COMPATIBILITY.md.
