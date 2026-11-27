@@ -928,6 +928,13 @@ func _verify() -> void:
 		_fail("Guard dialogue is optional and cannot advance the opening or change cash")
 		return
 	var staff: Dictionary=office.get("_staff")
+	var badge_textures: Array[Texture2D] = []
+	for id in ["mika","eli","reception","security"]:
+		var print_face := (staff[id] as Node3D).get_node_or_null("BreathingTorso/SynaxisEmployeeBadge/RoleBadgePrint") as MeshInstance3D
+		if print_face == null or not print_face.mesh is QuadMesh or print_face.material_override.albedo_texture == null or badge_textures.has(print_face.material_override.albedo_texture):
+			_fail("Role-specific employee badges must use distinct depth-tested printed surfaces")
+			return
+		badge_textures.append(print_face.material_override.albedo_texture)
 	if staff.size()!=8 or not staff.has("reception"):
 		_fail("HQ has eight authored staff plus the executive assistant")
 		return
@@ -989,6 +996,14 @@ func _verify() -> void:
 		return
 	if office.call("lift_direction",office.to_global(Vector3(.65,1.15,4.35)))!=-1 or office.call("lift_direction",office.to_global(Vector3(-.65,1.15,4.35)))!=1:
 		_fail("Visible elevator call area must be usable on approach")
+		return
+	for route in [[0,-1],[0,13],[-1,0],[13,0]]:
+		var pad:Vector2=office.call("lift_goal_pad",route[0],route[1])
+		if not is_equal_approx(pad.y,5.0) or not is_equal_approx(pad.x,.90 if route[1]<route[0] else -.90):
+			_fail("Elevator objective marker must target the correct physical call mat")
+			return
+	if office.call("lift_direction",office.to_global(Vector3(0,1.15,5)))!=0 or not str(office.call("_lift_hint",-1,Vector3(0,1.15,5))).contains("RIGHT / DOWN"):
+		_fail("Neutral space between elevator mats must guide the player without choosing a direction")
 		return
 	for id in [rooms.MEN,rooms.WOMEN]:
 		player.global_position=washrooms.to_global(rooms.CENTERS[id])

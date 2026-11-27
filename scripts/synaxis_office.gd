@@ -1126,12 +1126,20 @@ func update_staff_attention(stage: int,at: Vector3) -> String:
 		_staff[id].call("attend",at,id==closest)
 	return _staff_remark
 
+static func lift_goal_pad(current:int,desired:int) -> Vector2:
+	if current==desired:
+		return Workfloor.LIFT
+	return Workfloor.LIFT+Vector2(.90 if desired<current else -.90,0)
+
 func _lift_hint(stage:int,local:Vector3) -> String:
 	var desired:=objective_floor(stage)
 	if desired==_active_floor:
 		return ""
-	var distance:=Vector2(local.x,local.z).distance_to(Workfloor.LIFT)
+	var pad:=lift_goal_pad(_active_floor,desired)
+	var distance:=Vector2(local.x,local.z).distance_to(pad)
 	var button:="RIGHT / DOWN" if desired<_active_floor else "LEFT / UP"
+	if local.z>=4.15 and local.z<=5.85 and absf(local.x)<=.12:
+		return "\nStep onto the %s call mat toward %s" % [button,floor_title(desired)]
 	return "\nFollow the marked aisle to ELEVATORS · %.0f m · %s toward %s" % [distance,button,floor_title(desired)]
 
 func update_prompt(stage: int,at: Vector3,gamepad: bool,heading:Vector3=Vector3.FORWARD) -> void:
@@ -1142,7 +1150,7 @@ func update_prompt(stage: int,at: Vector3,gamepad: bool,heading:Vector3=Vector3.
 	var goal: Vector3=POINTS[stage]
 	var local_heading:=global_basis.inverse()*heading
 	_radar.call("set_office_heading",Vector2(local_heading.x,local_heading.z))
-	_radar.call("set_office_state",Vector2(local.x,local.z),Vector2(goal.x,goal.z) if _active_floor==objective_floor(stage) else Workfloor.LIFT,_active_floor)
+	_radar.call("set_office_state",Vector2(local.x,local.z),Vector2(goal.x,goal.z) if _active_floor==objective_floor(stage) else lift_goal_pad(_active_floor,objective_floor(stage)),_active_floor)
 	if _active_floor==Basement.FLOOR:
 		_hint.text="SYNAXIS / "+Basement.TITLE+"\n"+TITLES[stage]
 		if objective_floor(stage)!=Basement.FLOOR:
