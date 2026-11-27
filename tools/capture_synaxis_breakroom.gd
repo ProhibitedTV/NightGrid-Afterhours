@@ -1,13 +1,13 @@
 extends SceneTree
 ## Matched captures of the real Synaxis ground floor after streaming its permanent parcel.
 const HQ = preload("res://scripts/synaxis_office.gd")
-const SHOTS := [
+const SHOTS = [
 	["entrance", Vector3(-4.2, 1.67, 5.28), Vector3(-4.2, 1.48, 8.45)],
 	["table", Vector3(-7.27, 1.82, 6.66), Vector3(-3.58, 1.32, 8.58)],
 	["counter", Vector3(-6.05, 1.54, 7.29), Vector3(-7.98, 1.30, 8.40)],
 	["reverse", Vector3(-2.26, 1.68, 9.36), Vector3(-6.82, 1.39, 7.48)],
 ]
-const EQUIPMENT := [
+const EQUIPMENT = [
 	["lobby", Vector3(-.62, 1.62, -9.48), Vector3(-2.79, 1.12, -8.70), 0],
 	["it", Vector3(-1.23, -1.9, -7.11), Vector3(-3.8, -2.20, -4.45), -1],
 	["workstation", Vector3(-4.86, 5.18, -6.75), Vector3(-5.82, 4.81, -5.58), 1],

@@ -1,20 +1,24 @@
 extends RefCounted
 ## Creator build only. The packager stages the exact reviewed candidate files.
 const Rig = preload("res://scripts/pedestrian_rig_visual.gd")
-const ROOT := "res://assets/creator_playtest_cast/"
-const SOCIAL_CANDIDATES := {
+const ROOT = "res://assets/creator_playtest_cast/"
+const SOCIAL_CANDIDATES = {
 	"dev": ["dev.glb", "da44fc3cef88d7f55f2837b22b355140536ac19f0530a0779d1257a30d93bdd6"],
 	"rina": ["rina.glb", "74321e1f1184090c50915ef8901d7c2b067f8643d21bb85055166558b4b1b08e"],
 }
 
-const SEATED_CANDIDATES := {
+const SEATED_CANDIDATES = {
 	"people_ops": ["dana.glb", "642073bc5d603e0dff9b99c5f6e0d2a5f8565bb995bea7636f1568cdafd70d84"],
 	"jetson_wang": ["jetson.glb", "4f7878f077863584eb6ff9229cb8175d427db8298b45987184a1bcc85fdf8d36"],
 }
 
 static func _pose_avatar(visual: Node3D, actor: Node3D, id: String) -> String:
-	var player := visual.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
-	var skeleton := visual.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
+	var players := visual.find_children("*", "AnimationPlayer", true, false)
+	var skeletons := visual.find_children("*", "Skeleton3D", true, false)
+	if players.size() != 1 or skeletons.size() != 1:
+		return ""
+	var player := players[0] as AnimationPlayer
+	var skeleton := skeletons[0] as Skeleton3D
 	visual.set_process(false)
 	player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_IDLE
 	if SEATED_CANDIDATES.has(id):
@@ -100,6 +104,9 @@ static func install(actor: Node3D, id: String) -> bool:
 		return false
 	var path := ROOT.path_join(candidate[0] + ".bin")
 	if not FileAccess.file_exists(path):
+		return false
+	if FileAccess.get_sha256(path) != candidate[1]:
+		push_warning("Creator cast candidate checksum mismatch: " + id)
 		return false
 	var gltf := GLTFDocument.new()
 	var state := GLTFState.new()

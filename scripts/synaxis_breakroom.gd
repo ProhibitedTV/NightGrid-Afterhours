@@ -1,17 +1,17 @@
 extends Node3D
 ## Authored static breakroom art within the existing Synaxis ground floor.
 const ROOM = preload("res://assets/models/nightgrid/synaxis_breakroom/breakroom.glb")
-const SCANS := "res://assets/pbr/synaxis_breakroom/"
-const METAL := "res://assets/models/nightgrid/central_exchange_storefront/textures/"
-const AGGREGATE := "res://assets/models/nightgrid/central_exchange_curb/textures/"
-const PHOTO_MAPS := {
+const SCANS = "res://assets/pbr/synaxis_breakroom/"
+const METAL = "res://assets/models/nightgrid/central_exchange_storefront/textures/"
+const AGGREGATE = "res://assets/models/nightgrid/central_exchange_curb/textures/"
+const PHOTO_MAPS = {
 	"Terrazzo": [SCANS + "terrazzo_tiles_diff_1k.jpg", SCANS + "terrazzo_tiles_nor_gl_1k.jpg", SCANS + "terrazzo_tiles_arm_1k.jpg", Color("dedcda"), 0.0, 0.75],
 	"Walnut": [SCANS + "black_walnut_veneer_02_diff_1k.jpg", SCANS + "black_walnut_veneer_02_nor_gl_1k.jpg", SCANS + "black_walnut_veneer_02_arm_1k.jpg", Color.WHITE, 0.0, 0.66],
 	"Tile": [SCANS + "long_white_tiles_diff_1k.jpg", SCANS + "long_white_tiles_nor_gl_1k.jpg", SCANS + "long_white_tiles_arm_1k.jpg", Color("ebeddf"), 0.0, 0.56],
 	"Steel": [METAL + "steel_base_1k.jpg", METAL + "steel_normal_1k.jpg", METAL + "steel_arm_1k.png", Color("dddfe0"), 0.82, 0.38],
 	"Counter": [AGGREGATE + "concrete_base_1k.jpg", AGGREGATE + "concrete_normal_1k.jpg", AGGREGATE + "concrete_arm_1k.png", Color("8a9294"), 0.0, 0.26],
 }
-const LIGHT_POSITIONS := [Vector3(-6.15,3.16,6.97), Vector3(-3.66,3.16,8.95)]
+const LIGHT_POSITIONS = [Vector3(-6.15,3.16,6.97), Vector3(-3.66,3.16,8.95)]
 static var _surfaces: Dictionary = {}
 
 func _ready() -> void:

@@ -1,6 +1,6 @@
 extends RefCounted
 ## Local in-game review of hash-pinned, unpublished Anubis candidate props.
-const ROOT_ENV := "NIGHTGRID_ANUBIS_REVIEW_PROPS"
+const ROOT_ENV = "NIGHTGRID_ANUBIS_REVIEW_PROPS"
 static var _meshes: Dictionary = {}
 
 static func fitted(target: MeshInstance3D, file: String, digest: String, orientation: Basis, size: Vector3, bottom: Vector3) -> bool:

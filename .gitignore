@@ -15,4 +15,5 @@ __pycache__/
 /assets/models/nightgrid/wardrobe_candidates/
 
 # Creator-only candidate binaries staged during packaging.
-/assets/creator_playtest_cast/
+/assets/creator_playtest_cast/*
+!/assets/creator_playtest_cast/README.md

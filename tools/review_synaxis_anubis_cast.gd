@@ -2,18 +2,18 @@ extends SceneTree
 
 const HQ = preload("res://scripts/synaxis_office.gd")
 const Rig = preload("res://scripts/pedestrian_rig_visual.gd")
-const CANDIDATES := {
+const CANDIDATES = {
 	"dev": ["dev.glb", "0c25c792f6b8dac6e7e65f91c5a2f0699940597eb8a90c6bc029a4cbf02ca0ee"],
 	"rina": ["rina.glb", "7dd3de0e72d4fbd649a71bd369cda0536633d5916a6ef467ab3a0a6be5fd8947"],
 }
 
 
-const SOCIAL_CANDIDATES := {
+const SOCIAL_CANDIDATES = {
 	"dev": ["dev.glb", "da44fc3cef88d7f55f2837b22b355140536ac19f0530a0779d1257a30d93bdd6"],
 	"rina": ["rina.glb", "74321e1f1184090c50915ef8901d7c2b067f8643d21bb85055166558b4b1b08e"],
 }
 
-const SEATED_CANDIDATES := {
+const SEATED_CANDIDATES = {
 	"people_ops": ["dana.glb", "642073bc5d603e0dff9b99c5f6e0d2a5f8565bb995bea7636f1568cdafd70d84"],
 	"jetson_wang": ["jetson.glb", "4f7878f077863584eb6ff9229cb8175d427db8298b45987184a1bcc85fdf8d36"],
 }
