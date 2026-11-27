@@ -60,6 +60,12 @@
     },
     "daddy_stanky": {
       "direction": "Original adult male New Jersey accent; gravelly, quick rhyming, conversational swagger and sudden sincere pauses; no imitation of a real voice."
+    },
+    "rc": {
+      "direction": "Original adult male voice; grounded, dry, technical, understated affection, natural American cadence."
+    },
+    "boon": {
+      "direction": "Original adult male voice; wiry, fast and exuberant, contagious laughter, playful interruptions, genuine warmth. No real-voice imitation."
     }
   },
   "lines": [
@@ -1534,6 +1540,123 @@
         "character": "daddy_stanky",
         "stanky_show": 7,
         "stanky_set": "family"
+      }
+    },
+    {
+      "id": "street.rc.stanky.trio.1",
+      "character": "rc",
+      "language": "English",
+      "text": "Stream's up. Local recording's running. If the megacorps take the feed down, I've got three copies.",
+      "direction": "Deadpan netrunner, casual and assured.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "rc",
+        "stanky_show": 0,
+        "stanky_set": "trio"
+      }
+    },
+    {
+      "id": "street.boon.stanky.trio.2",
+      "character": "boon",
+      "language": "English",
+      "text": "Yo, five bucks and I'll do a backflip! No refunds if I eat pavement!",
+      "direction": "Very high energy, skinny adult male, rapid-fire delivery.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "boon",
+        "stanky_show": 1,
+        "stanky_set": "trio"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.stanky.trio.3",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Flippy the dippy! Boon, you motherfucker, you can't even stand still for the introduction!",
+      "direction": "Affectionate spontaneous rhyme.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "stanky_show": 2,
+        "stanky_set": "trio"
+      }
+    },
+    {
+      "id": "street.rc.stanky.trio.4",
+      "character": "rc",
+      "language": "English",
+      "text": "I'm not debugging your spine.",
+      "direction": "Dry delivery, slight smile.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "rc",
+        "stanky_show": 3,
+        "stanky_set": "trio"
+      }
+    },
+    {
+      "id": "street.boon.stanky.trio.5",
+      "character": "boon",
+      "language": "English",
+      "text": "That's what you said last time! Stanky, tell 'em about the shark!",
+      "direction": "Infectious laughter, interrupts with enthusiasm.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "boon",
+        "stanky_show": 4,
+        "stanky_set": "trio"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.stanky.trio.6",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "SHAWKTOOTH! My boy RC got servers in his closet. Boon got springs in his shoes. What the fuck do I got? Three dead toes!",
+      "direction": "Big comedic timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "stanky_show": 5,
+        "stanky_set": "trio"
+      }
+    },
+    {
+      "id": "street.rc.stanky.trio.7",
+      "character": "rc",
+      "language": "English",
+      "text": "A room full of people who showed up for you. That's not nothing.",
+      "direction": "Matter-of-fact warmth.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "rc",
+        "stanky_show": 6,
+        "stanky_set": "trio"
+      }
+    },
+    {
+      "id": "street.boon.stanky.trio.8",
+      "character": "boon",
+      "language": "English",
+      "text": "Hell yeah, brother. We ain't goin' nowhere.",
+      "direction": "High energy softens to genuine loyalty.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "boon",
+        "stanky_show": 7,
+        "stanky_set": "trio"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.stanky.trio.9",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "That's my crew, bro. No fancy label, no algorithm. Just my people. I'll show you my humanity.",
+      "direction": "Quiet heartfelt delivery.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "stanky_show": 8,
+        "stanky_set": "trio"
       }
     }
   ]

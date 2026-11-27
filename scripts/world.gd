@@ -506,9 +506,9 @@ func _build_world_audio() -> void:
 		float(options.get("sfx_volume", 0.75)))
 
 func _on_menu_action(action: String) -> void:
-	if action in ["stanky_show","stanky_fight","stanky_family"]:
+	if action in ["stanky_show","stanky_fight","stanky_family","stanky_trio"]:
 		if _street_contact_id==StreetSatire.STANKY_ID:
-			_start_stanky_show("fight" if action=="stanky_fight" else ("family" if action=="stanky_family" else "classic"))
+			_start_stanky_show(str({"stanky_fight":"fight","stanky_family":"family","stanky_trio":"trio"}.get(action,"classic")))
 			_street_contact_id=""
 		return
 	if action.begins_with("stanky_reply_"):
@@ -5833,7 +5833,7 @@ func _start_stanky_show(set_id:String="classic") -> void:
 	_stanky_show_index=0
 	_stanky_show_gap=.25
 	venue_system.call("set_stanky_show_active",true)
-	_notify({"classic":"SHARKTOOTH SESSIONS","fight":"FIGHT NIGHT","family":"AFTERHOURS / THE REGULARS"}.get(_stanky_set,"SHARKTOOTH SESSIONS")+" / Live at Static Room")
+	_notify({"classic":"SHARKTOOTH SESSIONS","fight":"FIGHT NIGHT","family":"AFTERHOURS / THE REGULARS","trio":"RC & BOON / OLD FRIENDS"}.get(_stanky_set,"SHARKTOOTH SESSIONS")+" / Live at Static Room")
 
 func _stop_stanky_show() -> void:
 	_stanky_show_index=-1
@@ -5863,7 +5863,7 @@ func _tick_stanky_show(delta:float,indoors:bool) -> void:
 	if not is_instance_valid(speaker):
 		_stop_stanky_show()
 		return
-	var who:="Daddy Stanky" if cue["character"]==StreetSatire.STANKY_ID else "Crowd"
+	var who:=StreetSatire.stanky_speaker_name(str(cue["character"]))
 	if dialogue_director.call("enqueue",str(cue["id"]),who+": "+str(cue["text"]),DialogueDirector.STORY,speaker,StreetSatire.STANKY_SHOW_SCOPE):
 		_stanky_show_index+=1
 		_stanky_show_gap=.65

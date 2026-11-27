@@ -592,6 +592,69 @@ const LINES = [
 		"text": "I'll show you my humanity. Now quit lookin' at me like that. I'm not cryin', you're cryin'.",
 		"stanky_show": 7,
 		"stanky_set": "family"
+	},
+	{
+		"id": "street.rc.stanky.trio.1",
+		"character": "rc",
+		"text": "Stream's up. Local recording's running. If the megacorps take the feed down, I've got three copies.",
+		"stanky_show": 0,
+		"stanky_set": "trio"
+	},
+	{
+		"id": "street.boon.stanky.trio.2",
+		"character": "boon",
+		"text": "Yo, five bucks and I'll do a backflip! No refunds if I eat pavement!",
+		"stanky_show": 1,
+		"stanky_set": "trio"
+	},
+	{
+		"id": "street.daddy_stanky.stanky.trio.3",
+		"character": "daddy_stanky",
+		"text": "Flippy the dippy! Boon, you motherfucker, you can't even stand still for the introduction!",
+		"stanky_show": 2,
+		"stanky_set": "trio"
+	},
+	{
+		"id": "street.rc.stanky.trio.4",
+		"character": "rc",
+		"text": "I'm not debugging your spine.",
+		"stanky_show": 3,
+		"stanky_set": "trio"
+	},
+	{
+		"id": "street.boon.stanky.trio.5",
+		"character": "boon",
+		"text": "That's what you said last time! Stanky, tell 'em about the shark!",
+		"stanky_show": 4,
+		"stanky_set": "trio"
+	},
+	{
+		"id": "street.daddy_stanky.stanky.trio.6",
+		"character": "daddy_stanky",
+		"text": "SHAWKTOOTH! My boy RC got servers in his closet. Boon got springs in his shoes. What the fuck do I got? Three dead toes!",
+		"stanky_show": 5,
+		"stanky_set": "trio"
+	},
+	{
+		"id": "street.rc.stanky.trio.7",
+		"character": "rc",
+		"text": "A room full of people who showed up for you. That's not nothing.",
+		"stanky_show": 6,
+		"stanky_set": "trio"
+	},
+	{
+		"id": "street.boon.stanky.trio.8",
+		"character": "boon",
+		"text": "Hell yeah, brother. We ain't goin' nowhere.",
+		"stanky_show": 7,
+		"stanky_set": "trio"
+	},
+	{
+		"id": "street.daddy_stanky.stanky.trio.9",
+		"character": "daddy_stanky",
+		"text": "That's my crew, bro. No fancy label, no algorithm. Just my people. I'll show you my humanity.",
+		"stanky_show": 8,
+		"stanky_set": "trio"
 	}
 ]
 const CAST = ["robot_romantic","nothing_happens","gig_grinder","subscription_skeptic","street_visionary","night_regular"]
@@ -705,3 +768,8 @@ static func stanky_show(set_id:String="classic") -> Array[Dictionary]:
 		if row.has("stanky_show") and row.get("stanky_set","classic")==set_id:
 			result.append(row.duplicate())
 	return result
+
+# Persistent named regulars, never part of the random street cast.
+const STANKY_FRIENDS = ["rc","boon"]
+static func stanky_speaker_name(character:String) -> String:
+	return {"daddy_stanky":"Daddy Stanky","rc":"RC","boon":"Boon"}.get(character,"Crowd")

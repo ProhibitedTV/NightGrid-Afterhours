@@ -52,6 +52,16 @@ func _test() -> void:
 			if int(alternate[i]["stanky_show"])!=i or venues.stanky_show_speaker(alternate[i]["character"],i)==null:
 				_fail("Alternate show ordering or speaker")
 				return
+	var trio:=Satire.stanky_show("trio")
+	var rc:=venues.stanky_show_speaker("rc",0)
+	var boon:=venues.stanky_show_speaker("boon",0)
+	if trio.size()!=9 or rc==null or boon==null or rc==boon or rc.name!="RC" or boon.name!="Boon":
+		_fail("Named old friends and trio dialogue")
+		return
+	for i in range(trio.size()):
+		if int(trio[i]["stanky_show"])!=i or venues.stanky_show_speaker(trio[i]["character"],i)==null:
+			_fail("Trio set ordering or speaker")
+			return
 	if not Satire.stanky_show("invalid").is_empty():
 		_fail("Unknown show")
 		return

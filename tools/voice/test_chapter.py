@@ -10,8 +10,8 @@ import studio
 class ChapterTests(unittest.TestCase):
     def test_catalog_matches_pinned_spoken_source(self):
         specs=chapter.validate_catalog(chapter.CATALOG)
-        self.assertEqual(len(specs),121)
-        self.assertEqual(len({s["line"]["character"] for s in specs.values()}),15)
+        self.assertEqual(len(specs),130)
+        self.assertEqual(len({s["line"]["character"] for s in specs.values()}),17)
         chinese=[s["line"] for s in specs.values() if s["line"]["language"]=="Chinese"]
         self.assertEqual(len(chinese),2)
         self.assertTrue(all(s["caption"] and s["text"]!=s["caption"] for s in chinese))
@@ -19,7 +19,7 @@ class ChapterTests(unittest.TestCase):
     def test_contextual_street_coverage(self):
         specs=chapter.validate_catalog(chapter.CATALOG)
         rows=[x["line"] for x in specs.values() if x["line"]["id"].startswith("street.")]
-        self.assertEqual(len(rows),94)
+        self.assertEqual(len(rows),103)
         for context in ("incident","urgent","traffic"):
             selected=[x for x in rows if x["source"].get("context")==context]
             self.assertEqual(len(selected),6)
@@ -57,7 +57,7 @@ class ChapterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path=Path(tmp)/"opening.gd"
             path.write_text("\n".join(f"const {k} = {json.dumps(v,ensure_ascii=False)}" for k,v in constants.items()),encoding="utf-8")
-            self.assertEqual(len(chapter.validate_catalog(chapter.CATALOG,path)),121)
+            self.assertEqual(len(chapter.validate_catalog(chapter.CATALOG,path)),130)
             path.write_text(path.read_text(encoding="utf-8").replace("close the blinds","open the blinds"),encoding="utf-8")
             with self.assertRaises(ValueError):
                 chapter.validate_catalog(chapter.CATALOG,path)
@@ -76,7 +76,7 @@ class ChapterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)
             rows=chapter.status(specs,root/"cast",root/"takes",root/"published")
-            self.assertEqual(len(rows),121)
+            self.assertEqual(len(rows),130)
             self.assertTrue(all(x["state"]=="needs_cast" for x in rows))
 
 

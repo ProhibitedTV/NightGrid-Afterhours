@@ -277,7 +277,11 @@ func _build_venue(venue: Dictionary) -> void:
 	var patrons: Array[Node3D] = []
 	for i in range(1 if venue_id=="lantern_cup" else 0,2 if kind != "CLUB" else (3 if venue_id in ["blue_hour","static_room"] else 4)):
 		var x := -3.2 + float(i) * 1.3
-		var patron := _build_patron(front, Vector3(x, 0.3, -2.1), kind, i)
+		var patron:Node3D
+		if venue_id=="static_room" and i<2:
+			patron=_build_stanky_friend(front,Vector3(x,.3,-2.1),i)
+		else:
+			patron=_build_patron(front,Vector3(x,.3,-2.1),kind,i)
 		patrons.append(patron)
 	_patrons[venue_id] = patrons
 	var audio := AudioStreamPlayer3D.new()
@@ -492,6 +496,9 @@ func _refresh() -> void:
 		var patrons: Array = _patrons[venue_id]
 		for patron in patrons:
 			(patron as Node3D).visible = open_now
+			if venue_id=="static_room" and patron.has_meta("stanky_friend"):
+				var visual:Node3D=patron.get_node("CharacterRig")
+				visual.set_process(open_now and venue_position(venue_id).distance_squared_to(_focus)<24.0*24.0)
 		var sound_position := venue_position(venue_id)
 		var sound_distance := Vector2(sound_position.x - _focus.x, sound_position.z - _focus.z).length()
 		var nearby_audio := open_now and sound_distance < 26.0
@@ -697,9 +704,14 @@ func stanky_show_speaker(character:String,beat:int) -> Node3D:
 		return null
 	if character==Satire.STANKY_ID:
 		return _daddy_stanky
+	var fans:Array=_patrons.get("static_room",[])
+	if character in Satire.STANKY_FRIENDS:
+		for friend:Node3D in fans:
+			if friend.get_meta("stanky_friend","")==character and friend.is_visible_in_tree():
+				return friend
+		return null
 	if character!="night_regular":
 		return null
-	var fans:Array=_patrons.get("static_room",[])
 	if fans.is_empty():
 		return null
 	var fan:Node3D=fans[posmod(beat,fans.size())]
@@ -730,3 +742,21 @@ func set_stanky_show_active(active:bool) -> void:
 			elif fan.has_meta("stanky_previous_yaw"):
 				fan.rotation.y=float(fan.get_meta("stanky_previous_yaw"))
 				fan.remove_meta("stanky_previous_yaw")
+
+func _build_stanky_friend(parent:Node3D,at:Vector3,index:int) -> Node3D:
+	var friend:=Node3D.new()
+	var identity:String=Satire.STANKY_FRIENDS[index]
+	friend.name="RC" if identity=="rc" else "Boon"
+	friend.set_meta("stanky_friend",identity)
+	friend.position=at
+	parent.add_child(friend)
+	var visual:=MusicVisual.new()
+	visual.name="CharacterRig"
+	visual.rotation.y=PI
+	visual.call("set_pedestrian_model",MusicianModel)
+	friend.add_child(visual)
+	visual.call("set_pedestrian_style",2 if identity=="rc" else 5)
+	if identity=="boon":
+		# Interim silhouette only, not a replacement for an authored mesh.
+		visual.scale=Vector3(.89,1.03,.89)
+	return friend

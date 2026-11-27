@@ -9,8 +9,8 @@ class AnubisTests(unittest.TestCase):
 
     def test_full_catalog(self):
         selected=anubis.select(self.specs,True,[],[])
-        self.assertEqual(len(selected),121)
-        self.assertEqual(len(anubis.reference_ids(self.specs,selected)),15)
+        self.assertEqual(len(selected),130)
+        self.assertEqual(len(anubis.reference_ids(self.specs,selected)),17)
 
     def test_single_line_keeps_canonical_cast_reference(self):
         selected=anubis.select(self.specs,False,["synaxis.call_mandarin.02"],[])

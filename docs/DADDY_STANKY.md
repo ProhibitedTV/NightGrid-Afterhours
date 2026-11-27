@@ -19,3 +19,7 @@ Approach the artist at Static Room during the nightly residency and choose Stay 
 ## Found family: alternate shows
 
 Two selectable alternate spoken-performance sets join the original freestyle: Fight Night (fictional boxing commentary, affectionate trolling, novelty-song jokes, and a friend checking in) and Afterhours / The Regulars (running jokes, crowd chanting, reciprocal care and gratitude). No real fight footage, licensed songs, allegations, or reward for violence. All 15 additional cues are authored in the offline voice catalog. These are spoken live sets rather than a boxing broadcast or rendered concert. A show caches its selected script until exit; closing or leaving the area restores normal patron state.
+
+## RC and Boon — Old Friends
+
+Two of the three Static Room patrons are now persistent named actors using skinned interim rigs rather than box silhouettes. RC is the fictional resident netrunner and maintains the group's independent stream/recordings in lore. Boon is a skinny, high-energy adult white male whose signature offer is a five-dollar backflip. The selectable nine-beat Old Friends show gives them individual positional speech, affectionate teasing, tech banter and loyalty. Two original voices and nine cues are in the offline catalog. Distinct bespoke faces, outfit meshes, actual stream equipment/functionality, an animated backflip with safe landing and any donation mechanic are not implemented yet; no cash is taken. Native model and performance review remain necessary.
