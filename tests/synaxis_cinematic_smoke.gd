@@ -8,12 +8,21 @@ func _initialize() -> void:
 
 func _test() -> void:
 	var arrival := Arrival.new()
+	var badge := Arrival.new()
+	badge.advance(float(Arrival.SHOTS[0]["duration"]))
+	if not badge.sample()["badge_presented"] or badge.sample()["badge_authorized"] or badge.sample()["gate_open"]:
+		_fail("Badge presentation must precede authorization and gate opening")
+		return
+	badge.advance(1.2)
+	if not badge.sample()["badge_authorized"] or badge.sample()["gate_open"]:
+		_fail("Badge authorization must precede gate traversal")
+		return
 	var surveillance_count := 0
 	for shot in Arrival.SHOTS:
 		var sample := arrival.sample()
 		if sample["surveillance"]:
 			surveillance_count += 1
-			if sample["fov"] <= 60.0 or not sample["gate_open"] or shot.has("camera_end"):
+			if sample["fov"] <= 60.0 or not sample["gate_open"] or not sample["badge_authorized"] or shot.has("camera_end"):
 				_fail("Surveillance insert must be fixed, wide and cover ingress")
 				return
 		elif sample["fov"] != 60.0:
