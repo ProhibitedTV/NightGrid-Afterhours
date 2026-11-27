@@ -5,6 +5,7 @@ on:
       - 'tools/audio/nightgrid_music_batch.py'
       - 'tools/audio/neon_grunge_palette.json'
       - 'tests/test_neon_grunge_palette.py'
+      - 'tests/test_music_quality_profiles.py'
       - '.github/workflows/music-palette.yml'
 permissions:
   contents: read
@@ -17,3 +18,4 @@ jobs:
         with:
           python-version: '3.12'
       - run: python tests/test_neon_grunge_palette.py
+      - run: python tests/test_music_quality_profiles.py
