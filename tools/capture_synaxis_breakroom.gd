@@ -1,6 +1,7 @@
 extends SceneTree
-## Matched captures of the real Synaxis ground floor after streaming its permanent parcel.
+## Matched captures of the real Synaxis rooms after streaming their permanent parcel.
 const HQ = preload("res://scripts/synaxis_office.gd")
+const Executive = preload("res://scripts/synaxis_executive_floor.gd")
 const SHOTS = [
 	["entrance", Vector3(-4.2, 1.67, 5.28), Vector3(-4.2, 1.48, 8.45)],
 	["table", Vector3(-7.27, 1.82, 6.66), Vector3(-3.58, 1.32, 8.58)],
@@ -12,6 +13,10 @@ const EQUIPMENT = [
 	["it", Vector3(-1.23, -1.9, -7.11), Vector3(-3.8, -2.20, -4.45), -1],
 	["workstation", Vector3(-4.86, 5.18, -6.75), Vector3(-5.82, 4.81, -5.58), 1],
 	["copier", Vector3(-6.25, 5.29, .27), Vector3(-7.70, 4.87, -.40), 1],
+]
+const BOARDROOM = [
+	["boardroom", Vector3(.28, Executive.BASE + 1.72, -2.6), Vector3(0, Executive.BASE + 1.02, -6.8), Executive.FLOOR],
+	["boardroom_veneer", Vector3(1.48, Executive.BASE + 1.68, -4.22), Vector3(-.12, Executive.BASE + .93, -5.8), Executive.FLOOR],
 ]
 func _initialize() -> void:
 	call_deferred("_run")
@@ -65,6 +70,8 @@ func _run() -> void:
 	var parked := "--parked" in args
 	paused = parked
 	var requested := EQUIPMENT if "--equipment" in args else SHOTS
+	if "--boardroom" in args:
+		requested = BOARDROOM
 	for shot in requested:
 		if shot.size() == 4:
 			office.call("_select_floor", shot[3])

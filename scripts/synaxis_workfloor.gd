@@ -271,10 +271,12 @@ func _monitor(at: Vector3,face: float) -> void:
 	_part("black",at+Vector3(0,-.26,0),Vector3(.23,.028,.16))
 
 
-func _chair(at: Vector3,face: float) -> void:
+func _chair(at: Vector3,face: float,yaw_offset: float=0.0) -> void:
 	_chairs+=1
 	_parts+=1
-	_chair_poses.append(ChairAsset.pose(at,face,.92))
+	var pose:=ChairAsset.pose(at,face,.92)
+	pose.basis=pose.basis.rotated(Vector3.UP,yaw_offset)
+	_chair_poses.append(pose)
 
 
 func _plant(at: Vector3,size: float) -> void:

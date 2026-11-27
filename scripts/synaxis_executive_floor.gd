@@ -1,6 +1,7 @@
 extends "res://scripts/synaxis_workfloor.gd"
 ## Executive-only fit-out and authored staff. All static furniture batched.
 const Staff=preload("res://scripts/synaxis_staff.gd")
+const PhotoMaterials=preload("res://scripts/synaxis_breakroom.gd")
 const FLOOR=13
 const BASE=FLOOR*FLOOR_HEIGHT
 const CEO_ANCHOR=Vector3(5.2,0,-6.8)
@@ -55,6 +56,14 @@ var _remark:=""
 var _lux_materials: Dictionary={}
 
 func _material(key: String) -> StandardMaterial3D:
+	if key=="boardroom_walnut":
+		if not _lux_materials.has(key):
+			var veneer:=PhotoMaterials.material_for("Walnut").duplicate() as StandardMaterial3D
+			veneer.uv1_triplanar=true
+			veneer.uv1_world_triplanar=true
+			veneer.uv1_scale=Vector3(1.25,1.25,1.25)
+			_lux_materials[key]=veneer
+		return _lux_materials[key]
 	if not LUXURY.has(key):
 		return super._material(key)
 	if not _lux_materials.has(key):
@@ -200,13 +209,13 @@ func _founder_suite() -> void:
 	_plant(Vector3(9.75,0,-2.05),.55)
 
 func _boardroom() -> void:
-	_part("walnut",Vector3(0,.84,-6.05),Vector3(1.52,.13,4.7))
+	_part("boardroom_walnut",Vector3(0,.84,-6.05),Vector3(1.52,.13,4.7))
 	_part("brass",Vector3(0,.79,-6.05),Vector3(.10,.025,4.66))
 	_part("marble",Vector3(0,.40,-6.05),Vector3(.66,.80,3.35))
 	_solid(Vector3(0,.46,-6.05),Vector3(1.52,.91,4.7))
 	for side in [-1.0,1.0]:
 		for z in [-7.7,-6.3,-5.5,-4.35]:
-			_chair(Vector3(side*1.15,0,z),1.0)
+			_chair(Vector3(side*1.15,0,z),1.0,-side*PI/2)
 			_part("paper",Vector3(side*.46,.924,z),Vector3(.27,.028,.24))
 			_part("glass",Vector3(side*.48,1.0,z+.22),Vector3(.075,.14,.075),0.0,"cyl")
 	_part("black",Vector3(0,2.0,-9.73),Vector3(3.8,1.53,.09))
