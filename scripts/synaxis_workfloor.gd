@@ -292,14 +292,6 @@ func _shared_area(accent: String) -> void:
 			_chair(Vector3(x+dx,0,8.60),-1.0)
 		_part("paper",Vector3(x,.81,7.55),Vector3(.33,.02,.25))
 		_plant(Vector3(x+.8,.80,7.55),.24)
-	# Small original background jokes, deliberately not map objectives.
-	if level==1:
-		_label("PRINTER 07 / PAPER JAM\nIT TICKET CLOSED: USER EDUCATED",Vector3(-8.365,1.78,-.4),.0014,PI/2)
-	elif level==3:
-		_part("paper",Vector3(7.47,1.55,-.4),Vector3(.015,.30,.23))
-		_label("PLEASE FILE YOUR\nPAPERLESS INITIATIVE\nIN TRIPLICATE",Vector3(7.45,1.55,-.4),.0014,-PI/2)
-	elif level==4:
-		_label("UNCLAIMED PERSONAL PROPERTY\nALL ITEMS BECOME COMPANY ASSETS",Vector3(-8.21,2.2,2.8),.003,PI/2)
 	# Printer alcove and storage on perimeter.
 	for x in [-7.85,7.85]:
 		_part("oak",Vector3(x,.53,-.4),Vector3(.68,1.06,1.4))
@@ -323,7 +315,9 @@ func _label(value: String,at: Vector3,pixel: float,yaw: float=0.0) -> void:
 	sign.position=at
 	sign.pixel_size=pixel
 	sign.font_size=44
-	sign.outline_size=2
+	sign.outline_size=0
+	sign.fixed_size=false
+	sign.no_depth_test=false
 	sign.rotation.y=yaw
 	add_child(sign)
 
@@ -355,15 +349,14 @@ func _noticeboard(accent:String) -> void:
 	_label("BACKLOG",Vector3(-8.12,2.25,6.0),.0016,PI/2)
 	_label("IN PROGRESS",Vector3(-8.12,2.25,6.8),.0016,PI/2)
 	_label("BLOCKED",Vector3(-8.12,2.25,7.62),.0016,PI/2)
-	_label("ALL HANDS / THURSDAY / ATTENDANCE REQUIRED",Vector3(-8.20,1.10,6.8),.002,PI/2)
 	_part("black",Vector3(-8.24,1.87,8.08),Vector3(.05,.72,.98))
 	_label("DAILY STAND-UP",Vector3(-8.20,2.10,8.08),.0021,PI/2)
 	_label(DepartmentMeeting.TITLES[level-1],Vector3(-8.20,1.87,8.08),.0017,PI/2)
 	_label("AFTER EQUIPMENT ROUND",Vector3(-8.20,1.65,8.08),.0014,PI/2)
 	_part("white",Vector3(-4.7,2.00,9.76),Vector3(2.65,1.0,.05))
 	_part("steel",Vector3(-4.7,1.48,9.69),Vector3(2.65,.045,.16))
-	_label("THIS WEEK: ALIGN ON THE ALIGNMENT",Vector3(-4.7,2.29,9.72),.0024,PI)
-	_label("OWNER?      DUE DATE?      FOLLOW UP?",Vector3(-4.7,1.98,9.72),.0020,PI)
+	_label("THIS WEEK: ALIGN ON THE ALIGNMENT",Vector3(-4.7,2.29,9.729),.0019,PI)
+	_label("OWNER?      DUE DATE?      FOLLOW UP?",Vector3(-4.7,1.98,9.729),.0016,PI)
 	for marker in range(3):
 		_part(accent if marker==1 else "black",Vector3(-5.6+marker*.22,1.52,9.66),Vector3(.15,.018,.018))
 
@@ -376,12 +369,9 @@ func _architecture(accent: String) -> void:
 			_part("glass",Vector3(x,2.34,z),Vector3(.045,1.02,2.62))
 	_part(accent,Vector3(0,1.7,-9.81),Vector3(16.6,3.35,.08))
 	_part("oak",Vector3(0,.48,-9.73),Vector3(16.4,.95,.06))
-	_label(DEPARTMENTS[level-1]+" / LEVEL "+str(level+1),Vector3(0,2.73,-9.70),.008)
-	_label(SLOGANS[level-1],Vector3(0,1.98,-9.70),.006)
-	_label(SUBLINES[level-1],Vector3(0,1.55,-9.70),.0035)
+	_label(DEPARTMENTS[level-1]+" / LEVEL "+str(level+1),Vector3(0,2.73,-9.765),.0034)
 	_part(accent,Vector3(0,2.12,9.81),Vector3(5.8,1.54,.065))
-	_label("SYNAXIS / "+DEPARTMENTS[level-1],Vector3(0,2.45,9.76),.0048,PI)
-	_label("COLLABORATION IS MANDATORY",Vector3(0,1.94,9.76),.004,PI)
+	_label("SYNAXIS / "+DEPARTMENTS[level-1],Vector3(0,2.12,9.773),.0027,PI)
 	for x in [-6,-3,0,3,6]:
 		for z in [-7.5,-2.5,2.5,7.5]:
 			_part("white",Vector3(x,3.31,z),Vector3(2.85,.045,4.85))

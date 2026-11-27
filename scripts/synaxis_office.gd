@@ -92,9 +92,8 @@ func _ready() -> void:
 		_solid("SecurityFlank",Vector3(side*4.9,1.75,-7.65),Vector3(7.2,3.5,.24),wall)
 	_solid("SecurityGate",Vector3(0,1.4,-7.65),Vector3(2.6,2.8,.25),_material("security",Color("293842")))
 	_solid("SecurityHeader",Vector3(0,3.15,-7.65),Vector3(2.6,.7,.25),wall)
-	_sign("RESTRICTED / BADGE ACCESS",Vector3(0,2.96,-7.80),.004).rotation.y=PI
+	_plaque("BADGE ACCESS",Vector3(0,3.02,-7.793),PI,Vector2(1.40,.25))
 	Brand.wall_logo(self,"EntranceBrand",Vector3(0,3.12,-10.17),PI,2.15)
-	_sign("PUBLIC LOBBY",Vector3(0,2.65,-10.17),.0045).rotation.y = PI
 	# Fixed upper-floor shell, not a second generic building intersecting the office.
 	_solid("TowerCore",Vector3(0,32.85,0),Vector3(17,29.2,20),_material("glass",Color("354c60")))
 	_build_workfloor_shell(wall,floor_mat)
@@ -114,8 +113,8 @@ func _ready() -> void:
 	_solid("StaffExitDoor",Vector3(-8.5,1.30,4.5),Vector3(.16,2.60,2.0),desk)
 	_visual("StaffExitFrameNorth",Vector3(-8.5,1.30,3.48),Vector3(.29,2.60,.10),accent)
 	_visual("StaffExitFrameSouth",Vector3(-8.5,1.30,5.52),Vector3(.29,2.60,.10),accent)
-	_sign("STAFF EXIT / PARKING",Vector3(-8.33,2.85,4.5),.004).rotation.y=PI/2
-	_sign("STAFF BADGE ACCESS",Vector3(-8.67,2.85,4.5),.004).rotation.y=-PI/2
+	_plaque("STAFF EXIT / PARKING",Vector3(-8.357,2.85,4.5),PI/2,Vector2(1.72,.24))
+	_plaque("STAFF ACCESS",Vector3(-8.643,2.85,4.5),-PI/2,Vector2(1.25,.24))
 	_visual("StaffExitReader",Vector3(-8.66,1.18,3.25),Vector3(.065,.18,.12),screen)
 	_solid("EastWall",Vector3(8.5,1.75,0),Vector3(.25,3.5,20),wall)
 	# Leave a physical turning vestibule behind the security gate.
@@ -503,8 +502,6 @@ func recovery_position() -> Vector3:
 func _build_lobby(accent: Material) -> void:
 	_collision("VisitorKiosk", Vector3(-2.8,.61,-8.65), Vector3(.62,1.22,.44))
 	Equipment.place(self, Equipment.KIOSK, "VisitorKioskArt", Vector3(-2.8,0,-8.65))
-	_sign("VISITOR SERVICES\nALL APPOINTMENTS REQUIRE APPROVAL",Vector3(-6.45,1.8,-7.80),.004).rotation.y=PI
-	_sign("SECURITY NOTICE\nEMPLOYEE ACCESS MAY EXPIRE WITHOUT NOTICE",Vector3(6.45,1.8,-7.80),.004).rotation.y=PI
 	for x in [-1.55,1.55]:
 		_solid("CardReaderPedestal",Vector3(x,.55,-8.1),Vector3(.19,1.1,.19),accent)
 		_visual("BadgeReader",Vector3(x,1.14,-8.1),Vector3(.23,.10,.25),_material("denied",Color("be5155"),true))
@@ -524,9 +521,6 @@ func _build_office_details(desk: Material,accent: Material,screen: Material) -> 
 		for row in range(4):
 			_visual("FileDrawer",Vector3(x,.35+row*.50,1.14),Vector3(.63,.43,.035),accent)
 			_visual("FileHandle",Vector3(x,.40+row*.50,1.17),Vector3(.21,.035,.025),desk)
-	_sign("RECORDS / COMPLIANCE\nIT SUPPORT HAS MOVED TO B1",Vector3(-5.55,1.65,2.54),.0018)
-	_sign("EMPLOYEE RETENTION\n100% OF DEPARTURES ARE SUCCESSFUL",Vector3(-8.32,2.36,-3),.005).rotation.y=PI/2
-	_sign("EARNINGS / RECORD QUARTER\nWORKFORCE / OPTIMIZED",Vector3(8.32,2.4,-3.6),.005).rotation.y=-PI/2
 	for x in [-6.4,6.4]:
 		_visual("DeskNamePlate",Vector3(x,1.13,-5.05),Vector3(.47,.13,.08),accent)
 	var carpet:=_material("carpet",Color.WHITE)
@@ -585,11 +579,7 @@ func _build_breakroom() -> void:
 		_collision("BreakroomDiningChair",Vector3(x,.39,7.25),Vector3(.48,.78,.49))
 	_visual("PartyBannerBacking",Vector3(-4.2,2.98,9.80),Vector3(4.7,.66,.04),_material("party_navy",Brand.NAVY))
 	Brand.wall_logo(self,"PartyBrand",Vector3(-6.03,2.98,9.765),PI,.72)
-	_sign("GLOBAL TALENT APPRECIATION DAY",Vector3(-3.77,3.07,9.76),.004).rotation.y=PI
-	_sign("SPONSORSHIP TEAM / PHOTO BEFORE FOOD",Vector3(-3.77,2.86,9.76),.003).rotation.y=PI
-	var table_notice := _sign("CATERING BUDGET $48\nATTENDANCE GOAL 65",Vector3(-2.88,.875,8.001),.00047)
-	table_notice.rotation.y = PI
-	table_notice.outline_size = 0
+	_sign("TALENT APPRECIATION DAY",Vector3(-3.77,2.98,9.775),.0027).rotation.y=PI
 
 
 func _build_corporate_relics(desk: Material,accent: Material,screen: Material) -> void:
@@ -598,19 +588,18 @@ func _build_corporate_relics(desk: Material,accent: Material,screen: Material) -
 	_visual("RecognitionPlinth",Vector3(-6.0,1.125,2.59),Vector3(.30,.09,.22),desk)
 	_visual("RecognitionStem",Vector3(-6.0,1.30,2.59),Vector3(.075,.27,.075),trophy_gold)
 	_visual("RecognitionAward",Vector3(-6.0,1.46,2.59),Vector3(.24,.13,.065),trophy_gold)
-	_sign("ABOVE & BEYOND\n$0 CASH VALUE",Vector3(-6.0,1.50,2.635),.0014)
+	_sign("ABOVE & BEYOND\n$0 CASH VALUE",Vector3(-6.0,1.46,2.627),.00034)
 	_visual("DeskTimeTracker",Vector3(-4.0,1.15,2.81),Vector3(.24,.12,.12),desk)
 	_visual("TimeTrackerDisplay",Vector3(-4.0,1.15,2.878),Vector3(.20,.07,.007),screen)
-	_sign("IDLE: 00:01",Vector3(-4.0,1.15,2.886),.0009)
+	_sign("IDLE: 00:01",Vector3(-4.0,1.15,2.886),.00065)
 	# A real executive-only amenity contrasts with the employee catering table.
 	_solid("ExecutiveRefreshmentCabinet",Vector3(7.62,.49,-.25),Vector3(.85,.98,1.5),desk)
 	_visual("ExecutiveCoffeeMachine",Vector3(7.62,1.18,-.52),Vector3(.42,.40,.41),accent)
 	_visual("ExecutiveCoffeeDisplay",Vector3(7.385,1.24,-.52),Vector3(.012,.12,.26),screen)
-	_sign("EXECUTIVE RESERVE\nNO EMPLOYEE ACCESS",Vector3(7.13,1.49,-.25),.003).rotation.y=-PI/2
 	_visual("ExecutivePorcelainCup",Vector3(7.57,1.07,.12),Vector3(.13,.16,.13),_material("porcelain",Brand.WHITE))
 	# Exit packaging price: consistent with the existing HR line. No charge until a future shop transaction.
 	_visual("CartonPriceCard",Vector3(5.47,1.13,6.19),Vector3(.20,.11,.018),_material("exit_card",Brand.PAPER))
-	var price_label:=_sign("BOX $4.99",Vector3(5.47,1.13,6.176),.0018)
+	var price_label:=_sign("BOX $4.99",Vector3(5.47,1.13,6.176),.00085)
 	price_label.rotation.y=PI
 	price_label.modulate=Brand.INK
 
@@ -812,10 +801,11 @@ func _plaque(value:String,at:Vector3,yaw:float,size:Vector2) -> void:
 	var mesh:=BoxMesh.new()
 	mesh.size=Vector3(size.x,size.y,.035)
 	backing.mesh=mesh
+	backing.name="MountedWayfinding"
 	backing.material_override=_material("wayfinding",Color("26343a"))
 	backing.position=at
 	backing.rotation.y=yaw
-	add_child(backing)
+	add_child(backing,true)
 	var label:=Label3D.new()
 	label.text=value
 	label.font_size=40
@@ -825,6 +815,8 @@ func _plaque(value:String,at:Vector3,yaw:float,size:Vector2) -> void:
 		width=maxf(width,ThemeDB.fallback_font.get_string_size(line,HORIZONTAL_ALIGNMENT_LEFT,-1,40).x)
 	label.pixel_size=minf((size.x-.08)/width,(size.y-.04)/(ThemeDB.fallback_font.get_height(40)*lines.size()))
 	label.outline_size=0
+	label.fixed_size=false
+	label.no_depth_test=false
 	label.position=Vector3(0,0,.021)
 	backing.add_child(label)
 
@@ -834,7 +826,9 @@ func _sign(value: String,at: Vector3,pixel: float) -> Label3D:
 	label.position = at
 	label.font_size = 40
 	label.pixel_size = pixel
-	label.outline_size = 3
+	label.outline_size = 0
+	label.fixed_size = false
+	label.no_depth_test = false
 	add_child(label)
 	return label
 

@@ -109,10 +109,7 @@ func _ready() -> void:
 	_people_suite()
 	_lounge()
 	_part("navy",Vector3(0,2.2,9.80),Vector3(9.6,1.85,.10))
-	_label("SYNAXIS  /  EXECUTIVE LEADERSHIP",Vector3(0,2.66,9.73),.006,PI)
-	_label("OUR PEOPLE. OUR PURPOSE. OUR PERFORMANCE.",Vector3(0,2.12,9.73),.004,PI)
-	_label("EXECUTIVE ACCESS / PLEASE RESPECT THE PRIVACY OF LEADERSHIP",Vector3(0,1.72,9.73),.0026,PI)
-	_label("BOARDROOM / STRATEGY",Vector3(0,2.80,-9.78),.0048)
+	_label("SYNAXIS / EXECUTIVE LEADERSHIP",Vector3(0,2.20,9.745),.0036,PI)
 	_install_lift("14","NO SERVICE","DOWN / OFFICES")
 	for x in [-5.5,0.0,5.5]:
 		for z in [-6.5,0.0,6.5]:
@@ -146,7 +143,6 @@ func _private_office(side: float) -> void:
 	_plant(Vector3(side*7.65,0,-8.7),.65)
 	_part("walnut",Vector3(x,.55,-9.25),Vector3(3.2,1.1,.60))
 	_solid(Vector3(x,.55,-9.25),Vector3(3.2,1.1,.60))
-	_label("FINANCE / CAPITAL ALLOCATION" if side<0 else "TECHNOLOGY / PRODUCT STRATEGY",Vector3(x,2.6,-9.68),.004)
 
 func _founder_suite() -> void:
 	# 6.35 x 9.15 m private corner suite, plus an exterior 2.7 x 7.4 m terrace.
@@ -202,7 +198,6 @@ func _founder_suite() -> void:
 	_part("velvet",Vector3(10.41,.79,-7.6),Vector3(.18,.52,1.55))
 	_solid(Vector3(10.04,.50,-7.6),Vector3(.85,1.0,1.55))
 	_plant(Vector3(9.75,0,-2.05),.55)
-	_label("PRIVATE TERRACE",Vector3(8.22,2.60,-4.0),.003,-PI/2)
 
 func _boardroom() -> void:
 	_part("walnut",Vector3(0,.84,-6.05),Vector3(1.52,.13,4.7))
@@ -228,10 +223,6 @@ func _people_suite() -> void:
 		_monitor(Vector3(x+.55,1.18,2.25),1.0)
 		_chair(Vector3(x,0,1.18),1.0)
 		_plant(Vector3(x-.95,.91,2.35),.23)
-	_label("PEOPLE EXPERIENCE / CULTURE",Vector3(-5.6,2.5,2.35),.0038)
-	_label("TECHNOLOGY / PRODUCT STRATEGY",Vector3(5.6,2.5,2.35),.0038)
-	_label("WE LISTEN. WE CARE. WE OPTIMIZE.",Vector3(-8.17,2.6,3.1),.004,PI/2)
-	_label("EMPOWERING YOUR NEXT CHAPTER",Vector3(8.17,2.6,3.1),.004,-PI/2)
 
 func _lounge() -> void:
 	for side in [-1.0,1.0]:
@@ -247,7 +238,6 @@ func _lounge() -> void:
 	_solid(Vector3(7.78,.58,5.7),Vector3(.75,1.16,1.85))
 	_part("black",Vector3(7.76,1.43,5.7),Vector3(.56,.53,.65))
 	_part("brass",Vector3(7.46,1.43,5.7),Vector3(.025,.31,.48))
-	_label("EXECUTIVE ESPRESSO / COMPLIMENTARY",Vector3(7.31,1.97,5.7),.0024,-PI/2)
 
 func _build_executives() -> void:
 	for spec in EXECUTIVES:
