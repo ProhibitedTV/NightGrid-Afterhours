@@ -33,6 +33,7 @@ const Arrival = preload("res://scripts/synaxis_arrival.gd")
 const Restrooms = preload("res://scripts/synaxis_restrooms.gd")
 const Architecture = preload("res://scripts/synaxis_architecture.gd")
 const LIFT_DIRECTION_SIGN = preload("res://assets/models/nightgrid/synaxis_architecture/lift_direction_sign.glb")
+const RECEPTION_LUMINAIRE = preload("res://assets/models/nightgrid/synaxis_architecture/reception_luminaire.glb")
 const Workfloor = preload("res://scripts/synaxis_workfloor.gd")
 const ExecutiveFloor = preload("res://scripts/synaxis_executive_floor.gd")
 const Basement = preload("res://scripts/synaxis_basement.gd")
@@ -155,6 +156,9 @@ func _ready() -> void:
 	diffuser.emission_energy_multiplier=.24
 	for z in [-7.5,-2.5,2.5,7.5]:
 		for x in [-3.7,3.7]:
+			if x > 0 and z > 5:
+				_build_reception_luminaire(Vector3(x,3.294,z))
+				continue
 			_visual("CeilingStrip",Vector3(x,3.28,z),Vector3(3.2,.035,.28),diffuser)
 			var light:=SpotLight3D.new()
 			light.name="OfficeDownlight"
@@ -560,6 +564,32 @@ func _build_lobby(accent: Material) -> void:
 	_lobby_light.light_color=Color("fff0dc")
 	_lobby_light.shadow_enabled=false
 	add_child(_lobby_light)
+
+func _build_reception_luminaire(at: Vector3) -> void:
+	Architecture.assembly(self,"ReceptionLuminaire",RECEPTION_LUMINAIRE,at)
+	var light: Light3D
+	if "--experimental-reception-area-light" in OS.get_cmdline_user_args() and RenderingServer.get_current_rendering_method() == "forward_plus":
+		var area := AreaLight3D.new()
+		area.name = "ReceptionAreaLight"
+		area.area_size = Vector2(3.16,.218)
+		area.area_attenuation = 2.0
+		area.area_range = 6.0
+		area.light_energy = 1.8
+		area.light_size = .33
+		light = area
+	else:
+		var spot := SpotLight3D.new()
+		spot.name = "OfficeDownlight"
+		spot.spot_range = 7.0
+		spot.spot_angle = 65.0
+		spot.spot_attenuation = 1.1
+		spot.light_energy = .85
+		light = spot
+	light.position = at - Vector3(0,.154,0)
+	light.rotation.x = -PI/2
+	light.light_color = Color("fff0da")
+	light.shadow_enabled = true
+	add_child(light)
 
 func _build_office_details(desk: Material,accent: Material,screen: Material) -> void:
 	# Ground floor former IT alcove is now a records and compliance station.

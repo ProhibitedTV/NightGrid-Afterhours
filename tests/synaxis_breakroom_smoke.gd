@@ -75,6 +75,10 @@ func _test() -> void:
 		_fail("The lobby direction sign must reach the ceiling on authored supports")
 		return
 	var lettering := office.get_node_or_null("ReceptionBrand/Lettering") as MeshInstance3D
+	var diffuser := office.get_node_or_null("ReceptionLuminaire/Diffuser") as MeshInstance3D
+	if diffuser == null or absf(diffuser.mesh.get_aabb().size.x-3.16) > .02:
+		_fail("The reception light needs its dimensioned recessed diffuser")
+		return
 	if stone == null or stone.multimesh.instance_count < 4 or lettering == null or lettering.mesh.get_aabb().size.z < .02:
 		_fail("Reception needs a modular stone wall and extruded lettering")
 		return

@@ -21,7 +21,7 @@ from gen2_synaxis import Kit, ROOT, surface
 OUT = ROOT / "assets/models/nightgrid/synaxis_architecture"
 
 
-def build(name, author):
+def build(name, author, output=OUT):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     kit = Kit(bevel_segments=2)
     kit.materials.update({
@@ -41,7 +41,7 @@ def build(name, author):
         )
     })
     author(kit)
-    kit.export(OUT, name, origin_baked=True)
+    kit.export(output, name, origin_baked=True)
 
 
 def panel(kit, material):

@@ -57,12 +57,12 @@ class CreatorBuildTests(unittest.TestCase):
                 build.require_clean()
 
     def test_only_new_sidecars_of_tracked_sources_are_allowed_after_import(self):
-        tracked = "scripts/world.gd\nassets/example.svg"
-        sidecars = "?? scripts/world.gd.uid\n?? assets/example.svg.import"
+        tracked = "scripts/world.gd\nassets/example.svg\nassets/room.glb"
+        sidecars = "?? scripts/world.gd.uid\n?? assets/example.svg.import\n?? assets/room.glb.unwrap_cache"
         with patch.object(build, "git", side_effect=[sidecars, tracked]):
             build.require_clean(after_import=True)
         for extra in ("?? scripts/other.gd.uid", "?? assets/unknown.png.import",
-                      " M assets/example.svg.import", "?? assets/example.png"):
+                      " M assets/example.svg.import", "?? assets/example.png", "?? assets/other.glb.unwrap_cache"):
             with patch.object(build, "git", side_effect=[sidecars + "\n" + extra, tracked]):
                 with self.assertRaises(RuntimeError):
                     build.require_clean(after_import=True)

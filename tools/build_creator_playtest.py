@@ -89,6 +89,8 @@ def require_clean(*, after_import=False):
                 continue
             if path.endswith((".gd.uid", ".gdshader.uid")) and path[:-4] in tracked:
                 continue
+            if path.endswith(".glb.unwrap_cache") and path.removesuffix(".unwrap_cache") in tracked:
+                continue
         unexpected.append(line)
     if unexpected:
         raise RuntimeError("Commit or preserve unique local source changes first; refusing dirty checkout: "
