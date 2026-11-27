@@ -1,0 +1,127 @@
+name: Capture live title gallery
+on:
+  push:
+    branches: [ui/morrow-title-motion]
+    paths:
+      - 'scripts/**'
+      - 'assets/**'
+      - 'scenes/**'
+      - 'project.godot'
+      - 'tools/capture_title_gallery.gd'
+      - '.github/workflows/capture-title-gallery.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: title-gallery-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  capture:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Prepare graphical software Vulkan
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb mesa-vulkan-drivers libvulkan1 vulkan-tools libgl1-mesa-dri libgl1 libx11-6 libxext6 libxrandr2 espeak-ng
+          python3 tools/generate_mbpd_radio.py
+          test -f /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
+      - name: Import actual game
+        run: |
+          set -o pipefail
+          godot --headless --path . --import --quit 2>&1 | tee /tmp/title-import.log
+          if grep -q 'SCRIPT ERROR:' /tmp/title-import.log; then exit 1; fi
+      - name: Capture live title in Forward+
+        env:
+          VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
+          NIGHTGRID_SOURCE_REVISION: ${{ github.sha }}
+          NIGHTGRID_TITLE_CAPTURE_DIR: ${{ runner.temp }}/title-gallery
+        run: |
+          set -o pipefail
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --display-driver x11 --rendering-method forward_plus --rendering-driver vulkan --resolution 1280x720 --script res://tools/capture_title_gallery.gd -- --software-capture 2>&1 | tee /tmp/title-capture.log
+          if grep -q 'SCRIPT ERROR:' /tmp/title-capture.log; then exit 1; fi
+          grep -q 'TITLE_CAPTURE PASS: 4' /tmp/title-capture.log
+      - name: Verify actual framebuffer bytes
+        env:
+          NIGHTGRID_TITLE_CAPTURE_DIR: ${{ runner.temp }}/title-gallery
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, struct
+          from pathlib import Path
+          p=Path(os.environ["NIGHTGRID_TITLE_CAPTURE_DIR"])
+          m=json.loads((p/"capture.json").read_text())
+          assert m["source_revision"]==os.environ["GITHUB_SHA"]
+          assert m["renderer"]=="forward_plus"
+          assert m["volumetric_fog"] is True
+          names=["01-title-night.png","02-title-dawn.png","03-title-day.png","04-title-neon-dip.png"]
+          assert [s["file"] for s in m["shots"]]==names
+          hashes=set()
+          for s in m["shots"]:
+              b=(p/s["file"]).read_bytes()
+              assert b[:8]==bytes.fromhex("89504e470d0a1a0a")
+              assert struct.unpack(">II",b[16:24])==(1280,720)
+              assert len(b)>16000 and len(b)==s["bytes"]
+              digest=hashlib.sha256(b).hexdigest()
+              assert digest==s["sha256"] and digest not in hashes
+              hashes.add(digest)
+          print("TITLE GALLERY VERIFIED: four unique real Forward+ images")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: title-gallery-forward-plus
+          path: ${{ runner.temp }}/title-gallery
+          if-no-files-found: error
+          retention-days: 30
+      - name: Publish verified gallery to feature branch only
+        if: github.ref == 'refs/heads/ui/morrow-title-motion'
+        env:
+          CAPTURE: ${{ runner.temp }}/title-gallery
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            git fetch origin "${GITHUB_REF_NAME}"
+            if ! git diff --quiet "$GITHUB_SHA" "origin/${GITHUB_REF_NAME}" -- project.godot scripts scenes assets tools/capture_title_gallery.gd .github/workflows/capture-title-gallery.yml; then
+              echo "Source changed during capture; refusing stale screenshots" >&2
+              exit 1
+            fi
+            git reset --hard "origin/${GITHUB_REF_NAME}"
+            mkdir -p docs/screenshots/title
+            cp "$CAPTURE/"*.png "$CAPTURE/capture.json" docs/screenshots/title/
+            python3 - <<'PY'
+          from pathlib import Path
+          p=Path("README.md")
+          text=p.read_text()
+          start="<!-- live-title-gallery:start -->"
+          end="<!-- live-title-gallery:end -->"
+          block="""<!-- live-title-gallery:start -->
+          ## A living title screen
+
+          | Brickwater after dark | Dawn over the same alley |
+          |:--:|:--:|
+          | ![Live title at night with Cinder R9](docs/screenshots/title/01-title-night.png) | ![Live title at dawn](docs/screenshots/title/02-title-dawn.png) |
+
+          The real playable alley, a parked Cinder R9 and a continuously changing visual clock. [Daytime](docs/screenshots/title/03-title-day.png) · [Neon fault](docs/screenshots/title/04-title-neon-dip.png) · [Capture provenance](docs/screenshots/title/capture.json).
+
+          *Godot Forward+ software Vulkan development captures; not a native RTX benchmark. Sky radiance convolution resolution reduced for capture only.*
+
+          <!-- live-title-gallery:end -->"""
+          if start in text:
+              a=text.index(start); b=text.index(end,a)+len(end)
+              text=text[:a]+block+text[b:]
+          else:
+              text=text.replace("## Welcome to Morrow Bay",block+"\n\n## Welcome to Morrow Bay",1)
+          p.write_text(text)
+          PY
+            git add README.md docs/screenshots/title
+            git diff --cached --quiet && exit 0
+            git commit -m "docs(title): attach verified real Forward+ title screenshots"
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then exit 0; fi
+          done
+          exit 1
