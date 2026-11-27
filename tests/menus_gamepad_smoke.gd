@@ -127,12 +127,15 @@ func _verify() -> void:
 	if not (menu.call("get_buttons") as Dictionary)["continue"].disabled:
 		_fail("Continue should be unavailable when no save slot exists")
 		return
+	if (menu.call("get_buttons") as Dictionary)["new"].text != "NEW GAME":
+		_fail("Title must say NEW GAME, not New World or seed")
+		return
 	menu.call("_choice", "new")
 	if str(menu.get("screen")) != "confirm_new":
 		_fail("New Game must be a confirmed destructive transition")
 		return
 	if menu.get("_first_focus") != (menu.call("get_buttons") as Dictionary)["cancel"]:
-		_fail("Destructive new-world confirmation must default to Keep Current Session")
+		_fail("Destructive new-game confirmation must default to Keep Current Session")
 		return
 	menu.call("_choice", "cancel_new")
 	if str(menu.get("screen")) != "title":

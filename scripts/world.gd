@@ -2821,7 +2821,7 @@ func _load_game() -> void:
 		game_menu.call("hide_for_game")
 	if not bool(session.call("prepare_load")):
 		_log_playtest("load_failed", {"reason": "no_valid_slot"})
-		_notify("No valid saved game in slot 1.")
+		_notify("No compatible saved game. Start a New Game in Morrow Bay.")
 		return
 	_log_playtest("load_requested")
 	playtest_logger.flush()

@@ -406,7 +406,7 @@ func _render() -> void:
 	shell.add_theme_constant_override("separation", 12)
 	panel.add_child(shell)
 	_label(shell, "MORROW MOBILE  ·  " + str(_phone_data.get("clock","--:--")) if screen == "phone" else "NIGHTGRID  /  MORROW BAY", 14, Ui.AMBER)
-	_title(shell, "EXECUTIVE PRIVILEGE" if staged else ("AFTERHOURS" if screen == "title" else {"phone": "Morrow OS", "pause": "Paused", "settings": "Settings", "controls": "Controls", "map": "City atlas", "journal": "Journal", "inventory": "Player & inventory", "confirm_new": "New session", "opening": "People operations"}.get(screen, "Afterhours")), 26 if staged or screen == "phone" else 34, Ui.TEXT)
+	_title(shell, "EXECUTIVE PRIVILEGE" if staged else ("AFTERHOURS" if screen == "title" else {"phone": "Morrow OS", "pause": "Paused", "settings": "Settings", "controls": "Controls", "map": "City atlas", "journal": "Journal", "inventory": "Player & inventory", "confirm_new": "New Game", "opening": "People operations"}.get(screen, "Afterhours")), 26 if staged or screen == "phone" else 34, Ui.TEXT)
 	_divider(shell)
 	_body_scroll = ScrollContainer.new()
 	_body_scroll.name = "MenuScroll"
@@ -635,7 +635,7 @@ func _render() -> void:
 			if not can_save and _pause_opening_goal.is_empty():
 				_button(col, "save_waypoint", "ROUTE TO LANTERN COURT", "save_waypoint")
 			_button(col, "load", "Load saved game", "load", _has_save)
-			_button(col, "new", "New session", "new")
+			_button(col, "new", "New Game", "new")
 			_section_heading(col, "SYSTEM")
 			_button(col, "settings", "Settings", "settings")
 			_button(col, "controls", "Controls & gamepad", "controls")
@@ -799,7 +799,7 @@ func _render() -> void:
 			_label(col, "Purple = waypoint / route. Dotted purple = off-street access. Orange dashed = closed street. Esc / B back.", 14, Ui.MUTED)
 			_button(col, "back", "BACK TO PAUSE", "back")
 		"confirm_new":
-			_title(col, "START ANOTHER WORLD?", 24, Color("f0cdab"))
+			_title(col, "START A NEW GAME?", 24, Color("f0cdab"))
 			_label(col, "The current unsaved session will be discarded. Your last saved slot will remain intact until you save your new game. Morrow Bay’s layout remains unchanged.", 17, Color("cbd8e3"))
 			_button(col, "cancel", "KEEP CURRENT SESSION", "cancel_new")
 			_button(col, "confirm_new", "DISCARD SESSION / NEW GAME", "confirm_new")
