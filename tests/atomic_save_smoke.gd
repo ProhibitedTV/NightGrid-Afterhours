@@ -13,6 +13,21 @@ func _verify() -> void:
 	DirAccess.remove_absolute(absolute)
 	DirAccess.remove_absolute(absolute+".tmp")
 	var state := {"player_position":[0,1,0],"cash":100,"health":100,"deliveries":0,"carrying":false,"hour":19.25,"cars":[],"traffic":{},"rail":{}}
+	# A fresh game must retain the exact layout, even after an old seed is set.
+	var baseline: Dictionary = session.call("get_world_manifest")
+	session.set("world_seed", 12345)
+	session.call("start_new_game")
+	if not check(session.call("get_world_manifest") == baseline and session.get("world_seed") == 834726, "new game keeps canonical layout"):
+		return
+	var incompatible: Dictionary = session.call("make_snapshot", state)
+	incompatible["seed"] = 12345
+	if not check(not session.call("is_valid_snapshot", incompatible), "reject variable-layout legacy save"):
+		return
+	incompatible = session.call("make_snapshot", state)
+	var block: String = incompatible["world_manifest"]["blocks"].keys()[0]
+	incompatible["world_manifest"]["blocks"][block][0]["height"] = 99.0
+	if not check(not session.call("is_valid_snapshot", incompatible), "reject changed saved architecture"):
+		return
 	if not check(session.call("save_snapshot_to",state,Path),"first write"):
 		return
 	state["cash"]=250
