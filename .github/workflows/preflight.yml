@@ -144,6 +144,8 @@ jobs:
           timeout 45s godot --headless --path . --script res://tests/synaxis_creator_inventory_smoke.gd 2>&1 | tee /tmp/nightgrid-creator-inventory.log
           if grep -q 'SCRIPT ERROR:' /tmp/nightgrid-creator-inventory.log; then exit 1; fi
           grep -q 'CREATOR_INVENTORY PASS:' /tmp/nightgrid-creator-inventory.log
+      - name: Parse native remaining staff review fixture
+        run: godot --headless --path . --check-only --script res://tools/review_synaxis_remaining_staff.gd
       - name: Verify cinematic Synaxis conversation coverage and cleanup
         timeout-minutes: 2
         run: |
