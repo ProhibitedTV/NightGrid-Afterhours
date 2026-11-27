@@ -1336,13 +1336,31 @@ func _capture_playtest_frame() -> void:
 func _inside_opening_hq() -> bool:
 	if not is_instance_valid(_opening_office):
 		return false
-	var local:=_opening_office.to_local(player.global_position)
-	return absf(local.x)<8.5 and absf(local.z)<10.0
+	var room:=str(_opening_office.call("acoustic_room",player.global_position))
+	return not room.is_empty() and room!="SYNAXIS_PARKING"
 
 func _opening_diagnostic_context() -> Dictionary:
 	if not is_instance_valid(_opening_office):
 		return {}
 	return {"site":"synaxis_hq","floor":int(_opening_office.get("_active_floor")),"stage":int(_opening_office.call("objective_stage",int(game_menu.get("_opening_stage")))),"arrival":bool(_opening_office.call("arrival_active")),"lift":bool(_opening_office.call("lift_active")),"offboarding":bool(_opening_office.call("exit_active"))}
+
+# The opening has its own render loop and never reaches the free-roam
+# listener update. Keep acoustics and positional foley live in both paths.
+func _update_opening_audio() -> void:
+	if not is_instance_valid(world_audio) or not is_instance_valid(_opening_office):
+		return
+	var at:=player.global_position
+	var room:=str(_opening_office.call("acoustic_room",at))
+	var enclosed:=not room.is_empty() and room!="SYNAXIS_PARKING"
+	var cinematic:bool=_opening_office.call("arrival_active") or _opening_office.call("lift_active")
+	if cinematic:
+		world_audio.call("reset_foot_tracking")
+	world_audio.call("set_room_kind",room)
+	world_audio.call("set_doorway_leak",0.0)
+	world_audio.call("set_transport","",0.0,false)
+	var district:=str(city_details.call("get_district_at",at))
+	var speed:=0.0 if cinematic else Vector2(player.velocity.x,player.velocity.z).length()
+	world_audio.call("update_context",at,at,true,player.is_on_floor() and not cinematic,enclosed,district,float(day_night.get("hour")),speed,0.0 if cinematic else player.velocity.y)
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(player):
@@ -1351,6 +1369,7 @@ func _process(delta: float) -> void:
 		var opening_stream:Dictionary=city_details.call("get_streaming_stats")
 		frame_time_recorder.sample_frame(delta,opening_stream,player.global_position,false)
 		playtest_logger.sample_frame(delta,opening_stream,player.global_position,"synaxis_opening")
+		_update_opening_audio()
 		if _opening_office.call("arrival_active"):
 			if not _opening_office.call("tick_arrival",delta,player,camera):
 				_snap_camera()

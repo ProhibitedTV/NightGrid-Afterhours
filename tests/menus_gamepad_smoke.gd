@@ -979,6 +979,34 @@ func _verify() -> void:
 			_fail("Restroom scene is optional, once per visit and cannot affect mission or wallet")
 			return
 	var breakroom_hq=preload("res://scripts/synaxis_office.gd")
+	# Validate zones against actual campus coordinates, including outside space.
+	for sample in [
+		[Vector3(0,1.15,-9),0,false,false,"SYNAXIS_LOBBY"],
+		[Vector3(2.5,1.15,2.5),0,false,false,"SYNAXIS_OFFICE"],
+		[breakroom_hq.BREAKROOM_POINT,0,false,false,"SYNAXIS_FACILITIES"],
+		[Vector3(-6.95,1.15,-2.15),0,false,false,"SYNAXIS_FACILITIES"],
+		[Vector3(0,-2.5,4),-1,false,false,"SYNAXIS_BASEMENT"],
+		[Vector3(0,1.15,5),0,false,true,"SYNAXIS_LIFT"],
+		[Vector3(-9.5,1.15,18),0,true,false,"SYNAXIS_PARKING"],
+		[Vector3(-9.5,1.15,18),0,false,false,""],
+		[Vector3(10,13*3.65+1.15,-5),13,false,false,"SYNAXIS_PARKING"],
+		[Vector3(40,1.15,40),0,true,false,""]]:
+		if breakroom_hq.acoustic_zone(sample[0],sample[1],sample[2],sample[3])!=sample[4]:
+			_fail("Chapter acoustic zone mismatch: "+str(sample))
+			return
+	var saved_audio_position:Vector3=player.global_position
+	player.global_position=office.to_global(breakroom_hq.BREAKROOM_POINT)
+	world.call("_update_opening_audio")
+	var opening_audio:Node=world.get_node("WorldAudio")
+	var audio_stats:Dictionary=opening_audio.call("get_audio_stats")
+	var mix=preload("res://scripts/audio_mix.gd")
+	var reverb:=AudioServer.get_bus_effect(AudioServer.get_bus_index(mix.ROOM_EFFECTS),0) as AudioEffectReverb
+	if not audio_stats["inside"] or audio_stats["room_kind"]!="SYNAXIS_FACILITIES" or reverb==null or not is_equal_approx(reverb.wet,.20):
+		_fail("Opening listener must apply the recovered room-specific reverb")
+		return
+	player.global_position=saved_audio_position
+	opening_audio.call("reset_foot_tracking")
+	world.call("_update_opening_audio")
 	for id in ["BreakroomFront0Collision","BreakroomFront1Collision","BreakroomDoorHeaderCollision"]:
 		if not office.has_node(id):
 			_fail("Breakroom must have collision-backed room separation")

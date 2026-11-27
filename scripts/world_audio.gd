@@ -165,6 +165,12 @@ func set_preferences(ambience: float, effects: float) -> void:
 	sfx_volume = clampf(effects, 0.0, 1.0)
 	AudioMix.apply_game_levels(ambience_volume, sfx_volume)
 
+# Do not carry stride or landing history through a scripted teleport.
+func reset_foot_tracking() -> void:
+	_has_foot=false
+	_floor_observed=false
+	_travel=0.0
+
 func update_context(actor_position: Vector3, foot_position: Vector3,
 		on_foot: bool, on_ground: bool, indoors: bool,
 		district: String, hour: float, speed: float, vertical_speed: float = 0.0) -> void:
@@ -203,7 +209,7 @@ func update_context(actor_position: Vector3, foot_position: Vector3,
 	var stride := maxf(0.70, speed / cadence)
 	if _travel >= stride:
 		_travel = fposmod(_travel, stride)
-		_step_surface = "CONCRETE" if _room_kind == "WORKSHOP" else surface_at(foot_position, indoors)
+		_step_surface = "CONCRETE" if _room_kind in ["WORKSHOP","SYNAXIS_BASEMENT","SYNAXIS_PARKING"] else surface_at(foot_position, indoors)
 		_play_step()
 
 static func surface_at(foot_position: Vector3, indoors: bool) -> String:
@@ -251,7 +257,7 @@ func get_audio_stats() -> Dictionary:
 	return {"environment_layers": _beds.size(), "steps": _step_index,
 		"foley_cached": Foley.cache_count(), "district": _district,
 		"action_voices": _events.size(), "action_cues": _event_count,
-		"inside": _indoors, "traffic_audio": _traffic_audio.call("get_stats"),
+		"inside": _indoors, "room_kind": _room_kind, "traffic_audio": _traffic_audio.call("get_stats"),
 		"surface": _step_surface, "last_event": _last_event, "transport": _transport,
 		"exterior_cutoff": _enclosure, "sites": _sites.call("stats")}
 

@@ -458,6 +458,45 @@ func tick_lift(delta:float,player:CharacterBody3D) -> bool:
 		_intro_canvas.show()
 	return moved
 
+# Acoustic zones share the physical campus coordinates. Parking and the
+# executive terrace are outdoors; an elevator ride is enclosed even while
+# its staged transfer changes floors.
+static func acoustic_zone(local:Vector3,level:int,parking_open:bool,in_lift:bool) -> String:
+	if not local.is_finite():
+		return ""
+	if in_lift:
+		return "SYNAXIS_LIFT"
+	var relative_y:=local.y-level*Workfloor.FLOOR_HEIGHT
+	if relative_y<-.3 or relative_y>3.35:
+		return ""
+	if level==0:
+		if absf(local.x)<=8.5 and local.z>=-10.0 and local.z< -7.65:
+			return "SYNAXIS_LOBBY"
+		var washroom:=local-Restrooms.OFFSET
+		if absf(washroom.x)<2.35 and washroom.z>6.25 and washroom.z<9.76:
+			return "SYNAXIS_FACILITIES"
+		if GroundLayout.in_breakroom(local):
+			return "SYNAXIS_FACILITIES"
+		if absf(local.x)<=8.5 and local.z>=-7.65 and local.z<=10.0:
+			return "SYNAXIS_OFFICE"
+		if parking_open and within_chapter_bounds(local,0,true,false):
+			return "SYNAXIS_PARKING"
+		return ""
+	if level==ExecutiveFloor.FLOOR and local.x>8.5 and within_chapter_bounds(local,level,false,false):
+		return "SYNAXIS_PARKING"
+	if not (absf(local.x)<=8.5 and absf(local.z)<=10.0):
+		return ""
+	if level==Basement.FLOOR:
+		return "SYNAXIS_BASEMENT"
+	if level==ExecutiveFloor.FLOOR:
+		return "SYNAXIS_EXECUTIVE"
+	if level>=1 and level<=Workfloor.FLOOR_COUNT:
+		return "SYNAXIS_OFFICE"
+	return ""
+
+func acoustic_room(at:Vector3) -> String:
+	return acoustic_zone(to_local(at),_active_floor,_staff_exit_open,lift_active())
+
 func recovery_floor() -> float:
 	return global_position.y+_active_floor*Workfloor.FLOOR_HEIGHT-2.0
 
