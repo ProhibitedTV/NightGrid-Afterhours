@@ -13,3 +13,7 @@ The preferred title backdrop is now the actual Brickwater Service Alley at block
 ## Cinder R9 hero car
 
 The title shot now stages the actual playable Cinder R9 coachwork, wheels, calipers, glazing, paint and lights in deep crimson, nose toward the camera at a slight angle. The visual-only rig has no collision, drivetrain audio, instruments or fleet slot. Wheel height follows the authored alley floor and the existing model ground datum; the normal headlamp, tail and sill lights follow the title clock, switching off in daylight. The prop is detached and freed before returning to gameplay. Native framing, prop clearance, reflections, fog and night-lamp intensity still require a real framebuffer review. No new vehicle asset or gameplay vehicle modifications.
+
+## Aging neon
+
+The title view applies occasional independent smooth dips to the NightShift Repairs and laundry blade signs. Dips last 1.35–2.1 seconds, never fully extinguish a sign, and are separated by long stable periods. The local tube material, corresponding practical light spill and the wet concrete shader's authored reflection are coupled. Reduced motion disables these fluctuations. Original material overrides and neutral reflection power return before gameplay. The wet-concrete shader change adds only a neutral-default instance parameter; it does not change the regular gameplay lighting look. Native visual review is still required.
