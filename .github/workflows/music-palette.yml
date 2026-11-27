@@ -11,6 +11,7 @@ on:
       - 'tools/audio/run_anubis_music.sh'
       - 'tools/asset_refinement/resource_guard.py'
       - 'tools/asset_refinement/telemetry.py'
+      - 'tools/asset_refinement/test_telemetry.py'
       - '.github/workflows/music-palette.yml'
 permissions:
   contents: read
@@ -26,4 +27,5 @@ jobs:
       - run: python tests/test_music_quality_profiles.py
       - run: python tests/test_music_resource_supervision.py
       - run: python tools/asset_refinement/test_resource_guard.py
+      - run: python -m unittest discover -s tools/asset_refinement -p test_telemetry.py -v
       - run: bash -n tools/audio/run_anubis_music.sh
