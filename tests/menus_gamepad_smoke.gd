@@ -584,9 +584,11 @@ func _verify() -> void:
 			if absf(route_sample.x)<.45 and route_sample.z>arrival_script.PARTITION_NEAR_Z-.36 and route_sample.z<arrival_script.PARTITION_FAR_Z+.36:
 				_fail("Arrival must turn around the partition rather than walk through it")
 				return
-	var partition: MeshInstance3D=office.get_node("ExecutivePartition")
-	var partition_mesh: BoxMesh=partition.mesh
-	if not is_equal_approx(partition.position.z-partition_mesh.size.z*.5,arrival_script.PARTITION_NEAR_Z) or shots[-1]["to"]!=preload("res://scripts/synaxis_office.gd").CUBICLE_POINT:
+	# The production baked shell owns the partition art; collision retains the exact route boundary.
+	var partition := office.get_node_or_null("ExecutivePartitionCollision") as StaticBody3D
+	var shape_node := partition.get_child(0) as CollisionShape3D if partition != null and partition.get_child_count() > 0 else null
+	var partition_shape := shape_node.shape as BoxShape3D if shape_node != null else null
+	if partition_shape == null or not is_equal_approx(partition.position.z + shape_node.position.z - partition_shape.size.z * .5, arrival_script.PARTITION_NEAR_Z) or not is_equal_approx(partition.position.z + shape_node.position.z + partition_shape.size.z * .5, arrival_script.PARTITION_FAR_Z) or shots[-1]["to"]!=preload("res://scripts/synaxis_office.gd").CUBICLE_POINT:
 		_fail("Arrival route must match the actual partition and playable cubicle")
 		return
 	var montage=arrival_script.new()
