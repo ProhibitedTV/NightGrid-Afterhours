@@ -117,6 +117,23 @@ func _verify() -> void:
 	menu.call("update_setting","render_overrides",saved_settings["render_overrides"])
 	menu.call("update_setting","render_quality",saved_settings["render_quality"])
 	menu.call("set_has_save", false)
+	menu.call("update_setting", "title_motion", false)
+	menu.call("open_title")
+	var title_art: Control = menu.get_node_or_null("MenuRoot/TitleBackdrop")
+	if title_art == null or title_art.mouse_filter != Control.MOUSE_FILTER_IGNORE or title_art.is_processing():
+		_fail("Reduced-motion title backdrop must be static and ignore input")
+		return
+	menu.call("update_setting", "title_motion", true)
+	menu.call("open_title")
+	title_art = menu.get_node_or_null("MenuRoot/TitleBackdrop")
+	if title_art == null or not title_art.is_processing():
+		_fail("Title motion preference must activate the backdrop")
+		return
+	menu.call("hide_for_game")
+	if title_art.is_processing():
+		_fail("Hidden title backdrop must stop processing")
+		return
+	menu.call("update_setting", "title_motion", saved_settings.get("title_motion", true))
 	menu.call("open_title")
 	if not paused or not menu.call("is_open") or str(menu.get("screen")) != "title":
 		_fail("Title screen must pause the world and remain interactive")
@@ -131,6 +148,9 @@ func _verify() -> void:
 		_fail("Title must say NEW GAME, not New World or seed")
 		return
 	menu.call("_choice", "new")
+	if menu.has_node("MenuRoot/TitleBackdrop"):
+		_fail("Title backdrop leaked into the confirmation screen")
+		return
 	if str(menu.get("screen")) != "confirm_new":
 		_fail("New Game must be a confirmed destructive transition")
 		return
