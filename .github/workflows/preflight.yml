@@ -108,6 +108,8 @@ jobs:
           set -o pipefail
           godot --headless --path . --import --quit 2>&1 | tee /tmp/nightgrid-import.log
           if grep -Eq 'SCRIPT ERROR:|p_image->is_compressed\(\)|Cannot generate mipmaps from compressed image formats' /tmp/nightgrid-import.log; then exit 1; fi
+      - name: Verify physical elevator call station availability
+        run: godot --headless --path . --script res://tests/synaxis_lift_frontage_smoke.gd
       - name: Verify authored Synaxis breakroom and equipment
         timeout-minutes: 3
         run: |
