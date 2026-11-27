@@ -74,7 +74,7 @@ func _run() -> void:
 	var saved_at := player.global_position
 	var session := root.get_node("GameSession")
 	var save: Dictionary = session.call("make_snapshot", world.call("_capture_snapshot"))
-	if not _expect(session.call("is_valid_snapshot", save) and save["version"] == 1 and save["interior"].is_empty(), "walk-in saves retain the v1 position contract"):
+	if not _expect(session.call("is_valid_snapshot", save) and save["version"] == 2 and save.get("layout_id") == "morrow-bay" and not save.has("seed") and save["interior"].is_empty(), "walk-in saves retain the canonical v2 position contract"):
 		return
 	session.set("pending_restore", save)
 	world.queue_free()
@@ -86,7 +86,7 @@ func _run() -> void:
 	player = world.get("player")
 	city = world.get("city_details")
 	shop = city.call("repair_storefront") as Shop
-	if not _expect(shop != null and player.global_position.distance_to(saved_at) < 0.05 and shop.door.openness() < 0.02, "same physical room and safe closed leaf on v1 reload"):
+	if not _expect(shop != null and player.global_position.distance_to(saved_at) < 0.05 and shop.door.openness() < 0.02, "same physical room and safe closed leaf on v2 reload"):
 		return
 	var car: CharacterBody3D = world.get("cars")[0]
 	car.global_position = Vector3(-86.8, 1.05, 72.4)
