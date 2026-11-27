@@ -4,6 +4,7 @@ const OPEN_ANGLE = 1.48
 const SWING_SPEED = 2.7
 
 var _leaf: CollisionShape3D
+var _query := PhysicsShapeQueryParameters3D.new()
 var _goal := 0.0
 var art_ready := false
 var movement_blocked := false
@@ -17,6 +18,8 @@ func configure(leaf_size: Vector3, center: Vector3) -> void:
 	_leaf.shape = shape
 	_leaf.position = center
 	add_child(_leaf)
+	_query.shape = shape
+	_query.exclude = [get_rid()]
 	set_physics_process(false)
 
 func install_art(source: PackedScene) -> void:
@@ -46,11 +49,8 @@ func restore_open(value: bool) -> void:
 func _physics_process(delta: float) -> void:
 	var step := move_toward(rotation.y, _goal, delta * SWING_SPEED)
 	var next := Transform3D(Basis(Vector3.UP, step), position)
-	var query := PhysicsShapeQueryParameters3D.new()
-	query.shape = _leaf.shape
-	query.transform = get_parent_node_3d().global_transform * next * _leaf.transform
-	query.exclude = [get_rid()]
-	for hit in get_world_3d().direct_space_state.intersect_shape(query, 16):
+	_query.transform = get_parent_node_3d().global_transform * next * _leaf.transform
+	for hit in get_world_3d().direct_space_state.intersect_shape(_query, 16):
 		if hit["collider"] is CharacterBody3D or hit["collider"] is RigidBody3D:
 			movement_blocked = true
 			return
