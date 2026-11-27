@@ -198,6 +198,7 @@ var _stanky_show_index:=-1
 var _stanky_set:="classic"
 var _stanky_beats:Array[Dictionary]=[]
 var _stanky_show_gap:=0.0
+var _stanky_story_heard:=0
 var _cal_pending:Dictionary={}
 var _cal_tracking:=false
 var _cal_nav_clock:=0.0
@@ -348,6 +349,7 @@ func _ready() -> void:
 	dialogue_director.name = "DialogueDirector"
 	add_child(dialogue_director)
 	dialogue_director.connect("caption_changed", _show_dialogue_caption)
+	dialogue_director.connect("line_ended",_on_stanky_story_line_ended)
 	for line in StreetSatire.LINES:
 		dialogue_director.call("prewarm",str(line["id"]))
 	var restore: Dictionary = session.call("take_pending_restore")
@@ -506,9 +508,16 @@ func _build_world_audio() -> void:
 		float(options.get("sfx_volume", 0.75)))
 
 func _on_menu_action(action: String) -> void:
-	if action in ["stanky_show","stanky_fight","stanky_family"]:
+	if action=="stanky_story":
 		if _street_contact_id==StreetSatire.STANKY_ID:
-			_start_stanky_show("fight" if action=="stanky_fight" else ("family" if action=="stanky_family" else "classic"))
+			var next_scene:=progression.stanky_story_next()
+			if not next_scene.is_empty():
+				_start_stanky_show(next_scene)
+			_street_contact_id=""
+		return
+	if action in ["stanky_show","stanky_fight","stanky_family","stanky_trio"]:
+		if _street_contact_id==StreetSatire.STANKY_ID:
+			_start_stanky_show(str({"stanky_fight":"fight","stanky_family":"family","stanky_trio":"trio"}.get(action,"classic")))
 			_street_contact_id=""
 		return
 	if action.begins_with("stanky_reply_"):
@@ -3376,7 +3385,9 @@ func _toggle_interaction() -> void:
 				return
 			_street_contact_id=StreetSatire.STANKY_ID
 			legend.call("set_attention_target",player.global_position,true)
-			game_menu.call("open_street_contact",StreetSatire.stanky_profile())
+			var contact:=StreetSatire.stanky_profile()
+			contact["story_next"]=progression.stanky_story_next()
+			game_menu.call("open_street_contact",contact)
 			return
 		var fan:Dictionary=venue_system.call("stanky_fan_near",player.global_position)
 		if not fan.is_empty() and is_instance_valid(dialogue_director) and _stanky_show_index<0:
@@ -5826,6 +5837,9 @@ func _start_stanky_show(set_id:String="classic") -> void:
 		return
 	dialogue_director.call("cancel_scope",StreetSatire.STANKY_SCOPE)
 	dialogue_director.call("cancel_scope","venue:stanky_fans")
+	if set_id in StreetSatire.STANKY_STORY_SETS and progression.stanky_story_next()!=set_id:
+		return
+	_stanky_story_heard=0
 	_stanky_beats=StreetSatire.stanky_show(set_id)
 	if _stanky_beats.is_empty():
 		return
@@ -5833,12 +5847,13 @@ func _start_stanky_show(set_id:String="classic") -> void:
 	_stanky_show_index=0
 	_stanky_show_gap=.25
 	venue_system.call("set_stanky_show_active",true)
-	_notify({"classic":"SHARKTOOTH SESSIONS","fight":"FIGHT NIGHT","family":"AFTERHOURS / THE REGULARS"}.get(_stanky_set,"SHARKTOOTH SESSIONS")+" / Live at Static Room")
+	_notify({"classic":"SHARKTOOTH SESSIONS","fight":"FIGHT NIGHT","family":"AFTERHOURS / THE REGULARS","trio":"RC & BOON / OLD FRIENDS","offclock":"OFF THE CLOCK","archive":"KEEP A COPY"}.get(_stanky_set,"SHARKTOOTH SESSIONS")+" / Live at Static Room")
 
 func _stop_stanky_show() -> void:
 	_stanky_show_index=-1
 	_stanky_show_gap=0.0
 	_stanky_beats.clear()
+	_stanky_story_heard=0
 	if is_instance_valid(venue_system):
 		venue_system.call("set_stanky_show_active",false)
 	if is_instance_valid(dialogue_director):
@@ -5856,6 +5871,8 @@ func _tick_stanky_show(delta:float,indoors:bool) -> void:
 	if _stanky_show_gap>0.0:
 		return
 	if _stanky_show_index>=_stanky_beats.size():
+		if _stanky_set in StreetSatire.STANKY_STORY_SETS and _stanky_story_heard==_stanky_beats.size():
+			progression.record_stanky_story(_stanky_set)
 		_stop_stanky_show()
 		return
 	var cue:Dictionary=_stanky_beats[_stanky_show_index]
@@ -5863,7 +5880,15 @@ func _tick_stanky_show(delta:float,indoors:bool) -> void:
 	if not is_instance_valid(speaker):
 		_stop_stanky_show()
 		return
-	var who:="Daddy Stanky" if cue["character"]==StreetSatire.STANKY_ID else "Crowd"
+	var who:=StreetSatire.stanky_speaker_name(str(cue["character"]))
 	if dialogue_director.call("enqueue",str(cue["id"]),who+": "+str(cue["text"]),DialogueDirector.STORY,speaker,StreetSatire.STANKY_SHOW_SCOPE):
 		_stanky_show_index+=1
 		_stanky_show_gap=.65
+
+# Count only the sequential cues that actually finish; walking away, skipping,
+# preemption or a queue eviction cannot silently finish an optional story.
+func _on_stanky_story_line_ended(line_id:String,reason:String) -> void:
+	if _stanky_show_index<1 or _stanky_set not in StreetSatire.STANKY_STORY_SETS or reason!="complete":
+		return
+	if _stanky_story_heard<_stanky_beats.size() and line_id==str(_stanky_beats[_stanky_story_heard]["id"]):
+		_stanky_story_heard+=1

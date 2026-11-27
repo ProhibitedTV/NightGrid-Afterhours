@@ -1,6 +1,8 @@
 extends SceneTree
 const Satire = preload("res://scripts/street_satire.gd")
 const Venues = preload("res://scripts/venue_system.gd")
+const Ledger = preload("res://scripts/progression_ledger.gd")
+const Opening = preload("res://scripts/opening_story.gd")
 
 func _initialize() -> void:
 	call_deferred("_test")
@@ -52,6 +54,40 @@ func _test() -> void:
 			if int(alternate[i]["stanky_show"])!=i or venues.stanky_show_speaker(alternate[i]["character"],i)==null:
 				_fail("Alternate show ordering or speaker")
 				return
+	var trio:=Satire.stanky_show("trio")
+	var rc:=venues.stanky_show_speaker("rc",0)
+	var boon:=venues.stanky_show_speaker("boon",0)
+	if trio.size()!=9 or rc==null or boon==null or rc==boon or rc.name!="RC" or boon.name!="Boon":
+		_fail("Named old friends and trio dialogue")
+		return
+	for i in range(trio.size()):
+		if int(trio[i]["stanky_show"])!=i or venues.stanky_show_speaker(trio[i]["character"],i)==null:
+			_fail("Trio set ordering or speaker")
+			return
+	for set_id in Satire.STANKY_STORY_SETS:
+		var story:=Satire.stanky_show(set_id)
+		if story.size()!=8:
+			_fail("Optional plot scene missing")
+			return
+		for i in range(story.size()):
+			if int(story[i]["stanky_show"])!=i or venues.stanky_show_speaker(story[i]["character"],i)==null:
+				_fail("Plot cue ordering or actor")
+				return
+	var progress:=Ledger.new()
+	if progress.record_stanky_story("offclock") or progress.stanky_story_next()!="":
+		_fail("Plot gated before layoff")
+		return
+	if not progress.credit_once(Opening.RECEIPT,1) or progress.stanky_story_next()!="offclock" or progress.record_stanky_story("archive"):
+		_fail("Plot order")
+		return
+	var cash:int=progress.balance
+	if not progress.record_stanky_story("offclock") or progress.record_stanky_story("offclock") or progress.stanky_story_next()!="archive":
+		_fail("First plot receipt")
+		return
+	var restored:=Ledger.new()
+	if not restored.restore(cash,progress.snapshot()) or restored.stanky_story_next()!="archive" or not restored.record_stanky_story("archive") or restored.stanky_story_next()!="" or restored.balance!=cash:
+		_fail("Plot save round trip and no reward")
+		return
 	if not Satire.stanky_show("invalid").is_empty():
 		_fail("Unknown show")
 		return
