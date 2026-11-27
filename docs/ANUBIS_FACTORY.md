@@ -111,3 +111,8 @@ After refinement and contact sheets complete, use a separate up-to-date checkout
     python3 tools/asset_refinement/review_packet.py --refined /mnt/z/NightGrid-Afterhours/Visual/refined-001 --previews /mnt/z/NightGrid-Afterhours/Visual/Previews --output /mnt/z/NightGrid-Afterhours/Visual/visual-001-studio-review.zip
 
 This read-only source export includes the existing contact sheets, both review indexes, per-version refinement and preview manifests, and a packet file-hash index. Refuses stale/missing/failed previews, unmatched versions, changed sheet bytes, unsafe paths and existing destination. Default 50 MiB limit applies to source bytes and final archive; increase explicitly to at most 200 MiB if needed. Output is exclusive, not a publication or approval manifest; interrupted writes may leave an incomplete ZIP, so verify before sharing. No raw GLBs, model weights or textures are uploaded. It verifies metadata bindings and sheet hashes, not the current mesh payload, actual render contents, rights or native game performance. The 128-size smoke packet is explicitly partial when its preview index says so. Full-resolution export requires every reviewable version to have a successful preview. Share the ZIP for art review, then select exact versions and use the existing native gate and handoff process.
+
+
+## Original music production lane
+
+See [Anubis music candidates](ANUBIS_MUSIC_CANDIDATES.md#music-department--ace-step-production-batch-2026-11-27). The separate music launcher coordinates existing visual locks, uses local ACE-Step and stores candidates on NAS. Do not run independent audio or GPU jobs alongside it. No automatic publication or runtime AI. Dashboard music coverage and unified scheduling remain follow-ups.

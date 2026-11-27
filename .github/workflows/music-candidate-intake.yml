@@ -4,6 +4,13 @@ on:
   pull_request:
     paths:
       - 'tools/audio/music_candidate_intake.py'
+      - 'tools/audio/music_pcm.py'
+      - 'tools/audio/nightgrid_music_batch.py'
+      - 'tools/audio/run_anubis_music.sh'
+      - 'tests/test_music_pcm.py'
+      - 'tools/audio/music_technical_qc.py'
+      - 'tools/audio/music_pcm_diagnostics.py'
+      - 'tests/test_music_technical_qc.py'
       - 'tests/test_music_candidate_intake.py'
       - 'tools/audio/music_cue_briefs.py'
       - 'tools/audio/anubis_music_cue_briefs.json'
@@ -26,5 +33,10 @@ jobs:
       - name: Verify read-only offline candidate contract
         run: |
           python tests/test_music_candidate_intake.py
+          python tests/test_music_pcm.py
+          python tests/test_music_technical_qc.py
+          bash -n tools/audio/run_anubis_music.sh
+          python tools/audio/nightgrid_music_batch.py --plan
+          bash tools/audio/run_anubis_music.sh --plan
           python tests/test_music_cue_briefs.py
           python tools/audio/music_cue_briefs.py

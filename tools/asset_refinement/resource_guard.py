@@ -24,7 +24,7 @@ def violation(data, min_ssd, min_nas, max_temp):
             return disk+" free-space reserve breached"
     for gpu in data.get("gpu") or []:
         temp=gpu.get("temperature_c")
-        if isinstance(temp,int) and temp>=max_temp:
+        if isinstance(temp,(int,float)) and temp>=max_temp:
             return "GPU temperature threshold reached"
     return None
 
@@ -67,6 +67,7 @@ def supervise(command, log, interval=15, min_ssd=25, min_nas=10,
         # file is small and bounded by one stage's duration.
         with log.open("x",encoding="utf-8") as handle:
             next_sample=0
+            warned_temperature=False
             while True:
                 if pending[0] is not None:
                     if proc is not None:
@@ -77,6 +78,13 @@ def supervise(command, log, interval=15, min_ssd=25, min_nas=10,
                 t=time.monotonic()
                 if t>=next_sample:
                     data=snapshot()
+                    gpu_rows=data.get("gpu") or []
+                    if not warned_temperature and (not gpu_rows or any(
+                            g.get("temperature_c") is None for g in gpu_rows)):
+                        print("Resource guard: GPU temperature telemetry incomplete; "
+                              "thermal threshold cannot protect GPUs without readings",
+                              file=sys.stderr,flush=True)
+                        warned_temperature=True
                     bad=violation(data,min_ssd,min_nas,max_temp)
                     record={"unix_time":time.time(),"hardware":data,"stop_reason":bad}
                     handle.write(json.dumps(record)+"\n")

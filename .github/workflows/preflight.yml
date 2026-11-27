@@ -489,6 +489,8 @@ jobs:
         run: timeout 60s godot --headless --path . --script res://tests/arcade_world_smoke.gd
       - name: Validate NightGrid FM soundtrack catalog, radio and packaged tracks
         run: godot --headless --path . --script res://tests/nightgrid_fm_smoke.gd
+      - name: Chapter score policy smoke
+        run: timeout 30s godot --headless --path . --script res://tests/chapter_score_smoke.gd
       - name: Validate original city soundscapes, footfalls and volume settings
         run: godot --headless --path . --script res://tests/world_audio_smoke.gd
       - name: Validate shared NPC streaming visibility and collision safeguards

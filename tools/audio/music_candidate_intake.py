@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 import re
 import sys
-import wave
+from music_pcm import pcm_info
 
 ID = re.compile(r"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$")
 HASH = re.compile(r"^[0-9a-f]{64}$")
@@ -67,23 +67,10 @@ def validate(data, source_root):
                 raise ValueError("Missing " + field + ": " + ident)
         if entry.get("reviewed") is not False:
             raise ValueError("Intake only accepts unreviewed candidates: " + ident)
-        try:
-            with wave.open(str(path), "rb") as reader:
-                nch = reader.getnchannels()
-                sample_width = reader.getsampwidth()
-                rate = reader.getframerate()
-                frames = reader.getnframes()
-                if reader.getcomptype() != "NONE":
-                    raise ValueError("Expected uncompressed PCM")
-        except (wave.Error, EOFError) as exc:
-            raise ValueError("Invalid PCM WAV: " + ident) from exc
-        # wave.open parses headers, but a truncated data chunk may still claim
-        # more frames than the file contains. Require the complete PCM payload.
-        if frames <= 0 or frames * nch * sample_width > path.stat().st_size - 44:
-            raise ValueError("Incomplete PCM data: " + ident)
-        duration = frames / rate if rate else 0.0
-        if nch != 2 or sample_width not in (2, 3) or rate not in (44100, 48000):
-            raise ValueError("Expected stereo PCM16/24, 44.1/48 kHz: " + ident)
+        info = pcm_info(path)
+        rate = info["sample_rate"]
+        sample_width = info["bit_depth"] // 8
+        duration = info["seconds"]
         if not 1.0 <= duration <= 600.0:
             raise ValueError("Duration outside 1..600 seconds: " + ident)
         verified.append({"id": ident, "model": model, "scene": entry["scene"],
