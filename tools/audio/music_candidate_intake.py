@@ -89,7 +89,9 @@ def validate(data, source_root):
         verified.append({"id": ident, "model": model, "scene": entry["scene"],
                          "duration_seconds": round(duration, 3),
                          "sample_rate": rate, "bits": sample_width * 8,
-                         "sha256": checksum, "status": "verified-candidate; listening and rights review pending"})
+                         "sha256": checksum,
+                         "commercial_status": "blocked-noncommercial-model" if model == "audiocraft-musicgen" else "blocked-pending-rights-review",
+                         "status": "verified-candidate; listening and rights review pending"})
     return {"schema": 1, "mode": "read-only; no automatic publish",
             "verified_candidates": verified}
 
