@@ -990,6 +990,14 @@ func _verify() -> void:
 	if office.call("lift_direction",office.to_global(Vector3(.65,1.15,4.35)))!=-1 or office.call("lift_direction",office.to_global(Vector3(-.65,1.15,4.35)))!=1:
 		_fail("Visible elevator call area must be usable on approach")
 		return
+	for route in [[0,-1],[0,13],[-1,0],[13,0]]:
+		var pad:Vector2=office.call("lift_goal_pad",route[0],route[1])
+		if not is_equal_approx(pad.y,5.0) or not is_equal_approx(pad.x,.90 if route[1]<route[0] else -.90):
+			_fail("Elevator objective marker must target the correct physical call mat")
+			return
+	if office.call("lift_direction",office.to_global(Vector3(0,1.15,5)))!=0 or not str(office.call("_lift_hint",-1,Vector3(0,1.15,5))).contains("RIGHT / DOWN"):
+		_fail("Neutral space between elevator mats must guide the player without choosing a direction")
+		return
 	for id in [rooms.MEN,rooms.WOMEN]:
 		player.global_position=washrooms.to_global(rooms.CENTERS[id])
 		world.call("_process",0.0)
