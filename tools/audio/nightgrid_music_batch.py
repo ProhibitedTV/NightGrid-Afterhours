@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """NightGrid original music candidate factory; ACE-Step 1.5, no publishing."""
-import argparse, fcntl, hashlib, json, os, shutil, subprocess, sys, tempfile, time
+import argparse, fcntl, hashlib, inspect, json, os, shutil, subprocess, sys, tempfile, time
 from pathlib import Path
 from music_pcm import pcm_info
 from music_gpu_guard import gpu_guard
@@ -62,6 +62,33 @@ def check_profile_ram(name):
         raise RuntimeError(f'{name} requires at least {minimum} GiB available WSL RAM for this pilot; found {available:.1f}')
     print(f'Available WSL RAM: {available:.1f} GiB', flush=True)
 
+def check_call(api, args, kwargs, label):
+    """Fail before model loading on an incompatible installed public signature."""
+    try:
+        inspect.signature(api).bind(*args, **kwargs)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(f'Installed ACE-Step API incompatible: {label}: {exc}') from exc
+
+
+def source_format(name):
+    # ACE-Step wav32 uses soundfile FLOAT directly instead of torchaudio.save
+    # with its ignored backend argument on TorchAudio >=2.9.
+    return 'wav' if name == 'legacy' else 'wav32'
+
+
+def verify_studio_source(path):
+    data = json.loads(subprocess.check_output(
+        ['ffprobe', '-v', 'error', '-select_streams', 'a:0',
+         '-show_entries', 'stream=codec_name,sample_rate,channels', '-of', 'json', str(path)],
+        text=True, timeout=30))
+    streams = data.get('streams', [])
+    if (len(streams) != 1 or streams[0].get('codec_name') != 'pcm_f32le'
+            or int(streams[0].get('sample_rate', 0)) != 48000
+            or streams[0].get('channels') != 2):
+        raise RuntimeError('Studio WAV32 source is not stereo 48 kHz float PCM; refusing lower-precision fallback')
+    return streams[0]
+
+
 def initialize_models(dit, lm, profile, name):
     dit_args = dict(project_root=str(HOME), config_path=profile['dit'],
                     device='cuda', offload_to_cpu=True, quantization=profile['quantization'])
@@ -70,6 +97,8 @@ def initialize_models(dit, lm, profile, name):
     if name != 'legacy':
         dit_args['offload_dit_to_cpu'] = profile['dit_offload']
         lm_args['offload_to_cpu'] = profile['lm_offload']
+    check_call(dit.initialize_service, (), dit_args, 'AceStepHandler.initialize_service')
+    check_call(lm.initialize, (), lm_args, 'LLMHandler.initialize')
     msg, ok = dit.initialize_service(**dit_args)
     if not ok:
         raise RuntimeError(str(msg))
@@ -172,6 +201,7 @@ def main():
     if (NAS/'Audio'/'factory-001'/'.audio.lock').exists(): raise RuntimeError('Audio stage lock present; inspect before retrying')
     if not HOME.is_dir(): raise RuntimeError('ACE-Step installation not found')
     if not shutil.which('ffmpeg'): raise RuntimeError('ffmpeg not found')
+    if a.profile != 'legacy' and not shutil.which('ffprobe'): raise RuntimeError('ffprobe required for studio source validation')
     with tempfile.TemporaryDirectory(prefix='nightgrid-wav-preflight-') as tmp:
         probe=Path(tmp)/'probe.wav'
         subprocess.run(['ffmpeg','-nostdin','-hide_banner','-loglevel','error','-f','lavfi','-i','anullsrc=r=48000:cl=stereo','-t','0.1','-c:a','pcm_s24le',str(probe)],check=True)
@@ -193,7 +223,9 @@ def main():
     for j in jobs:
         name=j['id']; wav=out/(name+'.wav'); meta=out/(name+'.json')
         spec={'job':j,'checkpoint':checkpoint,'steps':profile['steps'],'shift':3.0,'thinking':True,'instrumental':True,'batch_size':1,'encoding':'pcm_s24le/48000/stereo'}
-        if a.profile != 'legacy': spec['generation_profile'] = dict(profile, name=a.profile)
+        if a.profile != 'legacy':
+            spec['generation_profile'] = dict(profile, name=a.profile)
+            spec['source_format'] = source_format(a.profile)
         fingerprint=digest(spec)
         if meta.exists():
             row=json.loads(meta.read_text(encoding='utf-8'))
@@ -208,6 +240,8 @@ def main():
     from acestep.llm_inference import LLMHandler
     from acestep.inference import GenerationParams, GenerationConfig, generate_music
     dit=AceStepHandler(); lm=LLMHandler()
+    check_call(GenerationConfig, (), dict(batch_size=1,use_random_seed=False,seeds=[271101],audio_format=source_format(a.profile)), 'GenerationConfig')
+    check_call(generate_music, (dit,lm,None,None), dict(save_dir='/tmp'), 'generate_music')
     initialize_models(dit, lm, profile, a.profile)
     for j,wav,meta,fingerprint in (pending[:a.limit] if a.limit else pending):
         if not os.path.ismount('/mnt/z'): raise RuntimeError('NAS mount lost')
@@ -215,10 +249,11 @@ def main():
         gpu_guard(); print('GENERATE',j['id'],flush=True); start=time.monotonic()
         with tempfile.TemporaryDirectory(prefix='nightgrid-music-') as tmp:
             params=GenerationParams(task_type='text2music',caption=j['direction'],lyrics='[Instrumental]',instrumental=True,thinking=True,bpm=j['bpm'],keyscale=j['key'],timesignature='4',duration=j['duration'],seed=j['seed'],inference_steps=profile['steps'],guidance_scale=profile['guidance'],shift=3.0)
-            config=GenerationConfig(batch_size=1,use_random_seed=False,seeds=[j['seed']],audio_format='wav')
+            config=GenerationConfig(batch_size=1,use_random_seed=False,seeds=[j['seed']],audio_format=source_format(a.profile))
             result=generate_music(dit,lm,params,config,save_dir=tmp)
             if not result.success or len(result.audios)!=1: raise RuntimeError('Generation failed: '+str(result.status_message))
             item=result.audios[0]; source=Path(item['path']); partial=wav.with_name(wav.stem+'.partial.wav')
+            if a.profile != 'legacy': verify_studio_source(source)
             if partial.exists():
                 preserved=partial.with_name(partial.stem+f'.previous-{time.time_ns()}.wav')
                 os.replace(partial,preserved)
@@ -227,7 +262,9 @@ def main():
             info=audio_info(partial)
             if abs(info['seconds']-j['duration'])>max(4,j['duration']*.12): raise RuntimeError(f'Unexpected duration for {j["id"]}: {info}')
             row={'id':j['id'],'file':wav.name,'sha256':sha(partial),'model':'ace-step','checkpoint':f'{profile["dit"]}+{profile["lm"]}; sha256:{checkpoint}','scene':j['scene'],'direction':j['direction'],'rights_notes':'Candidate only; exact model and output rights review pending; not for release','reviewed':False,'fingerprint':fingerprint,'requested_seed':j['seed'],'reported_seed':str(item.get('params',{}).get('seed','unknown')),'requested_duration':j['duration'],'audio':info,'elapsed_seconds':round(time.monotonic()-start,2)}
-            if a.profile != 'legacy': row['generation_profile'] = dict(profile, name=a.profile)
+            if a.profile != 'legacy':
+                row['generation_profile'] = dict(profile, name=a.profile)
+                row['source_format'] = source_format(a.profile)
             os.replace(partial,wav); atomic_json(meta,row); entries.append(row); manifest()
             print('SAVED',wav.name,info,flush=True)
         gpu_guard()
