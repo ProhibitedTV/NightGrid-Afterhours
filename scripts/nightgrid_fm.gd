@@ -194,7 +194,7 @@ func _menu_screen() -> String:
 
 func _context() -> String:
 	if _menu_screen() == "title":
-		return "title"
+		return "score:title" if _available.has(ChapterScore.cue_id("score:title")) else "title"
 	if _chapter_active:
 		var stage := int(menu.get("_opening_stage")) if is_instance_valid(menu) else -1
 		var score := ChapterScore.context(_chapter_arrival, _chapter_offboarding, _chapter_room, _menu_screen(), stage)
