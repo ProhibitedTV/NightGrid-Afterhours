@@ -61,6 +61,7 @@ var screen := "hidden"
 var _back_screen := "pause"
 var _confirmation_origin := "pause"
 var _has_save := false
+var _creator_qa_save := false
 var _save_feedback := ""
 var _world: Node3D
 var _journal_data: Dictionary = {}
@@ -149,6 +150,9 @@ func open_inventory(context: Dictionary) -> void:
 
 func set_has_save(value: bool) -> void:
 	_has_save = value
+
+func set_creator_qa_save(value: bool) -> void:
+	_creator_qa_save=value
 
 func set_save_feedback(value: String) -> void:
 	_save_feedback = value
@@ -415,6 +419,8 @@ func _render() -> void:
 		"title":
 			_title(col, "YOUR NIGHT. YOUR CITY.", 22, Color("f0dfcd"))
 			_label(col, "A persistent noir metropolis, shaped by your choices.", 17, Color("a8b6c9"))
+			if _creator_qa_save:
+				_label(col,"CREATOR QA • Separate test save slot",15,Ui.ACCENT)
 			if _has_save:
 				_button(col, "continue", "CONTINUE SAVED GAME", "load")
 				_button(col, "play", "ENTER CURRENT SESSION", "play")
@@ -621,6 +627,8 @@ func _render() -> void:
 			_label(col, _save_feedback if not _save_feedback.is_empty() else str(save_info["reason"]), 15, Ui.ACCENT if can_save else Ui.MUTED)
 			if not can_save:
 				_button(col, "save_waypoint", "ROUTE TO LANTERN COURT", "save_waypoint")
+			if _creator_qa_save:
+				_label(col,"CREATOR QA • Separate test save slot",15,Ui.ACCENT)
 			_button(col, "load", "Load saved game", "load", _has_save)
 			_button(col, "new", "New session", "new")
 			_section_heading(col, "SYSTEM")
