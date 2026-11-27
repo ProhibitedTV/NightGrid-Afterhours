@@ -36,6 +36,19 @@ func _test() -> void:
 	office.position = Office.ORIGIN
 	root.add_child(office)
 	office.begin_prologue()
+	var badge_events: Array[String] = []
+	office.arrival_badge_presented.connect(func(): badge_events.append("presented"))
+	office.arrival_badge_authorized.connect(func(): badge_events.append("authorized"))
+	office.arrival_badge_reset.connect(func(): badge_events.append("reset"))
+	var authorized_sample := {"badge_presented":false,"badge_authorized":true}
+	office.call("_update_arrival_badge",authorized_sample)
+	office.call("_update_arrival_badge",authorized_sample)
+	office.call("_reset_arrival_badge")
+	office.call("_update_arrival_badge",authorized_sample)
+	if badge_events != ["presented","authorized","reset","presented","authorized"]:
+		_fail("Badge events must catch up in order, emit once and reset for replay")
+		return
+	office.call("_reset_arrival_badge")
 	office.call("_select_floor",Exec.FLOOR)
 	if not Exec.blocks_staff_sight(Vector2(4,-1.5),Vector2(4,.5)) or Exec.blocks_staff_sight(Vector2(0,-1.5),Vector2(0,.5)):
 		_fail("Executive wall blocks attention while doorway stays open")
