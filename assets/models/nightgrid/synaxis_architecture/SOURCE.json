@@ -1,0 +1,32 @@
+{
+  "source": "tools/asset_refinement/gen2_synaxis_architecture.py",
+  "renderer": "Blender 5.0.1, glTF 2.0",
+  "provenance": "Original NightGrid geometry with projected metre-scale UVs and authored Synaxis vector outline geometry",
+  "rendering": "Shared PBR surfaces bound by Godot. Panel rows use MultiMesh. Plaques have physical backing and export no colliders.",
+  "files": {
+    "fabric_panel.glb": {
+      "sha256": "bd9d717722710e4186daff6ce4d8edf9c6b98a740f24b7ed9d25dd474b296edc",
+      "bytes": 46740
+    },
+    "notice.glb": {
+      "sha256": "fb9ee24c283ebca40f8e589434152d8d8a211731d88014e4a849cd194fd35e12",
+      "bytes": 31920
+    },
+    "plaque.glb": {
+      "sha256": "3cae87d9599eced3eda485e6723a274d8b7937ab1d2c5375e653d73662bc456a",
+      "bytes": 102732
+    },
+    "reception_brand.glb": {
+      "sha256": "964ac54125edd8c8cec37994ca45d5bb764b82b9dfe7aa2d42d594683e1f6acc",
+      "bytes": 859928
+    },
+    "stone_panel.glb": {
+      "sha256": "ce50537c7fcec6f1fa635932926224a626052cd899bdc627a27e56e062c7d57d",
+      "bytes": 46740
+    },
+    "walnut_panel.glb": {
+      "sha256": "49b6d456e39876537f2cf3b17fc661a9ec0c4087fd4764d92bb39dba42859937",
+      "bytes": 46744
+    }
+  }
+}

@@ -2,6 +2,7 @@ extends Node3D
 ## Original, static corporate print artwork. Each board has a fixed wall
 ## transform and real panel geometry. No billboard, timer, network or collider.
 const Brand = preload("res://scripts/synaxis_brand.gd")
+const Finishes = preload("res://scripts/synaxis_architecture.gd")
 const INK = Brand.INK
 const PAPER = Brand.PAPER
 const GOLD = Brand.GOLD
@@ -70,15 +71,16 @@ func _board(id: String,at: Vector3,yaw: float,dimensions: Vector2,background: Co
 	root.position=at
 	root.rotation.y=yaw
 	add_child(root)
-	_quad(root,"Backing",dimensions,Vector3.ZERO,background)
-	_quad(root,"BrandStripe",Vector2(dimensions.x,.055),Vector3(0,dimensions.y*.5-.028,.004),accent)
+	Finishes.notice_frame(root,dimensions)
+	_quad(root,"Print",dimensions,Vector3(0,0,.027),background)
+	_quad(root,"BrandStripe",Vector2(dimensions.x,.035),Vector3(0,dimensions.y*.5-.038,.029),accent)
 	# Real font metrics fit each authored line inside its panel at world scale.
 	var logo_width:=minf(dimensions.x*.38,dimensions.y*.82)
-	Brand.wall_logo(root,"BrandLockup",Vector3(-dimensions.x*.5+.12+logo_width*.5,dimensions.y*.34,.014),0.0,logo_width,background==PAPER)
+	Brand.wall_logo(root,"BrandLockup",Vector3(-dimensions.x*.5+.12+logo_width*.5,dimensions.y*.34,.033),0.0,logo_width,background==PAPER)
 	var department_width:=dimensions.x-logo_width-.38
-	_copy(root,"Department",eyebrow,Vector3(dimensions.x*.5-.12-department_width*.5,dimensions.y*.34,.012),department_width,dimensions.y*.10,accent)
-	_copy(root,"Headline",headline,Vector3(0,dimensions.y*.08,.012),dimensions.x-.20,dimensions.y*.28,ink)
-	_copy(root,"FinePrint",body,Vector3(0,-dimensions.y*.25,.012),dimensions.x-.20,dimensions.y*.32,ink)
+	_copy(root,"Department",eyebrow,Vector3(dimensions.x*.5-.12-department_width*.5,dimensions.y*.34,.032),department_width,dimensions.y*.10,accent)
+	_copy(root,"Headline",headline,Vector3(0,dimensions.y*.08,.032),dimensions.x-.20,dimensions.y*.28,ink)
+	_copy(root,"FinePrint",body,Vector3(0,-dimensions.y*.25,.032),dimensions.x-.20,dimensions.y*.32,ink)
 
 func _quad(parent: Node3D,id: String,size: Vector2,at: Vector3,tint: Color) -> void:
 	var mesh := QuadMesh.new()
@@ -95,7 +97,7 @@ func _quad(parent: Node3D,id: String,size: Vector2,at: Vector3,tint: Color) -> v
 	parent.add_child(instance)
 
 func _copy(parent: Node3D,id: String,value: String,at: Vector3,width: float,height: float,tint: Color) -> void:
-	var font := ThemeDB.fallback_font
+	var font := Finishes.TYPE
 	var longest := 1.0
 	var lines := value.split("\n")
 	for line in lines:

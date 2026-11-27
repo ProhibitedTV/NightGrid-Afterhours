@@ -96,15 +96,12 @@ func _ready() -> void:
 		_part("vein",Vector3(0,.014,z),Vector3(16.6,.004,.012))
 	for side in [-1.0,1.0]:
 		if side<0:
-			_part("walnut",Vector3(-8.30,1.65,0),Vector3(.08,3.3,19.7))
-			_part("brass",Vector3(-8.24,.12,0),Vector3(.045,.18,19.7))
-			for z in [-8.0,-4.0,0.0,4.0,8.0]:
-				_part("brass",Vector3(-8.245,1.66,z),Vector3(.035,3.25,.035))
-			_part("walnut",Vector3(-5.65,1.65,-9.79),Vector3(5.2,3.3,.07))
+			InteriorFinish.strip(self,"ExecutiveWestWalnut",Vector3(-8.375,0,0),PI/2,19.7,InteriorFinish.WALNUT)
+			InteriorFinish.strip(self,"ExecutiveNorthWalnut",Vector3(-5.65,0,-9.875),0.0,5.2,InteriorFinish.WALNUT)
 			_part("navy",Vector3(-5.65,.019,-5.8),Vector3(4.85,.015,5.5))
 			_private_office(side)
 		else:
-			_part("walnut",Vector3(8.30,1.65,4.65),Vector3(.08,3.3,10.3))
+			InteriorFinish.strip(self,"ExecutiveEastWalnut",Vector3(8.375,0,4.65),-PI/2,10.3,InteriorFinish.WALNUT)
 	_founder_suite()
 	for edge in WALL_EDGES:
 		var a:Vector2=edge[0]
@@ -117,8 +114,8 @@ func _ready() -> void:
 	_boardroom()
 	_people_suite()
 	_lounge()
-	_part("navy",Vector3(0,2.2,9.80),Vector3(9.6,1.85,.10))
-	_label("SYNAXIS / EXECUTIVE LEADERSHIP",Vector3(0,2.20,9.745),.0036,PI)
+	InteriorFinish.strip(self,"ExecutiveHonedStone",Vector3(-4.90,0,9.875),PI,5.6,InteriorFinish.STONE)
+	InteriorFinish.nameplate(self,"ExecutiveIdentity","SYNAXIS / EXECUTIVE LEADERSHIP",Vector3(-4.90,2.20,9.81),PI,Vector2(4.2,.45))
 	_install_lift("14","NO SERVICE","DOWN / OFFICES")
 	for x in [-5.5,0.0,5.5]:
 		for z in [-6.5,0.0,6.5]:
@@ -156,7 +153,7 @@ func _private_office(side: float) -> void:
 func _founder_suite() -> void:
 	# 6.35 x 9.15 m private corner suite, plus an exterior 2.7 x 7.4 m terrace.
 	_part("navy",Vector3(5.18,.022,-5.45),Vector3(5.95,.024,7.5))
-	_part("walnut",Vector3(5.18,1.67,-9.80),Vector3(6.15,3.30,.07))
+	InteriorFinish.strip(self,"FounderWalnut",Vector3(5.18,0,-9.875),0.0,6.15,InteriorFinish.WALNUT)
 	_part("marble",Vector3(5.2,.95,-5.55),Vector3(4.2,.14,1.22))
 	_part("walnut",Vector3(5.2,.53,-5.04),Vector3(4.02,.78,.12))
 	_part("brass",Vector3(5.2,.89,-4.92),Vector3(4.2,.035,.035))
@@ -182,9 +179,7 @@ func _founder_suite() -> void:
 		_part("black",Vector3(x,1.16,-9.28),Vector3(.40,.08,.38))
 		_part("brass",Vector3(x,1.48,-9.28),Vector3(.15,.56,.15),.2)
 		_part("glass_tint",Vector3(x,1.77,-9.28),Vector3(.28,.18,.28),.4)
-	_part("black",Vector3(5.2,2.55,-9.73),Vector3(4.75,1.05,.06))
-	_label("SYNAXIS  /  FOUNDER'S OFFICE",Vector3(5.2,2.76,-9.68),.005)
-	_label("THE FUTURE BELONGS TO THOSE WHO OWN IT.",Vector3(5.2,2.40,-9.68),.0027)
+	InteriorFinish.nameplate(self,"FounderIdentity","SYNAXIS  /  FOUNDER'S OFFICE\nTHE FUTURE BELONGS TO THOSE WHO OWN IT.",Vector3(5.2,2.55,-9.80),0.0,Vector2(4.25,.65))
 	_plant(Vector3(2.55,0,-8.9),.7)
 	_part("velvet",Vector3(3.35,.43,-2.05),Vector3(1.7,.50,.70))
 	_part("velvet",Vector3(3.35,.79,-1.79),Vector3(1.7,.52,.18))

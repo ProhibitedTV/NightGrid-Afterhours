@@ -1100,7 +1100,8 @@ func _verify() -> void:
 		return
 	player.global_position=office.to_global(breakroom_hq.BREAKROOM_POINT)
 	world.call("_opening_interact")
-	if not (menu.call("get_buttons") as Dictionary).has("breakroom_photo") or not is_instance_valid(office.get_node_or_null("PartyBannerBacking")):
+	var party_sign := office.get_node_or_null("AppreciationDayDisplay/Inscription") as Label3D
+	if not (menu.call("get_buttons") as Dictionary).has("breakroom_photo") or party_sign == null or not party_sign.text.contains("TALENT APPRECIATION DAY") or not office.has_node("AppreciationDayDisplay/Housing"):
 		_fail("Optional breakroom party requires actual in-world proximity and branded decor")
 		return
 	menu.call("_choice","breakroom_decline")

@@ -40,13 +40,15 @@ func _test() -> void:
 	if terrazzo == null or terrazzo.albedo_texture == null or terrazzo.normal_texture == null or terrazzo.roughness_texture == null:
 		_fail("Physical floor lacks the documented photo maps")
 		return
-	var plaques := office.find_children("MountedWayfinding*", "MeshInstance3D", true, false)
+	var plaques := office.find_children("MountedWayfinding*", "Node3D", true, false)
 	if plaques.size() < 3:
 		_fail("Physical office wayfinding is missing")
 		return
 	for plaque in plaques:
-		var copy := plaque.get_child(0) as Label3D
-		if copy == null or copy.outline_size != 0 or copy.fixed_size or copy.no_depth_test or absf(copy.position.z-.021) > .001:
+		var copy := plaque.get_node_or_null("Inscription") as Label3D
+		var print_bed := plaque.get_node_or_null("PrintBed") as MeshInstance3D
+		var housing := plaque.get_node_or_null("Housing") as MeshInstance3D
+		if copy == null or print_bed == null or housing == null or copy.outline_size != 0 or copy.fixed_size or copy.no_depth_test or copy.position.z <= print_bed.mesh.get_aabb().end.z:
 			_fail("Wayfinding must be surface-mounted and depth-tested")
 			return
 	for node in office.find_children("*", "Label3D", true, false):
@@ -58,6 +60,23 @@ func _test() -> void:
 			_fail("Appliance status should use the existing interaction prompt")
 			return
 	var space := office.get_world_3d().direct_space_state
+	for plate in plaques:
+		var plaque := plate as Node3D
+		var housing := plaque.get_node("Housing") as MeshInstance3D
+		var tip := plaque.to_global(Vector3(0, 0, .035))
+		var back := plaque.to_global(Vector3(0, 0, housing.mesh.get_aabb().position.z - .004))
+		if space.intersect_ray(PhysicsRayQueryParameters3D.create(tip, back)).is_empty():
+			_fail("Wayfinding chassis does not reach the wall: " + (plaque.get_node("Inscription") as Label3D).text)
+			return
+	var stone := office.get_node_or_null("ReceptionStone/Face") as MultiMeshInstance3D
+	var lettering := office.get_node_or_null("ReceptionBrand/Lettering") as MeshInstance3D
+	if stone == null or stone.multimesh.instance_count < 4 or lettering == null or lettering.mesh.get_aabb().size.z < .02:
+		_fail("Reception needs a modular stone wall and extruded lettering")
+		return
+	var stone_finish := stone.material_override as StandardMaterial3D
+	if stone_finish == null or stone_finish.albedo_texture == null or stone_finish.normal_texture == null or stone_finish.roughness_texture == null:
+		_fail("Reception stone must use actual albedo, roughness and normals")
+		return
 	var front := office.to_global(Vector3(Office.BREAKROOM_POINT.x, .90, Layout.BREAKROOM_FRONT - .45))
 	var inside := office.to_global(Vector3(Office.BREAKROOM_POINT.x, .90, Office.BREAKROOM_POINT.z))
 	if not space.intersect_ray(PhysicsRayQueryParameters3D.create(front, inside)).is_empty():

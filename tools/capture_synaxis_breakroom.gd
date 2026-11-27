@@ -18,6 +18,25 @@ const BOARDROOM = [
 	["boardroom", Vector3(.28, Executive.BASE + 1.72, -2.6), Vector3(0, Executive.BASE + 1.02, -6.8), Executive.FLOOR],
 	["boardroom_veneer", Vector3(1.48, Executive.BASE + 1.68, -4.22), Vector3(-.12, Executive.BASE + .93, -5.8), Executive.FLOOR],
 ]
+const ARCHITECTURE = [
+	["hq_approach", Vector3(-2.1,1.73,-14.6), Vector3(.05,2.4,-9.90), 0],
+	["visitor_lobby", Vector3(1.02,1.69,-9.23), Vector3(-2.60,2.05,-9.87), 0],
+	["reception", Vector3(4.35,1.68,4.82), Vector3(5.2,2.06,9.84), 0],
+	["reception_detail", Vector3(6.61,2.18,8.44), Vector3(5.25,2.55,9.79), 0],
+	["lift_landing", Vector3(-.52,1.70,2.85), Vector3(0,1.98,6.14), 0],
+	["breakroom", Vector3(-4.2, 1.67, 5.28), Vector3(-4.2, 1.63, 8.45), 0],
+	["restrooms", Vector3(-5.75,2.0,-5.72), Vector3(-5.80,2.36,-3.27), 0],
+	["department", Vector3(4.25,5.22,5.65), Vector3(4.90,5.60,9.82), 1],
+	["it_service", Vector3(4.38,-1.9,5.27), Vector3(4.88,-1.24,9.84), -1],
+	["executive_landing", Vector3(-4.25,Executive.BASE+1.68,5.53), Vector3(-4.9,Executive.BASE+1.98,9.81), Executive.FLOOR],
+	["boardroom", Vector3(.28, Executive.BASE + 1.72, -2.6), Vector3(0, Executive.BASE + 1.02, -6.8), Executive.FLOOR],
+	["founder_suite", Vector3(3.07,Executive.BASE+1.68,-4.02), Vector3(5.12,Executive.BASE+2.28,-9.88), Executive.FLOOR],
+]
+const LOBBY_ROUTE = [
+	Vector3(.2,1.63,-9.45), Vector3(.2,1.63,-7.12), Vector3(2.1,1.63,-6.42),
+	Vector3(2.1,1.63,-2.9), Vector3(2.1,1.63,1.0), Vector3(2.7,1.63,4.85),
+	Vector3(4.25,1.63,5.36),
+]
 func _initialize() -> void:
 	call_deferred("_run")
 func _fail(error: String) -> void:
@@ -61,15 +80,25 @@ func _run() -> void:
 	clock.set("paused", true)
 	clock.call("set_hour", 17.0)
 	office.call("begin_prologue")
+	var architecture := "--architecture" in args or "--reception" in args
+	if architecture:
+		for overlay in world.find_children("*", "CanvasLayer", true, false):
+			overlay.hide()
 	var camera := world.get("camera") as Camera3D
 	camera.make_current()
 	camera.fov = 64.0
 	var viewport := root.get_viewport_rid()
 	RenderingServer.viewport_set_measure_render_time(viewport, true)
+	if "--lobby-route" in args:
+		office.call("_set_gate_open", true)
+		await _lobby_route(out, office, camera, viewport)
+		return
 	var records := []
 	var parked := "--parked" in args
 	paused = parked
 	var requested := EQUIPMENT if "--equipment" in args else SHOTS
+	if architecture:
+		requested = ARCHITECTURE.slice(0, 4) if "--reception" in args else ARCHITECTURE
 	if "--boardroom" in args:
 		requested = BOARDROOM
 	for shot in requested:
@@ -120,4 +149,52 @@ func _run() -> void:
 		"adapter": RenderingServer.get_video_adapter_name(), "simulation_paused": parked, "hour": 17.0, "fov": camera.fov, "views": records}, "\t"))
 	report.close()
 	print("SYNAXIS_BREAKROOM_CAPTURE PASS ", out)
+	quit(0)
+
+func _lobby_route(out: String, office: Node3D, camera: Camera3D, viewport: RID) -> void:
+	# Measure the same moving camera path twice in one process so the repeat
+	# reuses the renderer and room resources first encountered on the cold pass.
+	var rows := []
+	for name in ["cold", "warm"]:
+		var frames: Array[float] = []
+		var gpu: Array[float] = []
+		var cpu: Array[float] = []
+		var unfocused := 0
+		var start := Time.get_ticks_usec()
+		var stamp := start
+		while true:
+			var distance := clampf((stamp - start) / 8_000_000.0, 0.0, 1.0) * (LOBBY_ROUTE.size() - 1)
+			var leg := mini(floori(distance), LOBBY_ROUTE.size() - 2)
+			var from: Vector3 = LOBBY_ROUTE[leg]
+			var to: Vector3 = LOBBY_ROUTE[leg + 1]
+			var at := from.lerp(to, distance - leg)
+			camera.global_position = office.to_global(at)
+			camera.look_at(office.to_global(at + (to - from).normalized().lerp(Vector3.FORWARD * -1, .72)))
+			await RenderingServer.frame_post_draw
+			var now := Time.get_ticks_usec()
+			frames.append(float(now - stamp) / 1000.0)
+			gpu.append(RenderingServer.viewport_get_measured_render_time_gpu(viewport))
+			cpu.append(RenderingServer.viewport_get_measured_render_time_cpu(viewport))
+			unfocused += int(not root.has_focus())
+			stamp = now
+			if stamp - start >= 8_000_000:
+				break
+		frames.sort()
+		gpu.sort()
+		cpu.sort()
+		var n := frames.size()
+		var p95 := ceili(n * .95) - 1
+		rows.append({"name":name, "samples":n, "unfocused":unfocused, "frame_p50_ms":frames[floori(n * .5)],
+			"frame_p95_ms":frames[p95], "frame_p99_ms":frames[ceili(n * .99) - 1],
+			"frame_worst_ms":frames[-1], "gpu_p95_ms":gpu[p95], "render_cpu_p95_ms":cpu[p95],
+			"video_memory_bytes":RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_VIDEO_MEM_USED)})
+	var report := FileAccess.open(out.path_join("route.json"), FileAccess.WRITE)
+	if report == null:
+		_fail("Could not write lobby route report")
+		return
+	report.store_string(JSON.stringify({"revision":OS.get_environment("NIGHTGRID_SOURCE_REVISION"),
+		"renderer":RenderingServer.get_current_rendering_method(), "driver":RenderingServer.get_current_rendering_driver_name(),
+		"adapter":RenderingServer.get_video_adapter_name(), "resolution":[root.size.x, root.size.y], "runs":rows}, "\t"))
+	report.close()
+	print("SYNAXIS_LOBBY_ROUTE PASS ", out)
 	quit(0)
