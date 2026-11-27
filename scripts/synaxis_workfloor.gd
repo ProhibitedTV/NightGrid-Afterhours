@@ -1,4 +1,5 @@
 extends Node3D
+const InteriorFinish = preload("res://scripts/synaxis_architecture.gd")
 ## Four authored workfloor layouts, using static material/primitive batches.
 ## Real desk and partition collision; no per-desk process or lights.
 const Rage=preload("res://scripts/synaxis_keyboard_rage.gd")
@@ -378,9 +379,9 @@ func _architecture(accent: String) -> void:
 			_part("glass",Vector3(x,2.34,z),Vector3(.045,1.02,2.62))
 	_part(accent,Vector3(0,1.7,-9.81),Vector3(16.6,3.35,.08))
 	_part("oak",Vector3(0,.48,-9.73),Vector3(16.4,.95,.06))
-	_label(DEPARTMENTS[level-1]+" / LEVEL "+str(level+1),Vector3(0,2.73,-9.765),.0034)
-	_part(accent,Vector3(0,2.12,9.81),Vector3(5.8,1.54,.065))
-	_label("SYNAXIS / "+DEPARTMENTS[level-1],Vector3(0,2.12,9.773),.0027,PI)
+	InteriorFinish.nameplate(self,"DepartmentEntry",DEPARTMENTS[level-1]+" / LEVEL "+str(level+1),Vector3(0,2.73,-9.755),0.0,Vector2(3.5,.36))
+	InteriorFinish.strip(self,"DepartmentAcousticWall",Vector3(4.90,0,9.875),PI,5.8,InteriorFinish.FABRIC)
+	InteriorFinish.nameplate(self,"DepartmentIdentity","SYNAXIS / "+DEPARTMENTS[level-1],Vector3(4.90,2.93,9.81),PI,Vector2(3.5,.32))
 	for x in [-6,-3,0,3,6]:
 		for z in [-7.5,-2.5,2.5,7.5]:
 			_part("white",Vector3(x,3.31,z),Vector3(2.85,.045,4.85))

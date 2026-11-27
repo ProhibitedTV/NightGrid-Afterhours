@@ -31,6 +31,8 @@ const FounderParking=preload("res://scripts/synaxis_founder_parking.gd")
 const Radar = preload("res://scripts/hud_radar.gd")
 const Arrival = preload("res://scripts/synaxis_arrival.gd")
 const Restrooms = preload("res://scripts/synaxis_restrooms.gd")
+const Architecture = preload("res://scripts/synaxis_architecture.gd")
+const LIFT_DIRECTION_SIGN = preload("res://assets/models/nightgrid/synaxis_architecture/lift_direction_sign.glb")
 const Workfloor = preload("res://scripts/synaxis_workfloor.gd")
 const ExecutiveFloor = preload("res://scripts/synaxis_executive_floor.gd")
 const Basement = preload("res://scripts/synaxis_basement.gd")
@@ -78,7 +80,7 @@ var _mat: Dictionary = {}
 func _ready() -> void:
 	var floor_mat := _material("floor",Color("b4ada1"))
 	_configure_stone(floor_mat)
-	var wall := _material("wall",Color("d8d4c9"))
+	var wall := Architecture.surface("Drywall")
 	var desk := _material("desk",Color("242e36"))
 	var accent := _material("accent",Color("b9cbd0"))
 	var screen := _material("screen",Color("508f8d"),true)
@@ -93,7 +95,7 @@ func _ready() -> void:
 	_solid("SecurityGate",Vector3(0,1.4,-7.65),Vector3(2.6,2.8,.25),_material("security",Color("293842")))
 	_solid("SecurityHeader",Vector3(0,3.15,-7.65),Vector3(2.6,.7,.25),wall)
 	_plaque("BADGE ACCESS",Vector3(0,3.02,-7.793),PI,Vector2(1.40,.25))
-	Brand.wall_logo(self,"EntranceBrand",Vector3(0,3.12,-10.17),PI,2.15)
+	Architecture.brand_wall(self,"EntranceBrand",Vector3(0,2.94,-10.12),.62)
 	# Fixed upper-floor shell, not a second generic building intersecting the office.
 	_solid("TowerCore",Vector3(0,32.85,0),Vector3(17,29.2,20),_material("glass",Color("354c60")))
 	_build_workfloor_shell(wall,floor_mat)
@@ -166,14 +168,20 @@ func _ready() -> void:
 			# Bound shadow passes to four, irrespective of decorative fixtures.
 			light.shadow_enabled=(x<0.0)==(z<0.0)
 			add_child(light)
-	Brand.wall_logo(self,"ReceptionBrand",Vector3(5.2,2.78,9.81),PI,3.65)
+	Architecture.strip(self,"ReceptionStone",Vector3(5.2,0,9.875),PI,5.30,Architecture.STONE)
+	Architecture.brand_wall(self,"ReceptionBrand",Vector3(5.2,2.40,9.825))
+	Architecture.nameplate(self,"VisitorDirectory","VISITOR ACCESS\nBADGE CHECK   /   RECEPTION",Vector3(-2.61,2.18,-9.85),0.0,Vector2(1.92,.43))
 	Brand.wall_logo(self,"ExecutiveMark",Vector3(8.30,2.75,-5.9),-PI/2,.72,false,true)
 	Brand.wall_logo(self,"ExitCartonMark",Vector3(5,1.25,6.285),PI,.22)
 	_plaque("THINK OUTSIDE THE BOX\nBOX SOLD SEPARATELY",Vector3(-8.31,2.58,2.25),PI/2,Vector2(1.45,.38))
 	_plaque("PEOPLE EXPERIENCE",Vector3(-8.31,2.94,-5.0),PI/2,Vector2(1.7,.24))
 	_plaque("EXECUTIVE AFFAIRS",Vector3(8.31,2.94,-4.9),-PI/2,Vector2(1.7,.24))
-	_plaque("RECEPTION / EXIT PROCESSING",Vector3(5.2,2.34,9.81),PI,Vector2(2.40,.26))
+	_plaque("RECEPTION / EXIT PROCESSING",Vector3(5.2,2.05,9.81),PI,Vector2(2.40,.26))
 	_plaque("ELEVATORS / B1 IT + OFFICES",Vector3(8.31,2.64,4.25),-PI/2,Vector2(2.3,.30))
+	var overhead := Architecture.assembly(self,"LobbyLiftDirection",LIFT_DIRECTION_SIGN,Vector3(2.15,2.86,3.66),PI)
+	Architecture.inscription(overhead,"←  RECEPTION      LIFTS  →",Vector3(0,0,.068),Vector2(2.22,.155))
+	Architecture.inscription(overhead,"←  STAFF EXIT      SECURITY  ↑",Vector3(0,0,-.068),Vector2(2.22,.155)).rotation.y=PI
+	_plaque("STAFF EXIT",Vector3(-8.34,2.89,4.50),PI/2,Vector2(1.21,.23))
 	var canvas := CanvasLayer.new()
 	_intro_canvas = canvas
 	canvas.layer = 5
@@ -317,7 +325,7 @@ func _build_workfloor_shell(wall: Material,floor_mat: Material) -> void:
 	lift.up_label="UP / OFFICES"
 	lift.down_label="DOWN / B1 IT"
 	add_child(lift)
-	var utility:=_material("basement_concrete",Color("637078"))
+	var utility := Architecture.surface("Concrete")
 	_solid("BasementSlab",Vector3(0,-Workfloor.FLOOR_HEIGHT-.15,0),Vector3(17,.3,20),utility)
 	for side in [-1.0,1.0]:
 		_solid("BasementSide",Vector3(side*8.5,-Workfloor.FLOOR_HEIGHT+1.675,0),Vector3(.25,3.35,20),utility)
@@ -616,9 +624,7 @@ func _build_breakroom() -> void:
 	_collision("BreakroomCasework", Vector3(-7.992,.468,8.0), Vector3(.749,.936,3.20))
 	for x in [-5.36, -3.04]:
 		_collision("BreakroomDiningChair",Vector3(x,.39,7.25),Vector3(.48,.78,.49))
-	_visual("PartyBannerBacking",Vector3(-4.2,2.98,9.80),Vector3(4.7,.66,.04),_material("party_navy",Brand.NAVY))
-	Brand.wall_logo(self,"PartyBrand",Vector3(-6.03,2.98,9.765),PI,.72)
-	_sign("TALENT APPRECIATION DAY",Vector3(-3.77,2.98,9.775),.0027).rotation.y=PI
+	Architecture.nameplate(self,"AppreciationDayDisplay","PEOPLE EXPERIENCE  /  TALENT APPRECIATION DAY",Vector3(-4.2,3.025,9.84),PI,Vector2(4.32,.30))
 
 
 func _build_corporate_relics(desk: Material,accent: Material,screen: Material) -> void:
@@ -880,28 +886,7 @@ func _collision(id: String,at: Vector3,size: Vector3) -> void:
 	add_child(body)
 
 func _plaque(value:String,at:Vector3,yaw:float,size:Vector2) -> void:
-	var backing:=MeshInstance3D.new()
-	var mesh:=BoxMesh.new()
-	mesh.size=Vector3(size.x,size.y,.035)
-	backing.mesh=mesh
-	backing.name="MountedWayfinding"
-	backing.material_override=_material("wayfinding",Color("26343a"))
-	backing.position=at
-	backing.rotation.y=yaw
-	add_child(backing,true)
-	var label:=Label3D.new()
-	label.text=value
-	label.font_size=40
-	var width:=1.0
-	var lines:=value.split("\n")
-	for line in lines:
-		width=maxf(width,ThemeDB.fallback_font.get_string_size(line,HORIZONTAL_ALIGNMENT_LEFT,-1,40).x)
-	label.pixel_size=minf((size.x-.08)/width,(size.y-.04)/(ThemeDB.fallback_font.get_height(40)*lines.size()))
-	label.outline_size=0
-	label.fixed_size=false
-	label.no_depth_test=false
-	label.position=Vector3(0,0,.021)
-	backing.add_child(label)
+	Architecture.nameplate(self,"MountedWayfinding",value,at,yaw,size)
 
 func _sign(value: String,at: Vector3,pixel: float) -> Label3D:
 	var label := Label3D.new()

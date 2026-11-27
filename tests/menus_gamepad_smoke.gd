@@ -996,11 +996,24 @@ func _verify() -> void:
 	if floor_label.text!="↓  G":
 		_fail("Descending from ground must show G and down arrow")
 		return
+	var car := display_probe.get_node_or_null("CabinPresentation") as TextureRect
+	var car_view := car.get_child(0) as SubViewport if car != null else null
+	var indicator: Label3D = car.get("_indicator") if car != null else null
+	if car_view == null or indicator == null or indicator.text != floor_label.text or car.modulate.a > .01:
+		_fail("Car view must prewarm behind the approaching doors with the physical indicator synchronized")
+		return
+	display_probe.call("advance",.42)
+	if car.modulate.a < .99 or not display_probe.call("transfer_ready"):
+		_fail("The authored car must mask the hidden floor transfer at full opacity")
+		return
 	display_probe.call("advance",3.0)
-	if floor_label.text!="↓  B1" or not display_probe.call("transfer_ready") or not display_probe.call("complete"):
+	if floor_label.text!="↓  B1" or indicator.text != floor_label.text or not display_probe.call("transfer_ready") or not display_probe.call("complete"):
 		_fail("Lift display must reach B1 without changing staged transfer timing")
 		return
 	display_probe.call("reset")
+	if car.visible or car_view.render_target_update_mode != SubViewport.UPDATE_DISABLED:
+		_fail("The inactive cabin must release viewport updates")
+		return
 	display_probe.call("begin",4,13,"14 / EXECUTIVE LEADERSHIP")
 	if floor_label.text!="↑  5":
 		_fail("Display must use public floor numbering rather than internal indices")
@@ -1100,7 +1113,8 @@ func _verify() -> void:
 		return
 	player.global_position=office.to_global(breakroom_hq.BREAKROOM_POINT)
 	world.call("_opening_interact")
-	if not (menu.call("get_buttons") as Dictionary).has("breakroom_photo") or not is_instance_valid(office.get_node_or_null("PartyBannerBacking")):
+	var party_sign := office.get_node_or_null("AppreciationDayDisplay/Inscription") as Label3D
+	if not (menu.call("get_buttons") as Dictionary).has("breakroom_photo") or party_sign == null or not party_sign.text.contains("TALENT APPRECIATION DAY") or not office.has_node("AppreciationDayDisplay/Housing"):
 		_fail("Optional breakroom party requires actual in-world proximity and branded decor")
 		return
 	menu.call("_choice","breakroom_decline")

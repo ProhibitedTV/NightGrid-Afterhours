@@ -9,4 +9,4 @@ Original fictional brand for NightGrid: Afterhours. Designed to look like a vert
 - Preserve 4:1 lockup aspect ratio. Leave at least one eighth emblem width as clear space. Use standalone mark only when the wordmark is too small.
 - Palette: navy #152E40, ink #12232F, aqua #95E3D6, white #F3F5F0, paper #E8E8DF, investor gold #F1C879, action red #AD4040.
 
-SVG sources are original repo assets. Godot imports them as textures. No duplicated baked artwork, font files, external brand imagery or network dependency.
+The SVGs are original project assets. Godot imports them as textures. The Gen 2 entrance and reception models fabricate the same mark and outline letters as beveled solids. Plaque typography uses the unmodified DejaVu Sans Condensed Bold distributed by Ubuntu's `fonts-dejavu-core` package. Its [license notice](DejaVu-LICENSE.txt) accompanies the font and is included in the Windows export.

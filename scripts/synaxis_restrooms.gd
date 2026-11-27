@@ -1,4 +1,5 @@
 extends Node3D
+const Finishes = preload("res://scripts/synaxis_architecture.gd")
 ## Physical washrooms with privacy stalls, original fixtures and an optional
 ## one-shot corporate facilities encounter. No identity or hygiene simulation.
 const OFFSET=Vector3(-5.8,0,-9.5)
@@ -32,7 +33,7 @@ func _ready() -> void:
 	for id in [MEN,WOMEN]:
 		var x: float=CENTERS[id].x
 		_box("DoorHeader",Vector3(x,2.90,6.25),Vector3(1.34,.90,.12),"metal",true)
-		_sign(id.to_upper()+" / RESTROOM",Vector3(x,2.95,6.185),PI,.00155)
+		Finishes.nameplate(self,id.capitalize()+"RestroomSign",id.to_upper()+" / RESTROOM",Vector3(x,2.95,6.17),PI,Vector2(1.13,.20))
 		_box("FloorMat",Vector3(x,.009,7.8),Vector3(1.9,.012,2.6),"floor")
 		# Shared bathroom partition with two individually shut stalls in each room.
 		for dx in [-.52,.52]:
@@ -68,7 +69,7 @@ func _box(id: String,at: Vector3,size: Vector3,key: String,solid: bool=false) ->
 	var mesh := BoxMesh.new()
 	mesh.size=size
 	node.mesh=mesh
-	node.material_override=_mat(key)
+	node.material_override=Finishes.surface("Tile") if key == "tile" else _mat(key)
 	node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(node)
 	if solid:
@@ -80,18 +81,6 @@ func _box(id: String,at: Vector3,size: Vector3,key: String,solid: bool=false) ->
 		collider.shape=shape
 		body.add_child(collider)
 		add_child(body)
-
-func _sign(value: String,at: Vector3,yaw: float,pixel: float) -> void:
-	var label := Label3D.new()
-	label.text=value
-	label.position=at
-	label.rotation.y=yaw
-	label.font_size=40
-	label.pixel_size=pixel
-	label.outline_size=0
-	label.fixed_size=false
-	label.no_depth_test=false
-	add_child(label)
 
 func _build_haze() -> void:
 	# Small bounded soft sprites; only active near the men's washroom in prologue.

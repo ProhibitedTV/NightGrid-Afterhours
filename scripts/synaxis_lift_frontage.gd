@@ -1,4 +1,5 @@
 extends Node3D
+const Finishes = preload("res://scripts/synaxis_architecture.gd")
 ## Fixed lift frontage, common across floors. Existing fade/transfer owns travel.
 ## The closed doors are real collision; call stations remain on the aisle side.
 const CENTER=Vector2(0,5.0)
@@ -31,8 +32,7 @@ func _ready() -> void:
 		_label("Destination"+direction,destination,Vector3(x,2.52,6.075),.0018,available)
 		_box("LandingMat"+direction,Vector3(x,.016,5.0),Vector3(1.43,.012,1.55),"mat" if available else "disabled_mat")
 		_label("CallDirection"+direction,direction.to_upper() if available else "OFF",Vector3(station_x,1.11,6.012),.0008,available)
-	_box("LiftHeader",Vector3(0,2.99,6.16),Vector3(3.78,.47,.09),"black")
-	_label("LiftHeaderText","ELEVATORS  /  "+floor_label,Vector3(0,2.99,6.105),.0034)
+	Finishes.nameplate(self,"LiftHeader","ELEVATORS  /  "+floor_label,Vector3(0,2.99,6.151),PI,Vector2(3.70,.45))
 
 func _box(id:String,at:Vector3,size:Vector3,key:String,solid:bool=false) -> void:
 	var mesh:=BoxMesh.new()
@@ -47,7 +47,7 @@ func _box(id:String,at:Vector3,size:Vector3,key:String,solid:bool=false) -> void
 		mat.roughness=.35 if key in ["frame","door"] else .82
 		mat.metallic=.65 if key in ["frame","door"] else 0.0
 		materials[key]=mat
-	instance.material_override=materials[key]
+	instance.material_override=Finishes.surface("LiftSteel") if key == "door" else materials[key]
 	add_child(instance)
 	if solid:
 		var body:=StaticBody3D.new()
@@ -66,6 +66,7 @@ func _label(id:String,value:String,at:Vector3,pixel:float,available:bool=true) -
 	label.position=at
 	label.rotation.y=PI
 	label.font_size=42
+	label.font=Finishes.TYPE
 	label.pixel_size=pixel
 	label.outline_size=0
 	label.modulate=Color("e7e9e1") if available else Color("9ba2a0")

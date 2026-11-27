@@ -18,6 +18,18 @@ func _test() -> void:
 	root.add_child(camera)
 	camera.fov = 68.0
 	await physics_frame
+	var glazing := office.find_children("ExecutiveGlazing*", "Node3D", true, false)
+	if glazing.size() != Exec.WALL_EDGES.size():
+		_fail("Each executive partition must have the dimensioned glazing assembly")
+		return
+	var space := office.get_world_3d().direct_space_state
+	for x in [0.0,4.0]:
+		var from := office.to_global(Vector3(x,Exec.BASE+1.15,.3))
+		var to := office.to_global(Vector3(x,Exec.BASE+1.15,-1.4))
+		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(from,to))
+		if hit.is_empty() != is_zero_approx(x):
+			_fail("Partition fit-out must preserve collision at glazing and clearance at the main opening")
+			return
 	var story_staff: Dictionary=office.get("_staff")
 	var dev:Node3D=story_staff["dev"]
 	dev.call("attend",dev.global_position+Vector3.FORWARD,true)
