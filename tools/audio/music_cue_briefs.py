@@ -11,7 +11,7 @@ import re
 import sys
 
 ID = re.compile(r"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$")
-MODEL = {"ace-step", "audiocraft-musicgen"}
+MODEL = {"ace-step"}  # Candidate planning only; checkpoint clearance still required.
 ROLES = {"non-diegetic cinematic underscore", "diegetic cabinet loop", "diegetic venue performance"}
 REQUIRED = ("id", "model_preference", "scene", "direction", "role", "start_event", "stop_event", "mix_notes")
 
@@ -49,6 +49,7 @@ def readiness(env):
         ok = bool(path and path.is_absolute() and path.is_file())
         reported[model] = {"configured": bool(value), "python_present": ok,
                            "ready": False,
+                           "production_policy": "research-only; noncommercial weights" if model == "audiocraft-musicgen" else "pending exact checkpoint rights review",
                            "reason": "Environment existence alone does not validate model weights, GPU, rights or runtime"}
     return reported
 
