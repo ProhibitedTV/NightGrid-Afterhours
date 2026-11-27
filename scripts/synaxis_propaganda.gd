@@ -28,12 +28,12 @@ func _ready() -> void:
 	_board("ExitCampaign",Vector3(-4.7,1.98,9.81),PI,Vector2(3.2,1.6),BLUE,GOLD,WHITE,
 		"OUR PEOPLE. OUR PURPOSE.","WE INVEST IN PEOPLE.",
 		"Voluntary separation is a growth opportunity.\nBenefits terminate at the end of employment.")
-	_board("Wellness",Vector3(-3.38,1.98,-1.5),PI/2,Vector2(3.15,1.6),PAPER,BLUE,INK,
+	_board("Wellness",Vector3(8.36,1.98,-1.72),-PI/2,Vector2(3.15,1.6),PAPER,BLUE,INK,
 		"WORKPLACE WELLNESS / 2036","TAKE CARE OF YOURSELF.",
 		"Wellness sessions are available off the clock.\nUnpaid participation is strongly encouraged.")
 
 	# Each department gets its own contradictions, rather than repeating one gag.
-	_board("OfficeAttendance",Vector3(-8.31,2.06,4.10),PI/2,Vector2(2.65,1.62),NAVY,AQUA,WHITE,
+	_board("OfficeAttendance",Vector3(-8.36,2.06,1.85),PI/2,Vector2(2.65,1.62),NAVY,AQUA,WHITE,
 		"WORKPLACE EXPERIENCE / BADGE METRICS","TOGETHER, IN PERSON.",
 		"5 days a week. No exceptions.\nYour manager will join remotely.\nParking subscriptions: $169/month.")
 	_board("Calibration",Vector3(-.108,1.87,-3.8),-PI/2,Vector2(2.4,1.55),PAPER,RED,INK,
@@ -42,7 +42,7 @@ func _ready() -> void:
 	_board("AIPledge",Vector3(8.31,1.85,6.3),-PI/2,Vector2(2.9,1.65),NAVY,AQUA,WHITE,
 		"SYNAXIS ASSISTANT ENTERPRISE","YOUR AI COLLEAGUE\nNEEDS YOU.",
 		"Record your daily workflow.\nTrain the future of your role.\nA more human workplace, with fewer humans.")
-	_board("PTOFreeze",Vector3(-5.8,1.96,.34),0.0,Vector2(2.2,1.55),PAPER,RED,INK,
+	_board("PTOFreeze",Vector3(-8.36,1.96,-.80),PI/2,Vector2(2.2,1.55),PAPER,RED,INK,
 		"Q4 DELIVERY READINESS / ACTION REQUIRED","UNLIMITED PTO*",
 		"*Requests paused until further notice.\nUnused unlimited days have no cash value.\nThank you for your flexibility.")
 	_board("Meetings",Vector3(.108,1.85,-1.6),PI/2,Vector2(1.9,1.5),BLUE,GOLD,WHITE,
@@ -54,7 +54,7 @@ func _ready() -> void:
 	_board("Equity",Vector3(.108,1.85,-6.1),PI/2,Vector2(1.85,1.55),NAVY,GOLD,WHITE,
 		"TOTAL REWARDS / EQUITY","OWN THE FUTURE.",
 		"Liquidity event: postponed.\nExecutive cash bonus: paid.\nYour patience is a competitive advantage.")
-	_board("Water",Vector3(-8.31,1.94,7.65),PI/2,Vector2(2.45,1.48),PAPER,BLUE,INK,
+	_board("Water",Vector3(-6.75,1.94,6.135),0.0,Vector2(2.45,1.48),PAPER,BLUE,INK,
 		"BREAKROOM / SUSTAINABILITY","BYO MUG. BYO COFFEE.",
 		"Company-provided coffee discontinued.\nWe saved 0.002% of operating expense.\nWater remains complimentary for now.")
 	_board("Recruiting",Vector3(5.25,1.97,-9.84),0.0,Vector2(2.9,1.58),NAVY,AQUA,WHITE,

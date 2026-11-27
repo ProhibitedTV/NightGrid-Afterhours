@@ -22,7 +22,6 @@ func _ready() -> void:
 	_facade()
 	_workplaces()
 	_lobby()
-	_breakroom()
 	_flush()
 
 func get_detail_stats() -> Dictionary:
@@ -115,7 +114,8 @@ func _architecture() -> void:
 				_part("interior","black",Vector3(x-.33+i*.11,3.258,z),Vector3(.05,.012,.69))
 	for z in [-7.5,-2.5,2.5,7.5]:
 		for x in [-3.7,3.7]:
-			_part("interior","steel",Vector3(x,3.317,z),Vector3(3.34,.04,.38))
+			if z < 6.05 or x > 0.0:
+				_part("interior","steel",Vector3(x,3.317,z),Vector3(3.34,.04,.38))
 	# Floor inlay defines the two circulation zones without collision.
 	for x in [-1.55,1.55]:
 		_part("interior","trim",Vector3(x,.007,1.1),Vector3(.035,.008,17.0))
@@ -237,21 +237,3 @@ func _lobby() -> void:
 		_part("interior","steel",Vector3(x,3.24,-8.0),Vector3(.26,.09,.23))
 		_part("interior","porcelain",Vector3(x,3.09,-8.0),Vector3(.20,.22,.20),0.0,"cyl")
 		_part("interior","black",Vector3(x,2.965,-8.0),Vector3(.11,.045,.11),0.0,"cyl")
-
-func _breakroom() -> void:
-	var at := Vector3(-4.2,0,8.12)
-	_part("furniture","laminate",at+Vector3.UP*.89,Vector3(3.4,.10,1.02))
-	for x in [-1.45,1.45]:
-		for z in [-.39,.39]:
-			_part("furniture","steel",at+Vector3(x,.42,z),Vector3(.07,.84,.07))
-	_part("furniture","steel",at+Vector3(0,.24,0),Vector3(2.92,.06,.06))
-	for i in range(3):
-		var x := -3.62+i*.22
-		_part("furniture","paper",Vector3(x,1.055,8.10),Vector3(.11,.23,.11),0.0,"cyl")
-		_part("furniture","black",Vector3(x,1.172,8.10),Vector3(.096,.008,.096),0.0,"cyl")
-		_part("furniture","card",Vector3(x,1.025,8.10),Vector3(.116,.09,.116),0.0,"cyl")
-	# Raised lid and grease marks on the existing catering carton.
-	_part("furniture","card",Vector3(-4.28,1.22,8.43),Vector3(.68,.42,.035))
-	_part("furniture","paper",Vector3(-4.28,1.22,8.406),Vector3(.54,.30,.008))
-	for i in range(5):
-		_part("furniture","red",Vector3(-4.43+i*.07,1.065,8.11+(i%2)*.08),Vector3(.045,.012,.045),0.0,"cyl")

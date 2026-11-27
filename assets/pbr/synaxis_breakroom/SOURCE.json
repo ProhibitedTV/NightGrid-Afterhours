@@ -1,0 +1,65 @@
+{
+  "terrazzo_tiles": {
+    "license": "CC0-1.0",
+    "page": "https://polyhaven.com/a/terrazzo_tiles",
+    "maps": {
+      "Diffuse": {
+        "file": "terrazzo_tiles_diff_1k.jpg",
+        "sha256": "462e3e719cda0472a33152523cf5ca2fc660e1c5869348be1609ba3dca12a2ef",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/terrazzo_tiles/terrazzo_tiles_diff_1k.jpg"
+      },
+      "nor_gl": {
+        "file": "terrazzo_tiles_nor_gl_1k.jpg",
+        "sha256": "56bbe2d960b47ddb2dc538be2953a1ad07083b017cdada1cdc7958421a6cfcd9",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/terrazzo_tiles/terrazzo_tiles_nor_gl_1k.jpg"
+      },
+      "arm": {
+        "file": "terrazzo_tiles_arm_1k.jpg",
+        "sha256": "f6bc98a79c33010b54759c5dba5f915179a74b78d46f7b0d03ecf4feb6347c0e",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/terrazzo_tiles/terrazzo_tiles_arm_1k.jpg"
+      }
+    }
+  },
+  "black_walnut_veneer_02": {
+    "license": "CC0-1.0",
+    "page": "https://polyhaven.com/a/black_walnut_veneer_02",
+    "maps": {
+      "Diffuse": {
+        "file": "black_walnut_veneer_02_diff_1k.jpg",
+        "sha256": "fb123dbccd477791ff911511f1483d0fa87b424f05da852d4c75b3dc19c92b45",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/black_walnut_veneer_02/black_walnut_veneer_02_diff_1k.jpg"
+      },
+      "nor_gl": {
+        "file": "black_walnut_veneer_02_nor_gl_1k.jpg",
+        "sha256": "34c8eb00bfbe8fcac0535f20c0150165be0212bb08715e9f556aec9f34795e1e",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/black_walnut_veneer_02/black_walnut_veneer_02_nor_gl_1k.jpg"
+      },
+      "arm": {
+        "file": "black_walnut_veneer_02_arm_1k.jpg",
+        "sha256": "3daff3268dde882f973a54eef53e58edff665ae61c9135c1630ea7bf92ac2ed9",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/black_walnut_veneer_02/black_walnut_veneer_02_arm_1k.jpg"
+      }
+    }
+  },
+  "long_white_tiles": {
+    "license": "CC0-1.0",
+    "page": "https://polyhaven.com/a/long_white_tiles",
+    "maps": {
+      "Diffuse": {
+        "file": "long_white_tiles_diff_1k.jpg",
+        "sha256": "0aa70e14117e9b1fbf726868675f6afa8fd62a2691f7ba3964f47796df06cd9c",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/long_white_tiles/long_white_tiles_diff_1k.jpg"
+      },
+      "nor_gl": {
+        "file": "long_white_tiles_nor_gl_1k.jpg",
+        "sha256": "a488ee3a2dbb81f334e191b51a43567f4ee6bb8adce5fd3ed85d5a6958fddfc1",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/long_white_tiles/long_white_tiles_nor_gl_1k.jpg"
+      },
+      "arm": {
+        "file": "long_white_tiles_arm_1k.jpg",
+        "sha256": "6bbaa09ff62436dd839a211d946ea2b09a07f1b5430408a415fd37bec594f829",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/long_white_tiles/long_white_tiles_arm_1k.jpg"
+      }
+    }
+  }
+}

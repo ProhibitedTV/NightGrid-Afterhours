@@ -43,6 +43,7 @@ var _lift_audio:AudioStreamPlayer3D
 const LiftTransition=preload("res://scripts/synaxis_lift_transition.gd")
 const LiftFrontage=preload("res://scripts/synaxis_lift_frontage.gd")
 const GroundLayout=preload("res://scripts/synaxis_ground_layout.gd")
+const BreakroomArt = preload("res://scripts/synaxis_breakroom.gd")
 var _lift_transition:CanvasLayer
 var _lift_target:=0
 var _restrooms: Node3D
@@ -120,7 +121,7 @@ func _ready() -> void:
 	_solid("ExecutivePartition",Vector3(0,1.5,Arrival.PARTITION_NEAR_Z+partition_length*.5),Vector3(.18,3.0,partition_length),wall)
 	_build_lobby(desk,accent,screen)
 	_build_office_details(desk,accent,screen)
-	_build_breakroom(desk,accent)
+	_build_breakroom()
 	_build_ground_wayfinding(wall,accent)
 	_build_corporate_relics(desk,accent,screen)
 	_restrooms=Restrooms.new()
@@ -560,21 +561,23 @@ func _floor_arrow(at:Vector3,yaw:float) -> void:
 	node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(node,true)
 
-func _build_breakroom(desk: Material,accent: Material) -> void:
-	# Furniture is permanent; the short party performance is intro-only.
-	_collision("BreakroomTable",Vector3(-4.2,.47,8.12),Vector3(3.4,.94,1.02))
-	var card:=_material("party_cardboard",Color("c3a880"))
-	var cheese:=_material("party_food",Color("d5aa56"))
-	var paper:=_material("party_paper",Color("eceae1"))
-	_visual("CateringCarton",Vector3(-5.12,1.01,8.12),Vector3(.67,.12,.64),card)
-	_visual("OpenPizzaCarton",Vector3(-4.28,.98,8.12),Vector3(.68,.07,.66),card)
-	_visual("LastTwoSlices",Vector3(-4.28,1.04,8.12),Vector3(.36,.035,.31),cheese)
-	_visual("NapkinStack",Vector3(-2.90,1.00,8.18),Vector3(.22,.09,.22),paper)
+func _build_breakroom() -> void:
+	var art := BreakroomArt.new()
+	art.name = "BreakroomArt"
+	add_child(art)
+	# Same table footprint and room routes. Colliders match the new furniture.
+	_collision("BreakroomTable", Vector3(-4.2,.38,8.12), Vector3(3.4,.76,1.02))
+	_collision("BreakroomCasework", Vector3(-7.992,.468,8.0), Vector3(.749,.936,3.20))
+	for x in [-5.36, -3.04]:
+		_collision("BreakroomDiningChair",Vector3(x,.39,7.25),Vector3(.48,.78,.49))
 	_visual("PartyBannerBacking",Vector3(-4.2,2.98,9.80),Vector3(4.7,.66,.04),_material("party_navy",Brand.NAVY))
 	Brand.wall_logo(self,"PartyBrand",Vector3(-6.03,2.98,9.765),PI,.72)
 	_sign("GLOBAL TALENT APPRECIATION DAY",Vector3(-3.77,3.07,9.76),.004).rotation.y=PI
 	_sign("SPONSORSHIP TEAM / PHOTO BEFORE FOOD",Vector3(-3.77,2.86,9.76),.003).rotation.y=PI
-	_sign("CATERING BUDGET: $48\nATTENDANCE GOAL: 65",Vector3(-2.85,1.40,8.14),.0028).rotation.y=PI
+	var table_notice := _sign("CATERING BUDGET $48\nATTENDANCE GOAL 65",Vector3(-2.88,.875,8.001),.00047)
+	table_notice.rotation.y = PI
+	table_notice.outline_size = 0
+
 
 func _build_corporate_relics(desk: Material,accent: Material,screen: Material) -> void:
 	# Actual desk objects, not floating tutorial text. Keep the circulation aisle clear.
