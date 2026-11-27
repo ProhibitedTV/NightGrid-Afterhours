@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 from types import SimpleNamespace
 import subprocess
-from telemetry import snapshot, query_gpu
+from telemetry import snapshot, query_gpu, native_gpu_rows
 
 
 class TelemetryTests(unittest.TestCase):
@@ -29,6 +29,20 @@ class TelemetryTests(unittest.TestCase):
         self.assertEqual(data["gpu"][0]["temperature_source"], "windows-host")
         self.assertEqual(data["gpu"][1]["temperature_c"], 51)
         self.assertIsNone(data["gpu"][2]["temperature_c"])
+
+    def test_secure_path_missing_native_binary(self):
+        row = {"uuid": "GPU-one", "temperature_c": 49}
+        with patch("telemetry.shutil.which", return_value=None), patch("telemetry.Path.is_file", return_value=True), patch("telemetry.query_gpu", side_effect=lambda binary: [row] if binary == "/usr/lib/wsl/lib/nvidia-smi" else []) as query:
+            self.assertEqual(native_gpu_rows(), [row])
+            self.assertEqual(query.call_args.args, ("/usr/lib/wsl/lib/nvidia-smi",))
+
+    def test_empty_native_inventory_uses_host(self):
+        host = "GPU-one, RTX 3060, 50, 14, 1548, 12288\n"
+        with patch("telemetry.os.path.ismount", return_value=False), patch("telemetry.native_gpu_rows", return_value=[]), patch("telemetry.windows_nvidia_smi", return_value="/fake/nvidia-smi.exe"), patch("telemetry.subprocess.run", return_value=SimpleNamespace(stdout=host)):
+            data = snapshot()
+        self.assertEqual(data["gpu"][0]["temperature_source"], "windows-host")
+        self.assertEqual(data["gpu"][0]["memory_used_mib"], 1548)
+        self.assertEqual(data["gpu"][0]["temperature_c"], 50)
 
     def test_nonfinite_temperature_unavailable(self):
         with patch("telemetry.subprocess.run", return_value=SimpleNamespace(stdout="GPU-one, RTX 3060, nan, 0, 1024, 12288\nGPU-two, RTX 3060, inf, 0, 1024, 12288\n")):
