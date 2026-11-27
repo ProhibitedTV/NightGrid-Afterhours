@@ -65,8 +65,8 @@ func _verify() -> void:
 	var same: Dictionary = plan.build_manifest(1011)
 	var same_again: Dictionary = plan.build_manifest(1011)
 	var different: Dictionary = plan.build_manifest(1012)
-	if same != same_again or same == different:
-		_fail("Seeded outer lots must be stable within a game and vary on New Game")
+	if same != same_again or same != different or same != manifest:
+		_fail("All former seed inputs must resolve to the same canonical city")
 		return
 	var core_a: Dictionary = plan.lot_profile(-2, -1, 0, 0)
 	var core_b: Dictionary = plan.lot_profile(-2, -1, 0, 0)

@@ -1,5 +1,5 @@
 extends RefCounted
-## Morrow Bay is authored first; seeded procedural detail fills the authored blocks.
+## Morrow Bay has one permanent layout; procedural placement is deterministic.
 ## Block keys are fixed map coordinates and must not depend on the random generator.
 const CITY_NAME = "MORROW BAY"
 const GRID_RADIUS = 4
@@ -60,8 +60,8 @@ const LOT_PROFILES = {
 	"A4": {"height": 32.0, "width": 15.5, "depth": 22.0, "offset_z": 1.0, "wall": "624d66", "material": "CONCRETE"}
 }
 
-# Eight fixed parcels have three pre-authored facade compositions. A seed
-# selects one composition per *new game*; gameplay never rerolls any parcel.
+# Eight fixed parcels retain the historical authored composition selected
+# by the permanent layout key. Gameplay never selects a different composition.
 # Roads, transit paths, foundations and all four story landmarks stay immutable.
 const VARIANT_PARCELS = {
 	"-3,-3": ["V3/V1", "V4/V2"],
@@ -110,14 +110,14 @@ static func is_valid_block(ix: int, iz: int) -> bool:
 static func city_bounds() -> float:
 	return float(GRID_RADIUS) * BLOCK_SIZE
 
-static func outer_variant_code(ix: int, iz: int, which: int, world_seed: int) -> String:
+static func outer_variant_code(ix: int, iz: int, which: int, _world_seed: int) -> String:
 	assert(is_valid_block(ix, iz))
 	assert(not is_core_block(ix, iz))
 	var center := Vector3((float(ix) + 0.5) * BLOCK_SIZE, 0.0, (float(iz) + 0.5) * BLOCK_SIZE)
 	var district: String = district_at(center)
 	var choices: Array = DISTRICT_ARCHETYPES[district]
-	# Seed alters a curated archetype, never roads, district identity or land use.
-	var hash_code := (ix + GRID_RADIUS) * 157 + (iz + GRID_RADIUS) * 73 + which * 41 + world_seed * 11
+	# Permanent coordinate-based archetype selection, independent of saves.
+	var hash_code := (ix + GRID_RADIUS) * 157 + (iz + GRID_RADIUS) * 73 + which * 41 + 834726 * 11
 	return str(choices[posmod(hash_code, choices.size())])
 
 static func block_signature(ix: int, iz: int, world_seed: int) -> String:
@@ -130,8 +130,7 @@ static func block_signature(ix: int, iz: int, world_seed: int) -> String:
 	return "OUTER:%s/%s" % [outer_variant_code(ix, iz, 0, world_seed), outer_variant_code(ix, iz, 1, world_seed)]
 
 static func build_manifest(world_seed: int) -> Dictionary:
-	# Exact generated facade profiles are stored in the save, not just their seed.
-	# This lets subsequent generator refinements leave an existing layout intact.
+	# Compatibility manifest describes the same canonical lots for every game.
 	var blocks := {}
 	for ix in range(-GRID_RADIUS, GRID_RADIUS):
 		for iz in range(-GRID_RADIUS, GRID_RADIUS):
@@ -176,10 +175,10 @@ static func manifest_signature(manifest: Dictionary) -> String:
 		lines.append("%s:%s" % [str(key), str(blocks[key])])
 	return str("|".join(lines).hash())
 
-static func lot_variant_index(ix: int, iz: int, world_seed: int) -> int:
-	if world_seed <= 0 or not VARIANT_PARCELS.has("%d,%d" % [ix, iz]):
+static func lot_variant_index(ix: int, iz: int, _world_seed: int) -> int:
+	if not VARIANT_PARCELS.has("%d,%d" % [ix, iz]):
 		return 0
-	return (world_seed + (ix + 3) * 13 + (iz + 3) * 7) % 3
+	return (834726 + (ix + 3) * 13 + (iz + 3) * 7) % 3
 
 static func lot_profile(ix: int, iz: int, building_index: int, world_seed: int = 0) -> Dictionary:
 	assert(is_valid_block(ix, iz))

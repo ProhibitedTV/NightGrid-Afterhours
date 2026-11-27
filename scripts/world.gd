@@ -2570,7 +2570,7 @@ func _build_city() -> void:
 	city_details = CityDetailsScript.new()
 	city_details.name = "CityDetails"
 	add_child(city_details)
-	city_details.call("set_world_seed", rng.seed)
+	city_details.call("set_world_seed", 834726)
 	city_details.call("set_world_manifest", session.call("get_world_manifest"))
 	city_details.call("generate")
 
@@ -2582,11 +2582,11 @@ func _build_city_perimeter() -> void:
 	add_child(city_perimeter)
 
 func _build_world_systems() -> void:
-	# Geography and story anchors are authored; botanical infill is seeded.
+	# Geography and botanical infill use one permanent layout.
 	flora = FloraScript.new()
 	flora.name = "CityFlora"
 	add_child(flora)
-	flora.call("set_world_seed", rng.seed)
+	flora.call("set_world_seed", 834726)
 	flora.call("generate")
 	street_lights = NightLightingScript.new()
 	street_lights.name = "NightLighting"
@@ -2916,7 +2916,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 		saved_visual.call("set_look",progression.outfit_id,progression.clothing_slots)
 	_cinder_cockpit = false
 	_cockpit_look = Vector2.ZERO
-	# Geometry is already reconstructed from the saved immutable seed.
+	# Geometry is reconstructed from the permanent city layout.
 	if is_instance_valid(nightgrid_fm):
 		nightgrid_fm.call("restore", data.get("nightgrid_radio", {}))
 	# A saved active favor is explicit prior opt-in; do not strand the job
@@ -3057,7 +3057,7 @@ func _apply_snapshot(data: Dictionary) -> void:
 	_refresh_courier_target()
 	_snap_camera()
 	_log_playtest("save_restored", {"seed": int(session.get("world_seed"))})
-	_notify("Save loaded. Seed %d; Morrow Bay restored." % int(session.get("world_seed")))
+	_notify("Save loaded. Morrow Bay restored.")
 
 func _parking_guard_near() -> bool:
 	if current_car!=null or current_transit!=null or interiors.call("is_inside"):

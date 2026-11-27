@@ -55,7 +55,7 @@ const HELP_SECTIONS = [
 		"pad": "RT accelerate · LT reverse · Left stick steer · B brake · D-pad Right radio · D-pad Up next · D-pad Left Cinder view"},
 	{"title": "SHOP / CONTACTS", "keyboard": "G interact/close · 1 buy/use · 2 contract · Esc close",
 		"pad": "X interact/contract · A service · B close · D-pad navigate"},
-	{"title": "SYSTEM", "keyboard": "Esc pause · M map · Tab journal · P phone · F5 save at hotel · F9 load · F6 new world · F3 FPS · F8 CSV · F10 photo",
+	{"title": "SYSTEM", "keyboard": "Esc pause · M map · Tab journal · P phone · F5 save at hotel · F9 load · F6 new game · F3 FPS · F8 CSV · F10 photo",
 		"pad": "Start pause · View/Select map · B back · Phone/Save/Load/New in pause menu"}
 ]
 
@@ -429,8 +429,8 @@ func _render() -> void:
 				_button(col, "play", "ENTER CURRENT SESSION", "play")
 			else:
 				_button(col, "play", "BEGIN YOUR NEXT CHAPTER", "play")
-				_button(col, "continue", "CONTINUE  •  NO SAVE FOUND", "load", false)
-			_button(col, "new", "NEW WORLD / NEW SEED", "new")
+				_button(col, "continue", "CONTINUE  •  NO COMPATIBLE SAVE", "load", false)
+			_button(col, "new", "NEW GAME", "new")
 			_button(col, "settings", "SETTINGS", "settings")
 			_button(col, "controls", "CONTROLS & GAMEPAD", "controls")
 			_button(col, "quit", "QUIT TO DESKTOP", "quit")
@@ -800,9 +800,9 @@ func _render() -> void:
 			_button(col, "back", "BACK TO PAUSE", "back")
 		"confirm_new":
 			_title(col, "START ANOTHER WORLD?", 24, Color("f0cdab"))
-			_label(col, "The current unsaved session will be discarded. Your last saved slot will remain intact until you save the new world.", 17, Color("cbd8e3"))
+			_label(col, "The current unsaved session will be discarded. Your last saved slot will remain intact until you save your new game. Morrow Bay’s layout remains unchanged.", 17, Color("cbd8e3"))
 			_button(col, "cancel", "KEEP CURRENT SESSION", "cancel_new")
-			_button(col, "confirm_new", "DISCARD SESSION / NEW WORLD", "confirm_new")
+			_button(col, "confirm_new", "DISCARD SESSION / NEW GAME", "confirm_new")
 	_divider(shell)
 	_label(shell, "Arrows / D-pad  Navigate   •   Enter / A  Select   •   Esc / B  Back", 16, Ui.MUTED)
 	_wire_focus()
