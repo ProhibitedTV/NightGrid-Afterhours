@@ -68,7 +68,9 @@ func _label(id:String,value:String,at:Vector3,pixel:float) -> Label3D:
 	label.rotation.y=PI/2
 	label.font_size=40
 	label.pixel_size=pixel
-	label.outline_size=2
+	label.outline_size=0
+	label.fixed_size=false
+	label.no_depth_test=false
 	add_child(label)
 	return label
 
@@ -97,6 +99,9 @@ func _ready() -> void:
 	_sheet.hide()
 	_status=_label("PrinterStatus","READY",PRINTER+Vector3(.255,1.337,0),.0010)
 	_status.modulate = Color("1b3235")
+	# The authored copier has a physical control bezel; interaction state is
+	# reported through the existing proximity prompt, not a loose world label.
+	_status.hide()
 	# Separate appliance on the west perimeter, between existing desk rows.
 	_box("CoffeeCounter",COFFEE+Vector3(0,.51,0),Vector3(.66,1.02,1.14),Color("817664"),true)
 	_box("CounterTop",COFFEE+Vector3(0,1.04,0),Vector3(.72,.08,1.20),Color("3e464a"))
@@ -111,6 +116,7 @@ func _ready() -> void:
 	_stream=_cylinder("CoffeeStream",COFFEE+Vector3(.19,1.35,0),.008,.15,Color("6a4028"))
 	_stream.hide()
 	_coffee_status=_label("CoffeeStatus","COMPLIMENTARY / 1 CUP",COFFEE+Vector3(.270,1.498,0),.0010)
+	_coffee_status.hide()
 	_printer_sound=Audio.emitter(self,"office_printer",PRINTER+Vector3(0,1.2,0),-15.0,7.0)
 	_coffee_sound=Audio.emitter(self,"office_coffee",COFFEE+Vector3(0,1.4,0),-17.0,6.0)
 	set_active(false)

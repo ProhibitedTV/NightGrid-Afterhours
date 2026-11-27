@@ -36,8 +36,8 @@ func _ready() -> void:
 		for vent in range(8):
 			_part("black",Vector3(x-signf(x)*.415,1.7+vent*.075,6.9),Vector3(.018,.028,1.9))
 		_part("rust",Vector3(x-signf(x)*.42,.9,6.9),Vector3(.02,.19,.32))
-	_label("COOLING / DO NOT BLOCK AIRFLOW",Vector3(7.28,2.5,6.9),.0028,-PI/2)
-	_label("UPS / AUTHORIZED PERSONNEL ONLY",Vector3(-7.28,2.5,6.9),.0028,PI/2)
+	_label("COOLING / DO NOT BLOCK AIRFLOW",Vector3(7.345,2.5,6.9),.0017,-PI/2)
+	_label("UPS / AUTHORIZED PERSONNEL ONLY",Vector3(-7.345,2.5,6.9),.0017,PI/2)
 	# Marked circulation strip down the main aisle and around the lift.
 	for x in [-1.8,1.8]:
 		_part("rust",Vector3(x,.017,-3.5),Vector3(.07,.009,10.8))
@@ -51,18 +51,14 @@ func _ready() -> void:
 	_monitor(DESK+Vector3(.20,1.36,0),1.0)
 	_part("black",DESK+Vector3(-.1,1.10,.26),Vector3(.43,.025,.15))
 	_chair(DESK+Vector3(0,0,1.06),-1.0)
-	_label("IT SUPPORT / ACCESS CONTROL",Vector3(-5,1.025,2.981),.0017)
 	# Workbench, antistatic mat, stacked equipment boxes.
 	_part("steel",Vector3(5,.89,2.7),Vector3(2.8,.13,.9))
 	_solid(Vector3(5,.46,2.7),Vector3(2.8,.92,.9))
 	_part("blue",Vector3(5,.97,2.7),Vector3(1.5,.02,.72))
 	for i in range(3):
 		_part("black",Vector3(4.05+i*.55,1.09,2.72),Vector3(.42,.23,.45))
-	_label("REPAIR / ESD WORKBENCH",Vector3(5,.89,3.153),.0018)
 	_label("CAUTION / HIGH NOISE AREA\nHEARING PROTECTION RECOMMENDED",Vector3(0,2.45,9.75),.004,PI)
 	_label("DANGER / ELECTRICAL HAZARD\nAUTHORIZED PERSONNEL ONLY",Vector3(0,2.45,-9.73),.004)
-	_label("FIRE SUPPRESSION SYSTEM ACTIVE",Vector3(-8.20,2.55,-1.0),.003,PI/2)
-	_label("REPORT ALARMS / DO NOT OBSTRUCT AISLES",Vector3(8.20,2.55,-1.0),.003,-PI/2)
 	_install_lift("B1","UP / LOBBY","NO SERVICE")
 	for x in [-5.5,0.0,5.5]:
 		for z in [-6.5,0.0,6.5]:
