@@ -1392,7 +1392,9 @@ func _process(delta: float) -> void:
 		pitch = clampf(pitch+look.y*stick_sensitivity*delta*(-1.0 if invert_look_y else 1.0),.20,.85)
 		player.set("camera_yaw",yaw)
 		_update_camera(delta)
-		_opening_office.call("update_prompt",int(_opening_office.call("objective_stage",int(game_menu.get("_opening_stage")))),player.global_position,gamepad_active)
+		var office_visual:Node3D=player.get("visual")
+		var office_heading:=office_visual.global_basis.z if is_instance_valid(office_visual) else Vector3.FORWARD
+		_opening_office.call("update_prompt",int(_opening_office.call("objective_stage",int(game_menu.get("_opening_stage")))),player.global_position,gamepad_active,office_heading)
 		if _opening_office.call("exit_ready",player.global_position):
 			_accept_opening()
 			return

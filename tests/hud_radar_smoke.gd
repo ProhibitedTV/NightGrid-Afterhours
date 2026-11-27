@@ -19,6 +19,16 @@ func _verify() -> void:
 		return
 	if not check(Radar.clip_segment(Vector2.INF, Vector2.ZERO, 10).is_empty(), "nonfinite segment rejected"):
 		return
+	var office_radar:=Radar.new()
+	office_radar.set_office_state(Vector2.ZERO,Vector2(1,5),0)
+	office_radar.set_office_heading(Vector2(4,0))
+	if not check(office_radar.get("_office_heading")==Vector2.RIGHT,"office radar normalizes actual player facing"):
+		return
+	for invalid in [Vector2.ZERO,Vector2.INF]:
+		office_radar.set_office_heading(invalid)
+		if not check(office_radar.get("_office_heading")==Vector2.UP,"office radar rejects invalid headings"):
+			return
+	office_radar.free()
 	var world: Node3D = load("res://scenes/main.tscn").instantiate()
 	root.add_child(world)
 	await process_frame
