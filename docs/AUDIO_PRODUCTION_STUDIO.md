@@ -213,3 +213,8 @@ Human listening and release validation remain pending.
 ## RC8 public preview policy
 
 The project owner authorized distribution of batch 001 on 2026-11-26. This permits the 78 machine-QC accepted original synthetic clips to appear in a public prerelease, without asserting human performance approval. `anubis.py bake --all --auto-playtest --rights-checked` is the explicit opt-in provisional path; ordinary interactive review remains available. `chapter.py require-complete --source scripts/opening_story.gd` and `production.py verify-library --release-reviewed --manifest tools/voice/synaxis_chapter.json` remain strict final-review gates. The RC8 preview uses the ordinary provenance verification and requires at least 78 verified clips plus successful preflight and Windows smoke; it does not claim completion. Ten flagged clips and the environmental effects remain outstanding.
+
+
+## Original music department
+
+The [ACE-Step music production lane](ANUBIS_MUSIC_CANDIDATES.md) versions the local 24-cue candidate runner and shared WAV validation. Run only after other GPU workloads stop; soundtrack master approval and game integration remain independent of voice and SFX publication.
