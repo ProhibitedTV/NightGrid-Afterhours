@@ -44,6 +44,19 @@ def query_gpu(binary):
         return []
 
 
+def native_gpu_rows():
+    # sudo's secure_path often omits the WSL-provided NVIDIA executable.
+    binaries = [shutil.which("nvidia-smi")]
+    wsl_binary = Path("/usr/lib/wsl/lib/nvidia-smi")
+    if wsl_binary.is_file():
+        binaries.append(str(wsl_binary))
+    for binary in dict.fromkeys(binaries):
+        rows = query_gpu(binary)
+        if rows:
+            return rows
+    return []
+
+
 def windows_nvidia_smi():
     # WSL's NVML does not expose every metric on every driver. Only try
     # Windows interop under WSL; never download or install a binary.
@@ -88,8 +101,16 @@ def snapshot():
                                      "free_bytes": disk.free}
         except OSError:
             result["disks"][name] = {"status": "unavailable"}
-    rows = query_gpu(shutil.which("nvidia-smi"))
-    if rows and any(gpu["temperature_c"] is None and gpu["uuid"] for gpu in rows):
+    rows = native_gpu_rows()
+    if not rows:
+        # No native inventory: monitor the entire Windows host inventory rather
+        # than guessing a device by model or index. Strict music mode rejects
+        # multiple GPUs and incomplete readings; CUDA still checks its device.
+        rows = query_gpu(windows_nvidia_smi())
+        for gpu in rows:
+            if gpu["temperature_c"] is not None:
+                gpu["temperature_source"] = "windows-host"
+    elif any(gpu["temperature_c"] is None and gpu["uuid"] for gpu in rows):
         fill_temperatures(rows, query_gpu(windows_nvidia_smi()))
     result["gpu"] = rows or None
     return result
