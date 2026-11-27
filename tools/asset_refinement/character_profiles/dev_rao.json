@@ -7,7 +7,7 @@
     "seed": 583102,
     "gender": 1,
     "ageYears": 33,
-    "height": 0.53,
+    "height": 0.5,
     "weight": 0.46,
     "muscle": 0.36,
     "proportions": 0.51,
@@ -24,14 +24,16 @@
     "eyes": "brown",
     "eyebrows": "eyebrow001",
     "eyelashes": "eyelashes01",
-    "hair": "short04",
+    "hair": "short02",
     "hairColor": "#302d2c",
     "outfit": "set_suit_tie",
     "top": "suit_shirt_tie",
     "jacket": "suit_jacket",
     "bottom": "suit_trousers",
     "shoes": "oxfords",
-    "accessories": [],
+    "accessories": [
+      "watch_silver"
+    ],
     "carry": "none",
     "garmentStyles": {
       "set_suit_tie": {
@@ -52,6 +54,7 @@
     "faceShapes": false,
     "speechShapes": false,
     "weapon": "none",
-    "vehicle": "none"
+    "vehicle": "none",
+    "hairTint": "#332c25"
   }
 }

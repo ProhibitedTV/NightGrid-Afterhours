@@ -12,7 +12,7 @@ func _require(condition: bool, message: String) -> bool:
 
 func _run() -> void:
 	var args := OS.get_cmdline_user_args()
-	if not _require(args.size() == 2, "Expected GLB path and output directory"):
+	if not _require(args.size() >= 2, "Expected GLB path and output directory"):
 		return
 	var file := args[0]
 	var out := args[1]
@@ -56,7 +56,8 @@ func _run() -> void:
 		"renderer": RenderingServer.get_current_rendering_method()}
 	if not _require(out.is_absolute_path() and not DirAccess.dir_exists_absolute(out) and DirAccess.make_dir_recursive_absolute(out) == OK, "Expected a new evidence directory"):
 		return
-	for clip in ["Idle", "Walk"]:
+	var clips := args.slice(2) if args.size() > 2 else PackedStringArray(["Idle", "Walk"])
+	for clip in clips:
 		if not _require(player.has_animation(clip), "Missing animation: " + clip):
 			return
 		var animation := player.get_animation(clip)

@@ -49,6 +49,13 @@ class CharacterCandidateTests(unittest.TestCase):
                 path.write_bytes(struct.pack("<4sIIII",b"glTF",2,len(raw)+20,len(raw),0x4E4F534A)+raw)
             write()
             self.assertEqual(inspect_glb(path)["weighted_primitives"],1)
+            original = list(doc["animations"])
+            doc["animations"].extend({"name": name, "channels": [{}]}
+                                     for name in ("Talk with gestures", "Sit idle (chair)"))
+            write()
+            self.assertEqual(inspect_glb(path, ("idle", "walk", "talk_gestures",
+                                                "sit_idle"))["weighted_primitives"], 1)
+            doc["animations"] = original
             doc["animations"].pop()
             write()
             with self.assertRaisesRegex(ValueError,"Missing weighted"):

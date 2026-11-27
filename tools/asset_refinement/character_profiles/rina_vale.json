@@ -7,7 +7,7 @@
     "seed": 583103,
     "gender": 0,
     "ageYears": 32,
-    "height": 0.42,
+    "height": 0.49,
     "weight": 0.48,
     "muscle": 0.35,
     "proportions": 0.53,
@@ -24,25 +24,27 @@
     "eyes": "brown",
     "eyebrows": "eyebrow001",
     "eyelashes": "eyelashes01",
-    "hair": "short04",
+    "hair": "ponytail01",
     "hairColor": "#29242b",
-    "outfit": "set_suit_tie",
-    "top": "suit_shirt_tie",
+    "outfit": "set_pantsuit",
+    "top": "silk_blouse",
     "jacket": "suit_jacket",
     "bottom": "suit_trousers",
-    "shoes": "oxfords",
-    "accessories": [],
+    "shoes": "loafers",
+    "accessories": [
+      "fine_pendant"
+    ],
     "carry": "none",
     "garmentStyles": {
-      "set_suit_tie": {
+      "set_pantsuit": {
         "pattern": "suiting",
-        "color": "#695a69",
-        "color2": "#514552"
+        "color": "#635362",
+        "color2": "#433746"
       },
-      "suit_shirt_tie": {
+      "silk_blouse": {
         "pattern": "solid",
-        "color": "#e6dfeb",
-        "color2": "#55485c"
+        "color": "#d6c7b1",
+        "color2": "#d6c7b1"
       }
     },
     "detail": "medium",
@@ -52,6 +54,7 @@
     "faceShapes": false,
     "speechShapes": false,
     "weapon": "none",
-    "vehicle": "none"
+    "vehicle": "none",
+    "hairTint": "#3d2928"
   }
 }

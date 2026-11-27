@@ -12,7 +12,14 @@ ROOT = Path(__file__).resolve().parents[2]
 PROFILES = Path(__file__).with_name("character_profiles")
 PACKAGE = "ara3d@0.13.0"
 REVISION = "9d3b9f9933cbeb9529630a270ffc7fe01bd05511"
-ACTORS = {"dev_rao": "Dev Rao", "rina_vale": "Rina Vale"}
+ACTORS = {"dev_rao": "Dev Rao", "rina_vale": "Rina Vale",
+          "dana_mercer": "Dana Mercer", "jetson_wang": "Jetson Wang"}
+ANIMATIONS = {
+    "dev_rao": ("idle", "walk", "carry_idle", "talk_gestures"),
+    "rina_vale": ("idle", "walk", "talk_gestures"),
+    "dana_mercer": ("idle", "walk", "sit_down", "sit_idle", "stand_up"),
+    "jetson_wang": ("idle", "walk", "sit_down", "sit_idle", "stand_up"),
+}
 CLIPS = {"Idle", "Walk"}
 MAX_BYTES = 18_000_000
 
@@ -35,7 +42,7 @@ def profile(actor):
     return raw
 
 
-def inspect_glb(path):
+def inspect_glb(path, required_clips=CLIPS):
     if not path.is_file() or path.is_symlink() or not 20 <= path.stat().st_size <= MAX_BYTES:
         raise ValueError("Missing, unsafe or oversized GLB")
     raw = path.read_bytes()
@@ -72,7 +79,12 @@ def inspect_glb(path):
                 weighted += 1
     materials = doc.get("materials", [])
     clips = {a["name"] for a in doc.get("animations", []) if a.get("channels")}
-    if (not weighted or not CLIPS <= clips or
+    def normalize(clip):
+        key = "".join(c for c in clip.lower() if c.isalnum())
+        aliases = {"talkwithgestures": "talkgestures", "sitdownchair": "sitdown",
+                   "sitidlechair": "sitidle", "standupchair": "standup"}
+        return aliases.get(key, key)
+    if (not weighted or not {normalize(clip) for clip in required_clips} <= {normalize(clip) for clip in clips} or
             not any("baseColorTexture" in m.get("pbrMetallicRoughness", {}) for m in materials) or
             not any("normalTexture" in m for m in materials)):
         raise ValueError("Missing weighted geometry, required clips or textured materials")
@@ -86,7 +98,7 @@ def plan(actor, out):
     if os.name == "nt":
         executable = shutil.which("npx.cmd") or "npx.cmd"
     return [executable, "--yes", PACKAGE, "export", "--params", str(folder/"profile.json"),
-            "--out", str(folder/"export"), "--animations", "idle,walk"]
+            "--out", str(folder/"export"), "--animations", ",".join(ANIMATIONS[actor])]
 
 
 def run(out, actors, execute=False):
@@ -108,21 +120,25 @@ def run(out, actors, execute=False):
         folder = out / actor
         folder.mkdir()
         (folder/"profile.json").write_bytes(profiles[actor])
-        subprocess.run(plan(actor, out), cwd=folder, check=True, timeout=900)
-        models = sorted((folder/"export").glob("*.glb"))
-        if len(models) != 1:
-            raise ValueError("Expected exactly one exported GLB for " + actor)
-        model = models[0]
-        evidence = inspect_glb(model)
-        (folder/"candidate.json").write_text(json.dumps({
-            "schema": 1, "status": "candidate-only", "actor": actor,
-            "profile_sha256": sha(profiles[actor]), "package": PACKAGE,
-            "documented_source_revision": REVISION, "command": plan(actor, out),
-            "model": model.relative_to(folder).as_posix(), "structural": evidence,
-            "review_pending": ["rights", "appearance", "physical scale", "weight deformation",
-                               "animation", "native Godot import", "Windows performance"]
-        }, indent=2, sort_keys=True)+"\n", encoding="utf-8")
-        print("Candidate only:", actor, evidence)
+        subprocess.run(plan(actor, out), cwd=ROOT, check=True, timeout=900)
+        record_candidate(folder, actor, profiles[actor], plan(actor, out))
+
+
+def record_candidate(folder, actor, profile_bytes, command):
+    models = sorted((folder/"export").glob("*.glb"))
+    if len(models) != 1:
+        raise ValueError("Expected exactly one exported GLB for " + actor)
+    model = models[0]
+    evidence = inspect_glb(model, ANIMATIONS[actor])
+    (folder/"candidate.json").write_text(json.dumps({
+        "schema": 1, "status": "candidate-only", "actor": actor,
+        "profile_sha256": sha(profile_bytes), "package": PACKAGE,
+        "documented_source_revision": REVISION, "command": command,
+        "model": model.relative_to(folder).as_posix(), "structural": evidence,
+        "review_pending": ["rights", "appearance", "physical scale", "weight deformation",
+                           "animation", "native Godot import", "Windows performance"]
+    }, indent=2, sort_keys=True)+"\n", encoding="utf-8")
+    print("Candidate only:", actor, evidence)
 
 
 if __name__ == "__main__":
