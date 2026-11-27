@@ -15,6 +15,7 @@ var _staff_exit_open:=false
 var _lobby_light: OmniLight3D
 var _lobby_active := false
 var _prologue_active := false
+const CreatorCast = preload("res://scripts/synaxis_creator_cast.gd")
 const Staff = preload("res://scripts/synaxis_staff.gd")
 const Interviews = preload("res://scripts/synaxis_interviews.gd")
 const Cast = preload("res://scripts/synaxis_cast.gd")
@@ -720,6 +721,7 @@ func _build_cast() -> void:
 		actor.rotation.y=float(spec["yaw"])
 		actor.process_mode=Node.PROCESS_MODE_ALWAYS
 		_cast.add_child(actor)
+		CreatorCast.install(actor, str(spec["id"]))
 		_staff[spec["id"]]=actor
 	_ceo=_staff["jetson_wang"]
 	_hr=_staff["people_ops"]

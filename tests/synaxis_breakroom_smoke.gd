@@ -17,6 +17,17 @@ func _test() -> void:
 	office.begin_prologue()
 	await physics_frame
 	await physics_frame
+	if OS.has_environment("NIGHTGRID_VERIFY_CREATOR_CAST"):
+		var cast: Dictionary = office.get("_staff")
+		for id in ["dev", "rina", "people_ops", "jetson_wang"]:
+			if cast[id].get_node_or_null("CreatorCastVisual") == null:
+				_fail("Missing packaged actor " + id)
+				return
+		var dev: Node3D = cast["dev"]
+		if dev.find_child("ReviewCoffeeRightHand", true, false) == null:
+			_fail("Missing Dev's packaged hand attachment")
+			return
+		print("CREATOR_CAST PASS")
 	var art := office.get_node("BreakroomArt") as Node3D
 	var kit := art.get_node("AuthoredRoom")
 	for name in ["Floor", "Table", "DiningChair1", "DiningChair2", "Casework", "Sink", "Microwave", "Espresso", "Luminaires"]:
