@@ -104,3 +104,18 @@ guarantee. These settings are proposed, not native-validated; do not assume
 the 4B LM improves every cue. Reference upstream ACE-Step documentation:
 https://github.com/ace-step/ACE-Step-1.5/blob/main/README.md and
 https://github.com/ace-step/ACE-Step-1.5/blob/main/docs/en/GPU_COMPATIBILITY.md.
+
+## Long-run safety
+
+The music launcher now runs the existing Factory process-group supervisor in
+strict single-GPU mode for the entire job, not just at take boundaries. It
+checks NAS/SSD reserves and GPU temperature every 15 seconds, stops the
+child process group if a reserve is breached, temperature reaches 85 C or
+required telemetry disappears, and logs measurements locally under the Anubis
+user's `~/.local/state/nightgrid-music/`. The runner also checks valid GPU
+memory telemetry and the initial free-VRAM reserve. WSL temperature recovery
+uses the existing UUID-matched Windows nvidia-smi fallback; if Windows interop
+is unavailable the job refuses to launch rather than disabling the guard.
+Other Factory lanes retain their previous policy. These software checks are
+not hardware thermal protection. Native WSL interop, process interruption,
+resume and long-run thermal behavior require an actual one-take audition.
