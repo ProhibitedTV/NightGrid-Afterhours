@@ -1,0 +1,60 @@
+{
+  "$schema": "https://ara3dgen.com/schemas/character.v1.json",
+  "kind": "ara-character",
+  "version": 1,
+  "params": {
+    "name": "Rina Vale",
+    "seed": 583103,
+    "gender": 0,
+    "ageYears": 32,
+    "height": 0.49,
+    "weight": 0.48,
+    "muscle": 0.35,
+    "proportions": 0.53,
+    "african": 0.34,
+    "asian": 0.19,
+    "caucasian": 0.47,
+    "modifiers": {
+      "head/head-scale-horiz": 0.06,
+      "head/head-rectangular": 0.07,
+      "eyes/eye-bag": 0.08,
+      "eyebrows/eyebrows-trans": -0.04
+    },
+    "skinTint": "#ecd6c2",
+    "eyes": "brown",
+    "eyebrows": "eyebrow001",
+    "eyelashes": "eyelashes01",
+    "hair": "ponytail01",
+    "hairColor": "#29242b",
+    "outfit": "set_pantsuit",
+    "top": "silk_blouse",
+    "jacket": "suit_jacket",
+    "bottom": "suit_trousers",
+    "shoes": "loafers",
+    "accessories": [
+      "fine_pendant"
+    ],
+    "carry": "none",
+    "garmentStyles": {
+      "set_pantsuit": {
+        "pattern": "suiting",
+        "color": "#635362",
+        "color2": "#433746"
+      },
+      "silk_blouse": {
+        "pattern": "solid",
+        "color": "#d6c7b1",
+        "color2": "#d6c7b1"
+      }
+    },
+    "detail": "medium",
+    "rig": "game",
+    "faceBones": false,
+    "restPose": "A",
+    "faceShapes": false,
+    "speechShapes": false,
+    "weapon": "none",
+    "vehicle": "none",
+    "hairTint": "#3d2928"
+  }
+}
