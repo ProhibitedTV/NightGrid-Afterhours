@@ -151,6 +151,14 @@ func _verify() -> void:
 	if hero == null or hero is CollisionObject3D or hero.get_node_or_null("Coachwork/FrontClip") == null or hero.get_node_or_null("Coachwork/LiveInstrumentCluster") != null or (world.get("cars") as Array).size() != 12:
 		_fail("Title must stage the real R9 rig without adding a gameplay car or instruments")
 		return
+	if hero.get_node_or_null("TitleRoadContactOcclusion") == null:
+		_fail("Title R9 requires a grounded underbody shadow")
+		return
+	var alley: Node3D = world.get("city_details").find_child("BrickwaterServiceAlley", true, false) as Node3D
+	var steam: CPUParticles3D = alley.get_node_or_null("StreetAtmosphere/DrainSteam") as CPUParticles3D
+	if steam == null or steam.process_mode != Node.PROCESS_MODE_ALWAYS or not is_equal_approx(steam.speed_scale, 0.75):
+		_fail("Live title must reuse the authored drain steam")
+		return
 	var lamp: SpotLight3D = hero.get_node("Coachwork/KeyLeftBeam")
 	if not lamp.visible:
 		_fail("Title R9 night headlights must use actual optics")
@@ -169,7 +177,7 @@ func _verify() -> void:
 		_fail("Title clock must advance visually without running gameplay or moving the player")
 		return
 	preview.call("finish")
-	if world.has_node("TitleCinderR9"):
+	if world.has_node("TitleCinderR9") or world.has_node("TitleAlleyCamera") or world.has_node("TitleAlleyMist"):
 		_fail("Title vehicle leaked into gameplay")
 		return
 	preview.queue_free()
