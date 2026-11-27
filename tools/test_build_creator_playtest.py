@@ -28,6 +28,18 @@ class CreatorBuildTests(unittest.TestCase):
                 file.write_bytes(b"candidate")
                 self.assertEqual(build.sha256(file), hashlib.sha256(b"candidate").hexdigest())
 
+    def test_audio_inventory_contract(self):
+        bank = '[{"id":"step_tile","loop":false,"reviewed":false}]'
+        count, effects = build.audio_inventory("Verified published lines: 86\n", bank)
+        self.assertEqual(count, 86)
+        self.assertEqual(effects[0]["id"], "step_tile")
+        for bad in ['{}', '[{"id":"x","loop":1,"reviewed":true}]',
+                    '[{"id":"x","loop":false,"reviewed":true},{"id":"x","loop":true,"reviewed":true}]']:
+            with self.assertRaises(RuntimeError):
+                build.audio_inventory("Verified published lines: 86", bad)
+        with self.assertRaises(RuntimeError):
+            build.audio_inventory("unrecognized voice output", bank)
+
     def test_dirty_source_rejected(self):
         with patch.object(build, "git", return_value=" M scripts/world.gd"):
             with self.assertRaises(RuntimeError):

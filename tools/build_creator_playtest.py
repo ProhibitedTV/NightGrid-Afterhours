@@ -54,6 +54,23 @@ def step(logs, label, argv, cwd=ROOT, marker=None, timeout=900):
         raise RuntimeError(f"{label} failed; inspect {logs / (label + '.log')}")
     return data.decode("utf-8", errors="replace")
 
+def audio_inventory(voice_output, sfx_output):
+    """Parse the same provenance verifier outputs used by Windows CI."""
+    match = re.fullmatch(r"Verified published lines: (\d+)", voice_output.strip())
+    if match is None:
+        raise RuntimeError("Unexpected voice verification result")
+    bank = json.loads(sfx_output)
+    if not isinstance(bank, list):
+        raise RuntimeError("Expected verified SFX inventory")
+    ids = set()
+    for entry in bank:
+        if (not isinstance(entry, dict) or not isinstance(entry.get("id"), str)
+                or not entry["id"] or entry["id"] in ids
+                or type(entry.get("loop")) is not bool or type(entry.get("reviewed")) is not bool):
+            raise RuntimeError("Invalid or duplicate verified SFX entry")
+        ids.add(entry["id"])
+    return int(match.group(1)), bank
+
 def stamp(original, revision):
     if not re.fullmatch(r"[0-9a-f]{40}", revision) or original.count(MARKER) != 1:
         raise RuntimeError("Unexpected source identity; refusing to stamp")
@@ -89,9 +106,13 @@ def main():
         raise RuntimeError("Expected Godot 4.7.2, got " + version)
     step(logs, "voice-contract", [sys.executable, "tools/voice/chapter.py", "validate",
                                  "--source", "scripts/opening_story.gd"])
-    step(logs, "voice-library", [sys.executable, "tools/voice/production.py", "verify-library",
+    voice_output = step(logs, "voice-library", [sys.executable, "tools/voice/production.py", "verify-library",
                                 "--manifest", "tools/voice/synaxis_chapter.json"])
-    step(logs, "sfx-library", [sys.executable, "tools/audio/generate_sfx.py", "verify-staged"])
+    sfx_output = step(logs, "sfx-library", [sys.executable, "tools/audio/generate_sfx.py", "verify-staged"])
+    voice_count, sfx_bank = audio_inventory(voice_output, sfx_output)
+    print(f"Verified source audio inventory: {voice_count} spoken lines, {len(sfx_bank)} SFX")
+    if not voice_count or not sfx_bank:
+        raise RuntimeError("Creator package requires nonempty existing voice and SFX banks; recover, do not regenerate blindly")
     info = ROOT / "scripts/build_info.gd"
     original = info.read_bytes()
     stamped = stamp(original, revision)
@@ -100,7 +121,16 @@ def main():
     # Restore exact bytes even after failed import, test or export. Never use git reset.
     try:
         info.write_bytes(stamped)
-        step(logs, "import", [engine, "--headless", "--path", ROOT, "--import", "--quit"])
+        import_output = step(logs, "import", [engine, "--headless", "--path", ROOT, "--import", "--quit"])
+        if "Cannot generate mipmaps from compressed image formats" in import_output:
+            raise RuntimeError("Import reported compressed-image mipmap failure")
+        step(logs, "voice-import", [engine, "--headless", "--path", ROOT, "--script",
+                                    "res://tests/voiced_asset_bank_smoke.gd", "--", voice_count],
+             marker="VOICED_ASSET_BANK PASS:", timeout=180)
+        step(logs, "sfx-import", [engine, "--headless", "--path", ROOT, "--script",
+                                  "res://tests/generated_sfx_bank_smoke.gd", "--",
+                                  json.dumps(sfx_bank, separators=(",", ":"))],
+             marker="GENERATED_SFX_BANK PASS:", timeout=180)
         step(logs, "strict-cast", [engine, "--headless", "--path", ROOT, "--script",
                                   "res://tests/synaxis_creator_cast_smoke.gd", "--", "--require-cast"],
              marker="SYNAXIS_CREATOR_CAST PASS: all four staged actors", timeout=180)
@@ -130,8 +160,11 @@ def main():
     manifest = {"revision": revision, "godot": version, "channel": "development",
                 "candidate_hashes": {name: sha256(cast / name) for name in
                                      ("dev.glb.bin", "rina.glb.bin", "dana.glb.bin", "jetson.glb.bin")},
+                "audio_inventory": {"verified_source_voice_lines": voice_count,
+                                    "verified_source_sfx": sfx_bank,
+                                    "complete_or_human_reviewed": "not asserted"},
                 "checks": ["voice-contract", "voice-library", "sfx-library", "import",
-                           "strict-cast", "windows-export", "packaged-cast"],
+                           "voice-import", "sfx-import", "strict-cast", "windows-export", "packaged-cast"],
                 "native_acceptance": "pending"}
     (out / "CREATOR-MANIFEST.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     payload = [exe, pck, out / "BUILD-INFO.txt", out / "CREATOR-MANIFEST.json"]
@@ -144,5 +177,5 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except (RuntimeError, OSError, subprocess.SubprocessError) as exc:
+    except (RuntimeError, OSError, ValueError, subprocess.SubprocessError) as exc:
         sys.exit(f"CREATOR_BUILD FAIL: {exc}")
