@@ -17,6 +17,18 @@ func _test() -> void:
 	if not badge.sample()["badge_authorized"] or badge.sample()["gate_open"]:
 		_fail("Badge authorization must precede gate traversal")
 		return
+	if badge.sample()["gate_fraction"] <= 0.0 or badge.sample()["gate_fraction"] >= 1.0:
+		_fail("Authorized gate must be in opening motion before traversal")
+		return
+	badge.advance(0.8)
+	if badge.sample()["gate_fraction"] != 1.0 or not badge.sample()["gate_open"]:
+		_fail("Gate must be fully open at ingress")
+		return
+	badge.advance(2.2)
+	badge.advance(0.7)
+	if not is_zero_approx(float(badge.sample()["gate_fraction"])):
+		_fail("Gate must close after ingress")
+		return
 	var surveillance_count := 0
 	for shot in Arrival.SHOTS:
 		var sample := arrival.sample()
