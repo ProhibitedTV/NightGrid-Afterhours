@@ -1,4 +1,6 @@
 import hashlib
+import json
+import struct
 import tempfile
 import unittest
 from pathlib import Path
@@ -67,6 +69,25 @@ class CreatorBuildTests(unittest.TestCase):
         with patch.object(build, "git", return_value=sidecars):
             with self.assertRaises(RuntimeError):
                 build.require_clean()
+
+    def test_extracted_courier_image_must_match_embedded_bytes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            model = root / build.COURIER_MODEL
+            model.parent.mkdir(parents=True)
+            image = model.with_name(model.stem + "_0.png")
+            manifest = json.dumps({"images": [{"mimeType": "image/png", "bufferView": 0}],
+                                   "bufferViews": [{"byteLength": 4}]}).encode()
+            model.write_bytes(bytes(12) + struct.pack("<I4s", len(manifest), b"JSON") + manifest
+                              + struct.pack("<I4s", 4, b"BIN\0") + b"data")
+            image.write_bytes(b"data")
+            status = "?? " + image.relative_to(root).as_posix()
+            with patch.object(build, "ROOT", root), patch.object(build, "git", side_effect=[status, ""]):
+                build.require_clean(after_import=True)
+            image.write_bytes(b"else")
+            with patch.object(build, "ROOT", root), patch.object(build, "git", side_effect=[status, ""]):
+                with self.assertRaises(RuntimeError):
+                    build.require_clean(after_import=True)
 
 if __name__ == "__main__":
     unittest.main()

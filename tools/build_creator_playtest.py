@@ -8,6 +8,7 @@ import hashlib
 import json
 import re
 import shutil
+import struct
 import subprocess
 import sys
 import wave
@@ -20,6 +21,7 @@ RADIO_NAMES = ("report", "assigned", "ack", "contact", "search", "closed", "rele
                "unavailable", "available", "civicmotorist", "civictraffic", "civicpublic")
 RADIO_GENERATED = {f"?? assets/audio/mbpd/{name}.wav{suffix}"
                    for name in RADIO_NAMES for suffix in ("", ".import")}
+COURIER_MODEL = Path("assets/models/nightgrid/courier/morrow_courier.glb")
 CREDITS = {
     "assets/models/nightgrid/courier/SOURCE.md": "COURIER-ASSET-CREDITS.md",
     "assets/audio/nightgrid_fm/README.md": "NIGHTGRID-FM-CREDITS.md",
@@ -37,9 +39,41 @@ def sha256(path):
 def git(*args):
     return subprocess.check_output(["git", *args], cwd=ROOT, text=True).strip()
 
+def verified_extracted_images():
+    # Godot extracts the courier's embedded images beside its tracked GLB.
+    # Derive the eligible paths from that GLB and verify their exact bytes.
+    verified = set()
+    with (ROOT / COURIER_MODEL).open("rb") as model:
+        model.seek(12)
+        size, chunk = struct.unpack("<I4s", model.read(8))
+        if chunk != b"JSON":
+            raise RuntimeError("Courier GLB lacks its JSON chunk")
+        manifest = json.loads(model.read(size))
+        size, chunk = struct.unpack("<I4s", model.read(8))
+        if chunk != b"BIN\0":
+            raise RuntimeError("Courier GLB lacks its binary chunk")
+        binary_start = model.tell()
+        for index, image in enumerate(manifest["images"]):
+            suffix = {"image/jpeg": ".jpg", "image/png": ".png"}[image["mimeType"]]
+            name = image.get("name") or f"{index}{suffix}"
+            if not re.fullmatch(r"[\w.-]+", name):
+                raise RuntimeError("Unexpected embedded courier image name")
+            path = COURIER_MODEL.with_name(f"{COURIER_MODEL.stem}_{name}")
+            extracted = ROOT / path
+            if not extracted.is_file() or extracted.is_symlink():
+                continue
+            view = manifest["bufferViews"][image["bufferView"]]
+            model.seek(binary_start + view.get("byteOffset", 0))
+            if extracted.read_bytes() == model.read(view["byteLength"]):
+                verified.add(path.as_posix())
+    return verified
+
 def require_clean(*, after_import=False):
     changes = git("status", "--porcelain", "--untracked-files=all").splitlines()
     tracked = set(git("ls-files").splitlines()) if after_import else set()
+    prefix = f"?? {COURIER_MODEL.parent.as_posix()}/{COURIER_MODEL.stem}_"
+    extracted = verified_extracted_images() if after_import and any(
+        line.startswith(prefix) for line in changes) else set()
     unexpected = []
     for line in changes:
         if line in RADIO_GENERATED:
@@ -49,7 +83,9 @@ def require_clean(*, after_import=False):
         # Tracked metadata edits and unrelated untracked files still fail.
         path = line[3:]
         if after_import and line.startswith("?? "):
-            if path.endswith(".import") and path[:-7] in tracked:
+            if path in extracted:
+                continue
+            if path.endswith(".import") and (path[:-7] in tracked or path[:-7] in extracted):
                 continue
             if path.endswith((".gd.uid", ".gdshader.uid")) and path[:-4] in tracked:
                 continue
