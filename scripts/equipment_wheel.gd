@@ -23,7 +23,13 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	resized.connect(queue_redraw)
+	visibility_changed.connect(_sync_processing)
 	hide()
+	_sync_processing()
+
+func _sync_processing() -> void:
+	set_process(is_visible_in_tree())
+	set_process_input(is_visible_in_tree())
 
 func present(state: Dictionary, pad: bool = false) -> void:
 	equipped = maxi(0, Arsenal.IDS.find(str(state.get("equipped", "holstered"))))
