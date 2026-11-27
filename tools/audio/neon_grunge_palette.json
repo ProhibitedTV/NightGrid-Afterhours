@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "id": "neon-grunge-v1",
+  "description": "Original retro-futurist alternative score; analog electronics and 1990s garage-band textures, not artist or song imitation.",
+  "directions": {
+    "synaxis.arrival.security-pulse": "Cold precision clocked synth pulse, glassy sequencer ticks, low detuned analog chords; a barely audible clean guitar harmonic suggests human unease under the corporate sheen. Sparse, restrained and dialogue-safe, no drop.",
+    "synaxis.offboarding.empty-floor": "Bare detuned electric guitar through a small worn amplifier, hollow electric piano and low analog drone; minor suspended chords, fragile human timing, almost no percussion. Leave long pockets for dialogue; no explosive chorus.",
+    "synaxis.lobby.after-hours": "Polished late-century corporate ambient, elegant muted mallets, precise analog pads and distant filtered clean guitar; warm human texture buried in sterile digital rhythm. No loud hooks.",
+    "synaxis.basement.server-room": "Minimal industrial sequencer, transformer-like low bass and brittle metallic percussion; muted guitar string noise and unstable minor chords, sparse repetitive tension without a climax.",
+    "synaxis.departure.street": "Bittersweet clean guitar arpeggio over warm analog bass; gradual addition of slightly overdriven rhythm guitar and loose live kit, understated transition from defeat to independence, natural ending.",
+    "morrow.title.theme": "Original short angular melodic cell shared by analog lead and raw electric guitar; vulnerable clean verse texture expanding into a wide fuzzy power-chord refrain, warm synth bass and imperfect acoustic kit. Memorable, melancholy, defiant, no borrowed motifs.",
+    "central-exchange.day": "Glossy analog synth and restrained drum machine against lightly overdriven guitar and a human bass performance; syncopated city momentum, bittersweet modal color, modest dynamics for exploration.",
+    "brickwater.night": "Rain-soaked dub delays, deep analog chord stabs and tremolo electric guitar, scuffed tape texture, loose half-time kit and slow fuzz swells; weary nocturnal groove with room for city ambience.",
+    "vesper.market": "Warm plucked analog synth, syncopated live bass, dry guitar chops and drum machine with loose acoustic fills; lively neighborhood warmth, unobtrusive original hook.",
+    "horizon.commons": "Unamplified-feeling clean electric guitar, felt piano, warm synth haze, gentle imperfect phrasing and distant brushed drums; quiet hope, no heavy chorus.",
+    "north-quay.harbor": "Slow distorted bass, sparse clean guitar with long reverb and wide cold analog pads; distant metallic percussion and soft toms, melancholy working waterfront atmosphere.",
+    "southworks.industrial": "Mechanical sequenced rhythm interlocked with a raw acoustic kit, down-tuned fuzzy guitar and distorted bass, sparse metallic synth; working-class industrial groove without masking machinery.",
+    "m-line.transit": "Steady train-like drum machine with loose acoustic accents, repeating clean guitar figure and warm filtered analog arpeggios; rhythmic motion, restrained dynamics and smooth development.",
+    "courier.delivery": "Tight electronic breakbeat, live bass, short original fuzz guitar accents and lean analog arpeggios; propulsive forward motion without a constant wall of sound.",
+    "pursuit.alert": "Tense analog pulse with muted low guitar, tight drum machine and anxious bass, minimal unstable harmony. Controlled escalation and room for dispatch and engine audio.",
+    "pursuit.escape": "Urgent breakbeat interlocking with live kit, aggressive distorted bass and short angular fuzz guitar riff; urgent analog ostinato, bounded density and room for police and vehicles.",
+    "pursuit.cooldown": "Descending detuned synth notes and exposed clean guitar, sparse half-time acoustic percussion, residual amplifier texture, gradual decompression.",
+    "brickwater.arcade.attract-loop": "Original retro FM chip lead with a compact angular guitar-like synth hook, punchy electronic drums and even dynamics; short loop-friendly instrumental without literal guitar feedback.",
+    "brickwater.arcade.racing": "Original fast 16-bit-inspired FM lead and crunchy guitar-like chip bass, crisp drums and a distinctive repeating hook; loop-friendly ending.",
+    "afterhours.club.original-break": "Underground garage band instrumental: quiet clean guitar verses break into abrasive fuzzy power-chord choruses, loose acoustic drums, distorted bass and small detuned synth counterline. Raw live-room performance, original riff and human imperfections.",
+    "vesper.club.floor": "Warehouse techno with a firm four-on-the-floor kick, rolling analog bass, acid-like synth and chopped original feedback textures as restrained percussion; continuous dance groove without rock chorus.",
+    "lantern.cup.lounge": "Warm Rhodes, understated clean electric guitar, upright-like bass and brushed kit with softly worn tape character; intimate original future jazz, low conversational density.",
+    "morrow.home.safe": "Quiet clean guitar fingerpicking, soft detuned analog pad and tape-worn electric piano; very sparse percussion and human timing, intimate private refuge.",
+    "morrow.credits": "Original bittersweet clean guitar and analog pad motif, expanding into restrained fuzzy power chords and loose live drums before resolving back to intimate guitar; reflective and quietly defiant, natural ending."
+  }
+}
