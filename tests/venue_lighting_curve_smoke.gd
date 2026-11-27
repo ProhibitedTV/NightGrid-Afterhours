@@ -1,5 +1,5 @@
 extends SceneTree
-const Curve = preload("res://scripts/venue_lighting_curve.gd")
+const LightingCurve = preload("res://scripts/venue_lighting_curve.gd")
 
 func _initialize() -> void:
 	for i in range(1441):
@@ -9,7 +9,7 @@ func _initialize() -> void:
 			expected = smoothstep(17.5, 20.0, hour)
 		elif hour < 7.0:
 			expected = 1.0 - smoothstep(5.0, 7.0, hour)
-		if not is_equal_approx(Curve.darkness(hour), expected):
+		if not is_equal_approx(LightingCurve.darkness(hour), expected):
 			push_error("Lighting curve changed at hour %s" % hour)
 			quit(1)
 			return
