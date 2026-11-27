@@ -1019,6 +1019,9 @@ func tick_arrival(delta: float,player: Node3D,camera: Camera3D) -> bool:
 		if bool(shot["desk"]) and motion.length_squared()<.01 and not _desk_beat_played:
 			_desk_beat_played=true
 			player.call("play_visual_action",&"interact")
+	# One presentation gesture per arrival, including a skipped presentation frame.
+	if not _arrival_badge_presented and bool(shot["badge_presented"]) and not bool(shot["badge_authorized"]):
+		player.call("play_visual_action",&"interact")
 	_update_arrival_badge(shot)
 	_set_gate_open(bool(shot["gate_open"]) and _arrival_badge_authorized)
 	var gate_fraction := float(shot["gate_fraction"])
