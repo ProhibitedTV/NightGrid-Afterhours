@@ -24,7 +24,10 @@ var _status:Label3D
 var _coffee_status:Label3D
 var _printer_sound:AudioStreamPlayer3D
 var _coffee_sound:AudioStreamPlayer3D
-var _materials:Dictionary={}
+static var _materials:Dictionary={}
+static var _box_meshes:Dictionary={}
+static var _cylinder_meshes:Dictionary={}
+static var _box_shapes:Dictionary={}
 var _printed:=0
 var _brewed:=0
 var _notice:=""
@@ -42,9 +45,11 @@ func _mat(color:Color) -> StandardMaterial3D:
 func _box(id:String,at:Vector3,size:Vector3,color:Color,solid:bool=false) -> MeshInstance3D:
 	var item:=MeshInstance3D.new()
 	item.name=id
-	var mesh:=BoxMesh.new()
-	mesh.size=size
-	item.mesh=mesh
+	if not _box_meshes.has(size):
+		var mesh:=BoxMesh.new()
+		mesh.size=size
+		_box_meshes[size]=mesh
+	item.mesh=_box_meshes[size]
 	item.position=at
 	item.material_override=_mat(color)
 	add_child(item)
@@ -53,9 +58,11 @@ func _box(id:String,at:Vector3,size:Vector3,color:Color,solid:bool=false) -> Mes
 		body.name=id+"Collision"
 		body.position=at
 		var hit:=CollisionShape3D.new()
-		var shape:=BoxShape3D.new()
-		shape.size=size
-		hit.shape=shape
+		if not _box_shapes.has(size):
+			var shape:=BoxShape3D.new()
+			shape.size=size
+			_box_shapes[size]=shape
+		hit.shape=_box_shapes[size]
 		body.add_child(hit)
 		add_child(body)
 	return item
@@ -77,12 +84,15 @@ func _label(id:String,value:String,at:Vector3,pixel:float) -> Label3D:
 func _cylinder(id:String,at:Vector3,radius:float,height:float,color:Color) -> MeshInstance3D:
 	var item:=MeshInstance3D.new()
 	item.name=id
-	var mesh:=CylinderMesh.new()
-	mesh.top_radius=radius
-	mesh.bottom_radius=radius
-	mesh.height=height
-	mesh.radial_segments=16
-	item.mesh=mesh
+	var key:=Vector2(radius,height)
+	if not _cylinder_meshes.has(key):
+		var mesh:=CylinderMesh.new()
+		mesh.top_radius=radius
+		mesh.bottom_radius=radius
+		mesh.height=height
+		mesh.radial_segments=16
+		_cylinder_meshes[key]=mesh
+	item.mesh=_cylinder_meshes[key]
 	item.position=at
 	item.material_override=_mat(color)
 	add_child(item)
