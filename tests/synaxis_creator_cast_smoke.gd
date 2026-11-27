@@ -42,7 +42,7 @@ func _test() -> void:
 		await process_frame
 		var rig := actor.get_node_or_null("CreatorCastVisual") as Node3D
 		if staged == 0:
-			if rig != null or not actor.visible:
+			if rig != null or not actor.visible or not actor.is_processing():
 				_fail("Clean-checkout fallback not retained: " + str(id))
 				return
 			continue
@@ -55,6 +55,9 @@ func _test() -> void:
 			_fail("Unexpected candidate rig structure: " + str(id))
 			return
 		var player := players[0] as AnimationPlayer
+		if actor.is_processing() or not player.is_playing():
+			_fail("Imported animation must replace hidden legacy processing: " + str(id))
+			return
 		if str(player.current_animation) != str(CLIPS[id]):
 			_fail("Unexpected candidate animation: " + str(id) + " " + str(player.current_animation))
 			return

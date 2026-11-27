@@ -150,4 +150,8 @@ static func install(actor: Node3D, id: String) -> bool:
 	for child in original_nodes:
 		if child is Node3D:
 			child.hide()
+	# The imported animation player owns the visible pose. Do not keep
+	# updating the hidden legacy head, blink, torso and prop transforms.
+	# set_process affects only the actor, not its imported animation child.
+	actor.set_process(false)
 	return true
