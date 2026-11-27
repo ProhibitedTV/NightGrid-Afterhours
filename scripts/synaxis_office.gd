@@ -43,6 +43,10 @@ var _active_floor:=0
 const GeneratedAudio=preload("res://scripts/synaxis_generated_audio.gd")
 var _ground_ambience:AudioStreamPlayer3D
 var _lift_audio:AudioStreamPlayer3D
+var _badge_audio:AudioStreamPlayer3D
+var _gate_audio:AudioStreamPlayer3D
+var _arrival_gate_motion := 0
+var _arrival_gate_fraction := 0.0
 const LiftTransition=preload("res://scripts/synaxis_lift_transition.gd")
 const LiftFrontage=preload("res://scripts/synaxis_lift_frontage.gd")
 const GroundLayout=preload("res://scripts/synaxis_ground_layout.gd")
@@ -213,6 +217,8 @@ func _ready() -> void:
 	canvas.add_child(_radar)
 	_ground_ambience=GeneratedAudio.emitter(self,"office_air",Vector3(0,1,1),-22.0,16.0,true)
 	_lift_audio=GeneratedAudio.emitter(self,"lift_chime",Vector3(0,1.2,5),-13.0,8.0)
+	_badge_audio=GeneratedAudio.emitter(self,"badge_accept",Vector3(1.55,1.2,-8.1),-12.0,6.0)
+	_gate_audio=GeneratedAudio.emitter(self,"security_gate_motor",Vector3(0,1.0,-7.65),-18.0,8.0,true)
 	_build_arrival_canvas()
 	_lift_transition=LiftTransition.new()
 	_lift_transition.name="LiftTransition"
@@ -952,6 +958,10 @@ func _set_gate_open(value: bool) -> void:
 			child.visible=not value
 
 func _reset_arrival_badge() -> void:
+	GeneratedAudio.activate(_badge_audio,false)
+	GeneratedAudio.activate(_gate_audio,false)
+	_arrival_gate_motion=0
+	_arrival_gate_fraction=0.0
 	_arrival_badge_presented=false
 	_arrival_badge_authorized=false
 	var finish := get_node_or_null("ArchitecturalFinish")
@@ -972,6 +982,8 @@ func _update_arrival_badge(shot: Dictionary) -> void:
 		var finish := get_node_or_null("ArchitecturalFinish")
 		if is_instance_valid(finish):
 			finish.call("set_reader_authorized",true)
+		if is_instance_valid(_badge_audio):
+			_badge_audio.play()
 		arrival_badge_authorized.emit()
 
 func start_arrival(player: Node3D,camera: Camera3D) -> void:
@@ -1010,6 +1022,13 @@ func tick_arrival(delta: float,player: Node3D,camera: Camera3D) -> bool:
 	_update_arrival_badge(shot)
 	_set_gate_open(bool(shot["gate_open"]) and _arrival_badge_authorized)
 	var gate_fraction := float(shot["gate_fraction"])
+	var motion_direction := 0
+	if gate_fraction>0.001 and gate_fraction<0.999:
+		motion_direction=1 if gate_fraction>_arrival_gate_fraction else (-1 if gate_fraction<_arrival_gate_fraction else _arrival_gate_motion)
+	if motion_direction!=_arrival_gate_motion:
+		GeneratedAudio.activate(_gate_audio,motion_direction!=0)
+		_arrival_gate_motion=motion_direction
+	_arrival_gate_fraction=gate_fraction
 	get_node("ArchitecturalFinish").call("set_gate_fraction",gate_fraction)
 	# The old opaque blocker is collision-only while the skins are moving.
 	get_node("SecurityGate").visible=gate_fraction<=0.001
