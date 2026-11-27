@@ -12,13 +12,21 @@ ROOT = Path(__file__).resolve().parents[2]
 PROFILES = Path(__file__).with_name("character_profiles")
 PACKAGE = "ara3d@0.13.0"
 REVISION = "9d3b9f9933cbeb9529630a270ffc7fe01bd05511"
-ACTORS = {"dev_rao": "Dev Rao", "rina_vale": "Rina Vale",
-          "dana_mercer": "Dana Mercer", "jetson_wang": "Jetson Wang"}
+CORE_CAST = {"dev_rao": "Dev Rao", "rina_vale": "Rina Vale",
+             "dana_mercer": "Dana Mercer", "jetson_wang": "Jetson Wang"}
+REMAINING_STAFF = {"mika_torres": "Mika Torres", "eli_brooks": "Eli Brooks",
+                   "owen_pike": "Owen Pike", "nina_bell": "Nina Bell"}
+ACTORS = {**CORE_CAST, **REMAINING_STAFF}
+BATCHES = {"core": tuple(CORE_CAST), "remaining-staff": tuple(REMAINING_STAFF)}
 ANIMATIONS = {
     "dev_rao": ("idle", "walk", "carry_idle", "talk_gestures"),
     "rina_vale": ("idle", "walk", "talk_gestures"),
     "dana_mercer": ("idle", "walk", "sit_down", "sit_idle", "stand_up"),
     "jetson_wang": ("idle", "walk", "sit_down", "sit_idle", "stand_up"),
+    "mika_torres": ("idle", "walk", "talk_gestures"),
+    "eli_brooks": ("idle", "walk", "carry_idle", "talk_gestures"),
+    "owen_pike": ("idle", "walk", "talk_gestures"),
+    "nina_bell": ("idle", "walk", "talk_gestures"),
 }
 CLIPS = {"Idle", "Walk"}
 MAX_BYTES = 18_000_000
@@ -144,7 +152,10 @@ def record_candidate(folder, actor, profile_bytes, command):
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--out", type=Path, required=True)
-    p.add_argument("--actor", action="append", choices=ACTORS)
+    selection = p.add_mutually_exclusive_group()
+    selection.add_argument("--actor", action="append", choices=ACTORS)
+    selection.add_argument("--batch", choices=BATCHES, default="core",
+                           help="Default preserves the original four-actor queue")
     p.add_argument("--execute", action="store_true", help="Actually invoke local Node exporter; first run may download")
     args = p.parse_args()
-    run(args.out, args.actor or list(ACTORS), args.execute)
+    run(args.out, args.actor or list(BATCHES[args.batch]), args.execute)
