@@ -30,6 +30,7 @@ def inventory(root):
     assets = []
     functions = collections.defaultdict(list)
     hot_candidates = []
+    lifecycle = []
     for path in sorted(root.rglob("*")):
         rel = path.relative_to(root)
         if any(p.startswith(".") or p in {"builds", "dist", "__pycache__"} for p in rel.parts):
@@ -61,10 +62,27 @@ def inventory(root):
                             hot_candidates.append({"path": rel.as_posix(), "function": name, "line": line, "category": category, "matches": count})
                 if len(body.splitlines()) >= 5:
                     functions[body].append({"path": rel.as_posix(), "function": name, "line": line})
+            markers = {}
+            for category, pattern in {
+                "signal_connect": r"\.connect\s*\(",
+                "signal_disconnect": r"\.disconnect\s*\(",
+                "timer_creation": r"\bcreate_timer\s*\(",
+                "tween_creation": r"\bcreate_tween\s*\(",
+                "tween_kill": r"\.kill\s*\(",
+                "node_attach": r"\badd_child\s*\(",
+                "node_release": r"\b(?:queue_free|free|remove_child)\s*\(",
+                "exit_hook": r"^func _exit_tree\s*\(",
+            }.items():
+                hits = [i for i, line in enumerate(lines, 1) if re.search(pattern, line)]
+                if hits:
+                    markers[category] = hits
+            if markers:
+                lifecycle.append({"path": rel.as_posix(), "markers": markers})
             scripts.append({"path": rel.as_posix(), "lines": len(lines),
                 "frame_callbacks": [line.strip() for line in lines if line.lstrip().startswith(("func _process(", "func _physics_process("))]})
     return {"bytes_by_tree": dict(sizes), "scripts": sorted(scripts, key=lambda s: (-s["lines"], s["path"])),
             "identical_asset_candidates": [{"bytes_each": k[0], "sha256": k[1], "paths": v} for k,v in sorted(hashes.items()) if len(v)>1],
+            "lifecycle_review_candidates": lifecycle,
             "frame_callback_cost_candidates": hot_candidates,
             "identical_function_body_candidates": [v for v in functions.values() if len({x["path"] for x in v}) > 1],
             "asset_reference_candidates": [{"path": a, "literal_referrers": sorted(references[a])} for a in assets],
