@@ -23,6 +23,8 @@ jobs:
           python-version: '3.12'
       - name: Test offline F8 trace analyzer
         run: python -m unittest discover -s tools -p test_analyze_vehicle_trace.py -v
+      - name: Test stationary F8 position trace analysis
+        run: python -m unittest discover -s tools -p test_analyze_stationary_trace.py -v
       - name: Verify offline wardrobe authoring and manual review gates
         run: |
           python -m unittest discover -s tools/wardrobe -p 'test_*.py' -v
