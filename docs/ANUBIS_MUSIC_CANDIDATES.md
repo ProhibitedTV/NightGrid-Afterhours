@@ -100,14 +100,18 @@ Run only against a stable candidate batch after generation stops. This read-only
 command reuses candidate intake, measures original integrated LUFS, true peak,
 loudness range and silence (below -50 dB for at least 0.5 seconds), checks source
 hashes before and after analysis, flags duration deviations and exact duplicate
-files, and writes JSON to stdout. The FFmpeg version is recorded.
+files, and writes JSON to stdout. It also measures full-scale integer sample
+counts, per-channel RMS and stereo imbalance, first/last 50 ms RMS, and the
+raw wrap-around sample jump using bounded-memory PCM16/24 analysis. The FFmpeg version is recorded.
 
     python tools/audio/music_technical_qc.py --manifest /mnt/z/NightGrid-Afterhours/Music/music-001/manifest.json --source /mnt/z/NightGrid-Afterhours/Music/music-001
 
 Redirect stdout to a separate private report if desired. No audio normalization,
 selection, approval or publication takes place. Flags are listening prompts,
-not automatic rejection; true peak is not a sample clipping count. BPM, key,
-channel balance, loop seams and perceptual similarity are not yet measured.
+not automatic rejection; full-scale samples are not proof of audible clipping.
+Raw endpoint jumps are only relevant if the cue will loop; authored crossfades
+and musical continuity need listening. BPM, key and perceptual similarity
+are not yet measured.
 Native candidate measurements and human listening remain required.
 
 ### Music review and production handoff (remaining stages)
