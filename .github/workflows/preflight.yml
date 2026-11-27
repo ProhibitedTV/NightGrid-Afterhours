@@ -122,6 +122,13 @@ jobs:
           timeout 45s godot --headless --path . --script res://tests/daddy_stanky_smoke.gd 2>&1 | tee /tmp/nightgrid-stanky.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-stanky.log; then exit 1; fi
           grep -q "STANKY PASS:" /tmp/nightgrid-stanky.log
+      - name: Verify cinematic Synaxis conversation coverage and cleanup
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 45s godot --headless --path . --script res://tests/synaxis_cinematic_smoke.gd 2>&1 | tee /tmp/nightgrid-cinematic.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-cinematic.log; then exit 1; fi
+          grep -q "SYNAXIS_CINEMATIC PASS:" /tmp/nightgrid-cinematic.log
       - name: Validate original studio ident and skippable launch handoff
         timeout-minutes: 2
         run: |
