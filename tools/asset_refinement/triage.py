@@ -27,6 +27,8 @@ def timing(samples,pending):
 
 def version_flags(item):
     flags=[]
+    if item.get("normal_projection_exception"):
+        flags.append("review-missing-projected-normals")
     if item["scale_status"]!="specified-height-only":
         flags.append("measure-physical-height")
     budget=estimate(item)

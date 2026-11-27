@@ -108,6 +108,13 @@ jobs:
           set -o pipefail
           godot --headless --path . --import --quit 2>&1 | tee /tmp/nightgrid-import.log
           if grep -Eq 'SCRIPT ERROR:|p_image->is_compressed\(\)|Cannot generate mipmaps from compressed image formats' /tmp/nightgrid-import.log; then exit 1; fi
+      - name: Verify authored Synaxis breakroom and equipment
+        timeout-minutes: 3
+        run: |
+          set -o pipefail
+          timeout 150s godot --headless --path . --script res://tests/synaxis_breakroom_smoke.gd 2>&1 | tee /tmp/nightgrid-breakroom.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-breakroom.log; then exit 1; fi
+          grep -q "SYNAXIS_BREAKROOM PASS:" /tmp/nightgrid-breakroom.log
       - name: Validate original studio ident and skippable launch handoff
         timeout-minutes: 2
         run: |

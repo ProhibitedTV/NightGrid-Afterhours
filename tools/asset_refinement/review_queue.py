@@ -38,6 +38,7 @@ def scan(raw, refined, size):
                                      "scale_status": info["scale_status"],
                                      "outputs": info["outputs"],
                                      "review": info["review"],
+                                     "normal_projection_exception": info["settings"].get("normal_projection_exception"),
                                      "godot_import": info["godot_import"]})
                 except (ValueError, OSError, KeyError, TypeError):
                     continue

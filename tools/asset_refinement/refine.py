@@ -4,6 +4,7 @@ Run using Blender's bundled Python, not the neural inference environments.
 """
 import argparse
 import hashlib
+from itertools import product
 import json
 import math
 import os
@@ -94,7 +95,11 @@ def source(folder):
     return hashes
 
 
-def verified(folder, signature):
+def settings_signature(settings):
+    return hashlib.sha256(json.dumps(settings, sort_keys=True).encode()).hexdigest()
+
+
+def verified(folder, signature, settings=None):
     try:
         info = load(folder / "refinement.json")
         baked = info.get("settings", {}).get("bake_size", 0) > 0
@@ -107,6 +112,7 @@ def verified(folder, signature):
         if info.get("settings", {}).get("bake_ao", False):
             expected |= {"lod%d-ao.png" % i for i in range(3)}
         return (info["signature"] == signature and info["status"] == "unapproved"
+                and (settings is None or settings_signature(info["settings"]) == settings_signature(settings))
                 and set(info["outputs"]) == expected
                 and all(sha(folder / name) == item["sha256"]
                         and (png_size(folder / name) == tuple(item["size"]) if name.endswith(".png")
@@ -148,6 +154,10 @@ def duplicate(obj, name):
     return copy
 
 
+class TriangleBudgetError(ValueError):
+    pass
+
+
 def reduce(obj, target):
     import bpy
     count = triangles(obj)
@@ -157,7 +167,7 @@ def reduce(obj, target):
         mod.ratio = target / count
         bpy.ops.object.modifier_apply(modifier=mod.name)
     if triangles(obj) == 0 or triangles(obj) > target:
-        raise ValueError("Decimation did not satisfy triangle budget")
+        raise TriangleBudgetError(f"{obj.name}: decimation produced {triangles(obj)} triangles; limit {target}")
 
 
 def png_size(path):
@@ -283,7 +293,7 @@ def bake_projected_normal(high, low, path, size, extent, base_coverage):
     lengths = np.linalg.norm(vectors,axis=1)
     unit_fraction = float(((lengths>.8)&(lengths<1.2)).mean())
     if unit_fraction < .95:
-        raise ValueError("Invalid tangent-space normal vectors")
+        raise ValueError(f"{low.name}: invalid tangent-space normal vectors ({unit_fraction:.1%} valid)")
     image.filepath_raw = str(path)
     image.file_format = "PNG"
     image.save()
@@ -429,12 +439,15 @@ def build(src, dest, height, bake_size=0, project_normals=False, bake_ao=False):
     if high is not None:
         for face in high.data.polygons:
             face.use_smooth = True
+    obj.data.validate(clean_customdata=False)
     reduce(obj, BUDGETS[0])
+    obj.data.validate(clean_customdata=False)
     unwrap(obj)
     outputs = {}
     for i, target in enumerate(BUDGETS):
         lod = duplicate(obj, "LOD" + str(i))
         reduce(lod, target)
+        lod.data.validate(clean_customdata=False)
         name = "lod%d.glb" % i
         if bake_size:
             texture = "lod%d-basecolor.png" % i
@@ -459,18 +472,38 @@ def build(src, dest, height, bake_size=0, project_normals=False, bake_ao=False):
     # Convex hull of the refined mesh, deliberately not a gameplay collider.
     # A hull can fill gaps such as chair legs or door openings.
     hull = duplicate(obj, "COLLISION_REVIEW_ONLY")
-    reduce(hull, 256)
+    proxy_limit = 256
+    proxy_method = "decimated-points"
+    try:
+        reduce(hull, proxy_limit)
+    except TriangleBudgetError as exc:
+        # Collapse can stall on disconnected surfaces. Sample support points
+        # in 124 directions, including all six axial extrema. A closed convex
+        # hull of these points has at most 244 triangles.
+        print(f"{exc}; sampling LOD0 support points for the review hull", flush=True)
+        proxy_method = "directional-support-points"
+    points = [v.co.copy() for v in hull.data.vertices]
+    if proxy_method == "directional-support-points":
+        source_points = [v.co.copy() for v in obj.data.vertices]
+        points = {
+            tuple(max(source_points, key=Vector(direction).dot))
+            for direction in product(range(-2, 3), repeat=3)
+            if direction != (0, 0, 0)
+        }
+        points = sorted(points)
     bm = bmesh.new()
     try:
         # Build from a point cloud, not the existing surface faces.
-        for vertex in hull.data.vertices:
-            bm.verts.new(vertex.co)
+        for point in points:
+            bm.verts.new(point)
         bmesh.ops.convex_hull(bm, input=list(bm.verts), use_existing_faces=False)
         verts = [v for v in bm.verts if not v.link_faces]
         if verts:
             bmesh.ops.delete(bm, geom=verts, context="VERTS")
         bmesh.ops.triangulate(bm, faces=list(bm.faces))
         bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
+        if len(bm.faces) > proxy_limit:
+            raise TriangleBudgetError(f"Convex review hull exceeds {proxy_limit} triangles")
         if not bm.faces or not all(e.is_manifold for e in bm.edges):
             raise ValueError("Collision hull is not closed")
         bm.to_mesh(hull.data)
@@ -487,6 +520,7 @@ def build(src, dest, height, bake_size=0, project_normals=False, bake_ao=False):
             "normal_projection": "dense source tangent normals; review pending" if project_normals else "disabled",
             "ambient_occlusion": "geometry-derived standalone map; not embedded" if bake_ao else "disabled",
             "collision": "convex candidate; not approved for gameplay",
+            "collision_method": proxy_method,
             "outputs": outputs}
 
 
@@ -500,6 +534,12 @@ def main(args):
     p.add_argument("--bake-size", type=int, choices=[0, 128, 512, 1024, 2048], default=0, help="LOD0 base color bake size; 0 disables")
     p.add_argument("--project-normals",action="store_true",help="Experimental dense-to-LOD tangent normals")
     p.add_argument("--bake-ao",action="store_true",help="Experimental geometry self-occlusion maps")
+    p.add_argument("--candidate", action="append", default=[],
+                   help="Only process this exact candidate ID; repeat as needed")
+    p.add_argument("--reuse-script-sha", action="append", default=[],
+                   help="Reuse verified cache entries from this prior refine.py SHA-256")
+    p.add_argument("--omit-projected-normal", action="append", default=[], metavar="CANDIDATE",
+                   help="Explicitly omit projected normals for a candidate with a failed bake")
     opt = p.parse_args(args)
     if (opt.project_normals or opt.bake_ao) and not opt.bake_size:
         p.error("Normal projection and AO require a texture bake size")
@@ -508,6 +548,14 @@ def main(args):
         p.error("Input must exist; output must be a separate sibling or unrelated directory")
     if opt.limit < 0:
         p.error("Limit must be nonnegative")
+    for key in opt.candidate + opt.omit_projected_normal:
+        if not KEY.fullmatch(key) or ".." in key or not (src / "candidates" / key).is_dir():
+            p.error(f"Unknown candidate ID: {key}")
+    if opt.omit_projected_normal and not opt.project_normals:
+        p.error("--omit-projected-normal requires --project-normals")
+    if any(not re.fullmatch(r"[0-9a-f]{64}", digest) for digest in opt.reuse_script_sha):
+        p.error("--reuse-script-sha requires a lowercase SHA-256")
+    script_sha = sha(Path(__file__))
     dimensions = load(opt.dimensions) if opt.dimensions else {}
     out.mkdir(parents=True, exist_ok=True)
     # Exclusive lock, including on NAS. Stale lock requires operator inspection.
@@ -521,29 +569,45 @@ def main(args):
         for folder in sorted((src / "candidates").iterdir()):
             if opt.limit and attempted >= opt.limit:
                 break
-            if not folder.is_dir():
+            if not folder.is_dir() or (opt.candidate and folder.name not in opt.candidate):
                 continue
             try:
                 hashes = source(folder)
                 if hashes is None:
+                    if folder.name in opt.candidate:
+                        raise ValueError("Requested candidate has no complete raw mesh")
                     skipped += 1
                     continue
                 height = dimensions.get(folder.name)
                 if height is not None and (isinstance(height, bool) or not isinstance(height, (float, int))
                                            or not math.isfinite(height) or height <= 0):
                     raise ValueError("Invalid measured height")
-                settings = {"source": hashes, "pipeline": VERSION, "script": sha(Path(__file__)),
+                omit_normal = folder.name in opt.omit_projected_normal
+                project_normals = opt.project_normals and not omit_normal
+                settings = {"source": hashes, "pipeline": VERSION, "script": script_sha,
                             "blender": bpy.app.version_string, "height_m": height, "budgets": BUDGETS,
-                            "bake_size": opt.bake_size, "project_normals": opt.project_normals,
+                            "bake_size": opt.bake_size, "project_normals": project_normals,
                             "bake_ao": opt.bake_ao}
-                signature = hashlib.sha256(json.dumps(settings, sort_keys=True).encode()).hexdigest()
+                if omit_normal:
+                    settings["normal_projection_exception"] = "operator-requested omission after failed bake"
+                signature = settings_signature(settings)
                 parent = out / folder.name
                 final = parent / signature
-                if verified(final, signature):
+                if verified(final, signature, settings):
                     cached += 1
                     continue
                 if final.exists():
                     raise ValueError("Existing refined result failed verification; quarantine manually")
+                for digest in opt.reuse_script_sha:
+                    old_settings = dict(settings, script=digest)
+                    old_signature = settings_signature(old_settings)
+                    if verified(parent / old_signature, old_signature, old_settings):
+                        break
+                else:
+                    old_signature = None
+                if old_signature:
+                    cached += 1
+                    continue
                 attempted += 1
                 parent.mkdir(exist_ok=True)
                 if shutil.disk_usage(out).free < 5 * 1024**3:
@@ -551,7 +615,7 @@ def main(args):
                 stage = Path(tempfile.mkdtemp(prefix=".stage-", dir=parent))
                 try:
                     print("Refining", folder.name, flush=True)
-                    info = build(folder / "mesh.glb", stage, height, opt.bake_size, opt.project_normals, opt.bake_ao)
+                    info = build(folder / "mesh.glb", stage, height, opt.bake_size, project_normals, opt.bake_ao)
                     if source(folder) != hashes:
                         raise ValueError("Source changed during refinement")
                     write(stage / "refinement.json", dict(info, signature=signature, settings=settings,

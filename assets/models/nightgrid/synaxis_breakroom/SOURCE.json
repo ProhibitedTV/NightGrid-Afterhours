@@ -1,0 +1,14 @@
+{
+  "geometry": "Original NightGrid authored Synaxis fittings",
+  "authoring": "tools/asset_refinement/gen2_synaxis.py",
+  "runtime_material_bindings": "scripts/synaxis_breakroom.gd",
+  "photo_map_notices": [
+    "assets/pbr/synaxis_breakroom/SOURCE.json",
+    "assets/models/nightgrid/central_exchange_curb/SOURCE.json",
+    "assets/models/nightgrid/central_exchange_storefront/SOURCE.json"
+  ],
+  "exporter": "Blender 5.0.1 glTF 2.0",
+  "units": "metres, Y-up",
+  "collision": "Synaxis office scene",
+  "sha256": "523c530fce7a289c6a385ccfbbbadff6dd47026d8fd81ca1cab1eb3bef77f48b"
+}

@@ -1,0 +1,14 @@
+{
+  "geometry": "Original NightGrid dimensioned authored models",
+  "authoring": "tools/asset_refinement/gen2_synaxis.py -- --equipment",
+  "exporter": "Blender 5.0.1 glTF 2.0",
+  "units": "metres, Y-up",
+  "binding": "scripts/synaxis_equipment.gd",
+  "materials": "assets/models/nightgrid/synaxis_breakroom/SOURCE.json",
+  "sha256": {
+    "copier_far.glb": "c76d9ba376b11f9d4b2da95c890f5c02984085779f2dae7b661bae258a5ce882",
+    "copier.glb": "abe8e94ac2876c0353f2449f8f74f5cfd8a9bf3f529860fed5c113b3426e61e1",
+    "server_rack.glb": "70fd2bde301652168d3cace78a70a0f2ff10cb155dae1d13aed7257b0b744781",
+    "visitor_kiosk.glb": "9eb8dcc94b1065d7dfada3b676e9c4d16a2c19715fd178f127f38d3e948c46c8"
+  }
+}

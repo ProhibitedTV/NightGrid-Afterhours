@@ -129,6 +129,31 @@ func _capture() -> void:
 	world.get("civic_services").call("set_focus",origin)
 	await physics_frame
 	await physics_frame
+	var gen2_path := OS.get_environment("NIGHTGRID_REVIEW_DRAIN_GLB")
+	var grate_detail := "--grate-detail" in arguments
+	var alley := city.find_child("BrickwaterServiceAlley", true, false) as Node3D
+	var drain := alley.get_node_or_null("FlushDrainCover") as MeshInstance3D if alley != null else null
+	if grate_detail and drain == null:
+		_fail("The playable alley drain did not stream")
+		return
+	var grate_sha := ""
+	if not gen2_path.is_empty():
+		if drain == null:
+			_fail("The playable alley drain did not stream")
+			return
+		var document := GLTFDocument.new()
+		var state := GLTFState.new()
+		grate_sha = FileAccess.get_sha256(gen2_path)
+		if grate_sha.is_empty() or document.append_from_file(gen2_path, state) != OK:
+			_fail("Gen 2 grate import failed")
+			return
+		var replacement := document.generate_scene(state) as Node3D
+		if replacement == null:
+			_fail("Gen 2 grate scene is empty")
+			return
+		alley.add_child(replacement)
+		replacement.position = Vector3(drain.position.x, float(alley.FLOOR_Y) + .010, drain.position.z)
+		drain.hide()
 	# Use the same world coordinates on beta.7 and on the candidate.
 	var left := -2.63
 	var right := 3.05
@@ -151,6 +176,9 @@ func _capture() -> void:
 		["08-workroom-detail.png",22.1,Vector3(right-0.50,1.7,-6.7),Vector3(left,1.55,-5.65)],
 		["09-alley-dusk.png",19.15,Vector3(middle,1.75,-10.6),Vector3(middle+0.15,2.6,6.5)]
 	]
+	if grate_detail:
+		var target := drain.global_position - origin
+		shots.append(["10-grate-detail.png",12.0,target + Vector3(-.50,.53,.54),target])
 	for shot in shots:
 		var name: String = shot[0]
 		var hour: float = shot[1]
@@ -195,7 +223,7 @@ func _capture() -> void:
 		"revision": OS.get_environment("NIGHTGRID_SOURCE_REVISION"), "engine": Engine.get_version_info().get("string"),
 		"settings": settings,
 		"render_video_memory_bytes": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_VIDEO_MEM_USED),
-		"shots": records, "walk_traces": walk_records,
+		"shots": records, "walk_traces": walk_records, "grate_glb_sha256": grate_sha,
 		"timing_note": "Viewport frame intervals, including CPU and GPU work. Walk traces use the same recorder as F8."
 	}, "\t"))
 	manifest.close()

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://ara3dgen.com/schemas/character.v1.json",
+  "kind": "ara-character",
+  "version": 1,
+  "params": {
+    "name": "Dana Mercer",
+    "seed": 583104,
+    "gender": 0,
+    "ageYears": 39,
+    "height": 0.53,
+    "weight": 0.52,
+    "muscle": 0.35,
+    "proportions": 0.53,
+    "african": 0.34,
+    "asian": 0.19,
+    "caucasian": 0.47,
+    "modifiers": {
+      "head/head-scale-horiz": 0.06,
+      "head/head-rectangular": 0.07,
+      "eyes/eye-bag": 0.08,
+      "eyebrows/eyebrows-trans": -0.04
+    },
+    "skinTint": "#ecd6c2",
+    "eyes": "brown",
+    "eyebrows": "eyebrow001",
+    "eyelashes": "eyelashes01",
+    "hair": "bob02",
+    "hairColor": "#29242b",
+    "outfit": "set_pantsuit",
+    "top": "silk_blouse",
+    "jacket": "suit_jacket",
+    "bottom": "suit_trousers",
+    "shoes": "loafers",
+    "accessories": [
+      "watch_gold"
+    ],
+    "carry": "none",
+    "garmentStyles": {
+      "set_pantsuit": {
+        "pattern": "suiting",
+        "color": "#414954",
+        "color2": "#282e36"
+      },
+      "silk_blouse": {
+        "pattern": "solid",
+        "color": "#d6c7b1",
+        "color2": "#d6c7b1"
+      }
+    },
+    "detail": "medium",
+    "rig": "game",
+    "faceBones": false,
+    "restPose": "A",
+    "faceShapes": false,
+    "speechShapes": false,
+    "weapon": "none",
+    "vehicle": "none",
+    "hairTint": "#392e2c"
+  }
+}

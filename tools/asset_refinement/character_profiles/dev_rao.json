@@ -1,0 +1,60 @@
+{
+  "$schema": "https://ara3dgen.com/schemas/character.v1.json",
+  "kind": "ara-character",
+  "version": 1,
+  "params": {
+    "name": "Dev Rao",
+    "seed": 583102,
+    "gender": 1,
+    "ageYears": 33,
+    "height": 0.5,
+    "weight": 0.46,
+    "muscle": 0.36,
+    "proportions": 0.51,
+    "african": 0.34,
+    "asian": 0.19,
+    "caucasian": 0.47,
+    "modifiers": {
+      "head/head-scale-horiz": -0.07,
+      "head/head-rectangular": 0.12,
+      "eyes/eye-bag": 0.18,
+      "eyebrows/eyebrows-trans": 0.04
+    },
+    "skinTint": "#e0d6c9",
+    "eyes": "brown",
+    "eyebrows": "eyebrow001",
+    "eyelashes": "eyelashes01",
+    "hair": "short02",
+    "hairColor": "#302d2c",
+    "outfit": "set_suit_tie",
+    "top": "suit_shirt_tie",
+    "jacket": "suit_jacket",
+    "bottom": "suit_trousers",
+    "shoes": "oxfords",
+    "accessories": [
+      "watch_silver"
+    ],
+    "carry": "none",
+    "garmentStyles": {
+      "set_suit_tie": {
+        "pattern": "suiting",
+        "color": "#4e6570",
+        "color2": "#394c57"
+      },
+      "suit_shirt_tie": {
+        "pattern": "solid",
+        "color": "#d9e0e2",
+        "color2": "#334955"
+      }
+    },
+    "detail": "medium",
+    "rig": "game",
+    "faceBones": false,
+    "restPose": "A",
+    "faceShapes": false,
+    "speechShapes": false,
+    "weapon": "none",
+    "vehicle": "none",
+    "hairTint": "#332c25"
+  }
+}
