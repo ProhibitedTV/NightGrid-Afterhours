@@ -115,10 +115,11 @@ func _install_site(site: Dictionary) -> void:
 	_stats["source_installs"] += 1
 
 func _decal_texture(kind: String, channel: String) -> Texture2D:
-	var key := kind + channel
+	var canonical_kind := "grit" if channel == "normal" and kind.to_lower() in ["grit", "oil"] else kind.to_lower()
+	var key := canonical_kind + "_" + channel
 	if _textures.has(key):
 		return _textures[key]
-	var path := DECAL_ROOT + kind.to_lower() + "_" + channel + "_512.png"
+	var path := DECAL_ROOT + canonical_kind + "_" + channel + "_512.png"
 	var texture := load(path) as Texture2D
 	assert(texture != null)
 	_textures[key] = texture
