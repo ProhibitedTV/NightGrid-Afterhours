@@ -976,7 +976,7 @@ func tick_arrival(delta: float,player: Node3D,camera: Camera3D) -> bool:
 		if bool(shot["desk"]) and motion.length_squared()<.01 and not _desk_beat_played:
 			_desk_beat_played=true
 			player.call("play_visual_action",&"interact")
-	_set_gate_open(bool(shot["gate_open"]))
+	_set_gate_open(bool(shot["gate_open"]) and bool(shot["badge_authorized"]))
 	camera.global_position=to_global(shot["camera"])
 	camera.look_at(to_global(shot["look"]),Vector3.UP)
 	camera.fov=float(shot["fov"])
