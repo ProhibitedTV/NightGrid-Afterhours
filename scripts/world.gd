@@ -195,6 +195,8 @@ var pedestrians: Node3D
 var _pedestrian_scan := 0.0
 var _street_contact_id:=""
 var _stanky_show_index:=-1
+var _stanky_set:="classic"
+var _stanky_beats:Array[Dictionary]=[]
 var _stanky_show_gap:=0.0
 var _cal_pending:Dictionary={}
 var _cal_tracking:=false
@@ -504,9 +506,9 @@ func _build_world_audio() -> void:
 		float(options.get("sfx_volume", 0.75)))
 
 func _on_menu_action(action: String) -> void:
-	if action=="stanky_show":
+	if action in ["stanky_show","stanky_fight","stanky_family"]:
 		if _street_contact_id==StreetSatire.STANKY_ID:
-			_start_stanky_show()
+			_start_stanky_show("fight" if action=="stanky_fight" else ("family" if action=="stanky_family" else "classic"))
 			_street_contact_id=""
 		return
 	if action.begins_with("stanky_reply_"):
@@ -5817,21 +5819,26 @@ func _play_stanky_reply(topic:int) -> void:
 	dialogue_director.call("enqueue",str(cue["id"]),"Daddy Stanky: "+str(cue["text"]),DialogueDirector.STORY,legend,StreetSatire.STANKY_SCOPE)
 	legend.call("set_attention_target",Vector3.ZERO,false)
 
-func _start_stanky_show() -> void:
+func _start_stanky_show(set_id:String="classic") -> void:
 	if _stanky_show_index>=0 or not is_instance_valid(venue_system) or not is_instance_valid(player) or not is_instance_valid(dialogue_director) or current_car!=null or current_transit!=null or interiors.call("is_inside") or weapons.equipped!="holstered":
 		return
 	if not is_instance_valid(venue_system.call("daddy_stanky_near",player.global_position)):
 		return
 	dialogue_director.call("cancel_scope",StreetSatire.STANKY_SCOPE)
 	dialogue_director.call("cancel_scope","venue:stanky_fans")
+	_stanky_beats=StreetSatire.stanky_show(set_id)
+	if _stanky_beats.is_empty():
+		return
+	_stanky_set=set_id
 	_stanky_show_index=0
 	_stanky_show_gap=.25
 	venue_system.call("set_stanky_show_active",true)
-	_notify("SHARKTOOTH SESSIONS / Live at Static Room")
+	_notify({"classic":"SHARKTOOTH SESSIONS","fight":"FIGHT NIGHT","family":"AFTERHOURS / THE REGULARS"}.get(_stanky_set,"SHARKTOOTH SESSIONS")+" / Live at Static Room")
 
 func _stop_stanky_show() -> void:
 	_stanky_show_index=-1
 	_stanky_show_gap=0.0
+	_stanky_beats.clear()
 	if is_instance_valid(venue_system):
 		venue_system.call("set_stanky_show_active",false)
 	if is_instance_valid(dialogue_director):
@@ -5848,11 +5855,10 @@ func _tick_stanky_show(delta:float,indoors:bool) -> void:
 	_stanky_show_gap=maxf(0.0,_stanky_show_gap-delta)
 	if _stanky_show_gap>0.0:
 		return
-	var beats:=StreetSatire.stanky_show()
-	if _stanky_show_index>=beats.size():
+	if _stanky_show_index>=_stanky_beats.size():
 		_stop_stanky_show()
 		return
-	var cue:Dictionary=beats[_stanky_show_index]
+	var cue:Dictionary=_stanky_beats[_stanky_show_index]
 	var speaker:Node3D=venue_system.call("stanky_show_speaker",str(cue["character"]),_stanky_show_index)
 	if not is_instance_valid(speaker):
 		_stop_stanky_show()

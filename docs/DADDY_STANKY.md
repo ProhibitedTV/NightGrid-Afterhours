@@ -15,3 +15,7 @@ Static Room patrons each have a distinct optional rumor about the artist, his bo
 ## Sharktooth Sessions — live pop-up show
 
 Approach the artist at Static Room during the nightly residency and choose Stay for Sharktooth Sessions. Seven sequential authored beats: introduction, crowd chant, original freestyle, storytelling, audience response, Humanity closing monologue, and farewell. Existing fans turn toward the artist; a bounded arm-gesture overlay supports spoken performance. Watch from the frontage within eight meters; leave the area, enter a vehicle, equip a weapon, or interact with him again to stop. No cash or reputation grants, extra crowd bodies, save mutations or camera lock. Captions work without recorded takes. No instrumental backing, real recordings, mic attachment or dedicated indoor stage yet; native visual review remains pending.
+
+## Found family: alternate shows
+
+Two selectable alternate spoken-performance sets join the original freestyle: Fight Night (fictional boxing commentary, affectionate trolling, novelty-song jokes, and a friend checking in) and Afterhours / The Regulars (running jokes, crowd chanting, reciprocal care and gratitude). No real fight footage, licensed songs, allegations, or reward for violence. All 15 additional cues are authored in the offline voice catalog. These are spoken live sets rather than a boxing broadcast or rendered concert. A show caches its selected script until exit; closing or leaving the area restores normal patron state.

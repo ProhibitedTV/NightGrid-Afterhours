@@ -458,7 +458,9 @@ func _render() -> void:
 			_title(col,str(_street_contact["name"]).to_upper(),23,Ui.AMBER)
 			_label(col,str(_street_contact["role"]),16,Ui.MUTED)
 			if _street_contact.get("character","")=="daddy_stanky":
-				_button(col,"stanky_show","STAY FOR SHARKTOOTH SESSIONS / LIVE SHOW","stanky_show")
+				_button(col,"stanky_show","SHARKTOOTH SESSIONS / FREESTYLE","stanky_show")
+				_button(col,"stanky_fight","FIGHT NIGHT / LIVE COMMENTARY","stanky_fight")
+				_button(col,"stanky_family","AFTERHOURS / THE REGULARS","stanky_family")
 			for i in range(_street_contact["topics"].size()):
 				var key:="stanky_reply_%d"%i if _street_contact.get("character","")=="daddy_stanky" else "street_reply_%d"%i
 				_button(col,key,str(_street_contact["topics"][i]["question"]),key)
@@ -1019,7 +1021,7 @@ func _check(parent: VBoxContainer, caption: String, key: String) -> void:
 		_first_focus = toggle
 
 func _choice(action: String) -> void:
-	if action=="stanky_show":
+	if action in ["stanky_show","stanky_fight","stanky_family"]:
 		if screen=="street_contact" and _street_contact.get("character","")=="daddy_stanky":
 			_street_contact={}
 			hide_for_game()

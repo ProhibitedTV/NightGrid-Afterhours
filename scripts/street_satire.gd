@@ -487,6 +487,111 @@ const LINES = [
 		"character": "night_regular",
 		"text": "Humanity! We love you, man!",
 		"stanky_show": 6
+	},
+	{
+		"id": "street.daddy_stanky.stanky.fight.1",
+		"character": "daddy_stanky",
+		"text": "Fight night, baby. The champ's got a twelve-million-dollar sponsorship and the challenger got a coupon for a sandwich. Who you got?",
+		"stanky_show": 0,
+		"stanky_set": "fight"
+	},
+	{
+		"id": "street.night_regular.stanky.fight.2",
+		"character": "night_regular",
+		"text": "Stanky, you picked the loser three fights in a row!",
+		"stanky_show": 1,
+		"stanky_set": "fight"
+	},
+	{
+		"id": "street.daddy_stanky.stanky.fight.3",
+		"character": "daddy_stanky",
+		"text": "Wrongy the gongy. My predictions are an independent art form, bro. Ain't nobody payin' me for accuracy.",
+		"stanky_show": 2,
+		"stanky_set": "fight"
+	},
+	{
+		"id": "street.night_regular.stanky.fight.4",
+		"character": "night_regular",
+		"text": "Play that stupid frog beat again!",
+		"stanky_show": 3,
+		"stanky_set": "fight"
+	},
+	{
+		"id": "street.daddy_stanky.stanky.fight.5",
+		"character": "daddy_stanky",
+		"text": "You people got the worst taste in music. Except when you listen to me. Then you're fuckin' geniuses.",
+		"stanky_show": 4,
+		"stanky_set": "fight"
+	},
+	{
+		"id": "street.night_regular.stanky.fight.6",
+		"character": "night_regular",
+		"text": "You good, man? You want some water?",
+		"stanky_show": 5,
+		"stanky_set": "fight"
+	},
+	{
+		"id": "street.daddy_stanky.stanky.fight.7",
+		"character": "daddy_stanky",
+		"text": "Yeah, bro. Appreciate ya. That's my people right there. Roast me all night, still make sure I get home.",
+		"stanky_show": 6,
+		"stanky_set": "fight"
+	},
+	{
+		"id": "street.night_regular.stanky.family.1",
+		"character": "night_regular",
+		"text": "Patron saint of beating a diddla!",
+		"stanky_show": 0,
+		"stanky_set": "family"
+	},
+	{
+		"id": "street.daddy_stanky.stanky.family.2",
+		"character": "daddy_stanky",
+		"text": "Calm down, little predatah! Tonight the only thing gettin' beat is your ego in a rap battle.",
+		"stanky_show": 1,
+		"stanky_set": "family"
+	},
+	{
+		"id": "street.night_regular.stanky.family.3",
+		"character": "night_regular",
+		"text": "Three dead toes!",
+		"stanky_show": 2,
+		"stanky_set": "family"
+	},
+	{
+		"id": "street.daddy_stanky.stanky.family.4",
+		"character": "daddy_stanky",
+		"text": "Nobody knows! You motherfuckers know my rhymes better than I do. Might as well put you on the payroll. There ain't a payroll, by the way.",
+		"stanky_show": 3,
+		"stanky_set": "family"
+	},
+	{
+		"id": "street.night_regular.stanky.family.5",
+		"character": "night_regular",
+		"text": "You know we love you, Stanky.",
+		"stanky_show": 4,
+		"stanky_set": "family"
+	},
+	{
+		"id": "street.daddy_stanky.stanky.family.6",
+		"character": "daddy_stanky",
+		"text": "I know. Sometimes I don't get it. But I know. No more jokes for a second. Thank you for showin' up.",
+		"stanky_show": 5,
+		"stanky_set": "family"
+	},
+	{
+		"id": "street.night_regular.stanky.family.7",
+		"character": "night_regular",
+		"text": "STANKY! STANKY!",
+		"stanky_show": 6,
+		"stanky_set": "family"
+	},
+	{
+		"id": "street.daddy_stanky.stanky.family.8",
+		"character": "daddy_stanky",
+		"text": "I'll show you my humanity. Now quit lookin' at me like that. I'm not cryin', you're cryin'.",
+		"stanky_show": 7,
+		"stanky_set": "family"
 	}
 ]
 const CAST = ["robot_romantic","nothing_happens","gig_grinder","subscription_skeptic","street_visionary","night_regular"]
@@ -594,9 +699,9 @@ static func stanky_rumor(index:int) -> Dictionary:
 	return {}
 
 const STANKY_SHOW_SCOPE = "venue:stanky_show"
-static func stanky_show() -> Array[Dictionary]:
+static func stanky_show(set_id:String="classic") -> Array[Dictionary]:
 	var result:Array[Dictionary]=[]
 	for row in LINES:
-		if row.has("stanky_show"):
+		if row.has("stanky_show") and row.get("stanky_set","classic")==set_id:
 			result.append(row.duplicate())
 	return result
