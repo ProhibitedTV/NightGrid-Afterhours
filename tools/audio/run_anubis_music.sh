@@ -17,4 +17,10 @@ flock -n 8 || { echo "Factory busy"; exit 2; }
 exec 9>>"$visual_home/run.lock"
 flock -n 9 || { echo "Visual generation busy"; exit 2; }
 [[ ! -e /mnt/z/NightGrid-Afterhours/Audio/factory-001/.audio.lock ]] || { echo "Audio stage busy or stale lock; inspect"; exit 2; }
-runuser -u anubis -- "$python" "$runner" "$@"
+# Keep the existing locks in this shell for the complete guarded invocation.
+guard="$PWD/tools/asset_refinement/resource_guard.py"
+logdir="$(runuser -u anubis -- sh -c 'printf "%s" "$HOME"')/.local/state/nightgrid-music"
+runuser -u anubis -- mkdir -p "$logdir"
+log="$logdir/resource-$(date -u +%Y%m%dT%H%M%S)-$.jsonl"
+echo "Resource supervision log: $log"
+runuser -u anubis -- "$python" "$guard" --log "$log" --require-gpu -- "$python" "$runner" "$@"

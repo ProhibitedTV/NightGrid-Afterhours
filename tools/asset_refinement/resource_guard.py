@@ -15,14 +15,17 @@ from telemetry import snapshot
 GIB=1024**3
 
 
-def violation(data, min_ssd, min_nas, max_temp):
+def violation(data, min_ssd, min_nas, max_temp, require_gpu=False):
     for disk,minimum in (("windows_ssd",min_ssd),("nas",min_nas)):
         item=data.get("disks",{}).get(disk,{})
         if item.get("status")!="available":
             return disk+" missing/unavailable"
         if item.get("free_bytes",-1)<minimum*GIB:
             return disk+" free-space reserve breached"
-    for gpu in data.get("gpu") or []:
+    rows=data.get("gpu") or []
+    if require_gpu and (len(rows)!=1 or any(not isinstance(g.get("temperature_c"),(int,float)) or not 0<g["temperature_c"]<100 for g in rows)):
+        return "Required single-GPU temperature telemetry unavailable or invalid"
+    for gpu in rows:
         temp=gpu.get("temperature_c")
         if isinstance(temp,(int,float)) and temp>=max_temp:
             return "GPU temperature threshold reached"
@@ -52,7 +55,7 @@ def stop(proc, grace):
 
 
 def supervise(command, log, interval=15, min_ssd=25, min_nas=10,
-              max_temp=85, grace=20):
+              max_temp=85, grace=20, require_gpu=False):
     if not command:
         raise ValueError("Missing stage command")
     if not 5<=interval<=300 or not 1<=grace<=120 or not 60<=max_temp<=95 or min_ssd<10 or min_nas<5:
@@ -85,7 +88,7 @@ def supervise(command, log, interval=15, min_ssd=25, min_nas=10,
                               "thermal threshold cannot protect GPUs without readings",
                               file=sys.stderr,flush=True)
                         warned_temperature=True
-                    bad=violation(data,min_ssd,min_nas,max_temp)
+                    bad=violation(data,min_ssd,min_nas,max_temp,require_gpu=require_gpu)
                     record={"unix_time":time.time(),"hardware":data,"stop_reason":bad}
                     handle.write(json.dumps(record)+"\n")
                     handle.flush()
@@ -114,10 +117,11 @@ def main():
     p.add_argument("--min-ssd",type=int,default=25)
     p.add_argument("--min-nas",type=int,default=10)
     p.add_argument("--max-temp",type=int,default=85)
+    p.add_argument("--require-gpu",action="store_true",help="Fail closed on missing single-GPU temperature telemetry")
     p.add_argument("command",nargs=argparse.REMAINDER)
     a=p.parse_args()
     command=a.command[1:] if a.command[:1]==["--"] else a.command
-    return supervise(command,a.log,a.interval,a.min_ssd,a.min_nas,a.max_temp)
+    return supervise(command,a.log,a.interval,a.min_ssd,a.min_nas,a.max_temp,require_gpu=a.require_gpu)
 
 
 if __name__=="__main__":
