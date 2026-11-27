@@ -1134,12 +1134,14 @@ func _lift_hint(stage:int,local:Vector3) -> String:
 	var button:="RIGHT / DOWN" if desired<_active_floor else "LEFT / UP"
 	return "\nFollow the marked aisle to ELEVATORS · %.0f m · %s toward %s" % [distance,button,floor_title(desired)]
 
-func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
+func update_prompt(stage: int,at: Vector3,gamepad: bool,heading:Vector3=Vector3.FORWARD) -> void:
 	if not POINTS.has(stage):
 		return
 	update_parking_guard(at)
 	var local := to_local(at)
 	var goal: Vector3=POINTS[stage]
+	var local_heading:=global_basis.inverse()*heading
+	_radar.call("set_office_heading",Vector2(local_heading.x,local_heading.z))
 	_radar.call("set_office_state",Vector2(local.x,local.z),Vector2(goal.x,goal.z) if _active_floor==objective_floor(stage) else Workfloor.LIFT,_active_floor)
 	if _active_floor==Basement.FLOOR:
 		_hint.text="SYNAXIS / "+Basement.TITLE+"\n"+TITLES[stage]

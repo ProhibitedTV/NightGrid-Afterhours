@@ -21,12 +21,25 @@ var _office_floor:=0
 var _office_mode := false
 var _office_actor := Vector2.ZERO
 var _office_target := Vector2.ZERO
+var _office_heading := Vector2.UP
 
 func set_office_state(actor: Vector2,target: Vector2,floor: int=0) -> void:
 	_office_floor=floor
 	_office_mode=true
 	_office_actor=actor
 	_office_target=target
+
+func set_office_heading(heading:Vector2) -> void:
+	_office_heading=normalized_heading(heading)
+
+static func normalized_heading(heading:Vector2) -> Vector2:
+	return heading.normalized() if heading.is_finite() and heading.length_squared()>=.001 else Vector2.UP
+
+func _draw_heading(heading:Vector2) -> void:
+	var direction:=normalized_heading(heading)
+	var cross:=Vector2(-direction.y,direction.x)
+	draw_circle(_center,10.0,Color("101821"),true,-1.0,true)
+	draw_colored_polygon(PackedVector2Array([_center+direction*10.0,_center-direction*6.0+cross*6.0,_center-direction*3.0,_center-direction*6.0-cross*6.0]),Color("e7edf0"))
 
 func _process(delta: float) -> void:
 	_redraw_clock += delta
@@ -171,13 +184,7 @@ func _draw() -> void:
 			_target(state["civic_quest"],Color("95e7bc"),true)
 		if bool(state.get("mission_active",true)):
 			_target(state["mission"],Color("38e5e4") if state["carrying"] else Color("ffba56"))
-		var heading: Vector2 = state.get("player_heading",Vector2.UP)
-		if not heading.is_finite() or heading.length_squared() < 0.001:
-			heading = Vector2.UP
-		heading = heading.normalized()
-		var cross := Vector2(-heading.y,heading.x)
-		draw_circle(_center,10.0,Color("101821"),true,-1.0,true)
-		draw_colored_polygon(PackedVector2Array([_center+heading*10.0,_center-heading*6.0+cross*6.0,_center-heading*3.0,_center-heading*6.0-cross*6.0]),Color("e7edf0"))
+		_draw_heading(state.get("player_heading",Vector2.UP))
 	draw_arc(_center,_radius+2.0,0.0,TAU,96,Color("8599a5"),1.8,true)
 	# North remains fixed; no atlas/camera rotation or mirrored bearings.
 	draw_string(ThemeDB.fallback_font,_center+Vector2(-6.0,-_radius+16.0),"N",HORIZONTAL_ALIGNMENT_LEFT,-1,15,Color("e7edf0"))
@@ -216,7 +223,7 @@ func _draw_office() -> void:
 			for desk in Workfloor.desk_positions():
 				_segment(desk-Vector2(.85,0),desk+Vector2(.85,0),Color("52616e"),3.5)
 		_target(_office_target,Color("ffba56"),true)
-		draw_circle(_center,5.0,Color("e7edf0"),true,-1.0,true)
+		_draw_heading(_office_heading)
 		return
 	for edge in [
 		[Vector2(-8.5,-10),Vector2(-1.3,-10)],
@@ -237,4 +244,4 @@ func _draw_office() -> void:
 	for desk in [Vector2(-5,2.55),Vector2(4.5,1.7),Vector2(-5,-5.4),Vector2(5,-5.4),Vector2(5,6.5),Vector2(-4.2,8.12)]:
 		_segment(desk-Vector2(1.1,0),desk+Vector2(1.1,0),Color("52616e"),5.0)
 	_target(_office_target,Color("ffba56"),true)
-	draw_circle(_center,5.0,Color("e7edf0"),true,-1.0,true)
+	_draw_heading(_office_heading)
