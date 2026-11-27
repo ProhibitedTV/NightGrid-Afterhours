@@ -270,6 +270,9 @@ func hide_for_game() -> void:
 	if screen=="blue_hour_set":
 		_stop_music_set_audio()
 		_rhythm.cancel()
+	var backdrop := _root.get_node_or_null("TitleBackdrop") if is_instance_valid(_root) else null
+	if is_instance_valid(backdrop):
+		backdrop.hide()
 	screen = "hidden"
 	visible = false
 	get_tree().paused = false
@@ -406,7 +409,7 @@ func _render() -> void:
 	var panel := PanelContainer.new()
 	panel.name = "MenuPanel"
 	_menu_panel = panel
-	panel.custom_minimum_size = Vector2(410.0 if screen == "phone" else (500.0 if staged else 760.0), 0.0)
+	panel.custom_minimum_size = Vector2(410.0 if screen == "phone" else (500.0 if staged else (540.0 if screen == "title" else 760.0)), 0.0)
 	var panel_style := Ui.card(0.97, 22)
 	if screen == "title":
 		panel_style.bg_color = Color(0.045, 0.055, 0.085, 0.96)
@@ -418,6 +421,8 @@ func _render() -> void:
 	shell.add_theme_constant_override("separation", 12)
 	panel.add_child(shell)
 	_label(shell, "BITRIVER GAMING  /  RHYTHMICCARNAGE" if screen == "title" else ("MORROW MOBILE  ·  " + str(_phone_data.get("clock","--:--")) if screen == "phone" else "NIGHTGRID  /  MORROW BAY"), 14, Ui.AMBER)
+	if screen == "title":
+		_label(shell, "NIGHTGRID", 23, Color("81e0d4"), true)
 	_title(shell, "EXECUTIVE PRIVILEGE" if staged else ("AFTERHOURS" if screen == "title" else {"phone": "Morrow OS", "pause": "Paused", "settings": "Settings", "controls": "Controls", "map": "City atlas", "journal": "Journal", "inventory": "Player & inventory", "confirm_new": "New Game", "opening": "People operations"}.get(screen, "Afterhours")), 26 if staged or screen == "phone" else (48 if screen == "title" else 34), Ui.TEXT)
 	_divider(shell)
 	_body_scroll = ScrollContainer.new()
