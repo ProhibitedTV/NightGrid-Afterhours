@@ -4,7 +4,7 @@ import struct
 import tempfile
 import unittest
 from unittest.mock import patch
-from character_candidates import ACTORS, inspect_glb, plan, profile, run
+from character_candidates import ACTORS, BATCHES, ANIMATIONS, inspect_glb, plan, profile, run
 
 
 class CharacterCandidateTests(unittest.TestCase):
@@ -19,6 +19,16 @@ class CharacterCandidateTests(unittest.TestCase):
                 run(out, list(ACTORS))
                 proc.assert_not_called()
             self.assertFalse(out.exists())
+
+    def test_staff_batch_does_not_repeat_core_cast(self):
+        core, remaining = BATCHES["core"], BATCHES["remaining-staff"]
+        self.assertEqual(len(core), 4)
+        self.assertEqual(len(remaining), 4)
+        self.assertFalse(set(core) & set(remaining))
+        self.assertEqual(set(core) | set(remaining), set(ACTORS))
+        for actor in remaining:
+            self.assertIn("talk_gestures", ANIMATIONS[actor])
+            self.assertIn("--animations", plan(actor, Path("/candidate")))
 
     def test_unsigned_ara_modifier_rejects_negative_value(self):
         with tempfile.TemporaryDirectory() as root:
