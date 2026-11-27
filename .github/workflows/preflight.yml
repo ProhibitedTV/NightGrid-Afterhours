@@ -21,6 +21,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Test local creator build runner guards
+        run: python -m unittest discover -s tools -p test_build_creator_playtest.py -v
       - name: Test offline F8 trace analyzer
         run: python -m unittest discover -s tools -p test_analyze_vehicle_trace.py -v
       - name: Verify offline wardrobe authoring and manual review gates
