@@ -954,6 +954,9 @@ func _set_gate_open(value: bool) -> void:
 func _reset_arrival_badge() -> void:
 	_arrival_badge_presented=false
 	_arrival_badge_authorized=false
+	var finish := get_node_or_null("ArchitecturalFinish")
+	if is_instance_valid(finish):
+		finish.call("set_reader_authorized",false)
 	arrival_badge_reset.emit()
 
 func _update_arrival_badge(shot: Dictionary) -> void:
@@ -963,6 +966,9 @@ func _update_arrival_badge(shot: Dictionary) -> void:
 		arrival_badge_presented.emit()
 	if not _arrival_badge_authorized and bool(shot["badge_authorized"]):
 		_arrival_badge_authorized=true
+		var finish := get_node_or_null("ArchitecturalFinish")
+		if is_instance_valid(finish):
+			finish.call("set_reader_authorized",true)
 		arrival_badge_authorized.emit()
 
 func start_arrival(player: Node3D,camera: Camera3D) -> void:
