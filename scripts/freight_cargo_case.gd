@@ -1,6 +1,8 @@
 extends Node3D
 ## Original compact hard-shell container secured in the rear cabin.
 ## Visual payload only: no collision, lighting or processing.
+static var _meshes: Dictionary = {}
+static var _materials: Dictionary = {}
 var _manifest:="FREIGHT"
 func configure(manifest:String)->void:
 	_manifest=manifest
@@ -23,12 +25,16 @@ func _ready()->void:
 
 func _box(at:Vector3,size:Vector3,tint:Color)->void:
 	var part:=MeshInstance3D.new()
-	var mesh:=BoxMesh.new()
-	mesh.size=size
-	part.mesh=mesh
+	if not _meshes.has(size):
+		var mesh:=BoxMesh.new()
+		mesh.size=size
+		_meshes[size]=mesh
+	part.mesh=_meshes[size]
 	part.position=at
-	var material:=StandardMaterial3D.new()
-	material.albedo_color=tint
-	material.roughness=.68
-	part.material_override=material
+	if not _materials.has(tint):
+		var material:=StandardMaterial3D.new()
+		material.albedo_color=tint
+		material.roughness=.68
+		_materials[tint]=material
+	part.material_override=_materials[tint]
 	add_child(part)
