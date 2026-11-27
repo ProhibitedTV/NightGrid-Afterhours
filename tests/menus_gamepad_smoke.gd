@@ -159,6 +159,30 @@ func _verify() -> void:
 	if steam == null or steam.process_mode != Node.PROCESS_MODE_ALWAYS or not is_equal_approx(steam.speed_scale, 0.75):
 		_fail("Live title must reuse the authored drain steam")
 		return
+	# Independent smooth sign faults drive actual practicals and puddle reflection.
+	var faults: RefCounted = preview.get("_neon")
+	var pavement: MeshInstance3D = alley.get_node("PhotographicAlleyPavement")
+	var repair_spill: OmniLight3D = alley.get_node("StreetAtmosphere/RepairSignSpill")
+	var laundry_spill: OmniLight3D = alley.get_node("StreetAtmosphere/LaundrySignSpill")
+	var neon_surfaces: Array = faults.get("_surfaces").duplicate()
+	if neon_surfaces.is_empty():
+		_fail("Title neon must bind the actual emissive tubes")
+		return
+	faults.call("apply", 9.825, 1.0, true)
+	var sign_power: Vector2 = pavement.get_instance_shader_parameter("title_neon_power")
+	if not is_equal_approx(sign_power.x, 0.44) or not is_equal_approx(sign_power.y, 1.0) or not is_equal_approx(repair_spill.light_energy, 1.55 * sign_power.x) or not is_equal_approx(laundry_spill.light_energy, 1.55):
+		_fail("Neon fault must dim only the affected sign and its reflection")
+		return
+	for surface in neon_surfaces:
+		var original: StandardMaterial3D = surface["base"]
+		var local: StandardMaterial3D = surface["local"]
+		if original == local or not is_equal_approx(local.emission_energy_multiplier, original.emission_energy_multiplier * sign_power[int(surface["index"])]):
+			_fail("Neon tube intensity must use a private material and match the reflection")
+			return
+	faults.call("apply", 9.825, 1.0, false)
+	if pavement.get_instance_shader_parameter("title_neon_power") != Vector2.ONE:
+		_fail("Reduced motion must disable sign faults")
+		return
 	var lamp: SpotLight3D = hero.get_node("Coachwork/KeyLeftBeam")
 	if not lamp.visible:
 		_fail("Title R9 night headlights must use actual optics")
@@ -177,6 +201,10 @@ func _verify() -> void:
 		_fail("Title clock must advance visually without running gameplay or moving the player")
 		return
 	preview.call("finish")
+	for surface in neon_surfaces:
+		if is_instance_valid(surface["mesh"]) and surface["mesh"].get_surface_override_material(surface["surface"]) != surface["base"]:
+			_fail("Title neon material overrides leaked into gameplay")
+			return
 	if world.has_node("TitleCinderR9") or world.has_node("TitleAlleyCamera") or world.has_node("TitleAlleyMist"):
 		_fail("Title vehicle leaked into gameplay")
 		return
