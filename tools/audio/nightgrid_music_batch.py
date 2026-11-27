@@ -76,19 +76,43 @@ def audio_info(path):
     info["seconds"] = round(info["seconds"], 3)
     return info
 
+def cue_palette(name):
+    if name == 'legacy':
+        return CUES
+    if name != 'neon-grunge-v1':
+        raise ValueError('Unknown music palette')
+    catalog = json.loads(Path(__file__).with_name('neon_grunge_palette.json').read_text(encoding='utf-8'))
+    directions = catalog.get('directions')
+    if (catalog.get('schema') != 1 or catalog.get('id') != name
+            or not isinstance(directions, dict)
+            or set(directions) != {row[0] for row in CUES}
+            or any(not isinstance(value, str) or not value.strip() for value in directions.values())):
+        raise ValueError('Invalid or incomplete neon-grunge cue palette')
+    return [(*row[:-1], directions[row[0]]) for row in CUES]
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--plan',action='store_true'); p.add_argument('--limit',type=int,default=0,help='Maximum NEW takes this invocation; 0=all')
     p.add_argument('--takes',type=int,default=2); p.add_argument('--batch',default='music-001')
+    p.add_argument('--palette', choices=['legacy','neon-grunge-v1'], default='legacy')
     a=p.parse_args()
     if not 1<=a.takes<=8 or a.limit<0 or not __import__('re').fullmatch(r'music-[a-zA-Z0-9-]+',a.batch): p.error('Invalid batch/takes/limit')
+    if a.palette == 'neon-grunge-v1' and not a.batch.startswith('music-neon-grunge-'):
+        p.error('Neon-grunge requires a separate --batch music-neon-grunge-001 (or another music-neon-grunge-* name)')
+    if a.palette == 'legacy' and a.batch.startswith('music-neon-grunge-'):
+        p.error('Neon-grunge batch names require --palette neon-grunge-v1')
+    cues=cue_palette(a.palette)
     jobs=[]
-    for i,(cue,scene,dur,bpm,key,direction) in enumerate(CUES):
+    for i,(cue,scene,dur,bpm,key,direction) in enumerate(cues):
         for take in range(1,a.takes+1):
             jobs.append(dict(id=f'{cue}.take-{take:02}',scene=scene,duration=dur,bpm=bpm,key=key,direction=direction+' Original instrumental only; no vocals, no borrowed melodies.',seed=271100+i*100+take))
     print(f'{len(CUES)} cues, {len(jobs)} takes, {sum(j["duration"] for j in jobs)/60:.1f} minutes of target audio',flush=True)
     if a.plan:
-        for j in jobs: print(j['id'],j['duration'],j['bpm'],j['seed'])
+        if a.palette != 'legacy': print('Palette:', a.palette, 'Batch:', a.batch)
+        for j in jobs:
+            print(j['id'],j['duration'],j['bpm'],j['seed'])
+            if a.palette != 'legacy': print('  '+j['direction'])
         return
     if not os.path.ismount('/mnt/z') or not NAS.is_dir(): raise RuntimeError('NAS is not mounted')
     if shutil.disk_usage(NAS).free<10*1024**3 or shutil.disk_usage('/mnt/c').free<25*1024**3: raise RuntimeError('Disk reserve guard')
