@@ -121,3 +121,7 @@ The corporate menu now owns a sequential speech player on the Dialogue bus, inde
 
 ## Anubis batch 002 — generated effects intake
 The published [RC8](https://github.com/ProhibitedTV/NightGrid-Afterhours/releases/tag/v0.1.0-beta.8-rc.8) contains the original 78 dialogue clips; later main builds can add further technically validated provisional clips. The 37-effect catalog is optional until model access and generation complete. Windows export now verifies all staged WAV/JSON pairs, exact hashes, catalog identity, rights and PCM, then loads each imported effect with its intended loop state. Zero or partial coverage is valid, not evidence of full production. Verify actual in-game office air, servers, lift/coffee/printer, footfalls on each surface, doors, pickups, traffic and road ambience; compare with baseline fallback, note looping seam and loudness problems. The build gate is not native acoustic approval.
+
+### F10 render context
+
+The adjacent F10 JSON now retains the render profile, weather, sky preset, render batch statistics and practical-light counters already supplied by the active world. Older captures may lack those additive schema-v1 fields; do not infer their values. Keep the PNG and JSON together and use matching profile, weather, sky, camera and resolution for visual comparisons. Batch/light counters are diagnostic context, not GPU timing.
