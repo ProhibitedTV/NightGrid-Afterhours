@@ -160,6 +160,13 @@ jobs:
           timeout 45s godot --headless --path . --script res://tests/synaxis_cinematic_smoke.gd 2>&1 | tee /tmp/nightgrid-cinematic.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-cinematic.log; then exit 1; fi
           grep -q "SYNAXIS_CINEMATIC PASS:" /tmp/nightgrid-cinematic.log
+      - name: Validate shared prop resource identity
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 45s godot --headless --path . --script res://tests/shared_prop_resources_smoke.gd 2>&1 | tee /tmp/nightgrid-shared-props.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-shared-props.log; then exit 1; fi
+          grep -q "SHARED_PROP_RESOURCES PASS" /tmp/nightgrid-shared-props.log
       - name: Validate shared venue lighting curve
         timeout-minutes: 2
         run: |
