@@ -3,7 +3,7 @@ extends Node3D
 ## meshes are batched by material, primitive and zone; no process or extra lights.
 const PALETTE = {
 	"stone": Color("637078"), "joint": Color("28343b"), "trim": Color("a4aeb1"),
-	"ceiling": Color("e1e3dd"), "steel": Color("465159"), "black": Color("1c242a"),
+	"steel": Color("465159"), "black": Color("1c242a"),
 	"laminate": Color("d0b58e"), "walnut": Color("644b3c"), "leather": Color("30353b"),
 	"paper": Color("e5e4d8"), "screen": Color("142a31"), "signal": Color("85c9bc"),
 	"blue": Color("547d9a"), "amber": Color("d5ae63"), "red": Color("b55850"),
@@ -91,7 +91,7 @@ func _flush() -> void:
 	_chair_poses.clear()
 
 func _architecture() -> void:
-	# Large-format stone tiles, recessed skirting, suspended acoustic ceiling.
+	# Large-format stone joints, recessed skirting and ceiling service hardware.
 	# All floor trim is at most 6 mm tall; circulation remains unchanged.
 	for x in range(-8,9):
 		_part("interior","joint",Vector3(x,.003,0),Vector3(.012,.006,19.7))
@@ -109,9 +109,6 @@ func _architecture() -> void:
 	_part("interior","steel",Vector3(0,.09,9.82),Vector3(16.7,.18,.05))
 	_part("interior","steel",Vector3(4.9,.09,-9.82),Vector3(7,.18,.05))
 	_part("interior","steel",Vector3(-4.9,.09,-9.82),Vector3(7,.18,.05))
-	for x in range(-7,8,2):
-		for z in range(-9,10,2):
-			_part("interior","ceiling",Vector3(x,3.34,z),Vector3(1.94,.04,1.94))
 	for x in [-6.0,6.0]:
 		for z in [-7.0,-1.0,5.0]:
 			_part("interior","steel",Vector3(x,3.30,z),Vector3(.85,.07,.85))

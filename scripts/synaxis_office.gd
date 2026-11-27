@@ -85,7 +85,16 @@ func _ready() -> void:
 	var desk := _material("desk",Color("242e36"))
 	var accent := _material("accent",Color("b9cbd0"))
 	var screen := _material("screen",Color("508f8d"),true)
-	add_child(GROUND_ENVELOPE.instantiate())
+	var envelope := GROUND_ENVELOPE.instantiate()
+	var practicals := envelope.get_node("Shell/Practicals") as MeshInstance3D
+	var diffuser := envelope.get_node("ReceptionLuminaire/Diffuser") as MeshInstance3D
+	# Keep the visible lamp face within the existing bloom range. The editor's
+	# higher source radiance has already been integrated into the indirect atlas.
+	var lens := practicals.material_override.duplicate() as StandardMaterial3D
+	lens.emission_energy_multiplier = 1.6
+	practicals.material_override = lens
+	diffuser.material_override = lens
+	add_child(envelope)
 	_collision("Floor",Vector3(0,-.15,0),Vector3(17,.3,20))
 	_collision("Ceiling",Vector3(0,3.5,0),Vector3(17,.3,20))
 	for side in [-1.0,1.0]:
