@@ -3,7 +3,7 @@ from pathlib import Path
 import struct
 import tempfile
 import unittest
-from refine import glb_info, sha, source, verified
+from refine import glb_info, settings_signature, sha, source, verified
 
 
 def glb(path, attributes=None, n=3):
@@ -45,6 +45,25 @@ class Contract(unittest.TestCase):
             glb(p, n=4)
             with self.assertRaises(ValueError):
                 glb_info(p)
+
+    def test_resume_settings_match_pinned_version(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            settings = {"bake_size": 0, "budgets": (12000, 5000, 1500), "script": "previous"}
+            signature = settings_signature(settings)
+            outputs = {}
+            for name in ("lod0.glb", "lod1.glb", "lod2.glb", "collision.glb"):
+                glb(folder / name)
+                outputs[name] = {"sha256": sha(folder / name), "triangles": 1}
+            manifest = {"signature": signature, "settings": settings, "outputs": outputs,
+                        "status": "unapproved"}
+            path = folder / "refinement.json"
+            path.write_text(json.dumps(manifest))
+            self.assertTrue(verified(folder, signature, settings))
+            manifest["settings"]["script"] = "unexpected"
+            path.write_text(json.dumps(manifest))
+            self.assertFalse(verified(folder, signature, {"bake_size": 0,
+                              "budgets": (12000, 5000, 1500), "script": "previous"}))
 
     def test_resume_integrity(self):
         with tempfile.TemporaryDirectory() as tmp:

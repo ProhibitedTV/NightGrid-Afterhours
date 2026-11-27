@@ -67,6 +67,8 @@ def run(raw, refined, size, binary, output):
                 except (OSError,ValueError,KeyError,subprocess.SubprocessError) as exc:
                     record.update(status="import-failed",error=str(exc))
                 rows.append(record)
+                if len(rows) % 25 == 0:
+                    print("Godot versions checked:", len(rows), flush=True)
     result = {"schema":1,"engine":engine,"scope":"headless structural import only",
               "passed":sum(r["status"]=="import-passed" for r in rows),
               "failed":sum(r["status"]=="import-failed" for r in rows),"rows":rows}
