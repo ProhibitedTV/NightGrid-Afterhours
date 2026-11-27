@@ -4,7 +4,7 @@ blender -b --python-exit-code 1 --python tools/asset_refinement/gen2_synaxis.py
 Dimensions are in Godot metres. The shipped GLBs use shared external photo maps
 bound by the game's material slots. Collision remains separately authored.
 """
-from math import pi
+import sys
 from pathlib import Path
 
 import bpy
@@ -54,7 +54,8 @@ def materials():
 
 
 class Kit:
-    def __init__(self):
+    def __init__(self, bevel_segments=3):
+        self.bevel_segments = bevel_segments
         self.materials = materials()
         self.pieces = {}
 
@@ -64,7 +65,7 @@ class Kit:
         if radius:
             mod = obj.modifiers.new("Manufactured radius", "BEVEL")
             mod.width = radius
-            mod.segments = 3
+            mod.segments = self.bevel_segments
             mod.harden_normals = True
             bpy.ops.object.modifier_apply(modifier=mod.name)
         self.pieces.setdefault(group, []).append(obj)
@@ -114,7 +115,7 @@ class Kit:
         obj = self.finish(group, material, 0)
         self.unwrap(obj, 1, material)
 
-    def export(self, folder, asset):
+    def export(self, folder, asset, origin_baked=False):
         folder.mkdir(parents=True, exist_ok=True)
         for group, pieces in self.pieces.items():
             bpy.ops.object.select_all(action="DESELECT")
@@ -124,6 +125,8 @@ class Kit:
             bpy.ops.object.join()
             bpy.context.object.name = group
             bpy.context.object.data.name = group
+            if origin_baked:
+                bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
         bpy.ops.export_scene.gltf(filepath=str(folder / f"{asset}.glb"), export_format="GLB",
                                   export_texcoords=True, export_normals=True, export_tangents=True)
 
@@ -228,6 +231,79 @@ def finish_room(kit):
     b("TableNotice",(-2.88,.776,8.06),(.34,.036,.13),"Steel",.006)
 
 
+
+def copier(kit, detailed):
+    b, r = kit.slab, kit.rail
+    b("Copier", (-.048,.054,0),(.448,.108,.648),"White",.012)
+    b("Copier", (-.16,.166,0),(.23,.13,.648),"White",.009)
+    for side in (-1,1):
+        b("Copier", (.121,.164,side*.282),(.303,.135,.083),"White",.012)
+        b("Copier", (.119,.171,side*.231),(.266,.103,.022),"Charcoal",.004)
+    b("Copier", (.089,.109,0),(.376,.012,.47),"Charcoal",.004)
+    b("Copier", (-.01,.274,0),(.525,.116,.649),"White",.014)
+    b("Copier", (-.013,.349,0),(.507,.044,.630),"Powder",.010)
+    b("Copier", (-.041,.382,0),(.440,.036,.584),"White",.012)
+    b("Copier", (.207,.350,-.12),(.108,.045,.248),"Charcoal",.012)
+    b("Copier", (.203,.375,-.147),(.070,.007,.121),"Display",.004)
+    b("Copier", (.187,.032,0),(.024,.045,.561),"White",.008)
+    b("Copier", (.191,.071,0),(.026,.029,.562),"Powder",.004)
+    b("Copier", (.198,.075,0),(.010,.012,.164),"Charcoal",.003)
+    if detailed:
+        for z in (-.057,-.033,-.009,.015,.039):
+            r("Copier",(.237,.374,z),(.237,.382,z),.006,"White",8)
+        for i in range(8):
+            b("Copier",(-.190+i*.046,.25,.326),(.022,.029,.006),"Charcoal",.002)
+        for x in (-.21,.15):
+            for z in (-.26,.26):
+                r("Copier",(x,0,z),(x,.013,z),.019,"Charcoal",10)
+
+
+def server_rack(kit):
+    b = kit.slab
+    b("ServerRack",(-.354,1.139,0),(.205,2.277,1.218),"Charcoal",.018)
+    for side in (-1,1):
+        b("ServerRack",(0,1.143,side*.603),(.912,2.270,.051),"Powder",.012)
+        b("ServerRack",(.423,1.14,side*.548),(.064,2.183,.028),"Steel",.004)
+        b("ServerRack",(.364,1.14,side*.567),(.051,2.239,.076),"Charcoal",.009)
+    b("ServerRack",(0,2.238,0),(.912,.083,1.255),"Powder",.012)
+    b("ServerRack",(0,.034,0),(.912,.067,1.255),"Powder",.012)
+    for u in range(9):
+        y=.205+u*.228
+        b("ServerRack",(.319,y,0),(.092,.173,1.065),"Powder",.012)
+        b("ServerRack",(.370,y,.015),(.018,.133,.949),"Charcoal",.006)
+        for z in (-.31,-.105,.102,.31):
+            b("ServerRack",(.384,y,z),(.024,.108,.169),"Steel",.006)
+            b("ServerRack",(.398,y,z),(.009,.044,.145),"Charcoal",.002)
+        b("ServerRack",(.392,y+.030,.468),(.013,.013,.065),"Display",.002)
+
+
+def visitor_kiosk(kit):
+    b = kit.slab
+    b("VisitorKiosk",(0,.040,0),(.613,.08,.432),"Powder",.015)
+    b("VisitorKiosk",(0,.48,.033),(.22,.86,.22),"Steel",.026)
+    b("VisitorKiosk",(0,.50,-.107),(.184,.78,.053),"Walnut",.017)
+    b("VisitorKiosk",(0,1.013,-.015),(.58,.378,.181),"Powder",.024,tilt=.16)
+    b("VisitorKiosk",(0,1.027,-.113),(.534,.291,.012),"Glass",.012,tilt=.16)
+    b("VisitorKiosk",(0,1.027,-.122),(.49,.246,.005),"Display",.005,tilt=.16)
+    b("VisitorKiosk",(0,.814,-.077),(.501,.041,.125),"Steel",.006)
+    b("VisitorKiosk",(0,.819,-.139),(.161,.010,.008),"Charcoal",.002)
+
+
+def equipment():
+    output=ART.with_name("synaxis_equipment")
+    for name, build in (
+            ("copier", lambda kit: copier(kit, True)),
+            ("copier_far", lambda kit: copier(kit, False)),
+            ("server_rack", server_rack),
+            ("visitor_kiosk", visitor_kiosk)):
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        kit = Kit(1 if name in {'server_rack', 'copier_far'} else 3)
+        build(kit)
+        kit.export(output, name, origin_baked=True)
+
+
+
+
 def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     kit = Kit()
@@ -238,4 +314,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if "--equipment" in sys.argv:
+        equipment()
+    else:
+        main()

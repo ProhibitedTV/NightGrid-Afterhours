@@ -1,6 +1,7 @@
 extends Node3D
 ## Small optional diegetic interactions. No money, inventory or mission effects.
 const Audio=preload("res://scripts/synaxis_generated_audio.gd")
+const Equipment = preload("res://scripts/synaxis_equipment.gd")
 const PRINTER=Vector3(-7.85,0,-.4)
 const COFFEE=Vector3(-7.85,0,-2.45)
 const PRINTER_USE=Vector3(-6.65,1.15,-.4)
@@ -87,12 +88,15 @@ func _cylinder(id:String,at:Vector3,radius:float,height:float,color:Color) -> Me
 
 func _ready() -> void:
 	# Dress the existing west printer cabinet, whose collision is owned by the floor.
-	_box("PrinterBody",PRINTER+Vector3(0,1.25,0),Vector3(.55,.40,.65),Color("d3d7d5"))
-	_box("PrinterOutputSlot",PRINTER+Vector3(.281,1.22,0),Vector3(.014,.07,.38),Color("242d32"))
+	var printer := Equipment.place(self, Equipment.COPIER, "PrinterBody", PRINTER + Vector3.UP * 1.06)
+	printer.visibility_range_end = 6.8
+	var far := Equipment.place(self, Equipment.COPIER_FAR, "PrinterBodyFar", printer.position)
+	far.visibility_range_begin = 6.8
 	_box("PrinterOutputTray",PRINTER+Vector3(.43,1.16,0),Vector3(.31,.035,.42),Color("404b50"))
 	_sheet=_box("PrintedSheet",PRINTER+Vector3(.29,1.185,0),Vector3(.27,.008,.205),Color("f1eee2"))
 	_sheet.hide()
-	_status=_label("PrinterStatus","READY",PRINTER+Vector3(.285,1.38,0),.0014)
+	_status=_label("PrinterStatus","READY",PRINTER+Vector3(.255,1.337,0),.0010)
+	_status.modulate = Color("1b3235")
 	# Separate appliance on the west perimeter, between existing desk rows.
 	_box("CoffeeCounter",COFFEE+Vector3(0,.51,0),Vector3(.66,1.02,1.14),Color("817664"),true)
 	_box("CounterTop",COFFEE+Vector3(0,1.04,0),Vector3(.72,.08,1.20),Color("3e464a"))
@@ -106,7 +110,7 @@ func _ready() -> void:
 	_liquid.hide()
 	_stream=_cylinder("CoffeeStream",COFFEE+Vector3(.19,1.35,0),.008,.15,Color("6a4028"))
 	_stream.hide()
-	_coffee_status=_label("CoffeeStatus","COMPLIMENTARY / 1 CUP",COFFEE+Vector3(.285,1.66,0),.0016)
+	_coffee_status=_label("CoffeeStatus","COMPLIMENTARY / 1 CUP",COFFEE+Vector3(.270,1.498,0),.0010)
 	_printer_sound=Audio.emitter(self,"office_printer",PRINTER+Vector3(0,1.2,0),-15.0,7.0)
 	_coffee_sound=Audio.emitter(self,"office_coffee",COFFEE+Vector3(0,1.4,0),-17.0,6.0)
 	set_active(false)

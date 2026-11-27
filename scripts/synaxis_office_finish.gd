@@ -230,8 +230,6 @@ func _lobby() -> void:
 		_part("interior","trim",Vector3(side*1.55,1.10,-8.1),Vector3(.26,.045,.28))
 		_part("interior","red",Vector3(side*1.55,1.197,-8.1),Vector3(.11,.012,.13))
 	_part("interior","red",Vector3(0,2.92,-7.80),Vector3(.37,.04,.035))
-	_part("interior","trim",Vector3(-2.8,.61,-8.875),Vector3(.50,.04,.03))
-	_part("interior","black",Vector3(-2.8,.39,-8.881),Vector3(.29,.08,.03))
 	# Public entry threshold and tactile mat edge: flat and non-obstructive.
 	_part("interior","trim",Vector3(0,.008,-9.96),Vector3(2.54,.012,.22))
 	# Flush CCTV mounting plate and cylindrical lens, no surveillance simulation.

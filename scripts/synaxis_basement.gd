@@ -1,6 +1,7 @@
 extends "res://scripts/synaxis_workfloor.gd"
 ## Physical B1 infrastructure level. No permanent per-rack processing.
 const GeneratedSFX=preload("res://scripts/synaxis_generated_audio.gd")
+const Equipment = preload("res://scripts/synaxis_equipment.gd")
 const FLOOR=-1
 const TITLE="B1 / INFORMATION TECHNOLOGY & INFRASTRUCTURE"
 const GOAL=Vector3(-5,1.15,4)
@@ -16,9 +17,10 @@ func _ready() -> void:
 		_part("black",Vector3(x,.012,0),Vector3(.012,.006,19.7))
 	for z in range(-9,10,2):
 		_part("black",Vector3(0,.012,z),Vector3(16.6,.006,.012))
+	var rack_poses: Array[Transform3D] = []
 	for x in RACK_X:
 		for z in RACK_Z:
-			_rack(Vector3(x,0,z),1.0 if x<0 else -1.0)
+			rack_poses.append(Transform3D(Basis(Vector3.UP, 0.0 if x < 0.0 else PI), Vector3(x,0,z)))
 		# Contiguous rack collision and overhead cable trays.
 		_solid(Vector3(x,1.14,-4.9),Vector3(.92,2.28,6.82))
 		_part("black",Vector3(x,2.95,-4.9),Vector3(.64,.15,7.0))
@@ -26,6 +28,8 @@ func _ready() -> void:
 			_part("steel",Vector3(x,3.04,z),Vector3(.71,.05,.07))
 		_part("blue",Vector3(x-.16,3.06,-4.9),Vector3(.08,.08,7.0))
 		_part("rust",Vector3(x+.16,3.06,-4.9),Vector3(.08,.08,7.0))
+	_racks = rack_poses.size()
+	Equipment.batch(self, Equipment.RACK, "AuthoredServerRacks", rack_poses)
 	for x in [-7.75,7.75]:
 		_part("white",Vector3(x,1.35,6.9),Vector3(.8,2.7,2.3))
 		_solid(Vector3(x,1.35,6.9),Vector3(.8,2.7,2.3))
@@ -47,14 +51,14 @@ func _ready() -> void:
 	_monitor(DESK+Vector3(.20,1.36,0),1.0)
 	_part("black",DESK+Vector3(-.1,1.10,.26),Vector3(.43,.025,.15))
 	_chair(DESK+Vector3(0,0,1.06),-1.0)
-	_label("IT SUPPORT / ACCESS CONTROL",Vector3(-5,2.02,2.09),.0038)
+	_label("IT SUPPORT / ACCESS CONTROL",Vector3(-5,1.025,2.981),.0017)
 	# Workbench, antistatic mat, stacked equipment boxes.
 	_part("steel",Vector3(5,.89,2.7),Vector3(2.8,.13,.9))
 	_solid(Vector3(5,.46,2.7),Vector3(2.8,.92,.9))
 	_part("blue",Vector3(5,.97,2.7),Vector3(1.5,.02,.72))
 	for i in range(3):
 		_part("black",Vector3(4.05+i*.55,1.09,2.72),Vector3(.42,.23,.45))
-	_label("REPAIR / ESD WORKBENCH",Vector3(5,1.95,2.25),.003)
+	_label("REPAIR / ESD WORKBENCH",Vector3(5,.89,3.153),.0018)
 	_label("CAUTION / HIGH NOISE AREA\nHEARING PROTECTION RECOMMENDED",Vector3(0,2.45,9.75),.004,PI)
 	_label("DANGER / ELECTRICAL HAZARD\nAUTHORIZED PERSONNEL ONLY",Vector3(0,2.45,-9.73),.004)
 	_label("FIRE SUPPRESSION SYSTEM ACTIVE",Vector3(-8.20,2.55,-1.0),.003,PI/2)
@@ -76,19 +80,6 @@ func _ready() -> void:
 	_build_hum()
 	set_occupied(false)
 
-func _rack(at:Vector3,face:float) -> void:
-	_racks+=1
-	_part("black",at+Vector3(0,1.14,0),Vector3(.92,2.28,1.28))
-	_part("steel",at+Vector3(0,2.28,0),Vector3(.94,.06,1.30))
-	for side in [-1.0,1.0]:
-		_part("steel",at+Vector3(face*.47,1.15,side*.59),Vector3(.035,2.18,.06))
-	for u in range(9):
-		var y:=.24+u*.225
-		_part("steel",at+Vector3(face*.47,y,0),Vector3(.025,.175,1.10))
-		_part("black",at+Vector3(face*.488,y,0),Vector3(.018,.065,.78))
-		for i in range(5):
-			_part("ui" if (i+u)%4!=0 else "rust",at+Vector3(face*.50,y,.43-i*.10),Vector3(.012,.018,.032))
-		_part("black",at+Vector3(face*.495,y,-.50),Vector3(.02,.11,.05))
 
 func _build_hum() -> void:
 	_hum=GeneratedSFX.emitter(self,"server_fans",Vector3(0,1,-4.9),-18.0,18.0,true)

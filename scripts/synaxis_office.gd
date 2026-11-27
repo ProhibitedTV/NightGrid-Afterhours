@@ -44,6 +44,7 @@ const LiftTransition=preload("res://scripts/synaxis_lift_transition.gd")
 const LiftFrontage=preload("res://scripts/synaxis_lift_frontage.gd")
 const GroundLayout=preload("res://scripts/synaxis_ground_layout.gd")
 const BreakroomArt = preload("res://scripts/synaxis_breakroom.gd")
+const Equipment = preload("res://scripts/synaxis_equipment.gd")
 var _lift_transition:CanvasLayer
 var _lift_target:=0
 var _restrooms: Node3D
@@ -119,7 +120,7 @@ func _ready() -> void:
 	# Leave a physical turning vestibule behind the security gate.
 	var partition_length: float=Arrival.PARTITION_FAR_Z-Arrival.PARTITION_NEAR_Z
 	_solid("ExecutivePartition",Vector3(0,1.5,Arrival.PARTITION_NEAR_Z+partition_length*.5),Vector3(.18,3.0,partition_length),wall)
-	_build_lobby(desk,accent,screen)
+	_build_lobby(accent)
 	_build_office_details(desk,accent,screen)
 	_build_breakroom()
 	_build_ground_wayfinding(wall,accent)
@@ -356,12 +357,23 @@ func _select_floor(level: int) -> void:
 	for child in get_children():
 		if child is Light3D:
 			child.visible=_prologue_active and _active_floor==0
+	# Opaque slabs and lift transitions separate these contents visually.
+	# Visibility does not disable the existing collision or room anchors.
 	for i in _workfloors.size():
-		_workfloors[i].call("set_occupied",_prologue_active and _active_floor==i+1)
+		var occupied := _prologue_active and _active_floor == i + 1
+		_workfloors[i].visible = occupied
+		_workfloors[i].call("set_occupied", occupied)
 	if is_instance_valid(_executive_floor):
-		_executive_floor.call("set_occupied",_prologue_active and _active_floor==ExecutiveFloor.FLOOR)
+		var occupied := _prologue_active and _active_floor == ExecutiveFloor.FLOOR
+		_executive_floor.visible = occupied
+		_executive_floor.call("set_occupied", occupied)
 	if is_instance_valid(_basement):
-		_basement.call("set_occupied",_prologue_active and _active_floor==Basement.FLOOR)
+		var occupied := _prologue_active and _active_floor == Basement.FLOOR
+		_basement.visible = occupied
+		_basement.call("set_occupied", occupied)
+	var breakroom := get_node_or_null("BreakroomArt") as Node3D
+	if breakroom != null:
+		breakroom.visible = _active_floor == 0
 	for id in _staff:
 		var actor:Node3D=_staff[id]
 		var occupied:bool=_prologue_active and _active_floor==staff_floor(id)
@@ -487,9 +499,9 @@ func needs_recovery(at:Vector3) -> bool:
 func recovery_position() -> Vector3:
 	return to_global(CUBICLE_POINT if _active_floor==0 else Vector3(0,_active_floor*Workfloor.FLOOR_HEIGHT+1.15,Workfloor.LIFT.y))
 
-func _build_lobby(desk: Material,accent: Material,screen: Material) -> void:
-	_solid("VisitorKiosk",Vector3(-2.8,.61,-8.65),Vector3(.62,1.22,.44),desk)
-	_visual("VisitorDisplay",Vector3(-2.8,1.05,-8.9),Vector3(.48,.33,.04),screen)
+func _build_lobby(accent: Material) -> void:
+	_collision("VisitorKiosk", Vector3(-2.8,.61,-8.65), Vector3(.62,1.22,.44))
+	Equipment.place(self, Equipment.KIOSK, "VisitorKioskArt", Vector3(-2.8,0,-8.65))
 	_sign("VISITOR SERVICES\nALL APPOINTMENTS REQUIRE APPROVAL",Vector3(-6.45,1.8,-7.80),.004).rotation.y=PI
 	_sign("SECURITY NOTICE\nEMPLOYEE ACCESS MAY EXPIRE WITHOUT NOTICE",Vector3(6.45,1.8,-7.80),.004).rotation.y=PI
 	for x in [-1.55,1.55]:

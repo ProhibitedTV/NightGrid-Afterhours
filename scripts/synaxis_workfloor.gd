@@ -294,7 +294,7 @@ func _shared_area(accent: String) -> void:
 		_plant(Vector3(x+.8,.80,7.55),.24)
 	# Small original background jokes, deliberately not map objectives.
 	if level==1:
-		_label("PRINTER 07 / PAPER JAM\nIT TICKET CLOSED: USER EDUCATED",Vector3(-7.48,1.52,-.4),.0019,PI/2)
+		_label("PRINTER 07 / PAPER JAM\nIT TICKET CLOSED: USER EDUCATED",Vector3(-8.365,1.78,-.4),.0014,PI/2)
 	elif level==3:
 		_part("paper",Vector3(7.47,1.55,-.4),Vector3(.015,.30,.23))
 		_label("PLEASE FILE YOUR\nPAPERLESS INITIATIVE\nIN TRIPLICATE",Vector3(7.45,1.55,-.4),.0014,-PI/2)

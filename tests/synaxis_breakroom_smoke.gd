@@ -50,6 +50,23 @@ func _test() -> void:
 	if wall.is_empty() or str(wall["collider"].name).find("BreakroomFront") < 0:
 		_fail("The relocated poster lacks backing at the breakroom wall")
 		return
+	var racks := office.get_node("BasementIT/AuthoredServerRacks") as MultiMeshInstance3D
+	var copier := office.get_node("Workfloor1/OfficeServices/PrinterBody") as MeshInstance3D
+	var distant := office.get_node("Workfloor1/OfficeServices/PrinterBodyFar") as MeshInstance3D
+	if racks.multimesh.instance_count != 20 or copier.mesh.get_faces().size() <= distant.mesh.get_faces().size():
+		_fail("Rack batching or copier LOD contract failed")
+		return
+	if absf(copier.mesh.get_aabb().position.y) > .005 or absf(copier.mesh.get_aabb().size.y - .4) > .005:
+		_fail("Copier origin or finished height drifted from the interaction furniture")
+		return
+	office.call("_select_floor",-1)
+	if not racks.is_visible_in_tree() or art.is_visible_in_tree() or copier.is_visible_in_tree():
+		_fail("Inactive floor art is still visible from B1")
+		return
+	office.call("_select_floor",0)
+	if not art.is_visible_in_tree() or racks.is_visible_in_tree():
+		_fail("Breakroom art was not restored from the basement")
+		return
 	print("SYNAXIS_BREAKROOM PASS: authored kit, photo maps, doorway, mission anchor, furniture and wall mounting")
 	office.queue_free()
 	await process_frame
