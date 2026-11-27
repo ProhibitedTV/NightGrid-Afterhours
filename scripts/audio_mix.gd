@@ -81,8 +81,31 @@ static func set_room_character(kind: String) -> void:
 	var index := AudioServer.get_bus_index(ROOM_EFFECTS)
 	var room := AudioServer.get_bus_effect(index, 0) as AudioEffectReverb
 	if room != null:
-		room.room_size = 0.52 if kind == "CLUB" else (0.24 if kind == "CAFE" else 0.32)
-		room.wet = 0.23 if kind == "CLUB" else (0.12 if kind == "CAFE" else 0.16)
+		match kind:
+			"SYNAXIS_LOBBY":
+				room.room_size = .48
+				room.wet = .18
+			"SYNAXIS_FACILITIES":
+				room.room_size = .30
+				room.wet = .20
+			"SYNAXIS_OFFICE":
+				room.room_size = .24
+				room.wet = .09
+			"SYNAXIS_BASEMENT":
+				room.room_size = .42
+				room.wet = .19
+			"SYNAXIS_LIFT":
+				room.room_size = .18
+				room.wet = .13
+			"SYNAXIS_EXECUTIVE":
+				room.room_size = .34
+				room.wet = .12
+			"SYNAXIS_PARKING":
+				room.room_size = .10
+				room.wet = .0
+			_:
+				room.room_size = 0.52 if kind == "CLUB" else (0.24 if kind == "CAFE" else 0.32)
+				room.wet = 0.23 if kind == "CLUB" else (0.12 if kind == "CAFE" else 0.16)
 
 static func is_routed() -> bool:
 	for stem in STEMS:
