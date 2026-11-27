@@ -102,6 +102,49 @@ const DISTRICT_ARCHETYPES = {
 	"SOUTHWORKS": ["S1", "S2", "S3", "S4"]
 }
 
+# Frozen from the historical default city to retain its current silhouette.
+# Edit these authored parcel assignments directly, never a random seed.
+const CANONICAL_OUTER_LOTS = {
+	"-4,-4": "N3/N4",
+	"-3,-4": "N4/N1",
+	"-2,-4": "N1/N2",
+	"-1,-4": "N2/N3",
+	"0,-4": "N3/N4",
+	"1,-4": "N4/N1",
+	"2,-4": "N1/N2",
+	"3,-4": "N2/N3",
+	"-4,-3": "W4/W1",
+	"3,-3": "H3/H4",
+	"-4,-2": "W1/W2",
+	"3,-2": "H4/H1",
+	"-4,-1": "W2/W3",
+	"3,-1": "H1/H2",
+	"-4,0": "W3/W4",
+	"3,0": "H2/H3",
+	"-4,1": "W4/W1",
+	"3,1": "H3/H4",
+	"-4,2": "W1/W2",
+	"3,2": "H4/H1",
+	"-4,3": "S2/S3",
+	"-3,3": "S3/S4",
+	"-2,3": "S4/S1",
+	"-1,3": "S1/S2",
+	"0,3": "S2/S3",
+	"1,3": "S3/S4",
+	"2,3": "S4/S1",
+	"3,3": "S1/S2"
+}
+const CANONICAL_CORE_VARIANTS = {
+	"-3,-3": 0,
+	"-1,-2": 0,
+	"1,-3": 1,
+	"2,-1": 1,
+	"-3,1": 1,
+	"-1,2": 1,
+	"0,2": 2,
+	"2,0": 2
+}
+
 static func is_core_block(ix: int, iz: int) -> bool:
 	return ix >= -LEGACY_RADIUS and ix < LEGACY_RADIUS and iz >= -LEGACY_RADIUS and iz < LEGACY_RADIUS
 
@@ -114,12 +157,8 @@ static func city_bounds() -> float:
 static func outer_variant_code(ix: int, iz: int, which: int, _world_seed: int) -> String:
 	assert(is_valid_block(ix, iz))
 	assert(not is_core_block(ix, iz))
-	var center := Vector3((float(ix) + 0.5) * BLOCK_SIZE, 0.0, (float(iz) + 0.5) * BLOCK_SIZE)
-	var district: String = district_at(center)
-	var choices: Array = DISTRICT_ARCHETYPES[district]
-	# Permanent coordinate-based archetype selection, independent of saves.
-	var hash_code := (ix + GRID_RADIUS) * 157 + (iz + GRID_RADIUS) * 73 + which * 41 + 834726 * 11
-	return str(choices[posmod(hash_code, choices.size())])
+	var codes: PackedStringArray = str(CANONICAL_OUTER_LOTS["%d,%d" % [ix, iz]]).split("/")
+	return codes[which]
 
 static func block_signature(ix: int, iz: int, world_seed: int) -> String:
 	if not is_valid_block(ix, iz):
@@ -177,9 +216,7 @@ static func manifest_signature(manifest: Dictionary) -> String:
 	return str("|".join(lines).hash())
 
 static func lot_variant_index(ix: int, iz: int, _world_seed: int) -> int:
-	if not VARIANT_PARCELS.has("%d,%d" % [ix, iz]):
-		return 0
-	return (834726 + (ix + 3) * 13 + (iz + 3) * 7) % 3
+	return int(CANONICAL_CORE_VARIANTS.get("%d,%d" % [ix, iz], 0))
 
 static func lot_profile(ix: int, iz: int, building_index: int, world_seed: int = 0) -> Dictionary:
 	assert(is_valid_block(ix, iz))
