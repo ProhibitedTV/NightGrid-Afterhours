@@ -27,7 +27,7 @@
     },
     {
       "id": "brickwater.arcade.attract-loop",
-      "model_preference": "audiocraft-musicgen",
+      "model_preference": "ace-step",
       "scene": "Brickwater original in-world arcade cabinet",
       "duration_target_seconds": 24,
       "direction": "Original energetic FM-synthesis-inspired chiptune for a fictional arcade attract screen, clean percussive transients, no borrowed melody, no vocals",
