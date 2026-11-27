@@ -25,6 +25,11 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	resized.connect(queue_redraw)
+	# Explicit diagnostic mode. No world creation, saves, or normal intro handoff.
+	if auto_handoff and "--verify-creator-pck" in OS.get_cmdline_user_args():
+		set_process(false)
+		_verify_creator_pck.call_deferred()
+		return
 	if auto_handoff and (DisplayServer.get_name() == "headless" or "--skip-studio-intro" in OS.get_cmdline_user_args()):
 		_finish.call_deferred()
 		return
@@ -32,6 +37,14 @@ func _ready() -> void:
 		_requested = ResourceLoader.load_threaded_request(GAME_SCENE, "PackedScene") == OK
 	if DisplayServer.get_name() != "headless" and auto_handoff:
 		_prepare_audio()
+
+func _verify_creator_pck() -> void:
+	var cast = load("res://scripts/synaxis_creator_cast.gd")
+	if cast == null:
+		push_error("CREATOR_PCK FAIL: verifier unavailable")
+		get_tree().quit(1)
+		return
+	get_tree().quit(0 if cast.verify_packaged_candidates() else 1)
 
 func _process(delta: float) -> void:
 	if _loading:

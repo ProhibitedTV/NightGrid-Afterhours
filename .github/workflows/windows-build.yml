@@ -171,3 +171,25 @@ jobs:
             throw 'Windows game emitted a runtime parse/startup error'
           }
           Write-Output 'WINDOWS_EXPORTED_GAME_SMOKE PASS: packaged EXE/PCK startup and clean headless exit'
+      - name: Confirm public package rejects strict private-cast verification
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = (Resolve-Path -LiteralPath 'dist/NightGrid-Afterhours.exe').Path
+          $stdout = Join-Path $env:RUNNER_TEMP 'nightgrid-creator-pck-stdout.txt'
+          $stderr = Join-Path $env:RUNNER_TEMP 'nightgrid-creator-pck-stderr.txt'
+          $process = Start-Process -FilePath $exe -ArgumentList @('--headless', '--', '--verify-creator-pck') `
+            -WorkingDirectory (Resolve-Path 'dist').Path -PassThru -NoNewWindow `
+            -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          if (-not $process.WaitForExit(120000)) {
+            $process.Kill()
+            throw 'Creator PCK verifier did not terminate'
+          }
+          $process.Refresh()
+          $logs = ((Get-Content $stdout -Raw -ErrorAction SilentlyContinue) +
+            (Get-Content $stderr -Raw -ErrorAction SilentlyContinue))
+          Write-Output $logs
+          if ($process.ExitCode -ne 1 -or $logs -notmatch 'CREATOR_PCK FAIL: missing ' -or $logs -match 'CREATOR_PCK PASS:|SCRIPT ERROR:|Parse Error:') {
+            throw 'Public artifact must fail strict private-cast verification explicitly'
+          }
+          Write-Output 'CREATOR_PCK_NEGATIVE PASS: ordinary public package cannot be mistaken for creator package'

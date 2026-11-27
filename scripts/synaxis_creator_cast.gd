@@ -12,6 +12,22 @@ const SEATED_CANDIDATES = {
 	"jetson_wang": ["jetson.glb", "4f7878f077863584eb6ff9229cb8175d427db8298b45987184a1bcc85fdf8d36"],
 }
 
+## Called only by explicit packaged-creator verification, before normal gameplay.
+static func verify_packaged_candidates() -> bool:
+	var expected: Dictionary = SOCIAL_CANDIDATES.duplicate()
+	expected.merge(SEATED_CANDIDATES)
+	for id in expected:
+		var entry: Array = expected[id]
+		var path := ROOT.path_join(str(entry[0]) + ".bin")
+		if not FileAccess.file_exists(path):
+			push_error("CREATOR_PCK FAIL: missing " + str(id))
+			return false
+		if FileAccess.get_sha256(path) != str(entry[1]):
+			push_error("CREATOR_PCK FAIL: checksum mismatch " + str(id))
+			return false
+	print("CREATOR_PCK PASS: all four exact candidate hashes")
+	return true
+
 static func _pose_avatar(visual: Node3D, actor: Node3D, id: String) -> String:
 	var players := visual.find_children("*", "AnimationPlayer", true, false)
 	var skeletons := visual.find_children("*", "Skeleton3D", true, false)
