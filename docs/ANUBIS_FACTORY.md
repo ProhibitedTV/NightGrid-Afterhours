@@ -102,3 +102,12 @@ Factory triage writes refined-<batch>/triage-<size>.json using verified raw inve
 ## World-driven candidate demand
 
 `python tools/visual_studio/world_demand.py` emits a read-only demand plan using the sidecar world_demand.json. Seven initial demand groups link existing batch 001/002 candidates to Synaxis access/IT/breakroom, Brickwater frontage/utilities and Central Exchange streets/materials. Sources are the actual opening script and approved world/Brickwater reference documents. Priorities are authoring proposals, not verified runtime deficiencies or automatic placements. Checks existing catalog IDs, reuse records and local reuse path presence. Compare reusable imported assets before generating new alternatives; preserve functionality, anchors, authored collision and the native visual review gate. Batch priorities are deduplicated lists usable with the existing targeted retry selectors; no generation or game scene changes by this command.
+
+
+## Portable studio review packet (manual, post-run)
+
+After refinement and contact sheets complete, use a separate up-to-date checkout; do not update or write into the active factory checkout. Run from WSL:
+
+    python3 tools/asset_refinement/review_packet.py --refined /mnt/z/NightGrid-Afterhours/Visual/refined-001 --previews /mnt/z/NightGrid-Afterhours/Visual/Previews --output /mnt/z/NightGrid-Afterhours/Visual/visual-001-studio-review.zip
+
+This read-only source export includes the existing contact sheets, both review indexes, per-version refinement and preview manifests, and a packet file-hash index. Refuses stale/missing/failed previews, unmatched versions, changed sheet bytes, unsafe paths and existing destination. Default 50 MiB limit applies to source bytes and final archive; increase explicitly to at most 200 MiB if needed. Output is exclusive, not a publication or approval manifest; interrupted writes may leave an incomplete ZIP, so verify before sharing. No raw GLBs, model weights or textures are uploaded. It verifies metadata bindings and sheet hashes, not the current mesh payload, actual render contents, rights or native game performance. The 128-size smoke packet is explicitly partial when its preview index says so. Full-resolution export requires every reviewable version to have a successful preview. Share the ZIP for art review, then select exact versions and use the existing native gate and handoff process.
