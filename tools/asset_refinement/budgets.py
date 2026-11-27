@@ -33,9 +33,9 @@ def estimate(item):
             "warnings":["over-provisional-prop-budget"] if total>16*1024**2 else []}
 
 
-def report(raw,refined,size):
+def report_from_rows(review_rows):
     rows=[]
-    for row in scan(raw,refined,size):
+    for row in review_rows:
         for item in row.get("versions",[]):
             record=estimate(item)
             rows.append(dict(record,candidate=row["candidate"],signature=item["signature"],
@@ -45,6 +45,10 @@ def report(raw,refined,size):
             "excludes":["mesh buffers","render targets","texture compression","standalone AO","surface library",
                         "streaming and runtime copies"],"provisional_prop_budget_bytes":16*1024**2,
             "rows":rows}
+
+
+def report(raw,refined,size):
+    return report_from_rows(scan(raw,refined,size))
 
 
 if __name__=="__main__":

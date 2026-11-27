@@ -105,8 +105,8 @@ if [[ "${ANUBIS_PROJECT_NORMALS:-0}" == 1 ]]; then normal_args=(--project-normal
 if [[ "${ANUBIS_BAKE_AO:-0}" == 1 ]]; then normal_args+=(--bake-ao); fi
 stage refinement bash tools/asset_refinement/run_refine.sh --bake-size "$size" "${normal_args[@]}" "${extra[@]}" "$@"
 stage materials "$material_python" tools/asset_refinement/materials.py --raw "$ANUBIS_VISUAL_OUT" --output "$material_out" --size "$size" "${extra[@]}"
-stage review python3 tools/asset_refinement/review_queue.py --raw "$ANUBIS_VISUAL_OUT" --refined "$ANUBIS_REFINED_OUT" --size "$size" --output "$ANUBIS_REFINED_OUT/review-$size.json"
-stage budgets python3 tools/asset_refinement/budgets.py --raw "$ANUBIS_VISUAL_OUT" --refined "$ANUBIS_REFINED_OUT" --size "$size" --output "$ANUBIS_REFINED_OUT/budgets-$size.json"
+stage review python3 tools/asset_refinement/review_and_budgets.py --raw "$ANUBIS_VISUAL_OUT" --refined "$ANUBIS_REFINED_OUT" --size "$size" --review-output "$ANUBIS_REFINED_OUT/review-$size.json" --budget-output "$ANUBIS_REFINED_OUT/budgets-$size.json"
+skip budgets "budget report completed from the same verified scan in review stage"
 if [[ -n "${ANUBIS_GODOT:-}" ]]; then
   stage godot python3 tools/asset_refinement/godot_gate.py --raw "$ANUBIS_VISUAL_OUT" --refined "$ANUBIS_REFINED_OUT" --size "$size" --godot "$ANUBIS_GODOT" --output "$ANUBIS_REFINED_OUT/godot-$size.json"
 else
