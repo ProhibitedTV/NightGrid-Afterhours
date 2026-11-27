@@ -381,7 +381,7 @@ func _architecture(accent: String) -> void:
 	_part("oak",Vector3(0,.48,-9.73),Vector3(16.4,.95,.06))
 	InteriorFinish.nameplate(self,"DepartmentEntry",DEPARTMENTS[level-1]+" / LEVEL "+str(level+1),Vector3(0,2.73,-9.755),0.0,Vector2(3.5,.36))
 	InteriorFinish.strip(self,"DepartmentAcousticWall",Vector3(4.90,0,9.875),PI,5.8,InteriorFinish.FABRIC)
-	InteriorFinish.nameplate(self,"DepartmentIdentity","SYNAXIS / "+DEPARTMENTS[level-1],Vector3(4.90,2.12,9.81),PI,Vector2(3.5,.36))
+	InteriorFinish.nameplate(self,"DepartmentIdentity","SYNAXIS / "+DEPARTMENTS[level-1],Vector3(4.90,2.93,9.81),PI,Vector2(3.5,.32))
 	for x in [-6,-3,0,3,6]:
 		for z in [-7.5,-2.5,2.5,7.5]:
 			_part("white",Vector3(x,3.31,z),Vector3(2.85,.045,4.85))

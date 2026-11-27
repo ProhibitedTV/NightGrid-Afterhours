@@ -57,7 +57,7 @@ func _ready() -> void:
 	_part("blue",Vector3(5,.97,2.7),Vector3(1.5,.02,.72))
 	for i in range(3):
 		_part("black",Vector3(4.05+i*.55,1.09,2.72),Vector3(.42,.23,.45))
-	InteriorFinish.nameplate(self,"HearingProtection","CAUTION / HIGH NOISE AREA\nHEARING PROTECTION RECOMMENDED",Vector3(4.88,2.45,9.85),PI,Vector2(2.75,.48),Color("ffc568"))
+	InteriorFinish.nameplate(self,"HearingProtection","CAUTION / HIGH NOISE AREA\nHEARING PROTECTION RECOMMENDED",Vector3(4.88,1.92,9.85),PI,Vector2(2.75,.48),Color("ffc568"))
 	InteriorFinish.nameplate(self,"ElectricalSafety","DANGER / ELECTRICAL HAZARD\nAUTHORIZED PERSONNEL ONLY",Vector3(0,2.45,-9.85),0.0,Vector2(2.75,.48),Color("ffc568"))
 	_install_lift("B1","UP / LOBBY","NO SERVICE")
 	for x in [-5.5,0.0,5.5]:
