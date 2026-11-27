@@ -13,6 +13,17 @@ foreach ($name in $hashes.Keys) {
         throw "Candidate checksum mismatch: $name"
     }
 }
+# Validate the entire destination before copying anything. Never replace a
+# prior candidate or stage a mixed set because a later destination is stale.
+foreach ($name in ($hashes.Keys | Sort-Object)) {
+    $output = Join-Path $target ($name + ".bin")
+    if (Test-Path -LiteralPath $output) {
+        if (-not (Test-Path -LiteralPath $output -PathType Leaf) -or
+            (Get-FileHash -LiteralPath $output -Algorithm SHA256).Hash -ne $hashes[$name]) {
+            throw "Existing staged candidate differs; preserve it and use a clean worktree: $name"
+        }
+    }
+}
 New-Item -ItemType Directory -Path $target -Force | Out-Null
 foreach ($name in $hashes.Keys) {
     $output = Join-Path $target ($name + ".bin")
@@ -23,3 +34,5 @@ foreach ($name in $hashes.Keys) {
         throw "Staged candidate checksum mismatch: $name"
     }
 }
+
+Write-Output 'CREATOR_CAST_STAGE PASS: all four exact candidate hashes verified'
