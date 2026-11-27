@@ -38,7 +38,18 @@ func _test() -> void:
 		if actor == null:
 			_fail("Missing authored actor: " + str(id))
 			return
-		office.call("_select_floor", office.call("staff_floor", id))
+		var floor_id: int=office.call("staff_floor",id)
+		office.call("_select_floor",floor_id)
+		await process_frame
+		if not actor.can_process() or not actor.is_visible_in_tree():
+			_fail("Active floor must enable its actor: "+str(id))
+			return
+		office.call("_select_floor",1)
+		await process_frame
+		if actor.can_process() or actor.is_visible_in_tree():
+			_fail("Unoccupied story actor must not process: "+str(id))
+			return
+		office.call("_select_floor",floor_id)
 		await process_frame
 		var rig := actor.get_node_or_null("CreatorCastVisual") as Node3D
 		if staged == 0:
@@ -57,6 +68,27 @@ func _test() -> void:
 		var player := players[0] as AnimationPlayer
 		if actor.is_processing() or not player.is_playing():
 			_fail("Imported animation must replace hidden legacy processing: " + str(id))
+			return
+		if not rig.can_process() or not rig.is_processing() or player.callback_mode_process!=AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL:
+			_fail("Authored animation adapter is not driving the visible rig: "+str(id))
+			return
+		var previous_position:=player.current_animation_position
+		paused=true
+		await create_timer(.12,true).timeout
+		paused=false
+		if is_equal_approx(previous_position,player.current_animation_position):
+			_fail("Authored pose froze during a paused dialogue: "+str(id))
+			return
+		office.call("_select_floor",1)
+		var inactive_position:=player.current_animation_position
+		await create_timer(.12,true).timeout
+		if rig.can_process() or not is_equal_approx(inactive_position,player.current_animation_position):
+			_fail("Inactive floor continued animating the private rig: "+str(id))
+			return
+		office.call("_select_floor",floor_id)
+		await process_frame
+		if not rig.can_process() or not rig.is_visible_in_tree():
+			_fail("Returning to occupied floor must restore the same rig: "+str(id))
 			return
 		if str(player.current_animation) != str(CLIPS[id]):
 			_fail("Unexpected candidate animation: " + str(id) + " " + str(player.current_animation))

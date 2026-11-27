@@ -11,3 +11,5 @@ After staging and importing, run:
     godot --headless --path . --script res://tests/synaxis_creator_cast_smoke.gd -- --require-cast
 
 Require the `SYNAXIS_CREATOR_CAST PASS: all four staged actors` marker and exit code 0. The check uses the real office actor installation path, verifies all four staged hashes and imported skeletons, and checks their selected clips and Dev's attached cup. Without the flag, CI checks the clean-checkout fallback contract; partial staging fails in either mode. This is structural evidence only, not native visual or exported PCK verification. Never stage private binaries in Git. If any existing staged candidate differs, the staging script refuses to copy anything; preserve the old files and use a clean local worktree.
+
+The strict creator smoke also checks that the imported rig advances its selected clip during paused dialogue, freezes on an unoccupied floor, and resumes the same visible rig and authored clip on returning. Clean CI exercises the floor activation contract with fallback staff; private binary playback requires the local staged run. This does not replace human review of the actual gesture and seated/cup alignment.
