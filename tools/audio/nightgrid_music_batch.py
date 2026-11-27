@@ -34,6 +34,55 @@ CUES = [
 HOME=Path('/home/anubis/AI/ACE-Step-1.5')
 NAS=Path('/mnt/z/NightGrid-Afterhours')
 DIT='acestep-v15-turbo'; LM='acestep-5Hz-lm-0.6B'
+PROFILES = {
+    'legacy': dict(dit=DIT, lm=LM, steps=8, guidance=1.0, lm_backend='vllm',
+                   lm_device='cuda', lm_offload=False, dit_offload=False,
+                   quantization='int8_weight_only'),
+    'studio': dict(dit='acestep-v15-sft', lm='acestep-5Hz-lm-1.7B',
+                   steps=50, guidance=7.0, lm_backend='pt', lm_device='cuda',
+                   lm_offload=True, dit_offload=True, quantization='int8_weight_only'),
+    'studio-4b-cpu': dict(dit='acestep-v15-sft', lm='acestep-5Hz-lm-4B',
+                   steps=50, guidance=7.0, lm_backend='pt', lm_device='cpu',
+                   lm_offload=False, dit_offload=True, quantization='int8_weight_only'),
+}
+
+def available_ram_gib():
+    for line in Path('/proc/meminfo').read_text().splitlines():
+        if line.startswith('MemAvailable:'):
+            return int(line.split()[1]) / 1024**2
+    raise RuntimeError('Unable to measure available host RAM')
+
+def check_profile_ram(name):
+    if name == 'legacy':
+        return
+    minimum = 16 if name == 'studio' else 24
+    available = available_ram_gib()
+    if available < minimum:
+        raise RuntimeError(f'{name} requires at least {minimum} GiB available WSL RAM for this pilot; found {available:.1f}')
+    print(f'Available WSL RAM: {available:.1f} GiB', flush=True)
+
+def initialize_models(dit, lm, profile, name):
+    dit_args = dict(project_root=str(HOME), config_path=profile['dit'],
+                    device='cuda', offload_to_cpu=True, quantization=profile['quantization'])
+    lm_args = dict(checkpoint_dir=str(HOME/'checkpoints'), lm_model_path=profile['lm'],
+                   backend=profile['lm_backend'], device=profile['lm_device'])
+    if name != 'legacy':
+        dit_args['offload_dit_to_cpu'] = profile['dit_offload']
+        lm_args['offload_to_cpu'] = profile['lm_offload']
+    msg, ok = dit.initialize_service(**dit_args)
+    if not ok:
+        raise RuntimeError(str(msg))
+    msg, ok = lm.initialize(**lm_args)
+    if not ok:
+        raise RuntimeError(str(msg))
+    if name != 'legacy':
+        if getattr(lm, 'device', None) != profile['lm_device']:
+            raise RuntimeError('LM device differs from requested studio profile')
+        if bool(getattr(lm, 'offload_to_cpu', None)) != profile['lm_offload']:
+            raise RuntimeError('LM offload differs from requested studio profile')
+        if not getattr(dit, 'offload_to_cpu', False) or not getattr(dit, 'offload_dit_to_cpu', False):
+            raise RuntimeError('DiT offload configuration not confirmed')
+
 
 def sha(path):
     h=hashlib.sha256()
@@ -49,16 +98,18 @@ def atomic_json(path,obj):
     tmp.write_text(json.dumps(obj,indent=2,ensure_ascii=False)+'\n',encoding='utf-8')
     os.replace(tmp,path)
 
-def checkpoint_record():
+def checkpoint_record(profile=PROFILES['legacy'], name='legacy'):
     files={}
-    for name in [DIT,LM,'vae','Qwen3-Embedding-0.6B']:
-        folder=HOME/'checkpoints'/name
+    for model_name in [profile['dit'],profile['lm'],'vae','Qwen3-Embedding-0.6B']:
+        folder=HOME/'checkpoints'/model_name
         weights=sorted(folder.rglob('*.safetensors'))
         if not weights: raise RuntimeError('Missing local weights: '+str(folder))
         for path in sorted(folder.rglob('*')):
             if path.is_file() and (path.suffix in ('.safetensors','.pt','.json','.py','.txt','.jinja') or path.name.startswith('LICENSE')):
                 files[str(path.relative_to(HOME/'checkpoints'))]=sha(path)
-    return {'source_commit':subprocess.check_output(['git','-C',str(HOME),'rev-parse','HEAD'],text=True).strip(),'dit':DIT,'lm':LM,'files_sha256':files}
+    record = {'source_commit':subprocess.check_output(['git','-C',str(HOME),'rev-parse','HEAD'],text=True).strip(),'dit':profile['dit'],'lm':profile['lm'],'files_sha256':files}
+    if name != 'legacy': record['generation_profile'] = dict(profile, name=name)
+    return record
 
 def gpu_guard():
     smi=shutil.which('nvidia-smi') or '/usr/lib/wsl/lib/nvidia-smi'
@@ -96,12 +147,20 @@ def main():
     p.add_argument('--plan',action='store_true'); p.add_argument('--limit',type=int,default=0,help='Maximum NEW takes this invocation; 0=all')
     p.add_argument('--takes',type=int,default=2); p.add_argument('--batch',default='music-001')
     p.add_argument('--palette', choices=['legacy','neon-grunge-v1'], default='legacy')
+    p.add_argument('--profile', choices=list(PROFILES), default='legacy')
     a=p.parse_args()
+    profile=PROFILES[a.profile]
     if not 1<=a.takes<=8 or a.limit<0 or not __import__('re').fullmatch(r'music-[a-zA-Z0-9-]+',a.batch): p.error('Invalid batch/takes/limit')
     if a.palette == 'neon-grunge-v1' and not a.batch.startswith('music-neon-grunge-'):
         p.error('Neon-grunge requires a separate --batch music-neon-grunge-001 (or another music-neon-grunge-* name)')
     if a.palette == 'legacy' and a.batch.startswith('music-neon-grunge-'):
         p.error('Neon-grunge batch names require --palette neon-grunge-v1')
+    if a.profile != 'legacy' and (a.palette != 'neon-grunge-v1' or not a.batch.startswith('music-neon-grunge-'+a.profile+'-')):
+        p.error('Studio profiles require --palette neon-grunge-v1 and a separate music-neon-grunge-'+a.profile+'-* batch')
+    if a.profile == 'legacy' and a.batch.startswith('music-neon-grunge-studio-'):
+        p.error('Studio batch requires its explicit matching --profile')
+    if a.profile == 'studio' and a.batch.startswith('music-neon-grunge-studio-4b-cpu-'):
+        p.error('4B batch requires --profile studio-4b-cpu')
     cues=cue_palette(a.palette)
     jobs=[]
     for i,(cue,scene,dur,bpm,key,direction) in enumerate(cues):
@@ -110,6 +169,7 @@ def main():
     print(f'{len(CUES)} cues, {len(jobs)} takes, {sum(j["duration"] for j in jobs)/60:.1f} minutes of target audio',flush=True)
     if a.plan:
         if a.palette != 'legacy': print('Palette:', a.palette, 'Batch:', a.batch)
+        if a.profile != 'legacy': print('Profile:', a.profile, json.dumps(profile, sort_keys=True))
         for j in jobs:
             print(j['id'],j['duration'],j['bpm'],j['seed'])
             if a.palette != 'legacy': print('  '+j['direction'])
@@ -133,15 +193,17 @@ def main():
     os.environ['HF_HUB_OFFLINE']='1'; os.environ['TRANSFORMERS_OFFLINE']='1'
     used,total=gpu_guard()
     if total-used<8*1024: raise RuntimeError('Less than 8 GiB VRAM free; close ACE-Step UI and other GPU jobs first')
+    check_profile_ram(a.profile)
     print('Fingerprinting installed checkpoints...',flush=True)
-    provenance=checkpoint_record(); checkpoint=digest(provenance)
+    provenance=checkpoint_record(profile, a.profile); checkpoint=digest(provenance)
     provenance_path=out/'checkpoint.json'
     if provenance_path.exists() and json.loads(provenance_path.read_text())!=provenance: raise RuntimeError('Checkpoint changed; choose a new --batch')
     atomic_json(provenance_path,provenance)
     entries=[]; pending=[]
     for j in jobs:
         name=j['id']; wav=out/(name+'.wav'); meta=out/(name+'.json')
-        spec={'job':j,'checkpoint':checkpoint,'steps':8,'shift':3.0,'thinking':True,'instrumental':True,'batch_size':1,'encoding':'pcm_s24le/48000/stereo'}
+        spec={'job':j,'checkpoint':checkpoint,'steps':profile['steps'],'shift':3.0,'thinking':True,'instrumental':True,'batch_size':1,'encoding':'pcm_s24le/48000/stereo'}
+        if a.profile != 'legacy': spec['generation_profile'] = dict(profile, name=a.profile)
         fingerprint=digest(spec)
         if meta.exists():
             row=json.loads(meta.read_text(encoding='utf-8'))
@@ -156,16 +218,13 @@ def main():
     from acestep.llm_inference import LLMHandler
     from acestep.inference import GenerationParams, GenerationConfig, generate_music
     dit=AceStepHandler(); lm=LLMHandler()
-    msg,ok=dit.initialize_service(project_root=str(HOME),config_path=DIT,device='cuda',offload_to_cpu=True,quantization='int8_weight_only')
-    if not ok: raise RuntimeError(str(msg))
-    msg,ok=lm.initialize(checkpoint_dir=str(HOME/'checkpoints'),lm_model_path=LM,backend='vllm',device='cuda')
-    if not ok: raise RuntimeError(str(msg))
+    initialize_models(dit, lm, profile, a.profile)
     for j,wav,meta,fingerprint in (pending[:a.limit] if a.limit else pending):
         if not os.path.ismount('/mnt/z'): raise RuntimeError('NAS mount lost')
         if shutil.disk_usage(out).free<10*1024**3 or shutil.disk_usage('/mnt/c').free<25*1024**3: raise RuntimeError('Disk reserve guard')
         gpu_guard(); print('GENERATE',j['id'],flush=True); start=time.monotonic()
         with tempfile.TemporaryDirectory(prefix='nightgrid-music-') as tmp:
-            params=GenerationParams(task_type='text2music',caption=j['direction'],lyrics='[Instrumental]',instrumental=True,thinking=True,bpm=j['bpm'],keyscale=j['key'],timesignature='4',duration=j['duration'],seed=j['seed'],inference_steps=8,guidance_scale=1.0,shift=3.0)
+            params=GenerationParams(task_type='text2music',caption=j['direction'],lyrics='[Instrumental]',instrumental=True,thinking=True,bpm=j['bpm'],keyscale=j['key'],timesignature='4',duration=j['duration'],seed=j['seed'],inference_steps=profile['steps'],guidance_scale=profile['guidance'],shift=3.0)
             config=GenerationConfig(batch_size=1,use_random_seed=False,seeds=[j['seed']],audio_format='wav')
             result=generate_music(dit,lm,params,config,save_dir=tmp)
             if not result.success or len(result.audios)!=1: raise RuntimeError('Generation failed: '+str(result.status_message))
@@ -177,7 +236,8 @@ def main():
             subprocess.run(['ffmpeg','-nostdin','-hide_banner','-loglevel','error','-i',str(source),'-ac','2','-ar','48000','-c:a','pcm_s24le',str(partial)],check=True)
             info=audio_info(partial)
             if abs(info['seconds']-j['duration'])>max(4,j['duration']*.12): raise RuntimeError(f'Unexpected duration for {j["id"]}: {info}')
-            row={'id':j['id'],'file':wav.name,'sha256':sha(partial),'model':'ace-step','checkpoint':f'{DIT}+{LM}; sha256:{checkpoint}','scene':j['scene'],'direction':j['direction'],'rights_notes':'Candidate only; exact model and output rights review pending; not for release','reviewed':False,'fingerprint':fingerprint,'requested_seed':j['seed'],'reported_seed':str(item.get('params',{}).get('seed','unknown')),'requested_duration':j['duration'],'audio':info,'elapsed_seconds':round(time.monotonic()-start,2)}
+            row={'id':j['id'],'file':wav.name,'sha256':sha(partial),'model':'ace-step','checkpoint':f'{profile["dit"]}+{profile["lm"]}; sha256:{checkpoint}','scene':j['scene'],'direction':j['direction'],'rights_notes':'Candidate only; exact model and output rights review pending; not for release','reviewed':False,'fingerprint':fingerprint,'requested_seed':j['seed'],'reported_seed':str(item.get('params',{}).get('seed','unknown')),'requested_duration':j['duration'],'audio':info,'elapsed_seconds':round(time.monotonic()-start,2)}
+            if a.profile != 'legacy': row['generation_profile'] = dict(profile, name=a.profile)
             os.replace(partial,wav); atomic_json(meta,row); entries.append(row); manifest()
             print('SAVED',wav.name,info,flush=True)
         gpu_guard()
