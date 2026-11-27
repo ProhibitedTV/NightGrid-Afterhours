@@ -32,7 +32,7 @@ func _ready() -> void:
 	for id in [MEN,WOMEN]:
 		var x: float=CENTERS[id].x
 		_box("DoorHeader",Vector3(x,2.90,6.25),Vector3(1.34,.90,.12),"metal",true)
-		_sign(id.to_upper()+" / RESTROOM",Vector3(x,2.95,6.16),PI,.0027)
+		_sign(id.to_upper()+" / RESTROOM",Vector3(x,2.95,6.185),PI,.00155)
 		_box("FloorMat",Vector3(x,.009,7.8),Vector3(1.9,.012,2.6),"floor")
 		# Shared bathroom partition with two individually shut stalls in each room.
 		for dx in [-.52,.52]:
@@ -49,8 +49,6 @@ func _ready() -> void:
 		_box("TapSpout",Vector3(basin_x,1.23,7.36),Vector3(.06,.05,.17),"metal")
 		_box("Mirror",Vector3(basin_x+(-.20 if id==MEN else .20),1.65,7.46),Vector3(.025,.77,.65),"mirror")
 		_box("SoapDispenser",Vector3(basin_x,1.23,7.72),Vector3(.12,.20,.10),"porcelain")
-	_sign("EXTRACTOR / SERVICE DEFERRED",Vector3(-1.15,2.67,8.47),PI,.0020)
-	_sign("FACILITIES / INCLUSION TERMINAL",Vector3(1.15,2.67,8.47),PI,.0020)
 	_build_haze()
 
 func _mat(key: String) -> StandardMaterial3D:
@@ -90,7 +88,9 @@ func _sign(value: String,at: Vector3,yaw: float,pixel: float) -> void:
 	label.rotation.y=yaw
 	label.font_size=40
 	label.pixel_size=pixel
-	label.outline_size=2
+	label.outline_size=0
+	label.fixed_size=false
+	label.no_depth_test=false
 	add_child(label)
 
 func _build_haze() -> void:

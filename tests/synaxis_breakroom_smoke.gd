@@ -40,6 +40,23 @@ func _test() -> void:
 	if terrazzo == null or terrazzo.albedo_texture == null or terrazzo.normal_texture == null or terrazzo.roughness_texture == null:
 		_fail("Physical floor lacks the documented photo maps")
 		return
+	var plaques := office.find_children("MountedWayfinding*", "MeshInstance3D", true, false)
+	if plaques.size() < 3:
+		_fail("Physical office wayfinding is missing")
+		return
+	for plaque in plaques:
+		var copy := plaque.get_child(0) as Label3D
+		if copy == null or copy.outline_size != 0 or copy.fixed_size or copy.no_depth_test or absf(copy.position.z-.021) > .001:
+			_fail("Wayfinding must be surface-mounted and depth-tested")
+			return
+	for node in office.find_children("*", "Label3D", true, false):
+		var label := node as Label3D
+		if label.text.begins_with("CATERING BUDGET") or label.text.begins_with("RECORDS / COMPLIANCE") or label.text.begins_with("EXECUTIVE ESPRESSO / COMPLIMENTARY"):
+			_fail("Removed detached sign still exists")
+			return
+		if label.name in ["PrinterStatus", "CoffeeStatus"] and label.visible:
+			_fail("Appliance status should use the existing interaction prompt")
+			return
 	var space := office.get_world_3d().direct_space_state
 	var front := office.to_global(Vector3(Office.BREAKROOM_POINT.x, .90, Layout.BREAKROOM_FRONT - .45))
 	var inside := office.to_global(Vector3(Office.BREAKROOM_POINT.x, .90, Office.BREAKROOM_POINT.z))
