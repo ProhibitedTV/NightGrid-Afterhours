@@ -1150,7 +1150,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	if is_instance_valid(_opening_office):
-		if event.is_action_pressed("interact") or (_opening_office.call("arrival_active") and event.is_action_pressed("game_pause")):
+		if event.is_action_pressed("game_pause"):
+			if _opening_office.call("arrival_active"):
+				_opening_interact()
+			else:
+				var stage: int = _opening_office.call("objective_stage", int(game_menu.get("_opening_stage")))
+				game_menu.call("open_pause", OpeningOffice.TITLES.get(stage, "EXECUTIVE PRIVILEGE"))
+			get_viewport().set_input_as_handled()
+		elif event.is_action_pressed("interact"):
 			_opening_interact()
 		return
 	if event.is_action_pressed("game_pause"):

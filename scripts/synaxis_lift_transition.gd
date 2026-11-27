@@ -2,6 +2,8 @@ extends CanvasLayer
 ## Screen-space elevator doors conceal a collision-safe floor change.
 ## This is a staged transition, not a simulated moving physics cabin.
 const DOOR_TIME=.42
+const GeneratedAudio=preload("res://scripts/synaxis_generated_audio.gd")
+const AudioMix=preload("res://scripts/audio_mix.gd")
 var elapsed:=0.0
 var duration:=0.0
 var transferred:=false
@@ -12,6 +14,7 @@ var _display:Label
 var _floor_display:Label
 var _from_floor:=0
 var _to_floor:=0
+var _motor:AudioStreamPlayer
 
 func _ready() -> void:
 	layer=7
@@ -52,6 +55,15 @@ func _ready() -> void:
 	_floor_display.add_theme_font_size_override("font_size",38)
 	_floor_display.add_theme_color_override("font_color",Color("b7e0d7"))
 	add_child(_floor_display)
+	var motor_stream:=GeneratedAudio.stream("lift_motor",true)
+	if motor_stream!=null:
+		AudioMix.ensure()
+		_motor=AudioStreamPlayer.new()
+		_motor.name="CabinMotor"
+		_motor.stream=motor_stream
+		_motor.bus=AudioMix.ROOM_EFFECTS
+		_motor.volume_db=-22.0
+		add_child(_motor)
 	hide()
 
 func _panel() -> ColorRect:
@@ -96,10 +108,22 @@ func _apply(closed:float) -> void:
 	var floor_text:="B%d" % absi(floor_number) if floor_number<0 else ("G" if floor_number==0 else str(floor_number+1))
 	_floor_display.text=("↑  " if _to_floor>_from_floor else "↓  ")+floor_text
 
-func advance(delta:float) -> void:
+## True once when the destination doors begin to open.
+func advance(delta:float) -> bool:
+	if not active:
+		return false
+	var opening_time:=duration-DOOR_TIME
+	var was_opening:=elapsed>=opening_time
 	elapsed=minf(duration,elapsed+maxf(0.0,delta))
-	var closed:=smoothstep(0.0,DOOR_TIME,elapsed)*(1.0-smoothstep(duration-DOOR_TIME,duration,elapsed))
+	var closed:=smoothstep(0.0,DOOR_TIME,elapsed)*(1.0-smoothstep(opening_time,duration,elapsed))
 	_apply(closed)
+	var opening:=elapsed>=opening_time
+	if is_instance_valid(_motor):
+		if elapsed>=DOOR_TIME and not opening and not _motor.playing:
+			_motor.play()
+		elif opening and _motor.playing:
+			_motor.stop()
+	return opening and not was_opening
 
 func transfer_ready() -> bool:
 	return active and not transferred and elapsed>=DOOR_TIME
@@ -108,6 +132,8 @@ func complete() -> bool:
 	return active and elapsed>=duration
 
 func reset() -> void:
+	if is_instance_valid(_motor):
+		_motor.stop()
 	active=false
 	transferred=false
 	hide()
