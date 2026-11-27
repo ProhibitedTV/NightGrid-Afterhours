@@ -91,6 +91,9 @@ static func set_room_character(kind: String) -> void:
 			"SYNAXIS_OFFICE":
 				room.room_size = .24
 				room.wet = .09
+			"SYNAXIS_CARPET":
+				room.room_size = .22
+				room.wet = .06
 			"SYNAXIS_BASEMENT":
 				room.room_size = .42
 				room.wet = .19
