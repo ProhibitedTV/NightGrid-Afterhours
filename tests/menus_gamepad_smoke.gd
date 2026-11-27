@@ -147,6 +147,19 @@ func _verify() -> void:
 	if not preview.call("begin", world, true, true):
 		_fail("Live title could not focus the actual Brickwater alley")
 		return
+	var hero: Node3D = world.get_node_or_null("TitleCinderR9") as Node3D
+	if hero == null or hero is CollisionObject3D or hero.get_node_or_null("Coachwork/FrontClip") == null or hero.get_node_or_null("Coachwork/LiveInstrumentCluster") != null or (world.get("cars") as Array).size() != 12:
+		_fail("Title must stage the real R9 rig without adding a gameplay car or instruments")
+		return
+	var lamp: SpotLight3D = hero.get_node("Coachwork/KeyLeftBeam")
+	if not lamp.visible:
+		_fail("Title R9 night headlights must use actual optics")
+		return
+	preview.call("_set_visual_hour", 12.0)
+	if lamp.visible:
+		_fail("Title R9 night lights must turn off in daylight")
+		return
+	preview.call("_set_visual_hour", 22.1)
 	if root.get_camera_3d() == old_camera or not is_equal_approx(float(clock.get("hour")), 22.1):
 		_fail("Live title did not install its camera and night view")
 		return
@@ -156,6 +169,9 @@ func _verify() -> void:
 		_fail("Title clock must advance visually without running gameplay or moving the player")
 		return
 	preview.call("finish")
+	if world.has_node("TitleCinderR9"):
+		_fail("Title vehicle leaked into gameplay")
+		return
 	preview.queue_free()
 	if root.get_camera_3d() != old_camera or not is_equal_approx(float(clock.get("hour")), old_hour) or int(clock.get("day_index")) != old_day or environment.volumetric_fog_enabled != old_fog or player.global_position != old_position:
 		_fail("Title preview must restore gameplay camera, clock, fog and player")

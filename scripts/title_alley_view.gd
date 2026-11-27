@@ -5,6 +5,12 @@ const ORIGIN = Vector3(-87.0, 0.0, 87.0)
 const SHOT = Vector3(0.20, 1.75, -10.6)
 const LOOK = Vector3(0.35, 2.6, 6.5)
 const CYCLE_SECONDS = 240.0
+const RoadCarVisual = preload("res://scripts/road_car_visual.gd")
+const Alley = preload("res://scripts/brickwater_alley.gd")
+# Nose toward camera, on screen right (camera faces +Z). Keep the corridor
+# walls, workshop entrance and fixed street props clear.
+const R9_POSITION = Vector3(-0.65, Alley.FLOOR_Y - RoadCarVisual.GROUND, -3.0)
+const R9_YAW = 0.16
 var active := false
 var motion_enabled := true
 var _world: Node3D
@@ -14,6 +20,7 @@ var _clock: Node
 var _city: Node
 var _hud: CanvasLayer
 var _environment: Environment
+var _r9: Node3D
 var _fog: FogVolume
 var _fog_material: FogMaterial
 var _saved_hour := 0.0
@@ -66,6 +73,12 @@ func begin(world: Node3D, animate: bool, allow_headless: bool = false) -> bool:
 	_camera.global_position = ORIGIN + SHOT
 	_camera.look_at(ORIGIN + LOOK)
 	_camera.make_current()
+	_r9 = RoadCarVisual.new()
+	_r9.name = "TitleCinderR9"
+	_r9.call("configure_title_display", Color("9c2338"))
+	_world.add_child(_r9)
+	_r9.global_position = ORIGIN + R9_POSITION
+	_r9.rotation.y = R9_YAW
 	if _hud != null:
 		_saved_hud = _hud.visible
 		_hud.hide()
@@ -100,6 +113,8 @@ func begin(world: Node3D, animate: bool, allow_headless: bool = false) -> bool:
 
 func _set_visual_hour(hour: float) -> void:
 	_clock.call("set_hour", hour)
+	if is_instance_valid(_r9):
+		_r9.call("set_title_display_hour", hour)
 	_world.get("venue_system").call("set_hour", hour)
 	_world.get("civic_services").call("set_hour", hour)
 
@@ -123,6 +138,11 @@ func finish() -> void:
 		return
 	active = false
 	set_process(false)
+	if is_instance_valid(_r9):
+		_r9.hide()
+		_world.remove_child(_r9)
+		_r9.queue_free()
+		_r9 = null
 	if is_instance_valid(_fog):
 		_fog.hide()
 		_fog.queue_free()
