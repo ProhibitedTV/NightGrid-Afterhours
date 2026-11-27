@@ -57,6 +57,9 @@
     },
     "rae": {
       "direction": "Original adult venue host, warm and dry, pragmatic underground musician, no celebrity likeness."
+    },
+    "daddy_stanky": {
+      "direction": "Original adult male New Jersey accent; gravelly, quick rhyming, conversational swagger and sudden sincere pauses; no imitation of a real voice."
     }
   },
   "lines": [
@@ -1112,6 +1115,230 @@
         "character": "rae",
         "venue_job": "soundcheck_pass",
         "beat": "ending"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.talk.1",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Yo, three dead toes but I still walk the beat. Corporate suits got nothin' on me. I'll beat ya brain, put the bass in your street. Daddy Stanky, underground, never sold a seat.",
+      "direction": "Loose conversational swagger, spontaneous rhyme and comic timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "topic": 0,
+        "question": "Let's hear some bars."
+      }
+    },
+    {
+      "id": "street.daddy_stanky.talk.2",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Everybody thinks they know me, bro. Calm down, little predatah. I got jokes, I got bars, but I got a heart too. I'll show you my humanity.",
+      "direction": "Quiet, vulnerable and sincere; allow a beat of silence.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "topic": 1,
+        "question": "What's Humanity about?"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.talk.3",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "SHAWKTOOTH! Three dead toes, nobody knows. No cashy, still flashy. Smokey the cokey, hokey pokey. Man, I rhyme when I order a sandwich. That's a condition, bro.",
+      "direction": "Loose conversational swagger, spontaneous rhyme and comic timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "topic": 2,
+        "question": "Why do they call you Sharktooth?"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.talk.4",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Mother Mary, shit got scary. I was in a car I had no business bein' in. Swear I heard that pendant tell me to stay put. Then BANG, somebody sideswiped the whole thing. Coulda been luck, coulda been my head. I still wear her.",
+      "direction": "Loose conversational swagger, spontaneous rhyme and comic timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "topic": 3,
+        "question": "What's with the necklace?"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.talk.5",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Me and my neighbor had a disagreement. The shovel had a different opinion. Big talky, little walky. I ain't proud of every damn thing I done, bro.",
+      "direction": "Loose conversational swagger, spontaneous rhyme and comic timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "topic": 4,
+        "question": "You ever get in trouble?"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.talk.6",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Calm down, little predatah. I can't stand diddlas. But bein' loud don't make me a detective. Some things you gotta leave to people who know what they're doin'.",
+      "direction": "Loose conversational swagger, spontaneous rhyme and comic timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "topic": 5,
+        "question": "What about the neighborhood?"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.talk.7",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Bro, you ever actually read that book? I was sittin' there one night, cryin' my eyes out. The Bible is beautiful, man. People think I'm all jokes. There's beautiful shit in this world. I'll show you my humanity.",
+      "direction": "Quiet, vulnerable and sincere; allow a beat of silence.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "topic": 6,
+        "question": "You ever read the Bible?"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.talk.8",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Cokey Smokey, everybody knows me. Daddy Stanky, pockets lanky. I got a mixtape called Humanity and a whole city of people who think they're too good to listen. Their loss, bro.",
+      "direction": "Loose conversational swagger, spontaneous rhyme and comic timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "topic": 7,
+        "question": "How's life on the underground?"
+      }
+    },
+    {
+      "id": "street.night_regular.stanky.fan.1",
+      "character": "night_regular",
+      "language": "English",
+      "text": "SHAWKTOOTH! Sorry. Daddy Stanky does that and everybody starts yelling. You won't hear him on a corporate playlist, but somebody always has his bootleg.",
+      "direction": "Underground music fan, animated and affectionate, natural conversational delivery.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "stanky_rumor": 0
+      }
+    },
+    {
+      "id": "street.night_regular.stanky.fan.2",
+      "character": "night_regular",
+      "language": "English",
+      "text": "He rhymed through an entire livestream once. Even when he was arguing with his own chat. Ask him about the necklace, but don't expect the short version.",
+      "direction": "Underground music fan, animated and affectionate, natural conversational delivery.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "stanky_rumor": 1
+      }
+    },
+    {
+      "id": "street.night_regular.stanky.fan.3",
+      "character": "night_regular",
+      "language": "English",
+      "text": "I used to think the guy was just a walking punchline. Then I heard Humanity. Dude can be surprisingly sincere. Keep a copy of that tape, the stream could disappear tomorrow.",
+      "direction": "Underground music fan, animated and affectionate, natural conversational delivery.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "stanky_rumor": 2
+      }
+    },
+    {
+      "id": "street.daddy_stanky.stanky.show.1",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Welcome to Sharktooth Sessions! No chat delay, no moderators, no subscription fee. You got a face, you got a voice. Make some noise!",
+      "direction": "Big live introduction; projected, comedic swagger.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "stanky_show": 0
+      }
+    },
+    {
+      "id": "street.night_regular.stanky.show.2",
+      "character": "night_regular",
+      "language": "English",
+      "text": "SHAWKTOOTH!",
+      "direction": "Excited crowd shout, brief and emphatic.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "stanky_show": 1
+      }
+    },
+    {
+      "id": "street.daddy_stanky.stanky.show.3",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "No cashy, still flashy, suit man lookin' trashy. Three dead toes but I still got flows. They got a board of directors; I got a board with a busted speaker. I'll beat ya brain!",
+      "direction": "Rhythmic spoken freestyle, energetic, original bars.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "stanky_show": 2
+      }
+    },
+    {
+      "id": "street.daddy_stanky.stanky.show.4",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Yo, somebody asked me about the pendant again. Mother Mary, shit got scary. I got a whole book of bad decisions and somehow I'm still here. What a fuckin' story, bro.",
+      "direction": "Comic storytelling; allow room for a laugh.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "stanky_show": 3
+      }
+    },
+    {
+      "id": "street.night_regular.stanky.show.5",
+      "character": "night_regular",
+      "language": "English",
+      "text": "Tell 'em, Stanky!",
+      "direction": "Warm audience response.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "stanky_show": 4
+      }
+    },
+    {
+      "id": "street.daddy_stanky.stanky.show.6",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "For everybody who ever got laughed at, written off, or left outside. This one's called Humanity. There's still beautiful shit in this world. I'll show you my humanity.",
+      "direction": "Slow down, sincere, no punchline.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "stanky_show": 5
+      }
+    },
+    {
+      "id": "street.night_regular.stanky.show.7",
+      "character": "night_regular",
+      "language": "English",
+      "text": "Humanity! We love you, man!",
+      "direction": "Warm closing crowd response.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "stanky_show": 6
       }
     }
   ]

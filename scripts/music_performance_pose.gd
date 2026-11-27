@@ -1,7 +1,7 @@
 extends RefCounted
 ## Optional, bounded arm-only performance layer. Adapted from draft #315.
 ## The owner restores the previous animation pose before advancing its clip.
-const ROLES = ["guitar","bass","synth","sampler"]
+const ROLES = ["guitar","bass","synth","sampler","rap"]
 
 static func _compact(name: String) -> String:
 	return name.to_lower().replace("_","").replace("-","").replace(".","").replace(":","").replace(" ","")
@@ -53,7 +53,14 @@ static func apply(rig: Skeleton3D, visual: Node3D, bindings: Array[Dictionary], 
 		var side := 1.0 if binding["side"]=="left" else -1.0
 		var upper := Vector3(-side*.22,-1,.50)
 		var fore := Vector3(-side*.55,-.08,1)
-		if role in ["synth","sampler"]:
+		if role=="rap":
+			if binding["side"]=="right":
+				upper=Vector3(.15,-.65,.65)
+				fore=Vector3(.05,.85,.45)
+			else:
+				upper=Vector3(.30,-.55,.75)
+				fore=Vector3(.20,.20+motion*.35,1)
+		elif role in ["synth","sampler"]:
 			upper = Vector3(-side*.10,-1,.65)
 			fore = Vector3(-side*.18,-.16+side*motion*.12,1)
 		elif binding["side"]=="left":

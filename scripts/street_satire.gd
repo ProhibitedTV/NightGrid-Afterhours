@@ -371,6 +371,122 @@ const LINES = [
 		"text": "Nyx sent you? Good. This city needs more people making music, not more people selling subscriptions to it. I'll keep your name on the list.",
 		"venue_job": "soundcheck_pass",
 		"beat": "ending"
+	},
+	{
+		"id": "street.daddy_stanky.talk.1",
+		"character": "daddy_stanky",
+		"question": "Let's hear some bars.",
+		"topic": 0,
+		"text": "Yo, three dead toes but I still walk the beat. Corporate suits got nothin' on me. I'll beat ya brain, put the bass in your street. Daddy Stanky, underground, never sold a seat."
+	},
+	{
+		"id": "street.daddy_stanky.talk.2",
+		"character": "daddy_stanky",
+		"question": "What's Humanity about?",
+		"topic": 1,
+		"text": "Everybody thinks they know me, bro. Calm down, little predatah. I got jokes, I got bars, but I got a heart too. I'll show you my humanity."
+	},
+	{
+		"id": "street.daddy_stanky.talk.3",
+		"character": "daddy_stanky",
+		"question": "Why do they call you Sharktooth?",
+		"topic": 2,
+		"text": "SHAWKTOOTH! Three dead toes, nobody knows. No cashy, still flashy. Smokey the cokey, hokey pokey. Man, I rhyme when I order a sandwich. That's a condition, bro."
+	},
+	{
+		"id": "street.daddy_stanky.talk.4",
+		"character": "daddy_stanky",
+		"question": "What's with the necklace?",
+		"topic": 3,
+		"text": "Mother Mary, shit got scary. I was in a car I had no business bein' in. Swear I heard that pendant tell me to stay put. Then BANG, somebody sideswiped the whole thing. Coulda been luck, coulda been my head. I still wear her."
+	},
+	{
+		"id": "street.daddy_stanky.talk.5",
+		"character": "daddy_stanky",
+		"question": "You ever get in trouble?",
+		"topic": 4,
+		"text": "Me and my neighbor had a disagreement. The shovel had a different opinion. Big talky, little walky. I ain't proud of every damn thing I done, bro."
+	},
+	{
+		"id": "street.daddy_stanky.talk.6",
+		"character": "daddy_stanky",
+		"question": "What about the neighborhood?",
+		"topic": 5,
+		"text": "Calm down, little predatah. I can't stand diddlas. But bein' loud don't make me a detective. Some things you gotta leave to people who know what they're doin'."
+	},
+	{
+		"id": "street.daddy_stanky.talk.7",
+		"character": "daddy_stanky",
+		"question": "You ever read the Bible?",
+		"topic": 6,
+		"text": "Bro, you ever actually read that book? I was sittin' there one night, cryin' my eyes out. The Bible is beautiful, man. People think I'm all jokes. There's beautiful shit in this world. I'll show you my humanity."
+	},
+	{
+		"id": "street.daddy_stanky.talk.8",
+		"character": "daddy_stanky",
+		"question": "How's life on the underground?",
+		"topic": 7,
+		"text": "Cokey Smokey, everybody knows me. Daddy Stanky, pockets lanky. I got a mixtape called Humanity and a whole city of people who think they're too good to listen. Their loss, bro."
+	},
+	{
+		"id": "street.night_regular.stanky.fan.1",
+		"character": "night_regular",
+		"text": "SHAWKTOOTH! Sorry. Daddy Stanky does that and everybody starts yelling. You won't hear him on a corporate playlist, but somebody always has his bootleg.",
+		"stanky_rumor": 0
+	},
+	{
+		"id": "street.night_regular.stanky.fan.2",
+		"character": "night_regular",
+		"text": "He rhymed through an entire livestream once. Even when he was arguing with his own chat. Ask him about the necklace, but don't expect the short version.",
+		"stanky_rumor": 1
+	},
+	{
+		"id": "street.night_regular.stanky.fan.3",
+		"character": "night_regular",
+		"text": "I used to think the guy was just a walking punchline. Then I heard Humanity. Dude can be surprisingly sincere. Keep a copy of that tape, the stream could disappear tomorrow.",
+		"stanky_rumor": 2
+	},
+	{
+		"id": "street.daddy_stanky.stanky.show.1",
+		"character": "daddy_stanky",
+		"text": "Welcome to Sharktooth Sessions! No chat delay, no moderators, no subscription fee. You got a face, you got a voice. Make some noise!",
+		"stanky_show": 0
+	},
+	{
+		"id": "street.night_regular.stanky.show.2",
+		"character": "night_regular",
+		"text": "SHAWKTOOTH!",
+		"stanky_show": 1
+	},
+	{
+		"id": "street.daddy_stanky.stanky.show.3",
+		"character": "daddy_stanky",
+		"text": "No cashy, still flashy, suit man lookin' trashy. Three dead toes but I still got flows. They got a board of directors; I got a board with a busted speaker. I'll beat ya brain!",
+		"stanky_show": 2
+	},
+	{
+		"id": "street.daddy_stanky.stanky.show.4",
+		"character": "daddy_stanky",
+		"text": "Yo, somebody asked me about the pendant again. Mother Mary, shit got scary. I got a whole book of bad decisions and somehow I'm still here. What a fuckin' story, bro.",
+		"stanky_show": 3
+	},
+	{
+		"id": "street.night_regular.stanky.show.5",
+		"character": "night_regular",
+		"text": "Tell 'em, Stanky!",
+		"stanky_show": 4
+	},
+	{
+		"id": "street.daddy_stanky.stanky.show.6",
+		"character": "daddy_stanky",
+		"text": "For everybody who ever got laughed at, written off, or left outside. This one's called Humanity. There's still beautiful shit in this world. I'll show you my humanity.",
+		"stanky_show": 5
+	},
+	{
+		"id": "street.night_regular.stanky.show.7",
+		"character": "night_regular",
+		"text": "Humanity! We love you, man!",
+		"stanky_show": 6
 	}
 ]
 const CAST = ["robot_romantic","nothing_happens","gig_grinder","subscription_skeptic","street_visionary","night_regular"]
@@ -459,3 +575,28 @@ static func venue_job_line(id:String,beat:String)->Dictionary:
 		if row.get("venue_job","")==id and row.get("beat","")==beat:
 			return row.duplicate()
 	return {}
+
+# Fixed venue legend, deliberately excluded from the pooled random identities.
+const STANKY_ID = "daddy_stanky"
+const STANKY_SCOPE = "venue:daddy_stanky"
+static func stanky_profile() -> Dictionary:
+	var topics: Array[Dictionary] = []
+	for line in LINES:
+		if line["character"] == STANKY_ID and line.has("topic"):
+			topics.append(line.duplicate())
+	return {"name":"Daddy Stanky","role":"Underground legend / HUMANITY mixtape","character":STANKY_ID,"topics":topics}
+
+# Distinct fixed-club gossip; not part of the random pedestrian bark index.
+static func stanky_rumor(index:int) -> Dictionary:
+	for row in LINES:
+		if row.get("stanky_rumor",-1)==index:
+			return row.duplicate()
+	return {}
+
+const STANKY_SHOW_SCOPE = "venue:stanky_show"
+static func stanky_show() -> Array[Dictionary]:
+	var result:Array[Dictionary]=[]
+	for row in LINES:
+		if row.has("stanky_show"):
+			result.append(row.duplicate())
+	return result

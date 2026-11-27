@@ -9,6 +9,8 @@ const AmbientGuitar=preload("res://scripts/ambient_guitar_performer.gd")
 var _lantern_guitar:Node3D
 const AmbientSynth=preload("res://scripts/ambient_synth_performer.gd")
 var _static_room_performer:Node3D
+var _daddy_stanky:Node3D
+var _stanky_show_active:=false
 const MusicVisual=preload("res://scripts/pedestrian_rig_visual.gd")
 const MusicianModel=preload("res://assets/models/nightgrid/pedestrians/casual-walker.glb")
 var _blue_hour_performer:Node3D
@@ -38,7 +40,7 @@ const VENUES = [
 	{"id": "dock_nine", "name": "DOCK NINE SOCIAL", "kind": "BAR", "ix": -3, "iz": 0, "side": 0, "opens": 15.0, "closes": 2.0, "price": 22, "host": "Old Ren", "flavor": "Shift workers trade stories under copper lamps.", "item": "Safehouse tip"},
 	{"id": "furnace_skewers", "name": "FURNACE SKEWERS", "kind": "STALL", "ix": -2, "iz": 1, "side": 1, "opens": 12.0, "closes": 1.0, "price": 17, "host": "Nell", "flavor": "Charcoal smoke and stubborn neighborhood pride.", "item": "Midnight skewers"},
 	{"id": "copper_cup", "name": "COPPER CUP", "kind": "CAFE", "ix": -1, "iz": 2, "side": 0, "opens": 6.0, "closes": 19.0, "price": 15, "host": "Hal", "flavor": "A tiny espresso counter built from scrap brass.", "item": "Restorative coffee"},
-	{"id": "static_room", "name": "STATIC ROOM", "kind": "CLUB", "ix": 2, "iz": 1, "side": 0, "opens": 21.0, "closes": 5.0, "price": 45, "host": "Nyx", "flavor": "No cameras. One unforgettable wall of violet light.", "item": "Anonymous floor pass"},
+	{"id": "static_room", "name": "STATIC ROOM", "kind": "CLUB", "ix": 2, "iz": 1, "side": 0, "opens": 21.0, "closes": 5.0, "price": 45, "host": "Nyx", "flavor": "No cameras. Violet light. Daddy Stanky, underground legend, holds court out front after 9 PM.", "item": "Anonymous floor pass"},
 	{"id": "neon_bao", "name": "NEON BAO", "kind": "STALL", "ix": 0, "iz": 1, "side": 1, "opens": 14.0, "closes": 4.0, "price": 19, "host": "Jun", "flavor": "A midnight counter where even rivals share a table.", "item": "Steamed bao"},
 	{"id": "blue_hour", "name": "BLUE HOUR", "kind": "CLUB", "ix": 2, "iz": 2, "side": 0, "opens": 19.0, "closes": 4.0, "price": 35, "host": "Rae", "flavor": "Live light sculptures over a sunken dance floor.", "item": "Back-door discretion"}
 ]
@@ -213,6 +215,8 @@ func _build_venue(venue: Dictionary) -> void:
 	front.position = sidewalk + Vector3(0.0, -1.15, 2.3)
 	add_child(front)
 	_nodes[venue_id] = front
+	if venue_id=="static_room":
+		_build_stanky_flyer(front)
 	if venue_id in ["copper_cup","dock_nine","blue_hour","static_room"]:
 		var flyer:=_make_label(front,"",Vector3(-2.65,2.7,1.30),Color("e6a8cf"),20)
 		flyer.name="BandFlyer"
@@ -467,6 +471,7 @@ func _night_factor() -> float:
 func _refresh() -> void:
 	_refresh_blue_hour_performer()
 	_refresh_static_room_performer()
+	_refresh_daddy_stanky()
 	_refresh_lantern_guitar()
 	if is_instance_valid(_sampler_display):
 		_sampler_display.visible=is_open("copper_cup") and venue_position("copper_cup").distance_squared_to(_focus)<35.0*35.0
@@ -612,3 +617,116 @@ func _refresh_lantern_guitar()->void:
 		var front:Node3D=_nodes["lantern_cup"]
 		front.add_child(_lantern_guitar)
 	_lantern_guitar.call("set_active",active)
+
+## One retained, fixed-address guest artist. Not part of the random crowd pool.
+func _refresh_daddy_stanky() -> void:
+	var active := is_open("static_room") and venue_position("static_room").distance_squared_to(_focus)<24.0*24.0
+	if not is_instance_valid(_daddy_stanky):
+		if not active:
+			return
+		var front:Node3D = _nodes["static_room"]
+		_daddy_stanky = MusicVisual.new()
+		_daddy_stanky.name = "DaddyStanky"
+		_daddy_stanky.position = Vector3(2.15,.24,-1.3)
+		_daddy_stanky.rotation.y = PI
+		_daddy_stanky.call("set_pedestrian_model",MusicianModel)
+		front.add_child(_daddy_stanky)
+		_daddy_stanky.call("set_pedestrian_style",4)
+	_daddy_stanky.visible = active
+	_daddy_stanky.set_process(active)
+	if not active:
+		set_stanky_show_active(false)
+		_daddy_stanky.call("set_attention_target",Vector3.ZERO,false)
+
+func daddy_stanky_near(at:Vector3) -> Node3D:
+	if not is_instance_valid(_daddy_stanky) or not _daddy_stanky.is_visible_in_tree() or not is_open("static_room") or not at.is_finite():
+		return null
+	var feet := at-Vector3.UP*1.15
+	if feet.distance_squared_to(_daddy_stanky.global_position)>2.25*2.25:
+		return null
+	# Frontage-only interaction, never through the club wall.
+	if _daddy_stanky.to_local(feet).z<-.25:
+		return null
+	return _daddy_stanky
+
+# Actual textured print on the solid club front panel, not a floating Label3D.
+func _build_stanky_flyer(front:Node3D) -> void:
+	var frame:=MeshInstance3D.new()
+	frame.name="HumanityFlyer"
+	var backing:=BoxMesh.new()
+	backing.size=Vector3(.58,.78,.025)
+	frame.mesh=backing
+	frame.position=Vector3(-1.38,2.99,.826)
+	var dark:=StandardMaterial3D.new()
+	dark.albedo_color=Color("292827")
+	dark.roughness=.92
+	frame.material_override=dark
+	front.add_child(frame)
+	var print_mesh:=MeshInstance3D.new()
+	print_mesh.name="PrintedArtwork"
+	var quad:=QuadMesh.new()
+	quad.size=Vector2(.55,.75)
+	print_mesh.mesh=quad
+	print_mesh.rotation.y=PI
+	print_mesh.position.z=-.014
+	var ink:=StandardMaterial3D.new()
+	ink.albedo_texture=preload("res://assets/art/daddy_stanky_humanity.svg")
+	ink.roughness=.9
+	print_mesh.material_override=ink
+	frame.add_child(print_mesh)
+
+func stanky_fan_near(at:Vector3) -> Dictionary:
+	if not at.is_finite() or not is_open("static_room"):
+		return {}
+	var patrons:Array=_patrons.get("static_room",[])
+	var best:=1.65*1.65
+	var result:Dictionary={}
+	for i in range(patrons.size()):
+		var fan:Node3D=patrons[i]
+		var feet:=at-Vector3.UP*1.15
+		var distance:=feet.distance_squared_to(fan.global_position)
+		if fan.is_visible_in_tree() and feet.z<=fan.global_position.z+.35 and distance<best:
+			best=distance
+			result=Satire.stanky_rumor(i)
+			result["speaker"]=fan
+	return result
+
+# Performance uses one existing artist and resident audience; no spawned crowd.
+func stanky_show_speaker(character:String,beat:int) -> Node3D:
+	if not is_instance_valid(_daddy_stanky) or not _daddy_stanky.is_visible_in_tree() or not is_open("static_room"):
+		return null
+	if character==Satire.STANKY_ID:
+		return _daddy_stanky
+	if character!="night_regular":
+		return null
+	var fans:Array=_patrons.get("static_room",[])
+	if fans.is_empty():
+		return null
+	var fan:Node3D=fans[posmod(beat,fans.size())]
+	return fan if fan.is_visible_in_tree() else null
+
+func stanky_show_reachable(at:Vector3) -> bool:
+	var performer:=stanky_show_speaker(Satire.STANKY_ID,0)
+	return is_instance_valid(performer) and at.is_finite() and at.distance_squared_to(performer.global_position+Vector3.UP*1.15)<=8.0*8.0 and performer.to_local(at).z>=-.25
+
+func set_stanky_show_active(active:bool) -> void:
+	if active==_stanky_show_active:
+		return
+	_stanky_show_active=active
+	if is_instance_valid(_daddy_stanky):
+		if active:
+			_daddy_stanky.call("set_music_performance","rap")
+		else:
+			_daddy_stanky.call("clear_music_performance")
+	# Turn the existing fans toward the performer; restore original orientation.
+	if is_instance_valid(_daddy_stanky):
+		for fan:Node3D in _patrons.get("static_room",[]):
+			if active:
+				fan.set_meta("stanky_previous_yaw",fan.rotation.y)
+				var target:=_daddy_stanky.global_position
+				target.y=fan.global_position.y
+				if target.distance_squared_to(fan.global_position)>.01:
+					fan.look_at(target,Vector3.UP,true)
+			elif fan.has_meta("stanky_previous_yaw"):
+				fan.rotation.y=float(fan.get_meta("stanky_previous_yaw"))
+				fan.remove_meta("stanky_previous_yaw")
