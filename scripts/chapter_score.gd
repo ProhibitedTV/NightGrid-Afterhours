@@ -4,6 +4,7 @@ extends RefCounted
 ## Raw NAS candidates and checkpoints are never runtime inputs.
 const ROOT = "res://assets/audio/chapter_score/"
 const CUES = {
+	"score:title": {"id":"morrow.title.theme", "title":"Morrow Bay After Dark", "once":false},
 	"score:arrival": {"id":"synaxis.arrival.security-pulse", "title":"Terms of Employment", "once":true},
 	"score:offboarding": {"id":"synaxis.offboarding.empty-floor", "title":"Your Access Has Expired", "once":true},
 	"score:lobby": {"id":"synaxis.lobby.after-hours", "title":"Glass and Concrete", "once":false},
