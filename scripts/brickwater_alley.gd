@@ -13,6 +13,7 @@ const TRASH = preload("res://assets/models/polyhaven/metal_trash_can/metal_trash
 const HVAC = preload("res://assets/models/polyhaven/exterior_aircon_unit/exterior_aircon_unit.gltf")
 const NOTICE = preload("res://assets/models/nightgrid/brickwater_alley/waste_notice.svg")
 const PBR = "res://assets/pbr/polyhaven/"
+const AnubisReview = preload("res://scripts/anubis_prop_review.gd")
 const FLOOR_Y = 0.14
 const FOUNDATION_Y = -0.08
 const START_Z = -12.0
@@ -249,6 +250,18 @@ func _build_services()->void:
 	# Shared photo steel for a grounded drain cover, nearly flush to pavement.
 	var drain:=_plate(self,"FlushDrainCover",Vector3(right_wall-0.28,FLOOR_Y+0.008,-3.0),Vector3(0.32,0.015,0.72),_lid)
 	drain.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	if OS.has_environment(AnubisReview.ROOT_ENV):
+		var view := MeshInstance3D.new()
+		var up := Vector3(0.78, 0.0, 0.63).normalized()
+		var orientation := Basis(up.cross(Vector3.UP), up, Vector3.UP).transposed()
+		if AnubisReview.fitted(view, "grate.glb", "1486035560197b2c705f28f537f87d443d159821e8d9267b0fe734179bf7eccd",
+				orientation, Vector3(0.32, 0.021, 0.72), Vector3(drain.position.x, FLOOR_Y - 0.004, drain.position.z)):
+			view.name = "AnubisDrainReview"
+			view.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			add_child(view)
+			drain.hide()
+		else:
+			view.free()
 	for i in range(7):
 		_plate(self,"DrainSlot",Vector3(right_wall-0.28,FLOOR_Y+0.017,-3.27+float(i)*0.09),Vector3(0.25,0.005,0.035),_lid)
 

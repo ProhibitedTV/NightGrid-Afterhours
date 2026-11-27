@@ -1,6 +1,7 @@
 extends Node3D
 ## Small optional diegetic interactions. No money, inventory or mission effects.
 const Audio=preload("res://scripts/synaxis_generated_audio.gd")
+const AnubisReview = preload("res://scripts/anubis_prop_review.gd")
 const PRINTER=Vector3(-7.85,0,-.4)
 const COFFEE=Vector3(-7.85,0,-2.45)
 const PRINTER_USE=Vector3(-6.65,1.15,-.4)
@@ -87,7 +88,13 @@ func _cylinder(id:String,at:Vector3,radius:float,height:float,color:Color) -> Me
 
 func _ready() -> void:
 	# Dress the existing west printer cabinet, whose collision is owned by the floor.
-	_box("PrinterBody",PRINTER+Vector3(0,1.25,0),Vector3(.55,.40,.65),Color("d3d7d5"))
+	var printer := _box("PrinterBody",PRINTER+Vector3(0,1.25,0),Vector3(.55,.40,.65),Color("d3d7d5"))
+	if OS.has_environment(AnubisReview.ROOT_ENV):
+		var forward := Vector3(0.64, -0.77, 0.0).normalized()
+		var up := Vector3(0.0, 0.0, 1.0)
+		var orientation := Basis(forward, up, forward.cross(up)).transposed()
+		AnubisReview.fitted(printer, "copier.glb", "632bb4b2501cc96cc2b441207ec171c1c8d817ac39401da70517ed84c52964a0",
+			orientation, Vector3(0.55, 0.40, 0.65), PRINTER + Vector3(0, 1.06, 0))
 	_box("PrinterOutputSlot",PRINTER+Vector3(.281,1.22,0),Vector3(.014,.07,.38),Color("242d32"))
 	_box("PrinterOutputTray",PRINTER+Vector3(.43,1.16,0),Vector3(.31,.035,.42),Color("404b50"))
 	_sheet=_box("PrintedSheet",PRINTER+Vector3(.29,1.185,0),Vector3(.27,.008,.205),Color("f1eee2"))
