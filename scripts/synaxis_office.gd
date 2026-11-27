@@ -440,7 +440,7 @@ func lift_active() -> bool:
 func tick_lift(delta:float,player:CharacterBody3D) -> bool:
 	if not lift_active():
 		return false
-	_lift_transition.call("advance",delta)
+	var doors_opening:bool=_lift_transition.call("advance",delta)
 	var moved:=false
 	if _lift_transition.call("transfer_ready"):
 		_select_floor(_lift_target)
@@ -448,9 +448,9 @@ func tick_lift(delta:float,player:CharacterBody3D) -> bool:
 		player.velocity=Vector3.ZERO
 		_lift_transition.set("transferred",true)
 		moved=true
-		if is_instance_valid(_lift_audio):
-			_lift_audio.position.y=_active_floor*Workfloor.FLOOR_HEIGHT+1.2
-			_lift_audio.play()
+	if doors_opening and is_instance_valid(_lift_audio):
+		_lift_audio.position.y=_active_floor*Workfloor.FLOOR_HEIGHT+1.2
+		_lift_audio.play()
 	if _lift_transition.call("complete"):
 		_lift_transition.call("reset")
 		player.set("input_blocked",false)

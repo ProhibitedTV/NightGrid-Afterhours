@@ -48,6 +48,13 @@
       "prompt": "Short understated corporate elevator arrival bell, one soft electronic ding, clean isolated sound effect, no voices or music"
     },
     {
+      "id": "lift_motor",
+      "duration": 4,
+      "loop": true,
+      "seed": 4018,
+      "prompt": "Quiet steady electric traction motor and soft cable vibration heard from inside a modern office elevator in motion, subdued low mechanical hum, no doors, no beeps, no bell, no voices or music"
+    },
+    {
       "id": "city_wind",
       "duration": 20,
       "loop": true,

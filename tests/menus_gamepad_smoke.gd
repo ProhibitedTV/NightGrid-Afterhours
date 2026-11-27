@@ -563,11 +563,28 @@ func _verify() -> void:
 	if not office.call("arrival_active") or not player.get("input_blocked"):
 		_fail("New game begins with a controlled arrival cinematic")
 		return
-	world.call("_opening_interact") # skip uses the same completion path
-	if office.call("arrival_active") or player.get("input_blocked") or int(office.call("objective_stage",0))!=-2:
+	var escape := InputEventKey.new()
+	escape.pressed = true
+	escape.physical_keycode = KEY_ESCAPE
+	world.call("_unhandled_input", escape)
+	if paused or office.call("arrival_active") or player.get("input_blocked") or int(office.call("objective_stage",0))!=-2:
 		_fail("Skipping arrival restores player movement at the cubicle")
 		return
 	var bounds=preload("res://scripts/synaxis_office.gd")
+	world.call("_unhandled_input", escape)
+	var chapter_pause_buttons: Dictionary = menu.call("get_buttons")
+	if not paused or menu.get("screen") != "pause" or menu.get("_pause_opening_goal") != bounds.TITLES[-2] or chapter_pause_buttons.has("save_waypoint") or not chapter_pause_buttons.has("settings"):
+		_fail("Escape pauses Chapter One with its current task and no street save route")
+		return
+	menu.call("open_settings")
+	menu.call("_unhandled_input", escape)
+	if not paused or menu.get("screen") != "pause" or menu.get("_pause_opening_goal") != bounds.TITLES[-2]:
+		_fail("Backing out of settings restores the Chapter One pause menu")
+		return
+	menu.call("_unhandled_input", escape)
+	if paused or menu.call("is_open") or office.call("objective_stage", 0) != -2:
+		_fail("Resuming Chapter One leaves the mission task intact")
+		return
 	for level in [-1,0,1,2,3,4,13]:
 		var height:float=level*3.65+1.15
 		if not bounds.within_chapter_bounds(Vector3(0,height,5),level,true,false):
@@ -651,6 +668,29 @@ func _verify() -> void:
 		if int(office.get("_active_floor"))!=previous:
 			_fail("Lift cannot relocate before the doors close")
 			return
+		if level == 1:
+			world.call("_unhandled_input", start)
+			if not paused or menu.get("screen") != "pause":
+				_fail("Controller Start pauses the lift in Chapter One")
+				return
+			await create_timer(.5).timeout
+			if not office.call("lift_active") or int(office.get("_active_floor")) != previous or not player.get("input_blocked"):
+				_fail("A paused lift must hold its floor and keep movement locked")
+				return
+			menu.call("_unhandled_input", start)
+			if paused or menu.call("is_open"):
+				_fail("Controller Start resumes the lift in Chapter One")
+				return
+		if level==1:
+			var arrival_chime:=office.get_node_or_null("lift_chime") as AudioStreamPlayer3D
+			office.call("tick_lift",.25,player)
+			if int(office.get("_active_floor"))!=level or (arrival_chime!=null and arrival_chime.playing):
+				_fail("Hidden lift transfer must reach its floor without an early arrival chime")
+				return
+			office.call("tick_lift",.50,player)
+			if not office.call("lift_active") or (arrival_chime!=null and not arrival_chime.playing):
+				_fail("With a staged cue, lift arrival must chime as the doors start opening")
+				return
 		office.call("tick_lift",3.0,player)
 		if office.call("lift_active") or player.get("input_blocked"):
 			_fail("Lift opens and releases input at destination")

@@ -61,6 +61,7 @@ var screen := "hidden"
 var _back_screen := "pause"
 var _confirmation_origin := "pause"
 var _has_save := false
+var _pause_opening_goal := ""
 var _save_feedback := ""
 var _world: Node3D
 var _journal_data: Dictionary = {}
@@ -243,8 +244,9 @@ func _phone_back() -> void:
 	else:
 		hide_for_game()
 
-func open_pause() -> void:
+func open_pause(opening_goal: String = "") -> void:
 	_save_feedback = ""
+	_pause_opening_goal = opening_goal
 	_open("pause")
 
 func open_settings() -> void:
@@ -609,17 +611,21 @@ func _render() -> void:
 			_render_phone(col)
 		"pause":
 			_button(col, "resume", "Resume game", "resume")
-			_section_heading(col, "WORLD")
-			_button(col, "map", "City atlas", "map")
-			_button(col, "journal", "Mission journal", "journal")
-			_button(col, "phone", "Smartphone", "phone", is_instance_valid(_world) and bool(_world.call("phone_available")))
-			_button(col, "inventory", "Player & inventory", "inventory")
+			if _pause_opening_goal.is_empty():
+				_section_heading(col, "WORLD")
+				_button(col, "map", "City atlas", "map")
+				_button(col, "journal", "Mission journal", "journal")
+				_button(col, "phone", "Smartphone", "phone", is_instance_valid(_world) and bool(_world.call("phone_available")))
+				_button(col, "inventory", "Player & inventory", "inventory")
+			else:
+				_section_heading(col, "CHAPTER ONE / EXECUTIVE PRIVILEGE")
+				_label(col, _pause_opening_goal, 17, Ui.AMBER)
 			_section_heading(col, "SESSION")
 			var save_info: Dictionary = _world.call("save_availability") if is_instance_valid(_world) else {"allowed": false, "reason": "Visit Lantern Court to save."}
 			var can_save := bool(save_info["allowed"])
 			_button(col, "save", "SAVE PROGRESS" if can_save else "SAVE PROGRESS  /  UNAVAILABLE", "save", can_save)
 			_label(col, _save_feedback if not _save_feedback.is_empty() else str(save_info["reason"]), 15, Ui.ACCENT if can_save else Ui.MUTED)
-			if not can_save:
+			if not can_save and _pause_opening_goal.is_empty():
 				_button(col, "save_waypoint", "ROUTE TO LANTERN COURT", "save_waypoint")
 			_button(col, "load", "Load saved game", "load", _has_save)
 			_button(col, "new", "New session", "new")
