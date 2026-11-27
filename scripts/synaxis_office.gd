@@ -52,6 +52,12 @@ var _lift_transition:CanvasLayer
 var _lift_target:=0
 var _restrooms: Node3D
 const CUBICLE_POINT = Vector3(4.5,1.15,2.95)
+## Presentation hooks for authored badge, reader and gate assets.
+signal arrival_badge_presented
+signal arrival_badge_authorized
+signal arrival_badge_reset
+var _arrival_badge_presented := false
+var _arrival_badge_authorized := false
 var _arrival: RefCounted
 var _arrival_canvas: CanvasLayer
 var _arrival_caption: Label
@@ -716,6 +722,7 @@ func finish_prologue() -> void:
 	_select_floor(0)
 	_restrooms.call("end_visit")
 	_arrival=null
+	_reset_arrival_badge()
 	_arrival_canvas.hide()
 	_set_gate_open(false)
 	_clear_folder()
@@ -944,7 +951,22 @@ func _set_gate_open(value: bool) -> void:
 		if str(child.name).begins_with("gate_"):
 			child.visible=not value
 
+func _reset_arrival_badge() -> void:
+	_arrival_badge_presented=false
+	_arrival_badge_authorized=false
+	arrival_badge_reset.emit()
+
+func _update_arrival_badge(shot: Dictionary) -> void:
+	# Catch up on large frame deltas without replaying events each frame.
+	if not _arrival_badge_presented and (bool(shot["badge_presented"]) or bool(shot["badge_authorized"])):
+		_arrival_badge_presented=true
+		arrival_badge_presented.emit()
+	if not _arrival_badge_authorized and bool(shot["badge_authorized"]):
+		_arrival_badge_authorized=true
+		arrival_badge_authorized.emit()
+
 func start_arrival(player: Node3D,camera: Camera3D) -> void:
+	_reset_arrival_badge()
 	_arrival=Arrival.new()
 	_desk_beat_played=false
 	_arrival_fov=camera.fov
@@ -976,7 +998,8 @@ func tick_arrival(delta: float,player: Node3D,camera: Camera3D) -> bool:
 		if bool(shot["desk"]) and motion.length_squared()<.01 and not _desk_beat_played:
 			_desk_beat_played=true
 			player.call("play_visual_action",&"interact")
-	_set_gate_open(bool(shot["gate_open"]) and bool(shot["badge_authorized"]))
+	_update_arrival_badge(shot)
+	_set_gate_open(bool(shot["gate_open"]) and _arrival_badge_authorized)
 	camera.global_position=to_global(shot["camera"])
 	camera.look_at(to_global(shot["look"]),Vector3.UP)
 	camera.fov=float(shot["fov"])
@@ -987,6 +1010,7 @@ func finish_arrival(player: Node3D,camera: Camera3D) -> void:
 	if _arrival==null:
 		return
 	_arrival=null
+	_reset_arrival_badge()
 	_set_gate_open(false)
 	camera.fov=_arrival_fov
 	player.global_position=to_global(CUBICLE_POINT)
