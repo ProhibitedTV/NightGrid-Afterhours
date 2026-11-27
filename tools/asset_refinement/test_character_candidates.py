@@ -20,6 +20,16 @@ class CharacterCandidateTests(unittest.TestCase):
                 proc.assert_not_called()
             self.assertFalse(out.exists())
 
+    def test_unsigned_ara_modifier_rejects_negative_value(self):
+        with tempfile.TemporaryDirectory() as root:
+            folder = Path(root)
+            data = json.loads(profile("rina_vale"))
+            data["params"]["modifiers"]["head/head-rectangular"] = -0.07
+            (folder / "rina_vale.json").write_text(json.dumps(data), encoding="utf-8")
+            with patch("character_candidates.PROFILES", folder):
+                with self.assertRaisesRegex(ValueError, "head/head-rectangular"):
+                    profile("rina_vale")
+
     def test_structural_gate(self):
         # Synthetic JSON fixture, not a renderable model or proof of actual weights.
         attrs = {k: i for i, k in enumerate(

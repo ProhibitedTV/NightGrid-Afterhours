@@ -2,7 +2,9 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
+import shutil
 import struct
 import subprocess
 
@@ -27,6 +29,9 @@ def profile(actor):
             p["name"] != ACTORS[actor] or p["rig"] != "game" or p["restPose"] != "A" or
             p["carry"] != "none" or p["weapon"] != "none" or p["vehicle"] != "none"):
         raise ValueError("Unexpected standing cast profile")
+    rectangular = p.get("modifiers", {}).get("head/head-rectangular", 0)
+    if type(rectangular) not in (float, int) or not 0 <= rectangular <= 1:
+        raise ValueError("The Ara head/head-rectangular modifier must be between 0 and 1")
     return raw
 
 
@@ -77,7 +82,10 @@ def inspect_glb(path):
 
 def plan(actor, out):
     folder = out / actor
-    return ["npx", "--yes", PACKAGE, "export", "--params", str(folder/"profile.json"),
+    executable = "npx"
+    if os.name == "nt":
+        executable = shutil.which("npx.cmd") or "npx.cmd"
+    return [executable, "--yes", PACKAGE, "export", "--params", str(folder/"profile.json"),
             "--out", str(folder/"export"), "--animations", "idle,walk"]
 
 
