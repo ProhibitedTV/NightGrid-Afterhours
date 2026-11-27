@@ -256,6 +256,9 @@ func _animate_walk(delta:float) -> void:
 
 func attend(target: Vector3,active: bool) -> void:
 	_attentive=active and target.is_finite()
+	var imported:=get_node_or_null("CreatorCastVisual")
+	if is_instance_valid(imported):
+		imported.call("set_attention_target",target,_attentive)
 	if _attentive:
 		var local:=to_local(target)
 		_attention_yaw=clampf(atan2(local.x,maxf(.2,local.z)),-.63,.63)

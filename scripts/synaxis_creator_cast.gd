@@ -147,6 +147,7 @@ static func install(actor: Node3D, id: String) -> bool:
 	if not rig.is_pedestrian_visual_ready() or _pose_avatar(rig, actor, id).is_empty():
 		rig.queue_free()
 		return false
+	rig.enable_authored_office_pose()
 	for child in original_nodes:
 		if child is Node3D:
 			child.hide()

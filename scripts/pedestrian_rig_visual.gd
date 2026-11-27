@@ -37,6 +37,9 @@ var _attention_goal:=0.0
 var _attention_yaw:=0.0
 var _attention_saved:=Quaternion.IDENTITY
 var _attention_applied:=false
+var _office_pose:=false
+var _office_attention_active:=false
+var _office_nod_phase:=0.0
 static var _materials_by_source := {}
 static var _street_surface_by_source := {}
 
@@ -156,12 +159,14 @@ func set_activity(activity: String) -> void:
 # pooled pedestrians retain their existing idle/walk behavior by default.
 func set_attention_target(target:Vector3,active:bool) -> void:
 	_attention_goal=0.0
+	_office_attention_active=false
 	if not _valid or _attention_bone<0 or not active or not target.is_finite():
 		return
 	var local:=to_local(target)
 	if Vector2(local.x,local.z).length_squared()<.0025:
 		return
 	_attention_goal=clampf(atan2(local.x,maxf(.10,local.z)),-.60,.60)
+	_office_attention_active=active
 
 func _restore_attention() -> void:
 	if _attention_applied and is_instance_valid(_skeleton) and _attention_bone>=0:
@@ -170,7 +175,13 @@ func _restore_attention() -> void:
 
 func _apply_attention(delta:float) -> void:
 	_attention_yaw=move_toward(_attention_yaw,0.0 if _walking else _attention_goal,delta*2.8)
-	if _attention_bone<0 or absf(_attention_yaw)<.001:
+	var nod:=0.0
+	if _office_pose and _office_attention_active:
+		_office_nod_phase=fposmod(_office_nod_phase+delta,4.2)
+		nod=.065*pow(maxf(0.0,sin(_office_nod_phase*TAU/4.2)),8.0)
+	else:
+		_office_nod_phase=0.0
+	if _attention_bone<0 or (absf(_attention_yaw)<.001 and absf(nod)<.001):
 		return
 	# Convert actor-local up to the head parent's coordinates. Keep the
 	# imported clip's original quaternion; never accumulate frame offsets.
@@ -181,12 +192,19 @@ func _apply_attention(delta:float) -> void:
 	if not axis.is_finite() or axis.length_squared()<.001:
 		return
 	_attention_saved=_skeleton.get_bone_pose_rotation(_attention_bone)
-	_skeleton.set_bone_pose_rotation(_attention_bone,(Quaternion(axis,_attention_yaw)*_attention_saved).normalized())
+	var rotation:=Quaternion(axis,_attention_yaw)
+	if absf(nod)>=.001:
+		var pitch:=(_skeleton.global_basis.inverse()*global_basis*Vector3.RIGHT).normalized()
+		if parent>=0:
+			pitch=(_skeleton.get_bone_global_pose(parent).basis.inverse()*pitch).normalized()
+		if pitch.is_finite() and pitch.length_squared()>.001:
+			rotation*=Quaternion(pitch,nod)
+	_skeleton.set_bone_pose_rotation(_attention_bone,(rotation*_attention_saved).normalized())
 	_attention_applied=true
 
 func set_music_performance(role: String) -> bool:
 	clear_music_performance()
-	if not _valid or not is_processing() or _music_bindings.size()!=2 or role not in MusicPose.ROLES:
+	if not _valid or _office_pose or not is_processing() or _music_bindings.size()!=2 or role not in MusicPose.ROLES:
 		return false
 	_music_role=role
 	return true
@@ -200,6 +218,9 @@ func clear_music_performance() -> void:
 ## Reset pooled animation so previous occupant's stride is not inherited.
 func reset_pedestrian_visual() -> void:
 	_restore_attention()
+	_office_pose=false
+	_office_attention_active=false
+	_office_nod_phase=0.0
 	_attention_goal=0.0
 	_attention_yaw=0.0
 	clear_music_performance()
@@ -234,8 +255,23 @@ func resume_taxi_standing()->void:
 	reset_pedestrian_visual()
 	set_process(true)
 
+## Keep the already selected authored clip and its current position.
+## This opt-in never selects the street idle/walk clips.
+func enable_authored_office_pose() -> void:
+	if not _valid:
+		return
+	_office_pose=true
+	_walking=false
+	_player.callback_mode_process=AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+	set_process(true)
+
 func _process(delta: float) -> void:
 	if not _valid or not is_finite(delta) or delta<=0.0:
+		return
+	if _office_pose:
+		_restore_attention()
+		_player.advance(delta)
+		_apply_attention(delta)
 		return
 	_filtered_speed = move_toward(_filtered_speed,_measured_speed,delta*5.0)
 	var next_walk := _filtered_speed>STOP_SPEED if _walking else _filtered_speed>START_SPEED
