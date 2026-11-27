@@ -1,0 +1,21 @@
+name: Verify title gallery tooling
+on:
+  pull_request:
+    paths:
+      - 'tools/check_title_gallery.py'
+      - 'tests/test_title_gallery.py'
+      - '.github/workflows/title-gallery-verifier.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Exercise native capture provenance and tamper rejection
+        run: python -m unittest discover -s tests -p test_title_gallery.py -v
