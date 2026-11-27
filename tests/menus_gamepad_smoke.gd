@@ -135,6 +135,31 @@ func _verify() -> void:
 		return
 	menu.call("update_setting", "title_motion", saved_settings.get("title_motion", true))
 	menu.call("open_title")
+	# Exercise the real title camera in headless mode without enabling volumetrics.
+	var preview: Node = load("res://scripts/title_alley_view.gd").new()
+	menu.add_child(preview)
+	var old_camera := root.get_camera_3d()
+	var old_position := player.global_position
+	var clock: Node = world.get("day_night")
+	var old_hour: float = clock.get("hour")
+	var old_day: int = clock.get("day_index")
+	var old_fog: bool = environment.volumetric_fog_enabled
+	if not preview.call("begin", world, true, true):
+		_fail("Live title could not focus the actual Brickwater alley")
+		return
+	if root.get_camera_3d() == old_camera or not is_equal_approx(float(clock.get("hour")), 22.1):
+		_fail("Live title did not install its camera and night view")
+		return
+	for tick in range(4):
+		preview.call("_process", 0.1)
+	if is_equal_approx(float(clock.get("hour")), 22.1) or not paused or player.global_position != old_position:
+		_fail("Title clock must advance visually without running gameplay or moving the player")
+		return
+	preview.call("finish")
+	preview.queue_free()
+	if root.get_camera_3d() != old_camera or not is_equal_approx(float(clock.get("hour")), old_hour) or int(clock.get("day_index")) != old_day or environment.volumetric_fog_enabled != old_fog or player.global_position != old_position:
+		_fail("Title preview must restore gameplay camera, clock, fog and player")
+		return
 	if not paused or not menu.call("is_open") or str(menu.get("screen")) != "title":
 		_fail("Title screen must pause the world and remain interactive")
 		return
