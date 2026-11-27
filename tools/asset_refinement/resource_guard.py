@@ -24,7 +24,7 @@ def violation(data, min_ssd, min_nas, max_temp):
             return disk+" free-space reserve breached"
     for gpu in data.get("gpu") or []:
         temp=gpu.get("temperature_c")
-        if isinstance(temp,int) and temp>=max_temp:
+        if isinstance(temp,(int,float)) and temp>=max_temp:
             return "GPU temperature threshold reached"
     return None
 

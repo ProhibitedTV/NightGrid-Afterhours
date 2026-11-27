@@ -21,6 +21,13 @@ class ResourceTests(unittest.TestCase):
         data["disks"]["nas"]["status"]="not-mounted"
         self.assertIn("nas",violation(data,25,10,85))
 
+    def test_fractional_temperature_threshold(self):
+        data=fixture()
+        data["gpu"][0]["temperature_c"]=84.99
+        self.assertIsNone(violation(data,25,10,85))
+        data["gpu"][0]["temperature_c"]=85.01
+        self.assertIn("temperature",violation(data,25,10,85))
+
     def test_preflight_refuses_launch(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)

@@ -1,4 +1,5 @@
 """Best-effort local resource snapshots, no monitoring daemon."""
+import math
 import os
 from pathlib import Path
 import shutil
@@ -9,6 +10,14 @@ QUERY = "uuid,name,temperature.gpu,utilization.gpu,memory.used,memory.total"
 
 def number(value):
     return int(value) if value.isdigit() else None
+
+
+def temperature(value):
+    try:
+        temp = float(value)
+    except ValueError:
+        return None
+    return temp if math.isfinite(temp) else None
 
 
 def query_gpu(binary):
@@ -23,7 +32,7 @@ def query_gpu(binary):
             fields = [v.strip() for v in line.split(",")]
             if len(fields) != 6:
                 continue
-            temp = number(fields[2])
+            temp = temperature(fields[2])
             rows.append(dict(uuid=fields[0] if fields[0].startswith("GPU-") else None,
                              name=fields[1], temperature_c=temp,
                              utilization_pct=number(fields[3]),
