@@ -20,3 +20,6 @@ class TriageTests(unittest.TestCase):
         self.assertIn("measure-physical-height",flags)
         self.assertIn("lod2-low-uv-coverage",flags)
         self.assertNotIn("inspect-lod-order",flags)
+        self.assertNotIn("review-missing-projected-normals", flags)
+        item["normal_projection_exception"] = "operator-requested omission after failed bake"
+        self.assertIn("review-missing-projected-normals", version_flags(item))
