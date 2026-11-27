@@ -633,7 +633,7 @@ func _verify() -> void:
 		return
 	for deck_stats in office_decks:
 		desk_total+=int(deck_stats["desks"])
-		if int(deck_stats["desks"])!=28 or int(deck_stats["chairs"])<28 or int(deck_stats["plants"])<5 or int(deck_stats["colliders"])<10 or int(deck_stats["batches"])>40:
+		if int(deck_stats["desks"])!=28 or int(deck_stats.get("raceways",0))!=28 or int(deck_stats["chairs"])<28 or int(deck_stats["plants"])<5 or int(deck_stats["colliders"])<10 or int(deck_stats["batches"])>40:
 			_fail("Every workfloor must be fully furnished, collision backed and batched")
 			return
 	if desk_total<100:
