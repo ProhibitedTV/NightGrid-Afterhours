@@ -4,6 +4,7 @@ const AudioMix = preload("res://scripts/audio_mix.gd")
 const MinimapScript = preload("res://scripts/minimap.gd")
 const CityFoley = preload("res://scripts/city_foley.gd")
 const Ui = preload("res://scripts/ui_style.gd")
+const DialogueWheel = preload("res://scripts/dialogue_wheel.gd")
 const Rhythm=preload("res://scripts/rhythm_rehearsal.gd")
 var _rhythm=Rhythm.new()
 var _rhythm_sequence:=0
@@ -506,15 +507,22 @@ func _render() -> void:
 			_title(col,str(_interview["name"]),23,Ui.AMBER)
 			_label(col,str(_interview["role"]),15,Ui.MUTED)
 			var topics:Array=_interview["topics"]
-			if _interview_topic<0:
-				for i in topics.size():
+			if _interview_topic<0 and topics.size()==2:
+				_dialogue_wheel(col, [
+					["interview_0", "Ask about work", str(topics[0]["question"]), "left"],
+					["interview_1", "Ask about access", str(topics[1]["question"]), "right"],
+					["notes_open", "Review notes", "Read private investigation notes.", "up"],
+					["interview_leave", "Back to work", "End this conversation.", "down"]])
+			elif _interview_topic<0:
+				for i in mini(topics.size(),2):
 					_button(col,"interview_%d" % i,str(topics[i]["question"]),"interview_%d" % i)
 			else:
 				_label(col,str(topics[_interview_topic]["question"]),16,Ui.MUTED)
 				_label(col,str(topics[_interview_topic]["reply"]),17,Ui.TEXT)
 				_button(col,"interview_back","ASK SOMETHING ELSE","interview_back")
-			_button(col,"notes_open","REVIEW PRIVATE NOTES (%d)" % _investigation_notes.size(),"notes_open")
-			_button(col,"interview_leave","BACK TO WORK","interview_leave")
+			if _interview_topic>=0 or topics.size()!=2:
+				_button(col,"notes_open","REVIEW PRIVATE NOTES (%d)" % _investigation_notes.size(),"notes_open")
+				_button(col,"interview_leave","BACK TO WORK","interview_leave")
 		"parking_guard":
 			SynaxisBrand.ui_lockup(col)
 			_title(col,"MARCUS VALE / PARKING SECURITY",23,Ui.AMBER)
@@ -533,8 +541,9 @@ func _render() -> void:
 			_title(col,Opening.BREAKROOM_TITLE,23,Ui.AMBER)
 			if _breakroom_choice.is_empty():
 				_label(col,Opening.BREAKROOM_PARTY,16,Ui.TEXT)
-				_button(col,"breakroom_photo","JOIN THE CORPORATE PHOTO","breakroom_photo")
-				_button(col,"breakroom_decline","SKIP THE PHOTO","breakroom_decline")
+				_dialogue_wheel(col, [
+					["breakroom_photo","Play along","Join the corporate photo.","right"],
+					["breakroom_decline","Decline","Skip the corporate photo.","left"]])
 			else:
 				_label(col,Opening.BREAKROOM_PHOTO if _breakroom_choice=="breakroom_photo" else Opening.BREAKROOM_DECLINE,17,Ui.TEXT)
 				_button(col,"breakroom_leave","BACK TO WORK","breakroom_leave")
@@ -569,8 +578,9 @@ func _render() -> void:
 							_label(col, Opening.CONFERENCE_END, 17, Color("cbd8e3"))
 							if not _investigation_notes.is_empty():
 								_button(col,"notes_open","REVIEW PRIVATE NOTES (%d)" % _investigation_notes.size(),"notes_open")
-							_button(col, "opening_security", "ESCALATE TO SECURITY DIRECTOR", "opening_security")
-							_button(col, "opening_legal", "ASK LEGAL TO PRESERVE AUDIT", "opening_legal")
+							_dialogue_wheel(col, [
+								["opening_security","Escalate","Escalate to the security director.","right"],
+								["opening_legal","Preserve evidence","Ask legal to preserve the audit.","left"]])
 				3:
 					_title(col, "YOUR CONCERN HAS BEEN RECEIVED", 29, Ui.TEXT)
 					_label(col, Opening.REPORT_RESPONSE if _opening_report == "opening_security" else Opening.LEGAL_RESPONSE, 17, Color("cbd8e3"))
@@ -579,8 +589,9 @@ func _render() -> void:
 				4:
 					_title(col, "WE VALUE YOUR FEEDBACK", 29, Ui.TEXT)
 					_label(col, Opening.OFFBOARDING, 17, Color("cbd8e3"))
-					_button(col, "opening_exit_accept", "SUBMIT EXIT FEEDBACK", "opening_exit_accept")
-					_button(col, "opening_exit_decline", "DECLINE EXIT INTERVIEW", "opening_exit_decline")
+					_dialogue_wheel(col, [
+						["opening_exit_accept","Give feedback","Submit exit feedback.","right"],
+						["opening_exit_decline","Decline","Decline the exit interview.","left"]])
 				5:
 					_label(col, Opening.EXIT_ACCEPT if _opening_exit == "opening_exit_accept" else Opening.EXIT_DECLINE, 16, Ui.MUTED)
 					_title(col, Opening.HEADLINE, 29, Color("e3a39b"))
@@ -772,7 +783,7 @@ func _render() -> void:
 			_button(col, "cancel", "KEEP CURRENT SESSION", "cancel_new")
 			_button(col, "confirm_new", "DISCARD SESSION / NEW WORLD", "confirm_new")
 	_divider(shell)
-	_label(shell, "↑ ↓  Navigate   •   Enter / A  Select   •   Esc / B  Back", 16, Ui.MUTED)
+	_label(shell, "Arrows / D-pad  Navigate   •   Enter / A  Select   •   Esc / B  Back", 16, Ui.MUTED)
 	_wire_focus()
 	_fit_menu.call_deferred()
 	if screen != "confirm_new":
@@ -807,6 +818,10 @@ func _wire_focus() -> void:
 		item.focus_neighbor_bottom = item.get_path_to(next)
 		item.focus_previous = item.get_path_to(prev)
 		item.focus_next = item.get_path_to(next)
+	# Override the list focus chain within the wheel. Surrounding controls remain
+	# reachable via Tab and the original list order.
+	for node in _root.find_children("DialogueWheel", "Control", true, false):
+		node.call("wire_directions")
 	if screen == "phone" and _phone_app.is_empty() and _focus_order.size() == Phone.APPS.size()+1:
 		var count: int = Phone.APPS.size()
 		for i in range(count):
@@ -957,7 +972,34 @@ func _divider(parent: VBoxContainer) -> void:
 	var line := HSeparator.new()
 	parent.add_child(line)
 
-func _button(parent: VBoxContainer, key: String, caption: String, action: String, enabled: bool = true) -> void:
+# Keep the existing action dispatcher and Button focus semantics. A wheel only
+# changes presentation, never conversation state or mission consequences.
+func _dialogue_wheel(parent: VBoxContainer, choices: Array) -> void:
+	var wheel := DialogueWheel.new()
+	wheel.name = "DialogueWheel"
+	parent.add_child(wheel)
+	var preview := Label.new()
+	preview.name = "DialogueIntentPreview"
+	preview.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	preview.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	preview.custom_minimum_size.y = 44
+	preview.add_theme_font_size_override("font_size", 15)
+	preview.add_theme_color_override("font_color", Ui.MUTED)
+	parent.add_child(preview)
+	for choice in choices:
+		var id := str(choice[0])
+		_button(wheel, id, str(choice[1]), id)
+		var button := _buttons[id] as Button
+		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		button.add_theme_font_size_override("font_size", 15)
+		button.tooltip_text = str(choice[2])
+		wheel.register_choice(str(choice[3]), button)
+		var reveal := func() -> void: preview.text = button.tooltip_text
+		button.focus_entered.connect(reveal)
+		button.mouse_entered.connect(reveal)
+	preview.text = str(choices[0][2])
+
+func _button(parent: Control, key: String, caption: String, action: String, enabled: bool = true) -> void:
 	var button := Button.new()
 	button.name = "Menu_" + key
 	button.text = caption
