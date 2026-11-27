@@ -373,7 +373,7 @@ func _render() -> void:
 	_buttons.clear()
 	_focus_order.clear()
 	_first_focus = null
-	var staged := screen in ["breakroom","restroom","parking_guard","street_contact","staff_interview"] or (screen=="opening" and _physical_opening and _opening_stage in [2,4])
+	var staged := screen in ["breakroom","restroom","parking_guard","street_contact","staff_interview"] or (screen=="opening" and _physical_opening and _opening_stage in [2,3,4])
 	var shade := ColorRect.new()
 	shade.name = "Scrim"
 	shade.color = Color(0.028, 0.045, 0.060, .36 if screen == "phone" else (.12 if staged else (.94 if screen in ["title", "opening"] else .68)))
@@ -786,7 +786,7 @@ func _fit_menu() -> void:
 		return
 	var viewport_size := get_viewport().get_visible_rect().size
 	if is_instance_valid(_menu_panel):
-		var staged := screen in ["breakroom","restroom","parking_guard","street_contact"] or (screen == "opening" and _physical_opening and _opening_stage in [2,4])
+		var staged := screen in ["breakroom","restroom","parking_guard","street_contact"] or (screen == "opening" and _physical_opening and _opening_stage in [2,3,4])
 		var target_width := 500.0 if staged else (840.0 if screen in ["inventory","journal"] else 760.0)
 		_menu_panel.custom_minimum_size.x = minf(target_width, maxf(320.0, viewport_size.x - 64.0))
 	_body_scroll.custom_minimum_size.y = minf(_body_col.get_combined_minimum_size().y, maxf(140.0, viewport_size.y - 200.0))
@@ -1149,6 +1149,8 @@ func _choice(action: String) -> void:
 			if screen == "opening" and _opening_stage == 2 and _briefing_beat == 2:
 				_opening_report = action
 				_opening_stage = 3
+				if _physical_opening:
+					action_requested.emit("opening_camera")
 				_render()
 		"opening_read_notice":
 			if screen == "opening" and _opening_stage == 3:
