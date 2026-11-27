@@ -1220,6 +1220,42 @@
         "topic": 7,
         "question": "How's life on the underground?"
       }
+    },
+    {
+      "id": "street.night_regular.stanky.fan.1",
+      "character": "night_regular",
+      "language": "English",
+      "text": "SHAWKTOOTH! Sorry. Daddy Stanky does that and everybody starts yelling. You won't hear him on a corporate playlist, but somebody always has his bootleg.",
+      "direction": "Underground music fan, animated and affectionate, natural conversational delivery.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "stanky_rumor": 0
+      }
+    },
+    {
+      "id": "street.night_regular.stanky.fan.2",
+      "character": "night_regular",
+      "language": "English",
+      "text": "He rhymed through an entire livestream once. Even when he was arguing with his own chat. Ask him about the necklace, but don't expect the short version.",
+      "direction": "Underground music fan, animated and affectionate, natural conversational delivery.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "stanky_rumor": 1
+      }
+    },
+    {
+      "id": "street.night_regular.stanky.fan.3",
+      "character": "night_regular",
+      "language": "English",
+      "text": "I used to think the guy was just a walking punchline. Then I heard Humanity. Dude can be surprisingly sincere. Keep a copy of that tape, the stream could disappear tomorrow.",
+      "direction": "Underground music fan, animated and affectionate, natural conversational delivery.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "night_regular",
+        "stanky_rumor": 2
+      }
     }
   ]
 }

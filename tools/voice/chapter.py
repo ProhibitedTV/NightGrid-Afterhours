@@ -79,6 +79,10 @@ def validate_catalog(path, source=None):
                 raise ValueError("Invalid player conversation topic")
             expected[ident]["source"]={"catalog":"street_satire","character":row["character"],
                                       "topic":row["topic"],"question":row["question"]}
+        if "stanky_rumor" in row:
+            if row["character"]!="night_regular" or row["stanky_rumor"] not in (0,1,2):
+                raise ValueError("Invalid Stanky fan cue")
+            expected[ident]["source"]={"catalog":"street_satire","character":row["character"],"stanky_rumor":row["stanky_rumor"]}
         if "quest" in row:
             if row["quest"] not in ("accept","complete") or row["character"]!="robot_romantic":
                 raise ValueError("Invalid Cal quest cue")

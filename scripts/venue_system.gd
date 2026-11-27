@@ -214,6 +214,8 @@ func _build_venue(venue: Dictionary) -> void:
 	front.position = sidewalk + Vector3(0.0, -1.15, 2.3)
 	add_child(front)
 	_nodes[venue_id] = front
+	if venue_id=="static_room":
+		_build_stanky_flyer(front)
 	if venue_id in ["copper_cup","dock_nine","blue_hour","static_room"]:
 		var flyer:=_make_label(front,"",Vector3(-2.65,2.7,1.30),Color("e6a8cf"),20)
 		flyer.name="BandFlyer"
@@ -644,3 +646,45 @@ func daddy_stanky_near(at:Vector3) -> Node3D:
 	if _daddy_stanky.to_local(feet).z<-.25:
 		return null
 	return _daddy_stanky
+
+# Actual textured print on the solid club front panel, not a floating Label3D.
+func _build_stanky_flyer(front:Node3D) -> void:
+	var frame:=MeshInstance3D.new()
+	frame.name="HumanityFlyer"
+	var backing:=BoxMesh.new()
+	backing.size=Vector3(.58,.78,.025)
+	frame.mesh=backing
+	frame.position=Vector3(-1.38,2.99,.826)
+	var dark:=StandardMaterial3D.new()
+	dark.albedo_color=Color("292827")
+	dark.roughness=.92
+	frame.material_override=dark
+	front.add_child(frame)
+	var print_mesh:=MeshInstance3D.new()
+	print_mesh.name="PrintedArtwork"
+	var quad:=QuadMesh.new()
+	quad.size=Vector2(.55,.75)
+	print_mesh.mesh=quad
+	print_mesh.rotation.y=PI
+	print_mesh.position.z=-.014
+	var ink:=StandardMaterial3D.new()
+	ink.albedo_texture=preload("res://assets/art/daddy_stanky_humanity.svg")
+	ink.roughness=.9
+	print_mesh.material_override=ink
+	frame.add_child(print_mesh)
+
+func stanky_fan_near(at:Vector3) -> Dictionary:
+	if not at.is_finite() or not is_open("static_room"):
+		return {}
+	var patrons:Array=_patrons.get("static_room",[])
+	var best:=1.65*1.65
+	var result:Dictionary={}
+	for i in range(patrons.size()):
+		var fan:Node3D=patrons[i]
+		var feet:=at-Vector3.UP*1.15
+		var distance:=feet.distance_squared_to(fan.global_position)
+		if fan.is_visible_in_tree() and feet.z<=fan.global_position.z+.35 and distance<best:
+			best=distance
+			result=Satire.stanky_rumor(i)
+			result["speaker"]=fan
+	return result

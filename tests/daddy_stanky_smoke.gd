@@ -23,6 +23,18 @@ func _test() -> void:
 	if venues.daddy_stanky_near(listener)!=actor or venues.daddy_stanky_near(listener+Vector3.UP*5.0)!=null or venues.daddy_stanky_near(listener+Vector3.RIGHT*8.0)!=null:
 		_fail("Contact proximity")
 		return
+	var flyer:=venues.find_child("HumanityFlyer",true,false) as MeshInstance3D
+	if flyer==null or flyer.get_node_or_null("PrintedArtwork")==null:
+		_fail("Missing physical mixtape flyer")
+		return
+	var patrons:Dictionary=venues.get("_patrons")
+	var fans:Array=patrons["static_room"]
+	for i in range(fans.size()):
+		var fan:Node3D=fans[i]
+		var gossip:=venues.stanky_fan_near(fan.global_position+Vector3.UP*1.15+Vector3.FORWARD*.4)
+		if gossip.get("stanky_rumor",-1)!=i:
+			_fail("Missing distinct fan lore")
+			return
 	venues.set_hour(12.0)
 	if venues.daddy_stanky_near(listener)!=null or actor.visible:
 		_fail("Daytime visibility")

@@ -9,7 +9,7 @@ class AnubisTests(unittest.TestCase):
 
     def test_full_catalog(self):
         selected=anubis.select(self.specs,True,[],[])
-        self.assertEqual(len(selected),96)
+        self.assertEqual(len(selected),99)
         self.assertEqual(len(anubis.reference_ids(self.specs,selected)),15)
 
     def test_single_line_keeps_canonical_cast_reference(self):

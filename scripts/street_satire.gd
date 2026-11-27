@@ -427,6 +427,24 @@ const LINES = [
 		"question": "How's life on the underground?",
 		"topic": 7,
 		"text": "Cokey Smokey, everybody knows me. Daddy Stanky, pockets lanky. I got a mixtape called Humanity and a whole city of people who think they're too good to listen. Their loss, bro."
+	},
+	{
+		"id": "street.night_regular.stanky.fan.1",
+		"character": "night_regular",
+		"text": "SHAWKTOOTH! Sorry. Daddy Stanky does that and everybody starts yelling. You won't hear him on a corporate playlist, but somebody always has his bootleg.",
+		"stanky_rumor": 0
+	},
+	{
+		"id": "street.night_regular.stanky.fan.2",
+		"character": "night_regular",
+		"text": "He rhymed through an entire livestream once. Even when he was arguing with his own chat. Ask him about the necklace, but don't expect the short version.",
+		"stanky_rumor": 1
+	},
+	{
+		"id": "street.night_regular.stanky.fan.3",
+		"character": "night_regular",
+		"text": "I used to think the guy was just a walking punchline. Then I heard Humanity. Dude can be surprisingly sincere. Keep a copy of that tape, the stream could disappear tomorrow.",
+		"stanky_rumor": 2
 	}
 ]
 const CAST = ["robot_romantic","nothing_happens","gig_grinder","subscription_skeptic","street_visionary","night_regular"]
@@ -525,3 +543,10 @@ static func stanky_profile() -> Dictionary:
 		if line["character"] == STANKY_ID:
 			topics.append(line.duplicate())
 	return {"name":"Daddy Stanky","role":"Underground legend / HUMANITY mixtape","character":STANKY_ID,"topics":topics}
+
+# Distinct fixed-club gossip; not part of the random pedestrian bark index.
+static func stanky_rumor(index:int) -> Dictionary:
+	for row in LINES:
+		if row.get("stanky_rumor",-1)==index:
+			return row.duplicate()
+	return {}
