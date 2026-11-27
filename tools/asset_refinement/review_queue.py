@@ -47,6 +47,12 @@ def scan(raw, refined, size):
     return rows
 
 
+def build_report(rows, size):
+    return {"schema": 1, "status": "unapproved", "bake_size": size,
+            "ready_for_review": sum(row["status"] == "review-required" for row in rows),
+            "rows": rows}
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--raw", type=Path, required=True)
@@ -57,9 +63,7 @@ def main():
     if args.output.resolve().parent != args.refined.resolve():
         p.error("Review index must be written inside refinement root")
     rows = scan(args.raw, args.refined, args.size)
-    result = {"schema": 1, "status": "unapproved", "bake_size": args.size,
-              "ready_for_review": sum(row["status"] == "review-required" for row in rows),
-              "rows": rows}
+    result = build_report(rows, args.size)
     with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=args.refined,
                                      prefix=".review-", delete=False) as handle:
         tmp = Path(handle.name)
