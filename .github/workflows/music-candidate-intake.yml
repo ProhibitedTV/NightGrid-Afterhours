@@ -9,6 +9,7 @@ on:
       - 'tools/audio/run_anubis_music.sh'
       - 'tests/test_music_pcm.py'
       - 'tools/audio/music_technical_qc.py'
+      - 'tools/audio/music_pcm_diagnostics.py'
       - 'tests/test_music_technical_qc.py'
       - 'tests/test_music_candidate_intake.py'
       - 'tools/audio/music_cue_briefs.py'
