@@ -221,7 +221,7 @@ func _verify() -> void:
 	var old_seed: int = session.get("world_seed")
 	var before: Dictionary = world.call("_capture_snapshot")
 	var record: Dictionary = session.call("make_snapshot", before)
-	if int(record.get("seed", -1)) != old_seed or not session.call("is_valid_snapshot", record):
+	if record.has("seed") or record.get("layout_id") != "morrow-bay" or not session.call("is_valid_snapshot", record):
 		_fail("Venue state caused an invalid world save")
 		return
 	var older: Dictionary = record.duplicate(true)
@@ -229,7 +229,7 @@ func _verify() -> void:
 	older.erase("venue_job_completed")
 	older.erase("progression")
 	if not session.call("is_valid_snapshot", older):
-		_fail("Backward compatibility with existing version-one saves broke")
+		_fail("Canonical venue save failed schema validation")
 		return
 	var malformed: Dictionary = record.duplicate(true)
 	malformed["progression"] = {"version":1,"receipts":["venue:midnight_thermos","venue:midnight_thermos"]}
