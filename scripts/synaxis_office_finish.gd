@@ -17,6 +17,7 @@ var _chair_poses:Array[Transform3D]=[]
 var _groups: Dictionary = {}
 var _materials: Dictionary = {}
 var _part_count := 0
+var _gate_rest: Dictionary = {}
 
 func _ready() -> void:
 	_architecture()
@@ -86,6 +87,11 @@ func _flush() -> void:
 		node.material_override = _material(key)
 		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(node)
+		if str(id).begins_with("gate_"):
+			var rest: Array[Transform3D] = []
+			for i in range(mm.instance_count):
+				rest.append(mm.get_instance_transform(i))
+			_gate_rest[id] = rest
 	_groups.clear()
 	ChairAsset.install(self,_chair_poses)
 	_chair_poses.clear()
@@ -243,3 +249,17 @@ func set_reader_authorized(authorized: bool) -> void:
 	var indicators := get_node_or_null("reader_red_box") as MultiMeshInstance3D
 	if is_instance_valid(indicators):
 		indicators.material_override = _material("signal" if authorized else "red")
+
+## Provisional sliding motion for existing skins; authored leaves can replace this adapter.
+func set_gate_fraction(fraction: float) -> void:
+	var amount := clampf(fraction,0.0,1.0)
+	for id in _gate_rest:
+		var batch := get_node_or_null(NodePath(str(id))) as MultiMeshInstance3D
+		if not is_instance_valid(batch):
+			continue
+		var rest: Array = _gate_rest[id]
+		for i in range(rest.size()):
+			var pose: Transform3D = rest[i]
+			pose.origin.x += signf(pose.origin.x)*1.30*amount
+			batch.multimesh.set_instance_transform(i,pose)
+		batch.visible = amount < 0.999
