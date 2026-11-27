@@ -1097,8 +1097,16 @@ func set_stage(stage: int) -> void:
 	if not POINTS.has(stage):
 		return
 
+func _clear_staff_attention() -> void:
+	_near_staff=""
+	_staff_remark=""
+	_staff_phase=-1
+	for actor in _staff.values():
+		actor.call("attend",Vector3.ZERO,false)
+
 func update_staff_attention(stage: int,at: Vector3) -> String:
 	if not _prologue_active or _arrival!=null or not at.is_finite():
+		_clear_staff_attention()
 		return ""
 	var closest := ""
 	var best := 2.25*2.25
@@ -1114,6 +1122,16 @@ func update_staff_attention(stage: int,at: Vector3) -> String:
 			continue
 		if _active_floor==0 and local.z>Arrival.PARTITION_NEAR_Z and local.z<Arrival.PARTITION_FAR_Z and anchor.z>Arrival.PARTITION_NEAR_Z and anchor.z<Arrival.PARTITION_FAR_Z and local.x*anchor.x<0.0:
 			continue
+		if _active_floor==ExecutiveFloor.FLOOR and ExecutiveFloor.blocks_staff_sight(Vector2(local.x,local.z),Vector2(anchor.x,anchor.z)):
+			continue
+		if _active_floor==0:
+			var blocked:=false
+			for edge in GroundLayout.BREAKROOM_EDGES:
+				if Geometry2D.segment_intersects_segment(Vector2(local.x,local.z),Vector2(anchor.x,anchor.z),edge[0],edge[1])!=null:
+					blocked=true
+					break
+			if blocked:
+				continue
 		if distance<best:
 			closest=id
 			best=distance
@@ -1172,6 +1190,8 @@ func update_prompt(stage: int,at: Vector3,gamepad: bool) -> void:
 			var executive_line: String=_executive_floor.call("staff_remark",at,stage)
 			if executive_line.is_empty():
 				executive_line=update_staff_attention(stage,at)
+			else:
+				_clear_staff_attention()
 			if not executive_line.is_empty():
 				_hint.text+="\n"+executive_line
 		if _active_floor<=Workfloor.FLOOR_COUNT:

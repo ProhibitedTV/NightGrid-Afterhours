@@ -11,10 +11,20 @@ func _test() -> void:
 	root.add_child(office)
 	office.begin_prologue()
 	office.call("_select_floor",Exec.FLOOR)
+	if not Exec.blocks_staff_sight(Vector2(4,-1.5),Vector2(4,.5)) or Exec.blocks_staff_sight(Vector2(0,-1.5),Vector2(0,.5)):
+		_fail("Executive wall blocks attention while doorway stays open")
+		return
 	var camera := Camera3D.new()
 	root.add_child(camera)
 	camera.fov = 68.0
 	await physics_frame
+	var story_staff: Dictionary=office.get("_staff")
+	var dev:Node3D=story_staff["dev"]
+	dev.call("attend",dev.global_position+Vector3.FORWARD,true)
+	office.update_staff_attention(2,Vector3.INF)
+	if dev.call("get_staff_state")["attention"]:
+		_fail("Invalid target must clear previously held attention")
+		return
 	office.dialogue_camera(camera,2,0)
 	var first := camera.global_position
 	var ceo: Node3D = office.get("_ceo")

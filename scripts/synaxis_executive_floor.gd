@@ -263,6 +263,13 @@ func set_occupied(active: bool) -> void:
 func executive_stats() -> Dictionary:
 	return {"executives":_executives.size(),"chairs":_chairs,"plants":_plants,"colliders":_colliders,"parts":_parts,"occupied":_occupied,"ceo_suite_area":6.35*9.15,"other_office_area":5.25*9.15,"balcony_area":2.7*7.4}
 
+## Use the actual glazed wall segments; door openings remain unobstructed.
+static func blocks_staff_sight(from:Vector2,to:Vector2) -> bool:
+	for edge in WALL_EDGES:
+		if Geometry2D.segment_intersects_segment(from,to,edge[0],edge[1])!=null:
+			return true
+	return false
+
 func staff_remark(at: Vector3,stage: int) -> String:
 	if not _occupied or not at.is_finite():
 		return ""
@@ -272,10 +279,7 @@ func staff_remark(at: Vector3,stage: int) -> String:
 	for id in _executives:
 		var actor:Node3D=_executives[id]
 		var anchor:=actor.position
-		# Do not converse through the glass office partitions.
-		if (local.z<-.7)!=(anchor.z<-.7):
-			continue
-		if local.z< -3.5 and anchor.z< -3.5 and int(signf(local.x)*float(absf(local.x)>3.1))!=int(signf(anchor.x)*float(absf(anchor.x)>3.1)):
+		if blocks_staff_sight(Vector2(local.x,local.z),Vector2(anchor.x,anchor.z)):
 			continue
 		var distance:=actor.global_position.distance_squared_to(at-Vector3.UP*1.15)
 		if distance<best:
