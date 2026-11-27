@@ -12,7 +12,8 @@ func _verify() -> void:
 		_fail("Verify isolated bake lighting, probe positions and runtime direct shadow ownership")
 		return
 	var surfaces := 0
-	for item: MeshInstance3D in room.find_children("*", "MeshInstance3D", true, false):
+	var meshes := room.find_children("*", "MeshInstance3D", true, false)
+	for item: MeshInstance3D in meshes:
 		if item.gi_mode != GeometryInstance3D.GI_MODE_STATIC:
 			_fail(str(item.name) + " is missing static lightmap mode")
 			return
@@ -30,7 +31,15 @@ func _verify() -> void:
 	if surfaces < 8:
 		_fail("Expected the authored shell and luminaire")
 		return
-	print("SYNAXIS_RECEPTION_LIGHTMAP_INPUT PASS: ",surfaces," UV2 surfaces and 3 authored probe positions")
+	var data := gi.light_data
+	if data == null or data.get_user_count() != meshes.size() or data.lightmap_textures.is_empty() or not data.is_using_spherical_harmonics():
+		_fail("Expected a directional atlas with one assignment per authored mesh")
+		return
+	for index in data.get_user_count():
+		if not gi.get_node_or_null(data.get_user_path(index)) is MeshInstance3D:
+			_fail("Invalid baked lightmap assignment")
+			return
+	print("SYNAXIS_RECEPTION_LIGHTMAP_INPUT PASS: ",surfaces," UV2 surfaces, ",data.get_user_count()," baked meshes and 3 authored probe positions")
 	room.free()
 	quit(0)
 

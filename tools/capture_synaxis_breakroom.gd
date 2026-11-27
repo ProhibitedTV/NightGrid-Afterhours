@@ -171,12 +171,22 @@ func _run() -> void:
 func _lobby_route(out: String, office: Node3D, camera: Camera3D, viewport: RID, quality: String) -> void:
 	# Measure the same moving camera path twice in one process so the repeat
 	# reuses the renderer and room resources first encountered on the cold pass.
+	var focus_deadline := Time.get_ticks_usec() + 5_000_000
+	while not root.has_focus():
+		if Time.get_ticks_usec() >= focus_deadline:
+			_fail("The benchmark window did not receive focus within five seconds.")
+			return
+		await process_frame
 	var rows := []
 	for name in ["cold", "warm"]:
 		var frames: Array[float] = []
 		var gpu: Array[float] = []
 		var cpu: Array[float] = []
+		var draws: Array[int] = []
+		var peak_video_bytes := 0
+		var worst: Dictionary = {}
 		var unfocused := 0
+		var pipeline_start := _pipeline_counts()
 		var start := Time.get_ticks_usec()
 		var stamp := start
 		while true:
@@ -189,22 +199,40 @@ func _lobby_route(out: String, office: Node3D, camera: Camera3D, viewport: RID, 
 			camera.look_at(office.to_global(at + (to - from).normalized().lerp(Vector3.FORWARD * -1, .72)))
 			await RenderingServer.frame_post_draw
 			var now := Time.get_ticks_usec()
-			frames.append(float(now - stamp) / 1000.0)
-			gpu.append(RenderingServer.viewport_get_measured_render_time_gpu(viewport))
-			cpu.append(RenderingServer.viewport_get_measured_render_time_cpu(viewport))
-			unfocused += int(not root.has_focus())
+			var frame_ms := float(now - stamp) / 1000.0
+			var gpu_ms := RenderingServer.viewport_get_measured_render_time_gpu(viewport)
+			var cpu_ms := RenderingServer.viewport_get_measured_render_time_cpu(viewport)
+			var draw_count := RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME)
+			var video_bytes := RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_VIDEO_MEM_USED)
+			var focused := root.has_focus()
+			frames.append(frame_ms)
+			gpu.append(gpu_ms)
+			cpu.append(cpu_ms)
+			draws.append(draw_count)
+			peak_video_bytes = maxi(peak_video_bytes, video_bytes)
+			unfocused += int(not focused)
+			if frame_ms > float(worst.get("frame_ms", 0.0)):
+				worst = {"frame_ms": frame_ms, "gpu_ms": gpu_ms, "render_cpu_ms": cpu_ms,
+					"elapsed_ms": (stamp - start) / 1000.0, "leg": leg, "focused": focused,
+					"draw_calls": draw_count, "video_memory_bytes": video_bytes}
 			stamp = now
 			if stamp - start >= 8_000_000:
 				break
 		frames.sort()
 		gpu.sort()
 		cpu.sort()
+		draws.sort()
+		var pipeline_delta := _pipeline_counts()
+		for key in pipeline_delta:
+			pipeline_delta[key] -= pipeline_start[key]
 		var n := frames.size()
 		var p95 := ceili(n * .95) - 1
 		rows.append({"name":name, "samples":n, "unfocused":unfocused, "frame_p50_ms":frames[floori(n * .5)],
 			"frame_p95_ms":frames[p95], "frame_p99_ms":frames[ceili(n * .99) - 1],
 			"frame_worst_ms":frames[-1], "gpu_p95_ms":gpu[p95], "render_cpu_p95_ms":cpu[p95],
-			"video_memory_bytes":RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_VIDEO_MEM_USED)})
+			"draw_calls_p95": draws[p95], "peak_video_memory_bytes": peak_video_bytes,
+			"video_memory_bytes": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_VIDEO_MEM_USED),
+			"pipeline_compilations": pipeline_delta, "worst_frame": worst})
 	var report := FileAccess.open(out.path_join("route.json"), FileAccess.WRITE)
 	if report == null:
 		_fail("Could not write lobby route report")
@@ -217,3 +245,13 @@ func _lobby_route(out: String, office: Node3D, camera: Camera3D, viewport: RID, 
 	report.close()
 	print("SYNAXIS_LOBBY_ROUTE PASS ", out)
 	quit(0)
+
+
+func _pipeline_counts() -> Dictionary:
+	return {
+		"canvas": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_CANVAS),
+		"mesh": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_MESH),
+		"surface": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_SURFACE),
+		"draw": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_DRAW),
+		"specialization": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_SPECIALIZATION),
+	}
