@@ -957,6 +957,9 @@ func _reset_arrival_badge() -> void:
 	var finish := get_node_or_null("ArchitecturalFinish")
 	if is_instance_valid(finish):
 		finish.call("set_reader_authorized",false)
+	if is_instance_valid(finish):
+		finish.call("set_gate_fraction",0.0)
+	get_node("SecurityGate").visible=not _gate_open
 	arrival_badge_reset.emit()
 
 func _update_arrival_badge(shot: Dictionary) -> void:
@@ -1006,6 +1009,10 @@ func tick_arrival(delta: float,player: Node3D,camera: Camera3D) -> bool:
 			player.call("play_visual_action",&"interact")
 	_update_arrival_badge(shot)
 	_set_gate_open(bool(shot["gate_open"]) and _arrival_badge_authorized)
+	var gate_fraction := float(shot["gate_fraction"])
+	get_node("ArchitecturalFinish").call("set_gate_fraction",gate_fraction)
+	# The old opaque blocker is collision-only while the skins are moving.
+	get_node("SecurityGate").visible=gate_fraction<=0.001
 	camera.global_position=to_global(shot["camera"])
 	camera.look_at(to_global(shot["look"]),Vector3.UP)
 	camera.fov=float(shot["fov"])
