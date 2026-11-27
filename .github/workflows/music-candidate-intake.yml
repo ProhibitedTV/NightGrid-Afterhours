@@ -10,6 +10,8 @@ on:
       - 'tests/test_music_pcm.py'
       - 'tools/audio/music_technical_qc.py'
       - 'tools/audio/music_review_ledger.py'
+      - 'tools/audio/music_mastering_export.py'
+      - 'tests/test_music_mastering_export.py'
       - 'tests/test_music_review_ledger.py'
       - 'tools/audio/music_pcm_diagnostics.py'
       - 'tests/test_music_technical_qc.py'
@@ -38,6 +40,7 @@ jobs:
           python tests/test_music_pcm.py
           python tests/test_music_technical_qc.py
           python tests/test_music_review_ledger.py
+          python tests/test_music_mastering_export.py
           bash -n tools/audio/run_anubis_music.sh
           python tools/audio/nightgrid_music_batch.py --plan
           bash tools/audio/run_anubis_music.sh --plan
