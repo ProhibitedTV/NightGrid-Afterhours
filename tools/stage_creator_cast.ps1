@@ -13,6 +13,15 @@ foreach ($name in $hashes.Keys) {
         throw "Candidate checksum mismatch: $name"
     }
 }
+# Only the pinned four files may be included by the export wildcard.
+$allowed = @($hashes.Keys | ForEach-Object { $_ + '.bin' })
+if (Test-Path -LiteralPath $target) {
+    foreach ($item in (Get-ChildItem -LiteralPath $target -Force -File -Recurse)) {
+        if ($item.Extension -ieq '.bin' -and ($item.DirectoryName -ne $target -or $item.Name -cnotin $allowed)) {
+            throw "Unexpected private payload; preserve it outside the staging folder: $($item.FullName)"
+        }
+    }
+}
 # Validate the entire destination before copying anything. Never replace a
 # prior candidate or stage a mixed set because a later destination is stale.
 foreach ($name in ($hashes.Keys | Sort-Object)) {
@@ -28,7 +37,7 @@ New-Item -ItemType Directory -Path $target -Force | Out-Null
 foreach ($name in $hashes.Keys) {
     $output = Join-Path $target ($name + ".bin")
     if (-not (Test-Path -LiteralPath $output)) {
-        Copy-Item -LiteralPath (Join-Path $Source $name) -Destination $output
+        [System.IO.File]::Copy((Join-Path (Resolve-Path -LiteralPath $Source).Path $name), $output, $false)
     }
     if ((Get-FileHash -LiteralPath $output).Hash -ne $hashes[$name]) {
         throw "Staged candidate checksum mismatch: $name"

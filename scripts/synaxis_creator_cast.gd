@@ -12,10 +12,29 @@ const SEATED_CANDIDATES = {
 	"jetson_wang": ["jetson.glb", "4f7878f077863584eb6ff9229cb8175d427db8298b45987184a1bcc85fdf8d36"],
 }
 
+## Return unexpected binary paths without opening or altering any payload.
+static func unexpected_candidate_files(directory: String, allowed: Array[String]) -> Array[String]:
+	var unexpected: Array[String] = []
+	for filename in DirAccess.get_files_at(directory):
+		if filename.get_extension().to_lower()=="bin" and not allowed.has(filename):
+			unexpected.append(directory.path_join(filename))
+	for subdir in DirAccess.get_directories_at(directory):
+		unexpected.append_array(unexpected_candidate_files(directory.path_join(subdir), []))
+	return unexpected
+
+static func allowed_candidate_files() -> Array[String]:
+	var allowed: Array[String] = []
+	for entry in SOCIAL_CANDIDATES.values()+SEATED_CANDIDATES.values():
+		allowed.append(str(entry[0])+".bin")
+	return allowed
+
 ## Called only by explicit packaged-creator verification, before normal gameplay.
 static func verify_packaged_candidates() -> bool:
 	var expected: Dictionary = SOCIAL_CANDIDATES.duplicate()
 	expected.merge(SEATED_CANDIDATES)
+	if not unexpected_candidate_files(ROOT,allowed_candidate_files()).is_empty():
+		push_error("CREATOR_PCK FAIL: unexpected private binary payload")
+		return false
 	for id in expected:
 		var entry: Array = expected[id]
 		var path := ROOT.path_join(str(entry[0]) + ".bin")

@@ -15,6 +15,9 @@ func _initialize() -> void:
 func _test() -> void:
 	var expected: Dictionary = Cast.SOCIAL_CANDIDATES.duplicate()
 	expected.merge(Cast.SEATED_CANDIDATES)
+	if not Cast.unexpected_candidate_files(Cast.ROOT,Cast.allowed_candidate_files()).is_empty():
+		_fail("Unexpected private binary payload in staging folder")
+		return
 	var staged := 0
 	for id in expected:
 		var entry: Array = expected[id]
