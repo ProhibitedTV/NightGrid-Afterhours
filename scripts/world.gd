@@ -600,10 +600,16 @@ func _on_menu_action(action: String) -> void:
 			_track_cal_waypoint()
 			game_menu.call("open_journal",_journal_context())
 		"street_reply_0","street_reply_1":
-			if is_instance_valid(pedestrians) and not _street_contact_id.is_empty():
+			if _street_contact_id==StreetSatire.STANKY_ID:
+				_play_stanky_reply(0 if action=="street_reply_0" else 1)
+			elif is_instance_valid(pedestrians) and not _street_contact_id.is_empty():
 				pedestrians.call("request_player_reply",_street_contact_id,0 if action=="street_reply_0" else 1)
 			_street_contact_id=""
 		"street_leave":
+			if _street_contact_id==StreetSatire.STANKY_ID:
+				var legend:Node3D=venue_system.call("daddy_stanky_near",player.global_position)
+				if is_instance_valid(legend):
+					legend.call("set_attention_target",Vector3.ZERO,false)
 			_street_contact_id=""
 		"begin_opening":
 			if not progression.has_receipt(Opening.RECEIPT):
@@ -3344,6 +3350,13 @@ func _toggle_interaction() -> void:
 		_show_venue_dialogue()
 		_update_venue_panel()
 		return
+	if weapons.equipped=="holstered" and current_car==null and current_transit==null:
+		var legend:Node3D=venue_system.call("daddy_stanky_near",player.global_position)
+		if is_instance_valid(legend):
+			_street_contact_id=StreetSatire.STANKY_ID
+			legend.call("set_attention_target",player.global_position,true)
+			game_menu.call("open_street_contact",StreetSatire.stanky_profile())
+			return
 	var shop: Dictionary = venue_system.call("nearest_venue", player.global_position)
 	var service: Dictionary = civic_services.call("nearest_site", player.global_position)
 	if shop.is_empty() and service.is_empty() and is_instance_valid(pedestrians) and weapons.equipped=="holstered":
@@ -5594,6 +5607,8 @@ func _synaxis_contact_objective() -> String:
 	return "CONTACT / Marcus Vale — checked in. Rear Synaxis parking booth."
 
 func _cancel_street_interactions()->void:
+	if is_instance_valid(dialogue_director):
+		dialogue_director.call("cancel_scope",StreetSatire.STANKY_SCOPE)
 	_music_session_site=""
 	_street_contact_id=""
 	_cal_pending={}
@@ -5760,3 +5775,18 @@ func _music_desk_action(action:String)->void:
 func _sync_band_flyers()->void:
 	if is_instance_valid(venue_system):
 		venue_system.call("set_band_promotion",progression.band_name,progression.has_receipt(ProgressionLedger.BAND_DEBUT_RECEIPT),progression.band_showcase_available(),progression.has_receipt(ProgressionLedger.BAND_SHOWCASE_RECEIPT),progression.tape_stock+progression.tapes_sold>0)
+
+func _play_stanky_reply(topic:int) -> void:
+	if not is_instance_valid(player) or not is_instance_valid(venue_system) or not is_instance_valid(dialogue_director) or current_car!=null or current_transit!=null or interiors.call("is_inside") or weapons.equipped!="holstered":
+		return
+	var legend:Node3D=venue_system.call("daddy_stanky_near",player.global_position)
+	if not is_instance_valid(legend):
+		return
+	var profile:Dictionary=StreetSatire.stanky_profile()
+	var topics:Array=profile["topics"]
+	if topic<0 or topic>=topics.size():
+		return
+	var cue:Dictionary=topics[topic]
+	dialogue_director.call("cancel_scope",StreetSatire.STANKY_SCOPE)
+	dialogue_director.call("enqueue",str(cue["id"]),"Daddy Stanky: "+str(cue["text"]),DialogueDirector.STORY,legend,StreetSatire.STANKY_SCOPE)
+	legend.call("set_attention_target",Vector3.ZERO,false)

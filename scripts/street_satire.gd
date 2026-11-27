@@ -371,6 +371,20 @@ const LINES = [
 		"text": "Nyx sent you? Good. This city needs more people making music, not more people selling subscriptions to it. I'll keep your name on the list.",
 		"venue_job": "soundcheck_pass",
 		"beat": "ending"
+	},
+	{
+		"id": "street.daddy_stanky.talk.1",
+		"character": "daddy_stanky",
+		"question": "Let's hear some bars.",
+		"topic": 0,
+		"text": "Yo, three dead toes but I still walk the beat. Corporate suits got nothin' on me. I'll beat ya brain, put the bass in your street. Daddy Stanky, underground, never sold a seat."
+	},
+	{
+		"id": "street.daddy_stanky.talk.2",
+		"character": "daddy_stanky",
+		"question": "What's Humanity about?",
+		"topic": 1,
+		"text": "Everybody thinks they know me, bro. Calm down, little predatah. I got jokes, I got bars, but I got a heart too. I'll show you my humanity."
 	}
 ]
 const CAST = ["robot_romantic","nothing_happens","gig_grinder","subscription_skeptic","street_visionary","night_regular"]
@@ -459,3 +473,13 @@ static func venue_job_line(id:String,beat:String)->Dictionary:
 		if row.get("venue_job","")==id and row.get("beat","")==beat:
 			return row.duplicate()
 	return {}
+
+# Fixed venue legend, deliberately excluded from the pooled random identities.
+const STANKY_ID = "daddy_stanky"
+const STANKY_SCOPE = "venue:daddy_stanky"
+static func stanky_profile() -> Dictionary:
+	var topics: Array[Dictionary] = []
+	for line in LINES:
+		if line["character"] == STANKY_ID:
+			topics.append(line.duplicate())
+	return {"name":"Daddy Stanky","role":"Underground legend / HUMANITY mixtape","character":STANKY_ID,"topics":topics}
