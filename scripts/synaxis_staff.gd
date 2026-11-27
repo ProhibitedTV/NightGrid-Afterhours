@@ -225,9 +225,16 @@ func enable_routine_props() -> void:
 	for i in range(5):
 		_box(_routine_page,"PrintLine",Vector3(0,.09-i*.035,.008),Vector3(.15,.006,.003),Color("667472"),"FABRIC")
 	_routine_page.hide()
+	_sync_routine_props()
 
 func set_routine_pose(pose:String) -> void:
+	if _routine_pose==pose:
+		return
 	_routine_pose=pose
+	_sync_routine_props()
+
+func _sync_routine_props() -> void:
+	var pose:=_routine_pose
 	if is_instance_valid(_clipboard):
 		_clipboard.visible=pose in ["carry","board"]
 	if is_instance_valid(_routine_cup):
