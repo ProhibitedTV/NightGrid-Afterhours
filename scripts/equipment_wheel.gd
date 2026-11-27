@@ -28,8 +28,14 @@ func _ready() -> void:
 	_sync_processing()
 
 func _sync_processing() -> void:
-	set_process(is_visible_in_tree())
-	set_process_input(is_visible_in_tree())
+	var active := is_visible_in_tree()
+	set_process(active)
+	set_process_input(active)
+
+func _enter_tree() -> void:
+	# A hidden parent can suppress this control without changing its own
+	# visibility; restore callbacks when the modal returns to the scene tree.
+	call_deferred("_sync_processing")
 
 func present(state: Dictionary, pad: bool = false) -> void:
 	equipped = maxi(0, Arsenal.IDS.find(str(state.get("equipped", "holstered"))))
