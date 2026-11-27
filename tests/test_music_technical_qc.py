@@ -13,6 +13,7 @@ import wave
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools/audio"))
 import music_technical_qc as qc
+from music_pcm_diagnostics import analyze, samples
 
 
 class MusicQCTest(unittest.TestCase):
@@ -53,11 +54,28 @@ class MusicQCTest(unittest.TestCase):
         self.assertFalse(self.row["reviewed"])
         self.assertIn("pending", result["candidates"][0]["status"])
 
+    def test_pcm16_endpoint_and_channel(self):
+        with wave.open(str(self.path), "wb") as writer:
+            writer.setparams((2, 2, 48000, 0, "NONE", "not compressed"))
+            writer.writeframes(struct.pack("<hh", -32768, 0) * 47999
+                               + struct.pack("<hh", 32767, 0))
+        metrics = analyze(self.path)
+        self.assertEqual(metrics["full_scale_samples_left"], 48000)
+        self.assertEqual(metrics["full_scale_samples_right"], 0)
+        self.assertIsNone(metrics["rms_dbfs_right"])
+        self.assertAlmostEqual(metrics["wrap_sample_jump_fraction"], 2, places=3)
+
+    def test_pcm24_sign_and_scale(self):
+        raw = b"".join(x.to_bytes(3, "little", signed=True)
+                       for x in (-8388608, -1, 0, 1, 8388607))
+        self.assertEqual(list(samples(raw, 24)),
+                         [-2147483648, -256, 0, 256, 2147483392])
+
     def test_mutated_source_fails(self):
         def mutate(*args):
             self.path.write_bytes(b"changed")
             return {}
-        with patch.object(qc, "measure", side_effect=mutate):
+        with patch.object(qc, "measure", side_effect=mutate), patch.object(qc, "analyze", return_value={}):
             with self.assertRaisesRegex(ValueError, "during measurement"):
                 qc.review(self.manifest, self.root, "ffmpeg")
 
