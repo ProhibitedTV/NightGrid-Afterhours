@@ -305,6 +305,13 @@ jobs:
           set -o pipefail
           timeout 75s godot --headless --path . --script res://tests/civic_patrol_service_smoke.gd 2>&1 | tee /tmp/nightgrid-civic-patrol.log
           if grep -q "SCRIPT ERROR:" /tmp/nightgrid-civic-patrol.log; then exit 1; fi
+      - name: Verify intent dialogue wheel and canonical choices
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          timeout 45s godot --headless --path . --script res://tests/dialogue_wheel_smoke.gd 2>&1 | tee /tmp/nightgrid-dialogue-wheel.log
+          if grep -q "SCRIPT ERROR:" /tmp/nightgrid-dialogue-wheel.log; then exit 1; fi
+          grep -q "DIALOGUE_WHEEL PASS:" /tmp/nightgrid-dialogue-wheel.log
       - name: Validate bounded positional dialogue, caption fallback and lifecycle
         timeout-minutes: 2
         run: |
