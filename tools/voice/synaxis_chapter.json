@@ -57,6 +57,9 @@
     },
     "rae": {
       "direction": "Original adult venue host, warm and dry, pragmatic underground musician, no celebrity likeness."
+    },
+    "daddy_stanky": {
+      "direction": "Original adult male New Jersey accent; gravelly, quick rhyming, conversational swagger and sudden sincere pauses; no imitation of a real voice."
     }
   },
   "lines": [
@@ -1112,6 +1115,110 @@
         "character": "rae",
         "venue_job": "soundcheck_pass",
         "beat": "ending"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.talk.1",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Yo, three dead toes but I still walk the beat. Corporate suits got nothin' on me. I'll beat ya brain, put the bass in your street. Daddy Stanky, underground, never sold a seat.",
+      "direction": "Loose conversational swagger, spontaneous rhyme and comic timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "topic": 0,
+        "question": "Let's hear some bars."
+      }
+    },
+    {
+      "id": "street.daddy_stanky.talk.2",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Everybody thinks they know me, bro. Calm down, little predatah. I got jokes, I got bars, but I got a heart too. I'll show you my humanity.",
+      "direction": "Quiet, vulnerable and sincere; allow a beat of silence.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "topic": 1,
+        "question": "What's Humanity about?"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.talk.3",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "SHAWKTOOTH! Three dead toes, nobody knows. No cashy, still flashy. Smokey the cokey, hokey pokey. Man, I rhyme when I order a sandwich. That's a condition, bro.",
+      "direction": "Loose conversational swagger, spontaneous rhyme and comic timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "topic": 2,
+        "question": "Why do they call you Sharktooth?"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.talk.4",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Mother Mary, shit got scary. I was in a car I had no business bein' in. Swear I heard that pendant tell me to stay put. Then BANG, somebody sideswiped the whole thing. Coulda been luck, coulda been my head. I still wear her.",
+      "direction": "Loose conversational swagger, spontaneous rhyme and comic timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "topic": 3,
+        "question": "What's with the necklace?"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.talk.5",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Me and my neighbor had a disagreement. The shovel had a different opinion. Big talky, little walky. I ain't proud of every damn thing I done, bro.",
+      "direction": "Loose conversational swagger, spontaneous rhyme and comic timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "topic": 4,
+        "question": "You ever get in trouble?"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.talk.6",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Calm down, little predatah. I can't stand diddlas. But bein' loud don't make me a detective. Some things you gotta leave to people who know what they're doin'.",
+      "direction": "Loose conversational swagger, spontaneous rhyme and comic timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "topic": 5,
+        "question": "What about the neighborhood?"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.talk.7",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Bro, you ever actually read that book? I was sittin' there one night, cryin' my eyes out. The Bible is beautiful, man. People think I'm all jokes. There's beautiful shit in this world. I'll show you my humanity.",
+      "direction": "Quiet, vulnerable and sincere; allow a beat of silence.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "topic": 6,
+        "question": "You ever read the Bible?"
+      }
+    },
+    {
+      "id": "street.daddy_stanky.talk.8",
+      "character": "daddy_stanky",
+      "language": "English",
+      "text": "Cokey Smokey, everybody knows me. Daddy Stanky, pockets lanky. I got a mixtape called Humanity and a whole city of people who think they're too good to listen. Their loss, bro.",
+      "direction": "Loose conversational swagger, spontaneous rhyme and comic timing.",
+      "source": {
+        "catalog": "street_satire",
+        "character": "daddy_stanky",
+        "topic": 7,
+        "question": "How's life on the underground?"
       }
     }
   ]

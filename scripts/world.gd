@@ -502,6 +502,13 @@ func _build_world_audio() -> void:
 		float(options.get("sfx_volume", 0.75)))
 
 func _on_menu_action(action: String) -> void:
+	if action.begins_with("stanky_reply_"):
+		if _street_contact_id==StreetSatire.STANKY_ID:
+			var suffix:=action.trim_prefix("stanky_reply_")
+			if suffix.is_valid_int():
+				_play_stanky_reply(int(suffix))
+			_street_contact_id=""
+		return
 	if action in ["phone_work_off","phone_work_on"]:
 		_phone_set_duty(action == "phone_work_on")
 		return

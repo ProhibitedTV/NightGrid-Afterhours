@@ -385,6 +385,48 @@ const LINES = [
 		"question": "What's Humanity about?",
 		"topic": 1,
 		"text": "Everybody thinks they know me, bro. Calm down, little predatah. I got jokes, I got bars, but I got a heart too. I'll show you my humanity."
+	},
+	{
+		"id": "street.daddy_stanky.talk.3",
+		"character": "daddy_stanky",
+		"question": "Why do they call you Sharktooth?",
+		"topic": 2,
+		"text": "SHAWKTOOTH! Three dead toes, nobody knows. No cashy, still flashy. Smokey the cokey, hokey pokey. Man, I rhyme when I order a sandwich. That's a condition, bro."
+	},
+	{
+		"id": "street.daddy_stanky.talk.4",
+		"character": "daddy_stanky",
+		"question": "What's with the necklace?",
+		"topic": 3,
+		"text": "Mother Mary, shit got scary. I was in a car I had no business bein' in. Swear I heard that pendant tell me to stay put. Then BANG, somebody sideswiped the whole thing. Coulda been luck, coulda been my head. I still wear her."
+	},
+	{
+		"id": "street.daddy_stanky.talk.5",
+		"character": "daddy_stanky",
+		"question": "You ever get in trouble?",
+		"topic": 4,
+		"text": "Me and my neighbor had a disagreement. The shovel had a different opinion. Big talky, little walky. I ain't proud of every damn thing I done, bro."
+	},
+	{
+		"id": "street.daddy_stanky.talk.6",
+		"character": "daddy_stanky",
+		"question": "What about the neighborhood?",
+		"topic": 5,
+		"text": "Calm down, little predatah. I can't stand diddlas. But bein' loud don't make me a detective. Some things you gotta leave to people who know what they're doin'."
+	},
+	{
+		"id": "street.daddy_stanky.talk.7",
+		"character": "daddy_stanky",
+		"question": "You ever read the Bible?",
+		"topic": 6,
+		"text": "Bro, you ever actually read that book? I was sittin' there one night, cryin' my eyes out. The Bible is beautiful, man. People think I'm all jokes. There's beautiful shit in this world. I'll show you my humanity."
+	},
+	{
+		"id": "street.daddy_stanky.talk.8",
+		"character": "daddy_stanky",
+		"question": "How's life on the underground?",
+		"topic": 7,
+		"text": "Cokey Smokey, everybody knows me. Daddy Stanky, pockets lanky. I got a mixtape called Humanity and a whole city of people who think they're too good to listen. Their loss, bro."
 	}
 ]
 const CAST = ["robot_romantic","nothing_happens","gig_grinder","subscription_skeptic","street_visionary","night_regular"]

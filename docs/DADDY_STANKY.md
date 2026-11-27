@@ -1,6 +1,6 @@
 # Daddy Stanky — underground legend
 
-A fictional recurring artist, in affectionate memory of CRC. Static Room, nightly 21:00–05:00; approach the artist on the frontage, holster equipment and interact. Two authored topics use the existing dialogue menu and bounded positional speech with caption fallback. HUMANITY is his fictional mixtape. Original bars, catchphrases and the line “I'll show you my humanity” are the heart of the tribute. No real-world criminal allegations, death details, music recording or cloned voice are included. The initial rig reuses licensed existing pedestrian artwork; a bespoke outfit, mic performance, original beat, Jersey-accented original voice, wall-mounted flyer and playable battle/collaboration are future native art/audio/quest work. No economy, save, crowd pool or new physics changes. Native staging review required.
+A fictional recurring artist, in affectionate memory of CRC. Static Room, nightly 21:00–05:00; approach the artist on the frontage, holster equipment and interact. Eight authored topics use the existing dialogue menu and bounded positional speech with caption fallback (all eight lines now in offline voice catalog; recorded takes remain unproduced). HUMANITY is his fictional mixtape. Original bars, catchphrases and the line “I'll show you my humanity” are the heart of the tribute. No real-world criminal allegations, death details, music recording or cloned voice are included. The initial rig reuses licensed existing pedestrian artwork; a bespoke outfit, mic performance, original beat, Jersey-accented original voice, wall-mounted flyer and playable battle/collaboration are future native art/audio/quest work. No economy, save, crowd pool or new physics changes. Native staging review required.
 
 ## Creator-directed character art
 
@@ -12,3 +12,7 @@ A fictional recurring artist, in affectionate memory of CRC. Static Room, nightl
 ## Reference review
 
 Creator-supplied reference: https://youtu.be/6Nlwt-YMakk (Sharktooth freestyle). The video and transcript could not be retrieved in the current session. Do not claim to have transcribed or heard it. Once the creator provides accessible excerpts/transcript, document the delivery, recurring speech patterns and non-lyrical mannerisms; author original game dialogue and original bars. Obtain clearance before incorporating actual recording, protected lyrics or a voice likeness. Keep source evidence and any private biographical details out of the shipped asset package.
+
+## Playable lore topics
+
+Sharktooth and spontaneous rhyme; damaged toes and the cokey phrase; a fictionalized pendant survival story; an unreliable recollection of past trouble; his contradictory neighborhood moral code; a quiet, sincere recollection of crying over the Bible; underground reputation and Humanity. All eight topics selectable on repeat visits. No rewards for the vulnerable conversation. No real-person names or accusations in dialogue, no borrowed lyrics or recordings. The pendant is an art requirement, not yet a modeled accessory.

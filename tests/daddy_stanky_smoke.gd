@@ -7,8 +7,8 @@ func _initialize() -> void:
 
 func _test() -> void:
 	var profile := Satire.stanky_profile()
-	if profile["topics"].size()!=2 or Satire.STANKY_ID in Satire.CAST:
-		_fail("Named identity and two authored topics")
+	if profile["topics"].size()!=8 or Satire.STANKY_ID in Satire.CAST:
+		_fail("Named identity and eight authored topics")
 		return
 	var venues := Venues.new()
 	root.add_child(venues)
@@ -31,7 +31,7 @@ func _test() -> void:
 	if venues.daddy_stanky_near(listener)!=actor or venues.find_children("DaddyStanky","Node3D",true,false).size()!=1:
 		_fail("Recurring single actor")
 		return
-	print("STANKY PASS: fixed legend, two topics, proximity and recurring schedule")
+	print("STANKY PASS: fixed legend, eight topics, proximity and recurring schedule")
 	quit(0)
 
 func _fail(message:String) -> void:
