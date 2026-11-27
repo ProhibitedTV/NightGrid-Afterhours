@@ -37,7 +37,8 @@ def sha256(path):
     return digest.hexdigest()
 
 def git(*args):
-    return subprocess.check_output(["git", *args], cwd=ROOT, text=True).strip()
+    # Preserve Git status's first two columns, including an unstaged-only space.
+    return subprocess.check_output(["git", *args], cwd=ROOT, text=True).rstrip("\r\n")
 
 def verified_extracted_images():
     # Godot extracts the courier's embedded images beside its tracked GLB.
@@ -80,14 +81,23 @@ def require_clean(*, after_import=False):
             continue
         # A clean checkout gains sidecars on the first native Godot import.
         # Only new sidecars of tracked sources are allowed after that import.
-        # Tracked metadata edits and unrelated untracked files still fail.
+        # Godot can also rewrite tracked sidecars from CRLF to LF on Windows.
+        # Accept an unstaged sidecar only when every canonical byte still matches HEAD.
         path = line[3:]
+        if after_import and line.startswith(" M ") and path.endswith(".import") and path in tracked:
+            sidecar = ROOT / path
+            if sidecar.is_file() and not sidecar.is_symlink():
+                committed = subprocess.check_output(["git", "show", f"HEAD:{path}"], cwd=ROOT)
+                if sidecar.read_bytes().replace(b"\r\n", b"\n") == committed.replace(b"\r\n", b"\n"):
+                    continue
         if after_import and line.startswith("?? "):
             if path in extracted:
                 continue
             if path.endswith(".import") and (path[:-7] in tracked or path[:-7] in extracted):
                 continue
             if path.endswith((".gd.uid", ".gdshader.uid")) and path[:-4] in tracked:
+                continue
+            if path.endswith(".glb.unwrap_cache") and path.removesuffix(".unwrap_cache") in tracked:
                 continue
         unexpected.append(line)
     if unexpected:

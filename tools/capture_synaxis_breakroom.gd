@@ -43,6 +43,15 @@ const LOBBY_ROUTE = [
 	Vector3(2.1,1.63,-2.9), Vector3(2.1,1.63,1.0), Vector3(2.7,1.63,4.85),
 	Vector3(4.25,1.63,5.36),
 ]
+const GROUND_LIGHTING = [
+	["ground_entrance", Vector3(0,1.65,-9.7), Vector3(0,1.45,-6.0), 0],
+	["security_checkpoint", Vector3(-1.12,1.65,-9.55), Vector3(2.65,1.60,-8.3), 0],
+	["lift_frontage", Vector3(-.52,1.70,2.85), Vector3(0,1.98,6.14), 0],
+	["exterior_from_inside", Vector3(.15,1.65,-5.8), Vector3(0,1.55,-11.4), 0],
+	["reception_player", Vector3(4.0,1.72,4.45), Vector3(5.75,1.54,8.15), 0],
+	["reception_wall", Vector3(4.35,1.68,4.82), Vector3(5.2,2.06,9.84), 0],
+	["opening_composition", Vector3(-2.15,1.80,-14.1), Vector3(0,2.25,-9.85), 0],
+]
 func _initialize() -> void:
 	call_deferred("_run")
 func _fail(error: String) -> void:
@@ -73,7 +82,11 @@ func _run() -> void:
 	if office == null:
 		_fail("Synaxis did not stream")
 		return
-	world.get_node("GameMenus").call("hide_for_game")
+	var menu := world.get_node("GameMenus")
+	for arg: String in args:
+		if arg.begins_with("--quality="):
+			menu.call("update_setting", "render_quality", arg.trim_prefix("--quality="))
+	menu.call("hide_for_game")
 	(world.get_node("HUD") as CanvasLayer).hide()
 	world.set_process(false)
 	world.set_physics_process(false)
@@ -86,8 +99,15 @@ func _run() -> void:
 	clock.set("paused", true)
 	clock.call("set_hour", 17.0)
 	office.call("begin_prologue")
+	var ground_review := "--ground-lighting" in args or "--ground-realtime" in args
+	var indirect := office.get_node_or_null("GroundEnvelope/Indirect") as LightmapGI
+	if "--ground-realtime" in args:
+		if indirect == null:
+			_fail("The production GI comparison requires the authored envelope")
+			return
+		indirect.light_data = null
 	var architecture := "--architecture" in args or "--reception" in args
-	if architecture or "--lift" in args:
+	if architecture or "--lift" in args or ground_review:
 		for overlay in world.find_children("*", "CanvasLayer", true, false):
 			overlay.hide()
 	var camera := world.get("camera") as Camera3D
@@ -97,7 +117,7 @@ func _run() -> void:
 	RenderingServer.viewport_set_measure_render_time(viewport, true)
 	if "--lobby-route" in args:
 		office.call("_set_gate_open", true)
-		await _lobby_route(out, office, camera, viewport)
+		await _lobby_route(out, office, camera, viewport, menu.call("get_settings").get("render_quality", "legacy"))
 		return
 	var records := []
 	var parked := "--parked" in args
@@ -109,11 +129,19 @@ func _run() -> void:
 		requested = BOARDROOM
 	if "--lift" in args:
 		requested = LIFT_VIEWS
+	if ground_review:
+		requested = GROUND_LIGHTING
+		office.call("_set_gate_open", true)
 	for shot in requested:
 		if shot.size() == 4:
 			office.call("_select_floor", shot[3])
 		camera.global_position = office.to_global(shot[1])
 		camera.look_at(office.to_global(shot[2]))
+		if ground_review:
+			player.visible = shot[0] == "reception_player"
+			if player.visible:
+				player.global_position = office.to_global(Vector3(5.3,1.15,5.9))
+				player.get("visual").call("set_corporate_attire", true)
 		if shot[0] == "car_02_in_transit":
 			player.global_position = office.to_global(Vector3(.90,1.15,5))
 			if not office.call("try_lift", player) or not office.call("tick_lift", .75, player):
@@ -159,20 +187,32 @@ func _run() -> void:
 	report.store_string(JSON.stringify({"revision": OS.get_environment("NIGHTGRID_SOURCE_REVISION"),
 		"resolution": [root.size.x, root.size.y], "vsync": DisplayServer.window_get_vsync_mode(),
 		"renderer": RenderingServer.get_current_rendering_method(), "driver": RenderingServer.get_current_rendering_driver_name(),
-		"adapter": RenderingServer.get_video_adapter_name(), "simulation_paused": parked, "hour": 17.0, "fov": camera.fov, "views": records}, "\t"))
+		"adapter": RenderingServer.get_video_adapter_name(), "simulation_paused": parked, "hour": 17.0,
+		"fov": camera.fov, "baked_ground": indirect != null and indirect.light_data != null, "views": records}, "\t"))
 	report.close()
 	print("SYNAXIS_BREAKROOM_CAPTURE PASS ", out)
 	quit(0)
 
-func _lobby_route(out: String, office: Node3D, camera: Camera3D, viewport: RID) -> void:
+func _lobby_route(out: String, office: Node3D, camera: Camera3D, viewport: RID, quality: String) -> void:
 	# Measure the same moving camera path twice in one process so the repeat
 	# reuses the renderer and room resources first encountered on the cold pass.
+	var focus_deadline := Time.get_ticks_usec() + 5_000_000
+	while not root.has_focus():
+		if Time.get_ticks_usec() >= focus_deadline:
+			_fail("The benchmark window did not receive focus within five seconds.")
+			return
+		await process_frame
 	var rows := []
 	for name in ["cold", "warm"]:
 		var frames: Array[float] = []
 		var gpu: Array[float] = []
 		var cpu: Array[float] = []
+		var draws: Array[int] = []
+		var shadow_draws: Array[int] = []
+		var peak_video_bytes := 0
+		var worst: Dictionary = {}
 		var unfocused := 0
+		var pipeline_start := _pipeline_counts()
 		var start := Time.get_ticks_usec()
 		var stamp := start
 		while true:
@@ -185,29 +225,64 @@ func _lobby_route(out: String, office: Node3D, camera: Camera3D, viewport: RID) 
 			camera.look_at(office.to_global(at + (to - from).normalized().lerp(Vector3.FORWARD * -1, .72)))
 			await RenderingServer.frame_post_draw
 			var now := Time.get_ticks_usec()
-			frames.append(float(now - stamp) / 1000.0)
-			gpu.append(RenderingServer.viewport_get_measured_render_time_gpu(viewport))
-			cpu.append(RenderingServer.viewport_get_measured_render_time_cpu(viewport))
-			unfocused += int(not root.has_focus())
+			var frame_ms := float(now - stamp) / 1000.0
+			var gpu_ms := RenderingServer.viewport_get_measured_render_time_gpu(viewport)
+			var cpu_ms := RenderingServer.viewport_get_measured_render_time_cpu(viewport)
+			var draw_count := RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME)
+			var video_bytes := RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_VIDEO_MEM_USED)
+			var focused := root.has_focus()
+			frames.append(frame_ms)
+			gpu.append(gpu_ms)
+			cpu.append(cpu_ms)
+			draws.append(draw_count)
+			shadow_draws.append(RenderingServer.viewport_get_render_info(viewport,
+				RenderingServer.VIEWPORT_RENDER_INFO_TYPE_SHADOW,
+				RenderingServer.VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME))
+			peak_video_bytes = maxi(peak_video_bytes, video_bytes)
+			unfocused += int(not focused)
+			if frame_ms > float(worst.get("frame_ms", 0.0)):
+				worst = {"frame_ms": frame_ms, "gpu_ms": gpu_ms, "render_cpu_ms": cpu_ms,
+					"elapsed_ms": (stamp - start) / 1000.0, "leg": leg, "focused": focused,
+					"draw_calls": draw_count, "video_memory_bytes": video_bytes}
 			stamp = now
 			if stamp - start >= 8_000_000:
 				break
 		frames.sort()
 		gpu.sort()
 		cpu.sort()
+		draws.sort()
+		shadow_draws.sort()
+		var pipeline_delta := _pipeline_counts()
+		for key in pipeline_delta:
+			pipeline_delta[key] -= pipeline_start[key]
 		var n := frames.size()
 		var p95 := ceili(n * .95) - 1
 		rows.append({"name":name, "samples":n, "unfocused":unfocused, "frame_p50_ms":frames[floori(n * .5)],
 			"frame_p95_ms":frames[p95], "frame_p99_ms":frames[ceili(n * .99) - 1],
 			"frame_worst_ms":frames[-1], "gpu_p95_ms":gpu[p95], "render_cpu_p95_ms":cpu[p95],
-			"video_memory_bytes":RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_VIDEO_MEM_USED)})
+			"draw_calls_p95": draws[p95], "shadow_draw_calls_p95": shadow_draws[p95],
+			"peak_video_memory_bytes": peak_video_bytes,
+			"video_memory_bytes": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_VIDEO_MEM_USED),
+			"pipeline_compilations": pipeline_delta, "worst_frame": worst})
 	var report := FileAccess.open(out.path_join("route.json"), FileAccess.WRITE)
 	if report == null:
 		_fail("Could not write lobby route report")
 		return
 	report.store_string(JSON.stringify({"revision":OS.get_environment("NIGHTGRID_SOURCE_REVISION"),
+		"quality":quality,
+		"reception_light":"area_pcss" if office.has_node("ReceptionAreaLight") else "spot",
 		"renderer":RenderingServer.get_current_rendering_method(), "driver":RenderingServer.get_current_rendering_driver_name(),
 		"adapter":RenderingServer.get_video_adapter_name(), "resolution":[root.size.x, root.size.y], "runs":rows}, "\t"))
 	report.close()
 	print("SYNAXIS_LOBBY_ROUTE PASS ", out)
 	quit(0)
+
+
+func _pipeline_counts() -> Dictionary:
+	return {
+		"canvas": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_CANVAS),
+		"mesh": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_MESH),
+		"surface": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_SURFACE),
+		"draw": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_DRAW),
+		"specialization": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_SPECIALIZATION),
+	}

@@ -68,20 +68,44 @@ func _test() -> void:
 		if space.intersect_ray(PhysicsRayQueryParameters3D.create(tip, back)).is_empty():
 			_fail("Wayfinding chassis does not reach the wall: " + (plaque.get_node("Inscription") as Label3D).text)
 			return
-	var stone := office.get_node_or_null("ReceptionStone/Face") as MultiMeshInstance3D
+	var stone := office.get_node_or_null("GroundEnvelope/Shell/ReceptionStone") as MeshInstance3D
 	var suspended := office.get_node_or_null("LobbyLiftDirection/Suspension") as MeshInstance3D
 	var flange := office.get_node_or_null("LobbyLiftDirection/CeilingFlange") as MeshInstance3D
 	if suspended == null or flange == null or suspended.mesh.get_aabb().size.y < .30 or absf(flange.to_global(flange.mesh.get_aabb().end).y-office.global_position.y-3.35) > .015:
 		_fail("The lobby direction sign must reach the ceiling on authored supports")
 		return
 	var lettering := office.get_node_or_null("ReceptionBrand/Lettering") as MeshInstance3D
-	if stone == null or stone.multimesh.instance_count < 4 or lettering == null or lettering.mesh.get_aabb().size.z < .02:
+	var diffuser := office.get_node_or_null("GroundEnvelope/ReceptionLuminaire/Diffuser") as MeshInstance3D
+	if diffuser == null or absf(diffuser.mesh.get_aabb().size.x-3.16) > .02:
+		_fail("The reception light needs its dimensioned recessed diffuser")
+		return
+	if stone == null or stone.mesh.get_aabb().size.x < 5.2 or lettering == null or lettering.mesh.get_aabb().size.z < .02:
 		_fail("Reception needs a modular stone wall and extruded lettering")
 		return
 	var stone_finish := stone.material_override as StandardMaterial3D
 	if stone_finish == null or stone_finish.albedo_texture == null or stone_finish.normal_texture == null or stone_finish.roughness_texture == null:
 		_fail("Reception stone must use actual albedo, roughness and normals")
 		return
+	var envelope := office.get_node("GroundEnvelope") as Node3D
+	var indirect := envelope.get_node("Indirect") as LightmapGI
+	var baked := indirect.light_data
+	if baked == null or baked.get_user_count() != 11 or baked.lightmap_textures.is_empty() or indirect.get_child_count() != 7:
+		_fail("The streamed ground envelope must load its baked atlas and seven authored probes")
+		return
+	for index in baked.get_user_count():
+		var receiver := indirect.get_node_or_null(baked.get_user_path(index)) as MeshInstance3D
+		if receiver == null or receiver.gi_mode != GeometryInstance3D.GI_MODE_STATIC:
+			_fail("Broken or non-static production lightmap binding")
+			return
+		for surface in receiver.mesh.get_surface_count():
+			var arrays := receiver.mesh.surface_get_arrays(surface)
+			if arrays[Mesh.ARRAY_TEX_UV2] == null or arrays[Mesh.ARRAY_TEX_UV2].size() != arrays[Mesh.ARRAY_VERTEX].size():
+				_fail("Production lightmap receiver lacks secondary UVs")
+				return
+	for name in ["Floor", "Ceiling", "EastWall", "ReceptionStone", "ReceptionLuminaire"]:
+		if office.has_node(name):
+			_fail("Duplicate ground-floor render geometry: " + name)
+			return
 	var front := office.to_global(Vector3(Office.BREAKROOM_POINT.x, .90, Layout.BREAKROOM_FRONT - .45))
 	var inside := office.to_global(Vector3(Office.BREAKROOM_POINT.x, .90, Office.BREAKROOM_POINT.z))
 	if not space.intersect_ray(PhysicsRayQueryParameters3D.create(front, inside)).is_empty():

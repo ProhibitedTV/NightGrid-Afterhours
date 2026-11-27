@@ -33,12 +33,14 @@ signal action_requested(action: String)
 signal settings_changed(settings: Dictionary)
 
 const SAVE_SETTINGS = "user://settings.cfg"
+const RenderQuality = preload("res://scripts/render_quality.gd")
 const DEFAULT_SETTINGS = {
 	"master_volume": 0.80, "music_volume": 0.65, "ambience_volume": 0.65,
 	"sfx_volume": 0.75, "dialogue_volume": 0.82, "radio_on": true, "mouse_sensitivity": 0.0032,
 	"stick_sensitivity": 2.6, "invert_look_y": false,
 	"ssr_enabled": true, "glow_enabled": true,
-	"ao_enabled": true, "fog_enabled": true,
+	"ao_enabled": true, "fog_enabled": true, "ssil_enabled": false,
+	"render_quality": "high", "render_overrides": {},
 	"vsync_enabled": true, "show_fps": false,
 	"show_control_hints": true, "show_hud_inventory": true
 }
@@ -335,12 +337,13 @@ func _unhandled_input(event: InputEvent) -> void:
 func _load_settings() -> void:
 	var config := ConfigFile.new()
 	if config.load(SAVE_SETTINGS) != OK:
+		_normalize()
 		return
 	for key in DEFAULT_SETTINGS:
 		settings[key] = config.get_value("player", key, DEFAULT_SETTINGS[key])
-	_normalize()
+	_normalize(not config.has_section_key("player", "render_quality"))
 
-func _normalize() -> void:
+func _normalize(legacy_graphics: bool = false) -> void:
 	settings["master_volume"] = clampf(float(settings.get("master_volume", 0.8)), 0.0, 1.0)
 	settings["music_volume"] = clampf(float(settings.get("music_volume", 0.65)), 0.0, 1.0)
 	settings["ambience_volume"] = clampf(float(settings.get("ambience_volume", 0.65)), 0.0, 1.0)
@@ -349,8 +352,9 @@ func _normalize() -> void:
 	settings["radio_on"] = bool(settings.get("radio_on", true))
 	settings["mouse_sensitivity"] = clampf(float(settings.get("mouse_sensitivity", 0.0032)), 0.001, 0.010)
 	settings["stick_sensitivity"] = clampf(float(settings.get("stick_sensitivity", 2.6)), 0.5, 5.0)
-	for key in ["invert_look_y", "ssr_enabled", "glow_enabled", "ao_enabled", "fog_enabled", "vsync_enabled", "show_fps", "show_control_hints", "show_hud_inventory"]:
+	for key in ["invert_look_y", "vsync_enabled", "show_fps", "show_control_hints", "show_hud_inventory"]:
 		settings[key] = bool(settings.get(key, DEFAULT_SETTINGS[key]))
+	RenderQuality.normalize(settings, legacy_graphics)
 
 func _save_settings() -> void:
 	var config := ConfigFile.new()
@@ -362,7 +366,10 @@ func _save_settings() -> void:
 func update_setting(key: String, value: Variant) -> void:
 	if not DEFAULT_SETTINGS.has(key):
 		return
-	settings[key] = value
+	if key in RenderQuality.FEATURES:
+		RenderQuality.set_feature(settings, key, bool(value))
+	else:
+		settings[key] = value
 	_normalize()
 	_save_settings()
 
@@ -654,13 +661,15 @@ func _render() -> void:
 			_label(col, "Nearby actions, navigation and health remain visible. Review controls and status from the pause menu.", 14, Ui.MUTED)
 			_divider(col)
 			_label(col, "DISPLAY & PERFORMANCE", 16, Ui.AMBER)
+			_quality_selector(col)
 			_check(col, "SCREEN-SPACE REFLECTIONS", "ssr_enabled")
 			_check(col, "NEON BLOOM", "glow_enabled")
 			_check(col, "CONTACT SHADOWS / AO", "ao_enabled")
 			_check(col, "ATMOSPHERIC DISTANCE HAZE", "fog_enabled")
+			_check(col, "SCREEN-SPACE INDIRECT LIGHT (SSIL)", "ssil_enabled")
 			_check(col, "VERTICAL SYNC", "vsync_enabled")
 			_check(col, "SHOW LIVE FPS & CHUNK METRICS", "show_fps")
-			_label(col, "Changes save automatically. Toggle SSR, AO, haze and bloom to profile GPU cost.", 14, Color("90a7ba"))
+			_label(col, "Each profile remembers its feature switches. Cinematic enables a more expensive indirect-light pass.", 14, Color("90a7ba"))
 			_button(col, "back", "BACK", "back")
 		"controls":
 			for section in HELP_SECTIONS:
@@ -1060,6 +1069,21 @@ func _format_setting(key: String, value: float) -> String:
 	if key.ends_with("_volume"):
 		return "%d%%" % roundi(value * 100.0)
 	return "%.4f" % value if key == "mouse_sensitivity" else "%.1f" % value
+
+func _quality_selector(parent: VBoxContainer) -> void:
+	var selector := OptionButton.new()
+	selector.name = "Setting_render_quality"
+	selector.custom_minimum_size.y = 40
+	for profile: String in RenderQuality.PROFILES:
+		selector.add_item(profile.capitalize())
+	selector.select(RenderQuality.PROFILES.find(settings["render_quality"]))
+	parent.add_child(selector)
+	_focus_order.append(selector)
+	selector.item_selected.connect(func(index: int) -> void:
+		update_setting("render_quality", RenderQuality.PROFILES[index])
+		for key: String in RenderQuality.FEATURES:
+			var toggle := parent.get_node("Setting_" + key) as CheckButton
+			toggle.set_pressed_no_signal(settings[key]))
 
 func _check(parent: VBoxContainer, caption: String, key: String) -> void:
 	var toggle := CheckButton.new()

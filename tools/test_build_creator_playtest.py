@@ -56,13 +56,35 @@ class CreatorBuildTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 build.require_clean()
 
+    def test_post_import_sidecar_accepts_only_line_ending_rewrite(self):
+        path = "assets/example.glb.import"
+        original = b"[params]\nmeshes/light_baking=2\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            file = root / path
+            file.parent.mkdir()
+            for data, dirty, accepted in [
+                (original.replace(b"\n", b"\r\n"), " M ", True),
+                (original.replace(b"=2", b"=1"), " M ", False),
+                (original, "M  ", False),
+            ]:
+                file.write_bytes(data)
+                with patch.object(build, "ROOT", root), \
+                     patch.object(build, "git", side_effect=[dirty + path, path]), \
+                     patch.object(build.subprocess, "check_output", return_value=original):
+                    if accepted:
+                        build.require_clean(after_import=True)
+                    else:
+                        with self.assertRaises(RuntimeError):
+                            build.require_clean(after_import=True)
+
     def test_only_new_sidecars_of_tracked_sources_are_allowed_after_import(self):
-        tracked = "scripts/world.gd\nassets/example.svg"
-        sidecars = "?? scripts/world.gd.uid\n?? assets/example.svg.import"
+        tracked = "scripts/world.gd\nassets/example.svg\nassets/room.glb"
+        sidecars = "?? scripts/world.gd.uid\n?? assets/example.svg.import\n?? assets/room.glb.unwrap_cache"
         with patch.object(build, "git", side_effect=[sidecars, tracked]):
             build.require_clean(after_import=True)
         for extra in ("?? scripts/other.gd.uid", "?? assets/unknown.png.import",
-                      " M assets/example.svg.import", "?? assets/example.png"):
+                      " M assets/example.svg.import", "?? assets/example.png", "?? assets/other.glb.unwrap_cache"):
             with patch.object(build, "git", side_effect=[sidecars + "\n" + extra, tracked]):
                 with self.assertRaises(RuntimeError):
                     build.require_clean(after_import=True)
