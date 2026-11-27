@@ -67,3 +67,8 @@ Five authored café regulars extend the Mara character benchmark with varied sil
 ## Next asset candidates
 
 After the train, use the same quality bar for one complete street intersection (surface textures, drainage, lighting and signals), one crowded café, a player vehicle, then human characters. Each vertical slice should have independent measurable visual, interaction and performance acceptance criteria before applying the style across all districts.
+
+
+## Music as art direction
+
+The original score, in-world music and interactive music systems belong to the art department. See [Anubis music production](ANUBIS_MUSIC_CANDIDATES.md) for the authored cue library, offline generation and review gates. Preserve NightGrid FM as a separate existing station. Music must support the city's identity, dialogue and physical space rather than mask missing ambience; no unreviewed candidate becomes shipped art.
