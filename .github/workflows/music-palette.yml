@@ -6,6 +6,11 @@ on:
       - 'tools/audio/neon_grunge_palette.json'
       - 'tests/test_neon_grunge_palette.py'
       - 'tests/test_music_quality_profiles.py'
+      - 'tests/test_music_resource_supervision.py'
+      - 'tools/audio/music_gpu_guard.py'
+      - 'tools/audio/run_anubis_music.sh'
+      - 'tools/asset_refinement/resource_guard.py'
+      - 'tools/asset_refinement/telemetry.py'
       - '.github/workflows/music-palette.yml'
 permissions:
   contents: read
@@ -19,3 +24,6 @@ jobs:
           python-version: '3.12'
       - run: python tests/test_neon_grunge_palette.py
       - run: python tests/test_music_quality_profiles.py
+      - run: python tests/test_music_resource_supervision.py
+      - run: python tools/asset_refinement/test_resource_guard.py
+      - run: bash -n tools/audio/run_anubis_music.sh
