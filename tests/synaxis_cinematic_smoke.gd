@@ -1,11 +1,28 @@
 extends SceneTree
 const Office = preload("res://scripts/synaxis_office.gd")
+const Arrival = preload("res://scripts/synaxis_arrival.gd")
 const Exec = preload("res://scripts/synaxis_executive_floor.gd")
 
 func _initialize() -> void:
 	call_deferred("_test")
 
 func _test() -> void:
+	var arrival := Arrival.new()
+	var surveillance_count := 0
+	for shot in Arrival.SHOTS:
+		var sample := arrival.sample()
+		if sample["surveillance"]:
+			surveillance_count += 1
+			if sample["fov"] <= 60.0 or not sample["gate_open"] or shot.has("camera_end"):
+				_fail("Surveillance insert must be fixed, wide and cover ingress")
+				return
+		elif sample["fov"] != 60.0:
+			_fail("Conventional arrival lens must remain unchanged")
+			return
+		arrival.advance(float(shot["duration"]))
+	if surveillance_count != 1 or not arrival.sample().is_empty():
+		_fail("Arrival must have one surveillance insert and terminate normally")
+		return
 	var office := Office.new()
 	office.position = Office.ORIGIN
 	root.add_child(office)
