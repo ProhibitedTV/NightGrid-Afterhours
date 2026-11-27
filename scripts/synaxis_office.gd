@@ -732,32 +732,76 @@ func _build_cast() -> void:
 	_assistant.process_mode=Node.PROCESS_MODE_ALWAYS
 	_cast.add_child(_assistant)
 
+# Fixed room-local coverage, not a free camera moving through furniture.
+# Each cut changes emphasis while preserving the established actor anchors.
+var _dialogue_lens: Tween
+var _dialogue_camera: Camera3D
+var _dialogue_original_fov := 68.0
+
 func dialogue_camera(camera: Camera3D,stage: int,beat: int) -> void:
+	if not is_instance_valid(camera) or stage not in [2,3,4]:
+		return
+	if _dialogue_camera != camera:
+		_dialogue_camera = camera
+		_dialogue_original_fov = camera.fov
+	if is_instance_valid(_dialogue_lens):
+		_dialogue_lens.kill()
 	var from := Vector3(3.2,1.95,-3.85)
-	var toward := ExecutiveFloor.CEO_ANCHOR+Vector3.UP*1.55
+	var toward := ExecutiveFloor.CEO_ANCHOR+Vector3.UP*1.30
+	var lens := 58.0
+	var framing := .48
 	if stage == 4:
 		from = Vector3(-7.3,1.85,3.9)
-		toward = ExecutiveFloor.HR_ANCHOR+Vector3.UP*1.55
-	elif beat == 1:
+		toward = ExecutiveFloor.HR_ANCHOR+Vector3.UP*1.26
+		lens = 51.0
+		framing = .40
+	elif stage == 2 and beat == 1:
 		from = Vector3(5.9,1.85,-3.65)
-		toward = ExecutiveFloor.ASSISTANT_ANCHOR+Vector3.UP*1.55
-	camera.global_position = to_global(from+Vector3.UP*ExecutiveFloor.BASE)
-	camera.look_at(to_global(toward+Vector3.UP*ExecutiveFloor.BASE),Vector3.UP)
-	_assistant.call("set_phone_call",stage==2 and beat==1)
+		toward = ExecutiveFloor.ASSISTANT_ANCHOR+Vector3.UP*1.48
+		lens = 52.0
+		framing = .28
+	elif stage == 3 or beat == 2:
+		# Return to the founder for the decision and its immediate fallout.
+		from = Vector3(3.65,1.75,-4.08)
+		lens = 48.0 if stage == 3 else 53.0
+		framing = .42
+	var position_world := to_global(from+Vector3.UP*ExecutiveFloor.BASE)
+	var subject := to_global(toward+Vector3.UP*ExecutiveFloor.BASE)
+	var right := (subject-position_world).normalized().cross(Vector3.UP).normalized()
+	camera.global_position = position_world
+	# Frame the speaker left of center; the existing conversation panel sits right.
+	camera.look_at(subject+right*framing,Vector3.UP)
+	camera.fov = lens+2.0
+	_dialogue_lens = create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	_dialogue_lens.tween_property(camera,"fov",lens,.65).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_intro_canvas.hide()
+	if is_instance_valid(_assistant):
+		_assistant.call("set_phone_call",stage==2 and beat==1)
 	if is_instance_valid(_ceo):
-		_ceo.call("set_scene_beat",beat if stage==2 else -1)
+		_ceo.call("set_scene_beat",beat if stage==2 else (2 if stage==3 else -1))
+		_ceo.call("attend",to_global(ExecutiveFloor.CEO_GOAL+Vector3.UP*ExecutiveFloor.BASE),stage in [2,3] and beat!=1)
 	if is_instance_valid(_hr):
 		_hr.call("set_scene_beat",2 if stage==4 else -1)
+		_hr.call("attend",to_global(ExecutiveFloor.HR_GOAL+Vector3.UP*ExecutiveFloor.BASE),stage==4)
 
 func breakroom_camera(camera: Camera3D) -> void:
 	camera.global_position=to_global(Vector3(-7.25,2.15,6.65))
 	camera.look_at(to_global(Vector3(-3.7,1.5,8.7)),Vector3.UP)
 
 func end_dialogue() -> void:
+	if is_instance_valid(_dialogue_lens):
+		_dialogue_lens.kill()
+	_dialogue_lens = null
+	if is_instance_valid(_dialogue_camera):
+		_dialogue_camera.fov = _dialogue_original_fov
+	_dialogue_camera = null
+	if _prologue_active and is_instance_valid(_intro_canvas):
+		_intro_canvas.show()
 	if is_instance_valid(_assistant):
 		_assistant.call("set_phone_call",false)
 	for actor in _staff.values():
 		actor.call("set_scene_beat",-1)
+		actor.call("attend",Vector3.ZERO,false)
 
 # Reuse the existing CC0 photo-derived concrete maps, documented in
 # central_exchange_curb/SOURCE.json, as a honed aggregate finish.
