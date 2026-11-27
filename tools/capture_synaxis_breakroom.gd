@@ -20,7 +20,7 @@ func _fail(error: String) -> void:
 	quit(1)
 func _run() -> void:
 	var args := OS.get_cmdline_user_args()
-	if args.size() < 1 or args.size() > 2 or DisplayServer.get_name() == "headless" or RenderingServer.get_current_rendering_method() != "forward_plus":
+	if args.size() < 1 or args.size() > 3 or DisplayServer.get_name() == "headless" or RenderingServer.get_current_rendering_method() != "forward_plus":
 		_fail("Use Forward+ and pass a new absolute evidence directory")
 		return
 	var out := args[0]
@@ -62,6 +62,8 @@ func _run() -> void:
 	var viewport := root.get_viewport_rid()
 	RenderingServer.viewport_set_measure_render_time(viewport, true)
 	var records := []
+	var parked := "--parked" in args
+	paused = parked
 	var requested := EQUIPMENT if "--equipment" in args else SHOTS
 	for shot in requested:
 		if shot.size() == 4:
@@ -72,17 +74,27 @@ func _run() -> void:
 			await RenderingServer.frame_post_draw
 		var frames: Array[float] = []
 		var gpu: Array[float] = []
+		var cpu: Array[float] = []
+		var worst := {}
 		var unfocused := 0
 		var stamp := Time.get_ticks_usec()
 		for frame in 180:
 			await RenderingServer.frame_post_draw
 			var now := Time.get_ticks_usec()
-			frames.append(float(now - stamp) / 1000.0)
-			gpu.append(RenderingServer.viewport_get_measured_render_time_gpu(viewport))
-			unfocused += int(not root.has_focus())
+			var interval := float(now - stamp) / 1000.0
+			var gpu_ms := RenderingServer.viewport_get_measured_render_time_gpu(viewport)
+			var cpu_ms := RenderingServer.viewport_get_measured_render_time_cpu(viewport)
+			var focused := root.has_focus()
+			frames.append(interval)
+			gpu.append(gpu_ms)
+			cpu.append(cpu_ms)
+			if interval > float(worst.get("frame_ms", 0)):
+				worst = {"frame_ms": interval, "gpu_ms": gpu_ms, "render_cpu_ms": cpu_ms, "focused": focused}
+			unfocused += int(not focused)
 			stamp = now
 		frames.sort()
 		gpu.sort()
+		cpu.sort()
 		var image := root.get_texture().get_image()
 		var filename: String = out.path_join(shot[0] + ".png")
 		if image.get_size() != Vector2i(1920,1080) or image.save_png(filename) != OK:
@@ -90,7 +102,7 @@ func _run() -> void:
 			return
 		records.append({"name": shot[0], "sha256": FileAccess.get_sha256(filename),
 			"frame_p95_ms": frames[170], "frame_p99_ms": frames[178], "gpu_p95_ms": gpu[170],
-			"unfocused": unfocused, "samples": frames.size()})
+			"cpu_p95_ms": cpu[170], "worst_frame": worst, "unfocused": unfocused, "samples": frames.size()})
 	var report := FileAccess.open(out.path_join("capture.json"), FileAccess.WRITE)
 	if report == null:
 		_fail("Could not write capture metadata")
@@ -98,7 +110,7 @@ func _run() -> void:
 	report.store_string(JSON.stringify({"revision": OS.get_environment("NIGHTGRID_SOURCE_REVISION"),
 		"resolution": [root.size.x, root.size.y], "vsync": DisplayServer.window_get_vsync_mode(),
 		"renderer": RenderingServer.get_current_rendering_method(), "driver": RenderingServer.get_current_rendering_driver_name(),
-		"adapter": RenderingServer.get_video_adapter_name(), "hour": 17.0, "fov": camera.fov, "views": records}, "\t"))
+		"adapter": RenderingServer.get_video_adapter_name(), "simulation_paused": parked, "hour": 17.0, "fov": camera.fov, "views": records}, "\t"))
 	report.close()
 	print("SYNAXIS_BREAKROOM_CAPTURE PASS ", out)
 	quit(0)

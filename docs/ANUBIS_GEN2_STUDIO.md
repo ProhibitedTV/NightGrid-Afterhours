@@ -21,3 +21,9 @@ This builds three self-contained GLBs with a real rectangular hollow frame, thir
 The candidate manifest hashes the GLBs, source and texture inputs. Output is separate from game checkout and never overwritten intentionally. No collision is generated: keep the existing walkable floor and steam effects unchanged. The Gen2 format is deliberately separate from Gen1 raw reconstruction manifests; do not fabricate SDXL/TripoSR provenance or bypass the handoff gate.
 
 Before promotion: measure the existing drain footprint, inspect six angles and material under wet/dry lighting, import all LODs in Godot, compare close and street-eye captures in Brickwater, check floor clipping, steam alignment, pedestrian traversal, legacy saves and RTX 3060 timing. Placement, material suitability and native acceptance remain outstanding. Do not claim AAA fidelity from procedural geometry alone.
+
+## Local four-object reconstruction probe
+
+The four-object calibrated probe reuses hash-verified Gen 1 meshes and the dimensioned grate. It uses Blender for 16 fixed views per asset and OpenCV SIFT with known camera transforms on the CPU. Unique occupied point cells were 108 for the plant, 147 for the microwave, 239 for the fragmented grate and 38 for the dimensioned grate. Sparse compute took 1.9–2.1 seconds per object. The fragmented grate scored higher by point count despite poor geometry, so sparse coverage alone cannot decide whether a reconstruction is usable. The NAS report is `Visual/Gen2/multiview-probe-001/probe.json`.
+
+For a dense follow-up on real calibrated photographs, [COLMAP PatchMatch](https://colmap.github.io/faq.html) offers both image-size and source-image limits for CUDA memory. [VGGT](https://github.com/facebookresearch/vggt) also supports calibrated scene estimates from multiple views. Dense CUDA timing, peak VRAM and applicable VGGT checkpoint rights remain unverified on Anubis.
