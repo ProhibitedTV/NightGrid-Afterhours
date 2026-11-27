@@ -25,7 +25,8 @@ class AnubisTests(unittest.TestCase):
         self.assertTrue(all(self.specs[i]["line"]["character"] in ("jetson","lin") for i in selected))
 
     def test_sfx_catalog_and_groups(self):
-        self.assertEqual(len(anubis.sfx_ids([],None)),37)
+        self.assertEqual(len(anubis.sfx_ids([],None)),38)
+        self.assertEqual(anubis.sfx_ids(["lift_motor"],None),["lift_motor"])
         self.assertEqual(len(anubis.sfx_ids([],"steps")),16)
         self.assertEqual(anubis.sfx_ids(["lift_chime"],"office"),["lift_chime"])
         with self.assertRaises(ValueError):

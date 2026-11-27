@@ -16,8 +16,9 @@ class AuthoringTests(unittest.TestCase):
         assets = data["assets"]
         ids = [x["id"] for x in assets]
         self.assertEqual(len(ids), len(set(ids)))
-        self.assertEqual(len(ids), 37)
+        self.assertEqual(len(ids), 38)
         self.assertTrue(all(x["duration"] > 0 and x["prompt"] for x in assets))
+        self.assertTrue(next(x for x in assets if x["id"] == "lift_motor")["loop"])
 
     def test_partial_library_and_provenance(self):
         import json
