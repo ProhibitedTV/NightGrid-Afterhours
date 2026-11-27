@@ -490,7 +490,7 @@ static func acoustic_zone(local:Vector3,level:int,parking_open:bool,in_lift:bool
 	if level==ExecutiveFloor.FLOOR:
 		return "SYNAXIS_EXECUTIVE"
 	if level>=1 and level<=Workfloor.FLOOR_COUNT:
-		return "SYNAXIS_OFFICE"
+		return "SYNAXIS_CARPET" if absf(local.x)<=8.275 and absf(local.z)<=9.825 else "SYNAXIS_OFFICE"
 	return ""
 
 func acoustic_room(at:Vector3) -> String:

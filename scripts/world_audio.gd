@@ -24,6 +24,7 @@ const FADE_DB_PER_SECOND = 44.0
 const STEPS = {
 	"CONCRETE": "stone",
 	"TILE": "tile",
+	"CARPET": "carpet",
 	"ASPHALT": "asphalt",
 	"GRAVEL": "gravel",
 }
@@ -100,7 +101,7 @@ func _ready() -> void:
 			var path := STEP_ROOT + ("%s_%d.wav" % [STEPS[surface], variant + 1])
 			var stream := load(path) as AudioStream if ResourceLoader.exists(path) else null
 			var approved:=GeneratedAudio.stream("step_%s_%d" % [STEPS[surface],variant+1])
-			samples.append(approved if approved!=null else (stream if stream!=null else Foley.sound("STEP_TILE" if surface=="TILE" else "STEP_CONCRETE",variant)))
+			samples.append(approved if approved!=null else (stream if stream!=null else Foley.sound("STEP_CARPET" if surface=="CARPET" else ("STEP_TILE" if surface=="TILE" else "STEP_CONCRETE"),variant)))
 		_step_bank[surface] = samples
 	for index in range(EVENT_VOICES):
 		var voice := AudioStreamPlayer3D.new()
@@ -209,7 +210,7 @@ func update_context(actor_position: Vector3, foot_position: Vector3,
 	var stride := maxf(0.70, speed / cadence)
 	if _travel >= stride:
 		_travel = fposmod(_travel, stride)
-		_step_surface = "CONCRETE" if _room_kind in ["WORKSHOP","SYNAXIS_BASEMENT","SYNAXIS_PARKING"] else surface_at(foot_position, indoors)
+		_step_surface = "CARPET" if _room_kind=="SYNAXIS_CARPET" else ("CONCRETE" if _room_kind in ["WORKSHOP","SYNAXIS_BASEMENT","SYNAXIS_PARKING"] else surface_at(foot_position, indoors))
 		_play_step()
 
 static func surface_at(foot_position: Vector3, indoors: bool) -> String:

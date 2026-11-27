@@ -61,6 +61,14 @@ static func sound(kind: String, variation: int = 0) -> AudioStreamWAV:
 				var tread := 0.7 + 0.3 * sin(TAU * 17.0 * t) * sin(TAU * 2.0 * t)
 				sample = tread * (0.40 * low_noise + 0.11 * mid_noise + 0.028 * noise +
 					0.016 * sin(TAU * 62.0 * t))
+			"STEP_CARPET":
+				# Quiet padded heel plus delayed toe, no hard tile ring.
+				var heel:=exp(-42.0*t)*(mid_noise*.14+sin(TAU*(90.0+variation*7.0)*t)*.045)
+				var toe_t:=t-.055
+				var toe:=0.0
+				if toe_t>0.0:
+					toe=exp(-55.0*toe_t)*mid_noise*.065
+				sample=heel+toe
 			"STEP_CONCRETE", "STEP_TILE":
 				var decay := exp(-36.0 * t) * (0.8 + 0.04 * float(variation))
 				var heel := noise * 0.135 * decay + sin(TAU * (155.0 + variation * 18.0) * t) * decay * 0.050
