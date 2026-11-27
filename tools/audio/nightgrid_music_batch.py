@@ -3,6 +3,7 @@
 import argparse, fcntl, hashlib, json, os, shutil, subprocess, sys, tempfile, time
 from pathlib import Path
 from music_pcm import pcm_info
+from music_gpu_guard import gpu_guard
 
 # id, scene/title, duration, tempo, key, musical direction
 CUES = [
@@ -110,17 +111,6 @@ def checkpoint_record(profile=PROFILES['legacy'], name='legacy'):
     record = {'source_commit':subprocess.check_output(['git','-C',str(HOME),'rev-parse','HEAD'],text=True).strip(),'dit':profile['dit'],'lm':profile['lm'],'files_sha256':files}
     if name != 'legacy': record['generation_profile'] = dict(profile, name=name)
     return record
-
-def gpu_guard():
-    smi=shutil.which('nvidia-smi') or '/usr/lib/wsl/lib/nvidia-smi'
-    lines=subprocess.check_output([smi,'--query-gpu=temperature.gpu,memory.used,memory.total','--format=csv,noheader,nounits'],text=True,timeout=10).strip().splitlines()
-    if len(lines)!=1: raise RuntimeError('Expected the one Anubis GPU')
-    temp,used,total=lines[0].split(',')
-    try: t=float(temp)
-    except ValueError: raise RuntimeError('GPU temperature unavailable; stop rather than run unmonitored')
-    if not 0<t<85: raise RuntimeError('GPU temperature guard: '+temp)
-    print(f'GPU: {t:.1f} C, {used.strip()}/{total.strip()} MiB',flush=True)
-    return float(used),float(total)
 
 def audio_info(path):
     info = pcm_info(path)
