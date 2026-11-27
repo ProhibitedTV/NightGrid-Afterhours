@@ -805,7 +805,7 @@ func _plaque(value:String,at:Vector3,yaw:float,size:Vector2) -> void:
 	backing.material_override=_material("wayfinding",Color("26343a"))
 	backing.position=at
 	backing.rotation.y=yaw
-	add_child(backing)
+	add_child(backing,true)
 	var label:=Label3D.new()
 	label.text=value
 	label.font_size=40
