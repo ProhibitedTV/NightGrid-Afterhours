@@ -113,6 +113,29 @@ func _verify() -> void:
 	rig.reset_pedestrian_visual()
 	if not _check(not rig.get("_attention_applied") and head.get_bone_pose_rotation(2).is_equal_approx(base_rotation),"pool reset clears gaze"):
 		return
+	# An authored office clip must remain selected even when street speed changes.
+	var office_player:=rig.get_node("AnimationPlayer") as AnimationPlayer
+	var office_library:=AnimationLibrary.new()
+	office_library.add_animation(&"seated",office_player.get_animation(&"idle").duplicate())
+	office_player.add_animation_library(&"office",office_library)
+	office_player.play(&"office/seated")
+	office_player.seek(.25,true)
+	rig.enable_authored_office_pose()
+	rig.set_process(false)
+	rig.set_locomotion(1.2)
+	rig.set_attention_target(Vector3(2,1.5,3),true)
+	for i in range(20):
+		rig._process(1.0/60.0)
+	if not _check(office_player.current_animation=="office/seated" and office_player.current_animation_position>.25 and rig.get("_attention_applied"),"authored office clip advances without street replacement and keeps gaze"):
+		return
+	rig.set_attention_target(Vector3.ZERO,false)
+	for i in range(30):
+		rig._process(1.0/60.0)
+	if not _check(not rig.get("_attention_applied") and head.get_bone_pose_rotation(2).is_equal_approx(base_rotation),"office gaze releases to authored pose"):
+		return
+	rig.reset_pedestrian_visual()
+	if not _check(not rig.get("_office_pose") and rig.animation_state()["clip"]=="idle","pool reset releases office mode"):
+		return
 	# Synthetic arms exercise the reversible layer independently of mesh art.
 	var body := Node3D.new()
 	root.add_child(body)
