@@ -23,7 +23,24 @@ def choose_gain(metrics, target=-18.0, ceiling=-2.0):
     return round(min(target - loudness, ceiling - peak, 6.0), 3)
 
 
-def export(manifest, qc, ledger_path, source, evidence_root, output, binary):
+def probe_derivative(path, binary, expected_seconds):
+    result = subprocess.check_output([binary, "-v", "error", "-show_streams",
+                                      "-show_format", "-of", "json", str(path)],
+                                     text=True, timeout=30)
+    data = json.loads(result)
+    streams = data["streams"]
+    if len(streams) != 1:
+        raise ValueError("Expected a single audio stream")
+    stream = streams[0]
+    duration = float(data["format"]["duration"])
+    if (stream.get("codec_name") != "vorbis" or stream.get("codec_type") != "audio"
+            or int(stream["sample_rate"]) != 48000 or stream["channels"] != 2
+            or not math.isfinite(duration) or abs(duration - expected_seconds) > 0.1):
+        raise ValueError("Derivative format or duration mismatch")
+    return round(duration, 3)
+
+
+def export(manifest, qc, ledger_path, source, evidence_root, output, binary, probe):
     source = source.resolve(strict=True)
     output = output.resolve()
     if output.parent != source or not output.name.startswith("derivatives-"):
@@ -60,6 +77,7 @@ def export(manifest, qc, ledger_path, source, evidence_root, output, binary):
                            timeout=300, check=True)
             if sha256(path) != master["sha256"]:
                 raise ValueError("Source changed during export: " + ident)
+            duration = probe_derivative(destination, probe, rows[ident]["duration_seconds"])
             metrics = measure(destination, binary)
             peak = metrics.get("true_peak_dbtp")
             if peak is None or peak > -1.0 or metrics.get("integrated_lufs") is None:
@@ -68,7 +86,7 @@ def export(manifest, qc, ledger_path, source, evidence_root, output, binary):
                                 checkpoint=master["checkpoint"],
                                 rights_evidence_sha256=reviews[ident]["rights_evidence_sha256"],
                                 file=destination.name, sha256=sha256(destination),
-                                gain_db=gain, decoded_measurements=metrics))
+                                gain_db=gain, duration_seconds=duration, decoded_measurements=metrics))
         if sha256(ledger_path) != ledger_hash:
             raise ValueError("Ledger changed during export")
         # Revalidate manifest/QC, source and evidence immediately before handoff.
@@ -100,10 +118,11 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         binary = shutil.which("ffmpeg")
-        if not binary:
-            raise ValueError("Existing FFmpeg with libvorbis required")
+        probe = shutil.which("ffprobe")
+        if not binary or not probe:
+            raise ValueError("Existing FFmpeg with libvorbis and FFprobe required")
         report = export(args.manifest, args.qc, args.ledger, args.source,
-                        args.evidence_root, args.output, binary)
+                        args.evidence_root, args.output, binary, probe)
         print(json.dumps(report, indent=2, sort_keys=True, allow_nan=False))
     except (ValueError, OSError, KeyError, TypeError, AttributeError, subprocess.SubprocessError) as exc:
         print("MUSIC EXPORT FAILED:", exc, file=sys.stderr)
