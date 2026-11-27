@@ -119,3 +119,7 @@ is unavailable the job refuses to launch rather than disabling the guard.
 Other Factory lanes retain their previous policy. These software checks are
 not hardware thermal protection. Native WSL interop, process interruption,
 resume and long-run thermal behavior require an actual one-take audition.
+
+## Modern studio export compatibility
+
+Studio profiles request ACE-Step's public `wav32` format (direct SoundFile float export in upstream `acestep/audio_utils.py`). TorchAudio 2.9+ uses TorchCodec and ignores the old backend selector: https://docs.pytorch.org/audio/stable/generated/torchaudio.save.html . FFprobe checks stereo 48 kHz float PCM before FFmpeg writes the existing PCM24 master. A silent fallback to ordinary WAV fails closed. The original legacy profile's fingerprints and format remain unchanged; start a fresh studio batch if an earlier studio take already exists. Model initialization and generation call signatures are checked against the installed library before invoking model initialization. No modification of the installed ACE-Step checkout, package upgrade or clone is performed. Upstream internal warnings may still occur; retain native logs and report exact messages rather than suppress them. Native validation is still required.
