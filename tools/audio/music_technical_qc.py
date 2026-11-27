@@ -10,6 +10,7 @@ import subprocess
 import sys
 
 from music_candidate_intake import validate, sha256
+from music_pcm_diagnostics import analyze
 
 SILENCE_SECONDS = 0.5
 SILENCE_DB = -50
@@ -54,6 +55,7 @@ def review(manifest, source, binary):
         if not path.is_relative_to(source.resolve()) or sha256(path) != item["sha256"]:
             raise ValueError("Source changed before measurement: " + item["id"])
         metrics = measure(path, binary)
+        metrics.update(analyze(path))
         if sha256(path) != item["sha256"]:
             raise ValueError("Source changed during measurement: " + item["id"])
         flags = []
@@ -68,6 +70,16 @@ def review(manifest, source, binary):
             flags.append("true-peak-headroom-under-1db")
         if metrics["silence_longest_seconds"] >= 2:
             flags.append("extended-silence-listen")
+        if metrics["full_scale_samples_left"] or metrics["full_scale_samples_right"]:
+            flags.append("full-scale-pcm-samples-listen")
+        if (metrics["rms_dbfs_left"] is None) != (metrics["rms_dbfs_right"] is None):
+            flags.append("one-channel-silent")
+        balance = metrics["left_minus_right_rms_db"]
+        if balance is not None and abs(balance) > 6:
+            flags.append("stereo-rms-imbalance-listen")
+        # A raw endpoint jump is a diagnostic, not a loop approval decision.
+        if metrics["wrap_sample_jump_fraction"] > 0.05:
+            flags.append("raw-endpoint-jump-listen-if-looping")
         target = entry.get("requested_duration")
         if isinstance(target, (int, float)) and not isinstance(target, bool) and math.isfinite(target) and target > 0:
             if abs(item["duration_seconds"] - target) > max(4, target * 0.12):
@@ -86,8 +98,8 @@ def review(manifest, source, binary):
             "silence_minimum_seconds": SILENCE_SECONDS,
             "candidate_count": len(rows),
             "flagged_count": sum(bool(row["flags"]) for row in rows),
-            "not_measured": ["sample clipping count", "channel balance",
-                             "loop seam", "perceptual similarity", "tempo", "key"],
+            "not_measured": ["clipping distortion", "perceptual loop quality",
+                             "perceptual similarity", "tempo", "key"],
             "candidates": rows}
 
 
