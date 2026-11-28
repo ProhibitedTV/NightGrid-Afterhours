@@ -15,6 +15,11 @@ if [[ -f .git ]]; then
   if [[ "$git_link" =~ ^gitdir:\ [A-Za-z]:[/\\] ]]; then
     export GIT_DIR="$(wslpath -u "${git_link#gitdir: }")"
     export GIT_WORK_TREE="$PWD"
+    # Match the Git for Windows line-ending policy on this CRLF checkout.
+    # Keep the real tracked-dirty guard and leave all repository config alone.
+    git_option=${GIT_CONFIG_COUNT:-0}
+    export "GIT_CONFIG_KEY_$git_option=core.autocrlf" "GIT_CONFIG_VALUE_$git_option=true"
+    export GIT_CONFIG_COUNT=$((git_option + 1))
   fi
 fi
 export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PIP_NO_INDEX=1 NPM_CONFIG_OFFLINE=true
