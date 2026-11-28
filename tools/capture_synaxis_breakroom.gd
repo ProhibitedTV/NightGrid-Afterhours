@@ -213,6 +213,16 @@ func _lobby_route(out: String, office: Node3D, camera: Camera3D, viewport: RID, 
 		var worst: Dictionary = {}
 		var unfocused := 0
 		var pipeline_start := _pipeline_counts()
+		# Measure the initial camera render independently so a cold shader or
+		# texture stall longer than the traversal does not skip the whole route.
+		var entry: Vector3 = LOBBY_ROUTE[0]
+		var next: Vector3 = LOBBY_ROUTE[1]
+		camera.global_position = office.to_global(entry)
+		camera.look_at(office.to_global(entry + (next - entry).normalized().lerp(Vector3.BACK, .72)))
+		var entry_stamp := Time.get_ticks_usec()
+		await RenderingServer.frame_post_draw
+		var entry_render_ms := (Time.get_ticks_usec() - entry_stamp) / 1000.0
+		var entry_focused := root.has_focus()
 		var start := Time.get_ticks_usec()
 		var stamp := start
 		while true:
@@ -258,6 +268,8 @@ func _lobby_route(out: String, office: Node3D, camera: Camera3D, viewport: RID, 
 		var n := frames.size()
 		var p95 := ceili(n * .95) - 1
 		rows.append({"name":name, "samples":n, "unfocused":unfocused, "frame_p50_ms":frames[floori(n * .5)],
+			"entry_render_ms": entry_render_ms, "entry_focused": entry_focused,
+			"distribution_valid": n >= 60 and unfocused == 0,
 			"frame_p95_ms":frames[p95], "frame_p99_ms":frames[ceili(n * .99) - 1],
 			"frame_worst_ms":frames[-1], "gpu_p95_ms":gpu[p95], "render_cpu_p95_ms":cpu[p95],
 			"draw_calls_p95": draws[p95], "shadow_draw_calls_p95": shadow_draws[p95],
