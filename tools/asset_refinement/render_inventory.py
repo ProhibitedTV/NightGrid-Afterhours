@@ -34,7 +34,10 @@ def inspect():
         if suffix not in IMAGE_EXT | {".glb", ".gltf", ".lmbake", ".wav", ".ogg", ".mp3"}:
             continue
         with path.open("rb") as f:
-            digest = hashlib.file_digest(f, "sha256").hexdigest()
+            h = hashlib.sha256()
+            for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                h.update(chunk)
+            digest = h.hexdigest()
         size = path.stat().st_size
         row = {"path": name, "bytes_on_disk": size, "sha256": digest}
         groups[digest].append(name)
