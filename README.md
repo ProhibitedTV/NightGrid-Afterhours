@@ -24,6 +24,10 @@ Explore the waterfront, corporate Glassline, Brickwater's repair shops, the Vesp
 
 *Native Windows 1920×1080 Forward+/Vulkan captures from Beta.8 RC1, on an RTX 3060. [Capture provenance and full gallery](docs/screenshots/beta8-rc1/GALLERY.md).*
 
+![Synaxis reception lettering and stone under the tuned fixture](docs/screenshots/synaxis/reception-lighting.png)
+
+*Synaxis reception lighting in the Windows engineering build at `0a502df`. Captured from the exported game pack at 1920×1080 in Godot 4.7.2 Forward+/Vulkan on an RTX 3060. [Source revision](https://github.com/ProhibitedTV/NightGrid-Afterhours/commit/0a502dfdf430fece87e945c57553c5eed263dfe3).*
+
 ## What you can do on development main
 
 The following systems are integrated as of **November 25, 2026 (Mountain Time)**. They are newer than the public release where noted; not all are final-quality content.
