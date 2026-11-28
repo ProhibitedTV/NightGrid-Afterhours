@@ -1,4 +1,5 @@
 extends RefCounted
+const IT_HANDOFF = "Eli: The override came from the executive floor. Your job is to establish who accessed the IP and whether they were authorized."
 ## Authored 2036 prologue; this is fictional corporate satire, not a real employer.
 const EMPLOYER = "SYNAXIS OMNISYSTEMS"
 const PLATFORM = "QUOTADROP"

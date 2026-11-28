@@ -16,6 +16,9 @@
     }
   },
   "characters": {
+    "eli": {
+      "direction": "Original adult male IT technician, conversational English, measured and slightly tired. Give practical instructions with dry restraint. No imitation of a real voice."
+    },
     "jetson": {
       "direction": "Original mature male voice, low-mid register, polished and restrained executive confidence, subtle dry irony."
     },
@@ -69,6 +72,17 @@
     }
   },
   "lines": [
+    {
+      "id": "synaxis.it_handoff.01",
+      "character": "eli",
+      "language": "English",
+      "text": "The override came from the executive floor. Your job is to establish who accessed the IP and whether they were authorized.",
+      "direction": "Speak quietly and matter-of-factly across a service desk. Say IP as the initials I P.",
+      "source": {
+        "constant": "IT_HANDOFF",
+        "row": 0
+      }
+    },
     {
       "id": "synaxis.conference.01",
       "character": "jetson",

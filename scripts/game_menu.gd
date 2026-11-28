@@ -580,7 +580,7 @@ func _render() -> void:
 				0:
 					_title(col, "ONE LAST TICKET", 29, Ui.TEXT)
 					_label(col, Opening.TICKET, 17, Color("cbd8e3"))
-					_label(col, "Eli: The override came from the executive floor. Your job is to establish who accessed the IP and whether they were authorized.", 16, Ui.MUTED)
+					_label(col, Opening.IT_HANDOFF, 16, Ui.MUTED)
 					_button(col,"terminal_open","OPEN SERVICE DESK","terminal_open")
 					_button(col, "opening_inspect", "REVIEW ACCESS ALERT", "opening_inspect")
 				1:
