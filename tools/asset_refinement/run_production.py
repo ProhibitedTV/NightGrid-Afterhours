@@ -70,7 +70,7 @@ def preflight(godot):
 def build_plan(batch, godot, visual_mode):
     post = "postmusic-" + batch
     visual_env = {"ANUBIS_PROJECT_NORMALS": "1", "ANUBIS_BAKE_AO": "1",
-                  "ANUBIS_PREVIEWS": "1", "ANUBIS_SKIP_AUDIO": "1",
+                  "ANUBIS_PREVIEWS": "1", "ANUBIS_SKIP_AUDIO": "1", "ANUBIS_BATCH": "visual-001",
                   "ANUBIS_GODOT": "/usr/local/bin/godot"}
     base = ["bash", "tools/asset_refinement/run_post_music.sh", "--execute"]
     return {
@@ -93,6 +93,9 @@ def build_plan(batch, godot, visual_mode):
 def dispatch(args):
     plan = build_plan(args.batch, args.godot, args.visual_mode)
     if not args.execute:
+        for profile, short in (("reception", "rec"), ("synaxis-ground", "ground")):
+            plan[profile][0].extend(["--batch", f"postmusic-{args.batch}-{short}-1"])
+        plan["inventory"][0].extend(["--output", str(NAS / "Visual/ProductionRuns" / args.batch / "inventory.json")])
         print(json.dumps({name: {"argv": argv, "env": env} for name, (argv, env) in plan.items()}, indent=2))
         return 0
     version = preflight(args.godot)
@@ -105,6 +108,8 @@ def dispatch(args):
     env = dict(os.environ, HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1",
                NPM_CONFIG_OFFLINE="true", PYTHONDONTWRITEBYTECODE="1")
     env["PATH"] = env.get("PATH", "") + ":/usr/lib/wsl/lib"
+    for key in ("ANUBIS_VISUAL_CATALOG", "ANUBIS_GENERATION_REPO"):
+        env.pop(key, None)
     signature = {"source": source, "godot": version, "godot_path": args.godot,
                  "visual_mode": args.visual_mode, "stages": list(STAGES)}
     # Separate orchestration lock; existing launchers retain their own GPU leases.
