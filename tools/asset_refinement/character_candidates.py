@@ -8,6 +8,7 @@ import shutil
 import struct
 import subprocess
 import time
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 PROFILES = Path(__file__).with_name("character_profiles")
@@ -129,7 +130,56 @@ def plan(actor, out):
             "--out", str(folder/"export"), "--animations", ",".join(ANIMATIONS[actor])]
 
 
-def run(out, actors, execute=False, resume=False):
+def verified_candidate(folder, actor, profile_bytes):
+    if (folder.is_symlink() or (folder/"export").is_symlink()
+            or (folder/"candidate.json").is_symlink()):
+        raise ValueError("Unsafe candidate path")
+    record = json.loads((folder/"candidate.json").read_text(encoding="utf-8"))
+    models = sorted((folder/"export").glob("*.glb"))
+    if (len(models) != 1 or record.get("actor") != actor
+            or record.get("profile_sha256") != sha(profile_bytes)
+            or record.get("package") != PACKAGE
+            or record.get("documented_source_revision") != REVISION
+            or record.get("model") != models[0].relative_to(folder).as_posix()
+            or record.get("structural") != inspect_glb(models[0], ANIMATIONS[actor])):
+        raise ValueError("Existing candidate mismatch; preserve and inspect: " + actor)
+    return record, models[0]
+
+
+def reuse_candidate(out, actor, profile_bytes):
+    # Reuse only an exact profile + model hash with the required clips; no
+    # assumption that a previous candidate was artistically approved.
+    matches = {}
+    for batch in sorted(out.parent.iterdir()):
+        if batch == out or batch.is_symlink() or not batch.is_dir():
+            continue
+        candidate = batch/actor
+        if not (candidate/"candidate.json").is_file():
+            continue
+        try:
+            record, model = verified_candidate(candidate, actor, profile_bytes)
+        except (OSError, ValueError, KeyError, TypeError, struct.error):
+            continue
+        matches.setdefault(record["structural"]["sha256"], (candidate, record, model))
+    if len(matches) != 1:
+        if matches:
+            print("Multiple exact-profile candidates; retaining all and generating fresh:", actor, flush=True)
+        return False
+    source, record, model = next(iter(matches.values()))
+    stage = Path(tempfile.mkdtemp(prefix="."+actor+".reuse-",dir=out))
+    (stage/"export").mkdir()
+    (stage/"profile.json").write_bytes(profile_bytes)
+    shutil.copy2(model, stage/"export"/model.name)
+    record["reused_from"] = str(source)
+    (stage/"candidate.json").write_text(json.dumps(record,indent=2,sort_keys=True)+"\n",encoding="utf-8")
+    verified_candidate(stage,actor,profile_bytes)
+    if (out/actor).exists(): raise FileExistsError(out/actor)
+    stage.rename(out/actor)
+    print("REUSE verified candidate", actor, "from", source, flush=True)
+    return True
+
+
+def run(out, actors, execute=False, resume=False, reuse=False):
     out = out.resolve()
     if ROOT == out or ROOT in out.parents or out in ROOT.parents:
         raise ValueError("Use a separate candidate library outside the game checkout")
@@ -150,20 +200,14 @@ def run(out, actors, execute=False, resume=False):
             if not resume or folder.is_symlink() or not folder.is_dir():
                 raise ValueError("Unexpected existing actor path: " + str(folder))
             if (folder/"candidate.json").exists():
-                record = json.loads((folder/"candidate.json").read_text(encoding="utf-8"))
-                models = sorted((folder/"export").glob("*.glb"))
-                if (len(models) != 1 or record.get("actor") != actor
-                        or record.get("profile_sha256") != sha(profiles[actor])
-                        or record.get("package") != PACKAGE
-                        or record.get("documented_source_revision") != REVISION
-                        or record.get("model") != models[0].relative_to(folder).as_posix()
-                        or record.get("structural") != inspect_glb(models[0], ANIMATIONS[actor])):
-                    raise ValueError("Existing candidate mismatch; preserve and inspect: " + actor)
+                verified_candidate(folder, actor, profiles[actor])
                 print("SKIP verified", actor, flush=True)
                 continue
             preserved = out/(actor + ".partial.previous-" + str(time.time_ns()))
             folder.rename(preserved)
             print("Preserved incomplete export:", preserved, flush=True)
+        if reuse and reuse_candidate(out, actor, profiles[actor]):
+            continue
         folder.mkdir()
         (folder/"profile.json").write_bytes(profiles[actor])
         subprocess.run(plan(actor, out), cwd=ROOT, check=True, timeout=900)
@@ -198,5 +242,6 @@ if __name__ == "__main__":
                            help="Default preserves the original four-actor queue")
     p.add_argument("--execute", action="store_true", help="Actually invoke local Node exporter; first run may download")
     p.add_argument("--resume", action="store_true", help="Verify completed actors and preserve interrupted ones")
+    p.add_argument("--reuse-existing", action="store_true", help="Reuse a uniquely hash-verified exact-profile candidate from sibling batches")
     args = p.parse_args()
-    run(args.out, args.actor or list(BATCHES[args.batch]), args.execute, args.resume)
+    run(args.out, args.actor or list(BATCHES[args.batch]), args.execute, args.resume, args.reuse_existing)

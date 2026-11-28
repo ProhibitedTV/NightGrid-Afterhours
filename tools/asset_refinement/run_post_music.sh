@@ -50,7 +50,7 @@ if [[ "$lane" == all || "$lane" == buildings ]]; then
 fi
 if [[ "$lane" == all || "$lane" == characters ]]; then
   command -v npx >/dev/null && [[ "$(node --version)" =~ ^v24\. ]] || { echo "Use existing Node 24/npx installation; no automatic install"; exit 2; }
-  guarded characters python3 tools/asset_refinement/character_candidates.py --out "$cast" --batch all --resume --execute
+  guarded characters python3 tools/asset_refinement/character_candidates.py --out "$cast" --batch all --resume --reuse-existing --execute
 fi
 if [[ "$lane" == all || "$lane" == lighting ]]; then
   if [[ -z "$godot" ]]; then
