@@ -11,3 +11,9 @@ python3 tools/asset_refinement/botanical_candidates.py --out /mnt/z/NightGrid-Af
 python3 tools/asset_refinement/botanical_candidates.py --out assets/models/nightgrid/botanical --execute
 ```
 Both generate the same deterministic bank. Source manifest records SHA-256 and per-model bounds/triangle counts. Existing mismatching directories fail closed; no overwrite. CPU-only, no GPU model or package installation. Import with Godot 4.7.2, then `--headless --path . --script res://tests/botanical_bank_smoke.gd -- --require-bank`. A normal checkout without the generated bank retains previous vegetation. Commit the original GLBs and manifest after inspection; no generated .godot cache files. Native capture at HQ approach, Glassline boulevard, North Quay, Horizon Commons and industrial outskirts, plus matched moving-route frame p95/p99 and sidewalk clearance. This is not full-city art acceptance. Separate city-detail planters, venue planters, primitive shrubs on interiors, and robotics/furniture still need a follow-up pass.
+
+## One-command native production
+
+`bash tools/asset_refinement/run_botanical.sh --batch coastal-001 --godot /mnt/c/path/to/Godot_v4.7.2-stable_win64_console.exe`
+
+This uses the existing Anubis factory locks, runs the Python geometry tests, produces the NAS originals once, copies them with hash verification, imports with native Godot and requires all 14 imported meshes plus full CityFlora tree/shrub coverage. It does not publish automatically. Separate validation logs are saved alongside the NAS batch. Keep the Godot editor and other GPU jobs closed during the run.
