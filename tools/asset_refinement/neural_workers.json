@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "workers": [
+    {
+      "id": "sam2.1-small",
+      "role": "segmentation",
+      "upstream": "https://github.com/facebookresearch/sam2",
+      "license_hint": "Apache-2.0",
+      "baseline": "rembg",
+      "state": "research"
+    },
+    {
+      "id": "stable-fast-3d",
+      "role": "mesh",
+      "upstream": "https://huggingface.co/stabilityai/stable-fast-3d",
+      "license_hint": "Stability Community (conditional)",
+      "baseline": "TripoSR",
+      "state": "research"
+    },
+    {
+      "id": "unirig",
+      "role": "rigging",
+      "upstream": "https://huggingface.co/VAST-AI/UniRig",
+      "license_hint": "MIT model repository; dependencies separate",
+      "baseline": "existing rig exporter",
+      "state": "research"
+    },
+    {
+      "id": "depth-anything-v2-small",
+      "role": "depth",
+      "upstream": "https://github.com/DepthAnything/Depth-Anything-V2",
+      "license_hint": "Apache-2.0 Small only",
+      "baseline": "existing relief estimate",
+      "state": "research"
+    },
+    {
+      "id": "flux2-klein-4b",
+      "role": "image",
+      "upstream": "https://huggingface.co/black-forest-labs/FLUX.2-klein-4B",
+      "license_hint": "Apache-2.0 4B",
+      "baseline": "SDXL",
+      "state": "research"
+    },
+    {
+      "id": "z-image-turbo",
+      "role": "image",
+      "upstream": "https://huggingface.co/Tongyi-MAI/Z-Image-Turbo",
+      "license_hint": "Apache-2.0",
+      "baseline": "SDXL",
+      "state": "research"
+    },
+    {
+      "id": "kokoro-82m",
+      "role": "speech",
+      "upstream": "https://huggingface.co/hexgrad/Kokoro-82M",
+      "license_hint": "Apache-2.0 model card; voice rights separate",
+      "baseline": "existing voice studio",
+      "state": "research"
+    }
+  ]
+}
