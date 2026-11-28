@@ -7,7 +7,6 @@ import math
 from pathlib import Path
 import tempfile
 import numpy as np
-from PIL import Image
 from refine import sha
 from production_evidence import checked
 from factory_ledger import atomic
@@ -90,6 +89,7 @@ def write_hdr(path,rgb):
 
 
 def produce(out,width):
+    from PIL import Image
     out=out.resolve()
     if out==ROOT or ROOT in out.parents or out in ROOT.parents:
         raise ValueError("Use private candidate directory")
