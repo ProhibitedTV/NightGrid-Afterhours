@@ -608,7 +608,10 @@ func _flush_instance_key(key: String) -> void:
 		return
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
-	multimesh.mesh = _detail_unit_mesh
+	var material_key := key.get_slice("|", 0)
+	var botanical := material_key.begins_with("botanical:")
+	multimesh.mesh = Botanical.mesh_for(material_key.get_slice(":", 1), 1) if botanical else _detail_unit_mesh
+	assert(multimesh.mesh != null)
 	multimesh.instance_count = transforms.size()
 	for index in range(transforms.size()):
 		multimesh.set_instance_transform(index, transforms[index])
@@ -622,7 +625,11 @@ func _flush_instance_key(key: String) -> void:
 		owner = RenderBatchOwner.new()
 		owner.name = owner_name
 		parent.add_child(owner)
-	owner.call("add_batch", multimesh, _palette[str(key).split("|")[0]])
+	if botanical:
+		# Preserve imported mesh surface materials, grouped per streamed sector.
+		owner.call("add_batch", multimesh, null, 85.0)
+	else:
+		owner.call("add_batch", multimesh, _palette[material_key])
 	_server_visual_batches_created += 1
 	_server_detail_instances_created += transforms.size()
 	_batches.erase(key)
@@ -1335,31 +1342,23 @@ func _vendor(at: Vector3, color: Color) -> void:
 		_detail(at + Vector3((float(item) - 2.0) * 0.46, 1.51, -0.52), Vector3(0.35, 0.24, 0.38), Color("e5ba74"))
 	_statistics["street_props"] += 1
 
+func _queue_botanical_detail(species: String, at: Vector3, size: float, yaw: float) -> void:
+	var key := "botanical:%s|%d,%d" % [species, floori(at.x / (CELL * 2.0)), floori(at.z / (CELL * 2.0))]
+	if not _batches.has(key):
+		_batches[key] = []
+	_batches[key].append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3.ONE * size), at))
+	_statistics["batched_details"] += 1
+
 func _planter(at: Vector3) -> void:
 	_detail(at + Vector3.UP * 0.42, Vector3(1.9, 0.84, 1.1), Color("7a8a91"))
 	var grass := Botanical.mesh_for("grass", 1)
 	var agave := Botanical.mesh_for("agave", 1)
 	if grass != null and agave != null:
-		# Parent to the existing streaming owner; no new collision or updater.
-		var parent: Node3D = _active_chunk if _active_chunk != null else self
 		_detail(at + Vector3.UP * .85, Vector3(1.78, .035, .98), Color("403b39"))
-		var batch := MultiMesh.new()
-		batch.transform_format = MultiMesh.TRANSFORM_3D
-		batch.mesh = grass
-		batch.instance_count = 2
 		for i in range(2):
 			var offset := -.60 if i == 0 else .60
-			batch.set_instance_transform(i, Transform3D(Basis(Vector3.UP, float(i)*2.1).scaled(Vector3.ONE*.82), at + Vector3(offset,.86,0)))
-		var grasses := MultiMeshInstance3D.new()
-		grasses.multimesh = batch
-		grasses.visibility_range_end = 85.0
-		parent.add_child(grasses)
-		var accent := MeshInstance3D.new()
-		accent.mesh = agave
-		accent.position = at + Vector3.UP * .86
-		accent.scale = Vector3.ONE * .85
-		accent.visibility_range_end = 85.0
-		parent.add_child(accent)
+			_queue_botanical_detail("grass", at + Vector3(offset,.86,0), .82, float(i)*2.1)
+		_queue_botanical_detail("agave", at + Vector3.UP * .86, .85, 0.0)
 	else:
 		for stem in [-0.50, 0.0, 0.50]:
 			_detail(at + Vector3(stem, 1.23, 0.0), Vector3(0.50, 1.10, 0.62), Color("42816e"))
