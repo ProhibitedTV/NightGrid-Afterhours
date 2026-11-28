@@ -1,0 +1,58 @@
+{
+  "$schema": "https://ara3dgen.com/schemas/character.v1.json",
+  "kind": "ara-character",
+  "version": 1,
+  "params": {
+    "name": "Vesper market visitor 01",
+    "seed": 834505,
+    "gender": 0,
+    "ageYears": 52,
+    "height": 0.49,
+    "weight": 0.66,
+    "muscle": 0.36,
+    "proportions": 0.68,
+    "african": 0.07,
+    "asian": 0.12,
+    "caucasian": 0.81,
+    "modifiers": {
+      "head/head-scale-horiz": -0.1,
+      "head/head-rectangular": 0.06,
+      "eyes/eye-bag": 0.05,
+      "eyebrows/eyebrows-trans": -0.04
+    },
+    "skinTint": "#ecd6c2",
+    "eyes": "brown",
+    "eyebrows": "eyebrow001",
+    "eyelashes": "eyelashes01",
+    "hair": "bob02",
+    "hairColor": "#3a3632",
+    "outfit": "none",
+    "top": "camp_shirt",
+    "jacket": "none",
+    "bottom": "cargo_pants",
+    "shoes": "sneakers",
+    "accessories": [],
+    "carry": "none",
+    "garmentStyles": {
+      "camp_shirt": {
+        "pattern": "linen",
+        "color": "#86765d",
+        "color2": "#494b48"
+      },
+      "cargo_pants": {
+        "pattern": "khaki",
+        "color": "#5e6253",
+        "color2": "#5e6253"
+      }
+    },
+    "detail": "medium",
+    "rig": "game",
+    "faceBones": false,
+    "restPose": "A",
+    "faceShapes": false,
+    "speechShapes": false,
+    "weapon": "none",
+    "vehicle": "none",
+    "hairTint": "#3a3632"
+  }
+}

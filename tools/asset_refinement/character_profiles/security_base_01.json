@@ -1,0 +1,58 @@
+{
+  "$schema": "https://ara3dgen.com/schemas/character.v1.json",
+  "kind": "ara-character",
+  "version": 1,
+  "params": {
+    "name": "Security uniform base 01",
+    "seed": 834513,
+    "gender": 1,
+    "ageYears": 34,
+    "height": 0.61,
+    "weight": 0.54,
+    "muscle": 0.36,
+    "proportions": 0.68,
+    "african": 0.07,
+    "asian": 0.12,
+    "caucasian": 0.81,
+    "modifiers": {
+      "head/head-scale-horiz": -0.1,
+      "head/head-rectangular": 0.06,
+      "eyes/eye-bag": 0.05,
+      "eyebrows/eyebrows-trans": -0.04
+    },
+    "skinTint": "#e0d6c9",
+    "eyes": "brown",
+    "eyebrows": "eyebrow001",
+    "eyelashes": "eyelashes01",
+    "hair": "buzz",
+    "hairColor": "#17191a",
+    "outfit": "none",
+    "top": "uniform_camp_shirt",
+    "jacket": "none",
+    "bottom": "suit_trousers",
+    "shoes": "combat_boots",
+    "accessories": [],
+    "carry": "none",
+    "garmentStyles": {
+      "uniform_camp_shirt": {
+        "pattern": "solid",
+        "color": "#24282c",
+        "color2": "#494b48"
+      },
+      "suit_trousers": {
+        "pattern": "solid",
+        "color": "#202326",
+        "color2": "#202326"
+      }
+    },
+    "detail": "medium",
+    "rig": "game",
+    "faceBones": false,
+    "restPose": "A",
+    "faceShapes": false,
+    "speechShapes": false,
+    "weapon": "none",
+    "vehicle": "none",
+    "hairTint": "#17191a"
+  }
+}

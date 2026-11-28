@@ -17,8 +17,26 @@ CORE_CAST = {"dev_rao": "Dev Rao", "rina_vale": "Rina Vale",
              "dana_mercer": "Dana Mercer", "jetson_wang": "Jetson Wang"}
 REMAINING_STAFF = {"mika_torres": "Mika Torres", "eli_brooks": "Eli Brooks",
                    "owen_pike": "Owen Pike", "nina_bell": "Nina Bell"}
-ACTORS = {**CORE_CAST, **REMAINING_STAFF}
-BATCHES = {"core": tuple(CORE_CAST), "remaining-staff": tuple(REMAINING_STAFF), "all": tuple(ACTORS)}
+STREET_PILOT = {
+    "brickwater_resident_01": "Brickwater resident 01",
+    "brickwater_resident_02": "Brickwater resident 02",
+    "brickwater_night_worker_01": "Brickwater night worker 01",
+    "brickwater_night_worker_02": "Brickwater night worker 02",
+    "vesper_market_visitor_01": "Vesper market visitor 01",
+    "vesper_market_visitor_02": "Vesper market visitor 02",
+    "afterhours_patron_01": "Afterhours patron 01",
+    "afterhours_patron_02": "Afterhours patron 02",
+    "dock_worker_01": "Dock worker 01",
+    "dock_worker_02": "Dock worker 02",
+    "horizon_visitor_01": "Horizon visitor 01",
+    "horizon_visitor_02": "Horizon visitor 02",
+    "security_base_01": "Security uniform base 01",
+    "security_base_02": "Security uniform base 02",
+    "service_staff_01": "Service staff 01",
+    "service_staff_02": "Service staff 02"
+}
+ACTORS = {**CORE_CAST, **REMAINING_STAFF, **STREET_PILOT}
+BATCHES = {"core": tuple(CORE_CAST), "remaining-staff": tuple(REMAINING_STAFF), "street-pilot": tuple(STREET_PILOT), "all": tuple(ACTORS)}
 ANIMATIONS = {
     "dev_rao": ("idle", "walk", "carry_idle", "talk_gestures"),
     "rina_vale": ("idle", "walk", "talk_gestures"),
@@ -29,6 +47,7 @@ ANIMATIONS = {
     "owen_pike": ("idle", "walk", "talk_gestures"),
     "nina_bell": ("idle", "walk", "talk_gestures"),
 }
+ANIMATIONS.update({actor: ("idle", "walk", "talk_gestures") for actor in STREET_PILOT})
 CLIPS = {"Idle", "Walk"}
 MAX_BYTES = 18_000_000
 

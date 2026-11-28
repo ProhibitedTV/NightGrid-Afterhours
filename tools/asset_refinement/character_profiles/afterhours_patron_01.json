@@ -1,0 +1,63 @@
+{
+  "$schema": "https://ara3dgen.com/schemas/character.v1.json",
+  "kind": "ara-character",
+  "version": 1,
+  "params": {
+    "name": "Afterhours patron 01",
+    "seed": 834507,
+    "gender": 0,
+    "ageYears": 29,
+    "height": 0.52,
+    "weight": 0.47,
+    "muscle": 0.44,
+    "proportions": 0.45,
+    "african": 0.75,
+    "asian": 0.08,
+    "caucasian": 0.17,
+    "modifiers": {
+      "head/head-scale-horiz": 0.11,
+      "head/head-rectangular": 0.21,
+      "eyes/eye-bag": 0.25,
+      "eyebrows/eyebrows-trans": 0.08
+    },
+    "skinTint": "#ecd6c2",
+    "eyes": "brown",
+    "eyebrows": "eyebrow001",
+    "eyelashes": "eyelashes01",
+    "hair": "ponytail01",
+    "hairColor": "#4b3a2e",
+    "outfit": "none",
+    "top": "racer_casual_shirt",
+    "jacket": "racing_jacket",
+    "bottom": "cargo_pants",
+    "shoes": "sneakers",
+    "accessories": [],
+    "carry": "none",
+    "garmentStyles": {
+      "racer_casual_shirt": {
+        "pattern": "solid",
+        "color": "#353240",
+        "color2": "#494b48"
+      },
+      "cargo_pants": {
+        "pattern": "khaki",
+        "color": "#292b30",
+        "color2": "#292b30"
+      },
+      "racing_jacket": {
+        "pattern": "leather",
+        "color": "#27272b",
+        "color2": "#79474b"
+      }
+    },
+    "detail": "medium",
+    "rig": "game",
+    "faceBones": false,
+    "restPose": "A",
+    "faceShapes": false,
+    "speechShapes": false,
+    "weapon": "none",
+    "vehicle": "none",
+    "hairTint": "#4b3a2e"
+  }
+}

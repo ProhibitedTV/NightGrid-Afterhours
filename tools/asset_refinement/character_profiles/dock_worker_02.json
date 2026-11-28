@@ -1,0 +1,58 @@
+{
+  "$schema": "https://ara3dgen.com/schemas/character.v1.json",
+  "kind": "ara-character",
+  "version": 1,
+  "params": {
+    "name": "Dock worker 02",
+    "seed": 834510,
+    "gender": 1,
+    "ageYears": 50,
+    "height": 0.49,
+    "weight": 0.66,
+    "muscle": 0.52,
+    "proportions": 0.53,
+    "african": 0.18,
+    "asian": 0.55,
+    "caucasian": 0.27,
+    "modifiers": {
+      "head/head-scale-horiz": 0.04,
+      "head/head-rectangular": 0.09,
+      "eyes/eye-bag": 0.17,
+      "eyebrows/eyebrows-trans": 0.04
+    },
+    "skinTint": "#e0d6c9",
+    "eyes": "brown",
+    "eyebrows": "eyebrow001",
+    "eyelashes": "eyelashes01",
+    "hair": "short03",
+    "hairColor": "#3a3632",
+    "outfit": "none",
+    "top": "uniform_shirt_long",
+    "jacket": "none",
+    "bottom": "baggy_jeans",
+    "shoes": "combat_boots",
+    "accessories": [],
+    "carry": "none",
+    "garmentStyles": {
+      "uniform_shirt_long": {
+        "pattern": "solid",
+        "color": "#686259",
+        "color2": "#494b48"
+      },
+      "baggy_jeans": {
+        "pattern": "solid",
+        "color": "#353c40",
+        "color2": "#353c40"
+      }
+    },
+    "detail": "medium",
+    "rig": "game",
+    "faceBones": false,
+    "restPose": "A",
+    "faceShapes": false,
+    "speechShapes": false,
+    "weapon": "none",
+    "vehicle": "none",
+    "hairTint": "#3a3632"
+  }
+}

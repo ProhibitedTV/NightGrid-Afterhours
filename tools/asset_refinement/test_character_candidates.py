@@ -25,7 +25,11 @@ class CharacterCandidateTests(unittest.TestCase):
         self.assertEqual(len(core), 4)
         self.assertEqual(len(remaining), 4)
         self.assertFalse(set(core) & set(remaining))
-        self.assertEqual(set(core) | set(remaining), set(ACTORS))
+        street = BATCHES["street-pilot"]
+        self.assertEqual(len(street), 16)
+        self.assertFalse((set(core) | set(remaining)) & set(street))
+        self.assertEqual(set(core) | set(remaining) | set(street), set(ACTORS))
+        self.assertEqual(set(BATCHES["all"]), set(ACTORS))
         for actor in remaining:
             self.assertIn("talk_gestures", ANIMATIONS[actor])
             self.assertIn("--animations", plan(actor, Path("/candidate")))
