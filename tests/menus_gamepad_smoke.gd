@@ -1011,7 +1011,13 @@ func _verify() -> void:
 	var staff: Dictionary=office.get("_staff")
 	var badge_textures: Array[Texture2D] = []
 	for id in ["mika","eli","reception","security"]:
-		var print_face := (staff[id] as Node3D).get_node_or_null("BreathingTorso/SynaxisEmployeeBadge/RoleBadgePrint") as MeshInstance3D
+		var actor := staff[id] as Node3D
+		var rig := actor.get_node_or_null("ImportedStaffVisual")
+		if rig == null or not rig.call("is_pedestrian_visual_ready") or actor.get_node("BreathingTorso").visible:
+			_fail("Expected ready skinned character and hidden fallback for " + id)
+			return
+		var mount := rig.find_child("ImportedBadgeMount", true, false)
+		var print_face := mount.find_child("RoleBadgePrint", true, false) as MeshInstance3D if mount != null else null
 		if print_face == null or not print_face.mesh is QuadMesh or print_face.material_override.albedo_texture == null or badge_textures.has(print_face.material_override.albedo_texture):
 			_fail("Role-specific employee badges must use distinct depth-tested printed surfaces")
 			return

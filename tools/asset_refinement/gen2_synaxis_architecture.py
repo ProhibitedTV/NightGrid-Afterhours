@@ -114,7 +114,34 @@ def reception(kit):
         obj.rotation_euler.y = -math.atan2(c.y-a.y, c.x-a.x)
 
 
-if __name__ == "__main__":
+def entrance_portal(kit):
+    """Fit the existing 2.60 m clear opening at the street face."""
+    b = kit.slab
+    for side in (-1, 1):
+        x = side * 1.38
+        b("Jambs", (x, 1.40, -.07), (.16, 2.80, .42), "Anodized", .009)
+        b("Reveals", (side * 1.318, 1.42, -.283), (.027, 2.73, .018), "Satin", .004)
+        b("FootGuards", (x, .11, -.286), (.154, .22, .023), "Satin", .005)
+        # Face-mounted rainscreen covers the two unlit baked wall returns.
+        # The 12 mm vertical reveals expose the dark backer at each joint.
+        for bay in range(4):
+            x = side * (2.32 + bay * 1.72)
+            b("StreetStone", (x, 1.75, -.164), (1.708, 2.94, .080), "Stone", .004,
+              repeat=1.50)
+        b("StreetPlinths", (side * 4.90, .15, -.16), (6.88, .28, .081), "Anodized", .006)
+        b("StreetCaps", (side * 4.90, 3.27, -.159), (6.88, .10, .075), "Anodized", .004)
+    b("Header", (0, 2.82, -.08), (2.92, .16, .44), "Anodized", .012)
+    b("Soffit", (0, 2.745, -.220), (2.59, .012, .15), "Satin", .003)
+    for x in (-.79, .79):
+        b("Lens", (x, 2.735, -.225), (.64, .012, .035), "CabinDiffuser", .004)
+    b("Threshold", (0, .007, -.07), (2.59, .014, .39), "Satin", .002)
+    for z in (-.226, -.198, -.170, -.142):
+        b("ThresholdGrooves", (0, .014, z), (2.54, .004, .007), "Anodized", .0015)
+
+
+if __name__ == "__main__" and "--entrance-only" in sys.argv:
+    build("entrance_portal", entrance_portal)
+elif __name__ == "__main__":
     for material in ("Stone", "Walnut", "Fabric"):
         build(material.lower() + "_panel", lambda kit: panel(kit, material))
     build("plaque", plaque)

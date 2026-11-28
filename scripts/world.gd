@@ -2564,8 +2564,8 @@ func _build_environment() -> void:
 	add_child(sun_light)
 	# The playable foundation stops at the authored perimeter. Beyond this
 	# point the quay/water, wooded ridges and industrial yard own the skyline.
-	const EDGE := 245.0
-	const FOUNDATION_TOP := -0.08
+	const EDGE = 245.0
+	const FOUNDATION_TOP = -0.08
 	var excavation := Rect2(Vector2(OpeningOffice.ORIGIN.x, OpeningOffice.ORIGIN.z)
 		- OpeningOffice.BASEMENT_FOOTPRINT * 0.5, OpeningOffice.BASEMENT_FOOTPRINT)
 	var sections: Array[Rect2] = [
