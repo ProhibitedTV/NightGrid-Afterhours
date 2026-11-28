@@ -9,3 +9,9 @@ No mission logic, save schema or input mappings change. Existing system notifica
 ## Acceptance
 
 The independent caption smoke checks speaker prefix handling, passive input, timing, voice-duration floor and persistent refresh. Existing Mara and patron world tests now assert real caption content instead of generic toast content. Before merge, run exact-head preflight and Windows export, inspect real gameplay at 720p/1080p with long dialogue and multiple choices, test controller navigation, and reconcile PR #310 and chapter-one work. Native visual/audio verification is pending.
+
+## In-universe dialogue naming
+
+Use fictional Morrow Bay employers, services and platforms or generic descriptions in spoken dialogue; preserve the satire without naming real companies. When revising a voiced line, update the canonical script and production catalog together, retain its logical cue ID, and remove the obsolete published take and its QC/review records from the active bank. Captions remain available until a replacement is generated with the existing locked voice, passes QC and is explicitly reviewed. The retired recording remains recoverable from Git history. Do not claim the replacement is voiced until it is published and verified.
+
+Pending rebake: `synaxis.breakroom_party.06` (HR, company careers page). The historical catalog source pin records the original source snapshot; current constants are validated against the checked-out script.

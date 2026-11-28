@@ -1,9 +1,12 @@
 extends Node3D
-## Morrow Bay's planted city: low-poly graphic botanical silhouettes.
+## Morrow Bay's planted city: imported original coastal botanical meshes.
 ## Street trees, protected plazas and courtyards are authored placements; only
 ## species, canopy variation, small shrubs and flower groups are seeded.
 const WorldPlan = preload("res://scripts/world_plan.gd")
 const HorizonFern = preload("res://scripts/horizon_fern_hero.gd")
+const Botanical = preload("res://scripts/botanical_bank.gd")
+var _botanical_batches: Dictionary = {}
+var _botanical_meshes: Dictionary = {}
 const SEED = 4201337
 const GRID_RADIUS = WorldPlan.GRID_RADIUS
 const CELL = 58.0
@@ -16,7 +19,7 @@ var _rng := RandomNumberGenerator.new()
 var _batches: Dictionary = {}
 var _meshes: Dictionary = {}
 var _materials: Dictionary = {}
-var _stats := {"street_trees": 0, "landmark_trees": 0, "shrubs": 0, "flowers": 0, "planter_pots": 0, "vegetation_instances": 0, "scanned_hero_ferns": 0}
+var _stats := {"street_trees": 0, "landmark_trees": 0, "shrubs": 0, "flowers": 0, "planter_pots": 0, "vegetation_instances": 0, "scanned_hero_ferns": 0, "imported_trees": 0, "imported_shrubs": 0}
 var _initialized := false
 var world_seed: int = 834726
 
@@ -61,17 +64,22 @@ func _street_species(district: String) -> String:
 		"VESPER MARKET":
 			return GINKGO
 		"GLASSLINE":
-			return FICUS
+			return "DATE_PALM" if _botanical_meshes.has("date_palm") else FICUS
 		"BRICKWATER", "WEST DOCKS", "SOUTHWORKS":
 			return PINE
 		"NORTH QUAY":
-			return GINKGO
+			return "FAN_PALM" if _botanical_meshes.has("fan_palm") else GINKGO
 		"HORIZON GARDENS":
 			return FICUS
 		_:
 			return PLUM
 
 func _prepare_resources() -> void:
+	for species in Botanical.SPECIES:
+		var near := Botanical.mesh_for(species, 0)
+		var far := Botanical.mesh_for(species, 1)
+		if near != null and far != null:
+			_botanical_meshes[species] = [near, far]
 	var trunk := CylinderMesh.new()
 	trunk.top_radius = 0.35
 	trunk.bottom_radius = 0.48
@@ -126,7 +134,40 @@ func _push(mesh_kind: String, tint: String, at: Vector3, scale: Vector3, yaw: fl
 	poses.append(Transform3D(Basis(Vector3.UP, yaw).scaled(scale), at))
 	_stats["vegetation_instances"] += 1
 
+func _queue_botanical(species: String, at: Vector3, size: float) -> bool:
+	if not _botanical_meshes.has(species):
+		return false
+	# Spatially bounded instancing, instead of one city-wide foliage AABB.
+	var sector := Vector2i(floori(at.x / 116.0), floori(at.z / 116.0))
+	var key := "%s:%d:%d" % [species, sector.x, sector.y]
+	if not _botanical_batches.has(key):
+		_botanical_batches[key] = []
+	var yaw := float(posmod(hash(at), 6283)) / 1000.0
+	_botanical_batches[key].append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3.ONE * size), at))
+	_stats["vegetation_instances"] += 1
+	return true
+
 func _flush() -> void:
+	for key in _botanical_batches:
+		var species: String = key.get_slice(":", 0)
+		var poses: Array = _botanical_batches[key]
+		for lod in [0, 1]:
+			var batch := MultiMesh.new()
+			batch.transform_format = MultiMesh.TRANSFORM_3D
+			batch.mesh = _botanical_meshes[species][lod]
+			batch.instance_count = poses.size()
+			for i in poses.size():
+				batch.set_instance_transform(i, poses[i])
+			var view := MultiMeshInstance3D.new()
+			view.name = "Botanical_%s_L%d" % [key.replace(":", "_"), lod]
+			view.multimesh = batch
+			# Shared sector bounds, discrete LOD; no transparent crossfade.
+			if lod == 0:
+				view.visibility_range_end = 95.0
+			else:
+				view.visibility_range_begin = 95.0
+			add_child(view)
+	_botanical_batches.clear()
 	for key in _batches:
 		var parts: PackedStringArray = key.split(":")
 		var poses: Array = _batches[key]
@@ -156,7 +197,10 @@ func _trunk_collision(at: Vector3, height: float) -> void:
 
 func _tree(at: Vector3, species: String, size_factor: float, street: bool = false) -> void:
 	var trunk_height := 3.2 * size_factor
-	_push("TRUNK", "BARK", at + Vector3.UP * trunk_height * 0.5, Vector3(size_factor, trunk_height, size_factor))
+	var model: String = {"DATE_PALM": "date_palm", "FAN_PALM": "fan_palm", PINE: "cypress", GINKGO: "coast_oak", PLUM: "coast_oak", FICUS: "coast_oak"}.get(species, "coast_oak")
+	var imported := _queue_botanical(model, at, size_factor)
+	if not imported:
+		_push("TRUNK", "BARK", at + Vector3.UP * trunk_height * 0.5, Vector3(size_factor, trunk_height, size_factor))
 	if street:
 		_trunk_collision(at, trunk_height)
 		_push("BOX", "GRATE", at + Vector3.UP * 0.06, Vector3(2.0, 0.12, 2.0))
@@ -164,6 +208,12 @@ func _tree(at: Vector3, species: String, size_factor: float, street: bool = fals
 		_stats["street_trees"] += 1
 	else:
 		_stats["landmark_trees"] += 1
+	if imported:
+		_stats["imported_trees"] += 1
+		# Preserve seeded RNG sequence for legacy non-pine canopies.
+		if species != PINE:
+			_rng.randf_range(-0.4, 0.4)
+		return
 	if species == PINE:
 		for level in range(3):
 			var width := (3.8 - float(level) * 0.74) * size_factor
@@ -183,6 +233,11 @@ func _tree(at: Vector3, species: String, size_factor: float, street: bool = fals
 
 func _shrub(at: Vector3, size_factor: float = 1.0) -> void:
 	var spread := 1.0 * size_factor
+	if _queue_botanical("shrub", at, size_factor):
+		_rng.randf_range(-0.3, 0.3)
+		_stats["shrubs"] += 1
+		_stats["imported_shrubs"] += 1
+		return
 	_push("CANOPY", "SHRUB", at + Vector3.UP * (spread * 0.56),
 		Vector3(spread * 1.5, spread, spread * 1.2), _rng.randf_range(-0.3, 0.3))
 	_push("CANOPY", "SHRUB_LIGHT", at + Vector3(0.32, spread * 0.7, -0.2),
@@ -194,7 +249,13 @@ func _potted_group(at: Vector3, palette: String) -> void:
 		var p := at + Vector3((float(index) - 1.0) * 2.0, 0.0, _rng.randf_range(-0.35, 0.35))
 		_push("BOX", "POT", p + Vector3.UP * 0.36, Vector3(1.18, 0.72, 1.18))
 		_push("BOX", "SOIL", p + Vector3.UP * 0.74, Vector3(1.1, 0.06, 1.1))
-		_shrub(p + Vector3.UP * 0.80, 0.64)
+		var plant := "agave" if index == 1 else "grass"
+		if palette == "AQUA" and _queue_botanical(plant, p + Vector3.UP * 0.80, 1.0):
+			_rng.randf_range(-0.3, 0.3)
+			_stats["shrubs"] += 1
+			_stats["imported_shrubs"] += 1
+		else:
+			_shrub(p + Vector3.UP * 0.80, 0.64)
 		_stats["planter_pots"] += 1
 		if palette != "AQUA":
 			_push("CANOPY", "FLOWER_PINK" if palette == "PURPLE" else "FLOWER_GOLD",

@@ -19,6 +19,7 @@ for path in root.rglob("*.gd"):
         optional_roots = {
             ("scripts/synaxis_staff.gd", "assets/models/nightgrid/synaxis_staff/"),
             ("scripts/character_bank.gd", "assets/creator_character_bank/"),
+            ("scripts/botanical_bank.gd", "assets/models/nightgrid/botanical/"),
         }
         if (path.relative_to(root).as_posix(), ref) in optional_roots:
             continue

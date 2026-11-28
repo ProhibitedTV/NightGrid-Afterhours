@@ -167,7 +167,7 @@ def main():
     if sys.platform != "win32":
         raise RuntimeError("Run in native Windows on Anubis, not WSL")
     engine = args.godot.resolve(strict=True)
-    require_clean()
+    require_clean(after_import=True)
     revision = git("rev-parse", "HEAD")
     if not (ROOT / "tests/synaxis_creator_cast_smoke.gd").is_file():
         raise RuntimeError("Strict creator cast smoke is missing; integrate #510 first")
@@ -177,6 +177,8 @@ def main():
     radio_hashes = radio_inventory()
     bank_path = ROOT / "assets/creator_character_bank"
     bank = None
+    if not bank_path.exists():
+        raise RuntimeError("Stage all 24 approved creator models before the combined playtest")
     if bank_path.exists():
         # Import the existing factory code without invoking its CLI.
         sys.path.insert(0, str(ROOT / "tools/asset_refinement"))
@@ -223,6 +225,13 @@ def main():
             step(logs, "strict-cast", [engine, "--headless", "--path", ROOT, "--script",
                                       "res://tests/synaxis_creator_cast_smoke.gd", "--", "--require-cast"],
                  marker="SYNAXIS_CREATOR_CAST PASS: all four staged actors", timeout=180)
+        if bank is not None:
+            step(logs, "character-scenes", [engine, "--headless", "--path", ROOT, "--script",
+                                           "res://tests/character_bank_scene_smoke.gd"],
+                 marker="CHARACTER_SCENE PASS:", timeout=300)
+        step(logs, "botanical-coverage", [engine, "--headless", "--path", ROOT, "--script",
+                                        "res://tests/botanical_bank_smoke.gd", "--", "--require-bank"],
+             marker="BOTANICAL PASS:", timeout=300)
         step(logs, "windows-export", [engine, "--headless", "--path", ROOT,
                                      "--export-release", "Windows Desktop", exe])
     finally:
@@ -264,7 +273,7 @@ def main():
                                     "verified_source_sfx": sfx_bank,
                                     "complete_or_human_reviewed": "not asserted"},
                 "checks": ["voice-contract", "voice-library", "sfx-library", "import",
-                           "voice-import", "sfx-import", "strict-cast", "windows-export", "packaged-cast"],
+                           "voice-import", "sfx-import", "strict-cast", "character-scenes", "botanical-coverage", "windows-export", "packaged-cast"],
                 "native_acceptance": "pending"}
     (out / "CREATOR-MANIFEST.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     payload = [exe, pck, out / "BUILD-INFO.txt", out / "CREATOR-MANIFEST.json"]
