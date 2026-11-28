@@ -79,6 +79,15 @@ func _test() -> void:
 	if diffuser == null or absf(diffuser.mesh.get_aabb().size.x-3.16) > .02:
 		_fail("The reception light needs its dimensioned recessed diffuser")
 		return
+	var spotlight := office.get_node_or_null("ReceptionSpot") as SpotLight3D
+	if spotlight == null or not spotlight.shadow_enabled or spotlight.light_bake_mode != Light3D.BAKE_DISABLED:
+		_fail("Reception requires the realtime shadowed spotlight")
+		return
+	var emitter := diffuser.to_local(spotlight.global_position)
+	var aim := (office.to_global(Vector3(6.15, 1.25, 8.30)) - spotlight.global_position).normalized()
+	if absf(emitter.x) >= diffuser.mesh.get_aabb().size.x * .5 or spotlight.global_basis.z.dot(aim) > -.98:
+		_fail("Reception spotlight must originate under its lens and aim at the worktop")
+		return
 	if stone == null or stone.mesh.get_aabb().size.x < 5.2 or lettering == null or lettering.mesh.get_aabb().size.z < .02:
 		_fail("Reception needs a modular stone wall and extruded lettering")
 		return
