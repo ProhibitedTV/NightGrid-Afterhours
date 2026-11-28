@@ -121,6 +121,9 @@ func _verify() -> void:
 	if not paused or not menu.call("is_open") or str(menu.get("screen")) != "title":
 		_fail("Title screen must pause the world and remain interactive")
 		return
+	if not root.disable_3d:
+		_fail("Opaque title must stop drawing the paused 3D world")
+		return
 	if not (menu.call("get_buttons") as Dictionary).has("continue"):
 		_fail("Continue/Start/New World navigation missing from title")
 		return
@@ -406,6 +409,9 @@ func _verify() -> void:
 	menu.call("hide_for_game")
 	if paused or menu.call("is_open"):
 		_fail("Game cannot resume from controller pause")
+		return
+	if root.disable_3d:
+		_fail("Resuming from pause must restore the 3D world")
 		return
 	# The fresh opening contact is discoverable without knowing the city.
 	menu.call("open_pause")
@@ -1187,7 +1193,12 @@ func _verify() -> void:
 		return
 	player.global_position=office.to_global(Vector3(.9,1.15,5))
 	world.call("_opening_interact")
-	office.call("tick_lift",3.0,player)
+	world.call("_process", 0.55)
+	var lift_camera := world.get("camera") as Camera3D
+	if not office.call("lift_active") or absf(lift_camera.global_position.y - player.global_position.y) > 2.0:
+		_fail("Lift camera must transfer with the player before the destination is revealed")
+		return
+	world.call("_process", 1.0)
 	var basement:Node3D=office.get_node("BasementIT")
 	var bstats:Dictionary=basement.call("basement_stats")
 	if int(office.get("_active_floor"))!=-1 or int(bstats["racks"])!=20 or not bool(bstats["hum"]):
@@ -1197,6 +1208,30 @@ func _verify() -> void:
 	if int(office.get("_active_floor"))!=-1 or office.to_local(player.global_position).y>0.0:
 		_fail("Basement must not activate the ground-level fall recovery")
 		return
+	var old_pitch := float(world.get("pitch"))
+	var old_yaw := float(world.get("yaw"))
+	player.global_position = basement.to_global(Vector3(0.0, 0.95, -4.9))
+	world.set("pitch", 0.85)
+	world.set("yaw", 0.0)
+	world.call("_snap_camera")
+	if lift_camera.global_position.distance_to(player.global_position) < 2.0:
+		_fail("B1 aisle needs a clear chase camera at steep look input")
+		return
+	var ceiling_ray := PhysicsRayQueryParameters3D.create(
+		basement.to_global(Vector3(0.0, 2.1, -4.9)), basement.to_global(Vector3(0.0, 3.6, -4.9)), 1)
+	var ceiling_hit := player.get_world_3d().direct_space_state.intersect_ray(ceiling_ray)
+	if ceiling_hit.is_empty() or absf(basement.to_local(ceiling_hit["position"]).y - 3.35) > 0.03:
+		_fail("B1 ceiling collision must be the underside of the lobby slab")
+		return
+	player.global_position = basement.to_global(Vector3(1.8, 0.95, -4.9))
+	world.set("pitch", 0.20)
+	world.set("yaw", PI / 2.0)
+	world.call("_snap_camera")
+	if basement.to_local(lift_camera.global_position).x >= 2.34:
+		_fail("B1 chase camera must stop at the server rack face")
+		return
+	world.set("pitch", old_pitch)
+	world.set("yaw", old_yaw)
 	player.global_position=office.call("point",-1)
 	world.call("_opening_interact")
 	if not office.call("errand_complete") or not office.get("_folder_desk").visible or world.get("cash")!=before_severance:
