@@ -1,7 +1,6 @@
 {
   "schema": 1,
   "status": "concept-only",
-  "working_state_name": "Pacifica",
   "coordinate_space": "schematic regional kilometres, not engine coordinates",
   "places": [
     {
@@ -217,9 +216,26 @@
   "constraints": [
     "No runtime city expansion in this change",
     "Morrow Bay remains the only existing playable city",
-    "Names and geography provisional",
+    "State name Cascadia approved; other settlement names, geography and scale provisional",
     "Existing save coordinates and streaming cells unchanged",
     "No automatic generation of all cities",
     "Regional loading and frame budget must not scale with total city count"
+  ],
+  "state_name": "Cascadia",
+  "state_name_status": "approved fictional canon; not a claim about real-world borders or politics",
+  "region_name": "Morrow Bay metropolitan region",
+  "future_regions": [
+    {
+      "id": "northern-rainbelt",
+      "inspiration": "Portland and Seattle metropolitan areas",
+      "status": "long-term concept only",
+      "landscape": [
+        "rainy river valleys",
+        "evergreen forest",
+        "mountain passes",
+        "hydroelectric infrastructure"
+      ],
+      "constraints": "Separate roadmap after initial three-city region; no current coordinates, named cities or generation jobs"
+    }
   ]
 }

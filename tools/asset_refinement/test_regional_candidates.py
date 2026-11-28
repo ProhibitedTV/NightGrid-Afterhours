@@ -8,6 +8,8 @@ class RegionalTests(unittest.TestCase):
         data=json.loads(SOURCE.read_text())
         self.assertEqual(validate(data),{"places":7,"major_cities":3,"connections":8})
         self.assertIn("Morrow Bay",svg(data))
+        self.assertIn("Cascadia",svg(data))
+        self.assertEqual(data["state_name"],"Cascadia")
     def test_disconnected(self):
         data=json.loads(SOURCE.read_text())
         data["links"]=[x for x in data["links"] if "redwood-heights" not in (x["a"],x["b"])]

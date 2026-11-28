@@ -12,6 +12,7 @@ ROOT=Path(__file__).resolve().parents[2]
 SOURCE=Path(__file__).with_name("regional_concept.json")
 
 def validate(data):
+    if data.get("state_name")!="Cascadia":raise ValueError("Canonical state name must be Cascadia")
     places=data["places"]
     ids={p["id"] for p in places}
     if len(ids)!=len(places) or len({tuple(p["position"]) for p in places})!=len(places):
@@ -43,7 +44,7 @@ def svg(data):
     parts=['<svg xmlns="http://www.w3.org/2000/svg" width="720" height="760" viewBox="0 0 720 760">',
            '<rect width="720" height="760" fill="#253b3a"/>',
            '<path d="M180 90 Q240 160 230 255 T270 410 Q280 550 240 570 Q185 520 180 400 Q150 310 180 90Z" fill="#416c83"/>',
-           '<text x="25" y="30" font-family="sans-serif" font-size="20" fill="#fff">Pacifica — regional concept</text>']
+           '<text x="25" y="30" font-family="sans-serif" font-size="20" fill="#fff">Cascadia — regional concept</text>']
     for link in data["links"]:
         x,y=point(places[link["a"]]);X,Y=point(places[link["b"]])
         color="#e8c078" if "bridge" in link["type"] or link["type"]=="bay-crossing" else "#98a8a4"

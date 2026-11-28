@@ -17,3 +17,5 @@ Original conceptual design; no external map artwork or road dataset copied. Rese
 4. Enable authored v3 map only in new saves until named anchor migration and safe spawn fallback are proven. Match route reachability, police and vehicle navigation, GPS/minimap, rail, traffic phases, walking, first-use stalls and native RTX3060 performance. No automatic save rewrite.
 
 The offline `street_network_candidates.py` graph is a design study, not a road construction contract. Coordinates and widths are provisional. No terrain grades or actual lane turn arcs are certified. The historic inspiration informs fictional urban growth rather than replicating real city geography.
+
+This is Phase 2 of the [Cascadia master plan](CASCADIA_MASTER_PLAN.md); it does not authorize simultaneous regional city construction.
