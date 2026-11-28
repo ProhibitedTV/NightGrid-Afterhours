@@ -6,8 +6,17 @@ mode="${1:-}"
 if [[ $# -gt 0 ]]; then shift; fi
 [[ "$mode" == setup || "$mode" == run || "$mode" == status ]] || { echo "Use setup, run or status"; exit 2; }
 [[ "$EUID" == 0 ]] || { echo "Use the Windows CMD launcher or Ubuntu WSL as root"; exit 2; }
-export PATH="/root/.local/share/nightgrid-python/bin:/usr/lib/wsl/lib:$PATH"
 export ANUBIS_VISUAL_HOME="${ANUBIS_VISUAL_HOME:-/root/.local/share/nightgrid-visual-py311}"
+export PATH="$ANUBIS_VISUAL_HOME/node24/bin:/root/.local/share/nightgrid-python/bin:/usr/lib/wsl/lib:$PATH"
+# Translate a linked worktree registered by Git for Windows for this process.
+if [[ -f .git ]]; then
+  git_link=$(<.git)
+  git_link=${git_link%$'\r'}
+  if [[ "$git_link" =~ ^gitdir:\ [A-Za-z]:[/\\] ]]; then
+    export GIT_DIR="$(wslpath -u "${git_link#gitdir: }")"
+    export GIT_WORK_TREE="$PWD"
+  fi
+fi
 export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PIP_NO_INDEX=1 NPM_CONFIG_OFFLINE=true
 if [[ "$mode" == setup ]]; then
   mkdir -p /mnt/z
