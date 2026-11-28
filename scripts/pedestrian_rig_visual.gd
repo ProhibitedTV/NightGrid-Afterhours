@@ -55,10 +55,14 @@ func _ready() -> void:
 		if not skeletons.is_empty() and not players.is_empty():
 			_skeleton = skeletons[0] as Skeleton3D
 			_player = players[0] as AnimationPlayer
+			# The Ara studio names its authored clips with title case.
+			if _player.has_animation(&"Idle") and _player.has_animation(&"Walk"):
+				idle_clip = &"Idle"
+				walk_clip = &"Walk"
 		if is_instance_valid(_player):
 			# Godot's imported clips default to one shot. Share the already
 			# imported resources and only set playback metadata.
-			for name in [idle_clip, walk_clip, &"look_around", &"wave"]:
+			for name in [idle_clip, walk_clip, &"look_around", &"wave", &"Talk with gestures"]:
 				if _player.has_animation(name):
 					_player.get_animation(name).loop_mode = Animation.LOOP_LINEAR
 	else:
@@ -280,8 +284,11 @@ func _process(delta: float) -> void:
 	if not _walking:
 		if _activity in ["ALERT", "YIELD", "STOREFRONT", "WAIT_CROSSING", "ERRAND", "NIGHT_OUT"] and _player.has_animation(&"look_around"):
 			clip = &"look_around"
-		elif _activity == "SOCIALIZE" and _player.has_animation(&"wave"):
-			clip = &"wave"
+		elif _activity == "SOCIALIZE":
+			if _player.has_animation(&"Talk with gestures"):
+				clip = &"Talk with gestures"
+			elif _player.has_animation(&"wave"):
+				clip = &"wave"
 	if _player.assigned_animation != clip:
 		_player.play(clip, TRANSITION)
 	_player.speed_scale = clampf(_filtered_speed/authored_walk_speed,0.65,1.45) if _walking else 1.0

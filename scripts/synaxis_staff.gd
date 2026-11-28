@@ -2,6 +2,7 @@ extends "res://scripts/lantern_patron.gd"
 ## HQ-only actors; authored identities, reusable static detail and bounded pose updates.
 ## No navigation, physics or economy ownership. The scene owns mission progression.
 const RigVisual = preload("res://scripts/pedestrian_rig_visual.gd")
+const Bank = preload("res://scripts/character_bank.gd")
 const STAFF_MODELS = {
 	"mika": "mika_torres.glb",
 	"security": "owen_pike.glb",
@@ -180,10 +181,21 @@ func _ready() -> void:
 func expects_imported_staff() -> bool:
 	if seated or not STAFF_MODELS.has(resident_id):
 		return false
+	if Bank.available():
+		return true
 	var path := "res://assets/models/nightgrid/synaxis_staff/" + str(STAFF_MODELS[resident_id])
 	return ResourceLoader.exists(path, "PackedScene")
 
 func _install_imported_staff() -> void:
+	# The four cinematic leads retain their specialized cup/talk/chair poses.
+	if resident_id in ["dev", "rina", "people_ops", "jetson_wang"]:
+		return
+	if Bank.available():
+		_imported_visual = Bank.install(self, Bank.choose(resident_id, outfit, true), seated)
+		if is_instance_valid(_imported_visual):
+			if ROLE_BADGES.has(resident_id):
+				_attach_imported_badge(_imported_visual)
+			return
 	if seated or not STAFF_MODELS.has(resident_id):
 		return
 	var path := "res://assets/models/nightgrid/synaxis_staff/" + str(STAFF_MODELS[resident_id])
@@ -210,7 +222,13 @@ func _install_imported_staff() -> void:
 	for child in legacy:
 		if child is Node3D:
 			child.hide()
-	var skeleton := visual.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
+	_attach_imported_badge(visual)
+
+func _attach_imported_badge(visual: Node3D) -> void:
+	var skeletons := visual.find_children("*", "Skeleton3D", true, false)
+	if skeletons.size() != 1 or not is_instance_valid(_badge):
+		return
+	var skeleton := skeletons[0] as Skeleton3D
 	var chest := skeleton.find_bone("Spine2")
 	if chest >= 0:
 		var mount := BoneAttachment3D.new()

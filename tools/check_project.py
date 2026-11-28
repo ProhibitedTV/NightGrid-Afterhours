@@ -18,6 +18,7 @@ for path in root.rglob("*.gd"):
         # The creator package and strict scene smokes enforce their presence.
         optional_roots = {
             ("scripts/synaxis_staff.gd", "assets/models/nightgrid/synaxis_staff/"),
+            ("scripts/character_bank.gd", "assets/creator_character_bank/"),
         }
         if (path.relative_to(root).as_posix(), ref) in optional_roots:
             continue

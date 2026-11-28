@@ -1,6 +1,7 @@
 extends RefCounted
 ## Creator build only. The packager stages the exact reviewed candidate files.
 const Rig = preload("res://scripts/pedestrian_rig_visual.gd")
+const Bank = preload("res://scripts/character_bank.gd")
 const ROOT = "res://assets/creator_playtest_cast/"
 const SOCIAL_CANDIDATES = {
 	"dev": ["dev.glb", "da44fc3cef88d7f55f2837b22b355140536ac19f0530a0779d1257a30d93bdd6"],
@@ -137,24 +138,26 @@ static func install(actor: Node3D, id: String) -> bool:
 	var candidate: Array = SOCIAL_CANDIDATES.get(id, SEATED_CANDIDATES.get(id, []))
 	if candidate.is_empty():
 		return false
-	var path := ROOT.path_join(candidate[0] + ".bin")
-	if not FileAccess.file_exists(path):
-		return false
-	if FileAccess.get_sha256(path) != candidate[1]:
-		push_warning("Creator cast candidate checksum mismatch: " + id)
-		return false
-	var gltf := GLTFDocument.new()
-	var state := GLTFState.new()
-	if gltf.append_from_buffer(FileAccess.get_file_as_bytes(path), "", state) != OK:
-		return false
-	var model := gltf.generate_scene(state)
-	if model == null:
-		return false
-	var packed := PackedScene.new()
-	var packed_ok := packed.pack(model)
-	model.free()
-	if packed_ok != OK:
-		return false
+	var packed := Bank.model(str(Bank.NAMED.get(id, "")))
+	if packed == null:
+		var path := ROOT.path_join(candidate[0] + ".bin")
+		if not FileAccess.file_exists(path):
+			return false
+		if FileAccess.get_sha256(path) != candidate[1]:
+			push_warning("Creator cast candidate checksum mismatch: " + id)
+			return false
+		var gltf := GLTFDocument.new()
+		var state := GLTFState.new()
+		if gltf.append_from_buffer(FileAccess.get_file_as_bytes(path), "", state) != OK:
+			return false
+		var model := gltf.generate_scene(state)
+		if model == null:
+			return false
+		packed = PackedScene.new()
+		var packed_ok := packed.pack(model)
+		model.free()
+		if packed_ok != OK:
+			return false
 	var original_nodes := actor.get_children()
 	var rig := Rig.new()
 	rig.name = "CreatorCastVisual"

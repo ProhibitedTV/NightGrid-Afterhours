@@ -5,6 +5,7 @@ const PlayerScript = preload("res://scripts/player.gd")
 const CourierVisual = preload("res://scripts/courier_visual.gd")
 const PedestrianDirector = preload("res://scripts/pedestrian_director.gd")
 const PedestrianRoutes = preload("res://scripts/pedestrian_routes.gd")
+const CharacterBank = preload("res://scripts/character_bank.gd")
 const PEDESTRIAN_MODELS = [
 	"res://assets/models/nightgrid/pedestrians/casual-walker.glb",
 	"res://assets/models/nightgrid/pedestrians/dog-walker.glb",
@@ -1842,12 +1843,13 @@ func _actor() -> Node3D:
 func enable_living_streets() -> bool:
 	if is_instance_valid(pedestrians):
 		return true
-	var models: Array[PackedScene] = []
-	for path in PEDESTRIAN_MODELS:
-		var model := load(path) as PackedScene
-		if model == null:
-			return false
-		models.append(model)
+	var models: Array[PackedScene] = CharacterBank.street_models()
+	if models.is_empty():
+		for path in PEDESTRIAN_MODELS:
+			var model := load(path) as PackedScene
+			if model == null:
+				return false
+			models.append(model)
 	var director := PedestrianDirector.new()
 	director.name = "LivingStreets"
 	add_child(director)
