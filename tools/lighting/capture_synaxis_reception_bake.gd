@@ -1,6 +1,6 @@
 extends SceneTree
 
-const WITNESS_LAYER := 1 << 19
+const WITNESS_LAYER = 1 << 19
 
 func _initialize() -> void:
 	call_deferred("_run")
