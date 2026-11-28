@@ -8,6 +8,18 @@ $Godot = (Resolve-Path $Godot).Path
 $Project = (Resolve-Path $Project).Path
 if (!(Test-Path (Join-Path $Project 'nightgrid_bake_pilot.marker'))) { throw 'Not an isolated pilot' }
 if (Test-Path (Join-Path $Project 'bake-result.json')) { throw 'Use a fresh pilot directory' }
+$inputs = Get-Content -Raw (Join-Path $Project 'inputs.json') | ConvertFrom-Json
+$scenes = @{reception='tools/lighting/synaxis_reception_bake.tscn'; 'synaxis-ground'='scenes/synaxis/ground_envelope.tscn'}
+if (!$scenes.ContainsKey($inputs.profile) -or $scenes[$inputs.profile] -ne $inputs.scene) { throw 'Unknown lighting profile' }
+$source = Join-Path $Project $inputs.scene
+function Measure-Sha256([string]$Path) {
+    $file = [IO.File]::OpenRead($Path)
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { return [BitConverter]::ToString($sha.ComputeHash($file)).Replace('-', '').ToLowerInvariant() }
+    finally { $sha.Dispose(); $file.Dispose() }
+}
+$sceneHash = Measure-Sha256 $source
+if ($sceneHash -ne $inputs.unbaked_scene_sha256) { throw 'Isolated scene changed after staging' }
 $version = & $Godot --version
 if ($version -notmatch '^4\.7\.2([.\-+]|$)') { throw "Godot 4.7.2 required: $version" }
 function Assert-Resources {
@@ -23,7 +35,7 @@ function Assert-Resources {
 }
 function Run-Guarded([string]$Name,[string]$Arguments) {
     Assert-Resources
-    $proc = Start-Process -FilePath $Godot -ArgumentList $Arguments -PassThru -RedirectStandardOutput (Join-Path $Project "$Name.stdout.log") -RedirectStandardError (Join-Path $Project "$Name.stderr.log")
+    $proc = Start-Process -FilePath $Godot -ArgumentList $Arguments -PassThru -WindowStyle Hidden -RedirectStandardOutput (Join-Path $Project "$Name.stdout.log") -RedirectStandardError (Join-Path $Project "$Name.stderr.log")
     try {
         # Retain the OS handle before polling; Windows PowerShell can otherwise
         # return a null ExitCode after a redirected process terminates.
@@ -55,18 +67,19 @@ $enabled | Set-Content -Encoding ASCII $cfg
 # Native editor, not headless bake. The pilot plugin saves and exits.
 Run-Guarded 'bake' "--editor --path `"$Project`" --rendering-method forward_plus --rendering-driver vulkan --language en"
 $result = Get-Content -Raw (Join-Path $Project 'bake-result.json') | ConvertFrom-Json
-if ($result.status -ne 'candidate-only' -or $result.users -lt 1 -or $result.renderer -ne 'forward_plus') { throw 'Invalid bake result' }
+if ($result.status -ne 'candidate-only' -or $result.scene -ne $inputs.scene -or $result.users -ne $inputs.receivers -or $result.renderer -ne 'forward_plus') { throw 'Invalid bake result' }
 # Disable the experimental editor plugin before independently importing and checking.
 $cfg = Join-Path $Project 'project.godot'
 (Get-Content -Raw $cfg).Replace('enabled=PackedStringArray("res://addons/nightgrid_bake/plugin.cfg")','enabled=PackedStringArray()') | Set-Content -Encoding ASCII $cfg
 Run-Guarded 'import' "--headless --editor --path `"$Project`" --import"
-Run-Guarded 'validate' "--headless --path `"$Project`" --script res://tools/lighting/validate_synaxis_reception.gd"
+Run-Guarded 'validate' "--headless --path `"$Project`" --script res://tools/lighting/validate_synaxis_reception.gd -- $($inputs.profile)"
 if (!(Select-String -Quiet -SimpleMatch 'SYNAXIS_RECEPTION_LIGHTMAP_INPUT PASS' (Join-Path $Project 'validate.stdout.log'))) { throw 'Missing independent validation marker' }
 $evidence = Join-Path $Project 'evidence'
-Run-Guarded 'capture' "--path `"$Project`" --fullscreen --resolution 1920x1080 --rendering-method forward_plus --rendering-driver vulkan --script res://tools/lighting/capture_synaxis_reception_bake.gd -- `"$evidence`""
+Run-Guarded 'capture' "--path `"$Project`" --fullscreen --resolution 1920x1080 --rendering-method forward_plus --rendering-driver vulkan --script res://tools/lighting/capture_synaxis_reception_bake.gd -- `"$evidence`" $($inputs.profile)"
 if (!(Test-Path (Join-Path $evidence 'pilot.json'))) { throw 'Native matched image/probe comparison did not pass' }
-$atlas = @(Get-ChildItem (Join-Path $Project 'tools/lighting') -File | Where-Object { $_.Extension -in '.exr','.lmbake','.tscn' })
+$prefix = [IO.Path]::GetFileNameWithoutExtension($source)
+$atlas = @(Get-ChildItem (Split-Path $source) -File | Where-Object { $_.BaseName.StartsWith($prefix) -and $_.Extension -in '.exr','.lmbake','.tscn' })
 if (!($atlas | Where-Object Extension -eq '.exr') -or !($atlas | Where-Object Extension -eq '.lmbake')) { throw 'Missing new atlas files' }
-$records = @($atlas | ForEach-Object { @{file=$_.Name; bytes=$_.Length; sha256=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()} })
+$records = @($atlas | ForEach-Object { @{file=$_.Name; bytes=$_.Length; sha256=(Measure-Sha256 $_.FullName)} })
 @{status='candidate-only';engine="$version";result=$result;outputs=$records;visual_review='pending'} | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 (Join-Path $Project 'validated-bake.json')
 Write-Host "Native bake validated; inspect $Project"

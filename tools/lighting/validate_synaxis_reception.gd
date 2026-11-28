@@ -4,13 +4,23 @@ func _initialize() -> void:
 	call_deferred("_verify")
 
 func _verify() -> void:
-	var room := preload("res://tools/lighting/synaxis_reception_bake.tscn").instantiate()
+	var production := "synaxis-ground" in OS.get_cmdline_user_args()
+	var path := "res://scenes/synaxis/ground_envelope.tscn" if production else "res://tools/lighting/synaxis_reception_bake.tscn"
+	var packed := load(path) as PackedScene
+	if packed == null:
+		_fail("Missing bake validation scene: " + path)
+		return
+	var room := packed.instantiate()
 	root.add_child(room)
-	var gi := room.get_node("ReceptionGI") as LightmapGI
-	var direct := room.get_node("ReceptionDirect") as Light3D
-	if gi.environment_mode != LightmapGI.ENVIRONMENT_MODE_DISABLED or gi.get_child_count() != 3 or direct.light_bake_mode != Light3D.BAKE_DISABLED or not direct.shadow_enabled:
+	var gi := room.get_node("Indirect" if production else "ReceptionGI") as LightmapGI
+	var expected_probes := 7 if production else 3
+	if gi.environment_mode != LightmapGI.ENVIRONMENT_MODE_DISABLED or gi.get_child_count() != expected_probes:
 		_fail("Verify isolated bake lighting, probe positions and runtime direct shadow ownership")
 		return
+	for light: Light3D in room.find_children("*", "Light3D", true, false):
+		if production or light.light_bake_mode != Light3D.BAKE_DISABLED or not light.shadow_enabled:
+			_fail("Only fixed emitters may contribute to the production envelope bake")
+			return
 	var surfaces := 0
 	var meshes := room.find_children("*", "MeshInstance3D", true, false)
 	for item: MeshInstance3D in meshes:
@@ -39,7 +49,7 @@ func _verify() -> void:
 		if not gi.get_node_or_null(data.get_user_path(index)) is MeshInstance3D:
 			_fail("Invalid baked lightmap assignment")
 			return
-	print("SYNAXIS_RECEPTION_LIGHTMAP_INPUT PASS: ",surfaces," UV2 surfaces, ",data.get_user_count()," baked meshes and 3 authored probe positions")
+	print("SYNAXIS_RECEPTION_LIGHTMAP_INPUT PASS: ",surfaces," UV2 surfaces, ",data.get_user_count()," baked meshes and ",expected_probes," authored probe positions")
 	room.free()
 	quit(0)
 
