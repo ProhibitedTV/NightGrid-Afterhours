@@ -1,0 +1,241 @@
+{
+  "schema": 1,
+  "status": "concept-only",
+  "coordinate_space": "schematic regional kilometres, not engine coordinates",
+  "places": [
+    {
+      "id": "morrow-bay",
+      "name": "Morrow Bay",
+      "kind": "major_city",
+      "position": [
+        0,
+        0
+      ],
+      "inspiration": "San Francisco",
+      "identity": "Historic port transformed into a dense corporate metropolis",
+      "production": "primary",
+      "architecture": [
+        "Victorian rowhouses",
+        "corporate podiums",
+        "historic commercial blocks",
+        "terraced streets"
+      ]
+    },
+    {
+      "id": "ironhaven",
+      "name": "Ironhaven",
+      "kind": "major_city",
+      "position": [
+        3.4,
+        0.3
+      ],
+      "inspiration": "Oakland and Richmond",
+      "identity": "Independent industrial port, logistics, working neighborhoods and underground music",
+      "production": "future",
+      "architecture": [
+        "container terminals",
+        "brick warehouses",
+        "rail workshops",
+        "industrial conversions",
+        "bungalows"
+      ]
+    },
+    {
+      "id": "silica-valley",
+      "name": "Silica Valley",
+      "kind": "major_city",
+      "position": [
+        2.5,
+        6.3
+      ],
+      "inspiration": "San Jose and Silicon Valley",
+      "identity": "Sprawling semiconductor and research economy with old downtown and modern technology campuses",
+      "production": "future",
+      "architecture": [
+        "research campuses",
+        "data centers",
+        "cleanroom support buildings",
+        "suburban offices",
+        "historic downtown"
+      ]
+    },
+    {
+      "id": "redwood-heights",
+      "name": "Redwood Heights",
+      "kind": "town",
+      "position": [
+        -0.5,
+        -3.2
+      ],
+      "inspiration": "Marin County",
+      "identity": "Wooded hillside communities, coastal estates and protected land",
+      "production": "future",
+      "architecture": [
+        "hillside houses",
+        "small civic buildings",
+        "retaining walls",
+        "trail shelters"
+      ]
+    },
+    {
+      "id": "ashford",
+      "name": "Ashford",
+      "kind": "town",
+      "position": [
+        4,
+        -1.8
+      ],
+      "inspiration": "Berkeley",
+      "identity": "University town, activism, music and research",
+      "production": "future",
+      "architecture": [
+        "academic courtyards",
+        "student housing",
+        "independent bookstores",
+        "small venues"
+      ]
+    },
+    {
+      "id": "saltmere",
+      "name": "Saltmere",
+      "kind": "town",
+      "position": [
+        0.2,
+        3.7
+      ],
+      "inspiration": "San Mateo and Redwood City",
+      "identity": "Commuter peninsula, older residential streets and light industry",
+      "production": "future",
+      "architecture": [
+        "commuter stations",
+        "strip retail",
+        "duplexes",
+        "marsh boardwalks"
+      ]
+    },
+    {
+      "id": "delta-junction",
+      "name": "Delta Junction",
+      "kind": "town",
+      "position": [
+        6.8,
+        -0.8
+      ],
+      "inspiration": "Carquinez and inland delta",
+      "identity": "Refinery and river freight settlement",
+      "production": "future",
+      "architecture": [
+        "tank farms",
+        "freight depots",
+        "industrial waterfront",
+        "truck stops"
+      ]
+    }
+  ],
+  "links": [
+    {
+      "a": "morrow-bay",
+      "b": "ironhaven",
+      "modes": [
+        "road",
+        "rail",
+        "ferry"
+      ],
+      "type": "bay-crossing"
+    },
+    {
+      "a": "morrow-bay",
+      "b": "redwood-heights",
+      "modes": [
+        "road",
+        "ferry"
+      ],
+      "type": "north-bridge"
+    },
+    {
+      "a": "morrow-bay",
+      "b": "saltmere",
+      "modes": [
+        "road",
+        "rail"
+      ],
+      "type": "peninsula"
+    },
+    {
+      "a": "saltmere",
+      "b": "silica-valley",
+      "modes": [
+        "road",
+        "rail"
+      ],
+      "type": "peninsula"
+    },
+    {
+      "a": "ironhaven",
+      "b": "ashford",
+      "modes": [
+        "road",
+        "rail"
+      ],
+      "type": "east-shore"
+    },
+    {
+      "a": "ironhaven",
+      "b": "silica-valley",
+      "modes": [
+        "road",
+        "rail"
+      ],
+      "type": "east-shore"
+    },
+    {
+      "a": "ashford",
+      "b": "delta-junction",
+      "modes": [
+        "road",
+        "rail"
+      ],
+      "type": "inland-corridor"
+    },
+    {
+      "a": "ironhaven",
+      "b": "delta-junction",
+      "modes": [
+        "road"
+      ],
+      "type": "freight-corridor"
+    }
+  ],
+  "landscape": [
+    "bay and shipping channels",
+    "wooded coastal ridges",
+    "tidal marshes",
+    "industrial river delta",
+    "inland hills"
+  ],
+  "constraints": [
+    "No runtime city expansion in this change",
+    "Morrow Bay remains the only existing playable city",
+    "State name Cascadia approved; other settlement names, geography and scale provisional",
+    "Existing save coordinates and streaming cells unchanged",
+    "No automatic generation of all cities",
+    "Regional loading and frame budget must not scale with total city count"
+  ],
+  "state_name": "Cascadia",
+  "state_name_status": "approved fictional canon; not a claim about real-world borders or politics",
+  "region_name": "Morrow Bay metropolitan region",
+  "future_regions": [
+    {
+      "id": "northern-rainbelt",
+      "inspiration": "Portland and Seattle metropolitan areas",
+      "status": "long-term concept only",
+      "landscape": [
+        "rainy river valleys",
+        "evergreen forest",
+        "mountain passes",
+        "hydroelectric infrastructure"
+      ],
+      "constraints": "Separate roadmap after initial three-city region; no current coordinates, named cities or generation jobs"
+    }
+  ]
+}

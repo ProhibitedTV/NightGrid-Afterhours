@@ -76,3 +76,29 @@ with tempfile.TemporaryDirectory() as tmp:
     assert verified(out/folder.name/ao["signature"],ao["signature"])
     assert 0 <= ao["outputs"]["lod0-ao.png"]["mean_ao"] <= 1
     print("Blender fixture refinement, texture bake, preview, projection, AO and resume passed")
+
+    from render_impostor_views import render
+    from botanical_candidates import encode
+    source = root / "botanical.glb"
+    source.write_bytes(encode("agave",0)[0])
+    views = root / "impostor"
+    render(source, views, 64, 4, fixture=True)
+    for channel in ("albedo","normal"):
+        image = bpy.data.images.load(str(views / (channel+"-00.png")),check_existing=False)
+        assert tuple(image.size)==(64,64)
+        pixels = list(image.pixels)
+        coverage=sum(a>.5 for a in pixels[3::4])/(64*64)
+        assert .001<coverage<.85
+        bpy.data.images.remove(image)
+    assert load(views/"camera.json")["azimuth_deg"]==[0]
+    print("Impostor color/normal real-render fixture passed")
+
+    # Independently decode the Radiance file via Blender, not our own encoder.
+    from environment_candidates import radiance, write_hdr
+    hdr=root/"environment.hdr"
+    write_hdr(hdr,radiance("clear_day",128))
+    image=bpy.data.images.load(str(hdr),check_existing=False)
+    assert tuple(image.size)==(128,64) and image.is_float
+    assert max(image.pixels)>1.0, "HDR highlights clipped on decoder import"
+    bpy.data.images.remove(image)
+    print("Radiance RGBE independent Blender HDR decoder passed")

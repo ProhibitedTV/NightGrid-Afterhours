@@ -1,0 +1,343 @@
+{
+  "schema": 1,
+  "batch": "visual-coastal-detail-001",
+  "variants": 2,
+  "assets": [
+    {
+      "id": "coastal-street.tree-well-cast-iron-grate",
+      "kind": "prop",
+      "group": "coastal-street",
+      "subject": "square cast iron municipal tree well grate, split center opening, radial slots, weathered graphite finish; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "coastal-street.curbside-storm-drain-inlet",
+      "kind": "prop",
+      "group": "coastal-street",
+      "subject": "rectangular curbside storm drain inlet with recessed cast iron grille and worn concrete surround; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "coastal-street.accessible-pedestrian-button",
+      "kind": "prop",
+      "group": "coastal-street",
+      "subject": "weatherproof pedestrian crossing push button with raised tactile arrow, blank face, pole mount; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "coastal-street.utility-pull-box",
+      "kind": "prop",
+      "group": "coastal-street",
+      "subject": "rectangular flush sidewalk utility access lid with recessed lifting holes and cast texture; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "coastal-street.irrigation-valve-box",
+      "kind": "prop",
+      "group": "coastal-street",
+      "subject": "green rectangular recessed landscape irrigation valve box lid, ribbed polymer; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "coastal-street.coastal-bike-share-dock",
+      "kind": "prop",
+      "group": "coastal-street",
+      "subject": "individual curbside bike share dock with blank indicator face and anchoring foot; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "coastal-street.bus-shelter-glass-panel-frame",
+      "kind": "prop",
+      "group": "coastal-street",
+      "subject": "single powder-coated bus shelter frame with empty glazing aperture, no transparent pane; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "coastal-street.municipal-water-fountain",
+      "kind": "prop",
+      "group": "coastal-street",
+      "subject": "public stainless steel drinking fountain and bottle filler with blank controls; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "north-quay.dock-cleat",
+      "kind": "prop",
+      "group": "north-quay",
+      "subject": "heavy cast iron maritime mooring cleat with rounded horns and bolt flanges; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "north-quay.shore-power-pedestal",
+      "kind": "prop",
+      "group": "north-quay",
+      "subject": "weathered white marina shore power service pedestal with covered electrical sockets; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "north-quay.stackable-fish-tote",
+      "kind": "prop",
+      "group": "north-quay",
+      "subject": "single blue vented commercial fish market tote, rounded handles, salt wear; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "north-quay.market-produce-scale",
+      "kind": "prop",
+      "group": "north-quay",
+      "subject": "stainless commercial produce weighing scale with blank display and flat weighing platform; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "north-quay.dock-rubber-fender",
+      "kind": "prop",
+      "group": "north-quay",
+      "subject": "black cylindrical marine rubber dock fender with steel attachment plates; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "north-quay.marine-life-ring-cabinet",
+      "kind": "prop",
+      "group": "north-quay",
+      "subject": "red wall-mounted life ring cabinet with open front and white ring, no text; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "glassline.elevator-call-panel",
+      "kind": "prop",
+      "group": "glassline",
+      "subject": "brushed metal elevator call button panel with blank display and two circular buttons, flush mounting; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "glassline.underfloor-service-outlet",
+      "kind": "prop",
+      "group": "glassline",
+      "subject": "round flush floor service outlet with hinged metallic lid; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "glassline.office-turnstile-pedestal",
+      "kind": "prop",
+      "group": "glassline",
+      "subject": "slender brushed stainless office speed gate pedestal, no gate wings, blank card reader; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "glassline.ceiling-linear-air-diffuser",
+      "kind": "prop",
+      "group": "glassline",
+      "subject": "rectangular white ceiling HVAC linear slot diffuser, realistic installation flange; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "glassline.ceiling-sprinkler-head",
+      "kind": "prop",
+      "group": "glassline",
+      "subject": "concealed commercial fire sprinkler head with exposed small deflector and mounting escutcheon; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "glassline.under-desk-cable-tray",
+      "kind": "prop",
+      "group": "glassline",
+      "subject": "black wire mesh under-desk cable management basket; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "glassline.server-cable-management-panel",
+      "kind": "prop",
+      "group": "glassline",
+      "subject": "one 1U black rack cable organizer with finger ducts and removable cover; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "glassline.office-acoustic-panel",
+      "kind": "prop",
+      "group": "glassline",
+      "subject": "rectangular fabric-covered acoustic office wall panel with rounded corners; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "brickwater-service.utility-meter-bank",
+      "kind": "prop",
+      "group": "brickwater-service",
+      "subject": "wall-mounted multi-tenant electrical meter enclosure with blank meter faces and conduit entry; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "brickwater-service.rainwater-downpipe",
+      "kind": "prop",
+      "group": "brickwater-service",
+      "subject": "straight weathered galvanized rainwater downpipe with elbow and wall brackets; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "brickwater-service.service-wall-vent",
+      "kind": "prop",
+      "group": "brickwater-service",
+      "subject": "rectangular stamped metal exterior louvered vent with rain hood; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "brickwater-service.commercial-gas-regulator",
+      "kind": "prop",
+      "group": "brickwater-service",
+      "subject": "commercial wall-mounted gas pressure regulator assembly, compact pipe fittings, no text; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "brickwater-service.loading-dock-rubber-bumper",
+      "kind": "prop",
+      "group": "brickwater-service",
+      "subject": "rectangular black laminated rubber loading dock bumper with bolt plates; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "brickwater-service.rolling-laundry-hamper",
+      "kind": "prop",
+      "group": "brickwater-service",
+      "subject": "commercial canvas laundry hamper on low steel wheeled frame; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "brickwater-service.storefront-awning-bracket",
+      "kind": "prop",
+      "group": "brickwater-service",
+      "subject": "triangular steel awning support bracket with bolted base plate; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "brickwater-service.commercial-door-closer",
+      "kind": "prop",
+      "group": "brickwater-service",
+      "subject": "silver hydraulic overhead commercial door closer with articulated arm; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "housing.apartment-intercom",
+      "kind": "prop",
+      "group": "housing",
+      "subject": "weathered apartment building entry intercom, blank nameplate and speaker perforations; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "housing.mailbox-cluster",
+      "kind": "prop",
+      "group": "housing",
+      "subject": "wall-mounted apartment mailbox bank with individual blank label slots and keyholes; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "housing.window-ac-unit",
+      "kind": "prop",
+      "group": "housing",
+      "subject": "compact window air conditioning unit with louvers and blank controls; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "housing.laundry-detergent-bottle",
+      "kind": "prop",
+      "group": "housing",
+      "subject": "ordinary unbranded laundry detergent bottle with molded handle and screw cap; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "housing.folding-shopping-cart",
+      "kind": "prop",
+      "group": "housing",
+      "subject": "small wire folding grocery cart with wheels; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "housing.wall-thermostat",
+      "kind": "prop",
+      "group": "housing",
+      "subject": "simple residential wall thermostat with blank recessed display; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "hospitality-detail.kitchen-ticket-rail",
+      "kind": "prop",
+      "group": "hospitality-detail",
+      "subject": "stainless commercial kitchen order ticket rail with empty clips; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "hospitality-detail.restaurant-bus-tub",
+      "kind": "prop",
+      "group": "hospitality-detail",
+      "subject": "gray commercial restaurant bus tub with molded carrying handles; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "hospitality-detail.bar-drip-tray",
+      "kind": "prop",
+      "group": "hospitality-detail",
+      "subject": "stainless bar counter drip tray with removable perforated grate; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "hospitality-detail.table-condiment-caddy",
+      "kind": "prop",
+      "group": "hospitality-detail",
+      "subject": "compact metal restaurant condiment caddy with unbranded containers; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "hospitality-detail.takeaway-paper-bag",
+      "kind": "prop",
+      "group": "hospitality-detail",
+      "subject": "folded kraft paper takeout bag with unprinted sides; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "hospitality-detail.commercial-handwash-sink",
+      "kind": "prop",
+      "group": "hospitality-detail",
+      "subject": "compact wall-mounted stainless restaurant handwash sink with backsplash and faucet; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "automotive-service.ev-charging-pedestal",
+      "kind": "prop",
+      "group": "automotive-service",
+      "subject": "single commercial electric vehicle charging pedestal with blank display and coiled connector cable; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "automotive-service.parking-wheel-stop",
+      "kind": "prop",
+      "group": "automotive-service",
+      "subject": "precast concrete parking wheel stop with faded yellow painted stripe and anchor holes; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "automotive-service.service-fluid-jug",
+      "kind": "prop",
+      "group": "automotive-service",
+      "subject": "unbranded automotive service fluid plastic jug with molded handle; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "automotive-service.garage-parts-bin",
+      "kind": "prop",
+      "group": "automotive-service",
+      "subject": "stackable industrial plastic parts bin with open front and molded ribs; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "automotive-service.garage-shop-creeper",
+      "kind": "prop",
+      "group": "automotive-service",
+      "subject": "low mechanic shop creeper with padded black surface and caster wheels; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "automotive-service.wall-hose-reel",
+      "kind": "prop",
+      "group": "automotive-service",
+      "subject": "retractable commercial garage air hose reel with visible coiled hose and wall bracket; isolated intact static asset, realistic construction and proportions, no people, no logos, no surrounding scene"
+    },
+    {
+      "id": "material.rubberized-coastal-roof-membrane",
+      "kind": "material",
+      "group": "material",
+      "subject": "close-up flat tileable dark gray rubber roofing membrane, fine aggregate and welded seam; neutral diffuse illumination, no perspective, no specular highlights"
+    },
+    {
+      "id": "material.exposed-aggregate-sidewalk",
+      "kind": "material",
+      "group": "material",
+      "subject": "close-up flat tileable exposed aggregate concrete sidewalk, tiny rounded stones, salt wear; neutral diffuse illumination, no perspective, no specular highlights"
+    },
+    {
+      "id": "material.powder-coated-charcoal-aluminum",
+      "kind": "material",
+      "group": "material",
+      "subject": "close-up flat tileable charcoal powder coated aluminum finish, very fine grain; neutral diffuse illumination, no perspective, no specular highlights"
+    },
+    {
+      "id": "material.brushed-copper-sheet",
+      "kind": "material",
+      "group": "material",
+      "subject": "close-up flat tileable clean brushed copper sheet, fine directional abrasion; neutral diffuse illumination, no perspective, no specular highlights"
+    },
+    {
+      "id": "material.salt-weathered-dock-timber",
+      "kind": "material",
+      "group": "material",
+      "subject": "close-up flat tileable weathered gray marine dock timber planks, dry grain and salt wear; neutral diffuse illumination, no perspective, no specular highlights"
+    },
+    {
+      "id": "material.acoustic-felt-panel",
+      "kind": "material",
+      "group": "material",
+      "subject": "close-up flat tileable dark gray acoustic felt fabric, dense soft fibers; neutral diffuse illumination, no perspective, no specular highlights"
+    },
+    {
+      "id": "material.commercial-vinyl-floor",
+      "kind": "material",
+      "group": "material",
+      "subject": "close-up flat tileable mottled commercial gray vinyl composition floor, no perspective; neutral diffuse illumination, no perspective, no specular highlights"
+    },
+    {
+      "id": "material.worn-ceramic-subway-tile",
+      "kind": "material",
+      "group": "material",
+      "subject": "close-up flat tileable white glazed ceramic subway tiles and recessed gray grout; neutral diffuse illumination, no perspective, no specular highlights"
+    }
+  ]
+}

@@ -50,6 +50,7 @@ nvidia-smi
 "$python" -c 'from tools.visual_studio.batch import guard_storage; guard_storage()'
 # Separate dependency stacks; use no system-wide installation.
 if [[ ! -f "$ANUBIS_VISUAL_HOME/setup-v1.ok" ]]; then
+  [[ "${ANUBIS_REQUIRE_EXISTING_SETUP:-0}" != 1 ]] || { echo "Existing setup marker missing; unattended installation prohibited" >&2; exit 2; }
   "$python" -c 'import shutil,os; assert shutil.disk_usage(os.environ["ANUBIS_VISUAL_HOME"]).free >= 25*1024**3, "At least 25 GiB free required for initial setup"'
   for env in image mesh; do
     "$python" -m venv "$ANUBIS_VISUAL_HOME/$env"
