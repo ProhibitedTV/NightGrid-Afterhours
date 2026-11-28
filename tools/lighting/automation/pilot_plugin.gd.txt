@@ -24,10 +24,9 @@ func _run() -> void:
 	if not FileAccess.file_exists("res://nightgrid_bake_pilot.marker") or FileAccess.file_exists(OUTPUT):
 		_stop("Not a fresh isolated bake project", 1)
 		return
-	for i in range(1200):
-		await get_tree().process_frame
-		if not EditorInterface.get_resource_filesystem().is_scanning():
-			break
+	if not await _wait_filesystem_idle():
+		_stop("Initial native import did not settle", 1)
+		return
 	EditorInterface.open_scene_from_path(SCENE)
 	for i in range(300):
 		await get_tree().process_frame
@@ -42,7 +41,8 @@ func _run() -> void:
 	if gi == null or gi.light_data != null:
 		_stop("Expected unbaked reception fixture", 1)
 		return
-	gi.bake_quality = LightmapGI.BAKE_QUALITY_HIGH
+	gi.set_bake_quality(LightmapGI.BAKE_QUALITY_HIGH)
+	print("NIGHTGRID_BAKE_PILOT: High quality selected")
 	EditorInterface.get_selection().clear()
 	EditorInterface.get_selection().add_node(gi)
 	EditorInterface.edit_node(gi)
@@ -59,6 +59,7 @@ func _run() -> void:
 	var button := buttons[0] as Button
 	# In 4.7.2 the native plugin opens its own EditorFileDialog when no data
 	# exists. Its file_selected signal calls the editor's actual C++ baker.
+	print("NIGHTGRID_BAKE_PILOT: Native toolbar found; opening save dialog")
 	button.pressed.emit()
 	await get_tree().process_frame
 	var dialogs := _find(button, "EditorFileDialog")
@@ -67,7 +68,18 @@ func _run() -> void:
 		return
 	var dialog := dialogs[0] as EditorFileDialog
 	dialog.hide()
+	# The native editor can reimport textures after entering 3D. Scanning
+	# and importing are separate states in 4.7.2; check both, including
+	# after the save dialog opens, before calling the synchronous baker.
+	if not await _wait_filesystem_idle():
+		_stop("Native import did not settle before bake", 1)
+		return
+	if not is_instance_valid(dialog) or not is_instance_valid(gi):
+		_stop("Bake selection disappeared while waiting for imports", 1)
+		return
+	print("NIGHTGRID_BAKE_PILOT: Invoking native baker")
 	dialog.file_selected.emit(OUTPUT)
+	print("NIGHTGRID_BAKE_PILOT: Native baker returned")
 	# The native signal is synchronous. Never accept a log message alone.
 	await get_tree().process_frame
 	var data := gi.light_data
@@ -87,6 +99,23 @@ func _run() -> void:
 	marker.store_string(JSON.stringify({"status":"candidate-only","users":data.get_user_count(),"quality":"high","renderer":RenderingServer.get_current_rendering_method(),"adapter":RenderingServer.get_video_adapter_name()}))
 	marker.close()
 	_stop("Native bake candidate produced; independent validation required", 0)
+
+func _wait_filesystem_idle() -> bool:
+	var fs := EditorInterface.get_resource_filesystem()
+	var deadline := Time.get_ticks_msec() + 120000
+	var quiet_since := -1
+	while Time.get_ticks_msec() < deadline:
+		await get_tree().process_frame
+		if fs.is_scanning() or fs.is_importing():
+			quiet_since = -1
+			continue
+		var now := Time.get_ticks_msec()
+		if quiet_since < 0:
+			quiet_since = now
+		elif now - quiet_since >= 2000:
+			print("NIGHTGRID_BAKE_PILOT: Filesystem idle (scan and import)")
+			return true
+	return false
 
 func _stop(message: String, code: int) -> void:
 	print("NIGHTGRID_BAKE_PILOT: ", message)
