@@ -14,6 +14,15 @@ for name in required:
 for path in root.rglob("*.gd"):
     data = path.read_text(encoding="utf8")
     for ref in re.findall(r'res://([^"\']+)', data):
+        # Private generated model roots are optional in source-only CI.
+        # The creator package and strict scene smokes enforce their presence.
+        optional_roots = {
+            ("scripts/synaxis_staff.gd", "assets/models/nightgrid/synaxis_staff/"),
+            ("scripts/character_bank.gd", "assets/creator_character_bank/"),
+            ("scripts/botanical_bank.gd", "assets/models/nightgrid/botanical/"),
+        }
+        if (path.relative_to(root).as_posix(), ref) in optional_roots:
+            continue
         if not (root / ref).exists():
             errors.append(f"Broken resource in {path.relative_to(root)}: {ref}")
     if re.search(r"^const\s+\w+\s*:=", data, flags=re.M):

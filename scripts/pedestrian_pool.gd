@@ -39,7 +39,9 @@ func build(visual_scene: PackedScene, capacity: int = Population.MAX_ACTIVE,
 					visual.free()
 				return false
 			candidate.call("set_pedestrian_model", models[i % models.size()])
-	_model_count = maxi(1, models.size())
+	# Six logical style classes; a 12-model creator bank uses two distinct
+	# avatars per class without changing resident styles or the active cap.
+	_model_count = maxi(1, mini(6, models.size()))
 	var capsule := CapsuleShape3D.new()
 	capsule.radius = RADIUS
 	capsule.height = HEIGHT

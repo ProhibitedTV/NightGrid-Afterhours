@@ -271,6 +271,7 @@ func hide_for_game() -> void:
 		_rhythm.cancel()
 	screen = "hidden"
 	visible = false
+	get_viewport().disable_3d = false
 	get_tree().paused = false
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -292,8 +293,16 @@ func _open(value: String) -> void:
 	screen = value
 	visible = true
 	get_tree().paused = true
+	# Pausing the tree leaves Forward+ rendering the frozen scene every frame.
+	# Standalone pages have their own opaque background. In-world dialogue
+	# and the phone keep the scene available for their translucent overlays.
+	get_viewport().disable_3d = _uses_opaque_backdrop()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_render()
+
+func _uses_opaque_backdrop() -> bool:
+	return screen in ["title", "pause", "settings", "controls", "map", "journal",
+		"inventory", "confirm_new", "workstation", "investigation_notes"]
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not is_open() or not event.is_pressed() or event.is_echo():
@@ -387,7 +396,8 @@ func _render() -> void:
 	var staged := screen in ["breakroom","restroom","parking_guard","street_contact","staff_interview"] or (screen=="opening" and _physical_opening and _opening_stage in [2,3,4])
 	var shade := ColorRect.new()
 	shade.name = "Scrim"
-	shade.color = Color(0.028, 0.045, 0.060, .36 if screen == "phone" else (.12 if staged else (.94 if screen in ["title", "opening"] else .68)))
+	shade.color = Color(0.028, 0.045, 0.060, 1.0 if _uses_opaque_backdrop() else
+		(.36 if screen == "phone" else (.12 if staged else (.94 if screen == "opening" else .68))))
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(shade)
 	var center := CenterContainer.new()
@@ -570,7 +580,7 @@ func _render() -> void:
 				0:
 					_title(col, "ONE LAST TICKET", 29, Ui.TEXT)
 					_label(col, Opening.TICKET, 17, Color("cbd8e3"))
-					_label(col, "Eli: The override came from the executive floor. Your job is to establish who accessed the IP and whether they were authorized.", 16, Ui.MUTED)
+					_label(col, Opening.IT_HANDOFF, 16, Ui.MUTED)
 					_button(col,"terminal_open","OPEN SERVICE DESK","terminal_open")
 					_button(col, "opening_inspect", "REVIEW ACCESS ALERT", "opening_inspect")
 				1:

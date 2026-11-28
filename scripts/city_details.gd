@@ -1,5 +1,6 @@
 extends Node3D
 const WorldPlan = preload("res://scripts/world_plan.gd")
+const Botanical = preload("res://scripts/botanical_bank.gd")
 const Materials = preload("res://scripts/material_library.gd")
 const PhotoMasonry = preload("res://scripts/photo_masonry.gd")
 const CentralFrontage = preload("res://scripts/central_exchange_frontages.gd")
@@ -1336,8 +1337,32 @@ func _vendor(at: Vector3, color: Color) -> void:
 
 func _planter(at: Vector3) -> void:
 	_detail(at + Vector3.UP * 0.42, Vector3(1.9, 0.84, 1.1), Color("7a8a91"))
-	for stem in [-0.50, 0.0, 0.50]:
-		_detail(at + Vector3(stem, 1.23, 0.0), Vector3(0.50, 1.10, 0.62), Color("42816e"))
+	var grass := Botanical.mesh_for("grass", 1)
+	var agave := Botanical.mesh_for("agave", 1)
+	if grass != null and agave != null:
+		# Parent to the existing streaming owner; no new collision or updater.
+		var parent: Node3D = _active_chunk if _active_chunk != null else self
+		_detail(at + Vector3.UP * .85, Vector3(1.78, .035, .98), Color("403b39"))
+		var batch := MultiMesh.new()
+		batch.transform_format = MultiMesh.TRANSFORM_3D
+		batch.mesh = grass
+		batch.instance_count = 2
+		for i in range(2):
+			var offset := -.60 if i == 0 else .60
+			batch.set_instance_transform(i, Transform3D(Basis(Vector3.UP, float(i)*2.1).scaled(Vector3.ONE*.82), at + Vector3(offset,.86,0)))
+		var grasses := MultiMeshInstance3D.new()
+		grasses.multimesh = batch
+		grasses.visibility_range_end = 85.0
+		parent.add_child(grasses)
+		var accent := MeshInstance3D.new()
+		accent.mesh = agave
+		accent.position = at + Vector3.UP * .86
+		accent.scale = Vector3.ONE * .85
+		accent.visibility_range_end = 85.0
+		parent.add_child(accent)
+	else:
+		for stem in [-0.50, 0.0, 0.50]:
+			_detail(at + Vector3(stem, 1.23, 0.0), Vector3(0.50, 1.10, 0.62), Color("42816e"))
 	_statistics["street_props"] += 1
 
 func _crates(at: Vector3, physical: bool = false) -> void:

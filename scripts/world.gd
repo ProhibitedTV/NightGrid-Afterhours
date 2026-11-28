@@ -5,6 +5,7 @@ const PlayerScript = preload("res://scripts/player.gd")
 const CourierVisual = preload("res://scripts/courier_visual.gd")
 const PedestrianDirector = preload("res://scripts/pedestrian_director.gd")
 const PedestrianRoutes = preload("res://scripts/pedestrian_routes.gd")
+const CharacterBank = preload("res://scripts/character_bank.gd")
 const PEDESTRIAN_MODELS = [
 	"res://assets/models/nightgrid/pedestrians/casual-walker.glb",
 	"res://assets/models/nightgrid/pedestrians/dog-walker.glb",
@@ -1842,12 +1843,13 @@ func _actor() -> Node3D:
 func enable_living_streets() -> bool:
 	if is_instance_valid(pedestrians):
 		return true
-	var models: Array[PackedScene] = []
-	for path in PEDESTRIAN_MODELS:
-		var model := load(path) as PackedScene
-		if model == null:
-			return false
-		models.append(model)
+	var models: Array[PackedScene] = CharacterBank.street_models()
+	if models.is_empty():
+		for path in PEDESTRIAN_MODELS:
+			var model := load(path) as PackedScene
+			if model == null:
+				return false
+			models.append(model)
 	var director := PedestrianDirector.new()
 	director.name = "LivingStreets"
 	add_child(director)
@@ -1887,16 +1889,26 @@ func _update_pedestrians(delta: float, actor: Node3D, indoors: bool) -> void:
 # now snaps the camera, while regular following is collision-constrained.
 func _camera_focus() -> Vector3:
 	var actor := _actor()
+	# The character origin is already at capsule centre. In B1 the usual
+	# raised focus puts the camera probe close to the cable trays and ceiling.
+	if _in_synaxis_basement():
+		return actor.global_position + Vector3.UP * 0.72
 	return actor.global_position + Vector3.UP * (
 		1.65 if current_car != null or current_transit != null else 1.45)
 
+func _in_synaxis_basement() -> bool:
+	return is_instance_valid(_opening_office) and int(_opening_office.get("_active_floor")) == -1
+
 func _camera_goal() -> Vector3:
-	var distance := (3.0 if is_instance_valid(_opening_office) or interiors.call("is_inside") else
+	var basement := _in_synaxis_basement()
+	var distance := (2.35 if basement else
+		(3.0 if is_instance_valid(_opening_office) or interiors.call("is_inside") else
 		(21.0 if transit_kind == "TRAIN" else
 		(15.0 if transit_kind == "BUS" else
-		(13.0 if current_car != null else 7.5))))
-	return _camera_focus() + Vector3(0.0, sin(pitch) * distance,
-		cos(pitch) * distance).rotated(Vector3.UP, yaw)
+		(13.0 if current_car != null else 7.5)))))
+	var camera_pitch := minf(pitch, 0.53) if basement else pitch
+	return _camera_focus() + Vector3(0.0, sin(camera_pitch) * distance,
+		cos(camera_pitch) * distance).rotated(Vector3.UP, yaw)
 
 func _camera_clearance(focus: Vector3, target: Vector3) -> Vector3:
 	var motion := target - focus
@@ -2554,7 +2566,24 @@ func _build_environment() -> void:
 	add_child(sun_light)
 	# The playable foundation stops at the authored perimeter. Beyond this
 	# point the quay/water, wooded ridges and industrial yard own the skyline.
-	_box(self, Vector3(0.0, -0.58, 0.0), Vector3(490.0, 1.0, 490.0), Color("34434a"), true, false, "CONCRETE")
+	const EDGE = 245.0
+	const FOUNDATION_TOP = -0.08
+	var excavation := Rect2(Vector2(OpeningOffice.ORIGIN.x, OpeningOffice.ORIGIN.z)
+		- OpeningOffice.BASEMENT_FOOTPRINT * 0.5, OpeningOffice.BASEMENT_FOOTPRINT)
+	var sections: Array[Rect2] = [
+		Rect2(-EDGE, -EDGE, excavation.position.x + EDGE, EDGE * 2.0),
+		Rect2(excavation.end.x, -EDGE, EDGE - excavation.end.x, EDGE * 2.0),
+		Rect2(excavation.position.x, -EDGE, excavation.size.x, excavation.position.y + EDGE),
+		Rect2(excavation.position.x, excavation.end.y, excavation.size.x, EDGE - excavation.end.y),
+		excavation,
+	]
+	for section in sections:
+		# Keep one continuous street-level surface. Beneath Synaxis only,
+		# keep the infill above the underside of the lobby's floor slab.
+		var thickness := 0.07 if section == excavation else 1.0
+		var center := section.get_center()
+		_box(self, Vector3(center.x, FOUNDATION_TOP - thickness * 0.5, center.y),
+			Vector3(section.size.x, thickness, section.size.y), Color("34434a"), true, false, "CONCRETE")
 
 func _build_city() -> void:
 	# Replace the overlapping visual strips with continuous UV-authored

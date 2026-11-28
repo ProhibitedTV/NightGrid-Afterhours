@@ -167,7 +167,7 @@ def main():
     if sys.platform != "win32":
         raise RuntimeError("Run in native Windows on Anubis, not WSL")
     engine = args.godot.resolve(strict=True)
-    require_clean()
+    require_clean(after_import=True)
     revision = git("rev-parse", "HEAD")
     if not (ROOT / "tests/synaxis_creator_cast_smoke.gd").is_file():
         raise RuntimeError("Strict creator cast smoke is missing; integrate #510 first")
@@ -175,6 +175,15 @@ def main():
         raise RuntimeError("Packaged candidate verifier missing; integrate #511 first")
     # Require the existing radio bank, not an implicit generation run.
     radio_hashes = radio_inventory()
+    bank_path = ROOT / "assets/creator_character_bank"
+    bank = None
+    if not bank_path.exists():
+        raise RuntimeError("Stage all 24 approved creator models before the combined playtest")
+    if bank_path.exists():
+        # Import the existing factory code without invoking its CLI.
+        sys.path.insert(0, str(ROOT / "tools/asset_refinement"))
+        from stage_character_bank import verify_staged
+        bank = verify_staged(bank_path)
     out = fresh_output(args.out)
     logs = out / "logs"
     logs.mkdir()
@@ -208,9 +217,21 @@ def main():
                                   "res://tests/generated_sfx_bank_smoke.gd", "--",
                                   json.dumps(sfx_bank, separators=(",", ":"))],
              marker="GENERATED_SFX_BANK PASS:", timeout=180)
-        step(logs, "strict-cast", [engine, "--headless", "--path", ROOT, "--script",
-                                  "res://tests/synaxis_creator_cast_smoke.gd", "--", "--require-cast"],
-             marker="SYNAXIS_CREATOR_CAST PASS: all four staged actors", timeout=180)
+        if bank is not None:
+            step(logs, "strict-cast", [engine, "--headless", "--path", ROOT, "--script",
+                                      "res://tests/character_bank_smoke.gd", "--", "--require-bank"],
+                 marker="CHARACTER_BANK PASS: all 24 imported rigs", timeout=300)
+        else:
+            step(logs, "strict-cast", [engine, "--headless", "--path", ROOT, "--script",
+                                      "res://tests/synaxis_creator_cast_smoke.gd", "--", "--require-cast"],
+                 marker="SYNAXIS_CREATOR_CAST PASS: all four staged actors", timeout=180)
+        if bank is not None:
+            step(logs, "character-scenes", [engine, "--headless", "--path", ROOT, "--script",
+                                           "res://tests/character_bank_scene_smoke.gd"],
+                 marker="CHARACTER_SCENE PASS:", timeout=300)
+        step(logs, "botanical-coverage", [engine, "--headless", "--path", ROOT, "--script",
+                                        "res://tests/botanical_bank_smoke.gd", "--", "--require-bank"],
+             marker="BOTANICAL PASS:", timeout=300)
         step(logs, "windows-export", [engine, "--headless", "--path", ROOT,
                                      "--export-release", "Windows Desktop", exe])
     finally:
@@ -226,8 +247,14 @@ def main():
     for path in (exe, pck):
         if not path.is_file() or path.stat().st_size == 0:
             raise RuntimeError("Missing export payload: " + str(path))
-    step(logs, "packaged-cast", [exe, "--headless", "--", "--verify-creator-pck"], cwd=out,
-         marker="CREATOR_PCK PASS: all four exact candidate hashes", timeout=120)
+    if bank is not None:
+        if verify_staged(bank_path) != bank:
+            raise RuntimeError("Character bank changed during packaging")
+        step(logs, "packaged-cast", [exe, "--headless", "--", "--verify-character-bank"], cwd=out,
+             marker="CHARACTER_BANK PASS: all 24 imported rigs", timeout=300)
+    else:
+        step(logs, "packaged-cast", [exe, "--headless", "--", "--verify-creator-pck"], cwd=out,
+             marker="CREATOR_PCK PASS: all four exact candidate hashes", timeout=120)
     # Ordinary launch is deliberately left to native QA to avoid touching existing saves.
     for src, dest in CREDITS.items():
         shutil.copyfile(ROOT / src, out / dest)
@@ -237,14 +264,16 @@ def main():
         encoding="utf-8")
     cast = ROOT / "assets/creator_playtest_cast"
     manifest = {"revision": revision, "godot": version, "channel": "development",
-                "candidate_hashes": {name: sha256(cast / name) for name in
-                                     ("dev.glb.bin", "rina.glb.bin", "dana.glb.bin", "jetson.glb.bin")},
+                "candidate_hashes": ({actor + ".glb": record["sha256"] for actor, record in bank["actors"].items()}
+                                     if bank is not None else
+                                     {name: sha256(cast / name) for name in
+                                      ("dev.glb.bin", "rina.glb.bin", "dana.glb.bin", "jetson.glb.bin")}),
                 "audio_inventory": {"local_mbpd_radio_hashes": radio_hashes,
                                     "verified_source_voice_lines": voice_count,
                                     "verified_source_sfx": sfx_bank,
                                     "complete_or_human_reviewed": "not asserted"},
                 "checks": ["voice-contract", "voice-library", "sfx-library", "import",
-                           "voice-import", "sfx-import", "strict-cast", "windows-export", "packaged-cast"],
+                           "voice-import", "sfx-import", "strict-cast", "character-scenes", "botanical-coverage", "windows-export", "packaged-cast"],
                 "native_acceptance": "pending"}
     (out / "CREATOR-MANIFEST.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     payload = [exe, pck, out / "BUILD-INFO.txt", out / "CREATOR-MANIFEST.json"]

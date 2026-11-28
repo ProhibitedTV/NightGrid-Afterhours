@@ -43,7 +43,9 @@ func _verify() -> void:
 	var scene_ids: Array[String] = []
 	for scene in OpeningVoice.SCENES:
 		scene_ids.append_array(OpeningVoice.line_ids(scene))
-	if scene_ids.size() != 27 or OpeningVoice.scene_for("opening", 2, 1, "") != "call_mandarin" or OpeningVoice.scene_for("breakroom", 0, 0, "breakroom_decline") != "breakroom_decline":
+	if scene_ids.size() != 28 or OpeningVoice.scene_for("opening", 2, 1, "") != "call_mandarin" or OpeningVoice.scene_for("breakroom", 0, 0, "breakroom_decline") != "breakroom_decline":
+		failures.append("Opening scene voice dispatch does not match the canonical catalog")
+	if OpeningVoice.scene_for("opening", 0, 0, "") != "it_handoff" or OpeningVoice.line_ids("it_handoff") != ["synaxis.it_handoff.01"]:
 		failures.append("Opening scene mapping drift")
 	for id in ids:
 		if id.begins_with("synaxis.") and not scene_ids.has(id):

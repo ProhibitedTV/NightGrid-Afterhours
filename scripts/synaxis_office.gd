@@ -4,6 +4,7 @@ extends Node3D
 const BLOCK = Vector2i(1,-1)
 const LOT = 0
 const ORIGIN = Vector3(76.5,.15,-33.88)
+const BASEMENT_FOOTPRINT = Vector2(17.0, 20.0)
 const ENTRY = Vector3(76.5,1.30,-46.2)
 const ID = "synaxis_hq"
 const NAME = "SYNAXIS OMNISYSTEMS"
@@ -34,6 +35,7 @@ const Restrooms = preload("res://scripts/synaxis_restrooms.gd")
 const Architecture = preload("res://scripts/synaxis_architecture.gd")
 const LIFT_DIRECTION_SIGN = preload("res://assets/models/nightgrid/synaxis_architecture/lift_direction_sign.glb")
 const GROUND_ENVELOPE = preload("res://scenes/synaxis/ground_envelope.tscn")
+const ENTRANCE_PORTAL = preload("res://assets/models/nightgrid/synaxis_architecture/entrance_portal.glb")
 const Workfloor = preload("res://scripts/synaxis_workfloor.gd")
 const ExecutiveFloor = preload("res://scripts/synaxis_executive_floor.gd")
 const Basement = preload("res://scripts/synaxis_basement.gd")
@@ -95,11 +97,14 @@ func _ready() -> void:
 	practicals.material_override = lens
 	diffuser.material_override = lens
 	add_child(envelope)
-	_collision("Floor",Vector3(0,-.15,0),Vector3(17,.3,20))
+	_collision("Floor",Vector3(0,-.15,0),Vector3(BASEMENT_FOOTPRINT.x,.3,BASEMENT_FOOTPRINT.y))
+	_visual("BasementCeiling",Vector3(0,-.255,0),
+		Vector3(BASEMENT_FOOTPRINT.x,.1,BASEMENT_FOOTPRINT.y),Architecture.surface("Concrete"))
 	_collision("Ceiling",Vector3(0,3.5,0),Vector3(17,.3,20))
 	for side in [-1.0,1.0]:
 		_collision("FrontWall",Vector3(side*4.9,1.75,-10),Vector3(7.2,3.5,.25))
-	_collision("EntranceHeader",Vector3(0,3.15,-10),Vector3(2.6,.7,.25))
+	_collision("EntranceHeader",Vector3(0,3.12,-10.07),Vector3(2.6,.76,.44))
+	Architecture.assembly(self,"EntrancePortal",ENTRANCE_PORTAL,Vector3(0,0,-10))
 	# Street vestibule is public; a full-width security barrier separates it from the offices.
 	for side in [-1.0,1.0]:
 		_collision("SecurityFlank",Vector3(side*4.9,1.75,-7.65),Vector3(7.2,3.5,.24))
@@ -337,7 +342,8 @@ func _build_workfloor_shell(wall: Material,floor_mat: Material) -> void:
 	lift.down_label="DOWN / B1 IT"
 	add_child(lift)
 	var utility := Architecture.surface("Concrete")
-	_solid("BasementSlab",Vector3(0,-Workfloor.FLOOR_HEIGHT-.15,0),Vector3(17,.3,20),utility)
+	_solid("BasementSlab",Vector3(0,-Workfloor.FLOOR_HEIGHT-.15,0),
+		Vector3(BASEMENT_FOOTPRINT.x,.3,BASEMENT_FOOTPRINT.y),utility)
 	for side in [-1.0,1.0]:
 		_solid("BasementSide",Vector3(side*8.5,-Workfloor.FLOOR_HEIGHT+1.675,0),Vector3(.25,3.35,20),utility)
 		_solid("BasementEnd",Vector3(0,-Workfloor.FLOOR_HEIGHT+1.675,side*10),Vector3(17,3.35,.25),utility)

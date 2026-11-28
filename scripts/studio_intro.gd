@@ -26,6 +26,10 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	resized.connect(queue_redraw)
 	# Explicit diagnostic mode. No world creation, saves, or normal intro handoff.
+	if auto_handoff and "--verify-character-bank" in OS.get_cmdline_user_args():
+		set_process(false)
+		_verify_character_bank.call_deferred()
+		return
 	if auto_handoff and "--verify-creator-pck" in OS.get_cmdline_user_args():
 		set_process(false)
 		_verify_creator_pck.call_deferred()
@@ -37,6 +41,10 @@ func _ready() -> void:
 		_requested = ResourceLoader.load_threaded_request(GAME_SCENE, "PackedScene") == OK
 	if DisplayServer.get_name() != "headless" and auto_handoff:
 		_prepare_audio()
+
+func _verify_character_bank() -> void:
+	var bank = load("res://scripts/character_bank.gd")
+	get_tree().quit(0 if bank != null and bank.verify_imported_bank(self) else 1)
 
 func _verify_creator_pck() -> void:
 	var cast = load("res://scripts/synaxis_creator_cast.gd")

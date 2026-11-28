@@ -2,6 +2,8 @@ extends Node3D
 ## MARA — original stylized human hero character for Lantern Cup.
 ## Layered mesh anatomy, articulated idle/talk performance, no imported assets.
 ## Local origin sits on her raised work-platform behind the existing counter.
+const HeroBank = preload("res://scripts/character_bank.gd")
+var _bank_visual: Node3D
 const BASE_SKIN = Color("b78169")
 const SHADOW_SKIN = Color("8c6054")
 const COAT = Color("304c53")
@@ -39,6 +41,8 @@ func _ready() -> void:
 	_build_uniform()
 	_build_face_and_hair()
 	_build_service_details()
+	var model_id := "nina_bell" if has_method("set_phone_call") else "service_staff_01"
+	_bank_visual = HeroBank.install(self, model_id)
 
 func get_character_stats() -> Dictionary:
 	return _stats.duplicate()
@@ -119,6 +123,10 @@ func _process(delta: float) -> void:
 	_speaking = maxf(0.0, _speaking - delta)
 	_service_gesture = maxf(0.0, _service_gesture - delta)
 	var engaged := _focused or _speaking > 0.0 or _service_gesture > 0.0
+	if is_instance_valid(_bank_visual):
+		_bank_visual.call("set_attention_target", to_global(_target), engaged)
+		_bank_visual.call("set_activity", "SOCIALIZE" if engaged else "WALK")
+		return
 	if _torso != null:
 		_torso.position.y = 1.05 + sin(_clock * 1.7) * 0.008
 		_torso.rotation.z = sin(_clock * 0.79) * 0.014

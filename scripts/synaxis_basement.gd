@@ -18,12 +18,20 @@ func _ready() -> void:
 	for z in range(-9,10,2):
 		_part("black",Vector3(0,.012,z),Vector3(16.6,.006,.012))
 	var rack_poses: Array[Transform3D] = []
+	var rack_bounds := Equipment.mesh_for(Equipment.RACK).get_aabb()
 	for x in RACK_X:
+		var basis := Basis(Vector3.UP, 0.0 if x < 0.0 else PI)
+		var row_bounds := AABB()
 		for z in RACK_Z:
-			rack_poses.append(Transform3D(Basis(Vector3.UP, 0.0 if x < 0.0 else PI), Vector3(x,0,z)))
-		# Contiguous rack collision and overhead cable trays.
-		_solid(Vector3(x,1.14,-4.9),Vector3(.92,2.28,6.82))
+			var pose := Transform3D(basis, Vector3(x, 0, z))
+			rack_poses.append(pose)
+			var bounds := pose * rack_bounds
+			row_bounds = bounds if z == RACK_Z[0] else row_bounds.merge(bounds)
+		# The gaps between cabinets are too narrow for the player or camera probe.
+		_solid(row_bounds.get_center(), row_bounds.size)
 		_part("black",Vector3(x,2.95,-4.9),Vector3(.64,.15,7.0))
+		# Match the visible low tray so the camera cannot pass through it.
+		_solid(Vector3(x,2.95,-4.9),Vector3(.64,.15,7.0))
 		for z in range(-8,0):
 			_part("steel",Vector3(x,3.04,z),Vector3(.71,.05,.07))
 		_part("blue",Vector3(x-.16,3.06,-4.9),Vector3(.08,.08,7.0))
