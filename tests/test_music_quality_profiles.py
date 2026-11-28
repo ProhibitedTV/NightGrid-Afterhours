@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 import subprocess
+import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
@@ -55,6 +56,25 @@ class StudioProfiles(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "LLMHandler.initialize"):
             batch.initialize_models(dit, lm, batch.PROFILES["studio"], "studio")
         dit.initialize_service.assert_not_called()
+
+    def test_initial_checkpoint_sync_only_accepts_authoritative_code(self):
+        profile = batch.PROFILES["studio"]
+        key = profile["dit"] + "/configuration_acestep_v15.py"
+        weight = profile["dit"] + "/model.safetensors"
+        before = {"source_commit":"abc", "files_sha256":{key:"old",weight:"weights"}}
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "acestep/models/sft/configuration_acestep_v15.py"
+            source.parent.mkdir(parents=True)
+            source.write_text("# verified source")
+            after = {"source_commit":"abc", "files_sha256":{key:batch.sha(source),weight:"weights"}}
+            with patch.object(batch, "HOME", root):
+                batch.validate_initial_sync(before, after, profile)
+                for changes in ({key:"unexpected",weight:"weights"}, {key:batch.sha(source),weight:"changed"}):
+                    with self.assertRaisesRegex(RuntimeError, "Unexpected checkpoint change"):
+                        batch.validate_initial_sync(before, {"source_commit":"abc","files_sha256":changes}, profile)
+                with self.assertRaisesRegex(RuntimeError, "metadata changed"):
+                    batch.validate_initial_sync(before, dict(after, source_commit="different"), profile)
 
     def test_memory_guard(self):
         with patch.object(batch, "available_ram_gib", return_value=15):

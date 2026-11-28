@@ -141,6 +141,35 @@ def checkpoint_record(profile=PROFILES['legacy'], name='legacy'):
     if name != 'legacy': record['generation_profile'] = dict(profile, name=name)
     return record
 
+def validate_initial_sync(before, after, profile):
+    """Only allow DiT Python changes from the installed authoritative source."""
+    if {k:v for k,v in before.items() if k != 'files_sha256'} != {k:v for k,v in after.items() if k != 'files_sha256'}:
+        raise RuntimeError('Checkpoint record metadata changed during initialization')
+    old, new = before['files_sha256'], after['files_sha256']
+    variant = {'acestep-v15-sft':'sft', 'acestep-v15-turbo':'turbo'}.get(profile['dit'])
+    for key in sorted(set(old) | set(new)):
+        if old.get(key) == new.get(key):
+            continue
+        rel = Path(key)
+        source = HOME/'acestep'/'models'/str(variant)/rel.name
+        if (variant is None or len(rel.parts) != 2 or rel.parts[0] != profile['dit']
+                or rel.suffix != '.py' or not source.is_file()
+                or new.get(key) != sha(source)):
+            raise RuntimeError('Unexpected checkpoint change during initialization: '+key)
+        print('Verified ACE-Step model code sync:', key, flush=True)
+
+
+def load_models(profile, name):
+    from acestep.handler import AceStepHandler
+    from acestep.llm_inference import LLMHandler
+    from acestep.inference import GenerationParams, GenerationConfig, generate_music
+    dit=AceStepHandler(); lm=LLMHandler()
+    check_call(GenerationConfig, (), dict(batch_size=1,use_random_seed=False,seeds=[271101],audio_format=source_format(name)), 'GenerationConfig')
+    check_call(generate_music, (dit,lm,None,None), dict(save_dir='/tmp'), 'generate_music')
+    initialize_models(dit, lm, profile, name)
+    return dit, lm, GenerationParams, GenerationConfig, generate_music
+
+
 def audio_info(path):
     info = pcm_info(path)
     info["seconds"] = round(info["seconds"], 3)
@@ -215,10 +244,25 @@ def main():
     if total-used<8*1024: raise RuntimeError('Less than 8 GiB VRAM free; close ACE-Step UI and other GPU jobs first')
     check_profile_ram(a.profile)
     print('Fingerprinting installed checkpoints...',flush=True)
-    provenance=checkpoint_record(profile, a.profile); checkpoint=digest(provenance)
+    provenance=checkpoint_record(profile, a.profile)
     provenance_path=out/'checkpoint.json'
-    if provenance_path.exists() and json.loads(provenance_path.read_text())!=provenance: raise RuntimeError('Checkpoint changed; choose a new --batch')
-    atomic_json(provenance_path,provenance)
+    prior = json.loads(provenance_path.read_text()) if provenance_path.exists() else None
+    if prior is not None and prior != provenance:
+        changed = sorted(k for k in set(prior.get('files_sha256', {})) | set(provenance['files_sha256'])
+                         if prior.get('files_sha256', {}).get(k) != provenance['files_sha256'].get(k))
+        print('Changed checkpoint files:', ', '.join(changed) or '(record metadata)', flush=True)
+        raise RuntimeError('Checkpoint changed; choose a new --batch')
+    # Initialize before sealing a new batch: ACE-Step may sync model code.
+    models = None
+    if prior is None:
+        if any(out.glob('*.wav')) or any(out.glob('*.json')):
+            raise RuntimeError('Batch has artifacts but no checkpoint record; preserve and inspect')
+        models = load_models(profile, a.profile)
+        effective = checkpoint_record(profile, a.profile)
+        validate_initial_sync(provenance, effective, profile)
+        provenance = effective
+        atomic_json(provenance_path, provenance)
+    checkpoint=digest(provenance)
     entries=[]; pending=[]
     for j in jobs:
         name=j['id']; wav=out/(name+'.wav'); meta=out/(name+'.json')
@@ -236,13 +280,11 @@ def main():
     def manifest(): atomic_json(out/'manifest.json',{'schema':1,'candidates':entries})
     manifest()
     if not pending: print('Batch complete'); return
-    from acestep.handler import AceStepHandler
-    from acestep.llm_inference import LLMHandler
-    from acestep.inference import GenerationParams, GenerationConfig, generate_music
-    dit=AceStepHandler(); lm=LLMHandler()
-    check_call(GenerationConfig, (), dict(batch_size=1,use_random_seed=False,seeds=[271101],audio_format=source_format(a.profile)), 'GenerationConfig')
-    check_call(generate_music, (dit,lm,None,None), dict(save_dir='/tmp'), 'generate_music')
-    initialize_models(dit, lm, profile, a.profile)
+    if models is None:
+        models = load_models(profile, a.profile)
+        if checkpoint_record(profile, a.profile) != provenance:
+            raise RuntimeError('Checkpoint changed during resumed initialization; preserve batch and inspect')
+    dit, lm, GenerationParams, GenerationConfig, generate_music = models
     for j,wav,meta,fingerprint in (pending[:a.limit] if a.limit else pending):
         if not os.path.ismount('/mnt/z'): raise RuntimeError('NAS mount lost')
         if shutil.disk_usage(out).free<10*1024**3 or shutil.disk_usage('/mnt/c').free<25*1024**3: raise RuntimeError('Disk reserve guard')
