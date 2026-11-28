@@ -3,6 +3,7 @@ extends Node
 ## Canonical scene captions remain visible even when a clip is unavailable.
 const Mix = preload("res://scripts/audio_mix.gd")
 const SCENES = {
+	"it_handoff": [1],
 	"conference": [1, 2],
 	"call_mandarin": [1, 2],
 	"conference_end": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
@@ -21,6 +22,8 @@ static func scene_for(screen: String, stage: int, beat: int, choice: String) -> 
 		return "breakroom_party" if choice.is_empty() else choice
 	if screen != "opening":
 		return ""
+	if stage == 0:
+		return "it_handoff"
 	if stage == 2 and beat >= 0 and beat < 3:
 		return ["conference", "call_mandarin", "conference_end"][beat]
 	if stage == 4:

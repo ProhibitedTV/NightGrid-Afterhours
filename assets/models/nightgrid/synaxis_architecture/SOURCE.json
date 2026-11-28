@@ -4,6 +4,13 @@
   "provenance": "Original NightGrid geometry with projected metre-scale UVs and authored Synaxis vector outline geometry",
   "rendering": "Shared PBR surfaces bound by Godot. Panel rows use MultiMesh. Plaques have physical backing and export no colliders.",
   "files": {
+    "entrance_portal.glb": {
+      "bytes": 411968,
+      "sha256": "86ff48210515064c6e491e46f3512a1afe1a6725ae340846356bddf118fa1233",
+      "authoring": "gen2_synaxis_architecture.py -- --entrance-only",
+      "provenance": "Original NightGrid geometry; shared repository CabinDiffuser and Poly Haven marble_01 maps, original glTF metal finishes.",
+      "placement_m": "2.60 m clear outer entrance, at the HQ local street-face datum z=-10."
+    },
     "fabric_panel.glb": {
       "sha256": "bd9d717722710e4186daff6ce4d8edf9c6b98a740f24b7ed9d25dd474b296edc",
       "bytes": 46740

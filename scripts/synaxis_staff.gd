@@ -1,6 +1,14 @@
 extends "res://scripts/lantern_patron.gd"
 ## HQ-only actors; authored identities, reusable static detail and bounded pose updates.
 ## No navigation, physics or economy ownership. The scene owns mission progression.
+const RigVisual = preload("res://scripts/pedestrian_rig_visual.gd")
+const STAFF_MODELS = {
+	"mika": "mika_torres.glb",
+	"security": "owen_pike.glb",
+	"eli": "eli_brooks.glb",
+	"reception": "nina_bell.glb",
+}
+var _imported_visual: Node3D
 var display_name := ""
 var outfit := "office"
 var hair_style := "parted"
@@ -167,6 +175,54 @@ func _ready() -> void:
 		if str(child.name)=="Hand":
 			_left_wrist=child
 			break
+	_install_imported_staff()
+
+func expects_imported_staff() -> bool:
+	if seated or not STAFF_MODELS.has(resident_id):
+		return false
+	var path := "res://assets/models/nightgrid/synaxis_staff/" + str(STAFF_MODELS[resident_id])
+	return ResourceLoader.exists(path, "PackedScene")
+
+func _install_imported_staff() -> void:
+	if seated or not STAFF_MODELS.has(resident_id):
+		return
+	var path := "res://assets/models/nightgrid/synaxis_staff/" + str(STAFF_MODELS[resident_id])
+	if not ResourceLoader.exists(path, "PackedScene"):
+		return
+	var model := load(path) as PackedScene
+	if model == null:
+		return
+	var legacy := get_children()
+	var visual := RigVisual.new()
+	visual.name = "ImportedStaffVisual"
+	visual.set_pedestrian_model(model)
+	visual.idle_clip = &"Idle"
+	visual.walk_clip = &"Walk"
+	# Keep the actor's role, transform and mission state. Its old visual
+	# scale was nonuniform, so cancel it on the meter-scale rig only.
+	visual.scale = Vector3.ONE / scale
+	add_child(visual)
+	if not visual.is_pedestrian_visual_ready():
+		remove_child(visual)
+		visual.queue_free()
+		return
+	_imported_visual = visual
+	for child in legacy:
+		if child is Node3D:
+			child.hide()
+	var skeleton := visual.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
+	var chest := skeleton.find_bone("Spine2")
+	if chest >= 0:
+		var mount := BoneAttachment3D.new()
+		mount.name = "ImportedBadgeMount"
+		mount.bone_name = "Spine2"
+		skeleton.add_child(mount)
+		mount.transform = skeleton.get_bone_global_pose(chest)
+		var badge := _badge.duplicate() as Node3D
+		mount.add_child(badge)
+		var torso_basis := global_basis.orthonormalized()
+		badge.global_basis = torso_basis.scaled(Vector3.ONE * .52)
+		badge.global_position = mount.global_position + torso_basis * Vector3(-.088, .08, .135)
 
 func _install_role_badge() -> void:
 	# Keep the existing card body; replace raised placeholder marks with
@@ -189,7 +245,7 @@ func _install_role_badge() -> void:
 	_badge.add_child(face)
 
 func enable_walk_rig() -> void:
-	if seated or not _walk_rig.is_empty():
+	if is_instance_valid(_imported_visual) or seated or not _walk_rig.is_empty():
 		return
 	# Replace only the opted-in actor's rigid standing legs. Keep identity,
 	# upper-body detail, idle animation and material cache shared.
@@ -293,6 +349,8 @@ func _animate_walk(delta:float) -> void:
 func attend(target: Vector3,active: bool) -> void:
 	_attentive=active and target.is_finite()
 	var imported:=get_node_or_null("CreatorCastVisual")
+	if is_instance_valid(_imported_visual):
+		imported = _imported_visual
 	if is_instance_valid(imported):
 		imported.call("set_attention_target",target,_attentive)
 	if _attentive:
@@ -306,6 +364,9 @@ func get_staff_state() -> Dictionary:
 	return {"id":resident_id,"name":display_name,"outfit":outfit,"hair":hair_style,"attention":_attentive,"beat":_scene_beat,"activity":activity}
 
 func _process(delta: float) -> void:
+	if is_instance_valid(_imported_visual):
+		_imported_visual.call("set_locomotion", _walk_speed)
+		return
 	super._process(delta)
 	if _head==null:
 		return

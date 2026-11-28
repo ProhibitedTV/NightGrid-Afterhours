@@ -11,9 +11,10 @@ import qc
 
 CATALOG = studio.ROOT / "tools/voice/synaxis_chapter.json"
 SPEAKERS = {"Jetson Wang":"jetson","Lin Xue":"lin","林雪":"lin","Player":"player",
-            "HR":"hr","Dev":"dev","Rina":"rina"}
+            "HR":"hr","Dev":"dev","Rina":"rina","Eli":"eli"}
 SCENES = ("CONFERENCE","CALL_MANDARIN","CONFERENCE_END","OFFBOARDING",
           "BREAKROOM_PARTY","BREAKROOM_PHOTO","BREAKROOM_DECLINE")
+LIVE_SCENES = ("IT_HANDOFF",)
 
 
 def source_constants(path):
@@ -27,15 +28,17 @@ def validate_catalog(path, source=None):
     pinned = catalog["source"]
     if not studio.REV.fullmatch(pinned["revision"]) or not studio.REV.fullmatch(pinned["blob_sha"]):
         raise ValueError("Unpinned source snapshot")
-    constants = pinned["constants"]
-    if set(constants) != set(SCENES) | {"CALL_SUBTITLES"}:
+    original = pinned["constants"]
+    if set(original) != set(SCENES) | {"CALL_SUBTITLES"}:
         raise ValueError("Missing or unexpected scene constants")
-    if source is not None:
-        current = source_constants(source)
-        if any(current.get(k) != v for k,v in constants.items()):
-            raise ValueError("Mission dialogue changed; reconcile IDs and regenerate catalog")
+    current = source_constants(source or studio.ROOT / pinned["path"])
+    if any(current.get(k) != v for k,v in original.items()):
+        raise ValueError("Mission dialogue changed; reconcile IDs and regenerate catalog")
+    if any(scene not in current for scene in LIVE_SCENES):
+        raise ValueError("Missing live mission dialogue")
+    constants = {**original, **{scene: current[scene] for scene in LIVE_SCENES}}
     expected = {}
-    for scene in SCENES:
+    for scene in SCENES + LIVE_SCENES:
         chinese = scene == "CALL_MANDARIN"
         sep = "：" if chinese else ": "
         for index,row in enumerate(constants[scene].splitlines()):
