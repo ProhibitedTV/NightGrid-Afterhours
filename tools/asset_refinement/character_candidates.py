@@ -7,6 +7,7 @@ from pathlib import Path
 import shutil
 import struct
 import subprocess
+import time
 
 ROOT = Path(__file__).resolve().parents[2]
 PROFILES = Path(__file__).with_name("character_profiles")
@@ -17,7 +18,7 @@ CORE_CAST = {"dev_rao": "Dev Rao", "rina_vale": "Rina Vale",
 REMAINING_STAFF = {"mika_torres": "Mika Torres", "eli_brooks": "Eli Brooks",
                    "owen_pike": "Owen Pike", "nina_bell": "Nina Bell"}
 ACTORS = {**CORE_CAST, **REMAINING_STAFF}
-BATCHES = {"core": tuple(CORE_CAST), "remaining-staff": tuple(REMAINING_STAFF)}
+BATCHES = {"core": tuple(CORE_CAST), "remaining-staff": tuple(REMAINING_STAFF), "all": tuple(ACTORS)}
 ANIMATIONS = {
     "dev_rao": ("idle", "walk", "carry_idle", "talk_gestures"),
     "rina_vale": ("idle", "walk", "talk_gestures"),
@@ -109,7 +110,7 @@ def plan(actor, out):
             "--out", str(folder/"export"), "--animations", ",".join(ANIMATIONS[actor])]
 
 
-def run(out, actors, execute=False):
+def run(out, actors, execute=False, resume=False):
     out = out.resolve()
     if ROOT == out or ROOT in out.parents or out in ROOT.parents:
         raise ValueError("Use a separate candidate library outside the game checkout")
@@ -123,9 +124,27 @@ def run(out, actors, execute=False):
             print(json.dumps({"actor": actor, "profile_sha256": sha(profiles[actor]),
                               "command": plan(actor, out), "status": "planned-only"}))
         return
-    out.mkdir(parents=True, exist_ok=False)
+    out.mkdir(parents=True, exist_ok=resume)
     for actor in actors:
         folder = out / actor
+        if folder.exists():
+            if not resume or folder.is_symlink() or not folder.is_dir():
+                raise ValueError("Unexpected existing actor path: " + str(folder))
+            if (folder/"candidate.json").exists():
+                record = json.loads((folder/"candidate.json").read_text(encoding="utf-8"))
+                models = sorted((folder/"export").glob("*.glb"))
+                if (len(models) != 1 or record.get("actor") != actor
+                        or record.get("profile_sha256") != sha(profiles[actor])
+                        or record.get("package") != PACKAGE
+                        or record.get("documented_source_revision") != REVISION
+                        or record.get("model") != models[0].relative_to(folder).as_posix()
+                        or record.get("structural") != inspect_glb(models[0], ANIMATIONS[actor])):
+                    raise ValueError("Existing candidate mismatch; preserve and inspect: " + actor)
+                print("SKIP verified", actor, flush=True)
+                continue
+            preserved = out/(actor + ".partial.previous-" + str(time.time_ns()))
+            folder.rename(preserved)
+            print("Preserved incomplete export:", preserved, flush=True)
         folder.mkdir()
         (folder/"profile.json").write_bytes(profiles[actor])
         subprocess.run(plan(actor, out), cwd=ROOT, check=True, timeout=900)
@@ -138,7 +157,8 @@ def record_candidate(folder, actor, profile_bytes, command):
         raise ValueError("Expected exactly one exported GLB for " + actor)
     model = models[0]
     evidence = inspect_glb(model, ANIMATIONS[actor])
-    (folder/"candidate.json").write_text(json.dumps({
+    tmp = folder/"candidate.json.partial"
+    tmp.write_text(json.dumps({
         "schema": 1, "status": "candidate-only", "actor": actor,
         "profile_sha256": sha(profile_bytes), "package": PACKAGE,
         "documented_source_revision": REVISION, "command": command,
@@ -146,7 +166,8 @@ def record_candidate(folder, actor, profile_bytes, command):
         "review_pending": ["rights", "appearance", "physical scale", "weight deformation",
                            "animation", "native Godot import", "Windows performance"]
     }, indent=2, sort_keys=True)+"\n", encoding="utf-8")
-    print("Candidate only:", actor, evidence)
+    os.replace(tmp, folder/"candidate.json")
+    print("Candidate only:", actor, evidence, flush=True)
 
 
 if __name__ == "__main__":
@@ -157,5 +178,6 @@ if __name__ == "__main__":
     selection.add_argument("--batch", choices=BATCHES, default="core",
                            help="Default preserves the original four-actor queue")
     p.add_argument("--execute", action="store_true", help="Actually invoke local Node exporter; first run may download")
+    p.add_argument("--resume", action="store_true", help="Verify completed actors and preserve interrupted ones")
     args = p.parse_args()
-    run(args.out, args.actor or list(BATCHES[args.batch]), args.execute)
+    run(args.out, args.actor or list(BATCHES[args.batch]), args.execute, args.resume)
