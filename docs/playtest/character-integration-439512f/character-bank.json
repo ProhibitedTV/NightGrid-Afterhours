@@ -1,0 +1,277 @@
+{
+  "actors": {
+    "afterhours_patron_01": {
+      "bytes": 7081388,
+      "clips": [
+        "Idle",
+        "Talk with gestures",
+        "Walk"
+      ],
+      "joints": 66,
+      "sha256": "a13bfc09732c6b784e5533c96002bfb13620ccb44695188e700d4ecf36056307",
+      "weighted_primitives": 23
+    },
+    "afterhours_patron_02": {
+      "bytes": 5990352,
+      "clips": [
+        "Idle",
+        "Talk with gestures",
+        "Walk"
+      ],
+      "joints": 66,
+      "sha256": "aac95e363797ef6685fe3d8a9f6ebbe007417eb76329c02107783feefaf1edaf",
+      "weighted_primitives": 14
+    },
+    "brickwater_night_worker_01": {
+      "bytes": 5987792,
+      "clips": [
+        "Idle",
+        "Talk with gestures",
+        "Walk"
+      ],
+      "joints": 66,
+      "sha256": "09149673d851c033100fabca8072f55b4ee429b0dda95b49daddbd05b964d845",
+      "weighted_primitives": 14
+    },
+    "brickwater_night_worker_02": {
+      "bytes": 6132752,
+      "clips": [
+        "Idle",
+        "Talk with gestures",
+        "Walk"
+      ],
+      "joints": 66,
+      "sha256": "bfd8e85485e794511d5179bcf8e93b860dfb47e3496dac64e3a7ff0946ee5944",
+      "weighted_primitives": 18
+    },
+    "brickwater_resident_01": {
+      "bytes": 6238224,
+      "clips": [
+        "Idle",
+        "Talk with gestures",
+        "Walk"
+      ],
+      "joints": 66,
+      "sha256": "1e5c15e261bedb152526e1af4ea50f255e447da265e27a8cc5493e92263e0806",
+      "weighted_primitives": 18
+    },
+    "brickwater_resident_02": {
+      "bytes": 5852512,
+      "clips": [
+        "Idle",
+        "Talk with gestures",
+        "Walk"
+      ],
+      "joints": 66,
+      "sha256": "9306d51ab170932a7999a394d779bdc8c55f4e977e57cf9ada74ad51c9a9b9d6",
+      "weighted_primitives": 18
+    },
+    "dana_mercer": {
+      "bytes": 5915860,
+      "clips": [
+        "Idle",
+        "Sit down (chair)",
+        "Sit idle (chair)",
+        "Stand up (chair)",
+        "Walk"
+      ],
+      "joints": 66,
+      "sha256": "642073bc5d603e0dff9b99c5f6e0d2a5f8565bb995bea7636f1568cdafd70d84",
+      "weighted_primitives": 20
+    },
+    "dev_rao": {
+      "bytes": 6597456,
+      "clips": [
+        "Carry idle",
+        "Idle",
+        "Talk with gestures",
+        "Walk"
+      ],
+      "joints": 66,
+      "sha256": "da44fc3cef88d7f55f2837b22b355140536ac19f0530a0779d1257a30d93bdd6",
+      "weighted_primitives": 21
+    },
+    "dock_worker_01": {
+      "bytes": 8065924,
+      "clips": [
+        "Idle",
+        "Talk with gestures",
+        "Walk"
+      ],
+      "joints": 66,
+      "sha256": "25143fa7b8770133cd9813fb7689b35a3e348a7c7b029f3af39b9cf60364a16e",
+      "weighted_primitives": 19
+    },
+    "dock_worker_02": {
+      "bytes": 7442032,
+      "clips": [
+        "Idle",
+        "Talk with gestures",
+        "Walk"
+      ],
+      "joints": 66,
+      "sha256": "65ae57ffee67e2ea7904ac11f82dd0c0ba12c775bb43f060a8b195e8dd4ee4b0",
+      "weighted_primitives": 17
+    },
+    "eli_brooks": {
+      "bytes": 6644972,
+      "clips": [
+        "Carry idle",
+        "Idle",
+        "Talk with gestures",
+        "Walk"
+      ],
+      "joints": 66,
+      "sha256": "eb7317c1b3f3f1bed2cbccb58e2f14405be1028de4d0b089132d8987d568e9ba",
+      "weighted_primitives": 21
+    },
+    "horizon_visitor_01": {
+      "bytes": 5966356,
+      "clips": [
+        "Idle",
+        "Talk with gestures",
+        "Walk"
+      ],
+      "joints": 66,
+      "sha256": "e1f15489ca5399b96bd013670b82b947858673deadaee72d7ae31336bae488a6",
+      "weighted_primitives": 18
+    },
+    "horizon_visitor_02": {
+      "bytes": 6242612,
+      "clips": [
+        "Idle",
+        "Talk with gestures",
+        "Walk"
+      ],
+      "joints": 66,
+      "sha256": "21179fc6258facf0987c810f57b0336e2aa506441d3447646303db2ab8783dec",
+      "weighted_primitives": 18
+    },
+    "jetson_wang": {
+      "bytes": 6053556,
+      "clips": [
+        "Idle",
+        "Sit down (chair)",
+        "Sit idle (chair)",
+        "Stand up (chair)",
+        "Walk"
+      ],
+      "joints": 66,
+      "sha256": "4f7878f077863584eb6ff9229cb8175d427db8298b45987184a1bcc85fdf8d36",
+      "weighted_primitives": 21
+    },
+    "mika_torres": {
+      "bytes": 5904316,
+      "clips": [
+        "Idle",
+        "Talk with gestures",
+        "Walk"
+      ],
+      "joints": 66,
+      "sha256": "13e851bf671e5c4fa8c051cd25e8245b1b4b1feaed312c2938c449a63ed29767",
+      "weighted_primitives": 21
+    },
+    "nina_bell": {
+      "bytes": 5792368,
+      "clips": [
+        "Idle",
+        "Talk with gestures",
+        "Walk"
+      ],
+      "joints": 66,
+      "sha256": "536b178c14bdf64605a3adcda7e7853a65d7a2cfea1c0e0dde346ba3a6a9224f",
+      "weighted_primitives": 19
+    },
+    "owen_pike": {
+      "bytes": 5980792,
+      "clips": [
+        "Idle",
+        "Talk with gestures",
+        "Walk"
+      ],
+      "joints": 66,
+      "sha256": "a1093645f18f1faf99adfa7798aabe74e7049d4b94babbfdc4dd4c4f8c5a4e2b",
+      "weighted_primitives": 21
+    },
+    "rina_vale": {
+      "bytes": 6131468,
+      "clips": [
+        "Idle",
+        "Talk with gestures",
+        "Walk"
+      ],
+      "joints": 66,
+      "sha256": "74321e1f1184090c50915ef8901d7c2b067f8643d21bb85055166558b4b1b08e",
+      "weighted_primitives": 19
+    },
+    "security_base_01": {
+      "bytes": 6401348,
+      "clips": [
+        "Idle",
+        "Talk with gestures",
+        "Walk"
+      ],
+      "joints": 66,
+      "sha256": "920cd695312c5c9eabceb2f950adab9eeb73aa05f62d7374b63f0b2dde794a57",
+      "weighted_primitives": 21
+    },
+    "security_base_02": {
+      "bytes": 6495832,
+      "clips": [
+        "Idle",
+        "Talk with gestures",
+        "Walk"
+      ],
+      "joints": 66,
+      "sha256": "af161465d015276e2f1116f5bbe6e632f0c0e0b3a0d5949d60b4c76586a00212",
+      "weighted_primitives": 21
+    },
+    "service_staff_01": {
+      "bytes": 5903272,
+      "clips": [
+        "Idle",
+        "Talk with gestures",
+        "Walk"
+      ],
+      "joints": 66,
+      "sha256": "39823c2b2d4ecb542e3e43239610c2332e8bde235baf0c2b1ffe827b8166e935",
+      "weighted_primitives": 18
+    },
+    "service_staff_02": {
+      "bytes": 6332500,
+      "clips": [
+        "Idle",
+        "Talk with gestures",
+        "Walk"
+      ],
+      "joints": 66,
+      "sha256": "f29e9c3f3e32dce3d5abf82bd3d18319d92568c799aeb522bc799744daaac93f",
+      "weighted_primitives": 18
+    },
+    "vesper_market_visitor_01": {
+      "bytes": 5932444,
+      "clips": [
+        "Idle",
+        "Talk with gestures",
+        "Walk"
+      ],
+      "joints": 66,
+      "sha256": "f028aa955e010fd95f8b37485d8190ac5162a43dbdb04fb197ace8c971178e4b",
+      "weighted_primitives": 18
+    },
+    "vesper_market_visitor_02": {
+      "bytes": 5862260,
+      "clips": [
+        "Idle",
+        "Talk with gestures",
+        "Walk"
+      ],
+      "joints": 66,
+      "sha256": "21938ec3f295814fc82292e2e1cf1ea0fa9fa1d00cb3bc35b73f1d853bc6dbcb",
+      "weighted_primitives": 18
+    }
+  },
+  "package": "ara3d@0.13.0",
+  "schema": 1,
+  "source_revision": "9d3b9f9933cbeb9529630a270ffc7fe01bd05511"
+}

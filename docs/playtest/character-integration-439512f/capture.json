@@ -1,0 +1,209 @@
+{
+	"adapter": "NVIDIA GeForce RTX 3060",
+	"baked_ground": true,
+	"driver": "vulkan",
+	"fov": 64.0,
+	"hour": 17.0,
+	"renderer": "forward_plus",
+	"resolution": [
+		1920,
+		1080
+	],
+	"revision": "",
+	"simulation_paused": false,
+	"views": [
+		{
+			"cpu_p95_ms": 14.3570003509521,
+			"frame_p95_ms": 24.345,
+			"frame_p99_ms": 26.955,
+			"gpu_p95_ms": 7.26300001144409,
+			"name": "hq_approach",
+			"samples": 180,
+			"sha256": "47de6dd33e0a71cc7c516640ef8938ec89d60956880be1c4e7cd54287cbf9c6f",
+			"unfocused": 0,
+			"worst_frame": {
+				"focused": true,
+				"frame_ms": 27.391,
+				"gpu_ms": 6.40399980545044,
+				"render_cpu_ms": 12.41100025177
+			}
+		},
+		{
+			"cpu_p95_ms": 11.9919996261597,
+			"frame_p95_ms": 24.776,
+			"frame_p99_ms": 31.686,
+			"gpu_p95_ms": 6.61199998855591,
+			"name": "visitor_lobby",
+			"samples": 180,
+			"sha256": "9b76ea42b4b53cad873661e4d7e5622fadb61fea979f9e4f818bf132e6169e60",
+			"unfocused": 0,
+			"worst_frame": {
+				"focused": true,
+				"frame_ms": 32.289,
+				"gpu_ms": 5.43300008773804,
+				"render_cpu_ms": 7.91699981689453
+			}
+		},
+		{
+			"cpu_p95_ms": 12.2320003509521,
+			"frame_p95_ms": 21.358,
+			"frame_p99_ms": 22.638,
+			"gpu_p95_ms": 6.40799999237061,
+			"name": "reception",
+			"samples": 180,
+			"sha256": "5522ba953972e6b3934f31e1b2e6b7ca7989a511ea8fa11edfde76da8b2e5755",
+			"unfocused": 0,
+			"worst_frame": {
+				"focused": true,
+				"frame_ms": 24.021,
+				"gpu_ms": 5.10099983215332,
+				"render_cpu_ms": 11.9020004272461
+			}
+		},
+		{
+			"cpu_p95_ms": 14.7480001449585,
+			"frame_p95_ms": 25.875,
+			"frame_p99_ms": 27.477,
+			"gpu_p95_ms": 8.07999992370605,
+			"name": "reception_detail",
+			"samples": 180,
+			"sha256": "361ed48d52eeb78c8b984a87210d0284a1981d0f608153fe7d3871e05e31402b",
+			"unfocused": 0,
+			"worst_frame": {
+				"focused": true,
+				"frame_ms": 29.777,
+				"gpu_ms": 6.86700010299683,
+				"render_cpu_ms": 11.835000038147
+			}
+		},
+		{
+			"cpu_p95_ms": 13.1879997253418,
+			"frame_p95_ms": 22.698,
+			"frame_p99_ms": 24.923,
+			"gpu_p95_ms": 7.11499977111816,
+			"name": "lift_landing",
+			"samples": 180,
+			"sha256": "062705d26428519163cae4d75959ac551fee9cfb5f0f6bd32fe3cd3c01957717",
+			"unfocused": 0,
+			"worst_frame": {
+				"focused": true,
+				"frame_ms": 25.051,
+				"gpu_ms": 6.06899976730347,
+				"render_cpu_ms": 13.0109996795654
+			}
+		},
+		{
+			"cpu_p95_ms": 13.2600002288818,
+			"frame_p95_ms": 34.416,
+			"frame_p99_ms": 37.856,
+			"gpu_p95_ms": 7.14400005340576,
+			"name": "breakroom",
+			"samples": 180,
+			"sha256": "ed99184926b29f1152ce9977beae78f3be37d397636b27b2b15779740c12a7f1",
+			"unfocused": 0,
+			"worst_frame": {
+				"focused": true,
+				"frame_ms": 43.981,
+				"gpu_ms": 5.41300010681152,
+				"render_cpu_ms": 9.51000022888184
+			}
+		},
+		{
+			"cpu_p95_ms": 16.4220008850098,
+			"frame_p95_ms": 28.523,
+			"frame_p99_ms": 30.316,
+			"gpu_p95_ms": 8.87199974060059,
+			"name": "restrooms",
+			"samples": 180,
+			"sha256": "87ebbf6838023761d2b94af0887210a8b3006d54b9db842d4c7280ee2b8e6c59",
+			"unfocused": 0,
+			"worst_frame": {
+				"focused": true,
+				"frame_ms": 30.409,
+				"gpu_ms": 8.14599990844727,
+				"render_cpu_ms": 13.9829998016357
+			}
+		},
+		{
+			"cpu_p95_ms": 9.875,
+			"frame_p95_ms": 17.156,
+			"frame_p99_ms": 18.302,
+			"gpu_p95_ms": 5.60799980163574,
+			"name": "department",
+			"samples": 180,
+			"sha256": "45859aa1bf619135ab01fbb77a35f96aef62591883a8feacb6c706ff17750371",
+			"unfocused": 0,
+			"worst_frame": {
+				"focused": true,
+				"frame_ms": 18.579,
+				"gpu_ms": 4.88800001144409,
+				"render_cpu_ms": 6.80100011825562
+			}
+		},
+		{
+			"cpu_p95_ms": 10.4460000991821,
+			"frame_p95_ms": 17.519,
+			"frame_p99_ms": 19.761,
+			"gpu_p95_ms": 5.65899991989136,
+			"name": "it_service",
+			"samples": 180,
+			"sha256": "6b78ea81bf8694394f5a165469afd57121a1b17bd16aea2d47395d487eaca2e2",
+			"unfocused": 0,
+			"worst_frame": {
+				"focused": true,
+				"frame_ms": 20.611,
+				"gpu_ms": 4.97300004959106,
+				"render_cpu_ms": 8.5290002822876
+			}
+		},
+		{
+			"cpu_p95_ms": 7.93400001525879,
+			"frame_p95_ms": 16.526,
+			"frame_p99_ms": 17.381,
+			"gpu_p95_ms": 4.64599990844727,
+			"name": "executive_landing",
+			"samples": 180,
+			"sha256": "c23272081801c12600ad69c04448409e3e5beedc3c92493bdec7830b22b7e195",
+			"unfocused": 0,
+			"worst_frame": {
+				"focused": true,
+				"frame_ms": 17.431,
+				"gpu_ms": 4.05999994277954,
+				"render_cpu_ms": 7.39300012588501
+			}
+		},
+		{
+			"cpu_p95_ms": 9.27000045776367,
+			"frame_p95_ms": 17.095,
+			"frame_p99_ms": 18.123,
+			"gpu_p95_ms": 5.59200000762939,
+			"name": "boardroom",
+			"samples": 180,
+			"sha256": "afcca4b36cb96de1054dce9419c351440aa024ba1975278f70201f48dac28914",
+			"unfocused": 0,
+			"worst_frame": {
+				"focused": true,
+				"frame_ms": 19.143,
+				"gpu_ms": 4.55399990081787,
+				"render_cpu_ms": 6.59000015258789
+			}
+		},
+		{
+			"cpu_p95_ms": 4.90999984741211,
+			"frame_p95_ms": 11.743,
+			"frame_p99_ms": 12.334,
+			"gpu_p95_ms": 3.26699995994568,
+			"name": "founder_suite",
+			"samples": 180,
+			"sha256": "ae4bea0556ceab1f0ad41c2b3e298b7e69938c474e16e7dd64e18935921af533",
+			"unfocused": 0,
+			"worst_frame": {
+				"focused": true,
+				"frame_ms": 13.382,
+				"gpu_ms": 2.78999996185303,
+				"render_cpu_ms": 3.27999997138977
+			}
+		}
+	],
+	"vsync": 0
+}
