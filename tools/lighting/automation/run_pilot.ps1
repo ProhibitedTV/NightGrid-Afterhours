@@ -37,6 +37,13 @@ function Run-Guarded([string]$Name,[string]$Arguments) {
         if (!$proc.HasExited) { Stop-Process -Id $proc.Id -Force; $proc.WaitForExit() }
     }
 }
+# Import dependencies before activating the editor-only experimental plugin.
+$cfg = Join-Path $Project 'project.godot'
+$enabled = Get-Content -Raw $cfg
+$disabled = $enabled.Replace('enabled=PackedStringArray("res://addons/nightgrid_bake/plugin.cfg")','enabled=PackedStringArray()')
+$disabled | Set-Content -Encoding ASCII $cfg
+Run-Guarded 'initial-import' "--headless --editor --path `"$Project`" --import"
+$enabled | Set-Content -Encoding ASCII $cfg
 # Native editor, not headless bake. The pilot plugin saves and exits.
 Run-Guarded 'bake' "--editor --path `"$Project`" --rendering-method forward_plus --rendering-driver vulkan --language en"
 $result = Get-Content -Raw (Join-Path $Project 'bake-result.json') | ConvertFrom-Json
@@ -47,6 +54,9 @@ $cfg = Join-Path $Project 'project.godot'
 Run-Guarded 'import' "--headless --editor --path `"$Project`" --import"
 Run-Guarded 'validate' "--headless --path `"$Project`" --script res://tools/lighting/validate_synaxis_reception.gd"
 if (!(Select-String -Quiet -SimpleMatch 'SYNAXIS_RECEPTION_LIGHTMAP_INPUT PASS' (Join-Path $Project 'validate.stdout.log'))) { throw 'Missing independent validation marker' }
+$evidence = Join-Path $Project 'evidence'
+Run-Guarded 'capture' "--path `"$Project`" --fullscreen --resolution 1920x1080 --rendering-method forward_plus --rendering-driver vulkan --script res://tools/lighting/capture_synaxis_reception_bake.gd -- `"$evidence`""
+if (!(Test-Path (Join-Path $evidence 'pilot.json'))) { throw 'Native matched image/probe comparison did not pass' }
 $atlas = @(Get-ChildItem (Join-Path $Project 'tools/lighting') -File | Where-Object { $_.Extension -in '.exr','.lmbake','.tscn' })
 if (!($atlas | Where-Object Extension -eq '.exr') -or !($atlas | Where-Object Extension -eq '.lmbake')) { throw 'Missing new atlas files' }
 $records = @($atlas | ForEach-Object { @{file=$_.Name; bytes=$_.Length; sha256=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()} })

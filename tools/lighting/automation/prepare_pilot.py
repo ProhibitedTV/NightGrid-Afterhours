@@ -22,7 +22,7 @@ def prepare(out):
     source=re.sub(r'^light_data = ExtResource\("[^"]+"\)\n','',source,flags=re.M)
     out.mkdir(parents=True)
     hashes={}
-    for relative in [*paths,VALIDATOR]:
+    for relative in [*paths,VALIDATOR,"tools/lighting/capture_synaxis_reception_bake.gd"]:
         if relative.endswith(".lmbake"): continue
         src=ROOT/relative
         if not src.is_file() or ROOT not in src.resolve().parents:
