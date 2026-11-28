@@ -45,3 +45,8 @@ Intercity courier/freight, jobs, music touring, venues, property, transit and ju
 - [Regional vision](CASCADIA_REGIONAL_VISION.md), [street morphology](MORROW_BAY_STREET_MORPHOLOGY.md), [Synaxis architectural study](SYNAXIS_HQ_ARCHITECTURAL_RESEARCH.md).
 - `tools/asset_refinement/regional_concept.json` is the schematic atlas source; `regional_candidates.py` exports JSON/SVG and architecture demand. State name is fixed; settlement names and positions provisional.
 - #590 production dispatcher; #592 urban redevelopment; #593 regional roadmap. Keep these open until their actual implementation/acceptance gates pass. The current consolidated PR #591 is a candidate production implementation, not certification of the whole vision.
+
+### 7. Detailed implementation contracts
+- [World architecture and migration](CASCADIA_WORLD_ARCHITECTURE.md): coordinate/identity separation, legacy route parity, save transactions, regional travel states, resource ownership, test matrix.
+- [Urban and architectural production bible](CASCADIA_ARCHITECTURE_BIBLE.md): city signatures, kit hierarchy, place-driven work orders and vertical slice content requirements.
+These documents expand the approved plan; the engineering designs and first pilot allocation are proposals, not active features.
