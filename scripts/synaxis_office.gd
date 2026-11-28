@@ -585,14 +585,19 @@ func _build_reception_light(at: Vector3) -> void:
 		light = area
 	else:
 		var spot := SpotLight3D.new()
-		spot.name = "OfficeDownlight"
+		spot.name = "ReceptionSpot"
 		spot.spot_range = 7.0
-		spot.spot_angle = 65.0
+		spot.spot_angle = 58.0
 		spot.spot_attenuation = 1.1
-		spot.light_energy = .85
+		spot.light_energy = 1.35
 		light = spot
 	light.position = at - Vector3(0,.154,0)
 	light.rotation.x = -PI/2
+	if light is SpotLight3D:
+		# Feed the reception worktop from the desk end of the linear lens.
+		# The existing shadow pass also reaches Nina and the stone behind her.
+		light.position.x += 1.04
+		light.basis = Basis.looking_at(Vector3(6.15, 1.25, 8.30) - light.position)
 	light.light_color = Color("fff0da")
 	light.light_bake_mode = Light3D.BAKE_DISABLED
 	light.shadow_enabled = true

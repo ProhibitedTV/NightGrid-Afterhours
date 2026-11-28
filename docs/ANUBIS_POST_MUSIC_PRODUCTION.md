@@ -16,7 +16,17 @@ Native bake experiment (explicit Windows console executable, NOT headless baker)
 
     bash tools/asset_refinement/run_post_music.sh --execute --lane lighting --godot '/mnt/c/path/to/Godot_v4.7.2-stable_win64_console.exe'
 
-Or include --godot in the full run to execute all three sequentially. Fresh isolated scratch project under Z:/NightGrid-Afterhours/Visual/Lighting/postmusic-001, containing only reception source inputs. Existing checked-in atlas is deliberately excluded. Editor plugin uses Godot 4.7.2 native Bake Lightmaps button and file_selected dialog signal, not a nonexistent LightmapGI.bake GDScript method. Windows watchdog monitors only spawned Godot PID, stops at 85C or missing telemetry, low space or timeout. Do not interrupt Windows interop by closing WSL; if interrupted inspect the spawned Godot process before running another job. The plugin and automation have not yet been tested on real Anubis; fail closed and preserve logs, retry with a new batch. Native validation and existing fixed-camera baked-vs-realtime capture script must pass before validated-bake.json. No auto integration. High quality first, Ultra comparisons later.
+The default `reception` profile stages the established pilot. Use `--lighting-profile synaxis-ground` to stage the actual playable envelope with its seven authored probe positions. Both profiles verify source dependencies in a fresh NAS project. They exclude the existing atlas and let the native editor bake after both scanning and importing settle. The WSL launcher retains the production locks throughout the foreground run. The Windows watchdog retains the spawned process handle and stops that process on timeout, low disk space, missing thermal telemetry or an 85 °C reading.
+
+On Anubis, `postmusic-004` completed the isolated reception bake and native witness comparison on the RTX 3060. The supervisor writes `validated-bake.json` only after the independent UV2 and directional-atlas checks and the fixed-camera comparison pass. Review the results before replacing the live atlas. Run the playable export separately to check room transitions, actors and direct shadows.
+
+The `postmusic-synaxis-ground-002` run produced a fresh directionally baked envelope and validated 11 mesh bindings and seven authored probes. The independent capture still found zero indirect lift at the reception return when the witness was isolated from the direct spotlight. This candidate remains at the review gate. The playable calibrated atlas stays in use while the return area needs a better-motivated fixture contribution or probe placement.
+
+For the finished batch, point the existing native reviewer at the candidate root:
+
+    godot --path <review-project> --resolution 1920x1080 --rendering-method forward_plus --rendering-driver vulkan --script res://tools/asset_refinement/validate_character.gd -- --batch <NAS-candidate-root> <new-evidence-directory>
+
+The reviewer checks each manifest hash and captures every named animation in the same scene setup. It preserves single-model mode. The geometry validator also accepts a second argument for a new 1080p architecture PNG. These reviews leave the NAS sources and approval records intact.
 
 ## Codex handoff
 

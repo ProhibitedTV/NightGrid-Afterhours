@@ -1,8 +1,6 @@
 @tool
 extends EditorPlugin
-## Isolated editor pilot only; uses the native Godot 4.7.2 toolbar signal.
-const SCENE = "res://tools/lighting/synaxis_reception_bake.tscn"
-const OUTPUT = "res://tools/lighting/synaxis_reception_bake.lmbake"
+## Isolated editor stage only; uses the native Godot 4.7.2 toolbar signal.
 var started := false
 
 func _enter_tree() -> void:
@@ -21,25 +19,38 @@ func _run() -> void:
 	if started:
 		return
 	started = true
-	if not FileAccess.file_exists("res://nightgrid_bake_pilot.marker") or FileAccess.file_exists(OUTPUT):
+	if not FileAccess.file_exists("res://nightgrid_bake_pilot.marker"):
 		_stop("Not a fresh isolated bake project", 1)
+		return
+	var inputs: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://inputs.json"))
+	if not inputs is Dictionary:
+		_stop("Missing stage metadata", 1)
+		return
+	var relative_scene := str(inputs.get("scene"))
+	if relative_scene != "tools/lighting/synaxis_reception_bake.tscn" and relative_scene != "scenes/synaxis/ground_envelope.tscn":
+		_stop("Unknown bake scene", 1)
+		return
+	var scene_path := "res://" + relative_scene
+	var output_path := scene_path.get_basename() + ".lmbake"
+	if FileAccess.file_exists(output_path):
+		_stop("Bake would overwrite an existing atlas", 1)
 		return
 	if not await _wait_filesystem_idle():
 		_stop("Initial native import did not settle", 1)
 		return
-	EditorInterface.open_scene_from_path(SCENE)
+	EditorInterface.open_scene_from_path(scene_path)
 	for i in range(300):
 		await get_tree().process_frame
 		var scene := EditorInterface.get_edited_scene_root()
-		if scene != null and scene.scene_file_path == SCENE:
+		if scene != null and scene.scene_file_path == scene_path:
 			break
 	var scene := EditorInterface.get_edited_scene_root()
-	if scene == null or scene.scene_file_path != SCENE:
+	if scene == null or scene.scene_file_path != scene_path:
 		_stop("Pilot scene did not open", 1)
 		return
-	var gi := scene.get_node_or_null("ReceptionGI") as LightmapGI
+	var gi := scene.get_node_or_null(str(inputs.get("gi_node"))) as LightmapGI
 	if gi == null or gi.light_data != null:
-		_stop("Expected unbaked reception fixture", 1)
+		_stop("Expected unbaked LightmapGI", 1)
 		return
 	gi.set_bake_quality(LightmapGI.BAKE_QUALITY_HIGH)
 	print("NIGHTGRID_BAKE_PILOT: High quality selected")
@@ -78,12 +89,12 @@ func _run() -> void:
 		_stop("Bake selection disappeared while waiting for imports", 1)
 		return
 	print("NIGHTGRID_BAKE_PILOT: Invoking native baker")
-	dialog.file_selected.emit(OUTPUT)
+	dialog.file_selected.emit(output_path)
 	print("NIGHTGRID_BAKE_PILOT: Native baker returned")
 	# The native signal is synchronous. Never accept a log message alone.
 	await get_tree().process_frame
 	var data := gi.light_data
-	if data == null or data.get_user_count() < 1 or data.lightmap_textures.is_empty() or not FileAccess.file_exists(OUTPUT):
+	if data == null or data.get_user_count() != int(inputs.get("receivers", 0)) or data.lightmap_textures.is_empty() or not FileAccess.file_exists(output_path):
 		_stop("No fresh bound directional atlas produced", 1)
 		return
 	if not data.is_using_spherical_harmonics():
@@ -96,7 +107,9 @@ func _run() -> void:
 	if marker == null:
 		_stop("Could not write result", 1)
 		return
-	marker.store_string(JSON.stringify({"status":"candidate-only","users":data.get_user_count(),"quality":"high","renderer":RenderingServer.get_current_rendering_method(),"adapter":RenderingServer.get_video_adapter_name()}))
+	marker.store_string(JSON.stringify({"status":"candidate-only","scene":relative_scene,
+		"users":data.get_user_count(),"quality":"high","renderer":RenderingServer.get_current_rendering_method(),
+		"adapter":RenderingServer.get_video_adapter_name()}))
 	marker.close()
 	_stop("Native bake candidate produced; independent validation required", 0)
 

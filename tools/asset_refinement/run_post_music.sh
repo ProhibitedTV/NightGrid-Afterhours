@@ -7,17 +7,20 @@ batch="postmusic-001"
 mode=plan
 godot=""
 lane=all
+lighting_profile=reception
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --execute) mode=execute; shift ;;
     --batch) batch="$2"; shift 2 ;;
     --godot) godot="$2"; shift 2 ;;
     --lane) lane="$2"; shift 2 ;;
+    --lighting-profile) lighting_profile="$2"; shift 2 ;;
     *) echo "Unknown argument: $1"; exit 2 ;;
   esac
 done
 [[ "$batch" =~ ^postmusic-[a-z0-9][a-z0-9-]{0,30}$ ]] || { echo "Invalid batch name"; exit 2; }
 [[ "$lane" =~ ^(all|buildings|characters|lighting)$ ]] || { echo "Invalid lane"; exit 2; }
+[[ "$lighting_profile" =~ ^(reception|synaxis-ground)$ ]] || { echo "Invalid lighting profile"; exit 2; }
 root=/mnt/z/NightGrid-Afterhours
 build="$root/Visual/Architecture/$batch"
 cast="$root/Characters/$batch"
@@ -25,7 +28,7 @@ lighting="$root/Visual/Lighting/$batch"
 if [[ "$mode" == plan ]]; then
   python3 tools/asset_refinement/building_candidates.py --out "$build"
   python3 tools/asset_refinement/character_candidates.py --batch all --out "$cast"
-  echo "Lighting pilot: $lighting (requires explicit Windows Godot 4.7.2 console exe with --godot)"
+  echo "Lighting profile $lighting_profile: $lighting (requires explicit Windows Godot 4.7.2 console exe with --godot)"
   exit
 fi
 [[ "$EUID" == 0 ]] || { echo "Use existing root WSL terminal"; exit 2; }
@@ -60,7 +63,7 @@ if [[ "$lane" == all || "$lane" == lighting ]]; then
     [[ -f "$godot" && "$godot" == *.exe ]] || { echo "Provide exact Windows Godot console executable in WSL path syntax"; exit 2; }
     # Native PowerShell monitors and terminates its own editor PID on safety failure.
     # Keep the existing WSL factory locks for the duration of this foreground run.
-    python3 tools/lighting/automation/prepare_pilot.py --out "$lighting"
+    python3 tools/lighting/automation/prepare_pilot.py --out "$lighting" --profile "$lighting_profile"
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath -w "$repo/tools/lighting/automation/run_pilot.ps1")" -Godot "$(wslpath -w "$godot")" -Project "$(wslpath -w "$lighting")"
   fi
 fi
