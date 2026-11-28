@@ -185,6 +185,8 @@ func _install_imported_staff() -> void:
 	if Bank.available():
 		_imported_visual = Bank.install(self, Bank.choose(resident_id, outfit, true), seated)
 		if is_instance_valid(_imported_visual):
+			if ROLE_BADGES.has(resident_id):
+				_attach_imported_badge(_imported_visual)
 			return
 	if seated or not STAFF_MODELS.has(resident_id):
 		return
@@ -212,7 +214,13 @@ func _install_imported_staff() -> void:
 	for child in legacy:
 		if child is Node3D:
 			child.hide()
-	var skeleton := visual.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
+	_attach_imported_badge(visual)
+
+func _attach_imported_badge(visual: Node3D) -> void:
+	var skeletons := visual.find_children("*", "Skeleton3D", true, false)
+	if skeletons.size() != 1 or not is_instance_valid(_badge):
+		return
+	var skeleton := skeletons[0] as Skeleton3D
 	var chest := skeleton.find_bone("Spine2")
 	if chest >= 0:
 		var mount := BoneAttachment3D.new()

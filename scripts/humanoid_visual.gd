@@ -3,6 +3,8 @@ extends Node3D
 ## generic shopkeepers. A readable clothed figure with articulated limb rigs,
 ## not a rectangle mannequin. Art-final PBR/skinned mesh is still outstanding.
 static var _shared_mats: Dictionary = {}
+const CharacterBank = preload("res://scripts/character_bank.gd")
+var _bank_visual: Node3D
 var palette_index := 0
 var role := "PLAYER"
 var _clock := 0.0
@@ -44,6 +46,13 @@ func _ready() -> void:
 	_build_character()
 	if role == "PLAYER":
 		_build_weapon_display()
+	else:
+		var id := str(CharacterBank.SERVICE[posmod(palette_index, CharacterBank.SERVICE.size())])
+		if role == "ARCADE":
+			id = str(CharacterBank.STREET[posmod(palette_index, CharacterBank.STREET.size())])
+		elif role in ["DISPATCH", "POLICE", "SECURITY"]:
+			id = str(CharacterBank.SECURITY[posmod(palette_index, CharacterBank.SECURITY.size())])
+		_bank_visual = CharacterBank.install(self, id)
 
 func set_weapon_pose(id: String, aiming: bool) -> void:
 	_weapon_id = id
@@ -70,6 +79,10 @@ func _build_weapon_display() -> void:
 	_weapon_display.hide()
 
 func _process(delta: float) -> void:
+	if is_instance_valid(_bank_visual):
+		_bank_visual.call("set_locomotion", _speed * 8.0)
+		_speed = move_toward(_speed, 0.0, delta * 6.0)
+		return
 	_clock = fposmod(_clock + delta, 1200.0)
 	if _torso == null:
 		return
