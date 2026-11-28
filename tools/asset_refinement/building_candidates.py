@@ -126,7 +126,60 @@ def textures():
             maps[rel]=raw
     return maps
 
+# Lightmap UV charts are packed across all materials, not per surface.
+# Geometry here is authored as independent planar rectangles (four vertices).
+# A fixed atlas with 4 px gutters and world-size proportional charts provides
+# a deterministic UV2 candidate. Native Godot may choose a different atlas size.
+UV2_SIZE = 2048
+UV2_GUTTER = 4
+
+def lightmap_uvs(surfaces, size=UV2_SIZE, gutter=UV2_GUTTER):
+    charts = []
+    for mat, surface in surfaces.items():
+        if len(surface.p) % 12 or len(surface.i) != len(surface.p)//12*6:
+            raise ValueError("Expected rectangular face topology")
+        for i in range(0,len(surface.p),12):
+            v = [surface.p[i+j:i+j+3] for j in (0,3,6,9)]
+            w = math.dist(v[0],v[1])
+            h = math.dist(v[1],v[2])
+            if min(w,h)<=0 or not math.isclose(w,math.dist(v[2],v[3]),rel_tol=1e-6) or not math.isclose(h,math.dist(v[3],v[0]),rel_tol=1e-6):
+                raise ValueError("Invalid rectangular chart")
+            charts.append((mat,i//3,w,h))
+    def fit(density):
+        rects = [(mat,i,max(1,math.ceil(w*density)),max(1,math.ceil(h*density))) for mat,i,w,h in charts]
+        rects.sort(key=lambda a:(-a[3],-a[2],a[0],a[1]))
+        x=y=row=0
+        placed=[]
+        for mat,i,w,h in rects:
+            ww,hh=w+2*gutter,h+2*gutter
+            if ww>size or hh>size:
+                return None
+            if x+ww>size:
+                x=0;y+=row;row=0
+            if y+hh>size:
+                return None
+            placed.append((mat,i,x+gutter,y+gutter,w,h))
+            x+=ww;row=max(row,hh)
+        return placed
+    if not charts or fit(0) is None:
+        raise ValueError("UV2 chart count exceeds atlas capacity")
+    lo,hi=0.,float(size)
+    for _ in range(24):
+        mid=(lo+hi)/2
+        if fit(mid) is None: hi=mid
+        else: lo=mid
+    if lo<=0:
+        raise ValueError("No positive lightmap density fits")
+    placed=fit(lo)
+    uvs={mat:[0.]*(len(s.p)//3*2) for mat,s in surfaces.items()}
+    for mat,i,x,y,w,h in placed:
+        uvs[mat][i*2:i*2+8]=[q/size for q in (x,y,x+w,y,x+w,y+h,x,y+h)]
+    return uvs,{"atlas_reference_px":size,"gutter_px":gutter,"charts":len(charts),
+                "reference_texels_per_m":round(lo,3),
+                "chart_occupancy":round(sum(w*h for _,_,_,_,w,h in placed)/size**2,4)}
+
 def encode(surfaces,maps):
+    uv2, _ = lightmap_uvs(surfaces)
     blob=bytearray()
     views,accessors,images,prims,materials=[],[],[],[],[]
     def view(raw,target=None):
@@ -160,7 +213,7 @@ def encode(surfaces,maps):
                "metallicRoughnessTexture":tex("arm_1k.png"),"metallicFactor":1,"roughnessFactor":1},
                "normalTexture":tex("normal_1k.jpg"),"occlusionTexture":tex("arm_1k.png")}
         attrs={name:accessor(v,dim,"f") for name,v,dim in
-               (("POSITION",s.p,3),("NORMAL",s.n,3),("TANGENT",s.t,4),("TEXCOORD_0",s.uv,2))}
+               (("POSITION",s.p,3),("NORMAL",s.n,3),("TANGENT",s.t,4),("TEXCOORD_0",s.uv,2),("TEXCOORD_1",uv2[mat],2))}
         prims.append({"attributes":attrs,"indices":accessor(s.i,1,"I"),"material":len(materials)})
         materials.append(m)
     blob.extend(b"\0"*(-len(blob)%4))
@@ -197,11 +250,11 @@ def produce(out,keys):
             mesh=geometry(spec[key],lod)
             raw=encode(mesh,maps); name=f"lod{lod}.glb"
             (stage/name).write_bytes(raw)
-            files[name]={"sha256":digest(raw),"bytes":len(raw),"triangles":sum(len(s.i)//3 for s in mesh.values())}
+            files[name]={"sha256":digest(raw),"bytes":len(raw),"triangles":sum(len(s.i)//3 for s in mesh.values()),"uv2":lightmap_uvs(mesh)[1]}
         doc={"schema":1,"status":"candidate-only","family":key,"profile":spec[key],"inputs":inputs,
              "outputs":files,"placement":"unassigned archetype, not a surveyed lot; front z=0, grade y=0",
              "notes":"Dimensioned shell and ground apertures; upper floors are not furnished or navigable. Dark opaque pane is provisional.",
-             "pending":["lot fit and existing anchors","collision and doors","UV2 import","native material and lighting review","performance","rights and promotion"]}
+             "pending":["lot fit and existing anchors","collision and doors","native UV2 import and actual bake density","native material and lighting review","performance","rights and promotion"]}
         (stage/"candidate.json").write_text(json.dumps(doc,indent=2)+"\n",encoding="utf-8")
         if dest.exists(): raise FileExistsError(dest)
         stage.rename(dest)
