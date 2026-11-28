@@ -92,3 +92,13 @@ with tempfile.TemporaryDirectory() as tmp:
         bpy.data.images.remove(image)
     assert load(views/"camera.json")["azimuth_deg"]==[0]
     print("Impostor color/normal real-render fixture passed")
+
+    # Independently decode the Radiance file via Blender, not our own encoder.
+    from environment_candidates import radiance, write_hdr
+    hdr=root/"environment.hdr"
+    write_hdr(hdr,radiance("clear_day",128))
+    image=bpy.data.images.load(str(hdr),check_existing=False)
+    assert tuple(image.size)==(128,64) and image.is_float
+    assert max(image.pixels)>1.0, "HDR highlights clipped on decoder import"
+    bpy.data.images.remove(image)
+    print("Radiance RGBE independent Blender HDR decoder passed")

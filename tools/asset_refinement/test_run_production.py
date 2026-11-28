@@ -16,6 +16,8 @@ class ProductionTests(unittest.TestCase):
         self.assertEqual(plan["visual"][1]["ANUBIS_PROJECT_NORMALS"], "1")
         self.assertIn("synaxis-ground", plan["synaxis-ground"][0])
         self.assertIn("reception", plan["reception"][0])
+        self.assertIn("1024",plan["environments"][0])
+        self.assertIn("environment_candidates.py",plan["environments"][0][1])
         self.assertIn("postmusic-render-001", plan["characters"][0])
 
     def test_music_hashes(self):

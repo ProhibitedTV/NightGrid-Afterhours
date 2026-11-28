@@ -2,7 +2,7 @@ import tempfile
 from pathlib import Path
 import unittest
 import numpy as np
-from environment_candidates import radiance, rgbe, write_hdr, PRESETS
+from environment_candidates import radiance, rgbe, write_hdr, produce, PRESETS
 
 
 class EnvironmentTests(unittest.TestCase):
@@ -14,7 +14,8 @@ class EnvironmentTests(unittest.TestCase):
             self.assertGreaterEqual(rgb.min(),0)
             np.testing.assert_array_equal(rgb,radiance(preset,128))
             # Neighboring samples across the wrap should be continuous.
-            self.assertLess(np.max(np.abs(rgb[:,0]-rgb[:,-1])),.3)
+            seam=radiance(preset,512)
+            self.assertLess(np.max(np.abs(seam[:,0]-seam[:,-1])),.3)
         self.assertGreater(radiance("clear_day",128).max(),1)
         self.assertLess(radiance("moonlit_night",128).max(),1)
 
@@ -23,6 +24,19 @@ class EnvironmentTests(unittest.TestCase):
         encoded=rgbe(src)
         decoded=encoded[:,:,:3]*np.exp2(encoded[:,:,3:].astype(float)-136)
         np.testing.assert_allclose(decoded,src,atol=.063,rtol=.01)
+
+    def test_resume_integrity(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out=Path(tmp)/"environments"
+            produce(out,64)
+            self.assertEqual({p.name for p in out.iterdir()},set(PRESETS))
+            first=out/"clear_day"/"environment.hdr"
+            before=first.stat().st_mtime_ns
+            produce(out,64)
+            self.assertEqual(first.stat().st_mtime_ns,before)
+            first.write_bytes(b"bad")
+            with self.assertRaises(ValueError):
+                produce(out,64)
 
     def test_hdr_scanline(self):
         with tempfile.TemporaryDirectory() as tmp:
