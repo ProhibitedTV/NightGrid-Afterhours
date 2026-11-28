@@ -158,7 +158,7 @@ def dispatch(args):
     if run.is_symlink():
         raise RuntimeError("Unsafe run directory")
     state_path = run / "production.json"
-    env = dict(os.environ, HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1",
+    env = dict(os.environ, ANUBIS_VISUAL_HOME=str(HOME), HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1",
                NPM_CONFIG_OFFLINE="true", PYTHONDONTWRITEBYTECODE="1")
     env["PATH"] = env.get("PATH", "") + ":/usr/lib/wsl/lib"
     for key in ("ANUBIS_VISUAL_CATALOG", "ANUBIS_GENERATION_REPO"):
@@ -187,6 +187,15 @@ def dispatch(args):
                     raise RuntimeError("Completed stage log missing; inspect run")
                 if name in ("inventory","review_packet","review_detail") and sha(run / entry["artifact"]) != entry["artifact_sha256"]:
                     raise RuntimeError("Completed artifact changed; inspect run")
+                if name == "evidence":
+                    # Reverify all indexed outputs when resuming a finished run.
+                    # Use the existing mesh venv (NumPy/Pillow-dependent generators).
+                    output = subprocess.check_output([str(HOME / "mesh/bin/python"), "-c",
+                        "import sys; from pathlib import Path; from production_evidence import index; "
+                        "import json; print(json.dumps(index(Path(sys.argv[1]),Path(sys.argv[2])),sort_keys=True))",
+                        str(NAS), str(run)], cwd=ROOT/"tools/asset_refinement", env=env, text=True)
+                    if json.loads(output) != json.loads((run/"candidate-index.json").read_text()):
+                        raise RuntimeError("Completed evidence changed; inspect run")
                 print("CHECKPOINT", name, flush=True)
                 continue
             bad = violation(snapshot(), 25, 10, 85, require_gpu=True)
@@ -210,7 +219,7 @@ def dispatch(args):
                 argv += ["--output", str(run / artifact)]
             elif name == "evidence":
                 argv += ["--run", str(run)]
-            if name in ("botanical", "impostors", "environments", "decals", "district_buildings"):
+            if name in ("botanical", "impostors", "environments", "decals", "district_buildings", "evidence", "inventory", "review_packet", "review_detail"):
                 guard_logs = HOME / "guard-logs"
                 guard_logs.mkdir(exist_ok=True)
                 argv = [sys.executable, "tools/asset_refinement/resource_guard.py",

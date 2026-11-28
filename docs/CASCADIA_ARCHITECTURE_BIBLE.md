@@ -38,3 +38,16 @@ A complete place needs a coherent arrival path, visible entrance, accessible pur
 
 ## Regional expansion packages
 G3 bridge pilot: modular deck, piers, railing, approach roads, skyline proxy, fog, vehicle and pedestrian safety envelope; route first, art second. G4 Ironhaven: one freight street, one warehouse/service interior, music venue and courier destination; no full city. G5 Silica Valley: one campus/downtown contrast, research building interior and intercity transit stop; no blanket campus generation. Northern rainbelt planning begins only after measured G5. Use shared materials and asset licenses across regions.
+
+## First production work order register
+These are proposed briefs for the next authoring pass, not automatic dispatch jobs. Exact live parcel IDs/anchors remain blocked on #198/#199 surveys. Prioritize reuse before asking Anubis for new geometry.
+
+| Work order | Package | First requested derivatives | Acceptance |
+|---|---|---|---|
+| MB-BW-001 | Brickwater shop/workshop/annex | surveyed footprint, entry and loading geometry, façade kit, UV2, LOD0–2, proxy, collision candidate | clear shop/service paths; preserved Night Shift Repairs identity; matched wet/night frame |
+| MB-GL-001 | Glassline podium and office | vertical core, lobby, glazed entry, stair/lift anchors, tower proxy, static light bake candidate | visually legible arrival and vertical circulation; no Synaxis #460 conflicts |
+| MB-NQ-001 | North Quay market yard | stall/aisle plan, delivery yard, shore hardware, canopy, day/night candidate lighting | physically plausible freight access separated from public paths |
+| MB-HG-001 | Horizon courtyard housing | wing modules, stair core, mail/intercom, garden, retaining geometry, proxy | accessible gameplay entry, residential scale, courtyard openness |
+| CS-BR-001 | Cascadia bridge pilot | surveyed alignment, modular deck/approach, barriers, distant city proxy, collision seams | blocked on G3 #594; no automatic generation until surveyed |
+
+Each brief becomes executable only after explicit dimensions, sources/rights, accepted placement transforms, dependency hashes and review requirements are supplied. Gate progression is independent of how many candidate assets are generated.

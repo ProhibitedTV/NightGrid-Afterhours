@@ -45,3 +45,5 @@ Regional atlas lane: seven provisional settlements, three major cities, eight mu
 The governing scope, acceptance gates and sequencing for city redevelopment and regional expansion are in [CASCADIA_MASTER_PLAN.md](CASCADIA_MASTER_PLAN.md). The regional atlas now uses the approved state name Cascadia. Future settlements are not automatic asset generation jobs.
 
 For future authored world integration, #200 waives historical pre-alpha save migration; the existing dispatcher does not modify live saves. See the master plan reconciliation.
+
+The final evidence index now independently hashes reviewed refined meshes and material derivatives in both visual catalogs, as well as the 48 music WAVs, not just their metadata ZIPs. A resumed completed run revalidates the evidence index and compares it to the persisted index. This is byte integrity, not technical/visual/rights certification. Existing-only mode can still omit incomplete candidates; partial production is not full catalog coverage. Local execution remains required.

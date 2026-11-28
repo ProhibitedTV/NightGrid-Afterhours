@@ -31,12 +31,69 @@ def manifest(folder, filename, output_key):
             "files": [checked(folder, name, rec["sha256"]) for name, rec in sorted(files.items())]}
 
 
+def visual_evidence(nas, suffix):
+    """Verify actual reviewed output bytes, not just the portable metadata ZIP."""
+    records=[]
+    refined=nas/"Visual"/("refined-"+suffix)
+    materials=nas/"Visual/Materials"/("material-"+suffix)
+    def verified_version(root,key,signature,filename,expected):
+        import re
+        if not re.fullmatch(r"[a-z0-9][a-z0-9.-]{0,159}",key) or ".." in key:
+            raise ValueError("Invalid visual candidate ID")
+        if not re.fullmatch(r"[a-f0-9]{64}",signature):
+            raise ValueError("Invalid refinement signature")
+        folder=root/key/signature
+        checked(root,f"{key}/{signature}/{filename}",expected)
+        data=json.loads((folder/filename).read_text())
+        if data["candidate"]!=key or data["signature"]!=signature or data["status"]!="unapproved":
+            raise ValueError("Wrong visual candidate manifest")
+        return manifest(folder,filename,"outputs")
+    review=refined/"review-1024.json"
+    doc=json.loads(review.read_text())
+    if doc["schema"]!=1 or doc["status"]!="unapproved" or doc["bake_size"]!=1024:
+        raise ValueError("Wrong refinement review index")
+    for row in doc["rows"]:
+        for version in row.get("versions",[]):
+            if row["status"]!="review-required":
+                raise ValueError("Invalid reviewed mesh row")
+            records.append(dict(verified_version(refined,row["candidate"],version["signature"],
+                "refinement.json",version["manifest_sha256"]),lane="visual_mesh",batch=suffix))
+    if not records:
+        raise ValueError("No reviewed mesh candidates")
+    material_review=materials/"review-1024.json"
+    doc=json.loads(material_review.read_text())
+    if doc["status"]!="unapproved" or doc["size"]!=1024 or doc["partial"]:
+        raise ValueError("Wrong material review index")
+    count=0
+    for row in doc["rows"]:
+        if row["status"]=="incomplete":
+            continue  # Existing-only runs may intentionally have missing sources.
+        if row["status"]!="review-required":
+            raise ValueError("Invalid material review row")
+        records.append(dict(verified_version(materials,row["candidate"],row["signature"],
+            "material.json",row["manifest_sha256"]),lane="visual_material",batch=suffix))
+        count+=1
+    if not count:
+        raise ValueError("No reviewed material candidates")
+    return records
+
+
 def index(nas, run):
     state = json.loads((run / "production.json").read_text())
     entries = state["entries"]
     batch = run.name
     post = "postmusic-" + batch
     results = []
+    from run_production import MUSIC, music_complete
+    music=nas/"Music"/MUSIC
+    if not music_complete(music):
+        raise ValueError("Music candidate batch incomplete or corrupt")
+    mp=music/"manifest.json"
+    music_rows=json.loads(mp.read_text())["candidates"]
+    results.append({"lane":"music","manifest":str(mp),"manifest_sha256":sha(mp),
+                    "files":[checked(music,r["file"],r["sha256"]) for r in music_rows]})
+    for suffix in ("001","coastal-detail-001"):
+        results.extend(visual_evidence(nas,suffix))
     bot = nas / "Visual/Botanical" / ("coastal-" + batch)
     record = manifest(bot, "SOURCE.json", "files")
     if len(record["files"]) != 14:
