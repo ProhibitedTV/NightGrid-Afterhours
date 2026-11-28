@@ -17,6 +17,7 @@ var _chair_poses:Array[Transform3D]=[]
 var _groups: Dictionary = {}
 var _materials: Dictionary = {}
 var _part_count := 0
+var _gate_rest: Dictionary = {}
 
 func _ready() -> void:
 	_architecture()
@@ -86,6 +87,11 @@ func _flush() -> void:
 		node.material_override = _material(key)
 		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(node)
+		if str(id).begins_with("gate_"):
+			var rest: Array[Transform3D] = []
+			for i in range(mm.instance_count):
+				rest.append(mm.get_instance_transform(i))
+			_gate_rest[id] = rest
 	_groups.clear()
 	ChairAsset.install(self,_chair_poses)
 	_chair_poses.clear()
@@ -225,8 +231,8 @@ func _lobby() -> void:
 		_part("gate","black",Vector3(side*.65,1.65,-7.835),Vector3(.90,.72,.025))
 		_part("gate","glass",Vector3(side*.65,1.65,-7.854),Vector3(.84,.66,.015))
 		_part("interior","trim",Vector3(side*1.55,1.10,-8.1),Vector3(.26,.045,.28))
-		_part("interior","red",Vector3(side*1.55,1.197,-8.1),Vector3(.11,.012,.13))
-	_part("interior","red",Vector3(0,2.92,-7.80),Vector3(.37,.04,.035))
+		_part("reader","red",Vector3(side*1.55,1.197,-8.1),Vector3(.11,.012,.13))
+	_part("reader","red",Vector3(0,2.92,-7.80),Vector3(.37,.04,.035))
 	# Public entry threshold and tactile mat edge: flat and non-obstructive.
 	_part("interior","trim",Vector3(0,.008,-9.96),Vector3(2.54,.012,.22))
 	# Flush CCTV mounting plate and cylindrical lens, no surveillance simulation.
@@ -234,3 +240,23 @@ func _lobby() -> void:
 		_part("interior","steel",Vector3(x,3.24,-8.0),Vector3(.26,.09,.23))
 		_part("interior","porcelain",Vector3(x,3.09,-8.0),Vector3(.20,.22,.20),0.0,"cyl")
 		_part("interior","black",Vector3(x,2.965,-8.0),Vector3(.11,.045,.11),0.0,"cyl")
+
+## Existing reader indicators are a separate batch so authorization changes only their material.
+func set_reader_authorized(authorized: bool) -> void:
+	var indicators := get_node_or_null("reader_red_box") as MultiMeshInstance3D
+	if is_instance_valid(indicators):
+		indicators.material_override = _material("signal" if authorized else "red")
+
+## Provisional sliding motion for existing skins; authored leaves can replace this adapter.
+func set_gate_fraction(fraction: float) -> void:
+	var amount := clampf(fraction,0.0,1.0)
+	for id in _gate_rest:
+		var batch := get_node_or_null(NodePath(str(id))) as MultiMeshInstance3D
+		if not is_instance_valid(batch):
+			continue
+		var rest: Array = _gate_rest[id]
+		for i in range(rest.size()):
+			var pose: Transform3D = rest[i]
+			pose.origin.x += signf(pose.origin.x)*1.30*amount
+			batch.multimesh.set_instance_transform(i,pose)
+		batch.visible = amount < 0.999

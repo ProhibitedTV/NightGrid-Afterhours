@@ -44,6 +44,10 @@ var _active_floor:=0
 const GeneratedAudio=preload("res://scripts/synaxis_generated_audio.gd")
 var _ground_ambience:AudioStreamPlayer3D
 var _lift_audio:AudioStreamPlayer3D
+var _badge_audio:AudioStreamPlayer3D
+var _gate_audio:AudioStreamPlayer3D
+var _arrival_gate_motion := 0
+var _arrival_gate_fraction := 0.0
 const LiftTransition=preload("res://scripts/synaxis_lift_transition.gd")
 const LiftFrontage=preload("res://scripts/synaxis_lift_frontage.gd")
 const GroundLayout=preload("res://scripts/synaxis_ground_layout.gd")
@@ -53,6 +57,12 @@ var _lift_transition:CanvasLayer
 var _lift_target:=0
 var _restrooms: Node3D
 const CUBICLE_POINT = Vector3(4.5,1.15,2.95)
+## Presentation hooks for authored badge, reader and gate assets.
+signal arrival_badge_presented
+signal arrival_badge_authorized
+signal arrival_badge_reset
+var _arrival_badge_presented := false
+var _arrival_badge_authorized := false
 var _arrival: RefCounted
 var _arrival_canvas: CanvasLayer
 var _arrival_caption: Label
@@ -218,6 +228,8 @@ func _ready() -> void:
 	canvas.add_child(_radar)
 	_ground_ambience=GeneratedAudio.emitter(self,"office_air",Vector3(0,1,1),-22.0,16.0,true)
 	_lift_audio=GeneratedAudio.emitter(self,"lift_chime",Vector3(0,1.2,5),-13.0,8.0)
+	_badge_audio=GeneratedAudio.emitter(self,"badge_accept",Vector3(1.55,1.2,-8.1),-12.0,6.0)
+	_gate_audio=GeneratedAudio.emitter(self,"security_gate_motor",Vector3(0,1.0,-7.65),-18.0,8.0,true)
 	_build_arrival_canvas()
 	_lift_transition=LiftTransition.new()
 	_lift_transition.name="LiftTransition"
@@ -758,6 +770,7 @@ func finish_prologue() -> void:
 	_select_floor(0)
 	_restrooms.call("end_visit")
 	_arrival=null
+	_reset_arrival_badge()
 	_arrival_canvas.hide()
 	_set_gate_open(false)
 	_clear_folder()
@@ -988,7 +1001,37 @@ func _set_gate_open(value: bool) -> void:
 		if str(child.name).begins_with("gate_"):
 			child.visible=not value
 
+func _reset_arrival_badge() -> void:
+	GeneratedAudio.activate(_badge_audio,false)
+	GeneratedAudio.activate(_gate_audio,false)
+	_arrival_gate_motion=0
+	_arrival_gate_fraction=0.0
+	_arrival_badge_presented=false
+	_arrival_badge_authorized=false
+	var finish := get_node_or_null("ArchitecturalFinish")
+	if is_instance_valid(finish):
+		finish.call("set_reader_authorized",false)
+	if is_instance_valid(finish):
+		finish.call("set_gate_fraction",0.0)
+	get_node("SecurityGate").visible=not _gate_open
+	arrival_badge_reset.emit()
+
+func _update_arrival_badge(shot: Dictionary) -> void:
+	# Catch up on large frame deltas without replaying events each frame.
+	if not _arrival_badge_presented and (bool(shot["badge_presented"]) or bool(shot["badge_authorized"])):
+		_arrival_badge_presented=true
+		arrival_badge_presented.emit()
+	if not _arrival_badge_authorized and bool(shot["badge_authorized"]):
+		_arrival_badge_authorized=true
+		var finish := get_node_or_null("ArchitecturalFinish")
+		if is_instance_valid(finish):
+			finish.call("set_reader_authorized",true)
+		if is_instance_valid(_badge_audio):
+			_badge_audio.play()
+		arrival_badge_authorized.emit()
+
 func start_arrival(player: Node3D,camera: Camera3D) -> void:
+	_reset_arrival_badge()
 	_arrival=Arrival.new()
 	_desk_beat_played=false
 	_arrival_fov=camera.fov
@@ -1020,10 +1063,25 @@ func tick_arrival(delta: float,player: Node3D,camera: Camera3D) -> bool:
 		if bool(shot["desk"]) and motion.length_squared()<.01 and not _desk_beat_played:
 			_desk_beat_played=true
 			player.call("play_visual_action",&"interact")
-	_set_gate_open(bool(shot["gate_open"]))
+	# One presentation gesture per arrival, including a skipped presentation frame.
+	if not _arrival_badge_presented and bool(shot["badge_presented"]) and not bool(shot["badge_authorized"]):
+		player.call("play_visual_action",&"interact")
+	_update_arrival_badge(shot)
+	_set_gate_open(bool(shot["gate_open"]) and _arrival_badge_authorized)
+	var gate_fraction := float(shot["gate_fraction"])
+	var motion_direction := 0
+	if gate_fraction>0.001 and gate_fraction<0.999:
+		motion_direction=1 if gate_fraction>_arrival_gate_fraction else (-1 if gate_fraction<_arrival_gate_fraction else _arrival_gate_motion)
+	if motion_direction!=_arrival_gate_motion:
+		GeneratedAudio.activate(_gate_audio,motion_direction!=0)
+		_arrival_gate_motion=motion_direction
+	_arrival_gate_fraction=gate_fraction
+	get_node("ArchitecturalFinish").call("set_gate_fraction",gate_fraction)
+	# The old opaque blocker is collision-only while the skins are moving.
+	get_node("SecurityGate").visible=gate_fraction<=0.001
 	camera.global_position=to_global(shot["camera"])
 	camera.look_at(to_global(shot["look"]),Vector3.UP)
-	camera.fov=60.0
+	camera.fov=float(shot["fov"])
 	_arrival_caption.text=shot["caption"]
 	return true
 
@@ -1031,6 +1089,7 @@ func finish_arrival(player: Node3D,camera: Camera3D) -> void:
 	if _arrival==null:
 		return
 	_arrival=null
+	_reset_arrival_badge()
 	_set_gate_open(false)
 	camera.fov=_arrival_fov
 	player.global_position=to_global(CUBICLE_POINT)

@@ -1,15 +1,74 @@
 extends SceneTree
 const Office = preload("res://scripts/synaxis_office.gd")
+const Arrival = preload("res://scripts/synaxis_arrival.gd")
 const Exec = preload("res://scripts/synaxis_executive_floor.gd")
 
 func _initialize() -> void:
 	call_deferred("_test")
 
 func _test() -> void:
+	var arrival := Arrival.new()
+	var badge := Arrival.new()
+	badge.advance(float(Arrival.SHOTS[0]["duration"]))
+	if not badge.sample()["badge_presented"] or badge.sample()["badge_authorized"] or badge.sample()["gate_open"]:
+		_fail("Badge presentation must precede authorization and gate opening")
+		return
+	badge.advance(1.2)
+	if not badge.sample()["badge_authorized"] or badge.sample()["gate_open"]:
+		_fail("Badge authorization must precede gate traversal")
+		return
+	if badge.sample()["gate_fraction"] <= 0.0 or badge.sample()["gate_fraction"] >= 1.0:
+		_fail("Authorized gate must be in opening motion before traversal")
+		return
+	badge.advance(0.8)
+	if badge.sample()["gate_fraction"] != 1.0 or not badge.sample()["gate_open"]:
+		_fail("Gate must be fully open at ingress")
+		return
+	badge.advance(2.2)
+	badge.advance(0.7)
+	if not is_zero_approx(float(badge.sample()["gate_fraction"])):
+		_fail("Gate must close after ingress")
+		return
+	var surveillance_count := 0
+	for shot in Arrival.SHOTS:
+		var sample := arrival.sample()
+		if sample["surveillance"]:
+			surveillance_count += 1
+			if sample["fov"] <= 60.0 or not sample["gate_open"] or not sample["badge_authorized"] or shot.has("camera_end"):
+				_fail("Surveillance insert must be fixed, wide and cover ingress")
+				return
+		elif sample["fov"] != 60.0:
+			_fail("Conventional arrival lens must remain unchanged")
+			return
+		arrival.advance(float(shot["duration"]))
+	if surveillance_count != 1 or not arrival.sample().is_empty():
+		_fail("Arrival must have one surveillance insert and terminate normally")
+		return
 	var office := Office.new()
 	office.position = Office.ORIGIN
 	root.add_child(office)
 	office.begin_prologue()
+	var badge_events: Array[String] = []
+	office.arrival_badge_presented.connect(func(): badge_events.append("presented"))
+	office.arrival_badge_authorized.connect(func(): badge_events.append("authorized"))
+	office.arrival_badge_reset.connect(func(): badge_events.append("reset"))
+	var indicators := office.get_node("ArchitecturalFinish/reader_red_box") as MultiMeshInstance3D
+	var idle_material := indicators.material_override
+	var authorized_sample := {"badge_presented":false,"badge_authorized":true}
+	office.call("_update_arrival_badge",authorized_sample)
+	if indicators.material_override == idle_material:
+		_fail("Authorization must change physical reader indicator material")
+		return
+	office.call("_update_arrival_badge",authorized_sample)
+	office.call("_reset_arrival_badge")
+	if indicators.material_override != idle_material:
+		_fail("Reset must restore reader indicator material")
+		return
+	office.call("_update_arrival_badge",authorized_sample)
+	if badge_events != ["presented","authorized","reset","presented","authorized"]:
+		_fail("Badge events must catch up in order, emit once and reset for replay")
+		return
+	office.call("_reset_arrival_badge")
 	office.call("_select_floor",Exec.FLOOR)
 	if not Exec.blocks_staff_sight(Vector2(4,-1.5),Vector2(4,.5)) or Exec.blocks_staff_sight(Vector2(0,-1.5),Vector2(0,.5)):
 		_fail("Executive wall blocks attention while doorway stays open")
