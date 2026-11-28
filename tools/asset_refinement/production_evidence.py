@@ -81,7 +81,7 @@ def index(nas, run):
     for name in ("review_packet", "inventory"):
         entry = entries[name]
         path = run / entry["artifact"]
-        results.append(dict(checked(run, entry["artifact"], sha(path)), lane=name))
+        results.append(dict(checked(run, entry["artifact"], entry["artifact_sha256"]), lane=name))
     return {"schema": 1, "status": "review-required",
             "scope": "candidate integrity and review evidence only; no runtime approval",
             "source": state["signature"]["source"], "records": results}

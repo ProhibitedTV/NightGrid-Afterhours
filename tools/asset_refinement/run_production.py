@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import shutil
 import sys
 
 from factory_ledger import atomic, now
@@ -23,7 +24,7 @@ STAGES = ("music", "visual", "botanical", "impostors", "buildings", "characters"
 
 
 def git(*args):
-    return subprocess.check_output(["git", *args], cwd=ROOT, text=True).strip()
+    return subprocess.check_output(["git", "-c", f"safe.directory={ROOT}", *args], cwd=ROOT, text=True).strip()
 
 
 def sha(path):
@@ -47,13 +48,32 @@ def music_complete(folder):
         return False
 
 
-def preflight(godot):
+def preflight(godot, linux_godot, visual_mode):
     if os.geteuid() != 0:
         raise RuntimeError("Launch from Ubuntu WSL as root")
     if not os.path.ismount("/mnt/z") or not (NAS / "Visual").is_dir():
         raise RuntimeError("Mount existing Z: NAS before production")
-    if not HOME.is_dir():
-        raise RuntimeError("Existing Factory environments missing")
+    if not HOME.is_dir() or not (HOME / "mesh/bin/python").is_file():
+        raise RuntimeError("Existing Factory mesh environment missing")
+    if visual_mode == "full" and not (HOME / "setup-v1.ok").is_file():
+        raise RuntimeError("Existing visual setup marker missing; refusing implicit installation")
+    for command in ("blender", "flock", "powershell.exe", "wslpath", "node", "npx"):
+        if not shutil.which(command):
+            raise RuntimeError("Existing dependency missing: " + command)
+    if not subprocess.check_output(["node","--version"],text=True).startswith("v24."):
+        raise RuntimeError("Existing Node 24 required")
+    if not Path(linux_godot).is_file() or not os.access(linux_godot,os.X_OK):
+        raise RuntimeError("Set --linux-godot to existing Linux Godot executable")
+    linux_version = subprocess.check_output([linux_godot,"--version"],text=True,timeout=30).strip()
+    if not re.match(r"^4\.7\.2([.\-+]|$)",linux_version):
+        raise RuntimeError("Linux Godot 4.7.2 required: " + linux_version)
+    if not (NAS / "Characters").is_dir():
+        raise RuntimeError("Existing NAS character library missing")
+    if not music_complete(NAS / "Music" / MUSIC) and not Path("/home/anubis/AI/ACE-Step-1.5/.venv/bin/python").is_file():
+        raise RuntimeError("Existing music environment missing")
+    if (NAS / "Audio/factory-001/.audio.lock").exists():
+        raise RuntimeError("Audio lock present; inspect before production")
+    subprocess.run([str(HOME / "mesh/bin/python"),"-c","import PIL, numpy"],check=True)
     if not Path(godot).is_file() or not godot.endswith(".exe"):
         raise RuntimeError("Set --godot to the native 4.7.2 console executable")
     version = subprocess.check_output([godot, "--version"], text=True, timeout=30).strip()
@@ -64,14 +84,14 @@ def preflight(godot):
     bad = violation(snapshot(), 25, 10, 85, require_gpu=True)
     if bad:
         raise RuntimeError(bad)
-    return version
+    return {"native":version,"linux":linux_version}
 
 
-def build_plan(batch, godot, visual_mode):
+def build_plan(batch, godot, visual_mode, linux_godot="/usr/local/bin/godot"):
     post = "postmusic-" + batch
     visual_env = {"ANUBIS_PROJECT_NORMALS": "1", "ANUBIS_BAKE_AO": "1",
                   "ANUBIS_PREVIEWS": "1", "ANUBIS_SKIP_AUDIO": "1", "ANUBIS_BATCH": "visual-001",
-                  "ANUBIS_GODOT": "/usr/local/bin/godot"}
+                  "ANUBIS_GODOT": linux_godot}
     base = ["bash", "tools/asset_refinement/run_post_music.sh", "--execute"]
     return {
         "music": (["bash", "tools/audio/run_anubis_music.sh", "--palette", "neon-grunge-v1",
@@ -99,7 +119,10 @@ def build_plan(batch, godot, visual_mode):
 
 
 def dispatch(args):
-    plan = build_plan(args.batch, args.godot, args.visual_mode)
+    plan = build_plan(args.batch, args.godot, args.visual_mode, args.linux_godot)
+    if args.check:
+        print(json.dumps(preflight(args.godot,args.linux_godot,args.visual_mode),indent=2))
+        return 0
     if not args.execute:
         for profile, short in (("reception", "rec"), ("synaxis-ground", "ground")):
             plan[profile][0].extend(["--batch", f"postmusic-{args.batch}-{short}-1"])
@@ -109,7 +132,7 @@ def dispatch(args):
         plan["evidence"][0].extend(["--run", str(run)])
         print(json.dumps({name: {"argv": argv, "env": env} for name, (argv, env) in plan.items()}, indent=2))
         return 0
-    version = preflight(args.godot)
+    version = preflight(args.godot,args.linux_godot,args.visual_mode)
     source = git("rev-parse", "HEAD")
     run = NAS / "Visual/ProductionRuns" / args.batch
     run.mkdir(parents=True, exist_ok=True)
@@ -121,7 +144,7 @@ def dispatch(args):
     env["PATH"] = env.get("PATH", "") + ":/usr/lib/wsl/lib"
     for key in ("ANUBIS_VISUAL_CATALOG", "ANUBIS_GENERATION_REPO"):
         env.pop(key, None)
-    signature = {"source": source, "godot": version, "godot_path": args.godot,
+    signature = {"source": source, "godot": version, "godot_path": args.godot, "linux_godot_path": args.linux_godot, "factory_home": str(HOME),
                  "visual_mode": args.visual_mode, "stages": list(STAGES)}
     # Separate orchestration lock; existing launchers retain their own GPU leases.
     with (HOME / "production-dispatch.lock").open("a") as lease:
@@ -143,6 +166,8 @@ def dispatch(args):
                     raise RuntimeError("Completed lighting checkpoint missing; inspect existing candidate")
                 if not (run / entry["log"]).is_file():
                     raise RuntimeError("Completed stage log missing; inspect run")
+                if name in ("inventory","review_packet") and sha(run / entry["artifact"]) != entry["artifact_sha256"]:
+                    raise RuntimeError("Completed artifact changed; inspect run")
                 print("CHECKPOINT", name, flush=True)
                 continue
             bad = violation(snapshot(), 25, 10, 85, require_gpu=True)
@@ -165,11 +190,11 @@ def dispatch(args):
                 argv += ["--output", str(run / artifact)]
             elif name == "evidence":
                 argv += ["--run", str(run)]
-            if name == "impostors":
+            if name in ("botanical", "impostors"):
                 guard_logs = HOME / "guard-logs"
                 guard_logs.mkdir(exist_ok=True)
                 argv = [sys.executable, "tools/asset_refinement/resource_guard.py",
-                        "--log", str(guard_logs / f"{args.batch}-impostors-{attempt}.jsonl"), "--", *argv]
+                        "--log", str(guard_logs / f"{args.batch}-{name}-{attempt}.jsonl"), "--", *argv]
             log = run / f"{name}-{attempt}.log"
             entry["log"] = log.name
             atomic(state_path, state)
@@ -197,6 +222,8 @@ def dispatch(args):
                 entry.update(status="failed", finished=now(), error=str(exc))
                 atomic(state_path, state)
                 raise
+            if rc == 0 and name in ("inventory","review_packet"):
+                entry["artifact_sha256"] = sha(run / entry["artifact"])
             entry.update(status="completed" if rc == 0 else "failed", finished=now(), exit_code=rc)
             atomic(state_path, state)
             if rc:
@@ -210,9 +237,12 @@ def dispatch(args):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--execute", action="store_true")
+    mode=p.add_mutually_exclusive_group()
+    mode.add_argument("--execute", action="store_true")
+    mode.add_argument("--check", action="store_true",help="Check existing dependencies and storage without launching jobs")
     p.add_argument("--batch", default="render-001")
     p.add_argument("--godot", default=NATIVE)
+    p.add_argument("--linux-godot", default=os.environ.get("ANUBIS_GODOT","/usr/local/bin/godot"))
     p.add_argument("--visual-mode", choices=("full", "existing"), default="full")
     a = p.parse_args()
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,15}", a.batch):

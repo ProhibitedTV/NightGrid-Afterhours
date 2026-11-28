@@ -5,7 +5,7 @@ from pathlib import Path
 import sys
 
 
-def render(source, out, size, samples):
+def render(source, out, size, samples, fixture=False):
     import bpy
     from mathutils import Vector
     bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -102,8 +102,8 @@ def render(source, out, size, samples):
             for mesh in meshes:
                 mesh.data.materials.clear()
                 mesh.data.materials.append(normal)
-        for row, elevation in enumerate((0, 25)):
-            for col in range(8):
+        for row, elevation in enumerate((0,) if fixture else (0, 25)):
+            for col in range(1 if fixture else 8):
                 angle = math.radians(col*45)
                 pitch = math.radians(elevation)
                 direction = Vector((math.cos(angle)*math.cos(pitch),
@@ -118,7 +118,7 @@ def render(source, out, size, samples):
     (out / "camera.json").write_text(json.dumps({
         "blender": bpy.app.version_string, "orthographic_width_m": radius*2.3,
         "center_blender_z_up": list(center), "bounds_blender_z_up": [list(low),list(high)],
-        "elevations_deg": [0,25], "azimuth_deg": list(range(0,360,45)),
+        "elevations_deg": [0] if fixture else [0,25], "azimuth_deg": [0] if fixture else list(range(0,360,45)),
         "normal_encoding": "camera xyz mapped to RGB by n*.5+.5, Raw view, not tangent space",
         "albedo_encoding": "unlit vertex color, Standard sRGB view",
     }, indent=2)+"\n")
