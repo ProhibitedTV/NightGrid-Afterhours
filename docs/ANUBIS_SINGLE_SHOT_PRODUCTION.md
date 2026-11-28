@@ -1,0 +1,15 @@
+# Anubis one-shot production — candidate-only
+Coordinates #590, #585–#589 and existing architecture/lighting #571/#574/#575. No new clone, model installation, Ollama changes or automatic publication.
+
+Use the existing Windows checkout `%USERPROFILE%\Desktop\NightGrid-Factory`, Ubuntu WSL, existing mapped `Z:` drive mounted at `/mnt/z`. Run from the Factory checkout only, not the active Codex game worktree. Preserve existing local branches/commits. Do not switch or update the checkout while production runs.
+
+From Windows CMD after the PR revision is checked out:
+```cmd
+cd /d "%USERPROFILE%\Desktop\NightGrid-Factory"
+wsl -d Ubuntu -u root -- bash -lc "mkdir -p /mnt/z; mountpoint -q /mnt/z || mount -t drvfs Z: /mnt/z -o uid=1000,gid=1000; python3 tools/asset_refinement/run_production.py --execute"
+```
+If the mount is already present, leave it alone. The default Godot path is the previously used native 4.7.2 console binary under the Windows Temp/nightgrid-godot-472 directory; override with --godot if moved. The command requires the mapped drive and installed local tools; no downloads. For plan only omit --execute; for refinement without neural generation pass --visual-mode existing (choose a new --batch if changing the plan).
+
+The dispatcher runs these lanes serially: verify/resume 48-take studio music, existing full visual factory (projected normals, baked AO, material estimates, LODs, previews, Linux import), original botanical candidates (seven species/two detail levels, exact generator from #583; no game integration), building families, character candidates (reuse verified prior exact profiles), isolated native reception and ground lighting bakes, report-only tracked texture/mesh inventory, dashboard. Existing source generators retain their own leases. An independent dispatch lock prevents competing dispatchers. External standalone jobs should not be started concurrently. The native bake runs in an isolated directory, uses an attempt-specific path, and requires existing validation evidence. A failed lane pauses the queue; rerun the same command without changing the checkout to resume. New source or settings require a new --batch; partial outputs are preserved. The ledger records process completion, not artifact approval or comprehensive native verification. Logs live under Z:\NightGrid-Afterhours\Visual\ProductionRuns\render-001; source assets remain private.
+
+This is the first dispatcher, not a finished rendering optimization suite. It does not yet implement new multi-angle impostors, UV2-ready architecture, offline reflection assets, shader export experiments, native whole-game performance tests, actual PCK closure audits, or auto-promotion. Existing visual maps derived from images are estimates, not physical measurements. Inventory reports estimated BC1/BC7 full-mip memory for readable standalone textures; it does not report actual imported formats, embedded texture sizes or GPU residency. Existing SFX/voice production remains separate; do not silently regenerate it. Check PR CI and native logs; human visual/rights review and RTX3060 matched performance gates precede promotion.
