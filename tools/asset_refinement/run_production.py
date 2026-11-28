@@ -19,7 +19,7 @@ HOME = Path(os.environ.get("ANUBIS_VISUAL_HOME", "/root/.local/share/nightgrid-v
 NATIVE = "/mnt/c/Users/RhythmicCarnage/AppData/Local/Temp/nightgrid-godot-472/Godot_v4.7.2-stable_win64_console.exe"
 MUSIC = "music-neon-grunge-studio-002"
 STAGES = ("music", "visual", "botanical", "buildings", "characters",
-          "reception", "synaxis-ground", "inventory", "dashboard")
+          "reception", "synaxis-ground", "inventory", "review_packet", "evidence", "dashboard")
 
 
 def git(*args):
@@ -85,6 +85,11 @@ def build_plan(batch, godot, visual_mode):
                              "--godot", godot], {})
            for profile in ("reception", "synaxis-ground")},
         "inventory": ([str(HOME / "mesh/bin/python"), "tools/asset_refinement/render_inventory.py"], {}),
+        "review_packet": ([sys.executable, "tools/asset_refinement/review_packet.py",
+                           "--refined", str(NAS / "Visual/refined-001"),
+                           "--previews", str(NAS / "Visual/Previews")], {}),
+        "evidence": ([sys.executable, "tools/asset_refinement/production_evidence.py",
+                      "--nas", str(NAS)], {}),
         "dashboard": ([sys.executable, "tools/asset_refinement/dashboard.py",
                        "--root", str(NAS / "Visual")], {}),
     }
@@ -96,6 +101,9 @@ def dispatch(args):
         for profile, short in (("reception", "rec"), ("synaxis-ground", "ground")):
             plan[profile][0].extend(["--batch", f"postmusic-{args.batch}-{short}-1"])
         plan["inventory"][0].extend(["--output", str(NAS / "Visual/ProductionRuns" / args.batch / "inventory.json")])
+        run = NAS / "Visual/ProductionRuns" / args.batch
+        plan["review_packet"][0].extend(["--output", str(run / "review-1.zip")])
+        plan["evidence"][0].extend(["--run", str(run)])
         print(json.dumps({name: {"argv": argv, "env": env} for name, (argv, env) in plan.items()}, indent=2))
         return 0
     version = preflight(args.godot)
@@ -148,8 +156,12 @@ def dispatch(args):
                 candidate = f"postmusic-{args.batch}-{short}-{attempt}"
                 argv += ["--batch", candidate]
                 entry["candidate"] = str(NAS / "Visual/Lighting" / candidate)
-            elif name == "inventory":
-                argv += ["--output", str(run / "inventory.json")]
+            elif name in ("inventory", "review_packet"):
+                artifact = "inventory.json" if name == "inventory" else f"review-{attempt}.zip"
+                entry["artifact"] = artifact
+                argv += ["--output", str(run / artifact)]
+            elif name == "evidence":
+                argv += ["--run", str(run)]
             log = run / f"{name}-{attempt}.log"
             entry["log"] = log.name
             atomic(state_path, state)
