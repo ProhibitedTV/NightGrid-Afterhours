@@ -1,0 +1,93 @@
+@tool
+extends EditorPlugin
+## Isolated editor pilot only; uses the native Godot 4.7.2 toolbar signal.
+const SCENE = "res://tools/lighting/synaxis_reception_bake.tscn"
+const OUTPUT = "res://tools/lighting/synaxis_reception_bake.lmbake"
+var started := false
+
+func _enter_tree() -> void:
+	call_deferred("_run")
+
+func _find(node: Node, type_name: String, button_text: String = "") -> Array[Node]:
+	var result: Array[Node] = []
+	if node.is_class(type_name):
+		if button_text.is_empty() or (node is Button and node.text == button_text and node.is_visible_in_tree()):
+			result.append(node)
+	for child in node.get_children(true):
+		result.append_array(_find(child, type_name, button_text))
+	return result
+
+func _run() -> void:
+	if started:
+		return
+	started = true
+	if not FileAccess.file_exists("res://nightgrid_bake_pilot.marker") or FileAccess.file_exists(OUTPUT):
+		_stop("Not a fresh isolated bake project", 1)
+		return
+	for i in range(1200):
+		await get_tree().process_frame
+		if not EditorInterface.get_resource_filesystem().is_scanning():
+			break
+	EditorInterface.open_scene_from_path(SCENE)
+	for i in range(300):
+		await get_tree().process_frame
+		var scene := EditorInterface.get_edited_scene_root()
+		if scene != null and scene.scene_file_path == SCENE:
+			break
+	var scene := EditorInterface.get_edited_scene_root()
+	if scene == null or scene.scene_file_path != SCENE:
+		_stop("Pilot scene did not open", 1)
+		return
+	var gi := scene.get_node_or_null("ReceptionGI") as LightmapGI
+	if gi == null or gi.light_data != null:
+		_stop("Expected unbaked reception fixture", 1)
+		return
+	gi.bake_quality = LightmapGI.BAKE_QUALITY_HIGH
+	EditorInterface.get_selection().clear()
+	EditorInterface.get_selection().add_node(gi)
+	EditorInterface.edit_node(gi)
+	EditorInterface.set_main_screen_editor("3D")
+	var buttons: Array[Node] = []
+	for i in range(300):
+		await get_tree().process_frame
+		buttons = _find(EditorInterface.get_base_control(), "Button", "Bake Lightmaps")
+		if buttons.size() == 1:
+			break
+	if buttons.size() != 1 or (buttons[0] as Button).disabled:
+		_stop("Native Bake Lightmaps toolbar unavailable or ambiguous", 1)
+		return
+	var button := buttons[0] as Button
+	# In 4.7.2 the native plugin opens its own EditorFileDialog when no data
+	# exists. Its file_selected signal calls the editor's actual C++ baker.
+	button.pressed.emit()
+	await get_tree().process_frame
+	var dialogs := _find(button, "EditorFileDialog")
+	if dialogs.size() != 1 or not (dialogs[0] as EditorFileDialog).visible:
+		_stop("Native bake save dialog not found", 1)
+		return
+	var dialog := dialogs[0] as EditorFileDialog
+	dialog.hide()
+	dialog.file_selected.emit(OUTPUT)
+	# The native signal is synchronous. Never accept a log message alone.
+	await get_tree().process_frame
+	var data := gi.light_data
+	if data == null or data.get_user_count() < 1 or data.lightmap_textures.is_empty() or not FileAccess.file_exists(OUTPUT):
+		_stop("No fresh bound directional atlas produced", 1)
+		return
+	if not data.is_using_spherical_harmonics():
+		_stop("Expected directional bake", 1)
+		return
+	if EditorInterface.save_scene() != OK:
+		_stop("Could not save baked pilot scene", 1)
+		return
+	var marker := FileAccess.open("res://bake-result.json", FileAccess.WRITE)
+	if marker == null:
+		_stop("Could not write result", 1)
+		return
+	marker.store_string(JSON.stringify({"status":"candidate-only","users":data.get_user_count(),"quality":"high","renderer":RenderingServer.get_current_rendering_method(),"adapter":RenderingServer.get_video_adapter_name()}))
+	marker.close()
+	_stop("Native bake candidate produced; independent validation required", 0)
+
+func _stop(message: String, code: int) -> void:
+	print("NIGHTGRID_BAKE_PILOT: ", message)
+	get_tree().quit(code)

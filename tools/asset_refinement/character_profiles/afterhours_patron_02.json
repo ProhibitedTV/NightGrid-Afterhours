@@ -1,0 +1,58 @@
+{
+  "$schema": "https://ara3dgen.com/schemas/character.v1.json",
+  "kind": "ara-character",
+  "version": 1,
+  "params": {
+    "name": "Afterhours patron 02",
+    "seed": 834508,
+    "gender": 1,
+    "ageYears": 36,
+    "height": 0.61,
+    "weight": 0.54,
+    "muscle": 0.62,
+    "proportions": 0.59,
+    "african": 0.28,
+    "asian": 0.22,
+    "caucasian": 0.5,
+    "modifiers": {
+      "head/head-scale-horiz": -0.03,
+      "head/head-rectangular": 0.12,
+      "eyes/eye-bag": 0.1,
+      "eyebrows/eyebrows-trans": 0
+    },
+    "skinTint": "#e0d6c9",
+    "eyes": "brown",
+    "eyebrows": "eyebrow001",
+    "eyelashes": "eyelashes01",
+    "hair": "short04",
+    "hairColor": "#17191a",
+    "outfit": "none",
+    "top": "techwear_jacket",
+    "jacket": "none",
+    "bottom": "cargo_pants",
+    "shoes": "combat_boots",
+    "accessories": [],
+    "carry": "none",
+    "garmentStyles": {
+      "techwear_jacket": {
+        "pattern": "techwear",
+        "color": "#353239",
+        "color2": "#494b48"
+      },
+      "cargo_pants": {
+        "pattern": "khaki",
+        "color": "#34383a",
+        "color2": "#34383a"
+      }
+    },
+    "detail": "medium",
+    "rig": "game",
+    "faceBones": false,
+    "restPose": "A",
+    "faceShapes": false,
+    "speechShapes": false,
+    "weapon": "none",
+    "vehicle": "none",
+    "hairTint": "#17191a"
+  }
+}

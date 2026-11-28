@@ -1,0 +1,58 @@
+{
+  "$schema": "https://ara3dgen.com/schemas/character.v1.json",
+  "kind": "ara-character",
+  "version": 1,
+  "params": {
+    "name": "Horizon visitor 01",
+    "seed": 834511,
+    "gender": 0,
+    "ageYears": 57,
+    "height": 0.43,
+    "weight": 0.38,
+    "muscle": 0.44,
+    "proportions": 0.45,
+    "african": 0.12,
+    "asian": 0.13,
+    "caucasian": 0.75,
+    "modifiers": {
+      "head/head-scale-horiz": 0.11,
+      "head/head-rectangular": 0.21,
+      "eyes/eye-bag": 0.25,
+      "eyebrows/eyebrows-trans": 0.08
+    },
+    "skinTint": "#ecd6c2",
+    "eyes": "brown",
+    "eyebrows": "eyebrow001",
+    "eyelashes": "eyelashes01",
+    "hair": "bob02",
+    "hairColor": "#2c2723",
+    "outfit": "none",
+    "top": "camp_shirt",
+    "jacket": "none",
+    "bottom": "cargo_pants",
+    "shoes": "sneakers",
+    "accessories": [],
+    "carry": "none",
+    "garmentStyles": {
+      "camp_shirt": {
+        "pattern": "linen",
+        "color": "#aaa292",
+        "color2": "#494b48"
+      },
+      "cargo_pants": {
+        "pattern": "khaki",
+        "color": "#635d53",
+        "color2": "#635d53"
+      }
+    },
+    "detail": "medium",
+    "rig": "game",
+    "faceBones": false,
+    "restPose": "A",
+    "faceShapes": false,
+    "speechShapes": false,
+    "weapon": "none",
+    "vehicle": "none",
+    "hairTint": "#2c2723"
+  }
+}
