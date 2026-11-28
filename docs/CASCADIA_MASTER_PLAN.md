@@ -53,3 +53,8 @@ These documents expand the approved plan; the engineering designs and first pilo
 
 ## Reconciliation with existing authored-city decision (#197–#206)
 The creator's explicit Nov 22/23 decision in #200 waives historical pre-alpha v1/beta.7/beta.8 save migration. The new fixed authored layout and clean save schema are authoritative. Legacy v2 geometry is a temporary survey and parity baseline during engineering, NOT a promise to maintain a second runtime layout provider or migrate old saves. Keep existing live build intact until a reviewed replacement; reject incompatible saves gracefully, never overwrite them silently. Protect mission/business/property identity and validate persistence within the new schema. #198 survey, #199 registry, #200 save, #201 streaming, #202 corridor, #203 route/consumer binding, #204 mutable state, #205 acceptance and #206 city expansion are existing work items; #592 extends their design toward irregular streets, not a duplicate implementation backlog. This decision supersedes contradictory preservation language in older planning artifacts.
+
+### 8. Regional life and geography contracts
+- [Living regional economy and gameplay](CASCADIA_REGIONAL_GAMEPLAY.md): one shared economy, careers and inventory; place-specific demand, daily schedules, first freight loop and acceptance cases.
+- [Terrain and transportation](CASCADIA_TERRAIN_TRANSPORT.md): geographic survey layers, corridor kit, first bridge design and measured performance gates.
+These are proposed contracts, not approved new payout values, route distances or current playable features.
