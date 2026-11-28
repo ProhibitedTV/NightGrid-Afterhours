@@ -121,3 +121,26 @@ static func install(actor: Node3D, id: String, seated: bool = false) -> Node3D:
 		if child is Node3D:
 			child.hide()
 	return rig
+
+## Explicit headless packaged diagnostic; check all 24 imported resources,
+## not the presence of filenames in the source checkout.
+static func verify_imported_bank(parent: Node) -> bool:
+	if not available():
+		push_error("CHARACTER_BANK FAIL: incomplete bank")
+		return false
+	for id in ids():
+		var packed := model(id)
+		if packed == null:
+			push_error("CHARACTER_BANK FAIL: missing imported model " + str(id))
+			return false
+		var rig := Rig.new()
+		rig.set_pedestrian_model(packed)
+		parent.add_child(rig)
+		var valid := rig.is_pedestrian_visual_ready()
+		parent.remove_child(rig)
+		rig.free()
+		if not valid:
+			push_error("CHARACTER_BANK FAIL: invalid imported rig " + str(id))
+			return false
+	print("CHARACTER_BANK PASS: all 24 imported rigs")
+	return true

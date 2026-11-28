@@ -46,6 +46,20 @@ def stage(source, target=TARGET):
     return manifest
 
 
+def verify_staged(target=TARGET):
+    manifest = json.loads((target / "bank.json").read_text(encoding="utf-8"))
+    if (manifest.get("schema") != 1 or manifest.get("package") != candidates.PACKAGE
+            or manifest.get("source_revision") != candidates.REVISION
+            or set(manifest["actors"]) != set(candidates.ACTORS)):
+        raise ValueError("Incorrect staged character bank identity")
+    if {p.name for p in target.glob("*.glb")} != {a + ".glb" for a in candidates.ACTORS}:
+        raise ValueError("Unexpected staged model inventory")
+    for actor, record in manifest["actors"].items():
+        if candidates.inspect_glb(target / (actor + ".glb"), candidates.ANIMATIONS[actor]) != record:
+            raise ValueError("Staged model mismatch: " + actor)
+    return manifest
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", required=True, type=Path)
