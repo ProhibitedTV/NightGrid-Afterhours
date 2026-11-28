@@ -50,6 +50,11 @@ def index(nas, run):
         if settings["source_sha256"] != sha(bot / (species + "_lod0.glb")) or settings["species"] != species:
             raise ValueError("Impostor source mismatch")
         results.append(dict(record, lane="impostors", species=species))
+    from urban_layout_candidates import PARCELS, INTERIORS
+    record=manifest(nas/"Visual/UrbanLayouts"/batch/"urban-layouts","candidate.json","outputs")
+    if {Path(f["file"]).name for f in record["files"]}!={n+ext for n in (*PARCELS,*INTERIORS) for ext in (".json",".svg")}:
+        raise ValueError("Incomplete urban layout candidates")
+    results.append(dict(record,lane="layouts"))
     for family in ("B1", "B2", "B3", "B4"):
         record=manifest(nas / "Visual/Architecture" / post / family,"candidate.json","outputs")
         if {Path(f["file"]).name for f in record["files"]}!={"lod0.glb","lod1.glb","lod2.glb","occluder.json"}:

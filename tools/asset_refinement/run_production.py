@@ -19,7 +19,7 @@ NAS = Path("/mnt/z/NightGrid-Afterhours")
 HOME = Path(os.environ.get("ANUBIS_VISUAL_HOME", "/root/.local/share/nightgrid-visual-py311"))
 NATIVE = "/mnt/c/Users/RhythmicCarnage/AppData/Local/Temp/nightgrid-godot-472/Godot_v4.7.2-stable_win64_console.exe"
 MUSIC = "music-neon-grunge-studio-002"
-STAGES = ("music", "visual", "visual_detail", "botanical", "impostors", "buildings", "environments", "decals", "characters",
+STAGES = ("music", "visual", "visual_detail", "botanical", "impostors", "layouts", "buildings", "environments", "decals", "characters",
           "reception", "synaxis-ground", "inventory", "review_packet", "review_detail", "evidence", "dashboard")
 
 
@@ -105,6 +105,8 @@ def build_plan(batch, godot, visual_mode, linux_godot="/usr/local/bin/godot"):
         "impostors": ([str(HOME / "mesh/bin/python"), "tools/asset_refinement/impostor_candidates.py",
                        "--bank", str(NAS / "Visual/Botanical" / ("coastal-" + batch)),
                        "--out", str(NAS / "Visual/Impostors" / batch), "--size", "512", "--samples", "32"], {}),
+        "layouts": ([sys.executable, "tools/asset_refinement/urban_layout_candidates.py",
+                     "--out", str(NAS / "Visual/UrbanLayouts" / batch)], {}),
         "buildings": (base + ["--lane", "buildings", "--batch", post], {}),
         "environments": ([str(HOME / "mesh/bin/python"), "tools/asset_refinement/environment_candidates.py",
                           "--out", str(NAS / "Visual/Environments" / batch), "--width", "1024"], {}),
