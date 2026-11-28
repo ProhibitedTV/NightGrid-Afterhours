@@ -4,7 +4,7 @@ extends Node3D
 const BLOCK = Vector2i(1,-1)
 const LOT = 0
 const ORIGIN = Vector3(76.5,.15,-33.88)
-const BASEMENT_FOOTPRINT := Vector2(17.0, 20.0)
+const BASEMENT_FOOTPRINT = Vector2(17.0, 20.0)
 const ENTRY = Vector3(76.5,1.30,-46.2)
 const ID = "synaxis_hq"
 const NAME = "SYNAXIS OMNISYSTEMS"
