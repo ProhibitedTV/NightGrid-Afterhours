@@ -18,7 +18,7 @@ NAS = Path("/mnt/z/NightGrid-Afterhours")
 HOME = Path(os.environ.get("ANUBIS_VISUAL_HOME", "/root/.local/share/nightgrid-visual-py311"))
 NATIVE = "/mnt/c/Users/RhythmicCarnage/AppData/Local/Temp/nightgrid-godot-472/Godot_v4.7.2-stable_win64_console.exe"
 MUSIC = "music-neon-grunge-studio-002"
-STAGES = ("music", "visual", "botanical", "buildings", "characters",
+STAGES = ("music", "visual", "botanical", "impostors", "buildings", "characters",
           "reception", "synaxis-ground", "inventory", "review_packet", "evidence", "dashboard")
 
 
@@ -79,6 +79,9 @@ def build_plan(batch, godot, visual_mode):
         "visual": (["bash", "tools/asset_refinement/run_factory.sh", visual_mode], visual_env),
         "botanical": ([sys.executable, "tools/asset_refinement/botanical_candidates.py", "--execute",
                        "--out", str(NAS / "Visual/Botanical" / ("coastal-" + batch))], {}),
+        "impostors": ([str(HOME / "mesh/bin/python"), "tools/asset_refinement/impostor_candidates.py",
+                       "--bank", str(NAS / "Visual/Botanical" / ("coastal-" + batch)),
+                       "--out", str(NAS / "Visual/Impostors" / batch), "--size", "512", "--samples", "32"], {}),
         "buildings": (base + ["--lane", "buildings", "--batch", post], {}),
         "characters": (base + ["--lane", "characters", "--batch", post], {}),
         **{profile: (base + ["--lane", "lighting", "--lighting-profile", profile,
@@ -162,6 +165,11 @@ def dispatch(args):
                 argv += ["--output", str(run / artifact)]
             elif name == "evidence":
                 argv += ["--run", str(run)]
+            if name == "impostors":
+                guard_logs = HOME / "guard-logs"
+                guard_logs.mkdir(exist_ok=True)
+                argv = [sys.executable, "tools/asset_refinement/resource_guard.py",
+                        "--log", str(guard_logs / f"{args.batch}-impostors-{attempt}.jsonl"), "--", *argv]
             log = run / f"{name}-{attempt}.log"
             entry["log"] = log.name
             atomic(state_path, state)
