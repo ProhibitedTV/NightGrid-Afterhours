@@ -51,8 +51,10 @@ def index(nas, run):
             raise ValueError("Impostor source mismatch")
         results.append(dict(record, lane="impostors", species=species))
     for family in ("B1", "B2", "B3", "B4"):
-        results.append(dict(manifest(nas / "Visual/Architecture" / post / family,
-                                     "candidate.json", "outputs"), lane="architecture", family=family))
+        record=manifest(nas / "Visual/Architecture" / post / family,"candidate.json","outputs")
+        if {Path(f["file"]).name for f in record["files"]}!={"lod0.glb","lod1.glb","lod2.glb","occluder.json"}:
+            raise ValueError("Incomplete architecture derivatives")
+        results.append(dict(record,lane="architecture",family=family))
     from character_candidates import BATCHES
     for actor in BATCHES["all"]:
         folder = nas / "Characters" / post / actor

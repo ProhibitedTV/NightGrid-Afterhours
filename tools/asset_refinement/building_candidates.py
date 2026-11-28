@@ -113,6 +113,55 @@ def geometry(profile, lod):
                 add("concrete",xx-.48,xx+.48,roof+.47,roof+.51,zz,zz+.08)
     return s
 
+def distant_geometry(profile):
+    """Visual-only far shell: no embedded texture payload, no collision."""
+    w,h,d = (profile[k] for k in ("width","height","depth"))
+    x=w/2
+    wall="steel" if profile["material"]=="METAL" else "masonry"
+    s={name:Surface() for name in MATERIALS}
+    # Ground-floor openings preserved even in the far shell. Upper window
+    # bands are deliberate simplifications, never used for walkable interiors.
+    for lo,hi in ((-x,-1.42),(1.42,x)):
+        box(s[wall],lo,hi,0,3.6,0,.28)
+        box(s[wall],lo,hi,0,3.6,d-.28,d)
+    for lo,hi in ((-x,-x+.28),(x-.28,x)):
+        box(s[wall],lo,hi,0,h,.28,d-.28)
+    roof=h-.62
+    floors=max(2,round((roof-3.6)/3.1))
+    pitch=(roof-3.6)/floors
+    for y0,z0,z1 in ((0,0,.28),(0,d-.28,d)):
+        box(s[wall],-x,x,3.17,3.6,z0,z1)
+        for i in range(floors):
+            y=3.6+i*pitch
+            box(s[wall],-x,x,y,y+.62,z0,z1)
+            box(s["glazing"],-x+.28,x-.28,y+.62,y+pitch-.40,z0+.08,z1-.08)
+            box(s[wall],-x,x,y+pitch-.40,y+pitch,z0,z1)
+    box(s["concrete"],-x,x,roof,h,0,d)
+    return s
+
+
+def occlusion_candidate(profile):
+    """Only inset vertical planes inside continuous opaque side walls.
+    No roof, front/back windows, doors, or whole-envelope occlusion volume.
+    The proof applies to this generated archetype, not an assigned live lot.
+    """
+    w,h,d = (profile[k] for k in ("width","height","depth"))
+    vertices=[]
+    indices=[]
+    for x in (-w/2+.14,w/2-.14):
+        start=len(vertices)
+        vertices.extend([[x,3.65,.40],[x,h-.72,.40],
+                         [x,h-.72,d-.40],[x,3.65,d-.40]])
+        # Opposite windings for left/right wall; no duplicate coplanar faces.
+        indices.extend([start,start+1,start+2,start,start+2,start+3] if x<0
+                       else [start,start+2,start+1,start,start+3,start+2])
+    return {"schema":1,"status":"candidate-only","space":"local metres, Y up, front Z=0",
+            "vertices":vertices,"indices":indices,"triangles":len(indices)//3,
+            "scope":"inset opaque side-wall planes only",
+            "pending":["exact lot and transform binding","native ArrayOccluder3D winding and culling",
+                       "interior/window visibility and matched frame-time comparison"]}
+
+
 def textures():
     notice=json.loads((SOURCE/"SOURCE.json").read_text(encoding="utf-8"))
     maps={}
@@ -178,7 +227,7 @@ def lightmap_uvs(surfaces, size=UV2_SIZE, gutter=UV2_GUTTER):
                 "reference_texels_per_m":round(lo,3),
                 "chart_occupancy":round(sum(w*h for _,_,_,_,w,h in placed)/size**2,4)}
 
-def encode(surfaces,maps):
+def encode(surfaces,maps, flat_wall=None):
     uv2, _ = lightmap_uvs(surfaces)
     blob=bytearray()
     views,accessors,images,prims,materials=[],[],[],[],[]
@@ -207,6 +256,10 @@ def encode(surfaces,maps):
         if mat=="glazing":
             m={"name":"Recessed dark glazing - provisional","pbrMetallicRoughness":{
                "baseColorFactor":[.035,.055,.065,1],"roughnessFactor":.24,"metallicFactor":.3}}
+        elif flat_wall is not None:
+            rgb = flat_wall if mat in ("masonry","steel") else [.27,.28,.29]
+            m={"name":mat+" distant proxy","pbrMetallicRoughness":{
+               "baseColorFactor":[*rgb,1],"roughnessFactor":.85,"metallicFactor":0}}
         else:
             def tex(suffix): return {"index":indices[f"textures/{mat}_{suffix}"]}
             m={"name":mat,"pbrMetallicRoughness":{"baseColorTexture":tex("base_1k.jpg"),
@@ -237,7 +290,7 @@ def produce(out,keys):
         if dest.exists():
             if dest.is_symlink(): raise ValueError("Unsafe candidate directory")
             doc=json.loads((dest/"candidate.json").read_text(encoding="utf-8"))
-            if doc["inputs"]!=inputs or doc["profile"]!=spec[key] or set(doc["outputs"])!={"lod0.glb","lod1.glb"}:
+            if doc["inputs"]!=inputs or doc["profile"]!=spec[key] or set(doc["outputs"])!={"lod0.glb","lod1.glb","lod2.glb","occluder.json"}:
                 raise ValueError("Existing building provenance mismatch: "+key)
             for name,record in doc["outputs"].items():
                 path=dest/name
@@ -251,10 +304,26 @@ def produce(out,keys):
             raw=encode(mesh,maps); name=f"lod{lod}.glb"
             (stage/name).write_bytes(raw)
             files[name]={"sha256":digest(raw),"bytes":len(raw),"triangles":sum(len(s.i)//3 for s in mesh.values()),"uv2":lightmap_uvs(mesh)[1]}
+        proxy=distant_geometry(spec[key])
+        def linear(c):
+            c=c/255
+            return c/12.92 if c<=.04045 else ((c+.055)/1.055)**2.4
+        rgb=[linear(int(spec[key]["wall"][i:i+2],16)) for i in (0,2,4)]
+        raw=encode(proxy,{},flat_wall=rgb)
+        (stage/"lod2.glb").write_bytes(raw)
+        tris=sum(len(s.i)//3 for s in proxy.values())
+        if tris>=files["lod1.glb"]["triangles"] or len(raw)>256*1024:
+            raise ValueError("Distant proxy budget regression")
+        files["lod2.glb"]={"sha256":digest(raw),"bytes":len(raw),"triangles":tris,
+                           "scope":"far visual only; no textures or collision"}
+        occ=occlusion_candidate(spec[key])
+        raw=(json.dumps(occ,indent=2)+"\n").encode()
+        (stage/"occluder.json").write_bytes(raw)
+        files["occluder.json"]={"sha256":digest(raw),"bytes":len(raw),"triangles":occ["triangles"]}
         doc={"schema":1,"status":"candidate-only","family":key,"profile":spec[key],"inputs":inputs,
              "outputs":files,"placement":"unassigned archetype, not a surveyed lot; front z=0, grade y=0",
              "notes":"Dimensioned shell and ground apertures; upper floors are not furnished or navigable. Dark opaque pane is provisional.",
-             "pending":["lot fit and existing anchors","collision and doors","native UV2 import and actual bake density","native material and lighting review","performance","rights and promotion"]}
+             "pending":["lot fit and existing anchors","collision and doors","native UV2 import and actual bake density","native material and lighting review","far silhouette and occlusion validation","performance","rights and promotion"]}
         (stage/"candidate.json").write_text(json.dumps(doc,indent=2)+"\n",encoding="utf-8")
         if dest.exists(): raise FileExistsError(dest)
         stage.rename(dest)
