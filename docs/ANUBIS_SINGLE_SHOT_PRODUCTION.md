@@ -6,7 +6,7 @@ Use the existing Windows checkout `%USERPROFILE%\Desktop\NightGrid-Factory`, Ubu
 From Windows CMD after the PR revision is checked out:
 ```cmd
 cd /d "%USERPROFILE%\Desktop\NightGrid-Factory"
-wsl -d Ubuntu -u root -- bash -lc "mkdir -p /mnt/z; mountpoint -q /mnt/z || mount -t drvfs Z: /mnt/z -o uid=1000,gid=1000; python3 tools/asset_refinement/run_production.py --execute"
+wsl -d Ubuntu -u root -- bash -lc "set -e; mkdir -p /mnt/z; mountpoint -q /mnt/z || mount -t drvfs Z: /mnt/z -o uid=$(id -u anubis),gid=$(id -g anubis); cd /mnt/c/Users/RhythmicCarnage/Desktop/NightGrid-Factory; python3 tools/asset_refinement/run_production.py --execute"
 ```
 If the mount is already present, leave it alone. The default Godot path is the previously used native 4.7.2 console binary under the Windows Temp/nightgrid-godot-472 directory; override with --godot if moved. The command requires the mapped drive and installed local tools; no downloads. For plan only omit --execute; for refinement without neural generation pass --visual-mode existing (choose a new --batch if changing the plan).
 
