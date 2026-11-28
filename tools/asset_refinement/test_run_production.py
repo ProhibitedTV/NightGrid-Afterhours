@@ -19,6 +19,9 @@ class ProductionTests(unittest.TestCase):
         self.assertIn("1024",plan["environments"][0])
         self.assertIn("environment_candidates.py",plan["environments"][0][1])
         self.assertIn("postmusic-render-001", plan["characters"][0])
+        self.assertEqual(plan["visual_detail"][1]["ANUBIS_BATCH"],"visual-coastal-detail-001")
+        self.assertTrue(plan["visual_detail"][1]["ANUBIS_VISUAL_CATALOG"].endswith("catalog_coastal_detail.json"))
+        self.assertIn("review_detail",plan)
 
     def test_music_hashes(self):
         with tempfile.TemporaryDirectory() as tmp:

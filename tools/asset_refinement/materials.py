@@ -42,6 +42,14 @@ PROFILES = {
     "peeling-painted-plaster": (.88, 0, 1, 1.1),
     "damp-cobblestone": (.44, 0, 1, 1.9),
     "weathered-wood-decking": (.82, 0, 1, 1.1),
+    "rubberized-coastal-roof-membrane": (0.86, 0, 1, 0.75),
+    "exposed-aggregate-sidewalk": (0.92, 0, 1, 1.6),
+    "powder-coated-charcoal-aluminum": (0.62, 0, 1, 0.35),
+    "brushed-copper-sheet": (0.4, 1, 1, 0.3),
+    "salt-weathered-dock-timber": (0.9, 0, 1, 1.5),
+    "acoustic-felt-panel": (0.96, 0, 1, 0.65),
+    "commercial-vinyl-floor": (0.55, 0, 1, 0.3),
+    "worn-ceramic-subway-tile": (0.4, 0, 1, 0.9),
 }
 MAPS = ("basecolor.png", "normal.png", "roughness.png", "metallic.png",
         "height.png", "ao-estimate.png", "orm.png")

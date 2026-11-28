@@ -93,7 +93,7 @@ def index(nas, run):
         results.append({"lane": "lighting", "profile": profile, "manifest": str(report),
                         "manifest_sha256": sha(report),
                         "files": [checked(base, rec["file"], rec["sha256"]) for rec in data["outputs"]]})
-    for name in ("review_packet", "inventory"):
+    for name in ("review_packet", "review_detail", "inventory"):
         entry = entries[name]
         path = run / entry["artifact"]
         results.append(dict(checked(run, entry["artifact"], entry["artifact_sha256"]), lane=name))

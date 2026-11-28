@@ -19,8 +19,8 @@ NAS = Path("/mnt/z/NightGrid-Afterhours")
 HOME = Path(os.environ.get("ANUBIS_VISUAL_HOME", "/root/.local/share/nightgrid-visual-py311"))
 NATIVE = "/mnt/c/Users/RhythmicCarnage/AppData/Local/Temp/nightgrid-godot-472/Godot_v4.7.2-stable_win64_console.exe"
 MUSIC = "music-neon-grunge-studio-002"
-STAGES = ("music", "visual", "botanical", "impostors", "buildings", "environments", "decals", "characters",
-          "reception", "synaxis-ground", "inventory", "review_packet", "evidence", "dashboard")
+STAGES = ("music", "visual", "visual_detail", "botanical", "impostors", "buildings", "environments", "decals", "characters",
+          "reception", "synaxis-ground", "inventory", "review_packet", "review_detail", "evidence", "dashboard")
 
 
 def git(*args):
@@ -97,6 +97,9 @@ def build_plan(batch, godot, visual_mode, linux_godot="/usr/local/bin/godot"):
         "music": (["bash", "tools/audio/run_anubis_music.sh", "--palette", "neon-grunge-v1",
                    "--profile", "studio", "--batch", MUSIC], {}),
         "visual": (["bash", "tools/asset_refinement/run_factory.sh", visual_mode], visual_env),
+        "visual_detail": (["bash", "tools/asset_refinement/run_factory.sh", visual_mode],
+                          dict(visual_env, ANUBIS_BATCH="visual-coastal-detail-001",
+                               ANUBIS_VISUAL_CATALOG=str(ROOT / "tools/visual_studio/catalog_coastal_detail.json"))),
         "botanical": ([sys.executable, "tools/asset_refinement/botanical_candidates.py", "--execute",
                        "--out", str(NAS / "Visual/Botanical" / ("coastal-" + batch))], {}),
         "impostors": ([str(HOME / "mesh/bin/python"), "tools/asset_refinement/impostor_candidates.py",
@@ -115,6 +118,9 @@ def build_plan(batch, godot, visual_mode, linux_godot="/usr/local/bin/godot"):
         "review_packet": ([sys.executable, "tools/asset_refinement/review_packet.py",
                            "--refined", str(NAS / "Visual/refined-001"),
                            "--previews", str(NAS / "Visual/Previews")], {}),
+        "review_detail": ([sys.executable, "tools/asset_refinement/review_packet.py",
+                           "--refined", str(NAS / "Visual/refined-coastal-detail-001"),
+                           "--previews", str(NAS / "Visual/Previews/visual-coastal-detail-001")], {}),
         "evidence": ([str(HOME / "mesh/bin/python"), "tools/asset_refinement/production_evidence.py",
                       "--nas", str(NAS)], {}),
         "dashboard": ([sys.executable, "tools/asset_refinement/dashboard.py",
@@ -133,6 +139,7 @@ def dispatch(args):
         plan["inventory"][0].extend(["--output", str(NAS / "Visual/ProductionRuns" / args.batch / "inventory.json")])
         run = NAS / "Visual/ProductionRuns" / args.batch
         plan["review_packet"][0].extend(["--output", str(run / "review-1.zip")])
+        plan["review_detail"][0].extend(["--output", str(run / "review-detail-1.zip")])
         plan["evidence"][0].extend(["--run", str(run)])
         print(json.dumps({name: {"argv": argv, "env": env} for name, (argv, env) in plan.items()}, indent=2))
         return 0
@@ -170,7 +177,7 @@ def dispatch(args):
                     raise RuntimeError("Completed lighting checkpoint missing; inspect existing candidate")
                 if not (run / entry["log"]).is_file():
                     raise RuntimeError("Completed stage log missing; inspect run")
-                if name in ("inventory","review_packet") and sha(run / entry["artifact"]) != entry["artifact_sha256"]:
+                if name in ("inventory","review_packet","review_detail") and sha(run / entry["artifact"]) != entry["artifact_sha256"]:
                     raise RuntimeError("Completed artifact changed; inspect run")
                 print("CHECKPOINT", name, flush=True)
                 continue
@@ -188,8 +195,9 @@ def dispatch(args):
                 candidate = f"postmusic-{args.batch}-{short}-{attempt}"
                 argv += ["--batch", candidate]
                 entry["candidate"] = str(NAS / "Visual/Lighting" / candidate)
-            elif name in ("inventory", "review_packet"):
-                artifact = "inventory.json" if name == "inventory" else f"review-{attempt}.zip"
+            elif name in ("inventory", "review_packet", "review_detail"):
+                artifact = ("inventory.json" if name == "inventory" else
+                            f"review-detail-{attempt}.zip" if name == "review_detail" else f"review-{attempt}.zip")
                 entry["artifact"] = artifact
                 argv += ["--output", str(run / artifact)]
             elif name == "evidence":
@@ -226,7 +234,7 @@ def dispatch(args):
                 entry.update(status="failed", finished=now(), error=str(exc))
                 atomic(state_path, state)
                 raise
-            if rc == 0 and name in ("inventory","review_packet"):
+            if rc == 0 and name in ("inventory","review_packet","review_detail"):
                 entry["artifact_sha256"] = sha(run / entry["artifact"])
             entry.update(status="completed" if rc == 0 else "failed", finished=now(), exit_code=rc)
             atomic(state_path, state)
