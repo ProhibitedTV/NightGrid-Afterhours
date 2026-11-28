@@ -47,3 +47,18 @@ The governing scope, acceptance gates and sequencing for city redevelopment and 
 For future authored world integration, #200 waives historical pre-alpha save migration; the existing dispatcher does not modify live saves. See the master plan reconciliation.
 
 The final evidence index now independently hashes reviewed refined meshes and material derivatives in both visual catalogs, as well as the 48 music WAVs, not just their metadata ZIPs. A resumed completed run revalidates the evidence index and compares it to the persisted index. This is byte integrity, not technical/visual/rights certification. Existing-only mode can still omit incomplete candidates; partial production is not full catalog coverage. Local execution remains required.
+
+
+## Operator handoff — unattended gaps, no Codex dispatch
+Keep this exact revision checked out in the existing Factory directory for the full run. Do not pull, switch branches, close WSL, sleep or restart the PC while a job is active. Use a separate terminal for status. No background ChatGPT/Codex agent is required. Native Windows baking needs the existing desktop/session; avoid playing the game while GPU/lighting work runs.
+
+- Plan: python3 tools/asset_refinement/run_production.py
+- Preflight: python3 tools/asset_refinement/run_production.py --check
+- Run/resume: python3 tools/asset_refinement/run_production.py --execute
+- Read-only status: python3 tools/asset_refinement/run_production.py --status
+- Optional bounded session: python3 tools/asset_refinement/run_production.py --execute --until district_buildings (stop after that lane; not a wall-clock limit).
+- Request a cooperative stop by creating Z:\NightGrid-Afterhours\Visual\ProductionRuns\render-001\PAUSE (only after the run directory exists). Current stage finishes or fails naturally. Remove only that empty marker to resume. Do not interrupt a native editor bake just to meet a time window. Long stages can exceed an hour; no completion-time guarantee.
+- CPU layouts/street/regional plans, architecture, vegetation, skies, decals and other candidate production precede the long visual catalogs. Music verified first; if missing, the normal music job runs. Both visual catalogs must complete for full evidence.
+- Preflight guards free space and temperature; direct child processes inherit the dispatch lock so a surviving immediate child prevents a competing dispatcher. This is not a full process-tree supervisor after forced termination; inspect Windows/WSL processes and existing leases after a crash before restarting. No automatic deletion of partial outputs or stale lock files.
+- Full run refuses an implicit visual setup install even if the marker disappears after preflight. Existing HF/npm/pip offline settings do not guarantee all third-party dependencies can run offline (e.g. a missing rembg cache); if a dependency fails, stop and report, do not bypass guards.
+- Leave local Codex for actual native import, collision/gameplay, screenshot, profiling and export verification. Send the production ledger, candidate-index.json if complete, relevant failed-stage log and review ZIPs; no private source assets or model weights need to leave NAS. Candidate integrity != native quality or rights approval.

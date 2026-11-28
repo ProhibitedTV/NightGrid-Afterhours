@@ -19,8 +19,12 @@ NAS = Path("/mnt/z/NightGrid-Afterhours")
 HOME = Path(os.environ.get("ANUBIS_VISUAL_HOME", "/root/.local/share/nightgrid-visual-py311"))
 NATIVE = "/mnt/c/Users/RhythmicCarnage/AppData/Local/Temp/nightgrid-godot-472/Godot_v4.7.2-stable_win64_console.exe"
 MUSIC = "music-neon-grunge-studio-002"
-STAGES = ("music", "visual", "visual_detail", "botanical", "impostors", "layouts", "street_plan", "regional_plan", "buildings", "district_buildings", "environments", "decals", "characters",
-          "reception", "synaxis-ground", "inventory", "review_packet", "review_detail", "evidence", "dashboard")
+# Deliver cheap independent candidates first. Long-running inference is last
+# among the asset producers; final review still requires every selected lane.
+STAGES = ("music", "layouts", "street_plan", "regional_plan", "buildings", "district_buildings",
+          "botanical", "environments", "decals", "characters", "impostors",
+          "reception", "synaxis-ground", "visual", "visual_detail",
+          "inventory", "review_packet", "review_detail", "evidence", "dashboard")
 
 
 def git(*args):
@@ -93,7 +97,7 @@ def build_plan(batch, godot, visual_mode, linux_godot="/usr/local/bin/godot"):
                   "ANUBIS_PREVIEWS": "1", "ANUBIS_SKIP_AUDIO": "1", "ANUBIS_BATCH": "visual-001",
                   "ANUBIS_GODOT": linux_godot}
     base = ["bash", "tools/asset_refinement/run_post_music.sh", "--execute"]
-    return {
+    jobs = {
         "music": (["bash", "tools/audio/run_anubis_music.sh", "--palette", "neon-grunge-v1",
                    "--profile", "studio", "--batch", MUSIC], {}),
         "visual": (["bash", "tools/asset_refinement/run_factory.sh", visual_mode], visual_env),
@@ -134,10 +138,35 @@ def build_plan(batch, godot, visual_mode, linux_godot="/usr/local/bin/godot"):
         "dashboard": ([sys.executable, "tools/asset_refinement/dashboard.py",
                        "--root", str(NAS / "Visual")], {}),
     }
+    return {name:jobs[name] for name in STAGES}
+
+
+def status(run):
+    """Read-only view, safe to invoke while the foreground dispatcher runs."""
+    path=run/"production.json"
+    if not path.is_file():
+        return {"batch":run.name,"status":"not-started","completed":0,"total":len(STAGES)}
+    state=json.loads(path.read_text())
+    entries=state["entries"]
+    completed=sum(e["status"]=="completed" for e in entries.values())
+    current=next((n for n in state["signature"]["stages"] if entries[n]["status"]!="completed"),None)
+    return {"batch":run.name,"status":"process-complete" if current is None else entries[current]["status"],
+            "completed":completed,"total":len(entries),"current_stage":current,
+            "pause_requested":(run/"PAUSE").exists(),"source":state["signature"]["source"],
+            "current_log":entries[current].get("log") if current else None,
+            "entries":entries,"approval":"review-required"}
 
 
 def dispatch(args):
+    run = NAS / "Visual/ProductionRuns" / args.batch
+    if args.status:
+        if not os.path.ismount("/mnt/z"):
+            raise RuntimeError("NAS not mounted; refusing misleading status")
+        print(json.dumps(status(run),indent=2))
+        return 0
     plan = build_plan(args.batch, args.godot, args.visual_mode, args.linux_godot)
+    if args.check or args.execute:
+        os.environ["PATH"]="/root/.local/share/nightgrid-python/bin:/usr/lib/wsl/lib:"+os.environ.get("PATH","")
     if args.check:
         print(json.dumps(preflight(args.godot,args.linux_godot,args.visual_mode),indent=2))
         return 0
@@ -159,9 +188,10 @@ def dispatch(args):
         raise RuntimeError("Unsafe run directory")
     state_path = run / "production.json"
     env = dict(os.environ, ANUBIS_VISUAL_HOME=str(HOME), HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1",
-               NPM_CONFIG_OFFLINE="true", PYTHONDONTWRITEBYTECODE="1")
+               NPM_CONFIG_OFFLINE="true", PIP_NO_INDEX="1", ANUBIS_REQUIRE_EXISTING_SETUP="1",
+               PYTHONDONTWRITEBYTECODE="1", PYTHONUNBUFFERED="1")
     env["PATH"] = env.get("PATH", "") + ":/usr/lib/wsl/lib"
-    for key in ("ANUBIS_VISUAL_CATALOG", "ANUBIS_GENERATION_REPO"):
+    for key in ("ANUBIS_VISUAL_CATALOG", "ANUBIS_GENERATION_REPO", "ANUBIS_VISUAL_NAS", "ANUBIS_VISUAL_OUT", "ANUBIS_REFINED_OUT"):
         env.pop(key, None)
     signature = {"source": source, "godot": version, "godot_path": args.godot, "linux_godot_path": args.linux_godot, "factory_home": str(HOME),
                  "visual_mode": args.visual_mode, "stages": list(STAGES)}
@@ -176,7 +206,15 @@ def dispatch(args):
             state = {"schema": 1, "signature": signature, "review": "pending",
                      "entries": {n: {"status": "pending", "attempts": 0} for n in STAGES}}
         atomic(state_path, state)
+        # Operator pause is cooperative, never kills a running native bake.
+        # A stage bound is a scheduling choice, not a change to job settings.
         for name in STAGES:
+            if (run/"PAUSE").exists():
+                print("PAUSED at stage boundary; remove PAUSE and rerun unchanged command.",flush=True)
+                return 0
+            if args.until and STAGES.index(name)>STAGES.index(args.until):
+                print("Requested stage boundary reached; rerun without --until to continue.",flush=True)
+                return 0
             entry = state["entries"][name]
             if entry["status"] == "completed":
                 if name == "music" and not music_complete(NAS / "Music" / MUSIC):
@@ -219,7 +257,7 @@ def dispatch(args):
                 argv += ["--output", str(run / artifact)]
             elif name == "evidence":
                 argv += ["--run", str(run)]
-            if name in ("botanical", "impostors", "environments", "decals", "district_buildings", "evidence", "inventory", "review_packet", "review_detail"):
+            if name in ("layouts", "street_plan", "regional_plan", "botanical", "impostors", "environments", "decals", "district_buildings", "evidence", "inventory", "review_packet", "review_detail"):
                 guard_logs = HOME / "guard-logs"
                 guard_logs.mkdir(exist_ok=True)
                 argv = [sys.executable, "tools/asset_refinement/resource_guard.py",
@@ -237,7 +275,8 @@ def dispatch(args):
                         # CPU-only botanical stage does not need a GPU lease; existing
                         # visual, music and post-music launchers own their GPU locks.
                         rc = subprocess.run(argv, cwd=ROOT, env=dict(env, **extra),
-                                            stdout=out, stderr=subprocess.STDOUT).returncode
+                                            stdout=out, stderr=subprocess.STDOUT,
+                                            pass_fds=(lease.fileno(),)).returncode
                     if rc == 0 and name == "music" and not music_complete(NAS / "Music" / MUSIC):
                         rc = 1
                     if rc == 0 and name in ("reception", "synaxis-ground"):
@@ -252,7 +291,11 @@ def dispatch(args):
                 atomic(state_path, state)
                 raise
             if rc == 0 and name in ("inventory","review_packet","review_detail"):
-                entry["artifact_sha256"] = sha(run / entry["artifact"])
+                try:
+                    entry["artifact_sha256"] = sha(run / entry["artifact"])
+                except OSError as exc:
+                    entry["error"] = str(exc)
+                    rc=1
             entry.update(status="completed" if rc == 0 else "failed", finished=now(), exit_code=rc)
             atomic(state_path, state)
             if rc:
@@ -269,11 +312,15 @@ def main():
     mode=p.add_mutually_exclusive_group()
     mode.add_argument("--execute", action="store_true")
     mode.add_argument("--check", action="store_true",help="Check existing dependencies and storage without launching jobs")
+    mode.add_argument("--status",action="store_true",help="Read existing run ledger without launching jobs")
+    p.add_argument("--until",choices=STAGES,help="Execute through this stage then stop; rerun without to continue")
     p.add_argument("--batch", default="render-001")
     p.add_argument("--godot", default=NATIVE)
     p.add_argument("--linux-godot", default=os.environ.get("ANUBIS_GODOT","/usr/local/bin/godot"))
     p.add_argument("--visual-mode", choices=("full", "existing"), default="full")
     a = p.parse_args()
+    if a.until and not a.execute:
+        p.error("--until requires --execute")
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,15}", a.batch):
         p.error("batch must be 1–16 lowercase letters/digits/hyphens")
     return dispatch(a)

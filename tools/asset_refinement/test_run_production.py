@@ -23,6 +23,25 @@ class ProductionTests(unittest.TestCase):
         self.assertTrue(plan["visual_detail"][1]["ANUBIS_VISUAL_CATALOG"].endswith("catalog_coastal_detail.json"))
         self.assertIn("review_detail",plan)
 
+    def test_status_and_order(self):
+        self.assertLess(production.STAGES.index("district_buildings"),production.STAGES.index("visual"))
+        self.assertLess(production.STAGES.index("visual_detail"),production.STAGES.index("evidence"))
+        with tempfile.TemporaryDirectory() as tmp:
+            run=Path(tmp)/"render-001"
+            self.assertEqual(production.status(run)["status"],"not-started")
+            self.assertFalse(run.exists())
+            run.mkdir()
+            entries={n:{"status":"pending"} for n in production.STAGES}
+            entries["music"]={"status":"completed"}
+            entries["layouts"]={"status":"running","log":"layouts-1.log"}
+            (run/"production.json").write_text(json.dumps({"signature":{"stages":production.STAGES,"source":"fixture"},"entries":entries}))
+            (run/"PAUSE").touch()
+            report=production.status(run)
+            self.assertEqual(report["completed"],1)
+            self.assertEqual(report["current_stage"],"layouts")
+            self.assertEqual(report["current_log"],"layouts-1.log")
+            self.assertTrue(report["pause_requested"])
+
     def test_music_hashes(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
