@@ -19,7 +19,7 @@ NAS = Path("/mnt/z/NightGrid-Afterhours")
 HOME = Path(os.environ.get("ANUBIS_VISUAL_HOME", "/root/.local/share/nightgrid-visual-py311"))
 NATIVE = "/mnt/c/Users/RhythmicCarnage/AppData/Local/Temp/nightgrid-godot-472/Godot_v4.7.2-stable_win64_console.exe"
 MUSIC = "music-neon-grunge-studio-002"
-STAGES = ("music", "visual", "botanical", "impostors", "buildings", "environments", "characters",
+STAGES = ("music", "visual", "botanical", "impostors", "buildings", "environments", "decals", "characters",
           "reception", "synaxis-ground", "inventory", "review_packet", "evidence", "dashboard")
 
 
@@ -105,6 +105,8 @@ def build_plan(batch, godot, visual_mode, linux_godot="/usr/local/bin/godot"):
         "buildings": (base + ["--lane", "buildings", "--batch", post], {}),
         "environments": ([str(HOME / "mesh/bin/python"), "tools/asset_refinement/environment_candidates.py",
                           "--out", str(NAS / "Visual/Environments" / batch), "--width", "1024"], {}),
+        "decals": ([str(HOME / "mesh/bin/python"), "tools/asset_refinement/decal_candidates.py",
+                    "--out", str(NAS / "Visual/Decals" / batch), "--size", "512"], {}),
         "characters": (base + ["--lane", "characters", "--batch", post], {}),
         **{profile: (base + ["--lane", "lighting", "--lighting-profile", profile,
                              "--godot", godot], {})
@@ -192,7 +194,7 @@ def dispatch(args):
                 argv += ["--output", str(run / artifact)]
             elif name == "evidence":
                 argv += ["--run", str(run)]
-            if name in ("botanical", "impostors", "environments"):
+            if name in ("botanical", "impostors", "environments", "decals"):
                 guard_logs = HOME / "guard-logs"
                 guard_logs.mkdir(exist_ok=True)
                 argv = [sys.executable, "tools/asset_refinement/resource_guard.py",

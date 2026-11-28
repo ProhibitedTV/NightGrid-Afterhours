@@ -62,6 +62,12 @@ def index(nas, run):
         if {Path(f["file"]).name for f in record["files"]}!={"environment.hdr","preview.jpg"}:
             raise ValueError("Incomplete HDR derivatives")
         results.append(dict(record,lane="environments",preset=preset))
+    from decal_candidates import OUTPUTS
+    folder=nas / "Visual/Decals" / batch / "street-weathering"
+    record=manifest(folder,"candidate.json","outputs")
+    if {Path(f["file"]).name for f in record["files"]}!=set(OUTPUTS):
+        raise ValueError("Incomplete decal derivatives")
+    results.append(dict(record,lane="decals"))
     from character_candidates import BATCHES
     for actor in BATCHES["all"]:
         folder = nas / "Characters" / post / actor
