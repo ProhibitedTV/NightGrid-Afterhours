@@ -24,17 +24,25 @@ function Assert-Resources {
 function Run-Guarded([string]$Name,[string]$Arguments) {
     Assert-Resources
     $proc = Start-Process -FilePath $Godot -ArgumentList $Arguments -PassThru -RedirectStandardOutput (Join-Path $Project "$Name.stdout.log") -RedirectStandardError (Join-Path $Project "$Name.stderr.log")
-    $clock = [Diagnostics.Stopwatch]::StartNew()
     try {
+        # Retain the OS handle before polling; Windows PowerShell can otherwise
+        # return a null ExitCode after a redirected process terminates.
+        $null = $proc.Handle
+        $clock = [Diagnostics.Stopwatch]::StartNew()
         while (!$proc.HasExited) {
             if ($clock.Elapsed.TotalSeconds -gt $TimeoutSeconds) { throw "$Name timeout" }
             Assert-Resources
             Start-Sleep -Seconds 5
             $proc.Refresh()
         }
-        if ($proc.ExitCode -ne 0) { throw "$Name failed: $($proc.ExitCode)" }
+        $proc.WaitForExit()
+        $code = $proc.ExitCode
+        if ($null -eq $code) { throw "$Name exited but its exit code is unavailable; inspect logs" }
+        if ($code -ne 0) { throw "$Name failed: $code" }
+        Write-Host "$Name completed (exit $code)"
     } finally {
         if (!$proc.HasExited) { Stop-Process -Id $proc.Id -Force; $proc.WaitForExit() }
+        $proc.Dispose()
     }
 }
 # Import dependencies before activating the editor-only experimental plugin.
