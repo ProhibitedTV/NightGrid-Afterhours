@@ -178,6 +178,14 @@ func _ready() -> void:
 			break
 	_install_imported_staff()
 
+func expects_imported_staff() -> bool:
+	if seated or not STAFF_MODELS.has(resident_id):
+		return false
+	if Bank.available():
+		return true
+	var path := "res://assets/models/nightgrid/synaxis_staff/" + str(STAFF_MODELS[resident_id])
+	return ResourceLoader.exists(path, "PackedScene")
+
 func _install_imported_staff() -> void:
 	# The four cinematic leads retain their specialized cup/talk/chair poses.
 	if resident_id in ["dev", "rina", "people_ops", "jetson_wang"]:
