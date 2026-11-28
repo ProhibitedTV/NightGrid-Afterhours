@@ -55,6 +55,13 @@ def index(nas, run):
         if {Path(f["file"]).name for f in record["files"]}!={"lod0.glb","lod1.glb","lod2.glb","occluder.json"}:
             raise ValueError("Incomplete architecture derivatives")
         results.append(dict(record,lane="architecture",family=family))
+    from environment_candidates import PRESETS
+    for preset in PRESETS:
+        folder=nas / "Visual/Environments" / batch / preset
+        record=manifest(folder,"candidate.json","outputs")
+        if {Path(f["file"]).name for f in record["files"]}!={"environment.hdr","preview.jpg"}:
+            raise ValueError("Incomplete HDR derivatives")
+        results.append(dict(record,lane="environments",preset=preset))
     from character_candidates import BATCHES
     for actor in BATCHES["all"]:
         folder = nas / "Characters" / post / actor

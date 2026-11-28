@@ -19,7 +19,7 @@ NAS = Path("/mnt/z/NightGrid-Afterhours")
 HOME = Path(os.environ.get("ANUBIS_VISUAL_HOME", "/root/.local/share/nightgrid-visual-py311"))
 NATIVE = "/mnt/c/Users/RhythmicCarnage/AppData/Local/Temp/nightgrid-godot-472/Godot_v4.7.2-stable_win64_console.exe"
 MUSIC = "music-neon-grunge-studio-002"
-STAGES = ("music", "visual", "botanical", "impostors", "buildings", "characters",
+STAGES = ("music", "visual", "botanical", "impostors", "buildings", "environments", "characters",
           "reception", "synaxis-ground", "inventory", "review_packet", "evidence", "dashboard")
 
 
@@ -103,6 +103,8 @@ def build_plan(batch, godot, visual_mode, linux_godot="/usr/local/bin/godot"):
                        "--bank", str(NAS / "Visual/Botanical" / ("coastal-" + batch)),
                        "--out", str(NAS / "Visual/Impostors" / batch), "--size", "512", "--samples", "32"], {}),
         "buildings": (base + ["--lane", "buildings", "--batch", post], {}),
+        "environments": ([str(HOME / "mesh/bin/python"), "tools/asset_refinement/environment_candidates.py",
+                          "--out", str(NAS / "Visual/Environments" / batch), "--width", "1024"], {}),
         "characters": (base + ["--lane", "characters", "--batch", post], {}),
         **{profile: (base + ["--lane", "lighting", "--lighting-profile", profile,
                              "--godot", godot], {})
@@ -111,7 +113,7 @@ def build_plan(batch, godot, visual_mode, linux_godot="/usr/local/bin/godot"):
         "review_packet": ([sys.executable, "tools/asset_refinement/review_packet.py",
                            "--refined", str(NAS / "Visual/refined-001"),
                            "--previews", str(NAS / "Visual/Previews")], {}),
-        "evidence": ([sys.executable, "tools/asset_refinement/production_evidence.py",
+        "evidence": ([str(HOME / "mesh/bin/python"), "tools/asset_refinement/production_evidence.py",
                       "--nas", str(NAS)], {}),
         "dashboard": ([sys.executable, "tools/asset_refinement/dashboard.py",
                        "--root", str(NAS / "Visual")], {}),
@@ -190,7 +192,7 @@ def dispatch(args):
                 argv += ["--output", str(run / artifact)]
             elif name == "evidence":
                 argv += ["--run", str(run)]
-            if name in ("botanical", "impostors"):
+            if name in ("botanical", "impostors", "environments"):
                 guard_logs = HOME / "guard-logs"
                 guard_logs.mkdir(exist_ok=True)
                 argv = [sys.executable, "tools/asset_refinement/resource_guard.py",
