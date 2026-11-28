@@ -8,7 +8,6 @@ from pathlib import Path
 import re
 import subprocess
 import sys
-import time
 
 from factory_ledger import atomic, now
 from resource_guard import violation
@@ -29,18 +28,17 @@ def git(*args):
 
 def sha(path):
     with path.open("rb") as f:
-        return hashlib.file_digest(f, "sha256").hexdigest()
+        digest = hashlib.sha256()
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(chunk)
+        return digest.hexdigest()
 
 
 def music_complete(folder):
     """Do not reload models for an intact completed 48-take candidate batch."""
     try:
         rows = json.loads((folder / "manifest.json").read_text())["candidates"]
-        if len(rows) != 48 or len({r["id"] for r in rows}) != 48:
-            # Some producers use cue IDs shared across takes; filenames are authoritative.
-            if len(rows) != 48:
-                return False
-        if len({r["file"] for r in rows}) != 48:
+        if len(rows) != 48 or len({r["file"] for r in rows}) != 48:
             return False
         return all(Path(r["file"]).name == r["file"]
                    and not (folder / r["file"]).is_symlink()
@@ -123,6 +121,12 @@ def dispatch(args):
         for name in STAGES:
             entry = state["entries"][name]
             if entry["status"] == "completed":
+                if name == "music" and not music_complete(NAS / "Music" / MUSIC):
+                    raise RuntimeError("Completed music checkpoint no longer verifies; inspect existing batch")
+                if name in ("reception", "synaxis-ground") and not (Path(entry["candidate"]) / "validated-bake.json").is_file():
+                    raise RuntimeError("Completed lighting checkpoint missing; inspect existing candidate")
+                if not (run / entry["log"]).is_file():
+                    raise RuntimeError("Completed stage log missing; inspect run")
                 print("CHECKPOINT", name, flush=True)
                 continue
             bad = violation(snapshot(), 25, 10, 85, require_gpu=True)
