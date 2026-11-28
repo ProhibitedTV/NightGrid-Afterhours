@@ -19,7 +19,7 @@ NAS = Path("/mnt/z/NightGrid-Afterhours")
 HOME = Path(os.environ.get("ANUBIS_VISUAL_HOME", "/root/.local/share/nightgrid-visual-py311"))
 NATIVE = "/mnt/c/Users/RhythmicCarnage/AppData/Local/Temp/nightgrid-godot-472/Godot_v4.7.2-stable_win64_console.exe"
 MUSIC = "music-neon-grunge-studio-002"
-STAGES = ("music", "visual", "visual_detail", "botanical", "impostors", "layouts", "street_plan", "buildings", "district_buildings", "environments", "decals", "characters",
+STAGES = ("music", "visual", "visual_detail", "botanical", "impostors", "layouts", "street_plan", "regional_plan", "buildings", "district_buildings", "environments", "decals", "characters",
           "reception", "synaxis-ground", "inventory", "review_packet", "review_detail", "evidence", "dashboard")
 
 
@@ -109,6 +109,8 @@ def build_plan(batch, godot, visual_mode, linux_godot="/usr/local/bin/godot"):
                      "--out", str(NAS / "Visual/UrbanLayouts" / batch)], {}),
         "street_plan": ([sys.executable, "tools/asset_refinement/street_network_candidates.py",
                          "--out", str(NAS / "Visual/UrbanLayouts" / batch)], {}),
+        "regional_plan": ([sys.executable, "tools/asset_refinement/regional_candidates.py",
+                           "--out", str(NAS / "Visual/UrbanLayouts" / batch)], {}),
         "buildings": (base + ["--lane", "buildings", "--batch", post], {}),
         "district_buildings": ([sys.executable, "tools/asset_refinement/district_building_candidates.py",
                                "--out", str(NAS / "Visual/DistrictArchitecture" / batch)], {}),
