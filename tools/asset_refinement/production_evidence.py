@@ -42,6 +42,14 @@ def index(nas, run):
     if len(record["files"]) != 14:
         raise ValueError("Expected all 14 botanical meshes")
     results.append(dict(record, lane="botanical"))
+    from botanical_candidates import SPECIES
+    for species in SPECIES:
+        folder = nas / "Visual/Impostors" / batch / species
+        record = manifest(folder, "candidate.json", "outputs")
+        settings = json.loads((folder / "candidate.json").read_text())["settings"]
+        if settings["source_sha256"] != sha(bot / (species + "_lod0.glb")) or settings["species"] != species:
+            raise ValueError("Impostor source mismatch")
+        results.append(dict(record, lane="impostors", species=species))
     for family in ("B1", "B2", "B3", "B4"):
         results.append(dict(manifest(nas / "Visual/Architecture" / post / family,
                                      "candidate.json", "outputs"), lane="architecture", family=family))
