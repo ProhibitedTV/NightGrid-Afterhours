@@ -35,7 +35,7 @@ def prepare(out):
     scene=out/SCENE; scene.parent.mkdir(parents=True,exist_ok=True)
     scene.write_text(source,encoding="utf-8")
     plugin=out/"addons/nightgrid_bake"; plugin.mkdir(parents=True)
-    shutil.copy2(Path(__file__).with_name("pilot_plugin.gd"),plugin/"pilot_plugin.gd")
+    shutil.copy2(Path(__file__).with_name("pilot_plugin.gd.txt"),plugin/"pilot_plugin.gd")
     (plugin/"plugin.cfg").write_text('[plugin]\nname="NightGrid Bake Pilot"\ndescription="Isolated editor lightmap automation"\nauthor="BitRiver"\nversion="1.0"\nscript="pilot_plugin.gd"\n',encoding="utf-8")
     (out/"project.godot").write_text('config_version=5\n[application]\nconfig/name="NightGrid Isolated Bake Pilot"\n[editor_plugins]\nenabled=PackedStringArray("res://addons/nightgrid_bake/plugin.cfg")\n[rendering]\nrenderer/rendering_method="forward_plus"\n',encoding="utf-8")
     (out/"nightgrid_bake_pilot.marker").write_text("isolated candidate\n",encoding="utf-8")
