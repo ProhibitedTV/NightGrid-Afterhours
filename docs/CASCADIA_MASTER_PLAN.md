@@ -12,7 +12,7 @@
 - Preserve the economic and architectural contrast of historic working neighborhoods, corporate redevelopment and ordinary residential life. Map geometry must reflect fictional development eras: port settlement, trade corridors, industry, transit expansion, hillside housing, corporate consolidation.
 
 ### 2. Morrow Bay v3 — prerequisite to expansion (#592)
-Keep 58 m streaming buckets separate from road/parcel topology. Existing v2 saves, missions, business IDs, properties and anchor positions must remain recoverable. Audit all consumers before replacing the road grid. Start with a non-story parcel and an isolated intersection pilot, not a wholesale rewrite.
+Keep 58 m streaming buckets separate from road/parcel topology. Existing missions, business IDs, properties and gameplay anchors must remain coherent. Historical pre-alpha saves need not migrate per #200; preserve them on disk and reject incompatible layouts clearly. Audit all consumers before replacing the road grid. Start with a non-story parcel and an isolated intersection pilot, not a wholesale rewrite.
 - Street hierarchy: inherited diagonal boulevard; irregular setbacks, variable block dimensions, T junctions, shore-following streets, service lanes and pedestrian shortcuts. Terrain and slope survey before hillside geometry.
 - District signatures: Brickwater historic industrial fabric; Glassline corporate podiums/plazas; Vesper fine-grained commerce; North Quay port markets; West Docks freight; Afterhours entertainment; Horizon courtyards/hills; Southworks civic infrastructure.
 - Interiors: design room program first, then walls, openings, structural core, stairs/elevators, services, daylight, furniture and collision. Match exterior entrances to actual rooms. Maintain accessible gameplay clearances, named anchors and door reachability. Synaxis #460 remains a separate detailed contract.
@@ -30,8 +30,8 @@ One existing checkout; existing models and toolchains; serial guarded runs, immu
 |---|---|---|
 | G0 — production readiness | #590 / #591 | Current CI passes; dependency/space preflight; end-to-end local candidate run, verified index and review packet |
 | G1 — visual pilot | #585–#589 / #571 | Representative native import, lighting and material review; fixed-camera day/night/wet; cold and warm traversal; PCK and residency accounting |
-| G2 — city redevelopment | #592 / #460 | Legacy road API parity, exact anchor survey, one new parcel and intersection, doors and routes physically traversable; no save or traffic regressions |
-| G3 — regional travel | #593 | Stable city IDs/local coordinates, bridge and sparse destination block, safe travel/return/reload, distant silhouette, staged prefetch, bounded active simulation |
+| G2 — city redevelopment | #592 / #460 | Temporary v2 road API parity, exact anchor survey, one new parcel and intersection, doors and routes physically traversable; new-schema save and traffic tests |
+| G3 — regional travel | #593 | Stable city IDs/local coordinates in new schema, bridge and sparse destination block, safe travel/return/reload, distant silhouette, staged prefetch, bounded active simulation |
 | G4 — second city | #593 | Ironhaven authored district vertical slice with same gameplay systems; measured cross-city traversal; no full-region preload |
 | G5 — third city | #593 | Silica Valley authored slice; intercity freight, music and economy; independent resource packs and dependency audit |
 | G6 — wider state | future | Northern regions only after earlier gates; scope and names separately approved |
@@ -50,3 +50,6 @@ Intercity courier/freight, jobs, music touring, venues, property, transit and ju
 - [World architecture and migration](CASCADIA_WORLD_ARCHITECTURE.md): coordinate/identity separation, legacy route parity, save transactions, regional travel states, resource ownership, test matrix.
 - [Urban and architectural production bible](CASCADIA_ARCHITECTURE_BIBLE.md): city signatures, kit hierarchy, place-driven work orders and vertical slice content requirements.
 These documents expand the approved plan; the engineering designs and first pilot allocation are proposals, not active features.
+
+## Reconciliation with existing authored-city decision (#197–#206)
+The creator's explicit Nov 22/23 decision in #200 waives historical pre-alpha v1/beta.7/beta.8 save migration. The new fixed authored layout and clean save schema are authoritative. Legacy v2 geometry is a temporary survey and parity baseline during engineering, NOT a promise to maintain a second runtime layout provider or migrate old saves. Keep existing live build intact until a reviewed replacement; reject incompatible saves gracefully, never overwrite them silently. Protect mission/business/property identity and validate persistence within the new schema. #198 survey, #199 registry, #200 save, #201 streaming, #202 corridor, #203 route/consumer binding, #204 mutable state, #205 acceptance and #206 city expansion are existing work items; #592 extends their design toward irregular streets, not a duplicate implementation backlog. This decision supersedes contradictory preservation language in older planning artifacts.

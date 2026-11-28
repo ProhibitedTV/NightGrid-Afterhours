@@ -43,3 +43,5 @@ The four authored parcel compositions now drive actual dimensioned shell generat
 Regional atlas lane: seven provisional settlements, three major cities, eight multimodal links; JSON, schematic SVG and architecture demand. Morrow Bay remains primary and only existing playable city. No new regional assets are generated automatically by this lane; future cities remain planning-only. See `docs/CASCADIA_REGIONAL_VISION.md`.
 
 The governing scope, acceptance gates and sequencing for city redevelopment and regional expansion are in [CASCADIA_MASTER_PLAN.md](CASCADIA_MASTER_PLAN.md). The regional atlas now uses the approved state name Cascadia. Future settlements are not automatic asset generation jobs.
+
+For future authored world integration, #200 waives historical pre-alpha save migration; the existing dispatcher does not modify live saves. See the master plan reconciliation.
