@@ -9,7 +9,7 @@
       "CALL_MANDARIN": "林雪：上校，解放军那边收到资料了吗？……好，董事长还以为这是市场调研。\n林雪：不，他妻子不知道。……知道了，我会继续保持联系。",
       "CONFERENCE_END": "Lin Xue: Sorry. International customer support.\nPlayer: Did you just say colonel?\nLin Xue: It's a very senior customer.\nJetson Wang: She's our director of strategic partnerships.\nPlayer: She's listed as your assistant.\nJetson Wang: We believe in flat organizational structures.\nPlayer: The audit says you approved the transfer at a hotel.\nJetson Wang: It was an off-site.\nLin Xue: A very productive off-site.\nJetson Wang: Let's not make a personnel matter out of a security matter.",
       "OFFBOARDING": "SYNAXIS PEOPLE EXPERIENCE / EXIT INTERVIEW\nBefore you leave, please train your replacement.\nReplacement: Synaxis Assistant Enterprise.\nYour final performance review: Exceeds Expectations.\nYour employment status: Does Not Exist.\nHR: We are not replacing you with AI. We are replacing your position with a more scalable version of your contribution.",
-      "BREAKROOM_PARTY": "HR: Happy Global Talent Appreciation Day! Our H-1B sponsorship team has approved a cultural celebration.\nPlayer: What country celebrates this?\nDev: I asked my parents back home. They've never heard of it.\nRina: Neither has HR. They needed something for the diversity slide before earnings.\nDev: I said it sounded like a holiday. They said it sounded like a catering expense. We agreed to stop asking questions.\nHR: Before anyone eats, we need a group photo for LinkedIn. Please look like you're thriving.\nRina: The pizza is cold. The quarterly profit is not.",
+      "BREAKROOM_PARTY": "HR: Happy Global Talent Appreciation Day! Our H-1B sponsorship team has approved a cultural celebration.\nPlayer: What country celebrates this?\nDev: I asked my parents back home. They've never heard of it.\nRina: Neither has HR. They needed something for the diversity slide before earnings.\nDev: I said it sounded like a holiday. They said it sounded like a catering expense. We agreed to stop asking questions.\nHR: Before anyone eats, we need a group photo for the company careers page. Please look like you're thriving.\nRina: The pizza is cold. The quarterly profit is not.",
       "BREAKROOM_PHOTO": "HR: Perfect! Caption: Building belonging, one slice at a time.\nDev: Can we put the premium increase in the caption?\nHR: Let's keep the messaging positive.",
       "BREAKROOM_DECLINE": "Rina: Good call. They'll use the same photo for the next three quarters anyway.\nDev: Don't worry. I'll save you a napkin. That's the only thing they ordered enough of.",
       "CALL_SUBTITLES": "Lin Xue: Colonel, did the People's Liberation Army receive the files? ... Good. The chairman still thinks this is market research.\nLin Xue: No, his wife doesn't know. ... Understood. I'll stay in touch."
@@ -295,7 +295,7 @@
       "id": "synaxis.breakroom_party.06",
       "character": "hr",
       "language": "English",
-      "text": "Before anyone eats, we need a group photo for LinkedIn. Please look like you're thriving.",
+      "text": "Before anyone eats, we need a group photo for the company careers page. Please look like you're thriving.",
       "direction": "Natural workplace conversation, dry humor.",
       "source": {
         "constant": "BREAKROOM_PARTY",
