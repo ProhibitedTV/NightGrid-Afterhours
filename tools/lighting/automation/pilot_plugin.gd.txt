@@ -42,7 +42,8 @@ func _run() -> void:
 	if gi == null or gi.light_data != null:
 		_stop("Expected unbaked reception fixture", 1)
 		return
-	gi.bake_quality = LightmapGI.BAKE_QUALITY_HIGH
+	gi.set_bake_quality(LightmapGI.BAKE_QUALITY_HIGH)
+	print("NIGHTGRID_BAKE_PILOT: High quality selected")
 	EditorInterface.get_selection().clear()
 	EditorInterface.get_selection().add_node(gi)
 	EditorInterface.edit_node(gi)
@@ -59,6 +60,7 @@ func _run() -> void:
 	var button := buttons[0] as Button
 	# In 4.7.2 the native plugin opens its own EditorFileDialog when no data
 	# exists. Its file_selected signal calls the editor's actual C++ baker.
+	print("NIGHTGRID_BAKE_PILOT: Native toolbar found; opening save dialog")
 	button.pressed.emit()
 	await get_tree().process_frame
 	var dialogs := _find(button, "EditorFileDialog")
@@ -67,7 +69,9 @@ func _run() -> void:
 		return
 	var dialog := dialogs[0] as EditorFileDialog
 	dialog.hide()
+	print("NIGHTGRID_BAKE_PILOT: Invoking native baker")
 	dialog.file_selected.emit(OUTPUT)
+	print("NIGHTGRID_BAKE_PILOT: Native baker returned")
 	# The native signal is synchronous. Never accept a log message alone.
 	await get_tree().process_frame
 	var data := gi.light_data
