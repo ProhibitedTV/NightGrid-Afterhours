@@ -55,6 +55,10 @@ def index(nas, run):
     if {Path(f["file"]).name for f in record["files"]}!={n+ext for n in (*PARCELS,*INTERIORS) for ext in (".json",".svg")}:
         raise ValueError("Incomplete urban layout candidates")
     results.append(dict(record,lane="layouts"))
+    record=manifest(nas/"Visual/UrbanLayouts"/batch/"street-network","candidate.json","outputs")
+    if {Path(f["file"]).name for f in record["files"]}!={"network.json","network.svg"}:
+        raise ValueError("Incomplete street network study")
+    results.append(dict(record,lane="street_plan"))
     for family in ("B1", "B2", "B3", "B4"):
         record=manifest(nas / "Visual/Architecture" / post / family,"candidate.json","outputs")
         if {Path(f["file"]).name for f in record["files"]}!={"lod0.glb","lod1.glb","lod2.glb","occluder.json"}:
