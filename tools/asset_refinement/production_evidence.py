@@ -64,6 +64,13 @@ def index(nas, run):
         if {Path(f["file"]).name for f in record["files"]}!={"lod0.glb","lod1.glb","lod2.glb","occluder.json"}:
             raise ValueError("Incomplete architecture derivatives")
         results.append(dict(record,lane="architecture",family=family))
+    for parcel,plan in PARCELS.items():
+        folder=nas/"Visual/DistrictArchitecture"/batch/parcel
+        record=manifest(folder,"candidate.json","outputs")
+        expected={f"{n}-lod{lod}.glb" for n in plan["structures"] for lod in (0,1,2)}|{"parcel-lod2.glb","placement.json"}
+        if {Path(f["file"]).name for f in record["files"]}!=expected:
+            raise ValueError("Incomplete district architecture")
+        results.append(dict(record,lane="district_buildings",parcel=parcel))
     from environment_candidates import PRESETS
     for preset in PRESETS:
         folder=nas / "Visual/Environments" / batch / preset
