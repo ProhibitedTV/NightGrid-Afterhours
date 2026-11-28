@@ -17,3 +17,4 @@ __pycache__/
 # Creator-only candidate binaries staged during packaging.
 /assets/creator_playtest_cast/*
 !/assets/creator_playtest_cast/README.md
+/assets/creator_character_bank/

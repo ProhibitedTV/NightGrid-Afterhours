@@ -2,6 +2,7 @@ extends "res://scripts/lantern_patron.gd"
 ## HQ-only actors; authored identities, reusable static detail and bounded pose updates.
 ## No navigation, physics or economy ownership. The scene owns mission progression.
 const RigVisual = preload("res://scripts/pedestrian_rig_visual.gd")
+const Bank = preload("res://scripts/character_bank.gd")
 const STAFF_MODELS = {
 	"mika": "mika_torres.glb",
 	"security": "owen_pike.glb",
@@ -178,6 +179,13 @@ func _ready() -> void:
 	_install_imported_staff()
 
 func _install_imported_staff() -> void:
+	# The four cinematic leads retain their specialized cup/talk/chair poses.
+	if resident_id in ["dev", "rina", "people_ops", "jetson_wang"]:
+		return
+	if Bank.available():
+		_imported_visual = Bank.install(self, Bank.choose(resident_id, outfit, true), seated)
+		if is_instance_valid(_imported_visual):
+			return
 	if seated or not STAFF_MODELS.has(resident_id):
 		return
 	var path := "res://assets/models/nightgrid/synaxis_staff/" + str(STAFF_MODELS[resident_id])

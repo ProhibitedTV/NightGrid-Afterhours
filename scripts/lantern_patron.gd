@@ -3,6 +3,8 @@ extends Node3D
 ## pathfinding, additional lights, runtime mesh creation or save-schema changes.
 ## Local origin stays on the café floor. Customization is applied before _ready.
 static var _shared_materials: Dictionary = {}
+const PatronBank = preload("res://scripts/character_bank.gd")
+var _bank_visual: Node3D
 
 var resident_id := ""
 var role := ""
@@ -62,7 +64,10 @@ func get_animation_state() -> Dictionary:
 
 func _ready() -> void:
 	_build_character()
-	set_process(true)
+	# Staff subclasses finish their own badge/role geometry before swapping.
+	if not has_method("configure_staff"):
+		_bank_visual = PatronBank.install(self, PatronBank.choose(resident_id), seated)
+	set_process(not is_instance_valid(_bank_visual))
 
 func _process(delta: float) -> void:
 	_clock = fposmod(_clock + maxf(0.0, delta), 1800.0)

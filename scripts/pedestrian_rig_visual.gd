@@ -55,6 +55,10 @@ func _ready() -> void:
 		if not skeletons.is_empty() and not players.is_empty():
 			_skeleton = skeletons[0] as Skeleton3D
 			_player = players[0] as AnimationPlayer
+			# The Ara studio names its authored clips with title case.
+			if _player.has_animation(&"Idle") and _player.has_animation(&"Walk"):
+				idle_clip = &"Idle"
+				walk_clip = &"Walk"
 		if is_instance_valid(_player):
 			# Godot's imported clips default to one shot. Share the already
 			# imported resources and only set playback metadata.
